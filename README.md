@@ -1,1 +1,1 @@
-# cluster-api-provider-bare-metal
+# cluster-api-provider-baremetal
