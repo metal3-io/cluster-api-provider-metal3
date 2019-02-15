@@ -23,9 +23,9 @@ import (
 
 	"github.com/metalkube/cluster-api-provider-baremetal/pkg/apis"
 	"github.com/metalkube/cluster-api-provider-baremetal/pkg/cloud/baremetal/actuators/machine"
-	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
-	"sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset"
-	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
+	clusterapis "github.com/openshift/cluster-api/pkg/apis"
+	"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
+	capimachine "github.com/openshift/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"

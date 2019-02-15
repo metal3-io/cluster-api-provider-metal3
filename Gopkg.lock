@@ -296,6 +296,27 @@
   version = "v1.4.3"
 
 [[projects]]
+  branch = "integration"
+  digest = "1:c49c9300cc3bcc68bc1380ac1bad9ccc190f4f53c58dc208d805eda92c3b9279"
+  name = "github.com/openshift/cluster-api"
+  packages = [
+    "pkg/apis",
+    "pkg/apis/cluster/common",
+    "pkg/apis/cluster/v1alpha1",
+    "pkg/apis/machine/common",
+    "pkg/apis/machine/v1beta1",
+    "pkg/client/clientset_generated/clientset",
+    "pkg/client/clientset_generated/clientset/scheme",
+    "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
+    "pkg/client/clientset_generated/clientset/typed/machine/v1beta1",
+    "pkg/controller/error",
+    "pkg/controller/machine",
+    "pkg/util",
+  ]
+  pruneopts = "T"
+  revision = "91fca585a85b163ddfd119fd09c128c9feadddca"
+
+[[projects]]
   digest = "1:e5d0bd87abc2781d14e274807a470acd180f0499f8bf5bb18606e9ec22ad9de9"
   name = "github.com/pborman/uuid"
   packages = ["."]
@@ -849,24 +870,6 @@
   revision = "ced9eb3070a5f1c548ef46e8dfe2a97c208d9f03"
 
 [[projects]]
-  digest = "1:ef04c20bf6f1dcd5e1cd1fd27a65675649dfed58e89699fe2891cccc0a233efd"
-  name = "sigs.k8s.io/cluster-api"
-  packages = [
-    "pkg/apis",
-    "pkg/apis/cluster/common",
-    "pkg/apis/cluster/v1alpha1",
-    "pkg/client/clientset_generated/clientset",
-    "pkg/client/clientset_generated/clientset/scheme",
-    "pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
-    "pkg/controller/error",
-    "pkg/controller/machine",
-    "pkg/util",
-  ]
-  pruneopts = "T"
-  revision = "3547f8dd93078c0b0f0b221ee1c2a57f96673081"
-  version = "0.0.0-alpha.4"
-
-[[projects]]
   digest = "1:5aa50779f75cc439edd3455a6dee7cf179b52f8dde764a47cc929693485d1afb"
   name = "sigs.k8s.io/controller-runtime"
   packages = [
@@ -956,6 +959,11 @@
     "github.com/emicklei/go-restful",
     "github.com/onsi/ginkgo",
     "github.com/onsi/gomega",
+    "github.com/openshift/cluster-api/pkg/apis",
+    "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1",
+    "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset",
+    "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
+    "github.com/openshift/cluster-api/pkg/controller/machine",
     "golang.org/x/net/context",
     "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1",
     "k8s.io/apimachinery/pkg/apis/meta/v1",
@@ -967,12 +975,6 @@
     "k8s.io/client-go/rest",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
-    "sigs.k8s.io/cluster-api/pkg/apis",
-    "sigs.k8s.io/cluster-api/pkg/apis/cluster/common",
-    "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1",
-    "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset",
-    "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1",
-    "sigs.k8s.io/cluster-api/pkg/controller/machine",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",
     "sigs.k8s.io/controller-runtime/pkg/controller",
