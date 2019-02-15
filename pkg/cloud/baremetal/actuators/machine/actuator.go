@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"log"
 
-	clusterv1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
-	client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
+	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
+	client "github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
 const (
@@ -47,25 +47,25 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 }
 
 // Create creates a machine and is invoked by the Machine Controller
-func (a *Actuator) Create(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	log.Printf("Creating machine %v for cluster %v.", machine.Name, cluster.Name)
 	return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
-func (a *Actuator) Delete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	log.Printf("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
 	return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Update updates a machine and is invoked by the Machine Controller
-func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (a *Actuator) Update(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	log.Printf("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
 	return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Exists tests for the existence of a machine and is invoked by the Machine Controller
-func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
+func (a *Actuator) Exists(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) (bool, error) {
 	log.Printf("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
 	return false, fmt.Errorf("TODO: Not yet implemented")
 }
@@ -75,13 +75,13 @@ func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machi
 // (https://github.com/kubernetes-sigs/cluster-api/issues/160).
 
 // GetIP returns IP address of the machine in the cluster.
-func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine) (string, error) {
+func (a *Actuator) GetIP(cluster *machinev1.Cluster, machine *machinev1.Machine) (string, error) {
 	log.Printf("Getting IP of machine %v for cluster %v.", machine.Name, cluster.Name)
 	return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
 // GetKubeConfig gets a kubeconfig from the running control plane.
-func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, controlPlaneMachine *clusterv1.Machine) (string, error) {
+func (a *Actuator) GetKubeConfig(cluster *machinev1.Cluster, controlPlaneMachine *machinev1.Machine) (string, error) {
 	log.Printf("Getting IP of machine %v for cluster %v.", controlPlaneMachine.Name, cluster.Name)
 	return "", fmt.Errorf("TODO: Not yet implemented")
 }
