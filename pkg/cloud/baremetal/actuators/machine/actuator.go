@@ -48,25 +48,25 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 
 // Create creates a machine and is invoked by the Machine Controller
 func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
-	log.Printf("Creating machine %v for cluster %v.", machine.Name, cluster.Name)
+	log.Printf("Creating machine %v .", machine.Name)
 	return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
-	log.Printf("Deleting machine %v for cluster %v.", machine.Name, cluster.Name)
+	log.Printf("Deleting machine %v .", machine.Name)
 	return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Update updates a machine and is invoked by the Machine Controller
 func (a *Actuator) Update(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
-	log.Printf("Updating machine %v for cluster %v.", machine.Name, cluster.Name)
+	log.Printf("Updating machine %v .", machine.Name)
 	return fmt.Errorf("TODO: Not yet implemented")
 }
 
 // Exists tests for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) (bool, error) {
-	log.Printf("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
+	log.Printf("Checking if machine %v  exists.", machine.Name)
 	return false, fmt.Errorf("TODO: Not yet implemented")
 }
 
@@ -76,12 +76,12 @@ func (a *Actuator) Exists(ctx context.Context, cluster *machinev1.Cluster, machi
 
 // GetIP returns IP address of the machine in the cluster.
 func (a *Actuator) GetIP(cluster *machinev1.Cluster, machine *machinev1.Machine) (string, error) {
-	log.Printf("Getting IP of machine %v for cluster %v.", machine.Name, cluster.Name)
+	log.Printf("Getting IP of machine %v .", machine.Name)
 	return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
 // GetKubeConfig gets a kubeconfig from the running control plane.
 func (a *Actuator) GetKubeConfig(cluster *machinev1.Cluster, controlPlaneMachine *machinev1.Machine) (string, error) {
-	log.Printf("Getting IP of machine %v for cluster %v.", controlPlaneMachine.Name, cluster.Name)
+	log.Printf("Getting IP of machine %v .", controlPlaneMachine.Name)
 	return "", fmt.Errorf("TODO: Not yet implemented")
 }
