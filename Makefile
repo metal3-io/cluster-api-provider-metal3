@@ -2,6 +2,12 @@
 # Image URL to use all building/pushing image targets
 IMG ?= controller:latest
 
+.PHONY: build
+build:
+	@mkdir -p bin
+	go build -o bin/machine-controller-manager ./cmd/manager
+	go build -o bin/manager ./vendor/github.com/openshift/cluster-api/cmd/manager
+
 all: test manager
 
 # Run tests
