@@ -186,6 +186,9 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 		log.Printf("Found associated host %s", host.Name)
 		return host, nil
 	default:
+		// TODO - This is an error condition we should attempt to recover from.
+		// We should choose which host we intended to remain associated with this
+		// Machine, and disassociate the rest.
 		return nil, fmt.Errorf("Found %d hosts with label %s:%s", len(hosts.Items), "machine", machine.Name)
 	}
 }
@@ -197,6 +200,8 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (*bmh.BareMetalHost, error) {
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
+	// TODO - We should add filtering here for known conditions that make
+	// a host not a valid choice, such as an operational state of error.
 	opts := &client.ListOptions{}
 	a.client.List(ctx, opts, &hosts)
 
