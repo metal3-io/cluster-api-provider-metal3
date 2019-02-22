@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"os"
 
+	bmoapis "github.com/metalkube/baremetal-operator/pkg/apis"
 	"github.com/metalkube/cluster-api-provider-baremetal/pkg/apis"
 	"github.com/metalkube/cluster-api-provider-baremetal/pkg/cloud/baremetal/actuators/machine"
 	clusterapis "github.com/openshift/cluster-api/pkg/apis"
-	"github.com/openshift/cluster-api/pkg/client/clientset_generated/clientset"
 	capimachine "github.com/openshift/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -50,13 +50,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	cs, err := clientset.NewForConfig(cfg)
-	if err != nil {
-		panic(err)
-	}
-
 	machineActuator, err := machine.NewActuator(machine.ActuatorParams{
-		MachinesGetter: cs.ClusterV1alpha1(),
+		Client: mgr.GetClient(),
 	})
 	if err != nil {
 		panic(err)
@@ -67,6 +62,10 @@ func main() {
 	}
 
 	if err := clusterapis.AddToScheme(mgr.GetScheme()); err != nil {
+		panic(err)
+	}
+
+	if err := bmoapis.AddToScheme(mgr.GetScheme()); err != nil {
 		panic(err)
 	}
 
