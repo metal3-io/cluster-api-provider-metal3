@@ -26,7 +26,7 @@ import (
 	bmh "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -35,9 +35,6 @@ const (
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
 	HostAnnotation = "metalkube.org/BareMetalHost"
-	// MachineLabel is the key for a label that should go on a BareMetalHost that
-	// references the Machine it is associated with.
-	MachineLabel = "machine.openshift.io/Machine"
 )
 
 // Add RBAC rules to access cluster-api resources
@@ -65,7 +62,7 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 // Create creates a machine and is invoked by the Machine Controller
 func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	log.Printf("Creating machine %v .", machine.Name)
-	// look for associated BMH by searching for a label that matches this machine
+	// look for associated BMH
 	host, err := a.getHost(ctx, machine)
 	if err != nil {
 		return err
@@ -80,15 +77,6 @@ func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machi
 		log.Printf("Associating machine %s with host %s", machine.Name, host.Name)
 	} else {
 		log.Printf("Machine %s already associated with host %s", machine.Name, host.Name)
-	}
-
-	_, err = ensureLabelOnHost(ctx, machine, host)
-	if err != nil {
-		return err
-	}
-	err = a.client.Update(ctx, host)
-	if err != nil {
-		return err
 	}
 
 	err = a.ensureAnnotation(ctx, machine, host)
@@ -115,17 +103,6 @@ func (a *Actuator) Update(ctx context.Context, cluster *machinev1.Cluster, machi
 	}
 	if host == nil {
 		return fmt.Errorf("host not found for machine %s", machine.Name)
-	}
-
-	changed, err := ensureLabelOnHost(ctx, machine, host)
-	if err != nil {
-		return err
-	}
-	if changed {
-		err = a.client.Update(ctx, host)
-		if err != nil {
-			return err
-		}
 	}
 
 	err = a.ensureAnnotation(ctx, machine, host)
@@ -167,36 +144,37 @@ func (a *Actuator) GetKubeConfig(cluster *machinev1.Cluster, controlPlaneMachine
 	return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
-// getHost gets the associated host by searching for a label on it that
-// references the machine. Returns nil if not found.
+// getHost gets the associated host by looking for an annotation on the machine
+// that contains a reference to the host. Returns nil if not found. Assumes the
+// host is in the same namespace as the machine.
 func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bmh.BareMetalHost, error) {
-	hosts := bmh.BareMetalHostList{}
-	opts := &client.ListOptions{
-		LabelSelector: labels.Set{MachineLabel: machine.Name}.AsSelector(),
+	annotations := machine.ObjectMeta.GetAnnotations()
+	if annotations == nil {
+		return nil, nil
 	}
-	err := a.client.List(ctx, opts, &hosts)
-	if err != nil {
+	hostName, ok := annotations[HostAnnotation]
+	if !ok {
+		return nil, nil
+	}
+
+	host := bmh.BareMetalHost{}
+	key := client.ObjectKey{
+		Name:      hostName,
+		Namespace: machine.Namespace,
+	}
+	err := a.client.Get(ctx, key, &host)
+	if errors.IsNotFound(err) {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
-	switch len(hosts.Items) {
-	case 0:
-		return nil, nil
-	case 1:
-		host := &hosts.Items[0]
-		log.Printf("Found associated host %s", host.Name)
-		return host, nil
-	default:
-		// TODO - This is an error condition we should attempt to recover from.
-		// We should choose which host we intended to remain associated with this
-		// Machine, and disassociate the rest.
-		return nil, fmt.Errorf("Found %d hosts with label %s:%s", len(hosts.Items), "machine", machine.Name)
-	}
+	return &host, nil
 }
 
 // chooseHost iterates through known hosts and returns one that can be
 // associated with the machine. It searches all hosts in case one already has an
-// association with this machine, but lacks the label that would have made it
-// discoverable. It will add a Machine reference before returning the host.
+// association with this machine. It will add a Machine reference before
+// returning the host.
 func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (*bmh.BareMetalHost, error) {
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
@@ -212,7 +190,7 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		if host.Spec.MachineRef == nil {
 			availableHosts = append(availableHosts, &host)
 		} else if host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
-			log.Printf("found host %s with missing or wrong label", host.Name)
+			log.Printf("found host %s with existing MachineRef", host.Name)
 			chosenHost = &host
 			break
 		}
@@ -247,20 +225,4 @@ func (a *Actuator) ensureAnnotation(ctx context.Context, machine *machinev1.Mach
 	annotations[HostAnnotation] = host.Name
 	machine.ObjectMeta.SetAnnotations(annotations)
 	return a.client.Update(ctx, machine)
-}
-
-// ensureLabelOnHost makes sure there is a label on the host that references the
-// machine. Returns true if the object was changed. Does not use the API to update the machine.
-func ensureLabelOnHost(ctx context.Context, machine *machinev1.Machine, host *bmh.BareMetalHost) (bool, error) {
-	labels := host.ObjectMeta.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	if labels[MachineLabel] == machine.Name {
-		return false, nil
-	}
-	labels[MachineLabel] = machine.Name
-	host.ObjectMeta.SetLabels(labels)
-
-	return true, nil
 }
