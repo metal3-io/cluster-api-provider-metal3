@@ -91,7 +91,22 @@ func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machi
 // Delete deletes a machine and is invoked by the Machine Controller
 func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	log.Printf("Deleting machine %v .", machine.Name)
-	return fmt.Errorf("TODO: Not yet implemented")
+	host, err := a.getHost(ctx, machine)
+	if err != nil {
+		return err
+	}
+	if host != nil && host.Spec.MachineRef != nil {
+		// don't remove the MachineRef if it references some other machine
+		if host.Spec.MachineRef.Name == machine.Name {
+			host.Spec.MachineRef = nil
+			err = a.client.Update(ctx, host)
+			if err != nil && !errors.IsNotFound(err) {
+				return err
+			}
+		}
+	}
+	log.Printf("finished deleting machine %v.", machine.Name)
+	return nil
 }
 
 // Update updates a machine and is invoked by the Machine Controller
