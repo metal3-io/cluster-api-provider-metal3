@@ -353,3 +353,135 @@ func TestEnsureAnnotation(t *testing.T) {
 		}
 	}
 }
+
+func TestDelete(t *testing.T) {
+	scheme := runtime.NewScheme()
+	bmoapis.AddToScheme(scheme)
+
+	testCases := []struct {
+		Host               *bmh.BareMetalHost
+		Machine            machinev1.Machine
+		ExpectedMachineRef *corev1.ObjectReference
+	}{
+		{
+			// machine ref should be removed
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					MachineRef: &corev1.ObjectReference{
+						Name:      "mymachine",
+						Namespace: "myns",
+					},
+				},
+			},
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myhost",
+					},
+				},
+			},
+		},
+		{
+			// machine ref does not match, so it should not be removed
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					MachineRef: &corev1.ObjectReference{
+						Name:      "someoneelsesmachine",
+						Namespace: "myns",
+					},
+				},
+			},
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myhost",
+					},
+				},
+			},
+			ExpectedMachineRef: &corev1.ObjectReference{
+				Name:      "someoneelsesmachine",
+				Namespace: "myns",
+			},
+		},
+		{
+			// no machine ref, so this is a no-op
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+			},
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myhost",
+					},
+				},
+			},
+		},
+		{
+			// no host at all, so this is a no-op
+			Host: nil,
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myhost",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		c := fakeclient.NewFakeClientWithScheme(scheme)
+		if tc.Host != nil {
+			c.Create(context.TODO(), tc.Host)
+		}
+		actuator, err := NewActuator(ActuatorParams{
+			Client: c,
+		})
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = actuator.Delete(context.TODO(), nil, &tc.Machine)
+		if err != nil {
+			t.Errorf("unexpected error %v", err)
+		}
+		if tc.Host != nil {
+			key := client.ObjectKey{
+				Name:      tc.Host.Name,
+				Namespace: tc.Host.Namespace,
+			}
+			host := bmh.BareMetalHost{}
+			c.Get(context.TODO(), key, &host)
+			name := ""
+			expectedName := ""
+			if host.Spec.MachineRef != nil {
+				name = host.Spec.MachineRef.Name
+			}
+			if tc.ExpectedMachineRef != nil {
+				expectedName = tc.ExpectedMachineRef.Name
+			}
+			if name != expectedName {
+				t.Errorf("expected MachineRef %v, found %v", tc.ExpectedMachineRef, host.Spec.MachineRef)
+			}
+		}
+	}
+}
