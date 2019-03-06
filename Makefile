@@ -32,7 +32,7 @@ deploy: manifests
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests:
-	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go crd
+	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 	kustomize build config/default/ > provider-components.yaml
 	echo "---" >> provider-components.yaml
 	cd vendor && kustomize build github.com/openshift/cluster-api/config/default/ >> ../provider-components.yaml
