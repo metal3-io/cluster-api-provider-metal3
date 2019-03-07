@@ -234,7 +234,10 @@ func (a *Actuator) ensureAnnotation(ctx context.Context, machine *machinev1.Mach
 		annotations = make(map[string]string)
 	}
 	existing, ok := annotations[HostAnnotation]
-	if ok && existing != host.Name {
+	if ok {
+		if existing == host.Name {
+			return nil
+		}
 		log.Printf("Warning: found stray annotation for host %s on machine %s. Overwriting.", existing, machine.Name)
 	}
 	annotations[HostAnnotation] = host.Name
