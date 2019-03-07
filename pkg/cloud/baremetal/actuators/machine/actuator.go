@@ -195,10 +195,11 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 	hosts := bmh.BareMetalHostList{}
 	// TODO - We should add filtering here for known conditions that make
 	// a host not a valid choice, such as an operational state of error.
-	opts := &client.ListOptions{}
+	opts := &client.ListOptions{
+		Namespace: machine.Namespace,
+	}
 	a.client.List(ctx, opts, &hosts)
 
-	var chosenHost *bmh.BareMetalHost
 	availableHosts := []*bmh.BareMetalHost{}
 
 	for _, host := range hosts.Items {
@@ -206,21 +207,18 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 			availableHosts = append(availableHosts, &host)
 		} else if host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
 			log.Printf("found host %s with existing MachineRef", host.Name)
-			chosenHost = &host
-			break
+			return &host, nil
 		}
 	}
-	if chosenHost == nil {
-		if len(availableHosts) == 0 {
-			return nil, fmt.Errorf("No available host found")
-		}
-		// choose a host at random from available hosts
-		rand.Seed(time.Now().Unix())
-		chosenHost = availableHosts[rand.Intn(len(availableHosts))]
-		chosenHost.Spec.MachineRef = &corev1.ObjectReference{
-			Name:      machine.Name,
-			Namespace: machine.Namespace,
-		}
+	if len(availableHosts) == 0 {
+		return nil, fmt.Errorf("No available host found")
+	}
+	// choose a host at random from available hosts
+	rand.Seed(time.Now().Unix())
+	chosenHost := availableHosts[rand.Intn(len(availableHosts))]
+	chosenHost.Spec.MachineRef = &corev1.ObjectReference{
+		Name:      machine.Name,
+		Namespace: machine.Namespace,
 	}
 
 	return chosenHost, nil
