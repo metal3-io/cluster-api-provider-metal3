@@ -239,14 +239,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f0de2c79194481d22a45f93ac5a079d30f1abfb37b8988fd6e32a9b25d752bcb"
+  digest = "1:38ef6f66fdd8f367a7b9a73dcd7b1c940f1c6050b10844a5706b0edc7c311adb"
   name = "github.com/metalkube/baremetal-operator"
   packages = [
     "pkg/apis",
     "pkg/apis/metalkube/v1alpha1",
   ]
   pruneopts = "T"
-  revision = "402a886cf6b0d78d86c4d8aa6ded9c69692ffc36"
+  revision = "94fc76f71fd65bac182b11e4e380a084e71cb7f9"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"

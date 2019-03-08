@@ -21,10 +21,11 @@ const (
 	// host with the operating status.
 	OperationalStatusLabel string = "metalkube.org/operational-status"
 
-	// OperationalStatusError is the status value for the
-	// OperationalStatusLabel when the host has an error condition and
-	// should not be used.
-	OperationalStatusError string = "error"
+	// OperationalStatusInspecting is the status value for the
+	// OperationalStatusLabel when the host is powered on and running
+	// the discovery image to inspect the hardware resources on the
+	// host.
+	OperationalStatusInspecting string = "inspecting"
 
 	// OperationalStatusOnline is the status value for the
 	// OperationalStatusLabel when the host is powered on and running.
@@ -42,7 +43,11 @@ const (
 // BMCDetails contains the information necessary to communicate with
 // the bare metal controller module on host.
 type BMCDetails struct {
-	IP string `json:"ip"`
+
+	// Address holds the URL for accessing the controller on the
+	// network.
+	Address string `json:"address"`
+
 	// The name of the secret containing the BMC credentials (requires
 	// keys "username" and "password").
 	CredentialsName string `json:"credentialsName"`
@@ -62,11 +67,28 @@ type BareMetalHostSpec struct {
 	// How do we connect to the BMC?
 	BMC BMCDetails `json:"bmc"`
 
+	// Which MAC address will PXE boot? This is optional for some
+	// types, but required for libvirt VMs driven by vbmc.
+	BootMACAddress string `json:"bootMACAddress"`
+
 	// Should the server be online?
 	Online bool `json:"online"`
 
 	// MachineRef is a reference to the machine.openshift.io/Machine
 	MachineRef *corev1.ObjectReference `json:"machineRef,omitempty"`
+
+	// Image holds the details of the image to be provisioned.
+	Image *Image `json:"image,omitempty"`
+}
+
+// Image holds the details of an image either to provisioned or that
+// has been provisioned.
+type Image struct {
+	// URL is a location of an image to deploy.
+	URL string `json:"url"`
+
+	// Checksum is the checksum for the image.
+	Checksum string `json:"checksum"`
 }
 
 // FIXME(dhellmann): We probably want some other module to own these
@@ -80,15 +102,38 @@ type CPU struct {
 
 // Storage describes one storage device (disk, SSD, etc.) on the host.
 type Storage struct {
-	SizeGiB int    `json:"sizeGiB"`
-	Info    string `json:"info"`
+	// A name for the disk, e.g. "disk 1 (boot)"
+	Name string `json:"name"`
+
+	// Type, e.g. SSD
+	Type string `json:"type"`
+
+	// The size of the disk in gigabyte
+	SizeGiB int `json:"sizeGiB"`
+
+	// Hardware model
+	Model string `json:"model"`
 }
 
 // NIC describes one network interface on the host.
 type NIC struct {
-	MAC       string `json:"mac"`
-	IP        string `json:"ip"`
-	SpeedGbps int    `json:"speedGbps"`
+	// The name of the NIC, e.g. "nic-1"
+	Name string `json:"name"`
+
+	// The name of the model, e.g. "virt-io"
+	Model string `json:"model"`
+
+	// The name of the network, e.g. "Pod Networking"
+	Network string `json:"network"`
+
+	// The device MAC addr
+	MAC string `json:"mac"`
+
+	// The IP address of the device
+	IP string `json:"ip"`
+
+	// The speed of the device
+	SpeedGbps int `json:"speedGbps"`
 }
 
 // HardwareDetails collects all of the information about hardware
@@ -120,10 +165,11 @@ type BareMetalHostStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	HardwareDetails HardwareDetails `json:"hardware"`
+	// The hardware discovered to exist on the host.
+	HardwareDetails *HardwareDetails `json:"hardware,omitempty"`
 
-	// UUID in ironic
-	ProvisioningID string `json:"provisioningID"`
+	// Information tracked by the provisioner.
+	Provisioning ProvisionStatus `json:"provisioning"`
 
 	// the last thing we deployed here
 	Image string `json:"image"`
@@ -132,6 +178,17 @@ type BareMetalHostStatus struct {
 	GoodCredentials CredentialsStatus `json:"goodCredentials"`
 
 	ErrorMessage string `json:"errorMessage"`
+}
+
+// ProvisionStatus holds the state information for a single target.
+type ProvisionStatus struct {
+	// FIXME(dhellmann): This should be an enum of some sort.
+	State string `json:"state"`
+	// The machine's UUID from ironic
+	ID string `json:"ID"`
+	// Image holds the details of the last image successfully
+	// provisioned to the host.
+	Image *Image `json:"image,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -146,6 +203,19 @@ type BareMetalHost struct {
 	Status BareMetalHostStatus `json:"status,omitempty"`
 }
 
+// Available returns true if the host is available to be provisioned.
+func (host *BareMetalHost) Available() bool {
+	// FIXME(mhrivnak): Add more checks to determine if the host is available, such
+	// as health checks, connectivity checks, etc
+	if host.Spec.MachineRef != nil {
+		return false
+	}
+	if host.HasError() {
+		return false
+	}
+	return true
+}
+
 // SetErrorMessage updates the ErrorMessage in the host Status struct
 // when necessary and returns true when a change is made or false when
 // no change is made.
@@ -155,6 +225,11 @@ func (host *BareMetalHost) SetErrorMessage(message string) bool {
 		return true
 	}
 	return false
+}
+
+// ClearError removes any existing error message.
+func (host *BareMetalHost) ClearError() bool {
+	return host.SetErrorMessage("")
 }
 
 // setLabel updates the given label when necessary and returns true
@@ -199,6 +274,12 @@ func (host *BareMetalHost) OperationalStatus() string {
 		return "unknown"
 	}
 	return status
+}
+
+// HasError returns a boolean indicating whether there is an error
+// set for the host.
+func (host *BareMetalHost) HasError() bool {
+	return host.Status.ErrorMessage != ""
 }
 
 // CredentialsKey returns a NamespacedName suitable for loading the
