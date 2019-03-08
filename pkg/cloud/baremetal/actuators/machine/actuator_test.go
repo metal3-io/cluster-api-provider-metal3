@@ -49,6 +49,12 @@ func TestChooseHost(t *testing.T) {
 			},
 		},
 	}
+	host4 := bmh.BareMetalHost{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "host4",
+			Namespace: "someotherns",
+		},
+	}
 
 	testCases := []struct {
 		Machine          machinev1.Machine
@@ -78,14 +84,15 @@ func TestChooseHost(t *testing.T) {
 			ExpectedHostName: host3.Name,
 		},
 		{
-			// should not pick a host, because both are already taken
+			// should not pick a host, because two are already taken, and the third is in
+			// a different namespace
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine2",
 					Namespace: "myns",
 				},
 			},
-			Hosts:            []runtime.Object{&host1, &host3},
+			Hosts:            []runtime.Object{&host1, &host3, &host4},
 			ExpectedHostName: "",
 		},
 	}
