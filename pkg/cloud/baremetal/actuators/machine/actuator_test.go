@@ -266,6 +266,7 @@ func TestEnsureAnnotation(t *testing.T) {
 		Host    bmh.BareMetalHost
 	}{
 		{
+			// annotation exists and is correct
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -281,6 +282,7 @@ func TestEnsureAnnotation(t *testing.T) {
 			},
 		},
 		{
+			// annotation exists but is wrong
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -296,6 +298,7 @@ func TestEnsureAnnotation(t *testing.T) {
 			},
 		},
 		{
+			// annotations are empty
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{},
@@ -309,6 +312,7 @@ func TestEnsureAnnotation(t *testing.T) {
 			},
 		},
 		{
+			// annotations are nil
 			Machine: machinev1.Machine{},
 			Host: bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
