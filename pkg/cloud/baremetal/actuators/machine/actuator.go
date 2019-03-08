@@ -35,6 +35,11 @@ const (
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
 	HostAnnotation = "metalkube.org/BareMetalHost"
+	// FIXME(dhellmann): These image values should probably come from
+	// configuration settings and something that can tell the IP
+	// address of the web server hosting the image in the ironic pod.
+	instanceImageSource   = "http://172.22.0.1/images/redhat-coreos-maipo-latest.qcow2"
+	instanceImageChecksum = "97830b21ed272a3d854615beb54cf004"
 )
 
 // Add RBAC rules to access cluster-api resources
@@ -219,6 +224,12 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 	chosenHost.Spec.MachineRef = &corev1.ObjectReference{
 		Name:      machine.Name,
 		Namespace: machine.Namespace,
+	}
+	// FIXME(dhellmann): When we stop using the consts for these
+	// settings, we need to pass the right values.
+	chosenHost.Spec.Image = &bmh.Image{
+		URL:      instanceImageSource,
+		Checksum: instanceImageChecksum,
 	}
 
 	return chosenHost, nil
