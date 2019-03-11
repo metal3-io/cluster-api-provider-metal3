@@ -8,6 +8,8 @@ required = [
   "k8s.io/code-generator/cmd/informer-gen",
   "k8s.io/code-generator/cmd/openapi-gen",
   "k8s.io/gengo/args",
+  "github.com/pkg/errors",
+  "github.com/gophercloud/gophercloud",
 ]
 
 [[override]]

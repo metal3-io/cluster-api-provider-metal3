@@ -2,14 +2,19 @@ package baremetalhost
 
 import (
 	"context"
+	"time"
+
+	"github.com/pkg/errors"
 
 	metalkubev1alpha1 "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
 	"github.com/metalkube/baremetal-operator/pkg/bmc"
+	"github.com/metalkube/baremetal-operator/pkg/provisioner"
+	"github.com/metalkube/baremetal-operator/pkg/provisioner/ironic"
 	"github.com/metalkube/baremetal-operator/pkg/utils"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -25,6 +30,15 @@ import (
 
 var log = logf.Log.WithName("controller_baremetalhost")
 
+// FIXME(dhellmann): These values should probably come from
+// configuration settings and something that can tell the IP address
+// of the ironic server.
+const (
+	instanceImageSource   = "http://172.22.0.1/images/redhat-coreos-maipo-latest.qcow2"
+	instanceImageChecksum = "97830b21ed272a3d854615beb54cf004"
+	ironicEndpoint        = "http://localhost:6385/v1/"
+)
+
 // Add creates a new BareMetalHost Controller and adds it to the
 // Manager. The Manager will set fields on the Controller and Start it
 // when the Manager is Started.
@@ -34,7 +48,15 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileBareMetalHost{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	return &ReconcileBareMetalHost{
+		client: mgr.GetClient(),
+		scheme: mgr.GetScheme(),
+		provisionerFactory: ironic.NewFactory(
+			ironicEndpoint,
+			instanceImageSource,
+			instanceImageChecksum,
+		),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -54,7 +76,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to secrets being used by hosts
-	err = c.Watch(&source.Kind{Type: &v1.Secret{}},
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}},
 		&handler.EnqueueRequestForOwner{
 			IsController: true,
 			OwnerType:    &metalkubev1alpha1.BareMetalHost{},
@@ -70,6 +92,8 @@ type ReconcileBareMetalHost struct {
 	// that reads objects from the cache and writes to the apiserver
 	client client.Client
 	scheme *runtime.Scheme
+	// Provisioner handles interacting with the provisioning system.
+	provisionerFactory provisioner.ProvisionerFactory
 }
 
 // Reconcile reads that state of the cluster for a BareMetalHost
@@ -81,6 +105,10 @@ type ReconcileBareMetalHost struct {
 // is true, otherwise upon completion it will remove the work from the
 // queue.
 func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+
+	var dirty bool               // have we updated the host status but not saved it?
+	var retryDelay time.Duration // how long to wait before trying reconcile again
+
 	reqLogger := log.WithValues("Request.Namespace",
 		request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling BareMetalHost")
@@ -89,7 +117,7 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 	host := &metalkubev1alpha1.BareMetalHost{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, host)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if k8serrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after
 			// reconcile request.  Owned objects are automatically
 			// garbage collected. For additional cleanup logic use
@@ -97,7 +125,7 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 			return reconcile.Result{}, nil
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		return reconcile.Result{}, errors.Wrap(err, "could not load host data")
 	}
 
 	// Add a finalizer to newly created objects.
@@ -112,10 +140,54 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 			metalkubev1alpha1.BareMetalHostFinalizer)
 		err := r.client.Update(context.TODO(), host)
 		if err != nil {
-			reqLogger.Error(err, "failed to add finalizer")
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrap(err, "failed to add finalizer")
 		}
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// If we do not have all of the needed BMC credentials, set our
+	// operational status to indicate missing information.
+	if host.Spec.BMC.Address == "" {
+		reqLogger.Info(bmc.MissingAddressMsg)
+		err := r.setErrorCondition(request, host, bmc.MissingAddressMsg)
+		// Without the BMC address there's no more we can do, so we're
+		// going to return the emtpy Result anyway, and don't need to
+		// check err.
+		return reconcile.Result{}, errors.Wrap(err, "failed to set error condition")
+	}
+
+	// Load the secret containing the credentials for talking to the
+	// BMC.
+	if host.Spec.BMC.CredentialsName == "" {
+		// We have no name to use to load the secrets.
+		reqLogger.Info(bmc.MissingCredentialsMsg)
+		err := r.setErrorCondition(request, host, bmc.MissingCredentialsMsg)
+		return reconcile.Result{}, errors.Wrap(err, "failed to set error condition")
+	}
+	secretKey := host.CredentialsKey()
+	bmcCredsSecret := &corev1.Secret{}
+	err = r.client.Get(context.TODO(), secretKey, bmcCredsSecret)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err,
+			"failed to fetch BMC credentials from secret reference")
+	}
+	bmcCreds := bmc.Credentials{
+		Username: string(bmcCredsSecret.Data["username"]),
+		Password: string(bmcCredsSecret.Data["password"]),
+	}
+
+	// Verify that the secret contains the expected info.
+	validCreds, reason := bmcCreds.AreValid()
+	if !validCreds {
+		reqLogger.Info("invalid BMC Credentials", "reason", reason)
+		err := r.setErrorCondition(request, host, reason)
+		return reconcile.Result{}, errors.Wrap(err, "failed to set error condition")
+	}
+
+	// Past this point we may need a provisioner, so create one.
+	prov, err := r.provisionerFactory.New(host, bmcCreds)
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, "failed to create provisioner")
 	}
 
 	// Handle delete operations.
@@ -130,86 +202,116 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 			return reconcile.Result{}, nil
 		}
 
-		// NOTE(dhellmann): This is where we would do something with
-		// external resources not managed through CRs (those are
-		// deleted automatically), like telling ironic to wipe the
-		// host.
+		if dirty, retryDelay, err = prov.Deprovision(); err != nil {
+			return reconcile.Result{}, errors.Wrap(err, "failed to deprovision")
+		}
+		if dirty {
+			if err := r.saveStatus(host); err != nil {
+				return reconcile.Result{}, errors.Wrap(err,
+					"failed to clear host status on deprovision")
+			}
+			// Go back into the queue and wait for the Deprovision() method
+			// to return false, indicating that it has no more work to
+			// do.
+			return reconcile.Result{RequeueAfter: retryDelay}, nil
+		}
 
 		// Remove finalizer to allow deletion
 		reqLogger.Info("cleanup is complete, removing finalizer")
 		host.ObjectMeta.Finalizers = utils.FilterStringFromList(
 			host.ObjectMeta.Finalizers, metalkubev1alpha1.BareMetalHostFinalizer)
 		if err := r.client.Update(context.TODO(), host); err != nil {
-			reqLogger.Error(err, "failed to remove finalizer")
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizer")
 		}
 		return reconcile.Result{}, nil // done
-	}
-
-	// FIXME(dhellmann): There are likely to be many more cases where
-	// we need to look for errors. Do we want to chain them all here
-	// in if/elif blocks?
-
-	// If we do not have all of the needed BMC credentials, set our
-	// operational status to indicate missing information.
-	if host.Spec.BMC.IP == "" {
-		reqLogger.Info(bmc.MissingIPMsg)
-		err := r.setErrorCondition(request, host, bmc.MissingIPMsg)
-		// Without the BMC IP there's no more we can do, so we're
-		// going to return the emtpy Result anyway, and don't need to
-		// check err.
-		return reconcile.Result{}, err
-	}
-
-	// Load the secret containing the credentials for talking to the
-	// BMC.
-	if host.Spec.BMC.CredentialsName == "" {
-		// We have no name to use to load the secrets.
-		reqLogger.Error(err, "BMC.CredentialsName is not set")
-		err := r.setErrorCondition(request, host, bmc.MissingCredentialsMsg)
-		return reconcile.Result{}, err
-	}
-	secretKey := host.CredentialsKey()
-	bmcCredsSecret := &v1.Secret{}
-	err = r.client.Get(context.TODO(), secretKey, bmcCredsSecret)
-	if err != nil {
-		reqLogger.Error(err, "failed to fetch BMC credentials from secret reference")
-		return reconcile.Result{}, err
-	}
-	bmcCreds := bmc.Credentials{
-		Username: string(bmcCredsSecret.Data["username"]),
-		Password: string(bmcCredsSecret.Data["password"]),
 	}
 
 	// Make sure the secret has the correct owner.
 	err = r.setBMCCredentialsSecretOwner(request, host, bmcCredsSecret)
 	if err != nil {
 		// FIXME: Set error condition?
-		reqLogger.Error(err, "could not update owner of credentials secret")
-		return reconcile.Result{}, err
+		return reconcile.Result{}, errors.Wrap(err,
+			"failed to update owner of credentials secret")
 	}
 
-	// Verify that the secret contains the expected info.
-	validCreds, reason := bmcCreds.AreValid()
-	if !validCreds {
-		reqLogger.Info("invalid BMC Credentials", "reason", reason)
-		err := r.setErrorCondition(request, host, reason)
-		return reconcile.Result{}, err
-	}
+	// Clear any error on the host so we can recalculate it in one of
+	// the next phases. This may make the host dirty, so remember that
+	// in case nothing else does.
+	dirty = host.ClearError()
 
 	// Update the success info for the credentails.
 	if host.CredentialsNeedValidation(*bmcCredsSecret) {
 
-		// FIXME(dhellmann): Test using the credentials to get into
-		// the BMC, and record error status if it fails.
+		changed, err := prov.ValidateManagementAccess()
+		if err != nil {
+			return reconcile.Result{}, errors.Wrap(err, "failed to validate BMC access")
+		}
+
+		// We may have changed the host during validation or when we
+		// cleared the error state above. In either case, save now.
+		reqLogger.Info("after validation", "changed", changed, "dirty", dirty)
+		if changed || dirty {
+			reqLogger.Info("saving status after validating management access")
+			if err := r.saveStatus(host); err != nil {
+				return reconcile.Result{}, errors.Wrap(err,
+					"failed to save provisioning host status")
+			}
+			// If we don't have an error status, we just need to wait
+			// before checking with the provisioner again. If the
+			// provisioner set an error, fall through to the next
+			// stanza where we stop reconciling.
+			if !host.HasError() {
+				reqLogger.Info("waiting before checking provisioning status again")
+				return reconcile.Result{RequeueAfter: time.Second * 5}, nil
+			}
+		}
+
+		if host.HasError() {
+			reqLogger.Info("host failed credential validation, stopping")
+			return reconcile.Result{}, nil
+		}
 
 		// Reaching this point means the credentials are valid and
 		// worked, so record that in the status block.
 		reqLogger.Info("updating credentials success status fields")
 		host.UpdateGoodCredentials(*bmcCredsSecret)
 		if err := r.saveStatus(host); err != nil {
-			reqLogger.Error(err, "failed to update credentials success status fields")
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrap(err,
+				"failed to update credentials success status fields")
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// Set the hardware profile name.
+	if host.Status.HardwareDetails == nil {
+		changed, err := prov.InspectHardware()
+		if err != nil {
+			return reconcile.Result{}, errors.Wrap(err, "hardware inspection failed")
+		}
+		if changed || dirty {
+			reqLogger.Info("saving host after inspecting hardware")
+			if err := r.client.Update(context.TODO(), host); err != nil {
+				return reconcile.Result{}, errors.Wrap(err,
+					"failed to save host after inspection")
+			}
+			if host.Status.HardwareDetails != nil {
+				reqLogger.Info("saving hardware details")
+				if err := r.saveStatus(host); err != nil {
+					return reconcile.Result{}, errors.Wrap(err,
+						"failed to save hardware details after inspection")
+				}
+			}
+			return reconcile.Result{Requeue: true}, nil
+		}
+	}
+
+	// FIXME(dhellmann): Insert logic to match hardware profiles here.
+	hardwareProfile := "unknown"
+	if host.SetHardwareProfile(hardwareProfile) {
+		reqLogger.Info("updating hardware profile", "profile", hardwareProfile)
+		if err := r.client.Update(context.TODO(), host); err != nil {
+			return reconcile.Result{}, errors.Wrap(err,
+				"failed to save host after updating hardware profile")
 		}
 		return reconcile.Result{Requeue: true}, nil
 	}
@@ -217,7 +319,25 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 	// Update the operational status of the host.
 	newOpStatus := metalkubev1alpha1.OperationalStatusOffline
 	if host.Spec.Online {
+		reqLogger.Info("ensuring host is powered on")
+		changed, err := prov.PowerOn()
+		if err != nil {
+			return reconcile.Result{}, errors.Wrap(err, "failed to power on the host")
+		}
 		newOpStatus = metalkubev1alpha1.OperationalStatusOnline
+		dirty = dirty || changed
+	} else {
+		reqLogger.Info("ensuring host is powered off")
+		changed, err := prov.PowerOff()
+		if err != nil {
+			return reconcile.Result{}, errors.Wrap(err, "failed to power off the host")
+		}
+		dirty = dirty || changed
+	}
+	if dirty {
+		if err := r.saveStatus(host); err != nil {
+			return reconcile.Result{}, errors.Wrap(err, "failed to save power status")
+		}
 	}
 	if host.SetOperationalStatus(newOpStatus) {
 		reqLogger.Info(
@@ -225,25 +345,7 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 			"newStatus", newOpStatus,
 		)
 		if err := r.client.Update(context.TODO(), host); err != nil {
-			reqLogger.Error(err, "failed to update operational status")
-			return reconcile.Result{}, err
-		}
-		return reconcile.Result{Requeue: true}, nil
-	}
-
-	// FIXME(dhellmann): Need to ensure the power state matches
-	// the desired state here.
-
-	// Set the hardware profile name.
-	//
-	// FIXME(dhellmann): This should pull data from Ironic and compare
-	// it against known profiles.
-	hardwareProfile := "unknown"
-	if host.SetHardwareProfile(hardwareProfile) {
-		reqLogger.Info("updating hardware profile", "profile", hardwareProfile)
-		if err := r.client.Update(context.TODO(), host); err != nil {
-			reqLogger.Error(err, "failed to update hardware profile")
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrap(err, "failed to update operational status")
 		}
 		return reconcile.Result{Requeue: true}, nil
 	}
@@ -251,11 +353,10 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 	// If we reach this point we haven't encountered any issues
 	// communicating with the host, so ensure the error message field
 	// is cleared.
-	if host.SetErrorMessage("") {
+	if host.ClearError() {
 		reqLogger.Info("clearing error message")
 		if err := r.saveStatus(host); err != nil {
-			reqLogger.Error(err, "failed to clear error message")
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrap(err, "failed to clear error message")
 		}
 	}
 
@@ -264,8 +365,7 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 	if host.Status.LastUpdated.IsZero() {
 		reqLogger.Info("initializing status")
 		if err := r.saveStatus(host); err != nil {
-			reqLogger.Error(err, "failed to initialize status block")
-			return reconcile.Result{}, err
+			return reconcile.Result{}, errors.Wrap(err, "failed to initialize status block")
 		}
 	}
 
@@ -290,26 +390,14 @@ func (r *ReconcileBareMetalHost) setErrorCondition(request reconcile.Request, ho
 			"message", message,
 		)
 		if err := r.saveStatus(host); err != nil {
-			reqLogger.Error(err, "failed to update error message")
-			return err
-		}
-	}
-
-	if host.SetOperationalStatus(metalkubev1alpha1.OperationalStatusError) {
-		reqLogger.Info(
-			"setting operational status",
-			"newStatus", metalkubev1alpha1.OperationalStatusError,
-		)
-		if err := r.client.Update(context.TODO(), host); err != nil {
-			reqLogger.Error(err, "failed to update operational status")
-			return err
+			return errors.Wrap(err, "failed to update error message")
 		}
 	}
 
 	return nil
 }
 
-func (r *ReconcileBareMetalHost) setBMCCredentialsSecretOwner(request reconcile.Request, host *metalkubev1alpha1.BareMetalHost, secret *v1.Secret) (err error) {
+func (r *ReconcileBareMetalHost) setBMCCredentialsSecretOwner(request reconcile.Request, host *metalkubev1alpha1.BareMetalHost, secret *corev1.Secret) (err error) {
 	reqLogger := log.WithValues("Request.Namespace",
 		request.Namespace, "Request.Name", request.Name)
 	if metav1.IsControlledBy(secret, host) {
@@ -318,13 +406,11 @@ func (r *ReconcileBareMetalHost) setBMCCredentialsSecretOwner(request reconcile.
 	reqLogger.Info("updating owner of secret")
 	err = controllerutil.SetControllerReference(host, secret, r.scheme)
 	if err != nil {
-		reqLogger.Error(err, "failed to set owner")
-		return err
+		return errors.Wrap(err, "failed to set owner")
 	}
 	err = r.client.Update(context.TODO(), secret)
 	if err != nil {
-		reqLogger.Error(err, "failed to save owner")
-		return err
+		return errors.Wrap(err, "failed to save owner")
 	}
 	return nil
 }
