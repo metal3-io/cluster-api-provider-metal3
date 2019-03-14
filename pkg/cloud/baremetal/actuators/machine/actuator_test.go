@@ -152,7 +152,7 @@ func TestExists(t *testing.T) {
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						HostAnnotation: "somehost",
+						HostAnnotation: "myns/somehost",
 					},
 				},
 			},
@@ -164,7 +164,7 @@ func TestExists(t *testing.T) {
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						HostAnnotation: "myns",
+						HostAnnotation: "myns/wrong",
 					},
 				},
 			},
@@ -219,7 +219,7 @@ func TestGetHost(t *testing.T) {
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						HostAnnotation: "myhost",
+						HostAnnotation: "myns/myhost",
 					},
 				},
 			},
@@ -231,7 +231,7 @@ func TestGetHost(t *testing.T) {
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						HostAnnotation: "myns",
+						HostAnnotation: "myns/wrong",
 					},
 				},
 			},
@@ -277,7 +277,7 @@ func TestEnsureAnnotation(t *testing.T) {
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						HostAnnotation: "myhost",
+						HostAnnotation: "myns/myhost",
 					},
 				},
 			},
@@ -293,7 +293,7 @@ func TestEnsureAnnotation(t *testing.T) {
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						HostAnnotation: "wrongvalue",
+						HostAnnotation: "myns/wrongvalue",
 					},
 				},
 			},
@@ -359,8 +359,8 @@ func TestEnsureAnnotation(t *testing.T) {
 		if !ok {
 			t.Error("host annotation not found")
 		}
-		if result != tc.Host.Name {
-			t.Errorf("host annotation has value %s, expected %s", result, tc.Host.Name)
+		if result != "myns/myhost" {
+			t.Errorf("host annotation has value %s, expected \"myns/myhost\"", result)
 		}
 	}
 }
@@ -393,7 +393,7 @@ func TestDelete(t *testing.T) {
 					Name:      "mymachine",
 					Namespace: "myns",
 					Annotations: map[string]string{
-						HostAnnotation: "myhost",
+						HostAnnotation: "myns/myhost",
 					},
 				},
 			},
@@ -417,7 +417,7 @@ func TestDelete(t *testing.T) {
 					Name:      "mymachine",
 					Namespace: "myns",
 					Annotations: map[string]string{
-						HostAnnotation: "myhost",
+						HostAnnotation: "myns/myhost",
 					},
 				},
 			},
@@ -439,7 +439,7 @@ func TestDelete(t *testing.T) {
 					Name:      "mymachine",
 					Namespace: "myns",
 					Annotations: map[string]string{
-						HostAnnotation: "myhost",
+						HostAnnotation: "myns/myhost",
 					},
 				},
 			},
@@ -452,7 +452,7 @@ func TestDelete(t *testing.T) {
 					Name:      "mymachine",
 					Namespace: "myns",
 					Annotations: map[string]string{
-						HostAnnotation: "myhost",
+						HostAnnotation: "myns/myhost",
 					},
 				},
 			},
