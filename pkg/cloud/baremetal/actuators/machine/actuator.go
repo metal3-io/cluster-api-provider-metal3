@@ -27,6 +27,7 @@ import (
 	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -172,17 +173,22 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 	if annotations == nil {
 		return nil, nil
 	}
-	hostName, ok := annotations[HostAnnotation]
+	hostKey, ok := annotations[HostAnnotation]
 	if !ok {
 		return nil, nil
+	}
+	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
+	if err != nil {
+		log.Printf("Error parsing annotation value \"%s\": %v", hostKey, err)
+		return nil, err
 	}
 
 	host := bmh.BareMetalHost{}
 	key := client.ObjectKey{
 		Name:      hostName,
-		Namespace: machine.Namespace,
+		Namespace: hostNamespace,
 	}
-	err := a.client.Get(ctx, key, &host)
+	err = a.client.Get(ctx, key, &host)
 	if errors.IsNotFound(err) {
 		return nil, nil
 	} else if err != nil {
@@ -242,14 +248,19 @@ func (a *Actuator) ensureAnnotation(ctx context.Context, machine *machinev1.Mach
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
+	hostKey, err := cache.MetaNamespaceKeyFunc(host)
+	if err != nil {
+		log.Printf("Error parsing annotation value \"%s\": %v", hostKey, err)
+		return err
+	}
 	existing, ok := annotations[HostAnnotation]
 	if ok {
-		if existing == host.Name {
+		if existing == hostKey {
 			return nil
 		}
 		log.Printf("Warning: found stray annotation for host %s on machine %s. Overwriting.", existing, machine.Name)
 	}
-	annotations[HostAnnotation] = host.Name
+	annotations[HostAnnotation] = hostKey
 	machine.ObjectMeta.SetAnnotations(annotations)
 	return a.client.Update(ctx, machine)
 }
