@@ -6,11 +6,11 @@ import (
 
 	bmoapis "github.com/metalkube/baremetal-operator/pkg/apis"
 	bmh "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
-	clusterapis "github.com/openshift/cluster-api/pkg/apis"
-	machinev1 "github.com/openshift/cluster-api/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
