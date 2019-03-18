@@ -19,8 +19,11 @@ package machine
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
+	"strings"
 	"time"
 
 	bmh "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
@@ -39,8 +42,8 @@ const (
 	// FIXME(dhellmann): These image values should probably come from
 	// configuration settings and something that can tell the IP
 	// address of the web server hosting the image in the ironic pod.
-	instanceImageSource   = "http://172.22.0.1/images/redhat-coreos-maipo-latest.qcow2"
-	instanceImageChecksum = "97830b21ed272a3d854615beb54cf004"
+	instanceImageSource      = "http://172.22.0.1/images/redhat-coreos-maipo-latest.qcow2"
+	instanceImageChecksumURL = instanceImageSource + ".md5sum"
 )
 
 // Add RBAC rules to access cluster-api resources
@@ -231,11 +234,26 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		Name:      machine.Name,
 		Namespace: machine.Namespace,
 	}
+
+	// FIXME(dhellmann): The Stein version of Ironic supports passing
+	// a URL. When we upgrade, we can stop doing this work ourself.
+	log.Printf("looking for checksum for %s at %s",
+		instanceImageSource, instanceImageChecksumURL)
+	resp, err := http.Get(instanceImageChecksumURL)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	instanceImageChecksum, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	// FIXME(dhellmann): When we stop using the consts for these
 	// settings, we need to pass the right values.
 	chosenHost.Spec.Image = &bmh.Image{
 		URL:      instanceImageSource,
-		Checksum: instanceImageChecksum,
+		Checksum: strings.TrimSpace(string(instanceImageChecksum)),
 	}
 
 	return chosenHost, nil
