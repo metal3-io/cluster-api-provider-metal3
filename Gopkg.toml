@@ -24,11 +24,6 @@ required = [
   name="github.com/metalkube/baremetal-operator"
   branch="master"
 
-[[constraint]]
-  name="github.com/operator-framework/operator-sdk"
-  branch="master"
-
-
 # STANZAS BELOW ARE GENERATED AND MAY BE WRITTEN - DO NOT MODIFY BELOW THIS LINE.
 
 [[constraint]]

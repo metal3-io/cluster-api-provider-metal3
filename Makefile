@@ -6,7 +6,7 @@ IMG ?= controller:latest
 build:
 	@mkdir -p bin
 	go build -o bin/machine-controller-manager ./cmd/manager
-	go build -o bin/manager ./vendor/github.com/openshift/cluster-api/cmd/manager
+	go build -o bin/manager ./vendor/sigs.k8s.io/cluster-api/cmd/manager
 
 all: test manager
 
@@ -35,7 +35,7 @@ manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 	kustomize build config/default/ > provider-components.yaml
 	echo "---" >> provider-components.yaml
-	cd vendor && kustomize build github.com/openshift/cluster-api/config/default/ >> ../provider-components.yaml
+	cd vendor && kustomize build sigs.k8s.io/cluster-api/config/default/ >> ../provider-components.yaml
 
 # Run go fmt against code
 fmt:

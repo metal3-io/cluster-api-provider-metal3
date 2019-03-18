@@ -7,12 +7,10 @@ is currently still under active development and is not yet functional.
 For more information about this actuator and related repositories, see
 [metalkube.org](http://metalkube.org/).
 
-## Dev Workflow
+## Dev Workflow against OpenShift
 
 You can run this component manually against a running Kubernetes cluster for
-development purposes.  The current version of this code is built against the
-OpenShift fork of the Machine API, so the instructions assume an OpenShift
-cluster, and the use of the OpenShift client.
+development purposes.
 
 ### Stop the machine-api-operator
 
