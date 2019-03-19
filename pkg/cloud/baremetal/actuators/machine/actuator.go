@@ -255,7 +255,7 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		URL:      instanceImageSource,
 		Checksum: strings.TrimSpace(string(instanceImageChecksum)),
 	}
-	err := a.client.Update(ctx, chosenHost)
+	err = a.client.Update(ctx, chosenHost)
 	if err != nil {
 		return nil, err
 	}
