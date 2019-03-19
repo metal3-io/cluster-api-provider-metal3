@@ -9,4 +9,5 @@ For more information about this actuator and related repositories, see
 
 ## Development Environment
 
+* Using [Minikube](docs/dev/minikube.md]
 * Using [OpenShift 4](docs/dev/openshift.md]
