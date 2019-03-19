@@ -202,8 +202,8 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 
 // chooseHost iterates through known hosts and returns one that can be
 // associated with the machine. It searches all hosts in case one already has an
-// association with this machine. It will add a Machine reference before
-// returning the host.
+// association with this machine. It will add a Machine reference and update the
+// host via the kube API before returning the host.
 func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (*bmh.BareMetalHost, error) {
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
@@ -254,6 +254,10 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 	chosenHost.Spec.Image = &bmh.Image{
 		URL:      instanceImageSource,
 		Checksum: strings.TrimSpace(string(instanceImageChecksum)),
+	}
+	err := a.client.Update(ctx, chosenHost)
+	if err != nil {
+		return nil, err
 	}
 
 	return chosenHost, nil

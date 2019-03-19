@@ -126,6 +126,14 @@ func TestChooseHost(t *testing.T) {
 		if result.Name != tc.ExpectedHostName {
 			t.Errorf("host %s chosen instead of %s", result.Name, tc.ExpectedHostName)
 		}
+		savedHost := bmh.BareMetalHost{}
+		err = c.Get(context.TODO(), client.ObjectKey{Name: result.Name, Namespace: result.Namespace}, &savedHost)
+		if err != nil {
+			t.Errorf("%v", err)
+		}
+		if savedHost.Spec.MachineRef == nil {
+			t.Errorf("machine ref %v not saved to host", result.Spec.MachineRef)
+		}
 	}
 }
 
