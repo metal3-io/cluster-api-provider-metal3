@@ -51,13 +51,22 @@ install the operator-sdk tools.
     oc apply -f deploy/crds/metalkube_v1alpha1_baremetalhost_cr.yaml
     ```
 
+## Running without Ironic
+
+In environments where Ironic is not available, and the only real need
+is to be able to have some test data, use the test fixture provisioner
+instead of the real Ironic provisioner by passing `-test-mode` to the
+operator when launching it.
+
+```
+operator-sdk up local --operator-flags "-test-mode"
+```
+
 ## Using libvirt VMs with Ironic
 
-In order to use VMs as hosts, they need to be connected to vbmc_ and
+In order to use VMs as hosts, they need to be connected to [vbmc](https://docs.openstack.org/tripleo-docs/latest/install/environments/virtualbmc.html) and
 the `bootMACAddress` field needs to be set to the MAC address of the
 network interface that will PXE boot.
-
-.. _vbmc: https://docs.openstack.org/tripleo-docs/latest/install/environments/virtualbmc.html
 
 For example:
 
@@ -72,4 +81,40 @@ spec:
     address: libvirt://192.168.122.1:6233/
     credentialsName: worker-0-bmc-secret
   bootMACAddress: 00:73:49:3a:76:8e
+```
+
+The `make-worker` utility can be used to generate a YAML file for
+registering a host. It takes as input the name of the `virsh` domain
+and produces as output the basic YAML to register that host properly,
+with the boot MAC address and BMC address filled in.
+
+```
+$ go run cmd/make-worker/main.go openshift_worker_1
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openshift-worker-1-bmc-secret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+
+---
+apiVersion: metalkube.org/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: openshift-worker-1
+spec:
+  online: true
+  bmc:
+    address: libvirt://192.168.122.1:6234/
+    credentialsName: openshift-worker-1-bmc-secret
+  bootMACAddress: 00:1a:74:74:e5:cf
+```
+
+The output can be passed directly to `oc apply` like this:
+
+```
+$ go run cmd/make-worker/main.go openshift_worker_1 | oc apply -f -
 ```
