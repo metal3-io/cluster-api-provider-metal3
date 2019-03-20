@@ -16,28 +16,24 @@ const (
 	// hosts to block delete operations until the physical host can be
 	// deprovisioned.
 	BareMetalHostFinalizer string = "baremetalhost.metalkube.org"
+)
 
-	// OperationalStatusLabel is the name of the label added to the
-	// host with the operating status.
-	OperationalStatusLabel string = "metalkube.org/operational-status"
+// OperationalStatus represents the state of the host
+type OperationalStatus string
 
-	// OperationalStatusInspecting is the status value for the
-	// OperationalStatusLabel when the host is powered on and running
-	// the discovery image to inspect the hardware resources on the
-	// host.
-	OperationalStatusInspecting string = "inspecting"
+const (
+	// OperationalStatusOK is the status value for when the host is
+	// configured correctly and not actively being managed.
+	OperationalStatusOK OperationalStatus = "OK"
 
-	// OperationalStatusOnline is the status value for the
-	// OperationalStatusLabel when the host is powered on and running.
-	OperationalStatusOnline string = "online"
+	// OperationalStatusInspecting is the status value for when the
+	// host is powered on and running the discovery image to inspect
+	// the hardware resources on the host.
+	OperationalStatusInspecting OperationalStatus = "inspecting"
 
-	// OperationalStatusOffline is the status value for the
-	// OperationalStatusLabel when the host is powered off.
-	OperationalStatusOffline string = "offline"
-
-	// HardwareProfileLabel is the name of the label added to the host
-	// with the discovered hardware profile.
-	HardwareProfileLabel string = "metalkube.org/hardware-profile"
+	// OperationalStatusError is the status value for when the host
+	// has any sort of error.
+	OperationalStatusError OperationalStatus = "error"
 )
 
 // BMCDetails contains the information necessary to communicate with
@@ -79,6 +75,10 @@ type BareMetalHostSpec struct {
 
 	// Image holds the details of the image to be provisioned.
 	Image *Image `json:"image,omitempty"`
+
+	// UserData holds the reference to the Secret containing the user
+	// data to be passed to the host before it boots.
+	UserData *corev1.SecretReference `json:"userData,omitempty"`
 }
 
 // Image holds the details of an image either to provisioned or that
@@ -157,6 +157,9 @@ type BareMetalHostStatus struct {
 	// Important: Run "operator-sdk generate k8s" to regenerate code
 	// after modifying this file
 
+	// OperationalStatus holds the status of the host
+	OperationalStatus OperationalStatus `json:"operationalStatus"`
+
 	// MachineRef will point to the corresponding Machine if it exists.
 	// +optional
 	MachineRef *corev1.ObjectReference `json:"machineRef,omitempty"`
@@ -165,19 +168,23 @@ type BareMetalHostStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
+	// The name of the profile matching the hardware details.
+	HardwareProfile string `json:"hardwareProfile"`
+
 	// The hardware discovered to exist on the host.
 	HardwareDetails *HardwareDetails `json:"hardware,omitempty"`
 
 	// Information tracked by the provisioner.
 	Provisioning ProvisionStatus `json:"provisioning"`
 
-	// the last thing we deployed here
-	Image string `json:"image"`
-
 	// the last credentials we were able to validate as working
 	GoodCredentials CredentialsStatus `json:"goodCredentials"`
 
+	// the last error message reported by the provisioning subsystem
 	ErrorMessage string `json:"errorMessage"`
+
+	// indicator for whether or not the host is powered on
+	PoweredOn bool `json:"poweredOn"`
 }
 
 // ProvisionStatus holds the state information for a single target.
@@ -188,7 +195,7 @@ type ProvisionStatus struct {
 	ID string `json:"ID"`
 	// Image holds the details of the last image successfully
 	// provisioned to the host.
-	Image *Image `json:"image,omitempty"`
+	Image Image `json:"image,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -205,9 +212,10 @@ type BareMetalHost struct {
 
 // Available returns true if the host is available to be provisioned.
 func (host *BareMetalHost) Available() bool {
-	// FIXME(mhrivnak): Add more checks to determine if the host is available, such
-	// as health checks, connectivity checks, etc
 	if host.Spec.MachineRef != nil {
+		return false
+	}
+	if host.GetDeletionTimestamp() != nil {
 		return false
 	}
 	if host.HasError() {
@@ -219,17 +227,29 @@ func (host *BareMetalHost) Available() bool {
 // SetErrorMessage updates the ErrorMessage in the host Status struct
 // when necessary and returns true when a change is made or false when
 // no change is made.
-func (host *BareMetalHost) SetErrorMessage(message string) bool {
+func (host *BareMetalHost) SetErrorMessage(message string) (dirty bool) {
+	if host.Status.OperationalStatus != OperationalStatusError {
+		host.Status.OperationalStatus = OperationalStatusError
+		dirty = true
+	}
 	if host.Status.ErrorMessage != message {
 		host.Status.ErrorMessage = message
-		return true
+		dirty = true
 	}
-	return false
+	return dirty
 }
 
 // ClearError removes any existing error message.
-func (host *BareMetalHost) ClearError() bool {
-	return host.SetErrorMessage("")
+func (host *BareMetalHost) ClearError() (dirty bool) {
+	if host.Status.OperationalStatus != OperationalStatusOK {
+		host.Status.OperationalStatus = OperationalStatusOK
+		dirty = true
+	}
+	if host.Status.ErrorMessage != "" {
+		host.Status.ErrorMessage = ""
+		dirty = true
+	}
+	return dirty
 }
 
 // setLabel updates the given label when necessary and returns true
@@ -256,24 +276,28 @@ func (host *BareMetalHost) getLabel(name string) string {
 
 // SetHardwareProfile updates the HardwareProfileLabel and returns
 // true when a change is made or false when no change is made.
-func (host *BareMetalHost) SetHardwareProfile(name string) bool {
-	return host.setLabel(HardwareProfileLabel, name)
+func (host *BareMetalHost) SetHardwareProfile(name string) (dirty bool) {
+	if host.Status.HardwareProfile != name {
+		host.Status.HardwareProfile = name
+		dirty = true
+	}
+	return dirty
 }
 
 // SetOperationalStatus updates the OperationalStatusLabel and returns
 // true when a change is made or false when no change is made.
-func (host *BareMetalHost) SetOperationalStatus(status string) bool {
-	return host.setLabel(OperationalStatusLabel, status)
+func (host *BareMetalHost) SetOperationalStatus(status OperationalStatus) bool {
+	if host.Status.OperationalStatus != status {
+		host.Status.OperationalStatus = status
+		return true
+	}
+	return false
 }
 
 // OperationalStatus returns the value associated with the
 // OperationalStatusLabel
-func (host *BareMetalHost) OperationalStatus() string {
-	status := host.getLabel(OperationalStatusLabel)
-	if status == "" {
-		return "unknown"
-	}
-	return status
+func (host *BareMetalHost) OperationalStatus() OperationalStatus {
+	return host.Status.OperationalStatus
 }
 
 // HasError returns a boolean indicating whether there is an error
@@ -304,6 +328,42 @@ func (host *BareMetalHost) CredentialsNeedValidation(currentSecret corev1.Secret
 	case currentRef.Name != newName:
 		return true
 	case currentVersion != currentSecret.ObjectMeta.ResourceVersion:
+		return true
+	}
+	return false
+}
+
+// NeedsProvisioning compares the settings with the provisioning
+// status and returns true when more work is needed or false
+// otherwise.
+func (host *BareMetalHost) NeedsProvisioning() bool {
+	if host.Spec.Image == nil {
+		// Without an image, there is nothing to provision.
+		return false
+	}
+	if host.Spec.Image.URL == "" {
+		// We have an Image struct but it is empty
+		return false
+	}
+	if host.Status.Provisioning.Image.URL == "" {
+		// We have an image set, but not provisioned.
+		return true
+	}
+	// FIXME(dhellmann): Compare the provisioned image against the one
+	// we are supposed to have to make sure they match.
+	return false
+}
+
+// NeedsDeprovisioning compares the settings with the provisioning
+// status and returns true when the host should be deprovisioned.
+func (host *BareMetalHost) NeedsDeprovisioning() bool {
+	if host.Status.Provisioning.Image.URL == "" {
+		return false
+	}
+	if host.Spec.Image == nil {
+		return true
+	}
+	if host.Spec.Image.URL == "" {
 		return true
 	}
 	return false

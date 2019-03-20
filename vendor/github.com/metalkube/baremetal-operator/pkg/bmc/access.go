@@ -1,7 +1,9 @@
 package bmc
 
 import (
+	"net"
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -10,59 +12,76 @@ import (
 //
 // NOTE(dhellmann): This structure is very likely to change as we
 // adapt it to additional types.
-type AccessDetails struct {
-	// The type of the BMC, indicating the driver that will be used to
-	// communicate with it.
-	Type string
+type AccessDetails interface {
+	// Type returns the kind of the BMC, indicating the driver that
+	// will be used to communicate with it.
+	Type() string
 
-	portNum  string
-	hostname string
+	// NeedsMAC returns true when the host is going to need a separate
+	// port created rather than having it discovered.
+	NeedsMAC() bool
+
+	// DriverInfo returns a data structure to pass as the DriverInfo
+	// parameter when creating a node in Ironic. The structure is
+	// pre-populated with the access information, and the caller is
+	// expected to add any other information that might be needed
+	// (such as the kernel and ramdisk locations).
+	DriverInfo(bmcCreds Credentials) map[string]interface{}
+}
+
+func getTypeHostPort(address string) (bmcType, host, port string, err error) {
+	// Start by assuming "type://host:port"
+	parsedURL, err := url.Parse(address)
+	if err != nil {
+		// We failed to parse the URL, but it may just be a host or
+		// host:port string (which the URL parser rejects because ":"
+		// is not allowed in the first segment of a
+		// path. Unfortunately there is no error class to represent
+		// that specific error, so we have to guess.
+		if strings.Contains(address, ":") {
+			// If we can parse host:port, carry on with those
+			// values. Otherwise, report the original parser error.
+			var err2 error
+			host, port, err2 = net.SplitHostPort(address)
+			if err2 != nil {
+				return "", "", "", errors.Wrap(err, "failed to parse BMC address information")
+			}
+			bmcType = "ipmi"
+		} else {
+			bmcType = "ipmi"
+			host = address
+		}
+	} else {
+		// Successfully parsed the URL
+		bmcType = parsedURL.Scheme
+		port = parsedURL.Port()
+		host = parsedURL.Hostname()
+		if parsedURL.Scheme == "" {
+			bmcType = "ipmi"
+			if host == "" {
+				// If there was no scheme at all, the hostname was
+				// interpreted as a path.
+				host = parsedURL.Path
+			}
+		}
+	}
+	return bmcType, host, port, nil
 }
 
 // NewAccessDetails creates an AccessDetails structure from the URL
 // for a BMC.
-func NewAccessDetails(address string) (*AccessDetails, error) {
-	parsedURL, err := url.Parse(address)
+func NewAccessDetails(address string) (AccessDetails, error) {
+
+	bmcType, host, port, err := getTypeHostPort(address)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse BMC address information")
+		return nil, err
 	}
 
-	addr := &AccessDetails{
-		portNum:  parsedURL.Port(),
-		hostname: parsedURL.Hostname(),
-	}
-
-	if parsedURL.Scheme == "libvirt" {
-		addr.Type = "libvirt"
-	} else {
-		addr.Type = "ipmi"
+	addr := &ipmiAccessDetails{
+		bmcType:  bmcType,
+		portNum:  port,
+		hostname: host,
 	}
 
 	return addr, nil
-}
-
-// NeedsMAC returns true when the host is going to need a separate
-// port created rather than having it discovered.
-//
-// libvirt-based hosts used for dev and testing require a MAC address,
-// specified as part of the host, but we don't want the provisioner to
-// have to know the rules about which drivers require what so we hide
-// that detail inside this class and just let the provisioner know
-// that "some" drivers require a MAC and it should ask.
-func (a *AccessDetails) NeedsMAC() bool {
-	return a.Type == "libvirt"
-}
-
-// DriverInfo returns a data structure to pass as the DriverInfo
-// parameter when creating a node in Ironic. The structure is
-// pre-populated with the access information, and the caller is
-// expected to add any other information that might be needed (such as
-// the kernel and ramdisk locations).
-func (a AccessDetails) DriverInfo(bmcCreds Credentials) map[string]interface{} {
-	return map[string]interface{}{
-		"ipmi_port":     a.portNum,
-		"ipmi_username": bmcCreds.Username,
-		"ipmi_password": bmcCreds.Password,
-		"ipmi_address":  a.hostname,
-	}
 }
