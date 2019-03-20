@@ -17,31 +17,28 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"io/ioutil"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/existing"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/bootstrap/minikube"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/provider"
 	clustercommon "sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	"sigs.k8s.io/cluster-api/pkg/util"
 )
 
 type CreateOptions struct {
-	Cluster                       string
-	Machine                       string
-	ProviderComponents            string
-	AddonComponents               string
-	CleanupBootstrapCluster       bool
-	MiniKube                      []string
-	VmDriver                      string
-	Provider                      string
-	KubeconfigOutput              string
-	ExistingClusterKubeconfigPath string
+	Cluster                 string
+	Machine                 string
+	ProviderComponents      string
+	AddonComponents         string
+	BootstrapOnlyComponents string
+	Provider                string
+	KubeconfigOutput        string
+	BootstrapFlags          bootstrap.Options
 }
 
 var co = &CreateOptions{}
@@ -76,19 +73,9 @@ func RunCreate(co *CreateOptions) error {
 		return err
 	}
 
-	var bootstrapProvider bootstrap.ClusterProvisioner
-	if co.ExistingClusterKubeconfigPath != "" {
-		bootstrapProvider, err = existing.NewExistingCluster(co.ExistingClusterKubeconfigPath)
-		if err != nil {
-			return err
-		}
-	} else {
-		if co.VmDriver != "" {
-			co.MiniKube = append(co.MiniKube, fmt.Sprintf("vm-driver=%s", co.VmDriver))
-		}
-
-		bootstrapProvider = minikube.WithOptions(co.MiniKube)
-
+	bootstrapProvider, err := bootstrap.Get(co.BootstrapFlags)
+	if err != nil {
+		return err
 	}
 
 	pd, err := getProvider(co.Provider)
@@ -97,52 +84,63 @@ func RunCreate(co *CreateOptions) error {
 	}
 	pc, err := ioutil.ReadFile(co.ProviderComponents)
 	if err != nil {
-		return fmt.Errorf("error loading provider components file '%v': %v", co.ProviderComponents, err)
+		return errors.Wrapf(err, "error loading provider components file %q", co.ProviderComponents)
 	}
 	var ac []byte
 	if co.AddonComponents != "" {
 		ac, err = ioutil.ReadFile(co.AddonComponents)
 		if err != nil {
-			return fmt.Errorf("error loading addons file '%v': %v", co.AddonComponents, err)
+			return errors.Wrapf(err, "error loading addons file %q", co.AddonComponents)
+		}
+	}
+	var bc []byte
+	if co.BootstrapOnlyComponents != "" {
+		if bc, err = ioutil.ReadFile(co.BootstrapOnlyComponents); err != nil {
+			return errors.Wrapf(err, "error loading bootstrap only component file %q", co.BootstrapOnlyComponents)
 		}
 	}
 	pcsFactory := clusterdeployer.NewProviderComponentsStoreFactory()
+
 	d := clusterdeployer.New(
 		bootstrapProvider,
 		clusterclient.NewFactory(),
 		string(pc),
 		string(ac),
-		co.CleanupBootstrapCluster)
+		string(bc),
+		co.BootstrapFlags.Cleanup)
+
 	return d.Create(c, m, pd, co.KubeconfigOutput, pcsFactory)
 }
 
 func init() {
 	// Required flags
-	createClusterCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "A yaml file containing cluster object definition")
-	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s)")
-	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects")
+	createClusterCmd.Flags().StringVarP(&co.Cluster, "cluster", "c", "", "A yaml file containing cluster object definition. Required.")
+	createClusterCmd.MarkFlagRequired("cluster")
+	createClusterCmd.Flags().StringVarP(&co.Machine, "machines", "m", "", "A yaml file containing machine object definition(s). Required.")
+	createClusterCmd.MarkFlagRequired("machines")
+	createClusterCmd.Flags().StringVarP(&co.ProviderComponents, "provider-components", "p", "", "A yaml file containing cluster api provider controllers and supporting objects. Required.")
+	createClusterCmd.MarkFlagRequired("provider-components")
 	// TODO: Remove as soon as code allows https://github.com/kubernetes-sigs/cluster-api/issues/157
-	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere/azure)")
+	createClusterCmd.Flags().StringVarP(&co.Provider, "provider", "", "", "Which provider deployment logic to use (google/vsphere/azure). Required.")
+	createClusterCmd.MarkFlagRequired("provider")
 
 	// Optional flags
 	createClusterCmd.Flags().StringVarP(&co.AddonComponents, "addon-components", "a", "", "A yaml file containing cluster addons to apply to the internal cluster")
-	createClusterCmd.Flags().BoolVarP(&co.CleanupBootstrapCluster, "cleanup-bootstrap-cluster", "", true, "Whether to cleanup the bootstrap cluster after bootstrap")
-	createClusterCmd.Flags().StringSliceVarP(&co.MiniKube, "minikube", "", []string{}, "Minikube options")
-	createClusterCmd.Flags().StringVarP(&co.VmDriver, "vm-driver", "", "", "Which vm driver to use for minikube")
+	createClusterCmd.Flags().StringVarP(&co.BootstrapOnlyComponents, "bootstrap-only-components", "", "", "A yaml file containing components to apply only on the bootstrap cluster (before the provider components are applied) but not the provisioned cluster")
 	createClusterCmd.Flags().StringVarP(&co.KubeconfigOutput, "kubeconfig-out", "", "kubeconfig", "Where to output the kubeconfig for the provisioned cluster")
-	createClusterCmd.Flags().StringVarP(&co.ExistingClusterKubeconfigPath, "existing-bootstrap-cluster-kubeconfig", "e", "", "Path to an existing cluster's kubeconfig for bootstrapping (intead of using minikube)")
 
+	co.BootstrapFlags.AddFlags(createClusterCmd.Flags())
 	createCmd.AddCommand(createClusterCmd)
 }
 
-func getProvider(name string) (clusterdeployer.ProviderDeployer, error) {
+func getProvider(name string) (provider.Deployer, error) {
 	provisioner, err := clustercommon.ClusterProvisioner(name)
 	if err != nil {
 		return nil, err
 	}
-	provider, ok := provisioner.(clusterdeployer.ProviderDeployer)
+	provider, ok := provisioner.(provider.Deployer)
 	if !ok {
-		return nil, fmt.Errorf("provider for %s does not implement ProviderDeployer interface", name)
+		return nil, errors.Errorf("provider for %s does not implement provider.Deployer interface", name)
 	}
 	return provider, nil
 }

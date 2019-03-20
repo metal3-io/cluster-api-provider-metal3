@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,24 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package cmd_runner
+package phases
 
 import (
-	"os/exec"
+	"github.com/pkg/errors"
+	"k8s.io/klog"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/clusterdeployer/clusterclient"
 )
 
-type CmdRunner interface {
-	CombinedOutput(cmd string, args ...string) (output string, err error)
-}
+func ApplyBootstrapComponents(client clusterclient.Client, components string) error {
+	klog.Info("Applying Bootstrap-only Components")
+	if err := client.Apply(components); err != nil {
+		return errors.Wrap(err, "unable to apply bootstrap-only components")
+	}
 
-type realCmdRunner struct {
-}
-
-func New() *realCmdRunner {
-	return &realCmdRunner{}
-}
-
-func (runner *realCmdRunner) CombinedOutput(cmd string, args ...string) (string, error) {
-	output, err := exec.Command(cmd, args...).CombinedOutput()
-	return string(output), err
+	return nil
 }

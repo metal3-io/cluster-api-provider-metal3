@@ -35,6 +35,9 @@ import (
         client "sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset/typed/cluster/v1alpha1"
 )
 
+// Add RBAC rules to access cluster-api resources
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+
 // Actuator is responsible for performing cluster reconciliation
 type Actuator struct {
         clustersGetter client.ClustersGetter
@@ -102,8 +105,13 @@ const (
         ProviderName = "solas"
 )
 
+// Add RBAC rules to access cluster-api resources
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=machines;machines/status;machinedeployments;machinedeployments/status;machinesets;machinesets/status;machineclasses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
+//+kubebuilder:rbac:groups="",resources=nodes;events,verbs=get;list;watch;create;update;patch;delete
+
 // Actuator is responsible for performing machine reconciliation
-type Actuator struct { 
+type Actuator struct {
         machinesGetter client.MachinesGetter
 }
 
@@ -137,7 +145,7 @@ func (a *Actuator) Update(ctx context.Context, cluster *clusterv1.Cluster, machi
         return fmt.Errorf("TODO: Not yet implemented")
 }
 
-// Exists test for the existance of a machine and is invoked by the Machine Controller
+// Exists tests for the existence of a machine and is invoked by the Machine Controller
 func (a *Actuator) Exists(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (bool, error) {
         log.Printf("Checking if machine %v for cluster %v exists.", machine.Name, cluster.Name)
         return false, fmt.Errorf("TODO: Not yet implemented")
@@ -153,9 +161,9 @@ func (a *Actuator) GetIP(cluster *clusterv1.Cluster, machine *clusterv1.Machine)
         return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
-// GetKubeConfig gets a kubeconfig from the master.
-func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, master *clusterv1.Machine) (string, error) {
-        log.Printf("Getting IP of machine %v for cluster %v.", master.Name, cluster.Name)
+// GetKubeConfig gets a kubeconfig from the running control plane.
+func (a *Actuator) GetKubeConfig(cluster *clusterv1.Cluster, controlPlaneMachine *clusterv1.Machine) (string, error) {
+        log.Printf("Getting IP of machine %v for cluster %v.", controlPlaneMachine.Name, cluster.Name)
         return "", fmt.Errorf("TODO: Not yet implemented")
 }
 ```
