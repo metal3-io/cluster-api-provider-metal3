@@ -16,8 +16,6 @@ limitations under the License.
 
 package errors
 
-import (
-	"fmt"
-)
+import "github.com/pkg/errors"
 
-var NotImplementedError = fmt.Errorf("not implemented")
+var ErrNotImplemented = errors.New("not implemented")

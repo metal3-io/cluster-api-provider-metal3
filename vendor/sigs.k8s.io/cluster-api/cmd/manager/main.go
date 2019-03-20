@@ -17,11 +17,11 @@ limitations under the License.
 package main
 
 import (
+	"flag"
 	"log"
 
-	"flag"
-
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/klog"
 	"sigs.k8s.io/cluster-api/pkg/apis"
 	"sigs.k8s.io/cluster-api/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -30,6 +30,8 @@ import (
 )
 
 func main() {
+	flag.Set("logtostderr", "true")
+	klog.InitFlags(nil)
 	flag.Parse()
 
 	// Get a config to talk to the apiserver

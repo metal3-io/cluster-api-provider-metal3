@@ -33,7 +33,11 @@ func (c *ReconcileMachineSet) getMachineSetsForMachine(m *v1alpha1.Machine) []*v
 	}
 
 	msList := &v1alpha1.MachineSetList{}
-	err := c.Client.List(context.Background(), &client.ListOptions{Namespace: m.Namespace}, msList)
+	listOptions := &client.ListOptions{
+		Namespace: m.Namespace,
+	}
+
+	err := c.Client.List(context.Background(), listOptions, msList)
 	if err != nil {
 		klog.Errorf("Failed to list machine sets, %v", err)
 		return nil
@@ -56,14 +60,17 @@ func hasMatchingLabels(machineSet *v1alpha1.MachineSet, machine *v1alpha1.Machin
 		klog.Warningf("unable to convert selector: %v", err)
 		return false
 	}
+
 	// If a deployment with a nil or empty selector creeps in, it should match nothing, not everything.
 	if selector.Empty() {
 		klog.V(2).Infof("%v machineset has empty selector", machineSet.Name)
 		return false
 	}
+
 	if !selector.Matches(labels.Set(machine.Labels)) {
 		klog.V(4).Infof("%v machine has mismatch labels", machine.Name)
 		return false
 	}
+
 	return true
 }
