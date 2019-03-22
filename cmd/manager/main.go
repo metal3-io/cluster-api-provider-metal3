@@ -24,6 +24,7 @@ import (
 	bmoapis "github.com/metalkube/baremetal-operator/pkg/apis"
 	"github.com/metalkube/cluster-api-provider-baremetal/pkg/apis"
 	"github.com/metalkube/cluster-api-provider-baremetal/pkg/cloud/baremetal/actuators/machine"
+	"k8s.io/klog"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
 	capimachine "sigs.k8s.io/cluster-api/pkg/controller/machine"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -33,10 +34,7 @@ import (
 )
 
 func main() {
-	cfg := config.GetConfigOrDie()
-	if cfg == nil {
-		panic(fmt.Errorf("GetConfigOrDie didn't die"))
-	}
+	klog.InitFlags(nil)
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.Parse()
@@ -44,6 +42,23 @@ func main() {
 	log := logf.Log.WithName("baremetal-controller-manager")
 	logf.SetLogger(logf.ZapLogger(false))
 	entryLog := log.WithName("entrypoint")
+
+	klogFlags := flag.NewFlagSet("klog", flag.ExitOnError)
+	klog.InitFlags(klogFlags)
+
+	// Sync the glog and klog flags.
+	flag.CommandLine.VisitAll(func(f1 *flag.Flag) {
+		f2 := klogFlags.Lookup(f1.Name)
+		if f2 != nil {
+			value := f1.Value.String()
+			f2.Value.Set(value)
+		}
+	})
+
+	cfg := config.GetConfigOrDie()
+	if cfg == nil {
+		panic(fmt.Errorf("GetConfigOrDie didn't die"))
+	}
 
 	// Setup a Manager
 	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: *metricsAddr})
