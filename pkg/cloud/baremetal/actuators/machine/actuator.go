@@ -19,11 +19,8 @@ package machine
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
-	"net/http"
-	"strings"
 	"time"
 
 	bmh "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
@@ -235,27 +232,13 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		Namespace: machine.Namespace,
 	}
 
-	// FIXME(dhellmann): The Stein version of Ironic supports passing
-	// a URL. When we upgrade, we can stop doing this work ourself.
-	log.Printf("looking for checksum for %s at %s",
-		instanceImageSource, instanceImageChecksumURL)
-	resp, err := http.Get(instanceImageChecksumURL)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	instanceImageChecksum, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
 	// FIXME(dhellmann): When we stop using the consts for these
 	// settings, we need to pass the right values.
 	chosenHost.Spec.Image = &bmh.Image{
 		URL:      instanceImageSource,
-		Checksum: strings.TrimSpace(string(instanceImageChecksum)),
+		Checksum: instanceImageChecksumURL,
 	}
-	err = a.client.Update(ctx, chosenHost)
+	err := a.client.Update(ctx, chosenHost)
 	if err != nil {
 		return nil, err
 	}
