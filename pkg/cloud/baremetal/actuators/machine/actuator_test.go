@@ -109,11 +109,8 @@ func TestChooseHost(t *testing.T) {
 
 		result, err := actuator.chooseHost(context.TODO(), &tc.Machine)
 		if tc.ExpectedHostName == "" {
-			if err == nil {
-				t.Error("found host when none should have been available")
-			}
 			if result != nil {
-				t.Errorf("expected nil, got %v", result)
+				t.Error("found host when none should have been available")
 			}
 			continue
 		}

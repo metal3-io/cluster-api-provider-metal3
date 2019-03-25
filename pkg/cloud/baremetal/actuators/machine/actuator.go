@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/cache"
 	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,6 +42,7 @@ const (
 	// address of the web server hosting the image in the ironic pod.
 	instanceImageSource      = "http://172.22.0.1/images/redhat-coreos-maipo-latest.qcow2"
 	instanceImageChecksumURL = instanceImageSource + ".md5sum"
+	requeueAfter             = time.Second * 30
 )
 
 // Add RBAC rules to access cluster-api resources
@@ -79,6 +81,10 @@ func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machi
 		host, err = a.chooseHost(ctx, machine)
 		if err != nil {
 			return err
+		}
+		if host == nil {
+			log.Printf("No available host found. Requeuing.")
+			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfter}
 		}
 		log.Printf("Associating machine %s with host %s", machine.Name, host.Name)
 	} else {
@@ -200,7 +206,8 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 // chooseHost iterates through known hosts and returns one that can be
 // associated with the machine. It searches all hosts in case one already has an
 // association with this machine. It will add a Machine reference and update the
-// host via the kube API before returning the host.
+// host via the kube API before returning the host. Returns nil if a host is not
+// available.
 func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (*bmh.BareMetalHost, error) {
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
@@ -222,7 +229,7 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		}
 	}
 	if len(availableHosts) == 0 {
-		return nil, fmt.Errorf("No available host found")
+		return nil, nil
 	}
 	// choose a host at random from available hosts
 	rand.Seed(time.Now().Unix())
