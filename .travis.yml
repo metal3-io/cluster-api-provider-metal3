@@ -4,9 +4,10 @@ go:
   - "1.11.5"
 before_install:
   - ./tools/install_kustomize.sh
+  - ./tools/install_kubebuilder.sh
   - make generate
 env:
   - TARGET=fmt
   - TARGET=vet
-#  - TARGET=unit
+  - TARGET=unit
 script: make $TARGET
