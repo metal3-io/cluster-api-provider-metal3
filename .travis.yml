@@ -10,4 +10,4 @@ env:
   - TARGET=fmt
   - TARGET=vet
   - TARGET=unit
-script: make $TARGET
+script: KUBEBUILDER_ASSETS="$(pwd)/kubebuilder/bin/" make $TARGET
