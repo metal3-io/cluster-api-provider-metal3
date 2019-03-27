@@ -245,6 +245,7 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		URL:      instanceImageSource,
 		Checksum: instanceImageChecksumURL,
 	}
+	chosenHost.Spec.Online = true
 	err := a.client.Update(ctx, chosenHost)
 	if err != nil {
 		return nil, err
