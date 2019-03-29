@@ -246,6 +246,11 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		Checksum: instanceImageChecksumURL,
 	}
 	chosenHost.Spec.Online = true
+	chosenHost.Spec.UserData = &corev1.SecretReference{
+		Namespace: machine.Namespace, // is it safe to assume the same namespace?
+		// FIXME(dhellmann): Is this name openshift-specific?
+		Name: "worker-user-data",
+	}
 	err := a.client.Update(ctx, chosenHost)
 	if err != nil {
 		return nil, err
