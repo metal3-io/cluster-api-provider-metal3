@@ -111,6 +111,9 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 		// don't remove the MachineRef if it references some other machine
 		if host.Spec.MachineRef.Name == machine.Name {
 			host.Spec.MachineRef = nil
+			host.Spec.Image = nil
+			host.Spec.Online = false
+			host.Spec.UserData = nil
 			err = a.client.Update(ctx, host)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
@@ -246,6 +249,11 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		Checksum: instanceImageChecksumURL,
 	}
 	chosenHost.Spec.Online = true
+	chosenHost.Spec.UserData = &corev1.SecretReference{
+		Namespace: machine.Namespace, // is it safe to assume the same namespace?
+		// FIXME(dhellmann): Is this name openshift-specific?
+		Name: "worker-user-data",
+	}
 	err := a.client.Update(ctx, chosenHost)
 	if err != nil {
 		return nil, err
