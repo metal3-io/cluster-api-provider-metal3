@@ -223,17 +223,19 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 
 	availableHosts := []*bmh.BareMetalHost{}
 
-	for _, host := range hosts.Items {
+	for i, host := range hosts.Items {
 		if host.Available() {
-			availableHosts = append(availableHosts, &host)
+			availableHosts = append(availableHosts, &hosts.Items[i])
 		} else if host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
 			log.Printf("found host %s with existing MachineRef", host.Name)
-			return &host, nil
+			return &hosts.Items[i], nil
 		}
 	}
 	if len(availableHosts) == 0 {
 		return nil, nil
 	}
+
+	log.Printf("%d hosts available", len(availableHosts))
 	// choose a host at random from available hosts
 	rand.Seed(time.Now().Unix())
 	chosenHost := availableHosts[rand.Intn(len(availableHosts))]

@@ -69,7 +69,7 @@ func TestChooseHost(t *testing.T) {
 					Namespace: "myns",
 				},
 			},
-			Hosts:            []runtime.Object{&host1, &host2},
+			Hosts:            []runtime.Object{&host2, &host1},
 			ExpectedHostName: host2.Name,
 		},
 		{
@@ -80,7 +80,7 @@ func TestChooseHost(t *testing.T) {
 					Namespace: "myns",
 				},
 			},
-			Hosts:            []runtime.Object{&host1, &host2, &host3},
+			Hosts:            []runtime.Object{&host1, &host3, &host2},
 			ExpectedHostName: host3.Name,
 		},
 		{
