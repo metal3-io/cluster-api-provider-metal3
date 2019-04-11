@@ -40,7 +40,7 @@ const (
 	// FIXME(dhellmann): These image values should probably come from
 	// configuration settings and something that can tell the IP
 	// address of the web server hosting the image in the ironic pod.
-	instanceImageSource      = "http://172.22.0.1/images/redhat-coreos-maipo-latest.qcow2"
+	instanceImageSource      = "http://172.22.0.1/images/rhcos-oopta-latest.qcow2"
 	instanceImageChecksumURL = instanceImageSource + ".md5sum"
 	requeueAfter             = time.Second * 30
 )
