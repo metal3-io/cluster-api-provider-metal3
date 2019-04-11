@@ -239,14 +239,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6265482f47e903f1ee5b4711dacbdcedf221b143cac0c5a83295431ef47c9e07"
+  digest = "1:70f8d672ed0f89f3b1bd121fa264d6ad3cf20ab5e14a0a20c74a63f7f280d884"
   name = "github.com/metalkube/baremetal-operator"
   packages = [
     "pkg/apis",
     "pkg/apis/metalkube/v1alpha1",
   ]
   pruneopts = "T"
-  revision = "afbd799b0d39caf5def1b8ce64b738d8637c3bdb"
+  revision = "96ca68ea37e4e8c64ae53d872d14412fa95b9ae0"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -990,8 +990,10 @@
     "k8s.io/client-go/tools/cache",
     "k8s.io/code-generator/cmd/client-gen",
     "k8s.io/code-generator/cmd/deepcopy-gen",
+    "k8s.io/klog",
     "sigs.k8s.io/cluster-api/pkg/apis",
     "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1",
+    "sigs.k8s.io/cluster-api/pkg/controller/error",
     "sigs.k8s.io/cluster-api/pkg/controller/machine",
     "sigs.k8s.io/controller-runtime/pkg/client",
     "sigs.k8s.io/controller-runtime/pkg/client/config",

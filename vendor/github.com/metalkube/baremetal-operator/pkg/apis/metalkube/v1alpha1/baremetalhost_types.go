@@ -26,14 +26,65 @@ const (
 	// configured correctly and not actively being managed.
 	OperationalStatusOK OperationalStatus = "OK"
 
-	// OperationalStatusInspecting is the status value for when the
-	// host is powered on and running the discovery image to inspect
-	// the hardware resources on the host.
-	OperationalStatusInspecting OperationalStatus = "inspecting"
+	// OperationalStatusDiscovered is the status value for when the
+	// host is only partially configured, such as when a few values
+	// are loaded from Ironic.
+	OperationalStatusDiscovered OperationalStatus = "discovered"
 
 	// OperationalStatusError is the status value for when the host
 	// has any sort of error.
 	OperationalStatusError OperationalStatus = "error"
+)
+
+// ProvisioningState defines the states the provisioner will report
+// the host has having.
+type ProvisioningState string
+
+const (
+	// StateNone means the state is unknown
+	StateNone ProvisioningState = ""
+
+	// StateRegistrationError means there was an error registering the
+	// host with the backend
+	StateRegistrationError ProvisioningState = "registration error"
+
+	// StateRegistering means we are telling the backend about the host
+	StateRegistering ProvisioningState = "registering"
+
+	// StateMatchProfile means we are comparing the discovered details
+	// against known hardware profiles
+	StateMatchProfile ProvisioningState = "match profile"
+
+	// StateReady means the host can be consumed
+	StateReady ProvisioningState = "ready"
+
+	// StateValidationError means the provisioning instructions had an
+	// error
+	StateValidationError ProvisioningState = "validation error"
+
+	// StateProvisioning means we are writing an image to the host's
+	// disk(s)
+	StateProvisioning ProvisioningState = "provisioning"
+
+	// StateProvisioningError means we are writing an image to the
+	// host's disk(s)
+	StateProvisioningError ProvisioningState = "provisioning error"
+
+	// StateProvisioned means we have written an image to the host's
+	// disk(s)
+	StateProvisioned ProvisioningState = "provisioned"
+
+	// StateDeprovisioning means we are removing an image from the
+	// host's disk(s)
+	StateDeprovisioning ProvisioningState = "deprovisioning"
+
+	// StateInspecting means we are running the agent on the host to
+	// learn about the hardware components available there
+	StateInspecting ProvisioningState = "inspecting"
+
+	// StatePowerManagementError means something went wrong trying to
+	// power the server on or off.
+	StatePowerManagementError ProvisioningState = "power management error"
 )
 
 // BMCDetails contains the information necessary to communicate with
@@ -189,10 +240,12 @@ type BareMetalHostStatus struct {
 
 // ProvisionStatus holds the state information for a single target.
 type ProvisionStatus struct {
-	// FIXME(dhellmann): This should be an enum of some sort.
-	State string `json:"state"`
-	// The machine's UUID from ironic
+	// An indiciator for what the provisioner is doing with the host.
+	State ProvisioningState `json:"state"`
+
+	// The machine's UUID from the underlying provisioning tool
 	ID string `json:"ID"`
+
 	// Image holds the details of the last image successfully
 	// provisioned to the host.
 	Image Image `json:"image,omitempty"`
@@ -241,10 +294,7 @@ func (host *BareMetalHost) SetErrorMessage(message string) (dirty bool) {
 
 // ClearError removes any existing error message.
 func (host *BareMetalHost) ClearError() (dirty bool) {
-	if host.Status.OperationalStatus != OperationalStatusOK {
-		host.Status.OperationalStatus = OperationalStatusOK
-		dirty = true
-	}
+	dirty = host.SetOperationalStatus(OperationalStatusOK)
 	if host.Status.ErrorMessage != "" {
 		host.Status.ErrorMessage = ""
 		dirty = true
@@ -274,7 +324,17 @@ func (host *BareMetalHost) getLabel(name string) string {
 	return host.Labels[name]
 }
 
-// SetHardwareProfile updates the HardwareProfileLabel and returns
+// NeedsHardwareProfile returns true if the profile is not set
+func (host *BareMetalHost) NeedsHardwareProfile() bool {
+	return host.Status.HardwareProfile == ""
+}
+
+// HardwareProfile returns the hardware profile name for the host.
+func (host *BareMetalHost) HardwareProfile() string {
+	return host.Status.HardwareProfile
+}
+
+// SetHardwareProfile updates the hardware profile name and returns
 // true when a change is made or false when no change is made.
 func (host *BareMetalHost) SetHardwareProfile(name string) (dirty bool) {
 	if host.Status.HardwareProfile != name {
@@ -294,8 +354,8 @@ func (host *BareMetalHost) SetOperationalStatus(status OperationalStatus) bool {
 	return false
 }
 
-// OperationalStatus returns the value associated with the
-// OperationalStatusLabel
+// OperationalStatus returns the contents of the OperationalStatus
+// field.
 func (host *BareMetalHost) OperationalStatus() OperationalStatus {
 	return host.Status.OperationalStatus
 }
@@ -333,10 +393,25 @@ func (host *BareMetalHost) CredentialsNeedValidation(currentSecret corev1.Secret
 	return false
 }
 
+// NeedsHardwareInspection looks at the state of the host to determine
+// if hardware inspection should be run.
+func (host *BareMetalHost) NeedsHardwareInspection() bool {
+	if host.Status.MachineRef != nil {
+		// Never perform inspection if we already know which machine
+		// this is.
+		return false
+	}
+	return host.Status.HardwareDetails == nil
+}
+
 // NeedsProvisioning compares the settings with the provisioning
 // status and returns true when more work is needed or false
 // otherwise.
 func (host *BareMetalHost) NeedsProvisioning() bool {
+	if !host.Spec.Online {
+		// The host is not supposed to be powered on.
+		return false
+	}
 	if host.Spec.Image == nil {
 		// Without an image, there is nothing to provision.
 		return false
@@ -351,6 +426,16 @@ func (host *BareMetalHost) NeedsProvisioning() bool {
 	}
 	// FIXME(dhellmann): Compare the provisioned image against the one
 	// we are supposed to have to make sure they match.
+	return false
+}
+
+// WasProvisioned returns true when we think we have placed an image
+// on the host.
+func (host *BareMetalHost) WasProvisioned() bool {
+	if host.Status.Provisioning.Image.URL != "" {
+		// We have an image provisioned.
+		return true
+	}
 	return false
 }
 
@@ -377,6 +462,36 @@ func (host *BareMetalHost) UpdateGoodCredentials(currentSecret corev1.Secret) {
 	host.Status.GoodCredentials.Reference = &corev1.SecretReference{
 		Name:      currentSecret.ObjectMeta.Name,
 		Namespace: currentSecret.ObjectMeta.Namespace,
+	}
+}
+
+// NewEvent creates a new event associated with the object and ready
+// to be published to the kubernetes API.
+func (host *BareMetalHost) NewEvent(reason, message string) corev1.Event {
+	t := metav1.Now()
+	return corev1.Event{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: reason + "-",
+			Namespace:    host.ObjectMeta.Namespace,
+		},
+		InvolvedObject: corev1.ObjectReference{
+			Kind:       host.TypeMeta.Kind,
+			Namespace:  host.ObjectMeta.Namespace,
+			Name:       host.ObjectMeta.Name,
+			UID:        host.ObjectMeta.UID,
+			APIVersion: host.TypeMeta.APIVersion,
+		},
+		Reason:  reason,
+		Message: message,
+		Source: corev1.EventSource{
+			Component: "metalkube-baremetal-controller",
+		},
+		FirstTimestamp:      t,
+		LastTimestamp:       t,
+		Count:               1,
+		Type:                corev1.EventTypeNormal,
+		ReportingController: "metalkube.org/baremetal-controller",
+		Related:             host.Spec.MachineRef,
 	}
 }
 

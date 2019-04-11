@@ -3,15 +3,20 @@ package baremetalhost
 import (
 	"context"
 	"flag"
+	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 
 	metalkubev1alpha1 "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
 	"github.com/metalkube/baremetal-operator/pkg/bmc"
 	"github.com/metalkube/baremetal-operator/pkg/provisioner"
+	"github.com/metalkube/baremetal-operator/pkg/provisioner/demo"
 	"github.com/metalkube/baremetal-operator/pkg/provisioner/fixture"
 	"github.com/metalkube/baremetal-operator/pkg/provisioner/ironic"
 	"github.com/metalkube/baremetal-operator/pkg/utils"
+
+	"github.com/go-logr/logr"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -30,13 +35,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+const (
+	hostErrorRetryDelay = time.Second * 10
+)
+
 var runInTestMode bool
+var runInDemoMode bool
 
 func init() {
 	flag.BoolVar(&runInTestMode, "test-mode", false, "disable ironic communication")
+	flag.BoolVar(&runInDemoMode, "demo-mode", false,
+		"use the demo provisioner to set host states")
 }
 
-var log = logf.Log.WithName("controller_baremetalhost")
+var log = logf.Log.WithName("baremetalhost")
 
 // Add creates a new BareMetalHost Controller and adds it to the
 // Manager. The Manager will set fields on the Controller and Start it
@@ -48,10 +60,14 @@ func Add(mgr manager.Manager) error {
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	var provisionerFactory provisioner.Factory
-	if runInTestMode {
+	switch {
+	case runInTestMode:
 		log.Info("USING TEST MODE")
 		provisionerFactory = fixture.New
-	} else {
+	case runInDemoMode:
+		log.Info("USING DEMO MODE")
+		provisionerFactory = demo.New
+	default:
 		provisionerFactory = ironic.New
 	}
 	return &ReconcileBareMetalHost{
@@ -64,7 +80,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("baremetalhost-controller", mgr,
+	c, err := controller.New("metalkube-baremetalhost-controller", mgr,
 		controller.Options{Reconciler: r})
 	if err != nil {
 		return err
@@ -97,6 +113,35 @@ type ReconcileBareMetalHost struct {
 	provisionerFactory provisioner.Factory
 }
 
+// Instead of passing a zillion arguments to the action of a phase,
+// hold them in a context
+type reconcileInfo struct {
+	log            logr.Logger
+	host           *metalkubev1alpha1.BareMetalHost
+	request        reconcile.Request
+	bmcCredsSecret *corev1.Secret
+	events         []corev1.Event
+	errorMessage   string
+}
+
+// match the provisioner.EventPublisher interface
+func (info *reconcileInfo) publishEvent(reason, message string) {
+	info.events = append(info.events, info.host.NewEvent(reason, message))
+}
+
+// Action for one step of reconciliation.
+//
+// - Return a result if the host should be saved and requeued without error.
+// - Return error if there was an error.
+// - Return double nil if nothing was done and processing should continue.
+type reconcileAction func(info *reconcileInfo) (*reconcile.Result, error)
+
+// One step of reconciliation
+type reconcilePhase struct {
+	name   string
+	action reconcileAction
+}
+
 // Reconcile reads that state of the cluster for a BareMetalHost
 // object and makes changes based on the state read and what is in the
 // BareMetalHost.Spec TODO(user): Modify this Reconcile function to
@@ -105,10 +150,7 @@ type ReconcileBareMetalHost struct {
 // processed again if the returned error is non-nil or Result.Requeue
 // is true, otherwise upon completion it will remove the work from the
 // queue.
-func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-
-	var dirty bool                    // have we updated the host status but not saved it?
-	var provResult provisioner.Result // result of any provisioner call
+func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (result reconcile.Result, err error) {
 
 	reqLogger := log.WithValues("Request.Namespace",
 		request.Namespace, "Request.Name", request.Name)
@@ -116,7 +158,7 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 
 	// Fetch the BareMetalHost
 	host := &metalkubev1alpha1.BareMetalHost{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, host)
+	err = r.client.Get(context.TODO(), request.NamespacedName, host)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after
@@ -129,12 +171,16 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, errors.Wrap(err, "could not load host data")
 	}
 
+	// NOTE(dhellmann): Handle a few steps outside of the phase
+	// structure because they require extra data lookup (like the
+	// credential checks) or have to be done "first" (like delete
+	// handling) to avoid looping.
+
 	// Add a finalizer to newly created objects.
-	if host.ObjectMeta.DeletionTimestamp.IsZero() &&
-		!utils.StringInList(host.ObjectMeta.Finalizers, metalkubev1alpha1.BareMetalHostFinalizer) {
+	if host.DeletionTimestamp.IsZero() && !hostHasFinalizer(host) {
 		reqLogger.Info(
 			"adding finalizer",
-			"existingFinalizers", host.ObjectMeta.Finalizers,
+			"existingFinalizers", host.Finalizers,
 			"newValue", metalkubev1alpha1.BareMetalHostFinalizer,
 		)
 		host.Finalizers = append(host.Finalizers,
@@ -144,6 +190,50 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 			return reconcile.Result{}, errors.Wrap(err, "failed to add finalizer")
 		}
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	// Handle delete operations
+	if !host.DeletionTimestamp.IsZero() {
+		result, err := r.deleteHost(request, host)
+		return result, err
+	}
+
+	// Check for a "discovered" host vs. one that we have all the info for.
+	if host.Spec.BMC.Address == "" {
+		reqLogger.Info(bmc.MissingAddressMsg)
+		dirty := host.SetOperationalStatus(metalkubev1alpha1.OperationalStatusDiscovered)
+		if dirty {
+			err = r.saveStatus(host)
+			if err != nil {
+				// Only publish the event if we do not have an error
+				// after saving so that we only publish one time.
+				r.publishEvent(request,
+					host.NewEvent("Discovered", "Discovered host without BMC address"))
+			}
+			// Without the address we can't do any more so we return here
+			// without checking for an error.
+			return reconcile.Result{Requeue: true}, err
+		}
+		reqLogger.Info("nothing to do for discovered host without BMC address")
+		return reconcile.Result{}, nil
+	}
+	if host.Spec.BMC.CredentialsName == "" {
+		reqLogger.Info(bmc.MissingCredentialsMsg)
+		dirty := host.SetOperationalStatus(metalkubev1alpha1.OperationalStatusDiscovered)
+		if dirty {
+			err = r.saveStatus(host)
+			if err != nil {
+				// Only publish the event if we do not have an error
+				// after saving so that we only publish one time.
+				r.publishEvent(request,
+					host.NewEvent("Discovered", "Discovered host without BMC credentials"))
+			}
+			// Without any credentials we can't do any more so we return
+			// here without checking for an error.
+			return reconcile.Result{Requeue: true}, err
+		}
+		reqLogger.Info("nothing to do for discovered host without BMC credentials")
+		return reconcile.Result{}, nil
 	}
 
 	// Load the credentials for talking to the management controller.
@@ -158,203 +248,427 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, nil
 	}
 
-	// Past this point we may need a provisioner, so create one.
-	prov, err := r.provisionerFactory(host, *bmcCreds)
+	// Pick the action to perform
+	var actionName metalkubev1alpha1.ProvisioningState
+	switch {
+	case host.CredentialsNeedValidation(*bmcCredsSecret):
+		actionName = metalkubev1alpha1.StateRegistering
+	case host.NeedsHardwareInspection():
+		actionName = metalkubev1alpha1.StateInspecting
+	case host.HardwareProfile() == "":
+		actionName = metalkubev1alpha1.StateMatchProfile
+	case host.NeedsProvisioning():
+		actionName = metalkubev1alpha1.StateProvisioning
+	case host.NeedsDeprovisioning():
+		actionName = metalkubev1alpha1.StateDeprovisioning
+	case host.WasProvisioned():
+		actionName = metalkubev1alpha1.StateProvisioned
+	default:
+		actionName = metalkubev1alpha1.StateReady
+	}
+
+	if actionName != host.Status.Provisioning.State {
+		host.Status.Provisioning.State = actionName
+		reqLogger.Info(fmt.Sprintf("setting provisioning state to %q", actionName))
+		if err := r.saveStatus(host); err != nil {
+			return reconcile.Result{}, errors.Wrap(err,
+				fmt.Sprintf("failed to save host status after handling %q", actionName))
+		}
+		return reconcile.Result{Requeue: true}, nil
+	}
+
+	info := &reconcileInfo{
+		log:            reqLogger.WithValues("actionName", actionName),
+		host:           host,
+		request:        request,
+		bmcCredsSecret: bmcCredsSecret,
+	}
+	prov, err := r.provisionerFactory(host, *bmcCreds, info.publishEvent)
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to create provisioner")
 	}
 
-	// Handle delete operations.
-	if !host.ObjectMeta.DeletionTimestamp.IsZero() {
-		reqLogger.Info(
-			"marked to be deleted",
-			"timestamp", host.ObjectMeta.DeletionTimestamp,
-		)
-		// no-op if finalizer has been removed.
-		if !utils.StringInList(host.ObjectMeta.Finalizers, metalkubev1alpha1.BareMetalHostFinalizer) {
-			reqLogger.Info("BareMetalHost is ready to be deleted")
-			return reconcile.Result{}, nil
-		}
-
-		if provResult, err = prov.Deprovision(true); err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to deprovision")
-		}
-		if provResult.Dirty {
-			if err := r.saveStatus(host); err != nil {
-				return reconcile.Result{}, errors.Wrap(err,
-					"failed to clear host status on deprovision")
-			}
-			// Go back into the queue and wait for the Deprovision() method
-			// to return false, indicating that it has no more work to
-			// do.
-			return reconcile.Result{RequeueAfter: provResult.RequeueAfter}, nil
-		}
-
-		// Remove finalizer to allow deletion
-		reqLogger.Info("cleanup is complete, removing finalizer")
-		host.ObjectMeta.Finalizers = utils.FilterStringFromList(
-			host.ObjectMeta.Finalizers, metalkubev1alpha1.BareMetalHostFinalizer)
-		if err := r.client.Update(context.TODO(), host); err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to remove finalizer")
-		}
-		return reconcile.Result{}, nil // done
+	switch actionName {
+	case metalkubev1alpha1.StateRegistering:
+		result, err = r.actionRegistering(prov, info)
+	case metalkubev1alpha1.StateInspecting:
+		result, err = r.actionInspecting(prov, info)
+	case metalkubev1alpha1.StateMatchProfile:
+		result, err = r.actionMatchProfile(prov, info)
+	case metalkubev1alpha1.StateProvisioning:
+		result, err = r.actionProvisioning(prov, info)
+	case metalkubev1alpha1.StateDeprovisioning:
+		result, err = r.actionDeprovisioning(prov, info)
+	case metalkubev1alpha1.StateProvisioned:
+		result, err = r.actionManageHostPower(prov, info)
+	case metalkubev1alpha1.StateReady:
+		result, err = r.actionManageHostPower(prov, info)
+	default:
+		// Probably a provisioning error state?
+		return reconcile.Result{}, fmt.Errorf("Unrecognized action %q", actionName)
 	}
 
-	// Test the credentials by connecting to the management controller.
-	if host.CredentialsNeedValidation(*bmcCredsSecret) {
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, fmt.Sprintf("action %q failed", actionName))
+	}
 
-		provResult, err = prov.ValidateManagementAccess()
-		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to validate BMC access")
-		}
-
-		// We may have changed the host during validation or when we
-		// cleared the error state above. In either case, save now.
-		reqLogger.Info("after validation", "provResult", provResult)
-		if provResult.Dirty {
-			reqLogger.Info("saving status after validating management access")
-			if err := r.saveStatus(host); err != nil {
-				return reconcile.Result{}, errors.Wrap(err,
-					"failed to save provisioning host status")
-			}
-			// We need to wait before checking with the provisioner
-			// again.
-			reqLogger.Info("host not ready", "delay", provResult.RequeueAfter)
-			result := reconcile.Result{
-				Requeue:      true,
-				RequeueAfter: provResult.RequeueAfter,
-			}
-			return result, nil
-		}
-
-		// Reaching this point means the credentials are valid and
-		// worked, so record that in the status block.
-		reqLogger.Info("updating credentials success status fields")
-		host.UpdateGoodCredentials(*bmcCredsSecret)
-		if err := r.saveStatus(host); err != nil {
+	// Only save status when we're told to requeue, otherwise we
+	// introduce an infinite loop reconciling the same object over and
+	// over when there is an unrecoverable error (tracked through the
+	// error state of the host).
+	if result.Requeue {
+		info.log.Info("saving host status",
+			"operational status", host.OperationalStatus(),
+			"provisioning state", host.Status.Provisioning.State)
+		if err = r.saveStatus(host); err != nil {
 			return reconcile.Result{}, errors.Wrap(err,
-				"failed to update credentials success status fields")
+				fmt.Sprintf("failed to save host status after %q", actionName))
 		}
-		return reconcile.Result{Requeue: true}, nil
 	}
 
-	// Ensure we have the information about the hardware on the host.
-	if host.Status.HardwareDetails == nil {
-		provResult, err = prov.InspectHardware()
-		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "hardware inspection failed")
-		}
-		if provResult.Dirty || dirty {
-			reqLogger.Info("saving hardware details after inspecting hardware")
-			if err := r.saveStatus(host); err != nil {
-				return reconcile.Result{}, errors.Wrap(err,
-					"failed to save hardware details after inspection")
-			}
-			res := reconcile.Result{
-				Requeue:      true,
-				RequeueAfter: provResult.RequeueAfter,
-			}
-			return res, nil
-		}
+	for _, e := range info.events {
+		r.publishEvent(request, e)
 	}
+
+	if host.HasError() {
+		// We have tried to do something that failed in a way we
+		// assume is not retryable, so do not proceed to any other
+		// steps.
+		info.log.Info("stopping on host error")
+		return reconcile.Result{}, nil
+	}
+
+	info.log.Info("done",
+		"requeue", result.Requeue,
+		"after", result.RequeueAfter,
+	)
+	return result, nil
+}
+
+// Handle all delete cases
+func (r *ReconcileBareMetalHost) deleteHost(request reconcile.Request, host *metalkubev1alpha1.BareMetalHost) (result reconcile.Result, err error) {
+
+	reqLogger := log.WithValues("Request.Namespace",
+		request.Namespace, "Request.Name", request.Name)
+
+	reqLogger.Info(
+		"marked to be deleted",
+		"timestamp", host.DeletionTimestamp,
+	)
+
+	// no-op if finalizer has been removed.
+	if !utils.StringInList(host.Finalizers, metalkubev1alpha1.BareMetalHostFinalizer) {
+		reqLogger.Info("ready to be deleted")
+		// There is nothing to save and no reason to requeue since we
+		// are being deleted.
+		return reconcile.Result{}, nil
+	}
+
+	bmcCreds, _, err := r.getValidBMCCredentials(request, host)
+	// We ignore the error, because we are deleting this host anyway.
+	if bmcCreds == nil {
+		// There are no valid credentials, so create an empty
+		// credentials object to give to the provisioner.
+		bmcCreds = &bmc.Credentials{}
+	}
+
+	eventPublisher := func(reason, message string) {
+		r.publishEvent(request, host.NewEvent(reason, message))
+	}
+
+	prov, err := r.provisionerFactory(host, *bmcCreds, eventPublisher)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to create provisioner")
+	}
+
+	reqLogger.Info("deprovisioning")
+	provResult, err := prov.Deprovision(true)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to deprovision")
+	}
+	if provResult.Dirty {
+		err = r.saveStatus(host)
+		if err != nil {
+			return result, errors.Wrap(err, "failed to save host after deprovisioning")
+		}
+		result.Requeue = true
+		result.RequeueAfter = provResult.RequeueAfter
+		return result, nil
+	}
+
+	// Remove finalizer to allow deletion
+	host.Finalizers = utils.FilterStringFromList(
+		host.Finalizers, metalkubev1alpha1.BareMetalHostFinalizer)
+	reqLogger.Info("cleanup is complete, removed finalizer",
+		"remaining", host.Finalizers)
+	if err := r.client.Update(context.Background(), host); err != nil {
+		return result, errors.Wrap(err, "failed to remove finalizer")
+	}
+
+	return result, nil
+}
+
+// Test the credentials by connecting to the management controller.
+func (r *ReconcileBareMetalHost) actionRegistering(prov provisioner.Provisioner, info *reconcileInfo) (result reconcile.Result, err error) {
+	var provResult provisioner.Result
+
+	info.log.Info("registering and validating access to management controller")
+
+	provResult, err = prov.ValidateManagementAccess()
+	if err != nil {
+		return result, errors.Wrap(err, "failed to validate BMC access")
+	}
+
+	if provResult.ErrorMessage != "" {
+		info.host.Status.Provisioning.State = metalkubev1alpha1.StateRegistrationError
+		info.host.SetErrorMessage(provResult.ErrorMessage)
+		info.publishEvent("RegistrationError", provResult.ErrorMessage)
+		return result, nil
+	}
+
+	if provResult.Dirty {
+		// Set Requeue true as well as RequeueAfter in case the delay
+		// is 0.
+		info.log.Info("host not ready")
+		info.host.ClearError()
+		result.Requeue = true
+		result.RequeueAfter = provResult.RequeueAfter
+		return result, nil
+	}
+
+	// Reaching this point means the credentials are valid and worked,
+	// so record that in the status block.
+	info.log.Info("updating credentials success status fields")
+	info.host.UpdateGoodCredentials(*info.bmcCredsSecret)
+
+	info.publishEvent("BMCAccessValidated", "Verified access to BMC")
+
+	result.Requeue = true
+	result.RequeueAfter = provResult.RequeueAfter
+	return result, nil
+}
+
+// Ensure we have the information about the hardware on the host.
+func (r *ReconcileBareMetalHost) actionInspecting(prov provisioner.Provisioner, info *reconcileInfo) (result reconcile.Result, err error) {
+	var provResult provisioner.Result
+
+	info.log.Info("inspecting hardware")
+
+	provResult, err = prov.InspectHardware()
+	if err != nil {
+		return result, errors.Wrap(err, "hardware inspection failed")
+	}
+
+	if provResult.ErrorMessage != "" {
+		info.host.Status.Provisioning.State = metalkubev1alpha1.StateRegistrationError
+		info.host.SetErrorMessage(provResult.ErrorMessage)
+		info.publishEvent("RegistrationError", provResult.ErrorMessage)
+		return result, nil
+	}
+
+	if provResult.Dirty {
+		info.host.ClearError()
+		result.Requeue = true
+		result.RequeueAfter = provResult.RequeueAfter
+		return result, nil
+	}
+
+	// FIXME(dhellmann): Since we test the HardwareDetails pointer
+	// before calling function, perhaps it makes sense to have
+	// InspectHardware() return a value and store it here in this
+	// function. That would eliminate duplication in the provisioners
+	// and make this phase consistent with the structure of others.
+
+	// Line up a requeue if we could set the hardware profile
+	result.Requeue = info.host.NeedsHardwareProfile()
+
+	return result, nil
+}
+
+func (r *ReconcileBareMetalHost) actionMatchProfile(prov provisioner.Provisioner, info *reconcileInfo) (result reconcile.Result, err error) {
 
 	// FIXME(dhellmann): Insert logic to match hardware profiles here.
 	hardwareProfile := "unknown"
-	if host.SetHardwareProfile(hardwareProfile) {
-		reqLogger.Info("updating hardware profile", "profile", hardwareProfile)
-		if err := r.saveStatus(host); err != nil {
-			return reconcile.Result{}, errors.Wrap(err,
-				"failed to save host after updating hardware profile")
-		}
-		return reconcile.Result{Requeue: true}, nil
+	if info.host.SetHardwareProfile(hardwareProfile) {
+		info.log.Info("updating hardware profile", "profile", hardwareProfile)
+		info.publishEvent("ProfileSet", fmt.Sprintf("Hardware profile set: %s", hardwareProfile))
+		info.host.ClearError()
+		result.Requeue = true
+		return result, nil
 	}
 
-	// Start/continue provisioning if we need to.
-	if host.NeedsProvisioning() {
-		var userData string
+	// Line up a requeue if we could provision
+	result.Requeue = info.host.NeedsProvisioning()
 
-		// FIXME(dhellmann): Maybe instead of loading this every time
-		// through the loop we want to provide a callback for
-		// Provision() to invoke when it actually needs the data.
-		if host.Spec.UserData != nil {
-			reqLogger.Info("fetching user data before provisioning")
-			userDataSecret := &corev1.Secret{}
-			key := types.NamespacedName{
-				Name:      host.Spec.UserData.Name,
-				Namespace: host.Spec.UserData.Namespace,
-			}
-			err = r.client.Get(context.TODO(), key, userDataSecret)
-			if err != nil {
-				return reconcile.Result{}, errors.Wrap(err,
-					"failed to fetch user data from secret reference")
-			}
-			userData = string(userDataSecret.Data["userData"])
+	return result, nil
+}
+
+// Start/continue provisioning if we need to.
+func (r *ReconcileBareMetalHost) actionProvisioning(prov provisioner.Provisioner, info *reconcileInfo) (result reconcile.Result, err error) {
+	var provResult provisioner.Result
+
+	getUserData := func() (string, error) {
+		info.log.Info("fetching user data before provisioning")
+		userDataSecret := &corev1.Secret{}
+		key := types.NamespacedName{
+			Name:      info.host.Spec.UserData.Name,
+			Namespace: info.host.Spec.UserData.Namespace,
 		}
-
-		reqLogger.Info("provisioning")
-
-		provResult, err = prov.Provision(userData)
+		err = r.client.Get(context.TODO(), key, userDataSecret)
 		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to provision")
+			return "", errors.Wrap(err,
+				"failed to fetch user data from secret reference")
 		}
-		if provResult.Dirty || dirty {
-			if err := r.saveStatus(host); err != nil {
-				return reconcile.Result{}, errors.Wrap(err,
-					"failed to save host status after provisioning")
-			}
-			// Go back into the queue and wait for the Provision() method
-			// to return false, indicating that it has no more work to
-			// do.
-			res := reconcile.Result{
-				Requeue:      true,
-				RequeueAfter: provResult.RequeueAfter,
-			}
-			return res, nil
-		}
-		if host.HasError() {
-			reqLogger.Info("needs provisioning but has error")
-			return reconcile.Result{}, nil
-		}
+		return string(userDataSecret.Data["userData"]), nil
 	}
 
-	// Start/continue deprovisioning if we need to.
-	if host.NeedsDeprovisioning() {
-		if provResult, err = prov.Deprovision(false); err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to deprovision")
-		}
-		if provResult.Dirty {
-			if err := r.saveStatus(host); err != nil {
-				return reconcile.Result{}, errors.Wrap(err,
-					"failed to clear host status on deprovision")
-			}
-			// Go back into the queue and wait for the Deprovision() method
-			// to return false, indicating that it has no more work to
-			// do.
-			return reconcile.Result{RequeueAfter: provResult.RequeueAfter}, nil
-		}
+	info.log.Info("provisioning")
+
+	provResult, err = prov.Provision(getUserData)
+	if err != nil {
+		return result, errors.Wrap(err, "failed to provision")
 	}
 
-	// If we reach this point we haven't encountered any issues
-	// communicating with the host, so ensure the error message field
-	// is cleared.
-	if host.ClearError() {
-		if err := r.saveStatus(host); err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to clear error")
+	if provResult.ErrorMessage != "" {
+		info.log.Info("handling provisioning error in controller")
+		info.host.Status.Provisioning.State = metalkubev1alpha1.StateProvisioningError
+		if info.host.SetErrorMessage(provResult.ErrorMessage) {
+			info.publishEvent("ProvisioningError", provResult.ErrorMessage)
+			result.Requeue = true
 		}
+		return result, nil
 	}
 
-	// If we have nothing else to do and there is no LastUpdated
-	// timestamp set, set one.
-	if host.Status.LastUpdated.IsZero() {
-		reqLogger.Info("initializing status")
-		if err := r.saveStatus(host); err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to initialize status block")
-		}
+	if provResult.Dirty {
+		// Go back into the queue and wait for the Provision() method
+		// to return false, indicating that it has no more work to
+		// do.
+		info.host.ClearError()
+		result.Requeue = true
+		result.RequeueAfter = provResult.RequeueAfter
+		return result, nil
 	}
 
-	// Pod already exists - don't requeue
-	reqLogger.Info("Done with reconcile")
-	return reconcile.Result{}, nil
+	// If the provisioner had no work, ensure the image settings match.
+	if info.host.Status.Provisioning.Image != *(info.host.Spec.Image) {
+		info.log.Info("updating deployed image in status")
+		info.host.Status.Provisioning.Image = *(info.host.Spec.Image)
+	}
+
+	// After provisioning we always requeue to ensure we enter the
+	// "provisioned" state and start monitoring power status.
+	result.Requeue = true
+
+	return result, nil
+}
+
+func (r *ReconcileBareMetalHost) actionDeprovisioning(prov provisioner.Provisioner, info *reconcileInfo) (result reconcile.Result, err error) {
+	var provResult provisioner.Result
+
+	info.log.Info("deprovisioning")
+
+	if provResult, err = prov.Deprovision(false); err != nil {
+		return result, errors.Wrap(err, "failed to deprovision")
+	}
+
+	if provResult.ErrorMessage != "" {
+		info.host.Status.Provisioning.State = metalkubev1alpha1.StateProvisioningError
+		if info.host.SetErrorMessage(provResult.ErrorMessage) {
+			info.publishEvent("ProvisioningError", provResult.ErrorMessage)
+			result.Requeue = true
+		}
+		return result, nil
+	}
+
+	if provResult.Dirty {
+		info.host.ClearError()
+		result.Requeue = true
+		result.RequeueAfter = provResult.RequeueAfter
+		return result, nil
+	}
+
+	// After the provisioner is done, clear the image settings so we
+	// transition to the next state.
+	info.host.Status.Provisioning.Image = metalkubev1alpha1.Image{}
+
+	// After deprovisioning we always requeue to ensure we enter the
+	// "ready" state and start monitoring power status.
+	result.Requeue = true
+
+	return result, nil
+}
+
+// Check the current power status against the desired power status.
+func (r *ReconcileBareMetalHost) actionManageHostPower(prov provisioner.Provisioner, info *reconcileInfo) (result reconcile.Result, err error) {
+	var provResult provisioner.Result
+
+	// Check the current status and save it before trying to update it.
+	if provResult, err = prov.UpdateHardwareState(); err != nil {
+		return result, errors.Wrap(err, "failed to update the hardware status")
+	}
+
+	if provResult.ErrorMessage != "" {
+		info.host.Status.Provisioning.State = metalkubev1alpha1.StatePowerManagementError
+		if info.host.SetErrorMessage(provResult.ErrorMessage) {
+			info.publishEvent("PowerManagementError", provResult.ErrorMessage)
+			result.Requeue = true
+		}
+		return result, nil
+	}
+
+	if provResult.Dirty {
+		info.host.ClearError()
+		result.Requeue = true
+		result.RequeueAfter = provResult.RequeueAfter
+		return result, nil
+	}
+
+	// Power state needs to be monitored regularly, so if we leave
+	// this function without an error we always want to requeue after
+	// a delay.
+	result.RequeueAfter = time.Second * 60
+
+	if info.host.Status.PoweredOn == info.host.Spec.Online {
+		return result, nil
+	}
+
+	info.log.Info("power state change needed",
+		"expected", info.host.Spec.Online,
+		"actual", info.host.Status.PoweredOn)
+
+	if info.host.Spec.Online {
+		provResult, err = prov.PowerOn()
+	} else {
+		provResult, err = prov.PowerOff()
+	}
+	if err != nil {
+		return result, errors.Wrap(err, "failed to manage power state of host")
+	}
+
+	if provResult.ErrorMessage != "" {
+		info.host.Status.Provisioning.State = metalkubev1alpha1.StatePowerManagementError
+		if info.host.SetErrorMessage(provResult.ErrorMessage) {
+			info.publishEvent("PowerManagementError", provResult.ErrorMessage)
+			result.Requeue = true
+		}
+		return result, nil
+	}
+
+	if provResult.Dirty {
+		info.host.ClearError()
+		result.Requeue = true
+		result.RequeueAfter = provResult.RequeueAfter
+		return result, nil
+	}
+
+	// The provisioner did not have to do anything to change the power
+	// state and there were no errors, so reflect the new state in the
+	// host status field.
+	info.host.Status.PoweredOn = info.host.Spec.Online
+	result.Requeue = true
+
+	return result, nil
+
 }
 
 func (r *ReconcileBareMetalHost) saveStatus(host *metalkubev1alpha1.BareMetalHost) error {
@@ -386,25 +700,9 @@ func (r *ReconcileBareMetalHost) getValidBMCCredentials(request reconcile.Reques
 	reqLogger := log.WithValues("Request.Namespace",
 		request.Namespace, "Request.Name", request.Name)
 
-	// If we do not have all of the needed BMC credentials, set our
-	// operational status to indicate missing information.
-	if host.Spec.BMC.Address == "" {
-		reqLogger.Info(bmc.MissingAddressMsg)
-		err := r.setErrorCondition(request, host, bmc.MissingAddressMsg)
-		// Without the BMC address there's no more we can do, so we're
-		// going to return the emtpy Result anyway, and don't need to
-		// check err.
-		return nil, nil, errors.Wrap(err, "failed to set error condition")
-	}
-
 	// Load the secret containing the credentials for talking to the
-	// BMC.
-	if host.Spec.BMC.CredentialsName == "" {
-		// We have no name to use to load the secrets.
-		reqLogger.Info(bmc.MissingCredentialsMsg)
-		err := r.setErrorCondition(request, host, bmc.MissingCredentialsMsg)
-		return nil, nil, errors.Wrap(err, "failed to set error condition")
-	}
+	// BMC. This assumes we have a reference to the secret, otherwise
+	// Reconcile() should not have let us be called.
 	secretKey := host.CredentialsKey()
 	bmcCredsSecret = &corev1.Secret{}
 	err = r.client.Get(context.TODO(), secretKey, bmcCredsSecret)
@@ -421,7 +719,16 @@ func (r *ReconcileBareMetalHost) getValidBMCCredentials(request reconcile.Reques
 	if validCreds, reason := bmcCreds.AreValid(); !validCreds {
 		reqLogger.Info("invalid BMC Credentials", "reason", reason)
 		err := r.setErrorCondition(request, host, reason)
-		return nil, nil, errors.Wrap(err, "failed to set error condition")
+		if err != nil {
+			return nil, nil, errors.Wrap(err, "failed to set error condition")
+		}
+
+		// Only publish the event if we do not have an error
+		// after saving so that we only publish one time.
+		r.publishEvent(request, host.NewEvent("BMCCredentialError", reason))
+
+		// This is not an error we can retry from, so stop reconciling.
+		return nil, nil, nil
 	}
 
 	// Make sure the secret has the correct owner.
@@ -449,4 +756,20 @@ func (r *ReconcileBareMetalHost) setBMCCredentialsSecretOwner(request reconcile.
 		return errors.Wrap(err, "failed to save owner")
 	}
 	return nil
+}
+
+func (r *ReconcileBareMetalHost) publishEvent(request reconcile.Request, event corev1.Event) {
+	reqLogger := log.WithValues("Request.Namespace",
+		request.Namespace, "Request.Name", request.Name)
+	log.Info("publishing event", "reason", event.Reason, "message", event.Message)
+	err := r.client.Create(context.TODO(), &event)
+	if err != nil {
+		reqLogger.Info("failed to record event, ignoring",
+			"reason", event.Reason, "message", event.Message, "error", err)
+	}
+	return
+}
+
+func hostHasFinalizer(host *metalkubev1alpha1.BareMetalHost) bool {
+	return utils.StringInList(host.Finalizers, metalkubev1alpha1.BareMetalHostFinalizer)
 }

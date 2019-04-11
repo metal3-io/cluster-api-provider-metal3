@@ -11,8 +11,16 @@ import (
 Package provisioning defines the API for talking to the provisioning backend.
 */
 
+// EventPublisher is a function type for publishing events associated
+// with provisioning.
+type EventPublisher func(reason, message string)
+
 // Factory is the interface for creating new Provisioner objects.
-type Factory func(host *metalkubev1alpha1.BareMetalHost, bmcCreds bmc.Credentials) (Provisioner, error)
+type Factory func(host *metalkubev1alpha1.BareMetalHost, bmcCreds bmc.Credentials, publish EventPublisher) (Provisioner, error)
+
+// UserDataSource is the interface for a function to retrieve user
+// data for a host being provisioned.
+type UserDataSource func() (string, error)
 
 // Provisioner holds the state information for talking to the
 // provisioning backend.
@@ -27,10 +35,17 @@ type Provisioner interface {
 	// inspection is completed.
 	InspectHardware() (result Result, err error)
 
+	// UpdateHardwareState fetches the latest hardware state of the
+	// server and updates the HardwareDetails field of the host with
+	// details. It is expected to do this in the least expensive way
+	// possible, such as reading from a cache, and return dirty only
+	// if any state information has changed.
+	UpdateHardwareState() (result Result, err error)
+
 	// Provision writes the image from the host spec to the host. It
 	// may be called multiple times, and should return true for its
 	// dirty flag until the deprovisioning operation is completed.
-	Provision(userData string) (result Result, err error)
+	Provision(getUserData UserDataSource) (result Result, err error)
 
 	// Deprovision prepares the host to be removed from the cluster. It
 	// may be called multiple times, and should return true for its dirty
@@ -54,4 +69,6 @@ type Result struct {
 	// Provisioner call again. The request should only be requeued if
 	// Dirty is also true.
 	RequeueAfter time.Duration
+	// Any error message produced by the provisioner.
+	ErrorMessage string
 }
