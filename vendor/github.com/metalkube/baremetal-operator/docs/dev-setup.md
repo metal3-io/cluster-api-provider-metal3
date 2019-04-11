@@ -7,48 +7,43 @@ Follow the instructions in the Quick Start section of
 https://github.com/operator-framework/operator-sdk to check out and
 install the operator-sdk tools.
 
-## With minishift
+## With minkube
 
-1. Install and launch minishift
+1. Install and launch minikube
 
-   https://docs.okd.io/latest/minishift/getting-started/index.html
+   https://kubernetes.io/docs/setup/minikube/
 
-2. Ensure you're logged in to the correct context and login as a normal user called developer.
-
-    ```
-    oc config use-context minishift
-    oc login
-    Username: developer
-    ```
-
-3. Create a project to host the operator
+3. Create a namespace to host the operator
 
     ```
-    oc new-project bmo-project
+    kubectl create namespace metalkube
     ```
 
 4. Install operator-sdk
 
     ```
-    go get github.com/metalkube/baremetal-operator
-    cd ~/go/src/github.com/metalkube/baremetal-operator
-    oc --as system:admin apply -f deploy/service_account.yaml
-    oc --as system:admin apply -f deploy/role.yaml
-    oc --as system:admin apply -f deploy/role_binding.yaml
-    oc --as system:admin apply -f deploy/crds/metalkube_v1alpha1_baremetalhost_crd.yaml
+    eval $(go env)
+    mkdir -p $GOPATH/src/github.com/metalkube
+    cd $GOPATH/src/github.com/metalkube
+    git clone https://github.com/metalkube/baremetal-operator.git
+    cd baremetal-operator
+    kubectl apply -f deploy/service_account.yaml
+    kubectl apply -f deploy/role.yaml
+    kubectl apply -f deploy/role_binding.yaml
+    kubectl apply -f deploy/crds/metalkube_v1alpha1_baremetalhost_crd.yaml
     ```
 
 5. Launch the operator locally
 
     ```
     export OPERATOR_NAME=baremetal-operator
-    operator-sdk up local --namespace=bmo-project
+    operator-sdk up local --namespace=metalkube
     ```
 
 6. Create the CR
 
     ```
-    oc apply -f deploy/crds/metalkube_v1alpha1_baremetalhost_cr.yaml
+    kubectl apply -f deploy/crds/example-host.yaml
     ```
 
 ## Running without Ironic
@@ -83,13 +78,13 @@ spec:
   bootMACAddress: 00:73:49:3a:76:8e
 ```
 
-The `make-worker` utility can be used to generate a YAML file for
+The `make-virt-host` utility can be used to generate a YAML file for
 registering a host. It takes as input the name of the `virsh` domain
 and produces as output the basic YAML to register that host properly,
 with the boot MAC address and BMC address filled in.
 
 ```
-$ go run cmd/make-worker/main.go openshift_worker_1
+$ go run cmd/make-virt-host/main.go openshift_worker_1
 ---
 apiVersion: v1
 kind: Secret
@@ -116,5 +111,66 @@ spec:
 The output can be passed directly to `oc apply` like this:
 
 ```
-$ go run cmd/make-worker/main.go openshift_worker_1 | oc apply -f -
+$ go run cmd/make-virt-host/main.go openshift_worker_1 | oc apply -f -
+```
+
+When the host is a *master*, include the `-machine` and
+`-machine-namespace` options to associate the host with the existing
+`Machine` object.
+
+```
+$ go run cmd/make-virt-host/main.go -machine ostest-master-1 -machine-namespace openshift-machine-api  openshift_master_1
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: openshift-master-1-bmc-secret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+
+---
+apiVersion: metalkube.org/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: openshift-master-1
+spec:
+  online: true
+  bmc:
+    address: libvirt://192.168.122.1:6231/
+    credentialsName: openshift-master-1-bmc-secret
+  bootMACAddress: 00:c9:a0:f2:e0:59
+  machineRef:
+    name: ostest-master-1
+    namespace: openshift-machine-api
+```
+
+## Using Bare Metal Hosts
+
+The `make-bm-worker` tool may be a more convenient way of creating
+YAML definitions for workers than editing the files directly.
+
+```
+$ go run cmd/make-bm-worker/main.go -address 1.2.3.4 -password password -user admin worker-99
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: worker-99-bmc-secret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+
+---
+apiVersion: metalkube.org/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: worker-99
+spec:
+  online: true
+  bmc:
+    address: 1.2.3.4
+    credentialsName: worker-99-bmc-secret
 ```

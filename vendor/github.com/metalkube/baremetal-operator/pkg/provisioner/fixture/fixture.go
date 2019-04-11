@@ -24,14 +24,17 @@ type fixtureProvisioner struct {
 	bmcCreds bmc.Credentials
 	// a logger configured for this host
 	log logr.Logger
+	// an event publisher for recording significant events
+	publisher provisioner.EventPublisher
 }
 
 // New returns a new Ironic Provisioner
-func New(host *metalkubev1alpha1.BareMetalHost, bmcCreds bmc.Credentials) (provisioner.Provisioner, error) {
+func New(host *metalkubev1alpha1.BareMetalHost, bmcCreds bmc.Credentials, publisher provisioner.EventPublisher) (provisioner.Provisioner, error) {
 	p := &fixtureProvisioner{
-		host:     host,
-		bmcCreds: bmcCreds,
-		log:      log.WithValues("host", host.Name),
+		host:      host,
+		bmcCreds:  bmcCreds,
+		log:       log.WithValues("host", host.Name),
+		publisher: publisher,
 	}
 	return p, nil
 }
@@ -48,6 +51,7 @@ func (p *fixtureProvisioner) ValidateManagementAccess() (result provisioner.Resu
 			"provisioningID", p.host.Status.Provisioning.ID)
 		result.Dirty = true
 		result.RequeueAfter = time.Second * 5
+		p.publisher("Registered", "Registered new host")
 		return result, nil
 	}
 
@@ -63,14 +67,6 @@ func (p *fixtureProvisioner) ValidateManagementAccess() (result provisioner.Resu
 // inspection is completed.
 func (p *fixtureProvisioner) InspectHardware() (result provisioner.Result, err error) {
 	p.log.Info("inspecting hardware", "status", p.host.OperationalStatus())
-
-	if p.host.OperationalStatus() != metalkubev1alpha1.OperationalStatusInspecting {
-		// The inspection just started.
-		p.log.Info("starting inspection by setting state")
-		p.host.SetOperationalStatus(metalkubev1alpha1.OperationalStatusInspecting)
-		result.Dirty = true
-		return result, nil
-	}
 
 	// The inspection is ongoing. We'll need to check the fixture
 	// status for the server here until it is ready for us to get the
@@ -120,6 +116,7 @@ func (p *fixtureProvisioner) InspectHardware() (result provisioner.Result, err e
 					},
 				},
 			}
+		p.publisher("InspectionComplete", "Hardware inspection completed")
 		result.Dirty = true
 		return result, nil
 	}
@@ -127,39 +124,32 @@ func (p *fixtureProvisioner) InspectHardware() (result provisioner.Result, err e
 	return result, nil
 }
 
+// UpdateHardwareState fetches the latest hardware state of the server
+// and updates the HardwareDetails field of the host with details. It
+// is expected to do this in the least expensive way possible, such as
+// reading from a cache, and return dirty only if any state
+// information has changed.
+func (p *fixtureProvisioner) UpdateHardwareState() (result provisioner.Result, err error) {
+	if !p.host.NeedsProvisioning() {
+		p.log.Info("updating hardware state")
+		result.Dirty = false
+	}
+	return result, nil
+}
+
 // Provision writes the image from the host spec to the host. It may
 // be called multiple times, and should return true for its dirty flag
 // until the deprovisioning operation is completed.
-func (p *fixtureProvisioner) Provision(userData string) (result provisioner.Result, err error) {
+func (p *fixtureProvisioner) Provision(getUserData provisioner.UserDataSource) (result provisioner.Result, err error) {
 	p.log.Info("provisioning image to host",
 		"state", p.host.Status.Provisioning.State)
 
-	result.RequeueAfter = provisionRequeueDelay
-
-	// NOTE(dhellmann): This is a test class, so we simulate a
-	// multi-step process to ensure that multiple cycles through the
-	// reconcile loop work properly.
-
-	if p.host.Status.Provisioning.State == "" {
-		p.log.Info("moving to step1")
-		p.host.Status.Provisioning.State = "step1"
-		result.Dirty = true
-		return result, nil
-	}
-
-	if p.host.Status.Provisioning.State == "step1" {
-		p.log.Info("moving to step2")
-		p.host.Status.Provisioning.State = "step2"
-		result.Dirty = true
-		return result, nil
-	}
-
-	if p.host.Status.Provisioning.State == "step2" {
+	if p.host.Status.Provisioning.Image.URL == "" {
+		p.publisher("ProvisioningComplete", "Image provisioning completed")
 		p.log.Info("moving to done")
-		p.host.Status.Provisioning.State = "done"
 		p.host.Status.Provisioning.Image = *p.host.Spec.Image
 		result.Dirty = true
-		return result, nil
+		result.RequeueAfter = provisionRequeueDelay
 	}
 
 	return result, nil
@@ -179,6 +169,7 @@ func (p *fixtureProvisioner) Deprovision(deleteIt bool) (result provisioner.Resu
 	// and we can monitor it's status.
 
 	if p.host.Status.HardwareDetails != nil {
+		p.publisher("DeprovisionStarted", "Image deprovisioning started")
 		p.log.Info("clearing hardware details")
 		p.host.Status.HardwareDetails = nil
 		result.Dirty = true
@@ -192,6 +183,7 @@ func (p *fixtureProvisioner) Deprovision(deleteIt bool) (result provisioner.Resu
 		return result, nil
 	}
 
+	p.publisher("DeprovisionComplete", "Image deprovisioning completed")
 	return result, nil
 }
 
@@ -201,6 +193,8 @@ func (p *fixtureProvisioner) PowerOn() (result provisioner.Result, err error) {
 	p.log.Info("ensuring host is powered on")
 
 	if !p.host.Status.PoweredOn {
+		p.publisher("PowerOn", "Host powered on")
+		p.log.Info("changing status")
 		p.host.Status.PoweredOn = true
 		result.Dirty = true
 		return result, nil
@@ -215,6 +209,8 @@ func (p *fixtureProvisioner) PowerOff() (result provisioner.Result, err error) {
 	p.log.Info("ensuring host is powered off")
 
 	if p.host.Status.PoweredOn {
+		p.publisher("PowerOff", "Host powered off")
+		p.log.Info("changing status")
 		p.host.Status.PoweredOn = false
 		result.Dirty = true
 		return result, nil

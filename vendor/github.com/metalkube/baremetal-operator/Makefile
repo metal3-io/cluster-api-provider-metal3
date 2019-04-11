@@ -1,4 +1,5 @@
 TEST_NAMESPACE = operator-test
+RUN_NAMESPACE = metalkube
 GO_TEST_FLAGS = $(VERBOSE)
 DEBUG = --debug
 SETUP = --no-setup
@@ -36,6 +37,13 @@ test-verbose:
 .PHONY: lint
 lint:
 	golint -set_exit_status pkg/... cmd/...
+	go vet ./pkg/... ./cmd/...
+
+.PHONY: docs
+docs: $(patsubst %.dot,%.png,$(wildcard docs/*.dot))
+
+%.png: %.dot
+	dot -Tpng $< >$@
 
 .PHONY: e2e-local
 e2e-local:
@@ -47,3 +55,21 @@ e2e-local:
 .PHONY: dep
 dep:
 	dep ensure
+
+.PHONY: run
+run:
+	OPERATOR_NAME=baremetal-operator \
+		operator-sdk up local \
+		--namespace=$(RUN_NAMESPACE) \
+		--operator-flags="-dev"
+
+.PHONY: demo
+demo:
+	OPERATOR_NAME=baremetal-operator \
+		operator-sdk up local \
+		--namespace=$(RUN_NAMESPACE) \
+		--operator-flags="-dev -demo-mode"
+
+.PHONY: docker
+docker:
+	docker build . -f build/Dockerfile
