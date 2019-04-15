@@ -6,6 +6,7 @@ import (
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmv1alpha1 "github.com/metal3-io/cluster-api-provider-baremetal/pkg/apis/baremetal/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,6 +14,14 @@ import (
 	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/yaml"
+)
+
+const (
+	testImageURL                = "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
+	testImageChecksumURL        = "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum"
+	testUserDataSecretName      = "worker-user-data"
+	testUserDataSecretNamespace = "myns"
 )
 
 func TestChooseHost(t *testing.T) {
@@ -65,6 +74,8 @@ func TestChooseHost(t *testing.T) {
 		},
 	}
 
+	_, providerSpec := newConfig(t, "")
+
 	testCases := []struct {
 		Machine          machinev1.Machine
 		Hosts            []runtime.Object
@@ -76,6 +87,9 @@ func TestChooseHost(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
 					Namespace: "myns",
+				},
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: providerSpec,
 				},
 			},
 			Hosts:            []runtime.Object{&host2, &host1},
@@ -99,6 +113,9 @@ func TestChooseHost(t *testing.T) {
 					Name:      "machine1",
 					Namespace: "myns",
 				},
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: providerSpec,
+				},
 			},
 			Hosts:            []runtime.Object{&host1, &host3, &host2},
 			ExpectedHostName: host3.Name,
@@ -110,6 +127,9 @@ func TestChooseHost(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine2",
 					Namespace: "myns",
+				},
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: providerSpec,
 				},
 			},
 			Hosts:            []runtime.Object{&host1, &host3, &host4},
@@ -136,20 +156,108 @@ func TestChooseHost(t *testing.T) {
 		}
 		if err != nil {
 			t.Errorf("%v", err)
-		}
-		if result.Spec.MachineRef.Name != tc.Machine.Name {
-			t.Errorf("found machine ref %v", result.Spec.MachineRef)
+			return
 		}
 		if result.Name != tc.ExpectedHostName {
 			t.Errorf("host %s chosen instead of %s", result.Name, tc.ExpectedHostName)
 		}
-		savedHost := bmh.BareMetalHost{}
-		err = c.Get(context.TODO(), client.ObjectKey{Name: result.Name, Namespace: result.Namespace}, &savedHost)
+	}
+}
+
+func TestSetHostSpec(t *testing.T) {
+	for _, tc := range []struct {
+		UserDataNamespace         string
+		ExpectedUserDataNamespace string
+	}{
+		{
+			UserDataNamespace:         "otherns",
+			ExpectedUserDataNamespace: "otherns",
+		},
+		{
+			UserDataNamespace:         "",
+			ExpectedUserDataNamespace: "myns",
+		},
+	} {
+
+		// test data
+		config, providerSpec := newConfig(t, tc.UserDataNamespace)
+		host := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "host2",
+				Namespace: "myns",
+			},
+		}
+		machine := machinev1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machine1",
+				Namespace: "myns",
+			},
+			Spec: machinev1.MachineSpec{
+				ProviderSpec: providerSpec,
+			},
+		}
+
+		// test setup
+		scheme := runtime.NewScheme()
+		bmoapis.AddToScheme(scheme)
+		c := fakeclient.NewFakeClientWithScheme(scheme, &host)
+
+		actuator, err := NewActuator(ActuatorParams{
+			Client: c,
+		})
 		if err != nil {
 			t.Errorf("%v", err)
+			return
 		}
+
+		// run the function
+		err = actuator.setHostSpec(context.TODO(), &host, &machine, config)
+		if err != nil {
+			t.Errorf("%v", err)
+			return
+		}
+
+		// get the saved result
+		savedHost := bmh.BareMetalHost{}
+		err = c.Get(context.TODO(), client.ObjectKey{Name: host.Name, Namespace: host.Namespace}, &savedHost)
+		if err != nil {
+			t.Errorf("%v", err)
+			return
+		}
+
+		// validate the result
 		if savedHost.Spec.MachineRef == nil {
-			t.Errorf("machine ref %v not saved to host", result.Spec.MachineRef)
+			t.Errorf("MachineRef not set")
+			return
+		}
+		if savedHost.Spec.MachineRef.Name != machine.Name {
+			t.Errorf("found machine ref %v", savedHost.Spec.MachineRef)
+		}
+		if savedHost.Spec.MachineRef.Namespace != machine.Namespace {
+			t.Errorf("found machine ref %v", savedHost.Spec.MachineRef)
+		}
+		if savedHost.Spec.Online != true {
+			t.Errorf("host not set to Online")
+		}
+		if savedHost.Spec.Image == nil {
+			t.Errorf("Image not set")
+			return
+		}
+		if savedHost.Spec.Image.URL != testImageURL {
+			t.Errorf("expected ImageURL %s, got %s", testImageURL, savedHost.Spec.Image.URL)
+		}
+		if savedHost.Spec.Image.Checksum != testImageChecksumURL {
+			t.Errorf("expected ImageChecksumURL %s, got %s", testImageChecksumURL, savedHost.Spec.Image.Checksum)
+		}
+		if savedHost.Spec.UserData == nil {
+			t.Errorf("UserData not set")
+			return
+		}
+		if savedHost.Spec.UserData.Namespace != tc.ExpectedUserDataNamespace {
+			t.Errorf("expected Userdata.Namespace %s, got %s", tc.ExpectedUserDataNamespace, savedHost.Spec.UserData.Namespace)
+		}
+		if savedHost.Spec.UserData.Name != testUserDataSecretName {
+			t.Errorf("expected Userdata.Name %s, got %s", testUserDataSecretName, savedHost.Spec.UserData.Name)
 		}
 	}
 }
@@ -519,5 +627,60 @@ func TestDelete(t *testing.T) {
 				t.Errorf("expected MachineRef %v, found %v", tc.ExpectedMachineRef, host.Spec.MachineRef)
 			}
 		}
+	}
+}
+
+func TestConfigFromProviderSpec(t *testing.T) {
+	ps := machinev1.ProviderSpec{
+		Value: &runtime.RawExtension{
+			Raw: []byte(`{"apiVersion":"baremetal.cluster.k8s.io/v1alpha1","userData":{"Name":"worker-user-data","Namespace":"myns"},"image":{"Checksum":"http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum","URL":"http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"},"kind":"BareMetalMachineProviderSpec"}`),
+		},
+	}
+	config, err := configFromProviderSpec(ps)
+	if err != nil {
+		t.Errorf("Error: %s", err.Error())
+		return
+	}
+	if config == nil {
+		t.Errorf("got a nil config")
+		return
+	}
+
+	if config.Image.URL != testImageURL {
+		t.Errorf("expected Image.URL %s, got %s", testImageURL, config.Image.URL)
+	}
+	if config.Image.Checksum != testImageChecksumURL {
+		t.Errorf("expected Image.Checksum %s, got %s", testImageChecksumURL, config.Image.Checksum)
+	}
+	if config.UserData == nil {
+		t.Errorf("UserData not set")
+		return
+	}
+	if config.UserData.Name != testUserDataSecretName {
+		t.Errorf("expected UserData.Name %s, got %s", testUserDataSecretName, config.UserData.Name)
+	}
+	if config.UserData.Namespace != testUserDataSecretNamespace {
+		t.Errorf("expected UserData.Namespace %s, got %s", testUserDataSecretNamespace, config.UserData.Namespace)
+	}
+}
+
+func newConfig(t *testing.T, UserDataNamespace string) (*bmv1alpha1.BareMetalMachineProviderSpec, machinev1.ProviderSpec) {
+	config := bmv1alpha1.BareMetalMachineProviderSpec{
+		Image: bmv1alpha1.Image{
+			URL:      testImageURL,
+			Checksum: testImageChecksumURL,
+		},
+		UserData: &corev1.SecretReference{
+			Name:      testUserDataSecretName,
+			Namespace: UserDataNamespace,
+		},
+	}
+	out, err := yaml.Marshal(&config)
+	if err != nil {
+		t.Logf("could not marshal BareMetalMachineProviderSpec: %v", err)
+		t.FailNow()
+	}
+	return &config, machinev1.ProviderSpec{
+		Value: &runtime.RawExtension{Raw: out},
 	}
 }

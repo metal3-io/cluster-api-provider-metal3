@@ -24,12 +24,15 @@ import (
 	"time"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmv1alpha1 "github.com/metal3-io/cluster-api-provider-baremetal/pkg/apis/baremetal/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/cache"
+	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -37,12 +40,7 @@ const (
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
 	HostAnnotation = "metal3.io/BareMetalHost"
-	// FIXME(dhellmann): These image values should probably come from
-	// configuration settings and something that can tell the IP
-	// address of the web server hosting the image in the ironic pod.
-	instanceImageSource      = "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
-	instanceImageChecksumURL = instanceImageSource + ".md5sum"
-	requeueAfter             = time.Second * 30
+	requeueAfter   = time.Second * 30
 )
 
 // Add RBAC rules to access cluster-api resources
@@ -70,6 +68,27 @@ func NewActuator(params ActuatorParams) (*Actuator, error) {
 // Create creates a machine and is invoked by the Machine Controller
 func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	log.Printf("Creating machine %v .", machine.Name)
+
+	// load and validate the config
+	if machine.Spec.ProviderSpec.Value == nil {
+		return a.setError(ctx, machine, "ProviderSpec is missing")
+	}
+	config, err := configFromProviderSpec(machine.Spec.ProviderSpec)
+	if err != nil {
+		log.Printf("Error reading ProviderSpec for machine %s: %s", machine.Name, err.Error())
+		return err
+	}
+	err = config.IsValid()
+	if err != nil {
+		return a.setError(ctx, machine, err.Error())
+	}
+
+	// clear an error if one was previously set
+	err = a.clearError(ctx, machine)
+	if err != nil {
+		return err
+	}
+
 	// look for associated BMH
 	host, err := a.getHost(ctx, machine)
 	if err != nil {
@@ -89,6 +108,11 @@ func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machi
 		log.Printf("Associating machine %s with host %s", machine.Name, host.Name)
 	} else {
 		log.Printf("Machine %s already associated with host %s", machine.Name, host.Name)
+	}
+
+	err = a.setHostSpec(ctx, host, machine, config)
+	if err != nil {
+		return err
 	}
 
 	err = a.ensureAnnotation(ctx, machine, host)
@@ -127,6 +151,14 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 // Update updates a machine and is invoked by the Machine Controller
 func (a *Actuator) Update(ctx context.Context, cluster *machinev1.Cluster, machine *machinev1.Machine) error {
 	log.Printf("Updating machine %v .", machine.Name)
+
+	// clear any error message that was previously set. This method doesn't set
+	// error messages yet, so we know that it's incorrect to have one here.
+	err := a.clearError(ctx, machine)
+	if err != nil {
+		return err
+	}
+
 	host, err := a.getHost(ctx, machine)
 	if err != nil {
 		return err
@@ -209,9 +241,7 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 
 // chooseHost iterates through known hosts and returns one that can be
 // associated with the machine. It searches all hosts in case one already has an
-// association with this machine. It will add a Machine reference and update the
-// host via the kube API before returning the host. Returns nil if a host is not
-// available.
+// association with this machine.
 func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (*bmh.BareMetalHost, error) {
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
@@ -243,29 +273,31 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 	// choose a host at random from available hosts
 	rand.Seed(time.Now().Unix())
 	chosenHost := availableHosts[rand.Intn(len(availableHosts))]
-	chosenHost.Spec.MachineRef = &corev1.ObjectReference{
+
+	return chosenHost, nil
+}
+
+// setHostSpec will ensure the host's Spec is set according to the machine's
+// details. It will then update the host via the kube API. If UserData does not
+// include a Namespace, it will default to the Machine's namespace.
+func (a *Actuator) setHostSpec(ctx context.Context, host *bmh.BareMetalHost, machine *machinev1.Machine,
+	config *bmv1alpha1.BareMetalMachineProviderSpec) error {
+
+	host.Spec.MachineRef = &corev1.ObjectReference{
 		Name:      machine.Name,
 		Namespace: machine.Namespace,
 	}
 
-	// FIXME(dhellmann): When we stop using the consts for these
-	// settings, we need to pass the right values.
-	chosenHost.Spec.Image = &bmh.Image{
-		URL:      instanceImageSource,
-		Checksum: instanceImageChecksumURL,
+	host.Spec.Image = &bmh.Image{
+		URL:      config.Image.URL,
+		Checksum: config.Image.Checksum,
 	}
-	chosenHost.Spec.Online = true
-	chosenHost.Spec.UserData = &corev1.SecretReference{
-		Namespace: machine.Namespace, // is it safe to assume the same namespace?
-		// FIXME(dhellmann): Is this name openshift-specific?
-		Name: "worker-user-data",
+	host.Spec.Online = true
+	host.Spec.UserData = config.UserData
+	if host.Spec.UserData.Namespace == "" {
+		host.Spec.UserData.Namespace = machine.Namespace
 	}
-	err = a.client.Update(ctx, chosenHost)
-	if err != nil {
-		return nil, err
-	}
-
-	return chosenHost, nil
+	return a.client.Update(ctx, host)
 }
 
 // ensureAnnotation makes sure the machine has an annotation that references the
@@ -290,4 +322,48 @@ func (a *Actuator) ensureAnnotation(ctx context.Context, machine *machinev1.Mach
 	annotations[HostAnnotation] = hostKey
 	machine.ObjectMeta.SetAnnotations(annotations)
 	return a.client.Update(ctx, machine)
+}
+
+// setError sets the ErrorMessage and ErrorReason fields on the machine and logs
+// the message. It assumes the reason is invalid configuration, since that is
+// currently the only relevant MachineStatusError choice.
+func (a *Actuator) setError(ctx context.Context, machine *machinev1.Machine, message string) error {
+	machine.Status.ErrorMessage = &message
+	reason := common.InvalidConfigurationMachineError
+	machine.Status.ErrorReason = &reason
+	log.Printf("Machine %s: %s", machine.Name, message)
+	return a.client.Status().Update(ctx, machine)
+}
+
+// clearError removes the ErrorMessage from the machine's Status if set. Returns
+// nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
+// machine was updated.
+func (a *Actuator) clearError(ctx context.Context, machine *machinev1.Machine) error {
+	if machine.Status.ErrorMessage != nil || machine.Status.ErrorReason != nil {
+		machine.Status.ErrorMessage = nil
+		machine.Status.ErrorReason = nil
+		err := a.client.Status().Update(ctx, machine)
+		if err != nil {
+			return err
+		}
+		log.Printf("Cleared error message from machine %s", machine.Name)
+		return &clustererror.RequeueAfterError{}
+	}
+	return nil
+}
+
+// configFromProviderSpec returns a BareMetalMachineProviderSpec by
+// deserializing the contents of a ProviderSpec
+func configFromProviderSpec(providerSpec machinev1.ProviderSpec) (*bmv1alpha1.BareMetalMachineProviderSpec, error) {
+	if providerSpec.Value == nil {
+		return nil, fmt.Errorf("ProviderSpec missing")
+	}
+
+	var config bmv1alpha1.BareMetalMachineProviderSpec
+	err := yaml.UnmarshalStrict(providerSpec.Value.Raw, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }

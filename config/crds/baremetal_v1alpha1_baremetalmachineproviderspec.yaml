@@ -19,6 +19,19 @@ spec:
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
+        image:
+          description: Image is the image to be provisioned.
+          properties:
+            checksum:
+              description: Checksum is a md5sum value or a URL to retrieve one.
+              type: string
+            url:
+              description: URL is a location of an image to deploy.
+              type: string
+          required:
+          - url
+          - checksum
+          type: object
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
@@ -26,10 +39,13 @@ spec:
           type: string
         metadata:
           type: object
-        spec:
+        userData:
+          description: UserData references the Secret that holds user data needed
+            by the bare metal operator. The Namespace is optional; it will default
+            to the Machine's namespace if not specified.
           type: object
-        status:
-          type: object
+      required:
+      - image
   version: v1alpha1
 status:
   acceptedNames:

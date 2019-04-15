@@ -21,9 +21,108 @@ import (
 
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
+
+func TestProviderSpecIsValid(t *testing.T) {
+	cases := []struct {
+		Spec          BareMetalMachineProviderSpec
+		ErrorExpected bool
+		Name          string
+	}{
+		{
+			Spec:          BareMetalMachineProviderSpec{},
+			ErrorExpected: true,
+			Name:          "empty spec",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: false,
+			Name:          "Valid spec without UserData.Namespace",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				UserData: &corev1.SecretReference{
+					Name:      "worker-user-data",
+					Namespace: "otherns",
+				},
+			},
+			ErrorExpected: false,
+			Name:          "Valid spec with UserData.Namespace",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: true,
+			Name:          "missing Image.URL",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: true,
+			Name:          "missing Image.Checksum",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+			},
+			ErrorExpected: true,
+			Name:          "missing UserData",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				UserData: &corev1.SecretReference{
+					Namespace: "otherns",
+				},
+			},
+			ErrorExpected: true,
+			Name:          "missing UserData.Name",
+		},
+	}
+
+	for _, tc := range cases {
+		err := tc.Spec.IsValid()
+		if tc.ErrorExpected && err == nil {
+			t.Errorf("Did not get error from case \"%v\"", tc.Name)
+		}
+		if !tc.ErrorExpected && err != nil {
+			t.Errorf("Got unexpected error from case \"%v\": %v", tc.Name, err)
+		}
+	}
+}
 
 func TestStorageBareMetalMachineProviderSpec(t *testing.T) {
 	key := types.NamespacedName{
@@ -34,7 +133,11 @@ func TestStorageBareMetalMachineProviderSpec(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "foo",
 			Namespace: "default",
-		}}
+		},
+		UserData: &corev1.SecretReference{
+			Name: "foo",
+		},
+	}
 	g := gomega.NewGomegaWithT(t)
 
 	// Test Create
