@@ -199,6 +199,7 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 	}
 	err = a.client.Get(ctx, key, &host)
 	if errors.IsNotFound(err) {
+		log.Printf("Annotated host %s not found", hostKey)
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -219,7 +220,10 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 	opts := &client.ListOptions{
 		Namespace: machine.Namespace,
 	}
-	a.client.List(ctx, opts, &hosts)
+	err := a.client.List(ctx, opts, &hosts)
+	if err != nil {
+		return nil, err
+	}
 
 	availableHosts := []*bmh.BareMetalHost{}
 
@@ -256,7 +260,7 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 		// FIXME(dhellmann): Is this name openshift-specific?
 		Name: "worker-user-data",
 	}
-	err := a.client.Update(ctx, chosenHost)
+	err = a.client.Update(ctx, chosenHost)
 	if err != nil {
 		return nil, err
 	}
