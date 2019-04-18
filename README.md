@@ -8,5 +8,6 @@ For more information about this actuator and related repositories, see
 
 ## Development Environment
 
+* [Setting up for tests](docs/dev/setup.md)
 * Using [Minikube](docs/dev/minikube.md)
 * Using [OpenShift 4](docs/dev/openshift.md)
