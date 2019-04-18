@@ -9,7 +9,7 @@ Once your cluster is running, the CRDs defined by the `cluster-api` project
 need to be added to the cluster.
 
 ```bash
-kubectl apply -f vendor/sigs.k8s.io/cluster-api/config/crds/
+kubectl apply -k vendor/sigs.k8s.io/cluster-api/config/crds/
 ```
 
 ## Add CRDs from baremetal-operator
