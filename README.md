@@ -4,7 +4,7 @@ This repository contains a Machine actuator implementation for the
 Kubernetes [Cluster API](https://github.com/kubernetes-sigs/cluster-api/).
 
 For more information about this actuator and related repositories, see
-[metalkube.org](http://metalkube.org/).
+[metal3.io](http://metal3.io/).
 
 ## Development Environment
 

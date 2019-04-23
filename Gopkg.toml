@@ -21,7 +21,7 @@ required = [
 
 
 [[constraint]]
-  name="github.com/metalkube/baremetal-operator"
+  name="github.com/metal3-io/baremetal-operator"
   branch="master"
 
 [[constraint]]
