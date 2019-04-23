@@ -18,7 +18,7 @@ The actuator also uses the `BareMetalHost` custom resource that’s defined by
 the `baremetal-operator`.
 
 ```bash
-kubectl apply -f vendor/github.com/metalkube/baremetal-operator/deploy/crds/metalkube_v1alpha1_baremetalhost_crd.yaml
+kubectl apply -f vendor/github.com/metal3-io/baremetal-operator/deploy/crds/metal3_v1alpha1_baremetalhost_crd.yaml
 ```
 
 ## Create a BareMetalHost
@@ -30,7 +30,7 @@ a dummy `BareMetalHost` object.  There’s no requirement to actually run the
 `baremetal-operator` to test the reconciliation logic of the actuator.
 
 Refer to the [baremetal-operator developer
-documentation](https://github.com/metalkube/baremetal-operator/blob/master/docs/dev-setup.md)
+documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
 for instructions and tools for creating BareMetalHost objects.
 
 ## Run the Actuator

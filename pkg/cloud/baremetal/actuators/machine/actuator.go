@@ -23,7 +23,7 @@ import (
 	"math/rand"
 	"time"
 
-	bmh "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
+	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/cache"
@@ -36,7 +36,7 @@ const (
 	ProviderName = "solas"
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
-	HostAnnotation = "metalkube.org/BareMetalHost"
+	HostAnnotation = "metal3.io/BareMetalHost"
 	// FIXME(dhellmann): These image values should probably come from
 	// configuration settings and something that can tell the IP
 	// address of the web server hosting the image in the ironic pod.

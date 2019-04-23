@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	bmoapis "github.com/metalkube/baremetal-operator/pkg/apis"
-	bmh "github.com/metalkube/baremetal-operator/pkg/apis/metalkube/v1alpha1"
+	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
+	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
