@@ -55,6 +55,15 @@ func TestChooseHost(t *testing.T) {
 			Namespace: "someotherns",
 		},
 	}
+	discoveredHost := bmh.BareMetalHost{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "discoveredHost",
+			Namespace: "myns",
+		},
+		Status: bmh.BareMetalHostStatus{
+			ErrorMessage: "this host is discovered and not usable",
+		},
+	}
 
 	testCases := []struct {
 		Machine          machinev1.Machine
@@ -70,6 +79,17 @@ func TestChooseHost(t *testing.T) {
 				},
 			},
 			Hosts:            []runtime.Object{&host2, &host1},
+			ExpectedHostName: host2.Name,
+		},
+		{
+			// should ignore discoveredHost and pick host2, which lacks a MachineRef
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine1",
+					Namespace: "myns",
+				},
+			},
+			Hosts:            []runtime.Object{&discoveredHost, &host2, &host1},
 			ExpectedHostName: host2.Name,
 		},
 		{
