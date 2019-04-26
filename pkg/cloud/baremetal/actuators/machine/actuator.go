@@ -230,7 +230,7 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (
 	for i, host := range hosts.Items {
 		if host.Available() {
 			availableHosts = append(availableHosts, &hosts.Items[i])
-		} else if host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
+		} else if host.Spec.MachineRef != nil && host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
 			log.Printf("found host %s with existing MachineRef", host.Name)
 			return &hosts.Items[i], nil
 		}
