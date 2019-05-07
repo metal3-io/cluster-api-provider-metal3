@@ -1,5 +1,5 @@
 # Adds namespace to all resources.
-namespace: cluster-api-provider-baremetal-system
+namespace: metal3
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
