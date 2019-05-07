@@ -17,35 +17,59 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
-// BareMetalMachineProviderSpecSpec defines the desired state of BareMetalMachineProviderSpec
-type BareMetalMachineProviderSpecSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
-
-// BareMetalMachineProviderSpecStatus defines the observed state of BareMetalMachineProviderSpec
-type BareMetalMachineProviderSpecStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-}
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// BareMetalMachineProviderSpec is the Schema for the baremetalmachineproviderspecs API
+// BareMetalMachineProviderSpec holds data that the actuator needs to provision
+// and manage a Machine.
 // +k8s:openapi-gen=true
 type BareMetalMachineProviderSpec struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   BareMetalMachineProviderSpecSpec   `json:"spec,omitempty"`
-	Status BareMetalMachineProviderSpecStatus `json:"status,omitempty"`
+	// Image is the image to be provisioned.
+	Image Image `json:"image"`
+
+	// UserData references the Secret that holds user data needed by the bare metal
+	// operator. The Namespace is optional; it will default to the Machine's
+	// namespace if not specified.
+	UserData *corev1.SecretReference `json:"userData,omitempty"`
+}
+
+// Image holds the details of an image to use during provisioning.
+type Image struct {
+	// URL is a location of an image to deploy.
+	URL string `json:"url"`
+
+	// Checksum is a md5sum value or a URL to retrieve one.
+	Checksum string `json:"checksum"`
+}
+
+// IsValid returns an error if the object is not valid, otherwise nil. The
+// string representation of the error is suitable for human consumption.
+func (s *BareMetalMachineProviderSpec) IsValid() error {
+	missing := []string{}
+	if s.Image.URL == "" {
+		missing = append(missing, "Image.URL")
+	}
+	if s.Image.Checksum == "" {
+		missing = append(missing, "Image.Checksum")
+	}
+	if s.UserData == nil {
+		missing = append(missing, "UserData")
+	} else if s.UserData.Name == "" {
+		missing = append(missing, "UserData.Name")
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("Missing fields from ProviderSpec: %v", missing)
+	}
+	return nil
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
