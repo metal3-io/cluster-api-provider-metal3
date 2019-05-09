@@ -37,7 +37,8 @@ manifests:
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
 	kustomize build config/ > provider-components.yaml
 	echo "---" >> provider-components.yaml
-	cd vendor && kustomize build sigs.k8s.io/cluster-api/config/default/ >> ../provider-components.yaml
+	cd vendor && kustomize build sigs.k8s.io/cluster-api/config/default/ | \
+		sed -e 's/namespace: cluster-api-system/namespace: metal3/' >> ../provider-components.yaml
 
 # Run go fmt against code
 fmt:
