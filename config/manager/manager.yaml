@@ -43,7 +43,7 @@ spec:
     spec:
       containers:
       - command:
-        - /manager
+        - /machine-controller-manager
         image: controller:latest
         imagePullPolicy: Always
         name: manager
