@@ -45,6 +45,16 @@ rules:
   - patch
   - delete
 - apiGroups:
+  - metal3.io
+  resources:
+  - baremetalhosts
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
   - baremetal.k8s.io
   resources:
   - baremetalmachineproviderspecs

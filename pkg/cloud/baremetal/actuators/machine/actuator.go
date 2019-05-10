@@ -48,6 +48,9 @@ const (
 //+kubebuilder:rbac:groups=cluster.k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 //+kubebuilder:rbac:groups="",resources=nodes;events,verbs=get;list;watch;create;update;patch;delete
 
+// RBAC to access BareMetalHost resources from metal3.io
+//+kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;update;patch
+
 // Actuator is responsible for performing machine reconciliation
 type Actuator struct {
 	client client.Client
