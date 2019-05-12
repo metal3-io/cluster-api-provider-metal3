@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	ProviderName = "solas"
+	ProviderName = "baremetal"
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
 	HostAnnotation = "metal3.io/BareMetalHost"
