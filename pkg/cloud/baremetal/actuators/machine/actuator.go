@@ -29,6 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/tools/cache"
 	"sigs.k8s.io/cluster-api/pkg/apis/cluster/common"
 	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -102,7 +104,7 @@ func (a *Actuator) Create(ctx context.Context, cluster *machinev1.Cluster, machi
 
 	// none found, so try to choose one
 	if host == nil {
-		host, err = a.chooseHost(ctx, machine)
+		host, err = a.chooseHost(ctx, machine, config)
 		if err != nil {
 			return err
 		}
@@ -256,34 +258,55 @@ func (a *Actuator) getHost(ctx context.Context, machine *machinev1.Machine) (*bm
 // chooseHost iterates through known hosts and returns one that can be
 // associated with the machine. It searches all hosts in case one already has an
 // association with this machine.
-func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine) (*bmh.BareMetalHost, error) {
+func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
+	config *bmv1alpha1.BareMetalMachineProviderSpec) (*bmh.BareMetalHost, error) {
+
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
-	// TODO - We should add filtering here for known conditions that make
-	// a host not a valid choice, such as an operational state of error.
 	opts := &client.ListOptions{
 		Namespace: machine.Namespace,
 	}
+
 	err := a.client.List(ctx, opts, &hosts)
 	if err != nil {
 		return nil, err
 	}
 
+	// Using the label selector on ListOptions above doesn't seem to work.
+	// I think it's because we have a local cache of all BareMetalHosts.
+	labelSelector := labels.NewSelector()
+	var reqs labels.Requirements
+	for labelKey, labelVal := range config.HostSelector.MatchLabels {
+		log.Printf("Adding requirement to match label: '%s' : '%s'", labelKey, labelVal)
+		r, err := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
+		if err != nil {
+			log.Printf("Failed to create MatchLabel requirement: %v", err)
+			continue
+		}
+		reqs = append(reqs, *r)
+	}
+	labelSelector = labelSelector.Add(reqs...)
+
 	availableHosts := []*bmh.BareMetalHost{}
 
 	for i, host := range hosts.Items {
 		if host.Available() {
-			availableHosts = append(availableHosts, &hosts.Items[i])
+			if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
+				log.Printf("Host '%s' matched hostSelector for Machine '%s'", host.Name, machine.Name)
+				availableHosts = append(availableHosts, &hosts.Items[i])
+			} else {
+				log.Printf("Host '%s' did not match hostSelector for Machine '%s'", host.Name, machine.Name)
+			}
 		} else if host.Spec.MachineRef != nil && host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
 			log.Printf("found host %s with existing MachineRef", host.Name)
 			return &hosts.Items[i], nil
 		}
 	}
+	log.Printf("%d hosts available while choosing host for machine '%s'", len(availableHosts), machine.Name)
 	if len(availableHosts) == 0 {
 		return nil, nil
 	}
 
-	log.Printf("%d hosts available", len(availableHosts))
 	// choose a host at random from available hosts
 	rand.Seed(time.Now().Unix())
 	chosenHost := availableHosts[rand.Intn(len(availableHosts))]

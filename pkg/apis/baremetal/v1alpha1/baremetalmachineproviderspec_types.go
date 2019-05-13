@@ -40,6 +40,15 @@ type BareMetalMachineProviderSpec struct {
 	// operator. The Namespace is optional; it will default to the Machine's
 	// namespace if not specified.
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
+
+	// HostSelector specifies matching criteria for labels on BareMetalHosts.
+	// This is used to limit the set of BareMetalHost objects considered for
+	// claiming for a Machine.
+	HostSelector HostSelector `json:"hostSelector,omitempty"`
+}
+
+type HostSelector struct {
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
 
 // Image holds the details of an image to use during provisioning.

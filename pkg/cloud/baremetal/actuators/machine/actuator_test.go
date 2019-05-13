@@ -73,13 +73,23 @@ func TestChooseHost(t *testing.T) {
 			ErrorMessage: "this host is discovered and not usable",
 		},
 	}
+	host_with_label := bmh.BareMetalHost{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "host_with_label",
+			Namespace: "myns",
+			Labels:    map[string]string{"key1": "value1"},
+		},
+	}
 
-	_, providerSpec := newConfig(t, "")
+	config, providerSpec := newConfig(t, "", map[string]string{})
+	config2, providerSpec2 := newConfig(t, "", map[string]string{"key1": "value1"})
+	config3, providerSpec3 := newConfig(t, "", map[string]string{"boguskey": "value"})
 
 	testCases := []struct {
 		Machine          machinev1.Machine
 		Hosts            []runtime.Object
 		ExpectedHostName string
+		Config           *bmv1alpha1.BareMetalMachineProviderSpec
 	}{
 		{
 			// should pick host2, which lacks a MachineRef
@@ -135,6 +145,50 @@ func TestChooseHost(t *testing.T) {
 			Hosts:            []runtime.Object{&host1, &host3, &host4},
 			ExpectedHostName: "",
 		},
+		{
+			// Can choose hosts with a label, even without a label selector
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine1",
+					Namespace: "myns",
+				},
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: providerSpec,
+				},
+			},
+			Hosts:            []runtime.Object{&host_with_label},
+			ExpectedHostName: host_with_label.Name,
+		},
+		{
+			// Choose the host with the right label
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine1",
+					Namespace: "myns",
+				},
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: providerSpec2,
+				},
+			},
+			Hosts:            []runtime.Object{&host2, &host_with_label},
+			ExpectedHostName: host_with_label.Name,
+			Config:           config2,
+		},
+		{
+			// No host that matches required label
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine1",
+					Namespace: "myns",
+				},
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: providerSpec3,
+				},
+			},
+			Hosts:            []runtime.Object{&host2, &host_with_label},
+			ExpectedHostName: "",
+			Config:           config3,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -146,8 +200,11 @@ func TestChooseHost(t *testing.T) {
 		if err != nil {
 			t.Errorf("%v", err)
 		}
-
-		result, err := actuator.chooseHost(context.TODO(), &tc.Machine)
+		cfg := tc.Config
+		if cfg == nil {
+			cfg = config
+		}
+		result, err := actuator.chooseHost(context.TODO(), &tc.Machine, cfg)
 		if tc.ExpectedHostName == "" {
 			if result != nil {
 				t.Error("found host when none should have been available")
@@ -180,7 +237,7 @@ func TestSetHostSpec(t *testing.T) {
 	} {
 
 		// test data
-		config, providerSpec := newConfig(t, tc.UserDataNamespace)
+		config, providerSpec := newConfig(t, tc.UserDataNamespace, map[string]string{})
 		host := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "host2",
@@ -664,7 +721,7 @@ func TestConfigFromProviderSpec(t *testing.T) {
 	}
 }
 
-func newConfig(t *testing.T, UserDataNamespace string) (*bmv1alpha1.BareMetalMachineProviderSpec, machinev1.ProviderSpec) {
+func newConfig(t *testing.T, UserDataNamespace string, labels map[string]string) (*bmv1alpha1.BareMetalMachineProviderSpec, machinev1.ProviderSpec) {
 	config := bmv1alpha1.BareMetalMachineProviderSpec{
 		Image: bmv1alpha1.Image{
 			URL:      testImageURL,
@@ -673,6 +730,9 @@ func newConfig(t *testing.T, UserDataNamespace string) (*bmv1alpha1.BareMetalMac
 		UserData: &corev1.SecretReference{
 			Name:      testUserDataSecretName,
 			Namespace: UserDataNamespace,
+		},
+		HostSelector: bmv1alpha1.HostSelector{
+			MatchLabels: labels,
 		},
 	}
 	out, err := yaml.Marshal(&config)
