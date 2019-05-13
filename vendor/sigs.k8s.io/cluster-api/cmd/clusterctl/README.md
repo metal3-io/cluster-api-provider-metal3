@@ -2,7 +2,7 @@
 
 `clusterctl` is the SIG-cluster-lifecycle sponsored tool that implements the Cluster API.
 
-Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49nULH1kSwuQFf1o6GvAw_POrsNo5d8c/edit#).
+Read the [experience doc here](https://docs.google.com/document/d/1-sYb3EdkRga49nULH1kSwuQFf1o6GvAw_POrsNo5d8c/edit#). To gain viewing permissions, please join either the [kubernetes-dev](https://groups.google.com/forum/#!forum/kubernetes-dev) or [kubernetes-sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle) google group.
 
 ## Getting Started
 
@@ -13,8 +13,11 @@ this repository.**
 
 ### Prerequisites
 
-1. Install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/)
-2. Install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md) for minikube. For Linux, we recommend kvm2. For MacOS, we recommend VirtualBox.
+1. Cluster API runs its operations in Kubernetes. A pre-existing or temporary bootstrap cluster is required. Currently, we support multiple methods to bootstrap Cluster API: `kind` (preferred), `minikube` or any pre-existing cluster.
+   - If you want to use container, install [kind](https://github.com/kubernetes-sigs/kind#installation-and-usage). This is preferred.
+   - If you want to use VM, install [minikube](https://kubernetes.io/docs/tasks/tools/install-minikube/), version 0.30.0 or greater.
+   - If you want to use existing Kubernetes cluster, prepare your kubeconfig.
+2. If you are using `kind` or existing Kubernetes cluster, go to step 3. If you are using `minikube`, install a [driver](https://github.com/kubernetes/minikube/blob/master/docs/drivers.md). For Linux, we recommend `kvm2`. For MacOS, we recommend VirtualBox.
 2. Build the `clusterctl` tool
 
 ```bash
@@ -40,19 +43,38 @@ https://github.com/kubernetes-sigs/cluster-api/issues/158 and https://github.com
 
 1. Create a cluster:
 
+   - __Bootstrap Cluster__: Use `bootstrap-type`, currently only `kind` and `minikube` are supported.
+
    ```shell
-   ./clusterctl create cluster --provider <provider> -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
+   ./clusterctl create cluster --provider <provider> --bootstrap-type <bootstrap-type> -c cluster.yaml \
+     -m machines.yaml -p provider-components.yaml -a addons.yaml
    ```
 
-To choose a specific minikube driver, please use the `--vm-driver` command line parameter. For example to use the kvm2 driver with clusterctl you would add `--vm-driver kvm2`
+   If you are using minikube, to choose a specific minikube driver, please use the `--bootstrap-flags vm-driver=xxx` command line parameter. For example to use the kvm2 driver with clusterctl you woud add `--bootstrap-flags vm-driver=kvm2`.
+
+   -  __Existing Cluster__:  Use `bootstrap-cluster-kubeconfig`. This flag is used when you have an existing Kubernetes cluster.
+
+   ```shell
+   ./clusterctl create cluster --provider <provider> --bootstrap-cluster-kubeconfig <kubeconfig> \
+     -c cluster.yaml -m machines.yaml -p provider-components.yaml -a addons.yaml
+   ```
 
 Additional advanced flags can be found via help.
+
+Also, some environment variables are supported:
+`CLUSTER_API_MACHINE_READY_TIMEOUT`: set this value to adjust the timeout value in minutes for a machine to become ready, The default timeout is currently 30 minutes, `export CLUSTER_API_MACHINE_READY_TIMEOUT=45` will extend the timeout value to 45 minutes.
 
 ```shell
 ./clusterctl create cluster --help
 ```
 
 ### Interacting with your cluster
+
+If you are using kind, set the `KUBECONFIG` environment variable first before using kubectl:
+
+```
+export KUBECONFIG="$(kind get kubeconfig-path --name="clusterapi")"
+```
 
 Once you have created a cluster, you can interact with the cluster and machine
 resources using kubectl:
@@ -62,6 +84,8 @@ $ kubectl --kubeconfig kubeconfig get clusters
 $ kubectl --kubeconfig kubeconfig get machines
 $ kubectl --kubeconfig kubeconfig get machines -o yaml
 ```
+
+**NOTE:** There is no need to specify `--kubeconfig` if your `kubeconfig` was located in the default directory under `$HOME/.kube/config` or if you have already exposed env variable `KUBECONFIG`.
 
 #### Scaling your cluster
 

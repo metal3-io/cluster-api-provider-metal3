@@ -12,9 +12,11 @@ API design. Because of this, all of the prototype code is rapidly changing.
 
 ![Cluster API Architecture](./docs/book/common_code/architecture.svg "Cluster API Architecture")
 
-To learn more, see the [Cluster API KEP][cluster-api-kep].
+Learn more about the project's [scope, objectives, goals and requirements](./docs/scope-and-objectives.md), [feature proposals](./docs/proposals/) and [reference use cases](./docs/staging-use-cases.md).
 
 ## Get involved!
+
+* Join the [Cluster API discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api).
 
 * Join the [sig-cluster-lifecycle](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle)
 Google Group for access to documents and calendars.
@@ -36,12 +38,14 @@ Provider specific code is being developed in separate repositories, some of whic
 are also sponsored by SIG-cluster-lifecycle:
 
   * AWS, https://github.com/kubernetes-sigs/cluster-api-provider-aws
-  * AWS/Openshift, https://github.com/openshift/cluster-operator
   * Azure, https://github.com/kubernetes-sigs/cluster-api-provider-azure
   * Baidu Cloud, https://github.com/baidu/cluster-api-provider-baiducloud
+  * Bare Metal, https://github.com/metal3-io/cluster-api-provider-baremetal
   * DigitalOcean, https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean
   * GCE, https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+  * IBM Cloud, https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
   * OpenStack, https://github.com/kubernetes-sigs/cluster-api-provider-openstack
+  * Talos, https://github.com/talos-systems/cluster-api-provider-talos
   * Tencent Cloud, https://github.com/TencentCloud/cluster-api-provider-tencent
   * vSphere, https://github.com/kubernetes-sigs/cluster-api-provider-vsphere
 
@@ -54,11 +58,15 @@ Following are the implementations managed by third-parties adopting the standard
   * Machine-controller-manager, https://github.com/gardener/machine-controller-manager/tree/cluster-api
 
 ## Getting Started
+
+### Resources
+
+* GitBook: [kubernetes-sigs.github.io/cluster-api](https://kubernetes-sigs.github.io/cluster-api)
+
 ### Prerequisites
 * `kubectl` is required, see [here](http://kubernetes.io/docs/user-guide/prereqs/).
 * `clusterctl` is a SIG-cluster-lifecycle sponsored tool to manage Cluster API clusters. See [here](cmd/clusterctl)
 
-[cluster-api-kep]: https://github.com/kubernetes/enhancements/blob/master/keps/sig-cluster-lifecycle/0003-cluster-api.md
 [notes]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY/edit
 [recordings]: https://www.youtube.com/playlist?list=PL69nYSiGNLP29D0nYgAGWt1ZFqS9Z7lw4
 [zoomMeeting]: https://zoom.us/j/861487554
