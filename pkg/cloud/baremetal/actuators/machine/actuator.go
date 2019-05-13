@@ -308,7 +308,7 @@ func (a *Actuator) setHostSpec(ctx context.Context, host *bmh.BareMetalHost, mac
 	}
 	host.Spec.Online = true
 	host.Spec.UserData = config.UserData
-	if host.Spec.UserData.Namespace == "" {
+	if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
 		host.Spec.UserData.Namespace = machine.Namespace
 	}
 	return a.client.Update(ctx, host)

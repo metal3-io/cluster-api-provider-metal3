@@ -61,11 +61,6 @@ func (s *BareMetalMachineProviderSpec) IsValid() error {
 	if s.Image.Checksum == "" {
 		missing = append(missing, "Image.Checksum")
 	}
-	if s.UserData == nil {
-		missing = append(missing, "UserData")
-	} else if s.UserData.Name == "" {
-		missing = append(missing, "UserData.Name")
-	}
 	if len(missing) > 0 {
 		return fmt.Errorf("Missing fields from ProviderSpec: %v", missing)
 	}
