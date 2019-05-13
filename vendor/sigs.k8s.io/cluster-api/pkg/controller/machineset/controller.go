@@ -140,7 +140,7 @@ func (r *ReconcileMachineSet) MachineToMachineSets(o handler.MapObject) []reconc
 // Reconcile reads that state of the cluster for a MachineSet object and makes changes based on the state read
 // and what is in the MachineSet.Spec
 // Automatically generate RBAC rules to allow the Controller to read and write Deployments
-// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machinesets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=cluster.k8s.io,resources=machinesets;machinesets/status,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.k8s.io,resources=machines,verbs=get;list;watch;create;update;patch;delete
 func (r *ReconcileMachineSet) Reconcile(request reconcile.Request) (reconcile.Result, error) {
 	// Fetch the MachineSet instance
@@ -203,10 +203,11 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 	}
 
 	// Add foregroundDeletion finalizer if MachineSet isn't deleted and linked to a cluster.
-	if cluster != nil && machineSet.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
-			machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
-		}
+	if cluster != nil &&
+		machineSet.ObjectMeta.DeletionTimestamp.IsZero() &&
+		!util.Contains(machineSet.Finalizers, metav1.FinalizerDeleteDependents) {
+
+		machineSet.Finalizers = append(machineSet.ObjectMeta.Finalizers, metav1.FinalizerDeleteDependents)
 
 		if err := r.Client.Update(context.Background(), machineSet); err != nil {
 			klog.Infof("Failed to add finalizers to MachineSet %q: %v", machineSet.Name, err)
@@ -250,6 +251,10 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 		return reconcile.Result{}, errors.Wrap(err, "failed to update machine set status")
 	}
 
+	if syncErr != nil {
+		return reconcile.Result{}, errors.Wrapf(syncErr, "failed to sync Machineset replicas")
+	}
+
 	var replicas int32
 	if updatedMS.Spec.Replicas != nil {
 		replicas = *updatedMS.Spec.Replicas
@@ -262,7 +267,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 	// exceeds MinReadySeconds could be incorrect.
 	// To avoid an available replica stuck in the ready state, we force a reconcile after MinReadySeconds,
 	// at which point it should confirm any available replica to be available.
-	if syncErr == nil && updatedMS.Spec.MinReadySeconds > 0 &&
+	if updatedMS.Spec.MinReadySeconds > 0 &&
 		updatedMS.Status.ReadyReplicas == replicas &&
 		updatedMS.Status.AvailableReplicas != replicas {
 
@@ -274,7 +279,7 @@ func (r *ReconcileMachineSet) reconcile(ctx context.Context, machineSet *cluster
 
 func (r *ReconcileMachineSet) getCluster(ms *clusterv1alpha1.MachineSet) (*clusterv1alpha1.Cluster, error) {
 	if ms.Spec.Template.Labels[clusterv1alpha1.MachineClusterLabelName] == "" {
-		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, clusterv1alpha1.MachineClusterLabelName, ms.Namespace)
+		klog.Infof("MachineSet %q in namespace %q doesn't specify %q label, assuming nil cluster", ms.Name, ms.Namespace, clusterv1alpha1.MachineClusterLabelName)
 		return nil, nil
 	}
 
@@ -329,8 +334,13 @@ func (r *ReconcileMachineSet) syncReplicas(ms *clusterv1alpha1.MachineSet, machi
 		klog.Infof("Too many replicas for %v %s/%s, need %d, deleting %d",
 			controllerKind, ms.Namespace, ms.Name, *(ms.Spec.Replicas), diff)
 
+		deletePriorityFunc, err := getDeletePriorityFunc(ms)
+		if err != nil {
+			return err
+		}
+		klog.Infof("Found %s delete policy", ms.Spec.DeletePolicy)
 		// Choose which Machines to delete.
-		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, simpleDeletePriority)
+		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 
 		// TODO: Add cap to limit concurrent delete calls.
 		errCh := make(chan error, diff)
