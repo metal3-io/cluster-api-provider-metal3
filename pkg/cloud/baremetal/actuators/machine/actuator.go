@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
@@ -277,11 +278,21 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
 	labelSelector := labels.NewSelector()
 	var reqs labels.Requirements
 	for labelKey, labelVal := range config.HostSelector.MatchLabels {
-		log.Printf("Adding requirement to match label: '%s' : '%s'", labelKey, labelVal)
+		log.Printf("Adding requirement to match label: '%s' == '%s'", labelKey, labelVal)
 		r, err := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
 		if err != nil {
-			log.Printf("Failed to create MatchLabel requirement: %v", err)
-			continue
+			log.Printf("Failed to create MatchLabel requirement, not choosing host: %v", err)
+			return nil, err
+		}
+		reqs = append(reqs, *r)
+	}
+	for _, req := range config.HostSelector.MatchExpressions {
+		log.Printf("Adding requirement to match label: '%s' %s '%s'", req.Key, req.Operator, req.Values)
+		lowercaseOperator := selection.Operator(strings.ToLower(string(req.Operator)))
+		r, err := labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
+		if err != nil {
+			log.Printf("Failed to create MatchExpression requirement, not choosing host: %v", err)
+			return nil, err
 		}
 		reqs = append(reqs, *r)
 	}

@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/selection"
 )
 
 // +genclient
@@ -47,8 +48,21 @@ type BareMetalMachineProviderSpec struct {
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
 }
 
+// HostSelector specifies matching criteria for labels on BareMetalHosts.
+// This is used to limit the set of BareMetalHost objects considered for
+// claiming for a Machine.
 type HostSelector struct {
+	// Key/value pairs of labels that must exist on a chosen BareMetalHost
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
+
+	// Label match expressions that must be true on a chosen BareMetalHost
+	MatchExpressions []HostSelectorRequirement `json:"matchExpressions,omitempty"`
+}
+
+type HostSelectorRequirement struct {
+	Key      string             `json:"key"`
+	Operator selection.Operator `json:"operator"`
+	Values   []string           `json:"values"`
 }
 
 // Image holds the details of an image to use during provisioning.
