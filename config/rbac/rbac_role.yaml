@@ -9,11 +9,6 @@ rules:
   resources:
   - machines
   - machines/status
-  - machinedeployments
-  - machinedeployments/status
-  - machinesets
-  - machinesets/status
-  - machineclasses
   verbs:
   - get
   - list
@@ -25,8 +20,7 @@ rules:
 - apiGroups:
   - cluster.k8s.io
   resources:
-  - clusters
-  - clusters/status
+  - machineClasses
   verbs:
   - get
   - list
@@ -55,7 +49,7 @@ rules:
   - update
   - patch
 - apiGroups:
-  - baremetal.k8s.io
+  - baremetal.cluster.k8s.io
   resources:
   - baremetalmachineproviderspecs
   - baremetalmachineproviderstatuses
