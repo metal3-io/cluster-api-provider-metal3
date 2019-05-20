@@ -22,7 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-//+kubebuilder:rbac:groups=baremetal.k8s.io,resources=baremetalmachineproviderspecs;baremetalmachineproviderstatuses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=baremetal.cluster.k8s.io,resources=baremetalmachineproviderspecs;baremetalmachineproviderstatuses,verbs=get;list;watch;create;update;patch;delete
 func init() {
 	// AddToManagerFuncs is a list of functions to create controllers and add them to a manager.
 	AddToManagerFuncs = append(AddToManagerFuncs, func(m manager.Manager) error {

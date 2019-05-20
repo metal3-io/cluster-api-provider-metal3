@@ -49,7 +49,7 @@ rules:
   - update
   - patch
 - apiGroups:
-  - baremetal.k8s.io
+  - baremetal.cluster.k8s.io
   resources:
   - baremetalmachineproviderspecs
   - baremetalmachineproviderstatuses
