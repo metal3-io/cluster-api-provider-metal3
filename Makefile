@@ -11,7 +11,12 @@ build:
 all: test manager
 
 # Run tests
-test: generate fmt vet unit
+test: testprereqs generate fmt vet unit
+
+.PHONY: testprereqs
+testprereqs:
+	@if [ ! -d /usr/local/kubebuilder ] ; then echo "kubebuilder not found.  See docs/dev/setup.md" && exit 1 ; fi
+	@if ! which kustomize >/dev/null 2>&1 ; then echo "kustomize not found.  See docs/dev/setup.md" && exit 1 ; fi
 
 unit: manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out
