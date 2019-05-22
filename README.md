@@ -8,6 +8,10 @@ For more information about this actuator and related repositories, see
 
 ## Development Environment
 
+* See [metal3-dev-env](https://github.com/metal3-io/metal3-dev-env) for an
+  end-to-end development and test environment for
+  `cluster-api-provider-baremetal` and
+  [baremetal-operator](https://github.com/metal3-io/baremetal-operator).
 * [Setting up for tests](docs/dev/setup.md)
 * Using [Minikube](docs/dev/minikube.md)
 * Using [OpenShift 4](docs/dev/openshift.md)
