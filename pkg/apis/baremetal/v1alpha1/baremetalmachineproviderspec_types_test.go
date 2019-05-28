@@ -95,8 +95,8 @@ func TestProviderSpecIsValid(t *testing.T) {
 					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
 				},
 			},
-			ErrorExpected: true,
-			Name:          "missing UserData",
+			ErrorExpected: false,
+			Name:          "missing optional UserData",
 		},
 		{
 			Spec: BareMetalMachineProviderSpec{
@@ -108,8 +108,45 @@ func TestProviderSpecIsValid(t *testing.T) {
 					Namespace: "otherns",
 				},
 			},
-			ErrorExpected: true,
-			Name:          "missing UserData.Name",
+			ErrorExpected: false,
+			Name:          "missing optional UserData.Name",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				HostSelector: HostSelector{},
+			},
+			ErrorExpected: false,
+			Name:          "Empty HostSelector provided",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				HostSelector: HostSelector{
+					MatchLabels: map[string]string{"key": "value"},
+				},
+			},
+			ErrorExpected: false,
+			Name:          "HostSelector Single MatchLabel provided",
+		},
+		{
+			Spec: BareMetalMachineProviderSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				HostSelector: HostSelector{
+					MatchLabels: map[string]string{"key": "value", "key2": "value2"},
+				},
+			},
+			ErrorExpected: false,
+			Name:          "HostSelector Multiple MatchLabels provided",
 		},
 	}
 

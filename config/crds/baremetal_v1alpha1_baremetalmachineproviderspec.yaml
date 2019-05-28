@@ -19,6 +19,33 @@ spec:
             of an object. Servers should convert recognized schemas to the latest
             internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
           type: string
+        hostSelector:
+          description: HostSelector specifies matching criteria for labels on BareMetalHosts.
+            This is used to limit the set of BareMetalHost objects considered for
+            claiming for a Machine.
+          properties:
+            matchExpressions:
+              description: Label match expressions that must be true on a chosen BareMetalHost
+              items:
+                properties:
+                  key:
+                    type: string
+                  operator:
+                    type: string
+                  values:
+                    items:
+                      type: string
+                    type: array
+                required:
+                - key
+                - operator
+                - values
+                type: object
+              type: array
+            matchLabels:
+              description: Key/value pairs of labels that must exist on a chosen BareMetalHost
+              type: object
+          type: object
         image:
           description: Image is the image to be provisioned.
           properties:
