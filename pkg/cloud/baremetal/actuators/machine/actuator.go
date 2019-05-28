@@ -424,7 +424,7 @@ func (a *Actuator) nodeAddresses(host *bmh.BareMetalHost) ([]corev1.NodeAddress,
 
 	for _, nic := range host.Status.HardwareDetails.NIC {
 		address := corev1.NodeAddress{
-			Type:    "InternalIP",
+			Type:    corev1.NodeInternalIP,
 			Address: nic.IP,
 		}
 		addrs = append(addrs, address)
