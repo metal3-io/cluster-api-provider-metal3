@@ -3,7 +3,7 @@ sudo: false
 go:
   - "1.11.5"
 before_install:
-  - ./tools/install_kustomize.sh
+  - go get sigs.k8s.io/kustomize
   - ./tools/install_kubebuilder.sh
   - make generate
 env:

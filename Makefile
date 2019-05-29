@@ -16,7 +16,7 @@ test: testprereqs generate fmt vet unit
 .PHONY: testprereqs
 testprereqs:
 	@if [ ! -d /usr/local/kubebuilder ] ; then echo "kubebuilder not found.  See docs/dev/setup.md" && exit 1 ; fi
-	@if ! which kustomize >/dev/null 2>&1 ; then echo "kustomize not found.  See docs/dev/setup.md" && exit 1 ; fi
+	@if ! which kustomize >/dev/null 2>&1 ; then echo "Running 'go get sigs.k8s.io/kustomize'" && go get sigs.k8s.io/kustomize ; fi
 
 unit: manifests
 	go test ./pkg/... ./cmd/... -coverprofile cover.out

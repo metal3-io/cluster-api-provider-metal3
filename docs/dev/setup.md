@@ -6,9 +6,7 @@ during development.
 ## Install kustomize
 
 ```bash
-eval $(go env)
-export GOPATH
-./tools/install_kustomize.sh
+go get sigs.k8s.io/kustomize
 ```
 
 ## Install kubebuilder
