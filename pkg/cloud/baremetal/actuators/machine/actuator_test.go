@@ -897,6 +897,20 @@ func TestUpdateMachineStatus(t *testing.T) {
 				},
 			},
 		},
+		{
+			// machine status unchanged
+			Host: &bmh.BareMetalHost{},
+			Machine: &machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+				},
+				Status: machinev1.MachineStatus{},
+			},
+			ExpectedMachine: machinev1.Machine{
+				Status: machinev1.MachineStatus{},
+			},
+		},
 	}
 
 	for _, tc := range testCases {

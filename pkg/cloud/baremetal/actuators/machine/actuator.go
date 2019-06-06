@@ -451,8 +451,8 @@ func (a *Actuator) applyMachineStatus(ctx context.Context, machine *machinev1.Ma
 func (a *Actuator) nodeAddresses(host *bmh.BareMetalHost) ([]corev1.NodeAddress, error) {
 	addrs := []corev1.NodeAddress{}
 
-	// If the host is nil, return an empty address array.
-	if host == nil {
+	// If the host is nil or we have no hw details, return an empty address array.
+	if host == nil || host.Status.HardwareDetails == nil {
 		return addrs, nil
 	}
 
