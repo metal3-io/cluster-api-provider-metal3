@@ -143,17 +143,31 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 	if err != nil {
 		return err
 	}
-	if host != nil && host.Spec.MachineRef != nil {
-		// don't remove the MachineRef if it references some other machine
-		if host.Spec.MachineRef.Name == machine.Name {
-			host.Spec.MachineRef = nil
-			host.Spec.Image = nil
-			host.Spec.Online = false
-			host.Spec.UserData = nil
-			err = a.client.Update(ctx, host)
-			if err != nil && !errors.IsNotFound(err) {
-				return err
+	if host != nil {
+		if host.Spec.MachineRef != nil {
+			// don't remove the MachineRef if it references some other machine
+			if host.Spec.MachineRef.Name == machine.Name {
+				host.Spec.MachineRef = nil
+				host.Spec.Image = nil
+				host.Spec.Online = false
+				host.Spec.UserData = nil
+				err = a.client.Update(ctx, host)
+				if err != nil && !errors.IsNotFound(err) {
+					return err
+				}
+				return &clustererror.RequeueAfterError{}
+			} else {
+				log.Printf("host associated with %v, not machine %v.",
+					host.Spec.MachineRef.Name, machine.Name)
+				return nil
 			}
+		}
+		switch host.Status.Provisioning.State {
+		default:
+			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfter}
+		case bmh.StateRegistrationError, bmh.StateRegistering,
+			bmh.StateMatchProfile, bmh.StateInspecting,
+			bmh.StateReady, bmh.StateValidationError:
 		}
 	}
 	log.Printf("finished deleting machine %v.", machine.Name)
