@@ -139,6 +139,9 @@ type BareMetalHostSpec struct {
 	// UserData holds the reference to the Secret containing the user
 	// data to be passed to the host before it boots.
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
+
+	// Description is a human-entered text used to help identify the host
+	Description string `json:"description"`
 }
 
 // Image holds the details of an image either to provisioned or that
@@ -154,10 +157,18 @@ type Image struct {
 // FIXME(dhellmann): We probably want some other module to own these
 // data structures.
 
+// GHz is a clock speed in GHz
+type GHz float64
+
+// GiB is a memory size in GiB
+type GiB int32
+
 // CPU describes one processor on the host.
 type CPU struct {
 	Type     string `json:"type"`
-	SpeedGHz int    `json:"speedGHz"`
+	Model    string `json:"model"`
+	SpeedGHz GHz    `json:"speedGHz"`
+	Count    int    `json:"count"`
 }
 
 // Storage describes one storage device (disk, SSD, etc.) on the host.
@@ -168,11 +179,29 @@ type Storage struct {
 	// Type, e.g. SSD
 	Type string `json:"type"`
 
-	// The size of the disk in gigabyte
-	SizeGiB int `json:"sizeGiB"`
+	// The size of the disk in Gibibytes
+	SizeGiB GiB `json:"sizeGiB"`
+
+	// The name of the vendor of the device
+	Vendor string `json:"vendor,omitempty"`
 
 	// Hardware model
-	Model string `json:"model"`
+	Model string `json:"model,omitempty"`
+
+	// The serial number of the device
+	SerialNumber string `json:"serialNumber"`
+
+	// The WWN of the device
+	WWN string `json:"wwn,omitempty"`
+
+	// The WWN Vendor extension of the device
+	WWNVendorExtension string `json:"wwnVendorExtension,omitempty"`
+
+	// The WWN with the extension
+	WWNWithExtension string `json:"wwnWithExtension,omitempty"`
+
+	// The SCSI location of the device
+	HCTL string `json:"hctl,omitempty"`
 }
 
 // NIC describes one network interface on the host.
@@ -199,10 +228,18 @@ type NIC struct {
 // HardwareDetails collects all of the information about hardware
 // discovered on the host.
 type HardwareDetails struct {
-	RAMGiB  int       `json:"ramGiB"`
-	NIC     []NIC     `json:"nics"`
-	Storage []Storage `json:"storage"`
-	CPUs    []CPU     `json:"cpus"`
+	SystemVendor HardwareSystemVendor `json:"systemVendor"`
+	RAMGiB       GiB                  `json:"ramGiB"`
+	NIC          []NIC                `json:"nics"`
+	Storage      []Storage            `json:"storage"`
+	CPU          CPU                  `json:"cpu"`
+}
+
+// HardwareSystemVendor stores details about the whole hardware system.
+type HardwareSystemVendor struct {
+	Manufacturer string `json:"manufacturer"`
+	ProductName  string `json:"productName"`
+	SerialNumber string `json:"serialNumber"`
 }
 
 // CredentialsStatus contains the reference and version of the last
@@ -353,7 +390,7 @@ func (host *BareMetalHost) SetHardwareProfile(name string) (dirty bool) {
 	return dirty
 }
 
-// SetOperationalStatus updates the OperationalStatusLabel and returns
+// SetOperationalStatus updates the OperationalStatus field and returns
 // true when a change is made or false when no change is made.
 func (host *BareMetalHost) SetOperationalStatus(status OperationalStatus) bool {
 	if host.Status.OperationalStatus != status {
@@ -491,11 +528,11 @@ func (host *BareMetalHost) NewEvent(reason, message string) corev1.Event {
 			Namespace:    host.ObjectMeta.Namespace,
 		},
 		InvolvedObject: corev1.ObjectReference{
-			Kind:       host.TypeMeta.Kind,
-			Namespace:  host.ObjectMeta.Namespace,
-			Name:       host.ObjectMeta.Name,
-			UID:        host.ObjectMeta.UID,
-			APIVersion: host.TypeMeta.APIVersion,
+			Kind:       "BareMetalHost",
+			Namespace:  host.Namespace,
+			Name:       host.Name,
+			UID:        host.UID,
+			APIVersion: SchemeGroupVersion.Version,
 		},
 		Reason:  reason,
 		Message: message,

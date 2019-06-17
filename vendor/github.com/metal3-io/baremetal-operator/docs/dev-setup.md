@@ -27,8 +27,8 @@ install the operator-sdk tools.
     cd $GOPATH/src/github.com/metal3-io
     git clone https://github.com/metal3-io/baremetal-operator.git
     cd baremetal-operator
-    kubectl apply -f deploy/service_account.yaml
-    kubectl apply -f deploy/role.yaml
+    kubectl apply -f deploy/service_account.yaml -n metal3
+    kubectl apply -f deploy/role.yaml -n metal3
     kubectl apply -f deploy/role_binding.yaml
     kubectl apply -f deploy/crds/metal3_v1alpha1_baremetalhost_crd.yaml
     ```
@@ -37,6 +37,10 @@ install the operator-sdk tools.
 
     ```
     export OPERATOR_NAME=baremetal-operator
+    export DEPLOY_KERNEL_URL=http://172.22.0.1/images/ironic-python-agent.kernel
+    export DEPLOY_RAMDISK_URL=http://172.22.0.1/images/ironic-python-agent.initramfs
+    export IRONIC_ENDPOINT=http://localhost:6385/v1/
+    export IRONIC_INSPECTOR_ENDPOINT=http://localhost:5050/v1
     operator-sdk up local --namespace=metal3
     ```
 
