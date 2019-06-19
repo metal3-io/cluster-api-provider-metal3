@@ -40,6 +40,7 @@ import (
 func main() {
 	klog.InitFlags(nil)
 
+	watchNamespace := flag.String("namespace", "", "Namespace that the controller watches to reconcile machine-api objects. If unspecified, the controller watches for machine-api objects across all namespaces.")
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.Parse()
 
@@ -59,7 +60,15 @@ func main() {
 	}
 
 	// Setup a Manager
-	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: *metricsAddr})
+	opts := manager.Options{
+		MetricsBindAddress: *metricsAddr,
+	}
+	if *watchNamespace != "" {
+		opts.Namespace = *watchNamespace
+		klog.Infof("Watching machine-api objects only in namespace %q for reconciliation.", opts.Namespace)
+	}
+
+	mgr, err := manager.New(cfg, opts)
 	if err != nil {
 		entryLog.Error(err, "unable to set up overall controller manager")
 		os.Exit(1)
