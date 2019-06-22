@@ -629,7 +629,7 @@ func TestDelete(t *testing.T) {
 		ExpectedResult     error
 	}{
 		{
-			// machine ref should be removed
+			// deprovisioning required
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -639,6 +639,14 @@ func TestDelete(t *testing.T) {
 					MachineRef: &corev1.ObjectReference{
 						Name:      "mymachine",
 						Namespace: "myns",
+					},
+					Image: &bmh.Image{
+						URL: "myimage",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateProvisioned,
 					},
 				},
 			},
@@ -651,7 +659,74 @@ func TestDelete(t *testing.T) {
 					},
 				},
 			},
+			ExpectedMachineRef: &corev1.ObjectReference{
+				Name:      "mymachine",
+				Namespace: "myns",
+			},
 			ExpectedResult: &clustererror.RequeueAfterError{},
+		},
+		{
+			// deprovisioning in progress
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					MachineRef: &corev1.ObjectReference{
+						Name:      "mymachine",
+						Namespace: "myns",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateDeprovisioning,
+					},
+				},
+			},
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			ExpectedMachineRef: &corev1.ObjectReference{
+				Name:      "mymachine",
+				Namespace: "myns",
+			},
+			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
+		},
+		{
+			// machine ref should be removed
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					MachineRef: &corev1.ObjectReference{
+						Name:      "mymachine",
+						Namespace: "myns",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateReady,
+					},
+				},
+			},
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
 		},
 		{
 			// machine ref does not match, so it should not be removed
@@ -664,6 +739,14 @@ func TestDelete(t *testing.T) {
 					MachineRef: &corev1.ObjectReference{
 						Name:      "someoneelsesmachine",
 						Namespace: "myns",
+					},
+					Image: &bmh.Image{
+						URL: "someoneelsesimage",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateProvisioned,
 					},
 				},
 			},
@@ -682,7 +765,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			// no machine ref, so wait for deprovisioning
+			// no machine ref, so this is a no-op
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -698,7 +781,6 @@ func TestDelete(t *testing.T) {
 					},
 				},
 			},
-			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
 		},
 		{
 			// no host at all, so this is a no-op
