@@ -39,6 +39,7 @@ func TestChooseHost(t *testing.T) {
 			ConsumerRef: &corev1.ObjectReference{
 				Name:      "someothermachine",
 				Namespace: "myns",
+				Kind:      "Machine",
 			},
 		},
 	}
@@ -57,6 +58,7 @@ func TestChooseHost(t *testing.T) {
 			ConsumerRef: &corev1.ObjectReference{
 				Name:      "machine1",
 				Namespace: "myns",
+				Kind:      "Machine",
 			},
 		},
 	}
@@ -354,6 +356,9 @@ func TestSetHostSpec(t *testing.T) {
 			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
 		}
 		if savedHost.Spec.ConsumerRef.Namespace != machine.Namespace {
+			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+		}
+		if savedHost.Spec.ConsumerRef.Kind != "Machine" {
 			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
 		}
 		if savedHost.Spec.Online != true {
@@ -710,6 +715,7 @@ func TestDelete(t *testing.T) {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:      "mymachine",
 						Namespace: "myns",
+						Kind:      "Machine",
 					},
 				},
 				Status: bmh.BareMetalHostStatus{
@@ -739,6 +745,7 @@ func TestDelete(t *testing.T) {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:      "someoneelsesmachine",
 						Namespace: "myns",
+						Kind:      "Machine",
 					},
 					Image: &bmh.Image{
 						URL: "someoneelsesimage",
@@ -762,6 +769,7 @@ func TestDelete(t *testing.T) {
 			ExpectedConsumerRef: &corev1.ObjectReference{
 				Name:      "someoneelsesmachine",
 				Namespace: "myns",
+				Kind:      "Machine",
 			},
 		},
 		{
