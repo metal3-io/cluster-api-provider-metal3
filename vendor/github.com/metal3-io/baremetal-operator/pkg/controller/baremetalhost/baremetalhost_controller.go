@@ -262,10 +262,10 @@ func (r *ReconcileBareMetalHost) Reconcile(request reconcile.Request) (result re
 	// Pick the action to perform
 	var actionName metal3v1alpha1.ProvisioningState
 	switch {
-	case host.WasExternallyProvisioned():
-		actionName = metal3v1alpha1.StateExternallyProvisioned
 	case host.CredentialsNeedValidation(*bmcCredsSecret):
 		actionName = metal3v1alpha1.StateRegistering
+	case host.WasExternallyProvisioned():
+		actionName = metal3v1alpha1.StateExternallyProvisioned
 	case host.NeedsHardwareInspection():
 		actionName = metal3v1alpha1.StateInspecting
 	case host.NeedsHardwareProfile():
@@ -399,15 +399,33 @@ func (r *ReconcileBareMetalHost) deleteHost(request reconcile.Request, host *met
 		return result, errors.Wrap(err, "failed to create provisioner")
 	}
 
-	reqLogger.Info("deprovisioning")
-	provResult, err := prov.Deprovision(true)
+	if host.NeedsDeprovisioning() {
+		reqLogger.Info("deprovisioning before deleting")
+		provResult, err := prov.Deprovision()
+		if err != nil {
+			return result, errors.Wrap(err, "failed to deprovision")
+		}
+		if provResult.Dirty {
+			err = r.saveStatus(host)
+			if err != nil {
+				return result, errors.Wrap(err, "failed to save host after deprovisioning")
+			}
+			result.Requeue = true
+			result.RequeueAfter = provResult.RequeueAfter
+			return result, nil
+		}
+	} else {
+		reqLogger.Info("no need to deprovision before deleting")
+	}
+
+	provResult, err := prov.Delete()
 	if err != nil {
-		return result, errors.Wrap(err, "failed to deprovision")
+		return result, errors.Wrap(err, "failed to delete")
 	}
 	if provResult.Dirty {
 		err = r.saveStatus(host)
 		if err != nil {
-			return result, errors.Wrap(err, "failed to save host after deprovisioning")
+			return result, errors.Wrap(err, "failed to save host after deleting")
 		}
 		result.Requeue = true
 		result.RequeueAfter = provResult.RequeueAfter
@@ -457,11 +475,19 @@ func (r *ReconcileBareMetalHost) actionRegistering(prov provisioner.Provisioner,
 	}
 
 	// Reaching this point means the credentials are valid and worked,
-	// so record that in the status block.
+	// so clear any previous error and record the success in the
+	// status block.
 	info.log.Info("updating credentials success status fields")
 	info.host.UpdateGoodCredentials(*info.bmcCredsSecret)
+	info.log.Info("clearing previous error message")
+	info.host.ClearError()
 
 	info.publishEvent("BMCAccessValidated", "Verified access to BMC")
+
+	if info.host.WasExternallyProvisioned() {
+		info.publishEvent("ExternallyProvisioned",
+			"Registered host that was externally provisioned")
+	}
 
 	result.Requeue = true
 	result.RequeueAfter = provResult.RequeueAfter
@@ -471,10 +497,11 @@ func (r *ReconcileBareMetalHost) actionRegistering(prov provisioner.Provisioner,
 // Ensure we have the information about the hardware on the host.
 func (r *ReconcileBareMetalHost) actionInspecting(prov provisioner.Provisioner, info *reconcileInfo) (result reconcile.Result, err error) {
 	var provResult provisioner.Result
+	var details *metal3v1alpha1.HardwareDetails
 
 	info.log.Info("inspecting hardware")
 
-	provResult, err = prov.InspectHardware()
+	provResult, details, err = prov.InspectHardware()
 	if err != nil {
 		return result, errors.Wrap(err, "hardware inspection failed")
 	}
@@ -486,21 +513,17 @@ func (r *ReconcileBareMetalHost) actionInspecting(prov provisioner.Provisioner, 
 		return result, nil
 	}
 
+	if details != nil {
+		info.host.Status.HardwareDetails = details
+		result.Requeue = true
+		return result, nil
+	}
+
 	if provResult.Dirty {
 		info.host.ClearError()
 		result.Requeue = true
 		result.RequeueAfter = provResult.RequeueAfter
-		return result, nil
 	}
-
-	// FIXME(dhellmann): Since we test the HardwareDetails pointer
-	// before calling function, perhaps it makes sense to have
-	// InspectHardware() return a value and store it here in this
-	// function. That would eliminate duplication in the provisioners
-	// and make this phase consistent with the structure of others.
-
-	// Line up a requeue if we could set the hardware profile
-	result.Requeue = info.host.NeedsHardwareProfile()
 
 	return result, nil
 }
@@ -622,7 +645,7 @@ func (r *ReconcileBareMetalHost) actionDeprovisioning(prov provisioner.Provision
 
 	info.log.Info("deprovisioning")
 
-	if provResult, err = prov.Deprovision(false); err != nil {
+	if provResult, err = prov.Deprovision(); err != nil {
 		return result, errors.Wrap(err, "failed to deprovision")
 	}
 

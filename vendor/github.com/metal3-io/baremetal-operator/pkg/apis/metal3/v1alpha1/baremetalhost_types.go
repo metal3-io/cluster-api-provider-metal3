@@ -133,12 +133,20 @@ type BareMetalHostSpec struct {
 	// MachineRef is a reference to the machine.openshift.io/Machine
 	MachineRef *corev1.ObjectReference `json:"machineRef,omitempty"`
 
+	// ConsumerRef can be used to store information about something
+	// that is using a host. When it is not empty, the host is
+	// considered "in use".
+	ConsumerRef *corev1.ObjectReference `json:"consumerRef,omitempty"`
+
 	// Image holds the details of the image to be provisioned.
 	Image *Image `json:"image,omitempty"`
 
 	// UserData holds the reference to the Secret containing the user
 	// data to be passed to the host before it boots.
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
+
+	// Description is a human-entered text used to help identify the host
+	Description string `json:"description"`
 }
 
 // Image holds the details of an image either to provisioned or that
@@ -154,10 +162,18 @@ type Image struct {
 // FIXME(dhellmann): We probably want some other module to own these
 // data structures.
 
+// GHz is a clock speed in GHz
+type GHz float64
+
+// GiB is a memory size in GiB
+type GiB int32
+
 // CPU describes one processor on the host.
 type CPU struct {
 	Type     string `json:"type"`
-	SpeedGHz int    `json:"speedGHz"`
+	Model    string `json:"model"`
+	SpeedGHz GHz    `json:"speedGHz"`
+	Count    int    `json:"count"`
 }
 
 // Storage describes one storage device (disk, SSD, etc.) on the host.
@@ -168,11 +184,29 @@ type Storage struct {
 	// Type, e.g. SSD
 	Type string `json:"type"`
 
-	// The size of the disk in gigabyte
-	SizeGiB int `json:"sizeGiB"`
+	// The size of the disk in Gibibytes
+	SizeGiB GiB `json:"sizeGiB"`
+
+	// The name of the vendor of the device
+	Vendor string `json:"vendor,omitempty"`
 
 	// Hardware model
-	Model string `json:"model"`
+	Model string `json:"model,omitempty"`
+
+	// The serial number of the device
+	SerialNumber string `json:"serialNumber"`
+
+	// The WWN of the device
+	WWN string `json:"wwn,omitempty"`
+
+	// The WWN Vendor extension of the device
+	WWNVendorExtension string `json:"wwnVendorExtension,omitempty"`
+
+	// The WWN with the extension
+	WWNWithExtension string `json:"wwnWithExtension,omitempty"`
+
+	// The SCSI location of the device
+	HCTL string `json:"hctl,omitempty"`
 }
 
 // NIC describes one network interface on the host.
@@ -199,10 +233,19 @@ type NIC struct {
 // HardwareDetails collects all of the information about hardware
 // discovered on the host.
 type HardwareDetails struct {
-	RAMGiB  int       `json:"ramGiB"`
-	NIC     []NIC     `json:"nics"`
-	Storage []Storage `json:"storage"`
-	CPUs    []CPU     `json:"cpus"`
+	SystemVendor HardwareSystemVendor `json:"systemVendor"`
+	RAMGiB       GiB                  `json:"ramGiB"`
+	NIC          []NIC                `json:"nics"`
+	Storage      []Storage            `json:"storage"`
+	CPU          CPU                  `json:"cpu"`
+	Hostname     string               `json:"hostname"`
+}
+
+// HardwareSystemVendor stores details about the whole hardware system.
+type HardwareSystemVendor struct {
+	Manufacturer string `json:"manufacturer"`
+	ProductName  string `json:"productName"`
+	SerialNumber string `json:"serialNumber"`
 }
 
 // CredentialsStatus contains the reference and version of the last
@@ -219,10 +262,6 @@ type BareMetalHostStatus struct {
 
 	// OperationalStatus holds the status of the host
 	OperationalStatus OperationalStatus `json:"operationalStatus"`
-
-	// MachineRef will point to the corresponding Machine if it exists.
-	// +optional
-	MachineRef *corev1.ObjectReference `json:"machineRef,omitempty"`
 
 	// LastUpdated identifies when this status was last observed.
 	// +optional
@@ -274,7 +313,7 @@ type BareMetalHost struct {
 
 // Available returns true if the host is available to be provisioned.
 func (host *BareMetalHost) Available() bool {
-	if host.Spec.MachineRef != nil {
+	if host.Spec.MachineRef != nil || host.Spec.ConsumerRef != nil {
 		return false
 	}
 	if host.GetDeletionTimestamp() != nil {
@@ -353,7 +392,7 @@ func (host *BareMetalHost) SetHardwareProfile(name string) (dirty bool) {
 	return dirty
 }
 
-// SetOperationalStatus updates the OperationalStatusLabel and returns
+// SetOperationalStatus updates the OperationalStatus field and returns
 // true when a change is made or false when no change is made.
 func (host *BareMetalHost) SetOperationalStatus(status OperationalStatus) bool {
 	if host.Status.OperationalStatus != status {
@@ -405,9 +444,9 @@ func (host *BareMetalHost) CredentialsNeedValidation(currentSecret corev1.Secret
 // NeedsHardwareInspection looks at the state of the host to determine
 // if hardware inspection should be run.
 func (host *BareMetalHost) NeedsHardwareInspection() bool {
-	if host.Status.MachineRef != nil {
-		// Never perform inspection if we already know which machine
-		// this is.
+	if host.Spec.MachineRef != nil || host.Spec.ConsumerRef != nil {
+		// Never perform inspection if we already know something is
+		// using the host.
 		return false
 	}
 	return host.Status.HardwareDetails == nil
@@ -449,7 +488,7 @@ func (host *BareMetalHost) WasProvisioned() bool {
 // WasExternallyProvisioned returns true when we think something else
 // is managing the image running on the host.
 func (host *BareMetalHost) WasExternallyProvisioned() bool {
-	if host.Spec.Image == nil && host.Spec.MachineRef != nil {
+	if host.Spec.Image == nil && (host.Spec.MachineRef != nil || host.Spec.ConsumerRef != nil) {
 		return true
 	}
 	return false
@@ -491,11 +530,11 @@ func (host *BareMetalHost) NewEvent(reason, message string) corev1.Event {
 			Namespace:    host.ObjectMeta.Namespace,
 		},
 		InvolvedObject: corev1.ObjectReference{
-			Kind:       host.TypeMeta.Kind,
-			Namespace:  host.ObjectMeta.Namespace,
-			Name:       host.ObjectMeta.Name,
-			UID:        host.ObjectMeta.UID,
-			APIVersion: host.TypeMeta.APIVersion,
+			Kind:       "BareMetalHost",
+			Namespace:  host.Namespace,
+			Name:       host.Name,
+			UID:        host.UID,
+			APIVersion: SchemeGroupVersion.Version,
 		},
 		Reason:  reason,
 		Message: message,

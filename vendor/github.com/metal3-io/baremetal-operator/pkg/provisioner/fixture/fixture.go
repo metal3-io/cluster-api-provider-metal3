@@ -55,9 +55,6 @@ func (p *fixtureProvisioner) ValidateManagementAccess() (result provisioner.Resu
 		return result, nil
 	}
 
-	// Clear any error
-	result.Dirty = p.host.ClearError()
-
 	return result, nil
 }
 
@@ -65,7 +62,7 @@ func (p *fixtureProvisioner) ValidateManagementAccess() (result provisioner.Resu
 // details of devices discovered on the hardware. It may be called
 // multiple times, and should return true for its dirty flag until the
 // inspection is completed.
-func (p *fixtureProvisioner) InspectHardware() (result provisioner.Result, err error) {
+func (p *fixtureProvisioner) InspectHardware() (result provisioner.Result, details *metal3v1alpha1.HardwareDetails, err error) {
 	p.log.Info("inspecting hardware", "status", p.host.OperationalStatus())
 
 	// The inspection is ongoing. We'll need to check the fixture
@@ -74,7 +71,7 @@ func (p *fixtureProvisioner) InspectHardware() (result provisioner.Result, err e
 	// hardware details struct as part of a second pass.
 	if p.host.Status.HardwareDetails == nil {
 		p.log.Info("continuing inspection by setting details")
-		p.host.Status.HardwareDetails =
+		details =
 			&metal3v1alpha1.HardwareDetails{
 				RAMGiB: 128,
 				NIC: []metal3v1alpha1.NIC{
@@ -109,19 +106,16 @@ func (p *fixtureProvisioner) InspectHardware() (result provisioner.Result, err e
 						Model:   "Dell CFJ61",
 					},
 				},
-				CPUs: []metal3v1alpha1.CPU{
-					metal3v1alpha1.CPU{
-						Type:     "x86",
-						SpeedGHz: 3,
-					},
+				CPU: metal3v1alpha1.CPU{
+					Type:     "x86_64",
+					Model:    "FancyPants CPU",
+					SpeedGHz: 3,
 				},
 			}
 		p.publisher("InspectionComplete", "Hardware inspection completed")
-		result.Dirty = true
-		return result, nil
 	}
 
-	return result, nil
+	return
 }
 
 // UpdateHardwareState fetches the latest hardware state of the server
@@ -155,11 +149,11 @@ func (p *fixtureProvisioner) Provision(getUserData provisioner.UserDataSource) (
 	return result, nil
 }
 
-// Deprovision prepares the host to be removed from the cluster. It
-// may be called multiple times, and should return true for its dirty
-// flag until the deprovisioning operation is completed.
-func (p *fixtureProvisioner) Deprovision(deleteIt bool) (result provisioner.Result, err error) {
-	p.log.Info("ensuring host is removed")
+// Deprovision removes the host from the image. It may be called
+// multiple times, and should return true for its dirty flag until the
+// deprovisioning operation is completed.
+func (p *fixtureProvisioner) Deprovision() (result provisioner.Result, err error) {
+	p.log.Info("ensuring host is deprovisioned")
 
 	result.RequeueAfter = deprovisionRequeueDelay
 
@@ -176,6 +170,16 @@ func (p *fixtureProvisioner) Deprovision(deleteIt bool) (result provisioner.Resu
 		return result, nil
 	}
 
+	p.publisher("DeprovisionComplete", "Image deprovisioning completed")
+	return result, nil
+}
+
+// Delete removes the host from the provisioning system. It may be
+// called multiple times, and should return true for its dirty flag
+// until the deprovisioning operation is completed.
+func (p *fixtureProvisioner) Delete() (result provisioner.Result, err error) {
+	p.log.Info("deleting host")
+
 	if p.host.Status.Provisioning.ID != "" {
 		p.log.Info("clearing provisioning id")
 		p.host.Status.Provisioning.ID = ""
@@ -183,7 +187,6 @@ func (p *fixtureProvisioner) Deprovision(deleteIt bool) (result provisioner.Resu
 		return result, nil
 	}
 
-	p.publisher("DeprovisionComplete", "Image deprovisioning completed")
 	return result, nil
 }
 

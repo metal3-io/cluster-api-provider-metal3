@@ -102,18 +102,17 @@ func (p *demoProvisioner) ValidateManagementAccess() (result provisioner.Result,
 // details of devices discovered on the hardware. It may be called
 // multiple times, and should return true for its dirty flag until the
 // inspection is completed.
-func (p *demoProvisioner) InspectHardware() (result provisioner.Result, err error) {
+func (p *demoProvisioner) InspectHardware() (result provisioner.Result, details *metal3v1alpha1.HardwareDetails, err error) {
 	p.log.Info("inspecting hardware", "status", p.host.OperationalStatus())
 
 	hostName := p.host.ObjectMeta.Name
 
 	if hostName == InspectingHost {
-		p.host.Status.Provisioning.State = metal3v1alpha1.StateInspecting
 		// set dirty so we don't allow the host to progress past this
 		// state in Reconcile()
 		result.Dirty = true
 		result.RequeueAfter = time.Second * 5
-		return result, nil
+		return
 	}
 
 	// The inspection is ongoing. We'll need to check the demo
@@ -122,7 +121,7 @@ func (p *demoProvisioner) InspectHardware() (result provisioner.Result, err erro
 	// hardware details struct as part of a second pass.
 	if p.host.Status.HardwareDetails == nil {
 		p.log.Info("continuing inspection by setting details")
-		p.host.Status.HardwareDetails =
+		details =
 			&metal3v1alpha1.HardwareDetails{
 				RAMGiB: 128,
 				NIC: []metal3v1alpha1.NIC{
@@ -157,20 +156,18 @@ func (p *demoProvisioner) InspectHardware() (result provisioner.Result, err erro
 						Model:   "Dell CFJ61",
 					},
 				},
-				CPUs: []metal3v1alpha1.CPU{
-					metal3v1alpha1.CPU{
-						Type:     "x86",
-						SpeedGHz: 3,
-					},
+				CPU: metal3v1alpha1.CPU{
+					Type:     "x86_64",
+					Model:    "Core 2 Duo",
+					SpeedGHz: 3,
+					Count:    1,
 				},
 			}
 		p.publisher("InspectionComplete", "Hardware inspection completed")
 		p.host.SetOperationalStatus(metal3v1alpha1.OperationalStatusOK)
-		result.Dirty = true
-		return result, nil
 	}
 
-	return result, nil
+	return
 }
 
 // UpdateHardwareState fetches the latest hardware state of the server
@@ -210,10 +207,10 @@ func (p *demoProvisioner) Provision(getUserData provisioner.UserDataSource) (res
 	return result, nil
 }
 
-// Deprovision prepares the host to be removed from the cluster. It
-// may be called multiple times, and should return true for its dirty
-// flag until the deprovisioning operation is completed.
-func (p *demoProvisioner) Deprovision(deleteIt bool) (result provisioner.Result, err error) {
+// Deprovision removes the host from the image. It may be called
+// multiple times, and should return true for its dirty flag until the
+// deprovisioning operation is completed.
+func (p *demoProvisioner) Deprovision() (result provisioner.Result, err error) {
 
 	hostName := p.host.ObjectMeta.Name
 	switch hostName {
@@ -247,6 +244,14 @@ func (p *demoProvisioner) Deprovision(deleteIt bool) (result provisioner.Result,
 
 	// p.publisher("DeprovisionComplete", "Image deprovisioning completed")
 	// return result, nil
+}
+
+// Delete removes the host from the provisioning system. It may be
+// called multiple times, and should return true for its dirty flag
+// until the deprovisioning operation is completed.
+func (p *demoProvisioner) Delete() (result provisioner.Result, err error) {
+	p.log.Info("deleting host")
+	return result, nil
 }
 
 // PowerOn ensures the server is powered on independently of any image
