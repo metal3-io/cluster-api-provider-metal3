@@ -1051,13 +1051,18 @@ func TestNodeAddresses(t *testing.T) {
 	}
 
 	addr1 := corev1.NodeAddress{
-		Type:    "InternalIP",
+		Type:    corev1.NodeInternalIP,
 		Address: "192.168.1.1",
 	}
 
 	addr2 := corev1.NodeAddress{
-		Type:    "InternalIP",
+		Type:    corev1.NodeInternalIP,
 		Address: "172.0.20.2",
+	}
+
+	addr3 := corev1.NodeAddress{
+		Type:    corev1.NodeHostName,
+		Address: "mygreathost",
 	}
 
 	testCases := []struct {
@@ -1085,6 +1090,28 @@ func TestNodeAddresses(t *testing.T) {
 				},
 			},
 			ExpectedNodeAddresses: []corev1.NodeAddress{addr1, addr2},
+		},
+		{
+			// Hostname is set
+			Host: &bmh.BareMetalHost{
+				Status: bmh.BareMetalHostStatus{
+					HardwareDetails: &bmh.HardwareDetails{
+						Hostname: "mygreathost",
+					},
+				},
+			},
+			ExpectedNodeAddresses: []corev1.NodeAddress{addr3},
+		},
+		{
+			// Empty Hostname
+			Host: &bmh.BareMetalHost{
+				Status: bmh.BareMetalHostStatus{
+					HardwareDetails: &bmh.HardwareDetails{
+						Hostname: "",
+					},
+				},
+			},
+			ExpectedNodeAddresses: []corev1.NodeAddress{},
 		},
 		{
 			// no host at all, so this is a no-op
