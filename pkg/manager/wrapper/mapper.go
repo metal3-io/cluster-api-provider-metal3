@@ -13,7 +13,7 @@ type mapper struct{}
 // BareMetalHost and that BareMetalHost references a Machine.
 func (m *mapper) Map(obj handler.MapObject) []reconcile.Request {
 	if host, ok := obj.Object.(*bmh.BareMetalHost); ok {
-		if host.Spec.ConsumerRef != nil {
+		if host.Spec.ConsumerRef != nil && host.Spec.ConsumerRef.Kind == "Machine" {
 			return []reconcile.Request{
 				reconcile.Request{
 					NamespacedName: types.NamespacedName{

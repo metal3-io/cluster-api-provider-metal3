@@ -326,7 +326,7 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
 			} else {
 				log.Printf("Host '%s' did not match hostSelector for Machine '%s'", host.Name, machine.Name)
 			}
-		} else if host.Spec.ConsumerRef != nil && host.Spec.ConsumerRef.Name == machine.Name && host.Spec.ConsumerRef.Namespace == machine.Namespace {
+		} else if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, machine) {
 			log.Printf("found host %s with existing ConsumerRef", host.Name)
 			return &hosts.Items[i], nil
 		}
@@ -343,6 +343,24 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
 	return chosenHost, nil
 }
 
+// consumerRefMatches returns a boolean based on whether the consumer
+// reference and machine metadata match
+func consumerRefMatches(consumer *corev1.ObjectReference, machine *machinev1.Machine) bool {
+	if consumer.Name != machine.Name {
+		return false
+	}
+	if consumer.Namespace != machine.Namespace {
+		return false
+	}
+	if consumer.Kind != machine.Kind {
+		return false
+	}
+	if consumer.APIVersion != machine.APIVersion {
+		return false
+	}
+	return true
+}
+
 // setHostSpec will ensure the host's Spec is set according to the machine's
 // details. It will then update the host via the kube API. If UserData does not
 // include a Namespace, it will default to the Machine's namespace.
@@ -350,9 +368,10 @@ func (a *Actuator) setHostSpec(ctx context.Context, host *bmh.BareMetalHost, mac
 	config *bmv1alpha1.BareMetalMachineProviderSpec) error {
 
 	host.Spec.ConsumerRef = &corev1.ObjectReference{
-		Kind:      "Machine",
-		Name:      machine.Name,
-		Namespace: machine.Namespace,
+		Kind:       "Machine",
+		Name:       machine.Name,
+		Namespace:  machine.Namespace,
+		APIVersion: machine.APIVersion,
 	}
 
 	host.Spec.Image = &bmh.Image{

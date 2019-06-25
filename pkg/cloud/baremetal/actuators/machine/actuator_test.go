@@ -37,9 +37,10 @@ func TestChooseHost(t *testing.T) {
 		},
 		Spec: bmh.BareMetalHostSpec{
 			ConsumerRef: &corev1.ObjectReference{
-				Name:      "someothermachine",
-				Namespace: "myns",
-				Kind:      "Machine",
+				Name:       "someothermachine",
+				Namespace:  "myns",
+				Kind:       "Machine",
+				APIVersion: "v1alpha1",
 			},
 		},
 	}
@@ -56,9 +57,10 @@ func TestChooseHost(t *testing.T) {
 		},
 		Spec: bmh.BareMetalHostSpec{
 			ConsumerRef: &corev1.ObjectReference{
-				Name:      "machine1",
-				Namespace: "myns",
-				Kind:      "Machine",
+				Name:       "machine1",
+				Namespace:  "myns",
+				Kind:       "Machine",
+				APIVersion: "v1alpha1",
 			},
 		},
 	}
@@ -118,6 +120,10 @@ func TestChooseHost(t *testing.T) {
 					Name:      "machine1",
 					Namespace: "myns",
 				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
+				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
 				},
@@ -132,6 +138,10 @@ func TestChooseHost(t *testing.T) {
 					Name:      "machine1",
 					Namespace: "myns",
 				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
+				},
 			},
 			Hosts:            []runtime.Object{&discoveredHost, &host2, &host1},
 			ExpectedHostName: host2.Name,
@@ -142,6 +152,10 @@ func TestChooseHost(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
 					Namespace: "myns",
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
@@ -158,6 +172,10 @@ func TestChooseHost(t *testing.T) {
 					Name:      "machine2",
 					Namespace: "myns",
 				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
+				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
 				},
@@ -172,6 +190,10 @@ func TestChooseHost(t *testing.T) {
 					Name:      "machine1",
 					Namespace: "myns",
 				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
+				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
 				},
@@ -185,6 +207,10 @@ func TestChooseHost(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
 					Namespace: "myns",
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec2,
@@ -201,6 +227,10 @@ func TestChooseHost(t *testing.T) {
 					Name:      "machine1",
 					Namespace: "myns",
 				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
+				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec3,
 				},
@@ -215,6 +245,10 @@ func TestChooseHost(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
 					Namespace: "myns",
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec4,
@@ -231,6 +265,10 @@ func TestChooseHost(t *testing.T) {
 					Name:      "machine1",
 					Namespace: "myns",
 				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
+				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec4,
 				},
@@ -245,6 +283,10 @@ func TestChooseHost(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
 					Namespace: "myns",
+				},
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: "v1alpha1",
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec5,
@@ -713,9 +755,10 @@ func TestDelete(t *testing.T) {
 				},
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:      "mymachine",
-						Namespace: "myns",
-						Kind:      "Machine",
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: "v1alpha1",
 					},
 				},
 				Status: bmh.BareMetalHostStatus{
@@ -743,9 +786,10 @@ func TestDelete(t *testing.T) {
 				},
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:      "someoneelsesmachine",
-						Namespace: "myns",
-						Kind:      "Machine",
+						Name:       "someoneelsesmachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: "v1alpha1",
 					},
 					Image: &bmh.Image{
 						URL: "someoneelsesimage",
@@ -767,9 +811,10 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			ExpectedConsumerRef: &corev1.ObjectReference{
-				Name:      "someoneelsesmachine",
-				Namespace: "myns",
-				Kind:      "Machine",
+				Name:       "someoneelsesmachine",
+				Namespace:  "myns",
+				Kind:       "Machine",
+				APIVersion: "v1alpha1",
 			},
 		},
 		{

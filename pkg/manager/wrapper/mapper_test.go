@@ -24,8 +24,10 @@ func TestMap(t *testing.T) {
 				},
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:      "someothermachine",
-						Namespace: "myns",
+						Name:       "someothermachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: "v1alpha1",
 					},
 				},
 			},
