@@ -23,7 +23,7 @@ func TestMap(t *testing.T) {
 					Namespace: "myns",
 				},
 				Spec: bmh.BareMetalHostSpec{
-					MachineRef: &corev1.ObjectReference{
+					ConsumerRef: &corev1.ObjectReference{
 						Name:      "someothermachine",
 						Namespace: "myns",
 					},
@@ -52,11 +52,11 @@ func TestMap(t *testing.T) {
 				t.Errorf("Expected 1 request, found %d", len(reqs))
 			}
 			req := reqs[0]
-			if req.NamespacedName.Name != tc.Host.Spec.MachineRef.Name {
-				t.Errorf("Expected name %s, found %s", tc.Host.Spec.MachineRef.Name, req.NamespacedName.Name)
+			if req.NamespacedName.Name != tc.Host.Spec.ConsumerRef.Name {
+				t.Errorf("Expected name %s, found %s", tc.Host.Spec.ConsumerRef.Name, req.NamespacedName.Name)
 			}
-			if req.NamespacedName.Namespace != tc.Host.Spec.MachineRef.Namespace {
-				t.Errorf("Expected namespace %s, found %s", tc.Host.Spec.MachineRef.Namespace, req.NamespacedName.Namespace)
+			if req.NamespacedName.Namespace != tc.Host.Spec.ConsumerRef.Namespace {
+				t.Errorf("Expected namespace %s, found %s", tc.Host.Spec.ConsumerRef.Namespace, req.NamespacedName.Namespace)
 			}
 
 		} else {
