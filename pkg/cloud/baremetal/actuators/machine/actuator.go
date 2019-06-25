@@ -143,14 +143,15 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 	if err != nil {
 		return err
 	}
-	if host != nil && host.Spec.MachineRef != nil {
-		// don't remove the MachineRef if it references some other machine
-		if host.Spec.MachineRef.Name != machine.Name {
+	if host != nil && host.Spec.ConsumerRef != nil {
+		// don't remove the ConsumerRef if it references some other machine
+		if host.Spec.ConsumerRef.Name != machine.Name {
 			log.Printf("host associated with %v, not machine %v.",
-				host.Spec.MachineRef.Name, machine.Name)
+				host.Spec.ConsumerRef.Name, machine.Name)
 			return nil
 		}
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
+			host.Spec.ConsumerRef = nil
 			host.Spec.Image = nil
 			host.Spec.Online = false
 			host.Spec.UserData = nil
@@ -325,8 +326,8 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
 			} else {
 				log.Printf("Host '%s' did not match hostSelector for Machine '%s'", host.Name, machine.Name)
 			}
-		} else if host.Spec.MachineRef != nil && host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
-			log.Printf("found host %s with existing MachineRef", host.Name)
+		} else if host.Spec.ConsumerRef != nil && host.Spec.ConsumerRef.Name == machine.Name && host.Spec.ConsumerRef.Namespace == machine.Namespace {
+			log.Printf("found host %s with existing ConsumerRef", host.Name)
 			return &hosts.Items[i], nil
 		}
 	}
@@ -348,7 +349,8 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
 func (a *Actuator) setHostSpec(ctx context.Context, host *bmh.BareMetalHost, machine *machinev1.Machine,
 	config *bmv1alpha1.BareMetalMachineProviderSpec) error {
 
-	host.Spec.MachineRef = &corev1.ObjectReference{
+	host.Spec.ConsumerRef = &corev1.ObjectReference{
+		Kind:      "Machine",
 		Name:      machine.Name,
 		Namespace: machine.Namespace,
 	}

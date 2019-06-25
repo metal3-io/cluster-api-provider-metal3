@@ -36,7 +36,7 @@ func TestChooseHost(t *testing.T) {
 			Namespace: "myns",
 		},
 		Spec: bmh.BareMetalHostSpec{
-			MachineRef: &corev1.ObjectReference{
+			ConsumerRef: &corev1.ObjectReference{
 				Name:      "someothermachine",
 				Namespace: "myns",
 			},
@@ -54,7 +54,7 @@ func TestChooseHost(t *testing.T) {
 			Namespace: "myns",
 		},
 		Spec: bmh.BareMetalHostSpec{
-			MachineRef: &corev1.ObjectReference{
+			ConsumerRef: &corev1.ObjectReference{
 				Name:      "machine1",
 				Namespace: "myns",
 			},
@@ -110,7 +110,7 @@ func TestChooseHost(t *testing.T) {
 		Config           *bmv1alpha1.BareMetalMachineProviderSpec
 	}{
 		{
-			// should pick host2, which lacks a MachineRef
+			// should pick host2, which lacks a ConsumerRef
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
@@ -124,7 +124,7 @@ func TestChooseHost(t *testing.T) {
 			ExpectedHostName: host2.Name,
 		},
 		{
-			// should ignore discoveredHost and pick host2, which lacks a MachineRef
+			// should ignore discoveredHost and pick host2, which lacks a ConsumerRef
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
@@ -135,7 +135,7 @@ func TestChooseHost(t *testing.T) {
 			ExpectedHostName: host2.Name,
 		},
 		{
-			// should pick host3, which already has a matching MachineRef
+			// should pick host3, which already has a matching ConsumerRef
 			Machine: machinev1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "machine1",
@@ -346,15 +346,15 @@ func TestSetHostSpec(t *testing.T) {
 		}
 
 		// validate the result
-		if savedHost.Spec.MachineRef == nil {
-			t.Errorf("MachineRef not set")
+		if savedHost.Spec.ConsumerRef == nil {
+			t.Errorf("ConsumerRef not set")
 			return
 		}
-		if savedHost.Spec.MachineRef.Name != machine.Name {
-			t.Errorf("found machine ref %v", savedHost.Spec.MachineRef)
+		if savedHost.Spec.ConsumerRef.Name != machine.Name {
+			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
 		}
-		if savedHost.Spec.MachineRef.Namespace != machine.Namespace {
-			t.Errorf("found machine ref %v", savedHost.Spec.MachineRef)
+		if savedHost.Spec.ConsumerRef.Namespace != machine.Namespace {
+			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
 		}
 		if savedHost.Spec.Online != true {
 			t.Errorf("host not set to Online")
@@ -623,10 +623,10 @@ func TestDelete(t *testing.T) {
 	bmoapis.AddToScheme(scheme)
 
 	testCases := []struct {
-		Host               *bmh.BareMetalHost
-		Machine            machinev1.Machine
-		ExpectedMachineRef *corev1.ObjectReference
-		ExpectedResult     error
+		Host                *bmh.BareMetalHost
+		Machine             machinev1.Machine
+		ExpectedConsumerRef *corev1.ObjectReference
+		ExpectedResult      error
 	}{
 		{
 			// deprovisioning required
@@ -659,7 +659,7 @@ func TestDelete(t *testing.T) {
 					},
 				},
 			},
-			ExpectedMachineRef: &corev1.ObjectReference{
+			ExpectedConsumerRef: &corev1.ObjectReference{
 				Name:      "mymachine",
 				Namespace: "myns",
 			},
@@ -693,7 +693,7 @@ func TestDelete(t *testing.T) {
 					},
 				},
 			},
-			ExpectedMachineRef: &corev1.ObjectReference{
+			ExpectedConsumerRef: &corev1.ObjectReference{
 				Name:      "mymachine",
 				Namespace: "myns",
 			},
@@ -707,7 +707,7 @@ func TestDelete(t *testing.T) {
 					Namespace: "myns",
 				},
 				Spec: bmh.BareMetalHostSpec{
-					MachineRef: &corev1.ObjectReference{
+					ConsumerRef: &corev1.ObjectReference{
 						Name:      "mymachine",
 						Namespace: "myns",
 					},
@@ -736,7 +736,7 @@ func TestDelete(t *testing.T) {
 					Namespace: "myns",
 				},
 				Spec: bmh.BareMetalHostSpec{
-					MachineRef: &corev1.ObjectReference{
+					ConsumerRef: &corev1.ObjectReference{
 						Name:      "someoneelsesmachine",
 						Namespace: "myns",
 					},
@@ -759,7 +759,7 @@ func TestDelete(t *testing.T) {
 					},
 				},
 			},
-			ExpectedMachineRef: &corev1.ObjectReference{
+			ExpectedConsumerRef: &corev1.ObjectReference{
 				Name:      "someoneelsesmachine",
 				Namespace: "myns",
 			},
@@ -833,14 +833,14 @@ func TestDelete(t *testing.T) {
 			c.Get(context.TODO(), key, &host)
 			name := ""
 			expectedName := ""
-			if host.Spec.MachineRef != nil {
-				name = host.Spec.MachineRef.Name
+			if host.Spec.ConsumerRef != nil {
+				name = host.Spec.ConsumerRef.Name
 			}
-			if tc.ExpectedMachineRef != nil {
-				expectedName = tc.ExpectedMachineRef.Name
+			if tc.ExpectedConsumerRef != nil {
+				expectedName = tc.ExpectedConsumerRef.Name
 			}
 			if name != expectedName {
-				t.Errorf("expected MachineRef %v, found %v", tc.ExpectedMachineRef, host.Spec.MachineRef)
+				t.Errorf("expected ConsumerRef %v, found %v", tc.ExpectedConsumerRef, host.Spec.ConsumerRef)
 			}
 		}
 	}
