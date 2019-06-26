@@ -6,6 +6,7 @@ import (
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
@@ -27,7 +28,7 @@ func TestMap(t *testing.T) {
 						Name:       "someothermachine",
 						Namespace:  "myns",
 						Kind:       "Machine",
-						APIVersion: "v1alpha1",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
 					},
 				},
 			},
