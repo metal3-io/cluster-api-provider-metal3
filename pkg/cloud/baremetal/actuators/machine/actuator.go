@@ -145,7 +145,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 	}
 	if host != nil && host.Spec.ConsumerRef != nil {
 		// don't remove the ConsumerRef if it references some other machine
-		if host.Spec.ConsumerRef.Name != machine.Name {
+		if !consumerRefMatches(host.Spec.ConsumerRef, machine) {
 			log.Printf("host associated with %v, not machine %v.",
 				host.Spec.ConsumerRef.Name, machine.Name)
 			return nil
