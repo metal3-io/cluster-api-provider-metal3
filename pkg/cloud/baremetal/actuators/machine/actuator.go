@@ -151,7 +151,6 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 			return nil
 		}
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
-			host.Spec.ConsumerRef = nil
 			host.Spec.Image = nil
 			host.Spec.Online = false
 			host.Spec.UserData = nil
@@ -167,7 +166,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
 			bmh.StateReady, bmh.StateValidationError:
-			host.Spec.MachineRef = nil
+			host.Spec.ConsumerRef = nil
 			err = a.client.Update(ctx, host)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
