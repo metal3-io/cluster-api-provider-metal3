@@ -670,22 +670,25 @@ func TestDelete(t *testing.T) {
 	bmoapis.AddToScheme(scheme)
 
 	testCases := []struct {
+		CaseName            string
 		Host                *bmh.BareMetalHost
 		Machine             machinev1.Machine
 		ExpectedConsumerRef *corev1.ObjectReference
 		ExpectedResult      error
 	}{
 		{
-			// deprovisioning required
+			CaseName: "deprovisioning required",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
 					Namespace: "myns",
 				},
 				Spec: bmh.BareMetalHostSpec{
-					MachineRef: &corev1.ObjectReference{
-						Name:      "mymachine",
-						Namespace: "myns",
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
 					},
 					Image: &bmh.Image{
 						URL: "myimage",
@@ -698,6 +701,10 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mymachine",
 					Namespace: "myns",
@@ -707,22 +714,26 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			ExpectedConsumerRef: &corev1.ObjectReference{
-				Name:      "mymachine",
-				Namespace: "myns",
+				Name:       "mymachine",
+				Namespace:  "myns",
+				Kind:       "Machine",
+				APIVersion: machinev1.SchemeGroupVersion.String(),
 			},
 			ExpectedResult: &clustererror.RequeueAfterError{},
 		},
 		{
-			// deprovisioning in progress
+			CaseName: "deprovisioning in progress",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
 					Namespace: "myns",
 				},
 				Spec: bmh.BareMetalHostSpec{
-					MachineRef: &corev1.ObjectReference{
-						Name:      "mymachine",
-						Namespace: "myns",
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
 					},
 				},
 				Status: bmh.BareMetalHostStatus{
@@ -732,6 +743,10 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mymachine",
 					Namespace: "myns",
@@ -741,13 +756,15 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			ExpectedConsumerRef: &corev1.ObjectReference{
-				Name:      "mymachine",
-				Namespace: "myns",
+				Name:       "mymachine",
+				Namespace:  "myns",
+				Kind:       "Machine",
+				APIVersion: machinev1.SchemeGroupVersion.String(),
 			},
 			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
 		},
 		{
-			// machine ref should be removed
+			CaseName: "machine ref should be removed",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -768,6 +785,10 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mymachine",
 					Namespace: "myns",
@@ -778,7 +799,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			// machine ref does not match, so it should not be removed
+			CaseName: "machine ref does not match, so it should not be removed",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -802,6 +823,10 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mymachine",
 					Namespace: "myns",
@@ -818,7 +843,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			// no machine ref, so this is a no-op
+			CaseName: "no machine ref, so this is a no-op",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -826,6 +851,10 @@ func TestDelete(t *testing.T) {
 				},
 			},
 			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mymachine",
 					Namespace: "myns",
@@ -836,9 +865,13 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			// no host at all, so this is a no-op
-			Host: nil,
+			CaseName: "no host at all, so this is a no-op",
+			Host:     nil,
 			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "mymachine",
 					Namespace: "myns",
@@ -875,7 +908,8 @@ func TestDelete(t *testing.T) {
 			}
 		}
 		if !expectedResult {
-			t.Errorf("unexpected error \"%v\" (expected \"%v\")", err, tc.ExpectedResult)
+			t.Errorf("%s: unexpected error \"%v\" (expected \"%v\")",
+				tc.CaseName, err, tc.ExpectedResult)
 		}
 		if tc.Host != nil {
 			key := client.ObjectKey{
@@ -893,7 +927,8 @@ func TestDelete(t *testing.T) {
 				expectedName = tc.ExpectedConsumerRef.Name
 			}
 			if name != expectedName {
-				t.Errorf("expected ConsumerRef %v, found %v", tc.ExpectedConsumerRef, host.Spec.ConsumerRef)
+				t.Errorf("%s: expected ConsumerRef %v, found %v",
+					tc.CaseName, tc.ExpectedConsumerRef, host.Spec.ConsumerRef)
 			}
 		}
 	}
