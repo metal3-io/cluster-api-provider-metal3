@@ -3,6 +3,7 @@ package machine
 import (
 	"context"
 	"testing"
+	"time"
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterapis "sigs.k8s.io/cluster-api/pkg/apis"
 	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
+	clustererror "sigs.k8s.io/cluster-api/pkg/controller/error"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
@@ -624,7 +626,79 @@ func TestDelete(t *testing.T) {
 		Host               *bmh.BareMetalHost
 		Machine            machinev1.Machine
 		ExpectedMachineRef *corev1.ObjectReference
+		ExpectedResult     error
 	}{
+		{
+			// deprovisioning required
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					MachineRef: &corev1.ObjectReference{
+						Name:      "mymachine",
+						Namespace: "myns",
+					},
+					Image: &bmh.Image{
+						URL: "myimage",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateProvisioned,
+					},
+				},
+			},
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			ExpectedMachineRef: &corev1.ObjectReference{
+				Name:      "mymachine",
+				Namespace: "myns",
+			},
+			ExpectedResult: &clustererror.RequeueAfterError{},
+		},
+		{
+			// deprovisioning in progress
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					MachineRef: &corev1.ObjectReference{
+						Name:      "mymachine",
+						Namespace: "myns",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateDeprovisioning,
+					},
+				},
+			},
+			Machine: machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			ExpectedMachineRef: &corev1.ObjectReference{
+				Name:      "mymachine",
+				Namespace: "myns",
+			},
+			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
+		},
 		{
 			// machine ref should be removed
 			Host: &bmh.BareMetalHost{
@@ -636,6 +710,11 @@ func TestDelete(t *testing.T) {
 					MachineRef: &corev1.ObjectReference{
 						Name:      "mymachine",
 						Namespace: "myns",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateReady,
 					},
 				},
 			},
@@ -660,6 +739,14 @@ func TestDelete(t *testing.T) {
 					MachineRef: &corev1.ObjectReference{
 						Name:      "someoneelsesmachine",
 						Namespace: "myns",
+					},
+					Image: &bmh.Image{
+						URL: "someoneelsesimage",
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateProvisioned,
 					},
 				},
 			},
@@ -723,8 +810,19 @@ func TestDelete(t *testing.T) {
 		}
 
 		err = actuator.Delete(context.TODO(), nil, &tc.Machine)
-		if err != nil {
-			t.Errorf("unexpected error %v", err)
+
+		var expectedResult bool
+		switch e := tc.ExpectedResult.(type) {
+		case nil:
+			expectedResult = (err == nil)
+		case *clustererror.RequeueAfterError:
+			var perr *clustererror.RequeueAfterError
+			if perr, expectedResult = err.(*clustererror.RequeueAfterError); expectedResult {
+				expectedResult = (*e == *perr)
+			}
+		}
+		if !expectedResult {
+			t.Errorf("unexpected error \"%v\" (expected \"%v\")", err, tc.ExpectedResult)
 		}
 		if tc.Host != nil {
 			key := client.ObjectKey{
