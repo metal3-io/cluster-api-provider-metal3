@@ -40,7 +40,7 @@ func TestChooseHost(t *testing.T) {
 				Name:       "someothermachine",
 				Namespace:  "myns",
 				Kind:       "Machine",
-				APIVersion: "v1alpha1",
+				APIVersion: machinev1.SchemeGroupVersion.String(),
 			},
 		},
 	}
@@ -60,7 +60,7 @@ func TestChooseHost(t *testing.T) {
 				Name:       "machine1",
 				Namespace:  "myns",
 				Kind:       "Machine",
-				APIVersion: "v1alpha1",
+				APIVersion: machinev1.SchemeGroupVersion.String(),
 			},
 		},
 	}
@@ -122,7 +122,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
@@ -140,7 +140,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 			},
 			Hosts:            []runtime.Object{&discoveredHost, &host2, &host1},
@@ -155,7 +155,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
@@ -174,7 +174,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
@@ -192,7 +192,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec,
@@ -210,7 +210,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec2,
@@ -229,7 +229,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec3,
@@ -248,7 +248,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec4,
@@ -267,7 +267,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec4,
@@ -286,7 +286,7 @@ func TestChooseHost(t *testing.T) {
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Machine",
-					APIVersion: "v1alpha1",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
 				},
 				Spec: machinev1.MachineSpec{
 					ProviderSpec: providerSpec5,
@@ -758,7 +758,7 @@ func TestDelete(t *testing.T) {
 						Name:       "mymachine",
 						Namespace:  "myns",
 						Kind:       "Machine",
-						APIVersion: "v1alpha1",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
 					},
 				},
 				Status: bmh.BareMetalHostStatus{
@@ -789,7 +789,7 @@ func TestDelete(t *testing.T) {
 						Name:       "someoneelsesmachine",
 						Namespace:  "myns",
 						Kind:       "Machine",
-						APIVersion: "v1alpha1",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
 					},
 					Image: &bmh.Image{
 						URL: "someoneelsesimage",
@@ -814,7 +814,7 @@ func TestDelete(t *testing.T) {
 				Name:       "someoneelsesmachine",
 				Namespace:  "myns",
 				Kind:       "Machine",
-				APIVersion: "v1alpha1",
+				APIVersion: machinev1.SchemeGroupVersion.String(),
 			},
 		},
 		{
