@@ -1,60 +1,20 @@
 package main
 
 import (
-	"encoding/base64"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
-	"text/template"
+
+	"github.com/metal3-io/baremetal-operator/cmd/make-bm-worker/templates"
 )
-
-var templateBody = `---
-apiVersion: v1
-kind: Secret
-metadata:
-  name: {{ .Name }}-bmc-secret
-type: Opaque
-data:
-  username: {{ .EncodedUsername }}
-  password: {{ .EncodedPassword }}
-
----
-apiVersion: metal3.io/v1alpha1
-kind: BareMetalHost
-metadata:
-  name: {{ .Name }}
-spec:
-  online: true
-  bmc:
-    address: {{ .BMCAddress }}
-    credentialsName: {{ .Name }}-bmc-secret
-{{- if .WithMachine }}
-  machineRef:
-    name: {{ .Machine }}
-    namespace: {{ .MachineNamespace }}
-{{- end }}
-`
-
-// TemplateArgs holds the arguments to pass to the template.
-type TemplateArgs struct {
-	Name             string
-	BMCAddress       string
-	EncodedUsername  string
-	EncodedPassword  string
-	WithMachine      bool
-	Machine          string
-	MachineNamespace string
-}
-
-func encodeToSecret(input string) string {
-	return base64.StdEncoding.EncodeToString([]byte(input))
-}
 
 func main() {
 	var username = flag.String("user", "", "username for BMC")
 	var password = flag.String("password", "", "password for BMC")
 	var bmcAddress = flag.String("address", "", "address URL for BMC")
+	var hardwareProfile = flag.String("hardwareprofile", "", "hardwareProfile to be used")
+	var macAddress = flag.String("boot-mac", "", "boot-mac for bootMACAddress")
 	var verbose = flag.Bool("v", false, "turn on verbose output")
 	var machine = flag.String(
 		"machine", "", "specify name of a related, existing, machine to link")
@@ -81,24 +41,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	args := TemplateArgs{
+	template := templates.Template{
 		Name:             strings.Replace(hostName, "_", "-", -1),
 		BMCAddress:       *bmcAddress,
-		EncodedUsername:  encodeToSecret(*username),
-		EncodedPassword:  encodeToSecret(*password),
+		Username:         *username,
+		Password:         *password,
+		HardwareProfile:  *hardwareProfile,
+		BootMacAddress:    *macAddress,
 		Machine:          strings.TrimSpace(*machine),
 		MachineNamespace: strings.TrimSpace(*machineNamespace),
 	}
-	if args.Machine != "" {
-		args.WithMachine = true
-	}
 	if *verbose {
-		fmt.Fprintf(os.Stderr, "%v", args)
+		fmt.Fprintf(os.Stderr, "%v", template)
 	}
 
-	t := template.Must(template.New("yaml_out").Parse(templateBody))
-	err := t.Execute(os.Stdout, args)
+	result, err := template.Render()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR: %s\n", err)
+		os.Exit(1)
+	} else {
+		fmt.Fprintf(os.Stdout, result)
 	}
 }
+

@@ -13,6 +13,8 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/baremetal/noauth"
 	"github.com/gophercloud/gophercloud/openstack/baremetal/v1/nodes"
 	"github.com/gophercloud/gophercloud/openstack/baremetal/v1/ports"
+	noauthintrospection "github.com/gophercloud/gophercloud/openstack/baremetalintrospection/noauth"
+	"github.com/gophercloud/gophercloud/openstack/baremetalintrospection/v1/introspection"
 
 	nodeutils "github.com/gophercloud/utils/openstack/baremetal/v1/nodes"
 
@@ -31,9 +33,11 @@ var log = logf.Log.WithName("baremetalhost_ironic")
 var deprovisionRequeueDelay = time.Second * 10
 var provisionRequeueDelay = time.Second * 10
 var powerRequeueDelay = time.Second * 10
+var introspectionRequeueDelay = time.Second * 15
 var deployKernelURL string
 var deployRamdiskURL string
 var ironicEndpoint string
+var inspectorEndpoint string
 
 const (
 	// See nodes.Node.PowerState for details
@@ -60,6 +64,11 @@ func init() {
 		fmt.Fprintf(os.Stderr, "Cannot start: No IRONIC_ENDPOINT variable set\n")
 		os.Exit(1)
 	}
+	inspectorEndpoint = os.Getenv("IRONIC_INSPECTOR_ENDPOINT")
+	if inspectorEndpoint == "" {
+		fmt.Fprintf(os.Stderr, "Cannot start: No IRONIC_INSPECTOR_ENDPOINT variable set")
+		os.Exit(1)
+	}
 }
 
 // Provisioner implements the provisioning.Provisioner interface
@@ -75,6 +84,8 @@ type ironicProvisioner struct {
 	bmcCreds bmc.Credentials
 	// a client for talking to ironic
 	client *gophercloud.ServiceClient
+	// a client for talking to ironic-inspector
+	inspector *gophercloud.ServiceClient
 	// a logger configured for this host
 	log logr.Logger
 	// an event publisher for recording significant events
@@ -86,6 +97,7 @@ type ironicProvisioner struct {
 func newProvisioner(host *metal3v1alpha1.BareMetalHost, bmcCreds bmc.Credentials, publisher provisioner.EventPublisher) (*ironicProvisioner, error) {
 	log.Info("ironic settings",
 		"endpoint", ironicEndpoint,
+		"inspectorEndpoint", inspectorEndpoint,
 		"deployKernelURL", deployKernelURL,
 		"deployRamdiskURL", deployRamdiskURL,
 	)
@@ -99,6 +111,13 @@ func newProvisioner(host *metal3v1alpha1.BareMetalHost, bmcCreds bmc.Credentials
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to parse BMC address information")
 	}
+	inspector, err := noauthintrospection.NewBareMetalIntrospectionNoAuth(
+		noauthintrospection.EndpointOpts{
+			IronicInspectorEndpoint: inspectorEndpoint,
+		})
+	if err != nil {
+		return nil, err
+	}
 	// Ensure we have a microversion high enough to get the features
 	// we need.
 	client.Microversion = "1.50"
@@ -108,6 +127,7 @@ func newProvisioner(host *metal3v1alpha1.BareMetalHost, bmcCreds bmc.Credentials
 		bmcAccess: bmcAccess,
 		bmcCreds:  bmcCreds,
 		client:    client,
+		inspector: inspector,
 		log:       log.WithValues("host", host.Name),
 		publisher: publisher,
 	}
@@ -286,11 +306,11 @@ func (p *ironicProvisioner) ValidateManagementAccess() (result provisioner.Resul
 	}
 
 	// Ensure the node is marked manageable.
-	switch ironicNode.ProvisionState {
+	switch nodes.ProvisionState(ironicNode.ProvisionState) {
 
 	// NOTE(dhellmann): gophercloud bug? The Enroll value is the only
 	// one not a string.
-	case string(nodes.Enroll):
+	case nodes.Enroll:
 		return p.changeNodeProvisionState(
 			ironicNode,
 			nodes.ProvisionStateOpts{Target: nodes.TargetManage},
@@ -347,74 +367,129 @@ func (p *ironicProvisioner) changeNodeProvisionState(ironicNode *nodes.Node, opt
 	return result, nil
 }
 
+func getNICDetails(ifdata []introspection.InterfaceType) []metal3v1alpha1.NIC {
+	nics := make([]metal3v1alpha1.NIC, len(ifdata))
+	for i, intf := range ifdata {
+		nics[i] = metal3v1alpha1.NIC{
+			Name: intf.Name,
+			Model: strings.TrimLeft(fmt.Sprintf("%s %s",
+				intf.Vendor, intf.Product), " "),
+			MAC:       intf.MACAddress,
+			Network:   "Pod Networking", // TODO(zaneb)
+			IP:        intf.IPV4Address,
+			SpeedGbps: 0, // TODO(zaneb)
+		}
+	}
+	return nics
+}
+
+func getStorageDetails(diskdata []introspection.RootDiskType) []metal3v1alpha1.Storage {
+	storage := make([]metal3v1alpha1.Storage, len(diskdata))
+	for i, disk := range diskdata {
+		storage[i] = metal3v1alpha1.Storage{
+			Name:               disk.Name,
+			Type:               map[bool]string{true: "HDD", false: "SSD"}[disk.Rotational],
+			SizeGiB:            metal3v1alpha1.GiB(disk.Size / (1024 * 1024 * 1024)),
+			Vendor:             disk.Vendor,
+			Model:              disk.Model,
+			SerialNumber:       disk.Serial,
+			WWN:                disk.Wwn,
+			WWNVendorExtension: disk.WwnVendorExtension,
+			WWNWithExtension:   disk.WwnWithExtension,
+			HCTL:               disk.Hctl,
+		}
+	}
+	return storage
+}
+
+func getSystemVendorDetails(vendor introspection.SystemVendorType) metal3v1alpha1.HardwareSystemVendor {
+	return metal3v1alpha1.HardwareSystemVendor{
+		Manufacturer: vendor.Manufacturer,
+		ProductName:  vendor.ProductName,
+		SerialNumber: vendor.SerialNumber,
+	}
+}
+
+func getCPUDetails(cpudata *introspection.CPUType) metal3v1alpha1.CPU {
+	var freq float64
+	fmt.Sscanf(cpudata.Frequency, "%f", &freq)
+	cpu := metal3v1alpha1.CPU{
+		Type:     cpudata.Architecture,
+		Model:    cpudata.ModelName,
+		SpeedGHz: metal3v1alpha1.GHz(freq / 1000.0),
+		Count:    cpudata.Count,
+	}
+	return cpu
+}
+
+func getHardwareDetails(data *introspection.Data) *metal3v1alpha1.HardwareDetails {
+	details := new(metal3v1alpha1.HardwareDetails)
+	details.SystemVendor = getSystemVendorDetails(data.Inventory.SystemVendor)
+	details.RAMGiB = metal3v1alpha1.GiB(data.MemoryMB / 1024)
+	details.NIC = getNICDetails(data.Inventory.Interfaces)
+	details.Storage = getStorageDetails(data.Inventory.Disks)
+	details.CPU = getCPUDetails(&data.Inventory.CPU)
+	details.Hostname = data.Inventory.Hostname
+	return details
+}
+
 // InspectHardware updates the HardwareDetails field of the host with
 // details of devices discovered on the hardware. It may be called
 // multiple times, and should return true for its dirty flag until the
 // inspection is completed.
-func (p *ironicProvisioner) InspectHardware() (result provisioner.Result, err error) {
+func (p *ironicProvisioner) InspectHardware() (result provisioner.Result, details *metal3v1alpha1.HardwareDetails, err error) {
 	p.log.Info("inspecting hardware", "status", p.host.OperationalStatus())
 
 	ironicNode, err := p.findExistingHost()
 	if err != nil {
-		return result, errors.Wrap(err, "failed to find existing host")
+		err = errors.Wrap(err, "failed to find existing host")
+		return
 	}
 	if ironicNode == nil {
-		return result, fmt.Errorf("no ironic node for host")
+		return result, nil, fmt.Errorf("no ironic node for host")
 	}
 
-	// The inspection is ongoing. We'll need to check the ironic
-	// status for the server here until it is ready for us to get the
-	// inspection details. Simulate that for now by creating the
-	// hardware details struct as part of a second pass.
-	if p.host.Status.HardwareDetails == nil {
-		p.log.Info("continuing inspection by setting details")
-		p.host.Status.HardwareDetails =
-			&metal3v1alpha1.HardwareDetails{
-				RAMGiB: 128,
-				NIC: []metal3v1alpha1.NIC{
-					metal3v1alpha1.NIC{
-						Name:      "nic-1",
-						Model:     "virt-io",
-						Network:   "Pod Networking",
-						MAC:       "some:mac:address",
-						IP:        "192.168.100.1",
-						SpeedGbps: 1,
-					},
-					metal3v1alpha1.NIC{
-						Name:      "nic-2",
-						Model:     "e1000",
-						Network:   "Pod Networking",
-						MAC:       "some:other:mac:address",
-						IP:        "192.168.100.2",
-						SpeedGbps: 1,
-					},
-				},
-				Storage: []metal3v1alpha1.Storage{
-					metal3v1alpha1.Storage{
-						Name:    "disk-1 (boot)",
-						Type:    "SSD",
-						SizeGiB: 1024 * 93,
-						Model:   "Dell CFJ61",
-					},
-					metal3v1alpha1.Storage{
-						Name:    "disk-2",
-						Type:    "SSD",
-						SizeGiB: 1024 * 93,
-						Model:   "Dell CFJ61",
-					},
-				},
-				CPUs: []metal3v1alpha1.CPU{
-					metal3v1alpha1.CPU{
-						Type:     "x86",
-						SpeedGHz: 3,
-					},
-				},
+	status, err := introspection.GetIntrospectionStatus(p.inspector, ironicNode.UUID).Extract()
+	if err != nil {
+		if _, isNotFound := err.(gophercloud.ErrDefault404); isNotFound {
+			p.log.Info("starting new hardware inspection")
+			result, err = p.changeNodeProvisionState(
+				ironicNode,
+				nodes.ProvisionStateOpts{Target: nodes.TargetInspect},
+			)
+			if err == nil {
+				p.publisher("InspectionStarted", "Hardware inspection started")
 			}
-		p.publisher("InspectionComplete", "Hardware inspection completed")
-		result.Dirty = true
+			return
+		}
+		err = errors.Wrap(err, "failed to extract hardware inspection status")
+		return
+	}
+	if !status.Finished {
+		p.log.Info("inspection in progress", "started_at", status.StartedAt)
+		result.Dirty = true // make sure we check back
+		result.RequeueAfter = introspectionRequeueDelay
+		return
+	}
+	if status.Error != "" {
+		p.log.Info("inspection failed", "error", status.Error)
+		result.ErrorMessage = status.Error
+		return
 	}
 
-	return result, nil
+	// Introspection is ongoing
+	p.log.Info("getting hardware details from inspection")
+	introData := introspection.GetIntrospectionData(p.inspector, ironicNode.UUID)
+	data, err := introData.Extract()
+	if err != nil {
+		err = errors.Wrap(err, "failed to retrieve hardware introspection data")
+		return
+	}
+	p.log.Info("received introspection data", "data", introData.Body)
+
+	details = getHardwareDetails(data)
+	p.publisher("InspectionComplete", "Hardware inspection completed")
+	return
 }
 
 // UpdateHardwareState fetches the latest hardware state of the server
@@ -685,7 +760,7 @@ func (p *ironicProvisioner) startProvisioning(ironicNode *nodes.Node, checksum s
 		fmt.Sprintf("Image provisioning started for %s", p.host.Spec.Image.URL))
 
 	var opts nodes.ProvisionStateOpts
-	if ironicNode.ProvisionState == nodes.DeployFail {
+	if nodes.ProvisionState(ironicNode.ProvisionState) == nodes.DeployFail {
 		opts = nodes.ProvisionStateOpts{Target: nodes.TargetActive}
 	} else {
 		opts = nodes.ProvisionStateOpts{Target: nodes.TargetProvide}
@@ -730,7 +805,7 @@ func (p *ironicProvisioner) Provision(getUserData provisioner.UserDataSource) (r
 
 	// Ironic has the settings it needs, see if it finds any issues
 	// with them.
-	switch ironicNode.ProvisionState {
+	switch nodes.ProvisionState(ironicNode.ProvisionState) {
 
 	case nodes.DeployFail:
 		// Since we were here ironic has recorded an error for this host,
@@ -775,6 +850,10 @@ func (p *ironicProvisioner) Provision(getUserData provisioner.UserDataSource) (r
 		if userData != "" {
 			configDrive := nodeutils.ConfigDrive{
 				UserData: nodeutils.UserDataString(userData),
+				// cloud-init requires that meta_data.json exists and
+				// that the "uuid" field is present to process
+				// any of the config drive contents.
+				MetaData: map[string]interface{}{"uuid": p.host.Status.Provisioning.ID},
 			}
 			configDriveData, err = configDrive.ToConfigDrive()
 			if err != nil {
@@ -810,10 +889,33 @@ func (p *ironicProvisioner) Provision(getUserData provisioner.UserDataSource) (r
 	}
 }
 
-// Deprovision prepares the host to be removed from the cluster. It
-// may be called multiple times, and should return true for its dirty
-// flag until the deprovisioning operation is completed.
-func (p *ironicProvisioner) Deprovision(deleteIt bool) (result provisioner.Result, err error) {
+func (p *ironicProvisioner) setMaintenanceFlag(ironicNode *nodes.Node, value bool) (result provisioner.Result, err error) {
+	_, err = nodes.Update(
+		p.client,
+		ironicNode.UUID,
+		nodes.UpdateOpts{
+			nodes.UpdateOperation{
+				Op:    nodes.ReplaceOp,
+				Path:  "/maintenance",
+				Value: value,
+			},
+		},
+	).Extract()
+	switch err.(type) {
+	case nil:
+	case gophercloud.ErrDefault409:
+		p.log.Info("could not set host maintenance flag, busy")
+	default:
+		return result, errors.Wrap(err, "failed to set host maintenance flag")
+	}
+	result.Dirty = true
+	return result, nil
+}
+
+// Deprovision removes the host from the image. It may be called
+// multiple times, and should return true for its dirty flag until the
+// deprovisioning operation is completed.
+func (p *ironicProvisioner) Deprovision() (result provisioner.Result, err error) {
 	p.log.Info("deprovisioning")
 
 	ironicNode, err := p.findExistingHost()
@@ -833,31 +935,12 @@ func (p *ironicProvisioner) Deprovision(deleteIt bool) (result provisioner.Resul
 		"deploy step", ironicNode.DeployStep,
 	)
 
-	switch ironicNode.ProvisionState {
+	switch nodes.ProvisionState(ironicNode.ProvisionState) {
 
-	case nodes.Error:
+	case nodes.Error, nodes.CleanFail:
 		if !ironicNode.Maintenance {
 			p.log.Info("setting host maintenance flag to force image delete")
-			_, err = nodes.Update(
-				p.client,
-				ironicNode.UUID,
-				nodes.UpdateOpts{
-					nodes.UpdateOperation{
-						Op:    nodes.ReplaceOp,
-						Path:  "/maintenance",
-						Value: true,
-					},
-				},
-			).Extract()
-			switch err.(type) {
-			case nil:
-			case gophercloud.ErrDefault409:
-				p.log.Info("could not set host maintenance flag, busy")
-			default:
-				return result, errors.Wrap(err, "failed to set host maintenance flag")
-			}
-			result.Dirty = true
-			return result, nil
+			return p.setMaintenanceFlag(ironicNode, true)
 		}
 		// Once it's in maintenance, we can start the delete process.
 		return p.changeNodeProvisionState(
@@ -867,6 +950,26 @@ func (p *ironicProvisioner) Deprovision(deleteIt bool) (result provisioner.Resul
 
 	case nodes.Available:
 		// Move back to manageable
+		return p.changeNodeProvisionState(
+			ironicNode,
+			nodes.ProvisionStateOpts{Target: nodes.TargetManage},
+		)
+
+	case nodes.Inspecting:
+		p.log.Info("waiting for inspection to complete")
+		result.Dirty = true
+		result.RequeueAfter = introspectionRequeueDelay
+		return result, nil
+
+	case nodes.InspectWait:
+		p.log.Info("cancelling inspection")
+		return p.changeNodeProvisionState(
+			ironicNode,
+			nodes.ProvisionStateOpts{Target: nodes.TargetAbort},
+		)
+
+	case nodes.InspectFail:
+		p.log.Info("inspection failed or cancelled")
 		return p.changeNodeProvisionState(
 			ironicNode,
 			nodes.ProvisionStateOpts{Target: nodes.TargetManage},
@@ -890,35 +993,81 @@ func (p *ironicProvisioner) Deprovision(deleteIt bool) (result provisioner.Resul
 		result.RequeueAfter = deprovisionRequeueDelay
 		return result, nil
 
-	// FIXME(dhellmann): handle CleanFailed?
-
-	case nodes.Manageable:
+	case nodes.Manageable, nodes.Enroll, nodes.Verifying:
 		p.publisher("DeprovisioningComplete", "Image deprovisioning completed")
-		if deleteIt {
-			p.log.Info("host ready to be removed")
-			err = nodes.Delete(p.client, p.status.ID).ExtractErr()
-			switch err.(type) {
-			case nil:
-				p.log.Info("removed")
-			case gophercloud.ErrDefault409:
-				p.log.Info("could not remove host, busy")
-			case gophercloud.ErrDefault404:
-				p.log.Info("did not find host to delete, OK")
-			default:
-				return result, errors.Wrap(err, "failed to remove host")
-			}
-			result.Dirty = true
-		}
 		return result, nil
 
 	default:
-		p.log.Info("starting delete")
+		p.log.Info("starting deprovisioning")
 		p.publisher("DeprovisioningStarted", "Image deprovisioning started")
 		return p.changeNodeProvisionState(
 			ironicNode,
 			nodes.ProvisionStateOpts{Target: nodes.TargetDeleted},
 		)
 	}
+}
+
+// Delete removes the host from the provisioning system. It may be
+// called multiple times, and should return true for its dirty flag
+// until the deprovisioning operation is completed.
+func (p *ironicProvisioner) Delete() (result provisioner.Result, err error) {
+
+	ironicNode, err := p.findExistingHost()
+	if err != nil {
+		return result, errors.Wrap(err, "failed to find existing host")
+	}
+	if ironicNode == nil {
+		p.log.Info("no node found, already deleted")
+		return result, nil
+	}
+
+	p.log.Info("deleting host",
+		"ID", ironicNode.UUID,
+		"lastError", ironicNode.LastError,
+		"current", ironicNode.ProvisionState,
+		"target", ironicNode.TargetProvisionState,
+		"deploy step", ironicNode.DeployStep,
+	)
+
+	if nodes.ProvisionState(ironicNode.ProvisionState) == nodes.Available {
+		// Move back to manageable so we can delete it cleanly.
+		return p.changeNodeProvisionState(
+			ironicNode,
+			nodes.ProvisionStateOpts{Target: nodes.TargetManage},
+		)
+	}
+
+	if !ironicNode.Maintenance {
+		// If we see an active node and the controller doesn't think
+		// we need to deprovision it, that means the node was
+		// ExternallyProvisioned and we should remove it from Ironic
+		// without deprovisioning it.
+		//
+		// If we see a node with an error, we will have to set the
+		// maintenance flag before deleting it.
+		//
+		// Any other state requires us to use maintenance mode to
+		// delete while bypassing Ironic's internal checks related to
+		// Nova.
+		p.log.Info("setting host maintenance flag to force image delete")
+		return p.setMaintenanceFlag(ironicNode, true)
+	}
+
+	p.log.Info("host ready to be removed")
+	err = nodes.Delete(p.client, p.status.ID).ExtractErr()
+	switch err.(type) {
+	case nil:
+		p.log.Info("removed")
+	case gophercloud.ErrDefault409:
+		p.log.Info("could not remove host, busy")
+	case gophercloud.ErrDefault404:
+		p.log.Info("did not find host to delete, OK")
+	default:
+		return result, errors.Wrap(err, "failed to remove host")
+	}
+
+	result.Dirty = true
+	return result, nil
 }
 
 func (p *ironicProvisioner) changePower(ironicNode *nodes.Node, target nodes.TargetPowerState) (result provisioner.Result, err error) {
