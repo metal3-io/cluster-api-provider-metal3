@@ -143,11 +143,11 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 	if err != nil {
 		return err
 	}
-	if host != nil && host.Spec.MachineRef != nil {
-		// don't remove the MachineRef if it references some other machine
-		if host.Spec.MachineRef.Name != machine.Name {
+	if host != nil && host.Spec.ConsumerRef != nil {
+		// don't remove the ConsumerRef if it references some other machine
+		if !consumerRefMatches(host.Spec.ConsumerRef, machine) {
 			log.Printf("host associated with %v, not machine %v.",
-				host.Spec.MachineRef.Name, machine.Name)
+				host.Spec.ConsumerRef.Name, machine.Name)
 			return nil
 		}
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
@@ -166,7 +166,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
 			bmh.StateReady, bmh.StateValidationError:
-			host.Spec.MachineRef = nil
+			host.Spec.ConsumerRef = nil
 			err = a.client.Update(ctx, host)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
@@ -325,8 +325,8 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
 			} else {
 				log.Printf("Host '%s' did not match hostSelector for Machine '%s'", host.Name, machine.Name)
 			}
-		} else if host.Spec.MachineRef != nil && host.Spec.MachineRef.Name == machine.Name && host.Spec.MachineRef.Namespace == machine.Namespace {
-			log.Printf("found host %s with existing MachineRef", host.Name)
+		} else if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, machine) {
+			log.Printf("found host %s with existing ConsumerRef", host.Name)
 			return &hosts.Items[i], nil
 		}
 	}
@@ -342,15 +342,35 @@ func (a *Actuator) chooseHost(ctx context.Context, machine *machinev1.Machine,
 	return chosenHost, nil
 }
 
+// consumerRefMatches returns a boolean based on whether the consumer
+// reference and machine metadata match
+func consumerRefMatches(consumer *corev1.ObjectReference, machine *machinev1.Machine) bool {
+	if consumer.Name != machine.Name {
+		return false
+	}
+	if consumer.Namespace != machine.Namespace {
+		return false
+	}
+	if consumer.Kind != machine.Kind {
+		return false
+	}
+	if consumer.APIVersion != machine.APIVersion {
+		return false
+	}
+	return true
+}
+
 // setHostSpec will ensure the host's Spec is set according to the machine's
 // details. It will then update the host via the kube API. If UserData does not
 // include a Namespace, it will default to the Machine's namespace.
 func (a *Actuator) setHostSpec(ctx context.Context, host *bmh.BareMetalHost, machine *machinev1.Machine,
 	config *bmv1alpha1.BareMetalMachineProviderSpec) error {
 
-	host.Spec.MachineRef = &corev1.ObjectReference{
-		Name:      machine.Name,
-		Namespace: machine.Namespace,
+	host.Spec.ConsumerRef = &corev1.ObjectReference{
+		Kind:       "Machine",
+		Name:       machine.Name,
+		Namespace:  machine.Namespace,
+		APIVersion: machine.APIVersion,
 	}
 
 	host.Spec.Image = &bmh.Image{

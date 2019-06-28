@@ -6,6 +6,7 @@ import (
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	machinev1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
@@ -23,9 +24,11 @@ func TestMap(t *testing.T) {
 					Namespace: "myns",
 				},
 				Spec: bmh.BareMetalHostSpec{
-					MachineRef: &corev1.ObjectReference{
-						Name:      "someothermachine",
-						Namespace: "myns",
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "someothermachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
 					},
 				},
 			},
@@ -52,11 +55,11 @@ func TestMap(t *testing.T) {
 				t.Errorf("Expected 1 request, found %d", len(reqs))
 			}
 			req := reqs[0]
-			if req.NamespacedName.Name != tc.Host.Spec.MachineRef.Name {
-				t.Errorf("Expected name %s, found %s", tc.Host.Spec.MachineRef.Name, req.NamespacedName.Name)
+			if req.NamespacedName.Name != tc.Host.Spec.ConsumerRef.Name {
+				t.Errorf("Expected name %s, found %s", tc.Host.Spec.ConsumerRef.Name, req.NamespacedName.Name)
 			}
-			if req.NamespacedName.Namespace != tc.Host.Spec.MachineRef.Namespace {
-				t.Errorf("Expected namespace %s, found %s", tc.Host.Spec.MachineRef.Namespace, req.NamespacedName.Namespace)
+			if req.NamespacedName.Namespace != tc.Host.Spec.ConsumerRef.Namespace {
+				t.Errorf("Expected namespace %s, found %s", tc.Host.Spec.ConsumerRef.Namespace, req.NamespacedName.Namespace)
 			}
 
 		} else {
