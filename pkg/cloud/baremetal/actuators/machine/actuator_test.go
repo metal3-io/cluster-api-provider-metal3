@@ -370,6 +370,57 @@ func TestSetHostSpec(t *testing.T) {
 			},
 			ExpectUserData: true,
 		},
+
+		{
+			Scenario:                  "externally provisioned, same machine",
+			UserDataNamespace:         "",
+			ExpectedUserDataNamespace: "myns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "machine1",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+				},
+			},
+			ExpectedImage:  nil,
+			ExpectUserData: false,
+		},
+
+		{
+			Scenario:                  "previously provisioned, different image, unchanged",
+			UserDataNamespace:         "",
+			ExpectedUserDataNamespace: "myns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "machine1",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+					Image: &bmh.Image{
+						URL:      testImageURL + "test",
+						Checksum: testImageChecksumURL + "test",
+					},
+				},
+			},
+			ExpectedImage: &bmh.Image{
+				URL:      testImageURL + "test",
+				Checksum: testImageChecksumURL + "test",
+			},
+			ExpectUserData: false,
+		},
 	} {
 
 		t.Run(tc.Scenario, func(t *testing.T) {
