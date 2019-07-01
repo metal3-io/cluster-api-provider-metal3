@@ -332,25 +332,45 @@ func TestSetHostSpec(t *testing.T) {
 	for _, tc := range []struct {
 		UserDataNamespace         string
 		ExpectedUserDataNamespace string
+		Host                      bmh.BareMetalHost
+		ExpectedImage             *bmh.Image
+		ExpectUserData            bool
 	}{
 		{
 			UserDataNamespace:         "otherns",
 			ExpectedUserDataNamespace: "otherns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+			},
+			ExpectedImage: &bmh.Image{
+				URL:      testImageURL,
+				Checksum: testImageChecksumURL,
+			},
+			ExpectUserData: true,
 		},
+
 		{
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+			},
+			ExpectedImage: &bmh.Image{
+				URL:      testImageURL,
+				Checksum: testImageChecksumURL,
+			},
+			ExpectUserData: true,
 		},
 	} {
 
 		// test data
 		config, providerSpec := newConfig(t, tc.UserDataNamespace, map[string]string{}, []bmv1alpha1.HostSelectorRequirement{})
-		host := bmh.BareMetalHost{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "host2",
-				Namespace: "myns",
-			},
-		}
 		machine := machinev1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "machine1",
@@ -364,7 +384,7 @@ func TestSetHostSpec(t *testing.T) {
 		// test setup
 		scheme := runtime.NewScheme()
 		bmoapis.AddToScheme(scheme)
-		c := fakeclient.NewFakeClientWithScheme(scheme, &host)
+		c := fakeclient.NewFakeClientWithScheme(scheme, &tc.Host)
 
 		actuator, err := NewActuator(ActuatorParams{
 			Client: c,
@@ -375,7 +395,7 @@ func TestSetHostSpec(t *testing.T) {
 		}
 
 		// run the function
-		err = actuator.setHostSpec(context.TODO(), &host, &machine, config)
+		err = actuator.setHostSpec(context.TODO(), &tc.Host, &machine, config)
 		if err != nil {
 			t.Errorf("%v", err)
 			return
@@ -383,7 +403,7 @@ func TestSetHostSpec(t *testing.T) {
 
 		// get the saved result
 		savedHost := bmh.BareMetalHost{}
-		err = c.Get(context.TODO(), client.ObjectKey{Name: host.Name, Namespace: host.Namespace}, &savedHost)
+		err = c.Get(context.TODO(), client.ObjectKey{Name: tc.Host.Name, Namespace: tc.Host.Namespace}, &savedHost)
 		if err != nil {
 			t.Errorf("%v", err)
 			return
@@ -406,25 +426,30 @@ func TestSetHostSpec(t *testing.T) {
 		if savedHost.Spec.Online != true {
 			t.Errorf("host not set to Online")
 		}
-		if savedHost.Spec.Image == nil {
-			t.Errorf("Image not set")
-			return
+		if tc.ExpectedImage == nil {
+			if savedHost.Spec.Image != nil {
+				t.Fatalf("Expected image %v but got %v", tc.ExpectedImage, savedHost.Spec.Image)
+			}
+		} else {
+			if *(savedHost.Spec.Image) != *(tc.ExpectedImage) {
+				t.Fatalf("Expected image %v but got %v", tc.ExpectedImage, savedHost.Spec.Image)
+			}
 		}
-		if savedHost.Spec.Image.URL != testImageURL {
-			t.Errorf("expected ImageURL %s, got %s", testImageURL, savedHost.Spec.Image.URL)
-		}
-		if savedHost.Spec.Image.Checksum != testImageChecksumURL {
-			t.Errorf("expected ImageChecksumURL %s, got %s", testImageChecksumURL, savedHost.Spec.Image.Checksum)
-		}
-		if savedHost.Spec.UserData == nil {
-			t.Errorf("UserData not set")
-			return
-		}
-		if savedHost.Spec.UserData.Namespace != tc.ExpectedUserDataNamespace {
-			t.Errorf("expected Userdata.Namespace %s, got %s", tc.ExpectedUserDataNamespace, savedHost.Spec.UserData.Namespace)
-		}
-		if savedHost.Spec.UserData.Name != testUserDataSecretName {
-			t.Errorf("expected Userdata.Name %s, got %s", testUserDataSecretName, savedHost.Spec.UserData.Name)
+		if tc.ExpectUserData {
+			if savedHost.Spec.UserData == nil {
+				t.Errorf("UserData not set")
+				return
+			}
+			if savedHost.Spec.UserData.Namespace != tc.ExpectedUserDataNamespace {
+				t.Errorf("expected Userdata.Namespace %s, got %s", tc.ExpectedUserDataNamespace, savedHost.Spec.UserData.Namespace)
+			}
+			if savedHost.Spec.UserData.Name != testUserDataSecretName {
+				t.Errorf("expected Userdata.Name %s, got %s", testUserDataSecretName, savedHost.Spec.UserData.Name)
+			}
+		} else {
+			if savedHost.Spec.UserData != nil {
+				t.Errorf("did not expect user data, got %v", savedHost.Spec.UserData)
+			}
 		}
 	}
 }
