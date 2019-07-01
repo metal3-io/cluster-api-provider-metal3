@@ -503,7 +503,7 @@ func (a *Actuator) nodeAddresses(host *bmh.BareMetalHost) ([]corev1.NodeAddress,
 
 	if host.Status.HardwareDetails.Hostname != "" {
 		addrs = append(addrs, corev1.NodeAddress{
-			Type: corev1.NodeHostName,
+			Type:    corev1.NodeHostName,
 			Address: host.Status.HardwareDetails.Hostname,
 		})
 	}
