@@ -330,102 +330,185 @@ func TestChooseHost(t *testing.T) {
 
 func TestSetHostSpec(t *testing.T) {
 	for _, tc := range []struct {
+		Scenario                  string
 		UserDataNamespace         string
 		ExpectedUserDataNamespace string
+		Host                      bmh.BareMetalHost
+		ExpectedImage             *bmh.Image
+		ExpectUserData            bool
 	}{
 		{
+			Scenario:                  "user data has explicit alternate namespace",
 			UserDataNamespace:         "otherns",
 			ExpectedUserDataNamespace: "otherns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+			},
+			ExpectedImage: &bmh.Image{
+				URL:      testImageURL,
+				Checksum: testImageChecksumURL,
+			},
+			ExpectUserData: true,
 		},
+
 		{
+			Scenario:                  "user data has no namespace",
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+			},
+			ExpectedImage: &bmh.Image{
+				URL:      testImageURL,
+				Checksum: testImageChecksumURL,
+			},
+			ExpectUserData: true,
+		},
+
+		{
+			Scenario:                  "externally provisioned, same machine",
+			UserDataNamespace:         "",
+			ExpectedUserDataNamespace: "myns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "machine1",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+				},
+			},
+			ExpectedImage:  nil,
+			ExpectUserData: false,
+		},
+
+		{
+			Scenario:                  "previously provisioned, different image, unchanged",
+			UserDataNamespace:         "",
+			ExpectedUserDataNamespace: "myns",
+			Host: bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host2",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "machine1",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+					Image: &bmh.Image{
+						URL:      testImageURL + "test",
+						Checksum: testImageChecksumURL + "test",
+					},
+				},
+			},
+			ExpectedImage: &bmh.Image{
+				URL:      testImageURL + "test",
+				Checksum: testImageChecksumURL + "test",
+			},
+			ExpectUserData: false,
 		},
 	} {
 
-		// test data
-		config, providerSpec := newConfig(t, tc.UserDataNamespace, map[string]string{}, []bmv1alpha1.HostSelectorRequirement{})
-		host := bmh.BareMetalHost{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "host2",
-				Namespace: "myns",
-			},
-		}
-		machine := machinev1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machine1",
-				Namespace: "myns",
-			},
-			Spec: machinev1.MachineSpec{
-				ProviderSpec: providerSpec,
-			},
-		}
+		t.Run(tc.Scenario, func(t *testing.T) {
+			// test data
+			config, providerSpec := newConfig(t, tc.UserDataNamespace, map[string]string{}, []bmv1alpha1.HostSelectorRequirement{})
+			machine := machinev1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machine1",
+					Namespace: "myns",
+				},
+				Spec: machinev1.MachineSpec{
+					ProviderSpec: providerSpec,
+				},
+			}
 
-		// test setup
-		scheme := runtime.NewScheme()
-		bmoapis.AddToScheme(scheme)
-		c := fakeclient.NewFakeClientWithScheme(scheme, &host)
+			// test setup
+			scheme := runtime.NewScheme()
+			bmoapis.AddToScheme(scheme)
+			c := fakeclient.NewFakeClientWithScheme(scheme, &tc.Host)
 
-		actuator, err := NewActuator(ActuatorParams{
-			Client: c,
+			actuator, err := NewActuator(ActuatorParams{
+				Client: c,
+			})
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+
+			// run the function
+			err = actuator.setHostSpec(context.TODO(), &tc.Host, &machine, config)
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+
+			// get the saved result
+			savedHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(), client.ObjectKey{Name: tc.Host.Name, Namespace: tc.Host.Namespace}, &savedHost)
+			if err != nil {
+				t.Errorf("%v", err)
+				return
+			}
+
+			// validate the result
+			if savedHost.Spec.ConsumerRef == nil {
+				t.Errorf("ConsumerRef not set")
+				return
+			}
+			if savedHost.Spec.ConsumerRef.Name != machine.Name {
+				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+			}
+			if savedHost.Spec.ConsumerRef.Namespace != machine.Namespace {
+				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+			}
+			if savedHost.Spec.ConsumerRef.Kind != "Machine" {
+				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+			}
+			if savedHost.Spec.Online != true {
+				t.Errorf("host not set to Online")
+			}
+			if tc.ExpectedImage == nil {
+				if savedHost.Spec.Image != nil {
+					t.Errorf("Expected image %v but got %v", tc.ExpectedImage, savedHost.Spec.Image)
+					return
+				}
+			} else {
+				if *(savedHost.Spec.Image) != *(tc.ExpectedImage) {
+					t.Errorf("Expected image %v but got %v", tc.ExpectedImage, savedHost.Spec.Image)
+					return
+				}
+			}
+			if tc.ExpectUserData {
+				if savedHost.Spec.UserData == nil {
+					t.Errorf("UserData not set")
+					return
+				}
+				if savedHost.Spec.UserData.Namespace != tc.ExpectedUserDataNamespace {
+					t.Errorf("expected Userdata.Namespace %s, got %s", tc.ExpectedUserDataNamespace, savedHost.Spec.UserData.Namespace)
+				}
+				if savedHost.Spec.UserData.Name != testUserDataSecretName {
+					t.Errorf("expected Userdata.Name %s, got %s", testUserDataSecretName, savedHost.Spec.UserData.Name)
+				}
+			} else {
+				if savedHost.Spec.UserData != nil {
+					t.Errorf("did not expect user data, got %v", savedHost.Spec.UserData)
+				}
+			}
 		})
-		if err != nil {
-			t.Errorf("%v", err)
-			return
-		}
-
-		// run the function
-		err = actuator.setHostSpec(context.TODO(), &host, &machine, config)
-		if err != nil {
-			t.Errorf("%v", err)
-			return
-		}
-
-		// get the saved result
-		savedHost := bmh.BareMetalHost{}
-		err = c.Get(context.TODO(), client.ObjectKey{Name: host.Name, Namespace: host.Namespace}, &savedHost)
-		if err != nil {
-			t.Errorf("%v", err)
-			return
-		}
-
-		// validate the result
-		if savedHost.Spec.ConsumerRef == nil {
-			t.Errorf("ConsumerRef not set")
-			return
-		}
-		if savedHost.Spec.ConsumerRef.Name != machine.Name {
-			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
-		}
-		if savedHost.Spec.ConsumerRef.Namespace != machine.Namespace {
-			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
-		}
-		if savedHost.Spec.ConsumerRef.Kind != "Machine" {
-			t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
-		}
-		if savedHost.Spec.Online != true {
-			t.Errorf("host not set to Online")
-		}
-		if savedHost.Spec.Image == nil {
-			t.Errorf("Image not set")
-			return
-		}
-		if savedHost.Spec.Image.URL != testImageURL {
-			t.Errorf("expected ImageURL %s, got %s", testImageURL, savedHost.Spec.Image.URL)
-		}
-		if savedHost.Spec.Image.Checksum != testImageChecksumURL {
-			t.Errorf("expected ImageChecksumURL %s, got %s", testImageChecksumURL, savedHost.Spec.Image.Checksum)
-		}
-		if savedHost.Spec.UserData == nil {
-			t.Errorf("UserData not set")
-			return
-		}
-		if savedHost.Spec.UserData.Namespace != tc.ExpectedUserDataNamespace {
-			t.Errorf("expected Userdata.Namespace %s, got %s", tc.ExpectedUserDataNamespace, savedHost.Spec.UserData.Namespace)
-		}
-		if savedHost.Spec.UserData.Name != testUserDataSecretName {
-			t.Errorf("expected Userdata.Name %s, got %s", testUserDataSecretName, savedHost.Spec.UserData.Name)
-		}
 	}
 }
 
