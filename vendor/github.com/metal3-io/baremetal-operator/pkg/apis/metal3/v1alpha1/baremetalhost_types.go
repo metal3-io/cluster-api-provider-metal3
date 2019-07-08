@@ -130,9 +130,6 @@ type BareMetalHostSpec struct {
 	// Should the server be online?
 	Online bool `json:"online"`
 
-	// MachineRef is a reference to the machine.openshift.io/Machine
-	MachineRef *corev1.ObjectReference `json:"machineRef,omitempty"`
-
 	// ConsumerRef can be used to store information about something
 	// that is using a host. When it is not empty, the host is
 	// considered "in use".
@@ -162,18 +159,38 @@ type Image struct {
 // FIXME(dhellmann): We probably want some other module to own these
 // data structures.
 
-// GHz is a clock speed in GHz
-type GHz float64
+// ClockSpeed is a clock speed in MHz
+type ClockSpeed float64
 
-// GiB is a memory size in GiB
-type GiB int32
+// ClockSpeed multipliers
+const (
+	MegaHertz ClockSpeed = 1.0
+	GigaHertz            = 1000 * MegaHertz
+)
+
+// Capacity is a disk size in Bytes
+type Capacity int64
+
+// Capacity multipliers
+const (
+	Byte     Capacity = 1
+	KibiByte          = Byte * 1024
+	KiloByte          = Byte * 1000
+	MebiByte          = KibiByte * 1024
+	MegaByte          = KiloByte * 1000
+	GibiByte          = MebiByte * 1024
+	GigaByte          = MegaByte * 1000
+	TebiByte          = GibiByte * 1024
+	TeraByte          = GigaByte * 1000
+)
 
 // CPU describes one processor on the host.
 type CPU struct {
-	Type     string `json:"type"`
-	Model    string `json:"model"`
-	SpeedGHz GHz    `json:"speedGHz"`
-	Count    int    `json:"count"`
+	Arch           string     `json:"arch"`
+	Model          string     `json:"model"`
+	ClockMegahertz ClockSpeed `json:"clockMegahertz"`
+	Flags          []string   `json:"flags"`
+	Count          int        `json:"count"`
 }
 
 // Storage describes one storage device (disk, SSD, etc.) on the host.
@@ -181,11 +198,11 @@ type Storage struct {
 	// A name for the disk, e.g. "disk 1 (boot)"
 	Name string `json:"name"`
 
-	// Type, e.g. SSD
-	Type string `json:"type"`
+	// Whether this disk represents rotational storage
+	Rotational bool `json:"rotational"`
 
-	// The size of the disk in Gibibytes
-	SizeGiB GiB `json:"sizeGiB"`
+	// The size of the disk in Bytes
+	SizeBytes Capacity `json:"sizeBytes"`
 
 	// The name of the vendor of the device
 	Vendor string `json:"vendor,omitempty"`
@@ -209,6 +226,15 @@ type Storage struct {
 	HCTL string `json:"hctl,omitempty"`
 }
 
+// VLANID is a 12-bit 802.1Q VLAN identifier
+type VLANID int16
+
+// VLAN represents the name and ID of a VLAN
+type VLAN struct {
+	ID   VLANID `json:"id"`
+	Name string `json:"name,omitempty"`
+}
+
 // NIC describes one network interface on the host.
 type NIC struct {
 	// The name of the NIC, e.g. "nic-1"
@@ -216,9 +242,6 @@ type NIC struct {
 
 	// The name of the model, e.g. "virt-io"
 	Model string `json:"model"`
-
-	// The name of the network, e.g. "Pod Networking"
-	Network string `json:"network"`
 
 	// The device MAC addr
 	MAC string `json:"mac"`
@@ -228,13 +251,22 @@ type NIC struct {
 
 	// The speed of the device
 	SpeedGbps int `json:"speedGbps"`
+
+	// The VLANs available
+	VLANs []VLAN `json:"vlans,omitempty"`
+
+	// The untagged VLAN ID
+	VLANID VLANID `json:"vlanId"`
+
+	// Whether the NIC is PXE Bootable
+	PXE bool `json:"pxe"`
 }
 
 // HardwareDetails collects all of the information about hardware
 // discovered on the host.
 type HardwareDetails struct {
 	SystemVendor HardwareSystemVendor `json:"systemVendor"`
-	RAMGiB       GiB                  `json:"ramGiB"`
+	RAMMebibytes int                  `json:"ramMebibytes"`
 	NIC          []NIC                `json:"nics"`
 	Storage      []Storage            `json:"storage"`
 	CPU          CPU                  `json:"cpu"`
@@ -313,7 +345,7 @@ type BareMetalHost struct {
 
 // Available returns true if the host is available to be provisioned.
 func (host *BareMetalHost) Available() bool {
-	if host.Spec.MachineRef != nil || host.Spec.ConsumerRef != nil {
+	if host.Spec.ConsumerRef != nil {
 		return false
 	}
 	if host.GetDeletionTimestamp() != nil {
@@ -444,7 +476,7 @@ func (host *BareMetalHost) CredentialsNeedValidation(currentSecret corev1.Secret
 // NeedsHardwareInspection looks at the state of the host to determine
 // if hardware inspection should be run.
 func (host *BareMetalHost) NeedsHardwareInspection() bool {
-	if host.Spec.MachineRef != nil || host.Spec.ConsumerRef != nil {
+	if host.Spec.ConsumerRef != nil {
 		// Never perform inspection if we already know something is
 		// using the host.
 		return false
@@ -488,7 +520,7 @@ func (host *BareMetalHost) WasProvisioned() bool {
 // WasExternallyProvisioned returns true when we think something else
 // is managing the image running on the host.
 func (host *BareMetalHost) WasExternallyProvisioned() bool {
-	if host.Spec.Image == nil && (host.Spec.MachineRef != nil || host.Spec.ConsumerRef != nil) {
+	if host.Spec.Image == nil && host.Spec.ConsumerRef != nil {
 		return true
 	}
 	return false
@@ -546,7 +578,7 @@ func (host *BareMetalHost) NewEvent(reason, message string) corev1.Event {
 		Count:               1,
 		Type:                corev1.EventTypeNormal,
 		ReportingController: "metal3.io/baremetal-controller",
-		Related:             host.Spec.MachineRef,
+		Related:             host.Spec.ConsumerRef,
 	}
 }
 
