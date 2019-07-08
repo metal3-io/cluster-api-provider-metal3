@@ -470,13 +470,13 @@ func TestSetHostSpec(t *testing.T) {
 				return
 			}
 			if savedHost.Spec.ConsumerRef.Name != machine.Name {
-				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+				t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
 			}
 			if savedHost.Spec.ConsumerRef.Namespace != machine.Namespace {
-				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+				t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
 			}
 			if savedHost.Spec.ConsumerRef.Kind != "Machine" {
-				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+				t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
 			}
 			if savedHost.Spec.Online != true {
 				t.Errorf("host not set to Online")
@@ -926,7 +926,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			CaseName: "machine ref should be removed",
+			CaseName: "consumer ref should be removed",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -961,7 +961,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			CaseName: "machine ref does not match, so it should not be removed",
+			CaseName: "consumer ref does not match, so it should not be removed",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -1005,7 +1005,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			CaseName: "no machine ref, so this is a no-op",
+			CaseName: "no consumer ref, so this is a no-op",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
