@@ -160,12 +160,22 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 			}
 			return &clustererror.RequeueAfterError{}
 		}
+
+		waiting := true
 		switch host.Status.Provisioning.State {
-		default:
-			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfter}
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
 			bmh.StateReady, bmh.StateValidationError:
+			// Host is not provisioned
+			waiting = false
+		case bmh.StateExternallyProvisioned:
+			// We have no control over provisioning, so just wait until the
+			// host is powered off
+			waiting = host.Status.PoweredOn
+		}
+		if waiting {
+			return &clustererror.RequeueAfterError{RequeueAfter: requeueAfter}
+		} else {
 			host.Spec.ConsumerRef = nil
 			err = a.client.Update(ctx, host)
 			if err != nil && !errors.IsNotFound(err) {

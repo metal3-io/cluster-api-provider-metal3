@@ -847,6 +847,85 @@ func TestDelete(t *testing.T) {
 			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
 		},
 		{
+			CaseName: "externally provisioned host should be powered down",
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateExternallyProvisioned,
+					},
+					PoweredOn: true,
+				},
+			},
+			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			ExpectedConsumerRef: &corev1.ObjectReference{
+				Name:       "mymachine",
+				Namespace:  "myns",
+				Kind:       "Machine",
+				APIVersion: machinev1.SchemeGroupVersion.String(),
+			},
+			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
+		},
+		{
+			CaseName: "consumer ref should be removed from externally provisioned host",
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateExternallyProvisioned,
+					},
+					PoweredOn: false,
+				},
+			},
+			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+		},
+		{
 			CaseName: "machine ref should be removed",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
