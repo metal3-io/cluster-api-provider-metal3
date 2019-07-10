@@ -470,13 +470,13 @@ func TestSetHostSpec(t *testing.T) {
 				return
 			}
 			if savedHost.Spec.ConsumerRef.Name != machine.Name {
-				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+				t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
 			}
 			if savedHost.Spec.ConsumerRef.Namespace != machine.Namespace {
-				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+				t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
 			}
 			if savedHost.Spec.ConsumerRef.Kind != "Machine" {
-				t.Errorf("found machine ref %v", savedHost.Spec.ConsumerRef)
+				t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
 			}
 			if savedHost.Spec.Online != true {
 				t.Errorf("host not set to Online")
@@ -847,7 +847,86 @@ func TestDelete(t *testing.T) {
 			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
 		},
 		{
-			CaseName: "machine ref should be removed",
+			CaseName: "externally provisioned host should be powered down",
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateExternallyProvisioned,
+					},
+					PoweredOn: true,
+				},
+			},
+			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			ExpectedConsumerRef: &corev1.ObjectReference{
+				Name:       "mymachine",
+				Namespace:  "myns",
+				Kind:       "Machine",
+				APIVersion: machinev1.SchemeGroupVersion.String(),
+			},
+			ExpectedResult: &clustererror.RequeueAfterError{RequeueAfter: time.Second * 30},
+		},
+		{
+			CaseName: "consumer ref should be removed from externally provisioned host",
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateExternallyProvisioned,
+					},
+					PoweredOn: false,
+				},
+			},
+			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+		},
+		{
+			CaseName: "consumer ref should be removed",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -882,7 +961,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			CaseName: "machine ref does not match, so it should not be removed",
+			CaseName: "consumer ref does not match, so it should not be removed",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -926,7 +1005,7 @@ func TestDelete(t *testing.T) {
 			},
 		},
 		{
-			CaseName: "no machine ref, so this is a no-op",
+			CaseName: "no consumer ref, so this is a no-op",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
