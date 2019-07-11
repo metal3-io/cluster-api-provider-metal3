@@ -239,14 +239,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e1c5e4d14566d3de81e3025ec43f4250c3b6fd63660c134089f3d7dd7fd73c60"
+  digest = "1:3771f804b8a86326ec3374627e546145a60a07d9a9def5de6758ca43ab89828c"
   name = "github.com/metal3-io/baremetal-operator"
   packages = [
     "pkg/apis",
     "pkg/apis/metal3/v1alpha1",
   ]
   pruneopts = "T"
-  revision = "6d5a9e11b6d07e27e40010a60ba7923da425af25"
+  revision = "476be56700558b881444b214703ebffd8597d8e8"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
