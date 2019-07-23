@@ -28,7 +28,7 @@ resources:
 - rbac/auth_proxy_role.yaml
 - rbac/auth_proxy_role_binding.yaml
 
-patches:
+patchesStrategicMerge:
 - default/manager_image_patch.yaml
   # Protect the /metrics endpoint by putting it behind auth.
   # Only one of manager_auth_proxy_patch.yaml and

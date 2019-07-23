@@ -31,6 +31,7 @@ const ClusterFinalizer = "cluster.cluster.k8s.io"
 /// [Cluster]
 // Cluster is the Schema for the clusters API
 // +k8s:openapi-gen=true
+// +kubebuilder:resource:shortName=cl
 // +kubebuilder:subresource:status
 type Cluster struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -46,6 +47,7 @@ type Cluster struct {
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
 	// Cluster network configuration
+	// +optional
 	ClusterNetwork ClusterNetworkingConfig `json:"clusterNetwork"`
 
 	// Provider-specific serialized configuration to use during

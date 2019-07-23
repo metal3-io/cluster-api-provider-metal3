@@ -21,18 +21,9 @@
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?=60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?=60s
 
-# This option is for running docker manifest command
-export DOCKER_CLI_EXPERIMENTAL := enabled
-
 # Image URL to use all building/pushing image targets
-REGISTRY ?= gcr.io/k8s-cluster-api
-CONTROLLER_IMG ?= $(REGISTRY)/cluster-api-controller
-EXAMPLE_PROVIDER_IMG ?= $(REGISTRY)/example-provider-controller
-
-TAG ?= latest
-
-ARCH?=amd64
-ALL_ARCH = amd64 arm arm64 ppc64le s390x
+export CONTROLLER_IMG ?= gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.1.8
+export EXAMPLE_PROVIDER_IMG ?= gcr.io/k8s-cluster-api/example-provider-controller:latest
 
 all: test manager clusterctl
 
@@ -43,11 +34,13 @@ help:  ## Display this help
 gazelle: ## Run Bazel Gazelle
 	(which bazel && ./hack/update-bazel.sh) || true
 
-.PHONY: dep-ensure
-dep-ensure: ## Runs dep-ensure and rebuilds Bazel gazelle files.
-	find vendor -name 'BUILD.bazel' -delete
-	(which dep && dep ensure -v) || true
+.PHONY: vendor
+vendor: ## Runs go mod to ensure proper vendoring.
+	./hack/update-vendor.sh
 	$(MAKE) gazelle
+
+bin/%-gen: ./vendor/k8s.io/code-generator/cmd/%-gen ## Build code-generator binaries
+	go build -o $@ ./$<
 
 .PHONY: test
 test: gazelle verify generate fmt vet manifests ## Run tests
@@ -72,7 +65,7 @@ deploy: manifests ## Deploy controller in the configured Kubernetes cluster in ~
 .PHONY: manifests
 manifests: ## Generate manifests e.g. CRD, RBAC etc.
 	go run vendor/sigs.k8s.io/controller-tools/cmd/controller-gen/main.go all
-	cp -f ./config/rbac/rbac*.yaml ./config/ci/rbac/
+	cp -f ./config/rbac/manager*.yaml ./config/ci/rbac/
 	cp -f ./config/manager/manager*.yaml ./config/ci/manager/
 
 .PHONY: fmt
@@ -84,84 +77,59 @@ vet: ## Run go vet against code
 	go vet ./pkg/... ./cmd/...
 
 .PHONY: lint
-lint: dep-ensure ## Lint codebase
+lint: ## Lint codebase
 	bazel run //:lint $(BAZEL_ARGS)
 
-lint-full: dep-ensure ## Run slower linters to detect possible issues
+lint-full: ## Run slower linters to detect possible issues
 	bazel run //:lint-full $(BAZEL_ARGS)
 
 .PHONY: generate
-generate: clientset dep-ensure ## Generate code
+generate: clientset ## Generate code
 	go generate ./pkg/... ./cmd/...
 	$(MAKE) gazelle
 
 .PHONY: clientset
-clientset: ## Generate a typed clientset
+clientset: bin/client-gen bin/lister-gen bin/informer-gen ## Generate a typed clientset
 	rm -rf pkg/client
-	cd ./vendor/k8s.io/code-generator/cmd && go install ./client-gen ./lister-gen ./informer-gen
-	$$GOPATH/bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
+	bin/client-gen --clientset-name clientset --input-base sigs.k8s.io/cluster-api/pkg/apis \
 		--input cluster/v1alpha1 --output-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated \
-		--go-header-file=./hack/boilerplate.go.txt
-	$$GOPATH/bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+	bin/lister-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
-		--go-header-file=./hack/boilerplate.go.txt
-	$$GOPATH/bin/informer-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+	bin/informer-gen --input-dirs sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1 \
 		--versioned-clientset-package sigs.k8s.io/cluster-api/pkg/client/clientset_generated/clientset \
 		--listers-package sigs.k8s.io/cluster-api/pkg/client/listers_generated \
 		--output-package sigs.k8s.io/cluster-api/pkg/client/informers_generated \
-		--go-header-file=./hack/boilerplate.go.txt
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 	$(MAKE) gazelle
 
 .PHONY: clean
 clean: ## Remove all generated files
 	rm -f bazel-*
 
-.PHONY: all-docker-build
-all-docker-build: $(addprefix sub-docker-build-,$(ALL_ARCH))
-	@echo "updating kustomize image patch file for manager resource"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"$(CONTROLLER_IMG):$(TAG)"'@' ./config/default/manager_image_patch.yaml
-
-sub-docker-build-%:
-	$(MAKE) ARCH=$* docker-build
-
 .PHONY: docker-build
 docker-build: generate fmt vet manifests ## Build the docker image for controller-manager
-	docker build --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --pull . -t ${CONTROLLER_IMG}
 	@echo "updating kustomize image patch file for manager resource"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}-$(ARCH):$(TAG)"'@' ./config/default/manager_image_patch.yaml
-
-.PHONY:all-push ## Push all the architecture docker images and fat manifest docker image
-all-push: all-docker-push push-manifest
-
-.PHONY:all-docker-push ## Push all the architecture docker images
-all-docker-push: $(addprefix sub-docker-push-,$(ALL_ARCH))
-
-sub-docker-push-%:
-	$(MAKE) ARCH=$* docker-push
-
-.PHONY: push-manifest
-push-manifest: ## Push the fat manifest docker image. TODO: Update bazel build to push manifest once https://github.com/bazelbuild/rules_docker/issues/300 get merged
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images
-	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
-	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
-	docker manifest push --purge ${CONTROLLER_IMG}:${TAG}
+	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${CONTROLLER_IMG}"'@' ./config/default/manager_image_patch.yaml
 
 .PHONY: docker-push
 docker-push: docker-build ## Push the docker image
-	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push "$(CONTROLLER_IMG)"
 
 .PHONY: docker-build-ci
 docker-build-ci: generate fmt vet manifests ## Build the docker image for example provider
-	docker build --build-arg ARCH=$(ARCH) . -f ./pkg/provider/example/container/Dockerfile -t $(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)
+	docker build --pull . -f ./pkg/provider/example/container/Dockerfile -t ${EXAMPLE_PROVIDER_IMG}
 	@echo "updating kustomize image patch file for ci"
-	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}-$(ARCH):$(TAG)"'@' ./config/ci/manager_image_patch.yaml
+	hack/sed.sh -i.tmp -e 's@image: .*@image: '"${EXAMPLE_PROVIDER_IMG}"'@' ./config/ci/manager_image_patch.yaml
 
 .PHONY: docker-push-ci
 docker-push-ci: docker-build-ci  ## Build the docker image for ci
-	docker push "$(EXAMPLE_PROVIDER_IMG)-$(ARCH):$(TAG)"
+	docker push "$(EXAMPLE_PROVIDER_IMG)"
 
 .PHONY: verify
 verify:
-	./hack/verify_boilerplate.py
+	./hack/verify-boilerplate.sh
 	./hack/verify_clientset.sh
 	./hack/verify-bazel.sh

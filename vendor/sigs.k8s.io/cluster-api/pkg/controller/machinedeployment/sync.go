@@ -24,11 +24,13 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	apirand "k8s.io/apimachinery/pkg/util/rand"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	clusterv1alpha1 "sigs.k8s.io/cluster-api/pkg/apis/cluster/v1alpha1"
@@ -154,6 +156,11 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		},
 	}
 
+	// Add foregroundDeletion finalizer to MachineSet if the MachineDeployment has it
+	if sets.NewString(d.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
+		newMS.Finalizers = []string{metav1.FinalizerDeleteDependents}
+	}
+
 	allMSs := append(oldMSs, &newMS)
 	newReplicasCount, err := dutil.NewMSNewReplicas(d, allMSs, &newMS)
 	if err != nil {
@@ -194,11 +201,13 @@ func (r *ReconcileMachineDeployment) getNewMachineSet(d *clusterv1alpha1.Machine
 		return nil, err
 	case err != nil:
 		klog.V(4).Infof("Failed to create new machine set %q: %v", newMS.Name, err)
+		r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %q: %v", newMS.Name, err)
 		return nil, err
 	}
 
 	if !alreadyExists {
 		klog.V(4).Infof("Created new machine set %q", createdMS.Name)
+		r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %q", newMS.Name)
 	}
 
 	err = r.updateMachineDeployment(d, func(innerDeployment *clusterv1alpha1.MachineDeployment) {
@@ -402,8 +411,11 @@ func (r *ReconcileMachineDeployment) scaleMachineSetOperation(ms *clusterv1alpha
 		dutil.SetReplicasAnnotations(ms, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+dutil.MaxSurge(*deployment))
 
 		err = r.Update(context.Background(), ms)
-		if err == nil && sizeNeedsUpdate {
+		if err != nil {
+			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedScale", "Failed to scale MachineSet %q: %v", ms.Name, err)
+		} else if sizeNeedsUpdate {
 			scaled = true
+			r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulScale", "Scaled %d MachineSet %q to %d", scaleOperation, ms.Name, newScale)
 		}
 	}
 
@@ -448,8 +460,10 @@ func (r *ReconcileMachineDeployment) cleanupDeployment(oldMSs []*clusterv1alpha1
 		if err := r.Delete(context.Background(), ms); err != nil && !apierrors.IsNotFound(err) {
 			// Return error instead of aggregating and continuing DELETEs on the theory
 			// that we may be overloading the api server.
+			r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedDelete", "Failed to delete MachineSet %q: %v", ms.Name, err)
 			return err
 		}
+		r.recorder.Eventf(deployment, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted MachineSet %q", ms.Name)
 	}
 
 	return nil
@@ -492,17 +506,16 @@ func updateMachineDeployment(c client.Client, d *clusterv1alpha1.MachineDeployme
 	if equality.Semantic.DeepEqual(dCopy, d) {
 		return nil
 	}
-	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		//Get latest version from API
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		// Get latest version.
 		if err := c.Get(context.Background(), types.NamespacedName{Namespace: d.Namespace, Name: d.Name}, d); err != nil {
 			return err
 		}
-
+		// Apply defaults.
 		clusterv1alpha1.PopulateDefaultsMachineDeployment(d)
-		// Apply modifications
+		// Apply modifications.
 		modify(d)
-		// Update the machineDeployment
+		// Update the MachineDeployment.
 		return c.Update(context.Background(), d)
 	})
-	return err
 }
