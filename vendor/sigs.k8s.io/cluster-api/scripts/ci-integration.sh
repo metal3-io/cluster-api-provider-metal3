@@ -19,8 +19,8 @@ set -o nounset
 set -o pipefail
 
 MAKE="make"
-KUSTOMIZE="kustomize"
-KUBECTL="kubectl"
+KIND_VERSION="0.2.1"
+KUSTOMIZE_VERSION="2.0.3"
 KUBECTL_VERSION="v1.13.2"
 CRD_YAML="crd.yaml"
 BOOTSTRAP_CLUSTER_NAME="clusterapi-bootstrap"
@@ -28,42 +28,50 @@ CONTROLLER_REPO="controller-ci" # use arbitrary repo name since we don't need to
 EXAMPLE_PROVIDER_REPO="example-provider-ci"
 INTEGRATION_TEST_DIR="./test/integration"
 
-ARCH=${ARCH:=amd64}
+GOOS=$(go env GOOS)
+GOARCH=$(go env GOARCH)
 
 install_kustomize() {
-   go get sigs.k8s.io/kustomize
+   wget "https://github.com/kubernetes-sigs/kustomize/releases/download/v${KUSTOMIZE_VERSION}/kustomize_${KUSTOMIZE_VERSION}_${GOOS}_${GOARCH}" \
+     --no-verbose -O /usr/local/bin/kustomize
+   chmod +x /usr/local/bin/kustomize
+}
+
+install_kind() {
+   wget "https://github.com/kubernetes-sigs/kind/releases/download/${KIND_VERSION}/kind-${GOOS}-${GOARCH}" \
+     --no-verbose -O /usr/local/bin/kind
+   chmod +x /usr/local/bin/kind
 }
 
 install_kubectl() {
-   wget https://storage.googleapis.com/kubernetes-release/release/"${KUBECTL_VERSION}"/bin/linux/amd64/kubectl \
+   wget "https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/${GOOS}/${GOARCH}/kubectl" \
      --no-verbose -O /usr/local/bin/kubectl
    chmod +x /usr/local/bin/kubectl
 }
 
 build_containers() {
    VERSION="$(git describe --exact-match 2> /dev/null || git describe --match="$(git rev-parse --short=8 HEAD)" --always --dirty --abbrev=8)"
-   export CONTROLLER_IMG="${CONTROLLER_REPO}"
-   export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}"
+   export CONTROLLER_IMG="${CONTROLLER_REPO}:${VERSION}"
+   export EXAMPLE_PROVIDER_IMG="${EXAMPLE_PROVIDER_REPO}:${VERSION}"
 
-   "${MAKE}" docker-build TAG=${VERSION} ARCH=${ARCH}
-   "${MAKE}" docker-build-ci TAG=${VERSION} ARCH=${ARCH}
+   "${MAKE}" docker-build
+   "${MAKE}" docker-build-ci
 }
 
 prepare_crd_yaml() {
    CLUSTER_API_CONFIG_PATH="./config"
-   "${KUSTOMIZE}" build "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
+   kustomize build "${CLUSTER_API_CONFIG_PATH}/default/" > "${CRD_YAML}"
    echo "---" >> "${CRD_YAML}"
-   "${KUSTOMIZE}" build "${CLUSTER_API_CONFIG_PATH}/ci/" >> "${CRD_YAML}"
+   kustomize build "${CLUSTER_API_CONFIG_PATH}/ci/" >> "${CRD_YAML}"
 }
 
 create_bootstrap() {
-   go get sigs.k8s.io/kind
    kind create cluster --name "${BOOTSTRAP_CLUSTER_NAME}"
    KUBECONFIG="$(kind get kubeconfig-path --name="${BOOTSTRAP_CLUSTER_NAME}")"
    export KUBECONFIG
 
-   kind load docker-image "${CONTROLLER_IMG}-${ARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
-   kind load docker-image "${EXAMPLE_PROVIDER_IMG}-${ARCH}:${VERSION}" --name "${BOOTSTRAP_CLUSTER_NAME}"
+   kind load docker-image "${CONTROLLER_IMG}" --name "${BOOTSTRAP_CLUSTER_NAME}"
+   kind load docker-image "${EXAMPLE_PROVIDER_IMG}" --name "${BOOTSTRAP_CLUSTER_NAME}"
 }
 
 delete_bootstrap() {
@@ -77,7 +85,7 @@ wait_pod_running() {
    do
       sleep ${INTERVAL};
       retry=$((retry - 1))
-      if [ $retry -lt 0 ];
+      if [[ $retry -lt 0 ]];
       then
          kubectl describe pod "$1" -n "$2"
          kubectl logs "$1" -n "$2"
@@ -88,7 +96,7 @@ wait_pod_running() {
 }
 
 ensure_docker_in_docker() {
-   if [ -z "${PROW_JOB_ID}" ] ; then
+   if [[ -z "${PROW_JOB_ID:-}" ]] ; then
       # start docker service in setup other than Prow
       service docker start
    fi
@@ -103,16 +111,17 @@ main() {
    prepare_crd_yaml
 
    install_kubectl
+   install_kind
    create_bootstrap
 
-   "${KUBECTL}" create -f "${CRD_YAML}"
+   kubectl create -f "${CRD_YAML}"
 
    set +e
    wait_pod_running "cluster-api-controller-manager-0" "cluster-api-system"
    wait_pod_running "provider-controller-manager-0" "provider-system"
    set -e
 
-   if [ -d "${INTEGRATION_TEST_DIR}" ] ; then
+   if [[ -d "${INTEGRATION_TEST_DIR}" ]] ; then
       go test -v "${INTEGRATION_TEST_DIR}"/...
    fi
 

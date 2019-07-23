@@ -9,70 +9,118 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"go/ast"
 	"go/format"
 
 	"golang.org/x/tools/go/ast/astutil"
-	"golang.org/x/tools/imports"
+	"golang.org/x/tools/go/packages"
+	"golang.org/x/tools/internal/imports"
+	"golang.org/x/tools/internal/lsp/diff"
+	"golang.org/x/tools/internal/lsp/telemetry/log"
+	"golang.org/x/tools/internal/lsp/telemetry/trace"
+	"golang.org/x/tools/internal/span"
 )
 
 // Format formats a file with a given range.
-func Format(ctx context.Context, f File, rng Range) ([]TextEdit, error) {
-	fAST, err := f.GetAST()
-	if err != nil {
+func Format(ctx context.Context, f GoFile, rng span.Range) ([]TextEdit, error) {
+	ctx, done := trace.StartSpan(ctx, "source.Format")
+	defer done()
+
+	file, err := f.GetAST(ctx, ParseFull)
+	if file == nil {
 		return nil, err
 	}
-	path, exact := astutil.PathEnclosingInterval(fAST, rng.Start, rng.End)
+	pkg := f.GetPackage(ctx)
+	if hasListErrors(pkg.GetErrors()) || hasParseErrors(pkg.GetErrors()) {
+		return nil, fmt.Errorf("%s has parse errors, not formatting", f.URI())
+	}
+	path, exact := astutil.PathEnclosingInterval(file, rng.Start, rng.End)
 	if !exact || len(path) == 0 {
 		return nil, fmt.Errorf("no exact AST node matching the specified range")
 	}
 	node := path[0]
-	// format.Node can fail when the AST contains a bad expression or
-	// statement. For now, we preemptively check for one.
-	// TODO(rstambler): This should really return an error from format.Node.
-	var isBad bool
-	ast.Inspect(node, func(n ast.Node) bool {
-		switch n.(type) {
-		case *ast.BadDecl, *ast.BadExpr, *ast.BadStmt:
-			isBad = true
-			return false
-		default:
-			return true
-		}
-	})
-	if isBad {
-		return nil, fmt.Errorf("unable to format file due to a badly formatted AST")
-	}
+
+	fset := f.FileSet()
+	buf := &bytes.Buffer{}
+
 	// format.Node changes slightly from one release to another, so the version
 	// of Go used to build the LSP server will determine how it formats code.
 	// This should be acceptable for all users, who likely be prompted to rebuild
 	// the LSP server on each Go release.
-	fset, err := f.GetFileSet()
-	if err != nil {
-		return nil, err
-	}
-	buf := &bytes.Buffer{}
 	if err := format.Node(buf, fset, node); err != nil {
 		return nil, err
 	}
-	return computeTextEdits(rng, buf.String()), nil
+	return computeTextEdits(ctx, f, buf.String()), nil
 }
 
 // Imports formats a file using the goimports tool.
-func Imports(ctx context.Context, filename string, content []byte, rng Range) ([]TextEdit, error) {
-	content, err := imports.Process(filename, content, nil)
+func Imports(ctx context.Context, view View, f GoFile, rng span.Range) ([]TextEdit, error) {
+	ctx, done := trace.StartSpan(ctx, "source.Imports")
+	defer done()
+	data, _, err := f.Handle(ctx).Read(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return computeTextEdits(rng, string(content)), nil
+	pkg := f.GetPackage(ctx)
+	if pkg == nil || pkg.IsIllTyped() {
+		return nil, fmt.Errorf("no package for file %s", f.URI())
+	}
+	if hasListErrors(pkg.GetErrors()) {
+		return nil, fmt.Errorf("%s has list errors, not running goimports", f.URI())
+	}
+
+	if resolver, ok := view.ProcessEnv(ctx).GetResolver().(*imports.ModuleResolver); ok && resolver.Initialized {
+		// TODO(suzmue): only reset this state when necessary (eg when the go.mod files of this
+		// module or modules with replace directive changes).
+		resolver.Initialized = false
+		resolver.Main = nil
+		resolver.ModsByModPath = nil
+		resolver.ModsByDir = nil
+		resolver.ModCachePkgs = nil
+	}
+	options := &imports.Options{
+		Env: view.ProcessEnv(ctx),
+		// Defaults.
+		AllErrors:  true,
+		Comments:   true,
+		Fragment:   true,
+		FormatOnly: false,
+		TabIndent:  true,
+		TabWidth:   8,
+	}
+	formatted, err := imports.Process(f.URI().Filename(), data, options)
+	if err != nil {
+		return nil, err
+	}
+	return computeTextEdits(ctx, f, string(formatted)), nil
 }
 
-// TODO(rstambler): Compute text edits instead of replacing whole file.
-func computeTextEdits(rng Range, content string) []TextEdit {
-	return []TextEdit{
-		{
-			Range:   rng,
-			NewText: content,
-		},
+func hasParseErrors(errors []packages.Error) bool {
+	for _, err := range errors {
+		if err.Kind == packages.ParseError {
+			return true
+		}
 	}
+	return false
+}
+
+func hasListErrors(errors []packages.Error) bool {
+	for _, err := range errors {
+		if err.Kind == packages.ListError {
+			return true
+		}
+	}
+	return false
+}
+
+func computeTextEdits(ctx context.Context, file File, formatted string) (edits []TextEdit) {
+	ctx, done := trace.StartSpan(ctx, "source.computeTextEdits")
+	defer done()
+	data, _, err := file.Handle(ctx).Read(ctx)
+	if err != nil {
+		log.Error(ctx, "Cannot compute text edits", err)
+		return nil
+	}
+	u := diff.SplitLines(string(data))
+	f := diff.SplitLines(formatted)
+	return DiffToEdits(file.URI(), diff.Operations(u, f))
 }
