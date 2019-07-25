@@ -530,6 +530,10 @@ func (a *Actuator) nodeAddresses(host *bmh.BareMetalHost) ([]corev1.NodeAddress,
 			Type:    corev1.NodeHostName,
 			Address: host.Status.HardwareDetails.Hostname,
 		})
+		addrs = append(addrs, corev1.NodeAddress{
+			Type:    corev1.NodeInternalDNS,
+			Address: host.Status.HardwareDetails.Hostname,
+		})
 	}
 
 	return addrs, nil
