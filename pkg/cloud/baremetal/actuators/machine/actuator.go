@@ -377,17 +377,12 @@ func (a *Actuator) setHostSpec(ctx context.Context, host *bmh.BareMetalHost, mac
 	config *bmv1alpha1.BareMetalMachineProviderSpec) error {
 
 	// We only want to update the image setting if the host does not
-	// already have a consumer and image.
+	// already have an image.
 	//
-	// A consumer without an image is "externally provisioned" and
-	// assigning the image will trigger reprovisioning. Since the
-	// control plane nodes will be configured this way, reprovisioning
-	// will take them offline and try to turn them into workers.
-	//
-	// A host with an existing image is also already provisioned and
+	// A host with an existing image is already provisioned and
 	// upgrades are not supported at this time. To re-provision a
 	// host, we must fully deprovision it and then provision it again.
-	if host.Spec.ConsumerRef == nil && host.Spec.Image == nil {
+	if host.Spec.Image == nil {
 		host.Spec.Image = &bmh.Image{
 			URL:      config.Image.URL,
 			Checksum: config.Image.Checksum,

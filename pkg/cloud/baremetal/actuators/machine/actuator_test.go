@@ -389,8 +389,11 @@ func TestSetHostSpec(t *testing.T) {
 					},
 				},
 			},
-			ExpectedImage:  nil,
-			ExpectUserData: false,
+			ExpectedImage: &bmh.Image{
+				URL:      testImageURL,
+				Checksum: testImageChecksumURL,
+			},
+			ExpectUserData: true,
 		},
 
 		{
