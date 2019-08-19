@@ -10,6 +10,22 @@
   version = "v0.43.0"
 
 [[projects]]
+  digest = "1:bd3632deea7c224314b504dc51fbd244a59163e89c0cb730877d51bb13f5f74a"
+  name = "github.com/PuerkitoBio/purell"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "44968752391892e1b0d0b821ee79e9a85fa13049"
+  version = "v1.1.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c739832d67eb1e9cc478a19cc1a1ccd78df0397bf8a32978b759152e205f644b"
+  name = "github.com/PuerkitoBio/urlesc"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "de5bf2ad457846296e2031421a34e2568e304e35"
+
+[[projects]]
   digest = "1:464aef731a5f82ded547c62e249a2e9ec59fbbc9ddab53cda7b9857852630a61"
   name = "github.com/appscode/jsonpatch"
   packages = ["."]
@@ -75,6 +91,38 @@
   pruneopts = "T"
   revision = "03f06a783fbb7dfaf3f629c7825480e43a7105e6"
   version = "v0.1.1"
+
+[[projects]]
+  digest = "1:deaebdf65d6d8c9fba4e1ec2f04b38739fe63d544ebaeba316ee8281a26c8a0f"
+  name = "github.com/go-openapi/jsonpointer"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "a105a905c5e6ad147f08504784917f3e178e0ba5"
+  version = "v0.19.2"
+
+[[projects]]
+  digest = "1:ace067abf49e9861040c3f33b67ce39602eb491a2532389467e9ca1dd8cb8e5e"
+  name = "github.com/go-openapi/jsonreference"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "2903bfd4bfbaf188694f1edf731f2725a8fa344f"
+  version = "v0.19.2"
+
+[[projects]]
+  digest = "1:9d29c43e2f6fe25d602e5d2347aac8faa2addf0ae99440d146f1f36601869e9d"
+  name = "github.com/go-openapi/spec"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "bdfd7e07daecc404d77868a88b2364d0aed0ee5a"
+  version = "v0.19.2"
+
+[[projects]]
+  digest = "1:9a27ff1a536117e0e3110dd17dff4f37284ed6860a02b65fa5492edd92aa36ff"
+  name = "github.com/go-openapi/swag"
+  packages = ["."]
+  pruneopts = "T"
+  revision = "de649ffb9e02183a414820c5b1b4582f7b009792"
+  version = "v0.19.4"
 
 [[projects]]
   digest = "1:182ea57e81f7d0e176206790b1e04d6d1cbcccb326a969b398a5e129d021d1e1"
@@ -214,6 +262,18 @@
   version = "v1.1.6"
 
 [[projects]]
+  branch = "master"
+  digest = "1:6bda9283afef46e72e78d90580f152df3a7be019a2f425d1441e45e41c103cc1"
+  name = "github.com/mailru/easyjson"
+  packages = [
+    "buffer",
+    "jlexer",
+    "jwriter",
+  ]
+  pruneopts = "T"
+  revision = "b2ccc519800e761ac8000b95e5d57c80a897ff9e"
+
+[[projects]]
   digest = "1:a8e3d14801bed585908d130ebfc3b925ba642208e6f30d879437ddfc7bb9b413"
   name = "github.com/matttproud/golang_protobuf_extensions"
   packages = ["pbutil"]
@@ -223,14 +283,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:15e0cd3a7b991cef124638b92390af395685ad7ee65f3077e9385d364fc80986"
+  digest = "1:44cbe2f8177317f869072eaf383d148e13f0dc523d1c88db21dbc8e7a4898118"
   name = "github.com/metal3-io/baremetal-operator"
   packages = [
     "pkg/apis",
     "pkg/apis/metal3/v1alpha1",
   ]
   pruneopts = "T"
-  revision = "807b61b50ef45b42461618bde52018688fb04b2a"
+  revision = "baef9fee055ef33ef7342bc0a80762aff521aa2f"
 
 [[projects]]
   digest = "1:33422d238f147d247752996a26574ac48dcf472976eda7f5134015f06bf16563"
@@ -514,6 +574,7 @@
     "unicode/cldr",
     "unicode/norm",
     "unicode/rangetable",
+    "width",
   ]
   pruneopts = "T"
   revision = "342b2e1fbaa52c93f31447ad2c6abc048c63e475"
@@ -837,7 +898,10 @@
   branch = "master"
   digest = "1:6a701d4367c48bf8ca410b45d222a26383ecbbf720037dabf759734249b43138"
   name = "k8s.io/kube-openapi"
-  packages = ["pkg/util/proto"]
+  packages = [
+    "pkg/common",
+    "pkg/util/proto",
+  ]
   pruneopts = "T"
   revision = "5e22f3d471e6f24ca20becfdffdc6206c7cecac8"
 
