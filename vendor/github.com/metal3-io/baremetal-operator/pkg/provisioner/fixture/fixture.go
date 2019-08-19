@@ -26,6 +26,8 @@ type fixtureProvisioner struct {
 	log logr.Logger
 	// an event publisher for recording significant events
 	publisher provisioner.EventPublisher
+	// state to manage the two-step adopt process
+	adopted bool
 }
 
 // New returns a new Ironic Provisioner
@@ -41,7 +43,7 @@ func New(host *metal3v1alpha1.BareMetalHost, bmcCreds bmc.Credentials, publisher
 
 // ValidateManagementAccess tests the connection information for the
 // host to verify that the location and credentials work.
-func (p *fixtureProvisioner) ValidateManagementAccess() (result provisioner.Result, err error) {
+func (p *fixtureProvisioner) ValidateManagementAccess(credentialsChanged bool) (result provisioner.Result, err error) {
 	p.log.Info("testing management access")
 
 	// Fill in the ID of the host in the provisioning system
@@ -131,6 +133,17 @@ func (p *fixtureProvisioner) UpdateHardwareState() (result provisioner.Result, e
 		result.Dirty = false
 	}
 	return result, nil
+}
+
+// Adopt allows an externally-provisioned server to be adopted.
+func (p *fixtureProvisioner) Adopt() (result provisioner.Result, err error) {
+	p.log.Info("adopting host")
+	if p.host.Spec.ExternallyProvisioned && !p.adopted {
+		p.adopted = true
+		result.Dirty = true
+		result.RequeueAfter = provisionRequeueDelay
+	}
+	return
 }
 
 // Provision writes the image from the host spec to the host. It may

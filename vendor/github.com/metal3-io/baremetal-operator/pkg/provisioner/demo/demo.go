@@ -68,7 +68,7 @@ func New(host *metal3v1alpha1.BareMetalHost, bmcCreds bmc.Credentials, publisher
 
 // ValidateManagementAccess tests the connection information for the
 // host to verify that the location and credentials work.
-func (p *demoProvisioner) ValidateManagementAccess() (result provisioner.Result, err error) {
+func (p *demoProvisioner) ValidateManagementAccess(credentialsChanged bool) (result provisioner.Result, err error) {
 	p.log.Info("testing management access")
 
 	hostName := p.host.ObjectMeta.Name
@@ -180,6 +180,13 @@ func (p *demoProvisioner) UpdateHardwareState() (result provisioner.Result, err 
 	p.log.Info("updating hardware state")
 	result.Dirty = false
 	return result, nil
+}
+
+// Adopt allows an externally-provisioned server to be adopted.
+func (p *demoProvisioner) Adopt() (result provisioner.Result, err error) {
+	p.log.Info("adopting host")
+	result.Dirty = false
+	return
 }
 
 // Provision writes the image from the host spec to the host. It may

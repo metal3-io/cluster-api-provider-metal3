@@ -37,22 +37,27 @@ test: generate unit lint dep-check
 .PHONY: generate
 generate:
 	operator-sdk generate k8s
+	operator-sdk generate openapi
 
 .PHONY: travis
-travis: test-verbose lint
+travis: unit-verbose lint
 
 .PHONY: unit
 unit:
 	go test $(GO_TEST_FLAGS) ./cmd/... ./pkg/...
 
 .PHONY: unit-verbose
-test-verbose:
+unit-verbose:
 	VERBOSE=-v make unit
 
+crd_file=deploy/crds/metal3_v1alpha1_baremetalhost_crd.yaml
+crd_tmp=.crd.yaml.tmp
+
 .PHONY: lint
-lint:
+lint: test-sec
 	golint -set_exit_status pkg/... cmd/...
 	go vet ./pkg/... ./cmd/...
+	cp $(crd_file) $(crd_tmp); make generate; if ! diff -q $(crd_file) $(crd_tmp); then mv $(crd_tmp) $(crd_file); exit 1; else rm $(crd_tmp); fi
 
 .PHONY: test-sec
 test-sec:
