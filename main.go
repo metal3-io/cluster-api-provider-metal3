@@ -68,6 +68,13 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachine")
 		os.Exit(1)
 	}
+	if err = (&controllers.BareMetalClusterReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("BareMetalCluster"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "BareMetalCluster")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
 
 	setupLog.Info("starting manager")
