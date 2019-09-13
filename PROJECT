@@ -1,0 +1,3 @@
+version: "2"
+domain: cluster.x-k8s.io
+repo: github.com/metal3-io/cluster-api-provider-baremetal
