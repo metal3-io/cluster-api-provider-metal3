@@ -19,12 +19,14 @@ import (
 	"flag"
 	"os"
 
-	infrastructurev1alpha2 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha2"
+	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha2"
 	"github.com/metal3-io/cluster-api-provider-baremetal/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
+
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
@@ -37,7 +39,9 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 
-	_ = infrastructurev1alpha2.AddToScheme(scheme)
+	_ = infrav1.AddToScheme(scheme)
+	_ = clusterv1.AddToScheme(scheme)
+
 	// +kubebuilder:scaffold:scheme
 }
 

@@ -19,8 +19,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+const (
+	// ClusterFinalizer allows ReconcileBareMetalCluster to clean up
+	// BareMetal resources associated with BareMetalCluster before
+	// removing it from the apiserver.
+	ClusterFinalizer = "baremetalcluster.baremetal.cluster.k8s.io"
+)
 
 // BareMetalClusterSpec defines the desired state of BareMetalCluster
 type BareMetalClusterSpec struct {
@@ -30,8 +34,12 @@ type BareMetalClusterSpec struct {
 
 // BareMetalClusterStatus defines the observed state of BareMetalCluster
 type BareMetalClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// Ready denotes that the docker cluster (infrastructure) is ready.
+	Ready bool `json:"ready"`
+
+	// APIEndpoints represents the endpoints to communicate with the control plane.
+	// +optional
+	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -52,6 +60,15 @@ type BareMetalClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []BareMetalCluster `json:"items"`
+}
+
+// APIEndpoint represents a reachable Kubernetes API endpoint.
+type APIEndpoint struct {
+	// Host is the hostname on which the API server is serving.
+	Host string `json:"host"`
+
+	// Port is the port on which the API server is serving.
+	Port int `json:"port"`
 }
 
 func init() {
