@@ -8,16 +8,16 @@ export KUBECONFIG="$(kind get kubeconfig-path --name="kind")"
 kubectl cluster-info
 
 # CAPI
-cd /home/awander/go/src/sigs.k8s.io/cluster-api
+cd ~/go/src/sigs.k8s.io/cluster-api
 if [ -n "${BUILD_CAPI}" ]; then
 	make docker-build	
 fi
 kind load docker-image gcr.io/arvinders-1st-project/cluster-api-controller-amd64:dev
 make release-manifests
-kubectl apply -f /home/awander/go/src/sigs.k8s.io/cluster-api/out/cluster-api-components.yaml
+kubectl apply -f ~/go/src/sigs.k8s.io/cluster-api/out/cluster-api-components.yaml
 
 # CABPK
-cd /home/awander/go/src/sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm
+cd ~/go/src/sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm
 if [ -n "${BUILD_CABPK}" ]; then
 	make docker-build	
 fi
@@ -25,11 +25,19 @@ kind load docker-image gcr.io/arvinders-1st-project/cluster-api-kubeadm-controll
 make deploy
 
 # CAPBM
-cd /home/awander/go/src/github.com/metal3-io/cluster-api-provider-baremetal
+cd ~/go/src/github.com/metal3-io/cluster-api-provider-baremetal
 if [ -n "${BUILD_CAPBM}" ]; then
 	make docker-build	
 fi
 kind load docker-image controller:dev
+make deploy
+
+# Baremetal-operator 
+cd ~/go/src/github.com/metal3-io/baremetal-operator
+if [ -n "${BUILD_BMO}" ]; then
+	make docker-build	
+fi
+kind load docker-image baremetal-operator:dev
 make deploy
 
 cd "${dir}"

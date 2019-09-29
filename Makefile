@@ -1,3 +1,4 @@
+export GO111MODULE=on
 
 # Image URL to use all building/pushing image targets
 IMAGE_NAME ?= controller
