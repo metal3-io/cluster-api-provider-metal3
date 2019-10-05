@@ -58,11 +58,12 @@ ALL_ARCH = amd64 arm arm64 ppc64le s390x
 # Allow overriding manifest generation destination directory
 MANIFEST_ROOT ?= config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
+METAL3_CRD_ROOT ?= $(MANIFEST_ROOT)/crd/metal3
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 
 # Allow overriding the imagePullPolicy
-PULL_POLICY ?= Always
+PULL_POLICY ?= IfNotPresent
 
 ## --------------------------------------
 ## Help
@@ -181,6 +182,12 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
+	# baremetal-operator v1 alpha1 is not compliant with kubernetes
+	# $(CONTROLLER_GEN) \
+	#	paths=github.com/metal3-io/baremetal-operator/pkg/apis/... \
+	#	crd:trivialVersions=true \
+	#	output:crd:dir=$(METAL3_CRD_ROOT) \
+	#	output:none
 	$(CONTROLLER_GEN) \
 		paths=./controllers/... \
 		output:rbac:dir=$(RBAC_ROOT) \

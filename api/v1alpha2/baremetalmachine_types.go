@@ -75,6 +75,8 @@ type BareMetalMachineStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
+// +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready",description="Machine is Ready"
 
 // BareMetalMachine is the Schema for the baremetalmachines API
 type BareMetalMachine struct {

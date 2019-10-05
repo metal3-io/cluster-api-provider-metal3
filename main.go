@@ -18,13 +18,17 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
@@ -36,8 +40,9 @@ import (
 )
 
 var (
-	myscheme = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	myscheme                = runtime.NewScheme()
+	setupLog                = ctrl.Log.WithName("setup")
+	waitForMetal3Controller = false
 )
 
 func init() {
@@ -73,12 +78,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	if waitForMetal3Controller {
+		err = waitForAPIs(ctrl.GetConfigOrDie())
+		if err != nil {
+			setupLog.Error(err, "unable to discover required APIs")
+			os.Exit(1)
+		}
+	}
+
 	if err := (&controllers.BareMetalMachineReconciler{
 		Client:         mgr.GetClient(),
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
+		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachineReconciler")
 		os.Exit(1)
 	}
 
@@ -87,7 +100,7 @@ func main() {
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalCluster"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BareMetalCluster")
+		setupLog.Error(err, "unable to create controller", "controller", "BareMetalClusterReconciler")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
@@ -97,4 +110,29 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func waitForAPIs(cfg *rest.Config) error {
+	c, err := discovery.NewDiscoveryClientForConfig(cfg)
+	if err != nil {
+		return err
+	}
+
+	metal3GV := schema.GroupVersion{
+		Group:   "metal3.io",
+		Version: "v1alpha1",
+	}
+
+	for {
+		err = discovery.ServerSupportsVersion(c, metal3GV)
+		if err != nil {
+			setupLog.Info(fmt.Sprintf("Waiting for API group %v to be available: %v", metal3GV, err))
+			time.Sleep(time.Second * 10)
+			continue
+		}
+		setupLog.Info(fmt.Sprintf("Found API group %v", metal3GV))
+		break
+	}
+
+	return nil
 }

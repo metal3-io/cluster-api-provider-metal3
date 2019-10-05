@@ -1,0 +1,39 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: demo-externally-provisioned-secret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: MWYyZDFlMmU2N2Rm
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: metal3-0
+spec:
+  online: false
+  bmc:
+    address: ipmi://192.168.122.10:6233
+    credentialsName: demo-externally-provisioned-secret
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: metal3-1
+spec:
+  online: false
+  bmc:
+    address: ipmi://192.168.122.11:6233
+    credentialsName: demo-externally-provisioned-secret
+---
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  name: metal3-2
+spec:
+  online: false
+  bmc:
+    address: ipmi://192.168.122.12:6233
+    credentialsName: demo-externally-provisioned-secret
