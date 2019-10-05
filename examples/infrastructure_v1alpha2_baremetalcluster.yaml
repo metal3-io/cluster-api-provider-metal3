@@ -1,0 +1,9 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: BareMetalCluster
+metadata:
+  creationTimestamp: null
+  name: my-cluster
+  namespace: default
+spec: {}
+status:
+  ready: false

@@ -1,15 +1,25 @@
-FROM registry.svc.ci.openshift.org/openshift/release:golang-1.10 AS builder
-WORKDIR /go/src/github.com/metal3-io/cluster-api-provider-baremetal
-COPY . .
-RUN go build -o machine-controller-manager ./cmd/manager
-RUN go build -o manager ./vendor/sigs.k8s.io/cluster-api/cmd/manager
+# Build the manager binary
+FROM golang:1.12.5 as builder
 
-FROM registry.svc.ci.openshift.org/openshift/origin-v4.0:base
-#RUN INSTALL_PKGS=" \
-#      libvirt-libs openssh-clients genisoimage \
-#      " && \
-#    yum install -y $INSTALL_PKGS && \
-#    rpm -V $INSTALL_PKGS && \
-#    yum clean all
-COPY --from=builder /go/src/github.com/metal3-io/cluster-api-provider-baremetal/manager /
-COPY --from=builder /go/src/github.com/metal3-io/cluster-api-provider-baremetal/machine-controller-manager /
+WORKDIR /workspace
+# Copy the Go Modules manifests
+COPY go.mod go.mod
+COPY go.sum go.sum
+# cache deps before building and copying source so that we don't need to re-download as much
+# and so that source changes don't invalidate our downloaded layer
+RUN go mod download
+
+# Copy the go source
+COPY main.go main.go
+COPY api/ api/
+COPY controllers/ controllers/
+
+# Build
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+
+# Use distroless as minimal base image to package the manager binary
+# Refer to https://github.com/GoogleContainerTools/distroless for more details
+FROM gcr.io/distroless/static:latest
+WORKDIR /
+COPY --from=builder /workspace/manager .
+ENTRYPOINT ["/manager"]
