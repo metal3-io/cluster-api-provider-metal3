@@ -8,9 +8,13 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: BareMetalCluster
     plural: baremetalclusters
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: BareMetalCluster is the Schema for the baremetalclusters API
@@ -18,20 +22,36 @@ spec:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
-          description: BareMetalClusterSpec defines the desired state of BareMetalCluster
+          description: BareMetalClusterSpec defines the desired state of BareMetalCluster.
+          properties:
+            cloudName:
+              description: The name of the cloud to use from the clouds secret
+              type: string
+            cloudsSecret:
+              description: The name of the secret containing the openstack credentials
+              properties:
+                name:
+                  description: Name is unique within a namespace to reference a secret
+                    resource.
+                  type: string
+                namespace:
+                  description: Namespace defines the space within which the secret
+                    name must be unique.
+                  type: string
+              type: object
           type: object
         status:
-          description: BareMetalClusterStatus defines the observed state of BareMetalCluster
+          description: BareMetalClusterStatus defines the observed state of BareMetalCluster.
           properties:
             apiEndpoints:
               description: APIEndpoints represents the endpoints to communicate with
@@ -51,7 +71,7 @@ spec:
                 type: object
               type: array
             ready:
-              description: Ready denotes that the docker cluster (infrastructure)
+              description: Ready denotes that the baremetal cluster (infrastructure)
                 is ready.
               type: boolean
           required:

@@ -8,9 +8,13 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: BareMetalMachine
     plural: baremetalmachines
-  scope: ""
+  scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: BareMetalMachine is the Schema for the baremetalmachines API
@@ -18,20 +22,95 @@ spec:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
         spec:
           description: BareMetalMachineSpec defines the desired state of BareMetalMachine
+          properties:
+            hostSelector:
+              description: HostSelector specifies matching criteria for labels on
+                BareMetalHosts. This is used to limit the set of BareMetalHost objects
+                considered for claiming for a Machine.
+              properties:
+                matchExpressions:
+                  description: Label match expressions that must be true on a chosen
+                    BareMetalHost
+                  items:
+                    properties:
+                      key:
+                        type: string
+                      operator:
+                        description: Operator represents a key/field's relationship
+                          to value(s). See labels.Requirement and fields.Requirement
+                          for more details.
+                        type: string
+                      values:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - key
+                    - operator
+                    - values
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: Key/value pairs of labels that must exist on a chosen
+                    BareMetalHost
+                  type: object
+              type: object
+            image:
+              description: Image is the image to be provisioned.
+              properties:
+                checksum:
+                  description: Checksum is a md5sum value or a URL to retrieve one.
+                  type: string
+                url:
+                  description: URL is a location of an image to deploy.
+                  type: string
+              required:
+              - checksum
+              - url
+              type: object
+            providerID:
+              description: ProviderID will be the container name in ProviderID format
+                (baremetal:////<containername>)
+              type: string
+            userData:
+              description: UserData references the Secret that holds user data needed
+                by the bare metal operator. The Namespace is optional; it will default
+                to the Machine's namespace if not specified.
+              properties:
+                name:
+                  description: Name is unique within a namespace to reference a secret
+                    resource.
+                  type: string
+                namespace:
+                  description: Namespace defines the space within which the secret
+                    name must be unique.
+                  type: string
+              type: object
+          required:
+          - image
           type: object
         status:
           description: BareMetalMachineStatus defines the observed state of BareMetalMachine
+          properties:
+            ready:
+              description: Ready denotes that the machine (baremetal container) is
+                ready
+              type: boolean
+          required:
+          - ready
           type: object
       type: object
   version: v1alpha2

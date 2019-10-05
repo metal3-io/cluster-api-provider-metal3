@@ -1,0 +1,149 @@
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-0
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
+spec:
+  version: ${KUBERNETES_VERSION}
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: ${CLUSTER_NAME}-controlplane-0
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: BareMetalMachine
+    name: ${CLUSTER_NAME}-controlplane-0
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: BareMetalMachine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-0
+spec:
+  online: true
+  bmc:
+    address: libvirt://192.168.122.10:6233/
+    credentialsName: worker-0-bmc-secret
+  bootMACAddress: "00:1a:74:74:e5:cb"
+  image:
+    url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
+    checksum: "97830b21ed272a3d854615beb54cf004"
+  userData:
+    name: worker-user-data
+    namespace: openshift-machine-api
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-0
+spec:
+  initConfiguration:
+    nodeRegistration:
+      name: '{{ ds.meta_data.hostname }}'
+      kubeletExtraArgs:
+        cloud-provider: baremetal
+  clusterConfiguration:
+    apiServer:
+      extraArgs:
+        cloud-provider: baremetal
+    controllerManager:
+      extraArgs:
+        cloud-provider: baremetal
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-1
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
+spec:
+  version: ${KUBERNETES_VERSION}
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: ${CLUSTER_NAME}-controlplane-1
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: BareMetalMachine
+    name: ${CLUSTER_NAME}-controlplane-1
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: BareMetalMachine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-1
+spec:
+  online: true
+  bmc:
+    address: libvirt://192.168.122.11:6233/
+    credentialsName: worker-0-bmc-secret
+  bootMACAddress: "00:1a:74:74:e5:cb"
+  image:
+    url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
+    checksum: "97830b21ed272a3d854615beb54cf004"
+  userData:
+    name: worker-user-data
+    namespace: openshift-machine-api
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-1
+spec:
+  joinConfiguration:
+    controlPlane: {}
+    nodeRegistration:
+      name: '{{ ds.meta_data.hostname }}'
+      kubeletExtraArgs:
+        cloud-provider: baremetal
+---
+apiVersion: cluster.x-k8s.io/v1alpha2
+kind: Machine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-2
+  labels:
+    cluster.x-k8s.io/control-plane: "true"
+    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
+spec:
+  version: ${KUBERNETES_VERSION}
+  bootstrap:
+    configRef:
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      kind: KubeadmConfig
+      name: ${CLUSTER_NAME}-controlplane-2
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    kind: BareMetalMachine
+    name: ${CLUSTER_NAME}-controlplane-2
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+kind: BareMetalMachine
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-2
+spec:
+  online: true
+  bmc:
+    address: libvirt://192.168.122.12:6233/
+    credentialsName: worker-0-bmc-secret
+  bootMACAddress: "00:1a:74:74:e5:cb"
+  image:
+    url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
+    checksum: "97830b21ed272a3d854615beb54cf004"
+  userData:
+    name: worker-user-data
+    namespace: openshift-machine-api
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+kind: KubeadmConfig
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-2
+spec:
+  joinConfiguration:
+    controlPlane: {}
+    nodeRegistration:
+      name: '{{ ds.meta_data.hostname }}'
+      kubeletExtraArgs:
+        cloud-provider: baremetal

@@ -10,7 +10,7 @@ rules:
   - cluster.x-k8s.io
   resources:
   - clusters
-  - clusters/status
+  - machines
   verbs:
   - get
   - list
