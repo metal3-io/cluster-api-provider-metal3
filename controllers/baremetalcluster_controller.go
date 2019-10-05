@@ -1,4 +1,5 @@
 /*
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,73 +18,77 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha2"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
-	controllerName = "baremetalcluster-controller"
+	clusterControllerName = "BareMetalCluster-controller"
 )
 
 // BareMetalClusterReconciler reconciles a BareMetalCluster object
 type BareMetalClusterReconciler struct {
-	client.Client
-	Log logr.Logger
+	Client         client.Client
+	ManagerFactory baremetal.ManagerFactory
+	Log            logr.Logger
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=baremetalclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=baremetalclusters/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 
+// Reconcile reads that state of the cluster for a BareMetalCluster object and makes changes based on the state read
+// and what is in the BareMetalCluster.Spec
 func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	log := r.Log.WithName(controllerName).
-		WithName(fmt.Sprintf("namespace=%s", req.Namespace)).
-		WithName(fmt.Sprintf("bmCluster=%s", req.Name))
+	log := log.Log.WithName(clusterControllerName).WithValues("baremetal-cluster", req.NamespacedName)
 
 	// Fetch the BareMetalCluster instance
-	bmCluster := &infrav1.BareMetalCluster{}
-	err := r.Get(ctx, req.NamespacedName, bmCluster)
-	if err != nil {
+	baremetalCluster := &capbm.BareMetalCluster{}
+	if err := r.Client.Get(ctx, req.NamespacedName, baremetalCluster); err != nil {
 		if apierrors.IsNotFound(err) {
-			return reconcile.Result{}, nil
+			return ctrl.Result{}, nil
 		}
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
-
-	log = log.WithName(bmCluster.APIVersion)
 
 	// Fetch the Cluster.
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, bmCluster.ObjectMeta)
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, baremetalCluster.ObjectMeta)
 	if err != nil {
-		return reconcile.Result{}, err
+		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info("Cluster Controller has not yet set OwnerRef")
-		return reconcile.Result{}, nil
+		log.Info("Waiting for Cluster Controller to set OwnerRef on BareMetalCluster")
+		return ctrl.Result{}, nil
 	}
 
-	log = log.WithName(fmt.Sprintf("cluster=%s", cluster.Name))
+	log = log.WithValues("cluster", cluster.Name)
 
-	// TODO(awander): Add Baremetal Cluster Handling
+	// Create a helper for managing a baremetal container hosting the loadbalancer.
+	externalCluster, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalCluster")
+	}
 
 	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(bmCluster, r)
+	patchHelper, err := patch.NewHelper(baremetalCluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 	// Always attempt to Patch the BareMetalCluster object and status after each reconciliation.
 	defer func() {
-		if err := patchHelper.Patch(ctx, bmCluster); err != nil {
+		if err := patchHelper.Patch(ctx, baremetalCluster); err != nil {
 			log.Error(err, "failed to patch BareMetalCluster")
 			if rerr == nil {
 				rerr = err
@@ -92,37 +97,65 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	}()
 
 	// Handle deleted clusters
-	if !bmCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(bmCluster)
+	if !baremetalCluster.DeletionTimestamp.IsZero() {
+		return reconcileDelete(baremetalCluster, externalCluster)
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(bmCluster)
+	return reconcileNormal(baremetalCluster, externalCluster)
 }
 
-func reconcileNormal(bmCluster *infrav1.BareMetalCluster) (ctrl.Result, error) {
+func reconcileNormal(baremetalCluster *capbm.BareMetalCluster, externalCluster *baremetal.ClusterManager) (ctrl.Result, error) {
 	// If the BareMetalCluster doesn't have finalizer, add it.
-	if !util.Contains(bmCluster.Finalizers, infrav1.ClusterFinalizer) {
-		bmCluster.Finalizers = append(bmCluster.Finalizers, infrav1.ClusterFinalizer)
+	if !util.Contains(baremetalCluster.Finalizers, capbm.ClusterFinalizer) {
+		baremetalCluster.Finalizers = append(baremetalCluster.Finalizers, capbm.ClusterFinalizer)
 	}
 
-	// TODO(awander): Add Baremetal Cluster Handling
+	//Create the baremetal container hosting the load balancer
+	if err := externalCluster.Create(); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")
+	}
 
-	// Mark the bmCluster ready
-	bmCluster.Status.Ready = true
+	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
+	lbip4, err := externalCluster.IP()
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
+	}
+
+	baremetalCluster.Status.APIEndpoints = []capbm.APIEndpoint{
+		{
+			Host: lbip4,
+			// Port: loadbalancer.ControlPlanePort,
+		},
+	}
+
+	// Mark the baremetalCluster ready
+	baremetalCluster.Status.Ready = true
 
 	return ctrl.Result{}, nil
 }
 
-func reconcileDelete(bmCluster *infrav1.BareMetalCluster) (ctrl.Result, error) {
+func reconcileDelete(baremetalCluster *capbm.BareMetalCluster, externalCluster *baremetal.ClusterManager) (ctrl.Result, error) {
+	// Delete the baremetal container hosting the load balancer
+	if err := externalCluster.Delete(); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")
+	}
+
 	// Cluster is deleted so remove the finalizer.
-	bmCluster.Finalizers = util.Filter(bmCluster.Finalizers, infrav1.ClusterFinalizer)
+	baremetalCluster.Finalizers = util.Filter(baremetalCluster.Finalizers, capbm.ClusterFinalizer)
 
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager will add watches for this controller
 func (r *BareMetalClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1.BareMetalCluster{}).
+		For(&capbm.BareMetalCluster{}).
+		Watches(
+			&source.Kind{Type: &capi.Cluster{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: util.ClusterToInfrastructureMapFunc(capbm.GroupVersion.WithKind("BareMetalCluster")),
+			},
+		).
 		Complete(r)
 }

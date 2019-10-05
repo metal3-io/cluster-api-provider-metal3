@@ -1,4 +1,5 @@
 /*
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,6 +16,9 @@ limitations under the License.
 
 // Package v1alpha2 contains API Schema definitions for the infrastructure v1alpha2 API group
 // +kubebuilder:object:generate=true
+// +k8s:openapi-gen=true
+// +k8s:deepcopy-gen=package,register
+// +k8s:defaulter-gen=TypeMeta
 // +groupName=infrastructure.cluster.x-k8s.io
 package v1alpha2
 
@@ -32,4 +36,12 @@ var (
 
 	// AddToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = SchemeBuilder.AddToScheme
+
+	// localSchemeBuilder is for automatically generated conversions
+	// localSchemeBuilder = SchemeBuilder.SchemeBuilder
 )
+
+// Resource is required by pkg/client/listers/...
+// func Resource(resource string) schema.GroupResource {
+//	return SchemeGroupVersion.WithResource(resource).GroupResource()
+// }

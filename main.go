@@ -1,4 +1,5 @@
 /*
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,63 +19,73 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
-	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha2"
-	"github.com/metal3-io/cluster-api-provider-baremetal/controllers"
+	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/klog"
+	"k8s.io/klog/klogr"
+	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
+	"sigs.k8s.io/cluster-api-provider-baremetal/controllers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
-
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	scheme   = runtime.NewScheme()
+	myscheme = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-
-	_ = infrav1.AddToScheme(scheme)
-	_ = clusterv1.AddToScheme(scheme)
-
+	_ = scheme.AddToScheme(myscheme)
+	_ = infrav1.AddToScheme(myscheme)
+	_ = clusterv1.AddToScheme(myscheme)
+	_ = bmoapis.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
+	klog.InitFlags(nil)
 	var metricsAddr string
 	var enableLeaderElection bool
+	var syncPeriod time.Duration
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
+		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.Logger(true))
+	ctrl.SetLogger(klogr.New())
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
+		Scheme:             myscheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
+		SyncPeriod:         &syncPeriod,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
-	if err = (&controllers.BareMetalMachineReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
+	if err := (&controllers.BareMetalMachineReconciler{
+		Client:         mgr.GetClient(),
+		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachine")
+		setupLog.Error(err, "unable to create controller", "controller", "reconciler")
 		os.Exit(1)
 	}
+
 	if err = (&controllers.BareMetalClusterReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("BareMetalCluster"),
+		Client:         mgr.GetClient(),
+		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalCluster"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BareMetalCluster")
 		os.Exit(1)

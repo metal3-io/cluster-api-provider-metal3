@@ -1,4 +1,5 @@
 /*
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -16,25 +17,30 @@ limitations under the License.
 package v1alpha2
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
-	// ClusterFinalizer allows ReconcileBareMetalCluster to clean up
-	// BareMetal resources associated with BareMetalCluster before
+	// ClusterFinalizer allows BareMetalClusterReconciler to clean up resources associated with BareMetalCluster before
 	// removing it from the apiserver.
-	ClusterFinalizer = "baremetalcluster.baremetal.cluster.k8s.io"
+	ClusterFinalizer = "baremetalcluster.infrastructure.cluster.x-k8s.io"
 )
 
-// BareMetalClusterSpec defines the desired state of BareMetalCluster
+// BareMetalClusterSpec defines the desired state of BareMetalCluster.
 type BareMetalClusterSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
+	// The name of the secret containing the openstack credentials
+	// +optional
+	CloudsSecret *corev1.SecretReference `json:"cloudsSecret"`
+
+	// The name of the cloud to use from the clouds secret
+	// +optional
+	CloudName string `json:"cloudName"`
 }
 
-// BareMetalClusterStatus defines the observed state of BareMetalCluster
+// BareMetalClusterStatus defines the observed state of BareMetalCluster.
 type BareMetalClusterStatus struct {
-	// Ready denotes that the docker cluster (infrastructure) is ready.
+	// Ready denotes that the baremetal cluster (infrastructure) is ready.
 	Ready bool `json:"ready"`
 
 	// APIEndpoints represents the endpoints to communicate with the control plane.
@@ -42,6 +48,10 @@ type BareMetalClusterStatus struct {
 	APIEndpoints []APIEndpoint `json:"apiEndpoints,omitempty"`
 }
 
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:resource:path=baremetalclusters,scope=Namespaced,categories=cluster-api
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 
 // BareMetalCluster is the Schema for the baremetalclusters API
@@ -60,15 +70,6 @@ type BareMetalClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []BareMetalCluster `json:"items"`
-}
-
-// APIEndpoint represents a reachable Kubernetes API endpoint.
-type APIEndpoint struct {
-	// Host is the hostname on which the API server is serving.
-	Host string `json:"host"`
-
-	// Port is the port on which the API server is serving.
-	Port int `json:"port"`
 }
 
 func init() {
