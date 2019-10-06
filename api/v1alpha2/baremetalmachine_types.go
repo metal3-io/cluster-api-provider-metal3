@@ -20,6 +20,7 @@ import (
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 )
 
 const (
@@ -66,7 +67,10 @@ func (s *BareMetalMachineSpec) IsValid() error {
 
 // BareMetalMachineStatus defines the observed state of BareMetalMachine
 type BareMetalMachineStatus struct {
-	// Ready denotes that the machine (baremetal container) is ready
+	capi.MachineStatus `json:",inline"`
+
+	// Ready is the state of the metal3.
+	// +optional
 	Ready bool `json:"ready"`
 }
 
@@ -76,7 +80,7 @@ type BareMetalMachineStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
-// +kubebuilder:printcolumn:name="Ready",type="boolean",JSONPath=".status.ready",description="Machine is Ready"
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="Machine is Ready"
 
 // BareMetalMachine is the Schema for the baremetalmachines API
 type BareMetalMachine struct {

@@ -29,12 +29,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-	_ "sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
 const (
@@ -50,7 +48,12 @@ type BareMetalMachineReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=baremetalmachines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=baremetalmachines/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;machines,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+
+// Add RBAC rules to access cluster-api resources
+// +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts/status,verbs=get;update;patch
 
 // Reconcile handles BareMetalMachine events
 func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
@@ -125,61 +128,54 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
 
-	// Initialize the patch helper
-	patchHelper, err := patch.NewHelper(capbmMachine, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	// Always attempt to Patch the BareMetalMachine object and status after each reconciliation.
+	// Always close the scope when exiting this function so we can persist any BareMetalMachine changes.
 	defer func() {
-		if err := patchHelper.Patch(ctx, capbmMachine); err != nil {
-			log.Error(err, "failed to patch BareMetalMachine")
-			if rerr == nil {
-				rerr = err
-			}
+		if err := machineMgr.Close(); err != nil && rerr == nil {
+			rerr = err
 		}
 	}()
 
 	// Handle deleted machines
 	if !capbmMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, capiMachine, capbmMachine, machineMgr, clusterMgr)
+		return r.reconcileDelete(ctx, machineMgr, clusterMgr)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, capiMachine, capbmMachine, machineMgr, clusterMgr, log)
+	return r.reconcileNormal(ctx, machineMgr, clusterMgr, log)
 }
 
 func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
-	capiMachine *capi.Machine, capbmMachine *capbm.BareMetalMachine, machineMgr *baremetal.MachineManager,
+	machineMgr *baremetal.MachineManager,
 	clusterMgr *baremetal.ClusterManager, log logr.Logger) (ctrl.Result, error) {
 	// If the BareMetalMachine doesn't have finalizer, add it.
-	if !util.Contains(capbmMachine.Finalizers, capbm.MachineFinalizer) {
-		capbmMachine.Finalizers = append(capbmMachine.Finalizers, capbm.MachineFinalizer)
+	if !util.Contains(machineMgr.BareMetalMachine.Finalizers, capbm.MachineFinalizer) {
+		machineMgr.BareMetalMachine.Finalizers = append(machineMgr.BareMetalMachine.Finalizers, capbm.MachineFinalizer)
+	}
+
+	if !machineMgr.Cluster.Status.InfrastructureReady {
+		log.Info("Cluster infrastructure is not ready yet")
+		return ctrl.Result{}, nil
 	}
 
 	// if the machine is already provisioned, return
-	if capbmMachine.Spec.ProviderID != nil {
-		return ctrl.Result{}, nil
-	}
+	// if machineMgr.BareMetalMachine.Spec.ProviderID != nil {
+	//	return ctrl.Result{}, nil
+	// }
 
 	// Make sure bootstrap data is available and populated.
-	if capiMachine.Spec.Bootstrap.Data == nil {
-		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
-		return ctrl.Result{}, nil
-	}
+	// if machineMgr.Machine.Spec.Bootstrap.Data == nil {
+	// 	log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+	// 	return ctrl.Result{}, nil
+	// }
 
 	//Create the baremetal container hosting the machine
-	//role := constants.WorkerNodeRoleValue
-	//if util.IsControlPlaneMachine(capiMachine) {
-	//		role = constants.ControlPlaneNodeRoleValue
-	//}
-
-	if err := machineMgr.Create(ctx); err != nil {
+	providerId, err := machineMgr.Create(ctx)
+	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker BareMetalMachine")
 	}
 
 	// if the machine is a control plane added, update the load balancer configuration
-	if util.IsControlPlaneMachine(capiMachine) {
+	if util.IsControlPlaneMachine(machineMgr.Machine) {
 		if err := clusterMgr.UpdateConfiguration(); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update BareMetalCluster.loadbalancer configuration")
 		}
@@ -188,50 +184,43 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	// exec bootstrap
 	// NB. this step is necessary to mimic the behaviour of cloud-init that is embedded in the base images
 	// for other cloud providers
-	if err := machineMgr.ExecBootstrap(*capiMachine.Spec.Bootstrap.Data); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to exec BareMetalMachine bootstrap")
-	}
+	// if err := machineMgr.ExecBootstrap(*machineMgr.Machine.Spec.Bootstrap.Data); err != nil {
+	//	return ctrl.Result{}, errors.Wrap(err, "failed to exec BareMetalMachine bootstrap")
+	// }
 
-	// Set the provider ID on the Kubernetes node corresponding to the baremetal host
-	// NB. this step is necessary because there is no a cloud controller for baremetal that executes this step
-	if err := machineMgr.SetNodeProviderID(); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
-	}
-
-	// Set ProviderID so the Cluster API Machine Controller can pull it
-	providerID := machineMgr.ProviderID()
-	capbmMachine.Spec.ProviderID = &providerID
+	// Make sure Spec.ProviderID is always set.
+	machineMgr.SetProviderID(fmt.Sprintf("metal3:////%s", providerId))
 
 	// Mark the capbmMachine ready
-	capbmMachine.Status.Ready = true
+	machineMgr.SetReady()
 
 	return ctrl.Result{}, nil
 }
 
-func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context, capiMachine *capi.Machine, capbmMachine *capbm.BareMetalMachine,
+func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr *baremetal.MachineManager, clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
 	// if the deleted machine is a control-plane node, exec kubeadm reset so the etcd member hosted
 	// on the machine gets removed in a controlled way
-	if util.IsControlPlaneMachine(capiMachine) {
+	if util.IsControlPlaneMachine(machineMgr.Machine) {
 		if err := machineMgr.KubeadmReset(); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to execute kubeadm reset")
 		}
 	}
 
 	// delete the machine
-	if err := machineMgr.Delete(ctx); err != nil {
+	if _, err := machineMgr.Delete(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalMachine")
 	}
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
-	if util.IsControlPlaneMachine(capiMachine) {
+	if util.IsControlPlaneMachine(machineMgr.Machine) {
 		if err := clusterMgr.UpdateConfiguration(); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update BareMetalCluster.loadbalancer configuration")
+			return ctrl.Result{}, errors.Wrap(err, "failed to update BareMetalCluster configuration")
 		}
 	}
 
 	// Machine is deleted so remove the finalizer.
-	capbmMachine.Finalizers = util.Filter(capbmMachine.Finalizers, capbm.MachineFinalizer)
+	machineMgr.BareMetalMachine.Finalizers = util.Filter(machineMgr.BareMetalMachine.Finalizers, capbm.MachineFinalizer)
 
 	return ctrl.Result{}, nil
 }

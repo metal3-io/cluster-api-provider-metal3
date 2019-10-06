@@ -22,13 +22,12 @@ require (
 	k8s.io/apimachinery v0.0.0
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/klog v1.0.0
+	k8s.io/utils v0.0.0-20190809000727-6c36bc71fc4a
 	sigs.k8s.io/cluster-api v0.2.3
 	sigs.k8s.io/controller-runtime v0.2.2
 	sigs.k8s.io/kind v0.5.1
-	sigs.k8s.io/yaml v1.1.0
 )
 
-// replace gopkg.in/fsnotify.v1 v1.4.7 => github.com/fsnotify/fsnotify v1.4.7
 replace (
 	k8s.io/api => k8s.io/api v0.0.0-20191003000013-35e20aa79eb8
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20191003002041-49e3d608220c
