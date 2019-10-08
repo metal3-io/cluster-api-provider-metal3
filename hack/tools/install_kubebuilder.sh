@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+[[ -f bin/kubebuilder ]] && exit 0
+
 version=2.0.1
 arch=amd64
 
