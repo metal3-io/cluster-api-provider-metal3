@@ -20,3 +20,8 @@ For more information about this actuator and related repositories, see
 
 See the [API Documentation](docs/api.md) for details about the `providerSpec`
 API used with this `cluster-api` provider.
+
+## Run locally
+
+    kubectl scale -n capbm-system deployment.v1.apps/capbm-controller-manager --replicas 0
+    make run

@@ -241,7 +241,7 @@ docker-push-manifest: ## Push the fat manifest docker image.
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/default/manager_image_patch.yaml
-	
+
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
@@ -264,7 +264,7 @@ unit: manifests
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet
-	go run ./cmd/manager/main.go
+	go run ./main.go
 
 # Install CRDs into a cluster
 install: manifests
@@ -294,7 +294,7 @@ release: clean-release  ## Builds and push container images using the latest git
 	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image
 	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
-		
+
 	$(MAKE) release-manifests
 	$(MAKE) release-binaries
 
@@ -429,5 +429,3 @@ verify-modules: modules
 	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
 		echo "go module files are out of date"; exit 1; \
 	fi
-
-
