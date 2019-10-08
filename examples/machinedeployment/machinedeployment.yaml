@@ -35,17 +35,9 @@ metadata:
 spec:
   template:
     spec:
-      online: false
-      bmc:
-        address: libvirt://192.255.255.255:6233/
-        credentialsName: worker-0-bmc-secret
-      bootMACAddress: "00:00:00:00:00:00"
       image:
         url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
         checksum: "97830b21ed272a3d854615beb54cf004"
-      userData:
-        name: worker-user-data
-        namespace: openshift-machine-api
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
 kind: KubeadmConfigTemplate
