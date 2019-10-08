@@ -197,6 +197,13 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 generate-examples: clean-examples ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
 
+apply-examples: generate-examples
+	kubectl apply -f ./examples/_out/provider-components.yaml
+	kubectl apply -f ./examples/_out/metal3plane.yaml
+	kubectl apply -f ./examples/_out/cluster.yaml
+	kubectl apply -f ./examples/_out/machinedeployment.yaml
+	kubectl apply -f ./examples/_out/controlplane.yaml
+
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
