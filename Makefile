@@ -141,11 +141,11 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 
 # Run go fmt against code
 fmt:
-	go fmt ./api/... ./controllers/... .
+	go fmt ./api/... ./controllers/... ./baremetal/... .
 
 # Run go vet against code
 vet:
-	go vet ./api/... ./controllers/... .
+	go vet ./api/... ./controllers/... ./baremetal/... .
 
 
 ## --------------------------------------
@@ -275,11 +275,16 @@ run: generate fmt vet
 
 # Install CRDs into a cluster
 install: manifests
-	kubectl apply -f config/crds
+	kubectl apply -k config/crd
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests
-	cat provider-components.yaml | kubectl apply -f -
+deploy: manifests deploy-capi
+	kubectl apply -f examples/provider-components/provider-components-baremetal.yaml
+
+# Deploy CAPI controllers in the configured Kubernetes cluster in ~/.kube/config
+deploy-capi: manifests
+	kubectl apply -f examples/provider-components/provider-components-cluster-api.yaml
+	kubectl apply -f examples/provider-components/provider-components-kubeadm.yaml
 
 ## --------------------------------------
 ## Release

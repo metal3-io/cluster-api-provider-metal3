@@ -23,5 +23,10 @@ API used with this `cluster-api` provider.
 
 ## Run locally
 
-    kubectl scale -n capbm-system deployment.v1.apps/capbm-controller-manager --replicas 0
+    make deploy-capi
+    make install
     make run
+
+## Run in cluster
+
+    make deploy
