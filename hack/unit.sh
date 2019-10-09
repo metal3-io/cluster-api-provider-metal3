@@ -6,7 +6,7 @@ IS_CONTAINER=${IS_CONTAINER:-false}
 
 if [ "${IS_CONTAINER}" != "false" ]; then
   TOP_DIR="${1:-$(pwd)}"
-  cd /
+  cd
   "${TOP_DIR}"/tools/install_kustomize.sh
   "${TOP_DIR}"/tools/install_kubebuilder.sh
   mv kubebuilder /usr/local/.
