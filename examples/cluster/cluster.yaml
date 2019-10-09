@@ -19,7 +19,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
 kind: BareMetalCluster
 metadata:
   name: ${CLUSTER_NAME}
-spec:
-  cloudName: ${CLUSTER_NAME}
-  cloudsSecret:
-    name: cloud-config
+# spec:
+#   cloudName: ${CLUSTER_NAME}
+#   cloudsSecret:
+#     name: cloud-config
