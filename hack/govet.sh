@@ -6,7 +6,7 @@ IS_CONTAINER=${IS_CONTAINER:-false}
 
 if [ "${IS_CONTAINER}" != "false" ]; then
   TOP_DIR="${1:-.}"
-  go vet ${TOP_DIR}/pkg/... ${TOP_DIR}/cmd/...
+  go vet "${TOP_DIR}"/pkg/... "${TOP_DIR}"/cmd/...
 else
   podman run --rm \
     --env IS_CONTAINER=TRUE \
