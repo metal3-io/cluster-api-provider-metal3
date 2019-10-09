@@ -31,7 +31,8 @@ const (
 
 // BareMetalMachineSpec defines the desired state of BareMetalMachine
 type BareMetalMachineSpec struct {
-	// ProviderID will be the container name in ProviderID format (baremetal:////<containername>)
+	// ProviderID will be the baremetal machine in ProviderID format
+	// (baremetal:////<machinename>)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
@@ -70,6 +71,9 @@ type BareMetalMachineStatus struct {
 	capi.MachineStatus `json:",inline"`
 
 	// Ready is the state of the metal3.
+	// TODO : Document the variable :
+	// mhrivnak: " it would be good to document what this means, how to interpret
+	// it, under what circumstances the value changes, etc."
 	// +optional
 	Ready bool `json:"ready"`
 }

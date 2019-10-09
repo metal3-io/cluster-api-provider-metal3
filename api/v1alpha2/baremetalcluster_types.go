@@ -17,7 +17,6 @@ limitations under the License.
 package v1alpha2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,18 +28,14 @@ const (
 
 // BareMetalClusterSpec defines the desired state of BareMetalCluster.
 type BareMetalClusterSpec struct {
-	// The name of the secret containing the openstack credentials
-	// +optional
-	CloudsSecret *corev1.SecretReference `json:"cloudsSecret"`
-
-	// The name of the cloud to use from the clouds secret
-	// +optional
-	CloudName string `json:"cloudName"`
 }
 
 // BareMetalClusterStatus defines the observed state of BareMetalCluster.
 type BareMetalClusterStatus struct {
-	// Ready denotes that the baremetal cluster (infrastructure) is ready.
+	// Ready denotes that the baremetal cluster (infrastructure) is ready. In
+	// Baremetal case, it does not mean anything for now as no infrastructure
+	// steps need to be performed. Required by Cluster API. Set to True by the
+	// BaremetalCluster controller after creation.
 	Ready bool `json:"ready"`
 
 	// APIEndpoints represents the endpoints to communicate with the control plane.

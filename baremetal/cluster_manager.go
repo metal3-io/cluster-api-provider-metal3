@@ -1,5 +1,5 @@
 /*
-Copyright 2018 The Kubernetes Authors.
+Copyright 2019 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
 	}, nil
 }
 
-// Delete the docker containers hosting a loadbalancer for the cluster.
+// Delete function, no-op for now
 func (s *ClusterManager) Delete() error {
 	return nil
 }

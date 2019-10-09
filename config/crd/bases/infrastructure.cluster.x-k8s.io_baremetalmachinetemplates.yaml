@@ -90,8 +90,8 @@ spec:
                       - url
                       type: object
                     providerID:
-                      description: ProviderID will be the container name in ProviderID
-                        format (baremetal:////<containername>)
+                      description: ProviderID will be the baremetal machine in ProviderID
+                        format (baremetal:////<machinename>)
                       type: string
                     userData:
                       description: UserData references the Secret that holds user

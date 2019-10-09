@@ -75,13 +75,13 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	log = log.WithValues("cluster", cluster.Name)
 
-	// Create a helper for managing a baremetal container hosting the loadbalancer.
+	// Create a helper for managing a baremetal cluster.
 	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
 
-	// Always close the scope when exiting this function so we can persist any AWSMachine changes.
+	// Always close the scope when exiting this function so we can persist any BaremetalMachine changes.
 	defer func() {
 		if err := clusterMgr.Close(); err != nil && rerr == nil {
 			rerr = err
@@ -103,15 +103,15 @@ func reconcileNormal(clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) 
 		clusterMgr.BareMetalCluster.Finalizers = append(clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer)
 	}
 
-	//Create the baremetal container hosting the load balancer
+	//Create the baremetal cluster (no-op)
 	if err := clusterMgr.Create(); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")
+		return ctrl.Result{}, errors.Wrap(err, "failed to create the cluster")
 	}
 
-	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
+	// Set APIEndpoints so the Cluster API Cluster Controller can pull it
 	endpoints, err := clusterMgr.APIEndpoints()
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
+		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the API endpoint")
 	}
 
 	clusterMgr.BareMetalCluster.Status.APIEndpoints = endpoints
