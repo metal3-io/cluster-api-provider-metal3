@@ -1,0 +1,239 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  creationTimestamp: null
+  name: baremetalmachines.infrastructure.cluster.x-k8s.io
+spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.providerID
+    description: Provider ID
+    name: ProviderID
+    type: string
+  - JSONPath: .status.ready
+    description: Machine is Ready
+    name: Ready
+    type: string
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: BareMetalMachine
+    plural: baremetalmachines
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: BareMetalMachine is the Schema for the baremetalmachines API
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          type: object
+        spec:
+          description: BareMetalMachineSpec defines the desired state of BareMetalMachine
+          properties:
+            hostSelector:
+              description: HostSelector specifies matching criteria for labels on
+                BareMetalHosts. This is used to limit the set of BareMetalHost objects
+                considered for claiming for a Machine.
+              properties:
+                matchExpressions:
+                  description: Label match expressions that must be true on a chosen
+                    BareMetalHost
+                  items:
+                    properties:
+                      key:
+                        type: string
+                      operator:
+                        description: Operator represents a key/field's relationship
+                          to value(s). See labels.Requirement and fields.Requirement
+                          for more details.
+                        type: string
+                      values:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - key
+                    - operator
+                    - values
+                    type: object
+                  type: array
+                matchLabels:
+                  additionalProperties:
+                    type: string
+                  description: Key/value pairs of labels that must exist on a chosen
+                    BareMetalHost
+                  type: object
+              type: object
+            image:
+              description: Image is the image to be provisioned.
+              properties:
+                checksum:
+                  description: Checksum is a md5sum value or a URL to retrieve one.
+                  type: string
+                url:
+                  description: URL is a location of an image to deploy.
+                  type: string
+              required:
+              - checksum
+              - url
+              type: object
+            providerID:
+              description: ProviderID will be the baremetal machine in ProviderID
+                format (baremetal:////<machinename>)
+              type: string
+            userData:
+              description: UserData references the Secret that holds user data needed
+                by the bare metal operator. The Namespace is optional; it will default
+                to the Machine's namespace if not specified.
+              properties:
+                name:
+                  description: Name is unique within a namespace to reference a secret
+                    resource.
+                  type: string
+                namespace:
+                  description: Namespace defines the space within which the secret
+                    name must be unique.
+                  type: string
+              type: object
+          required:
+          - image
+          type: object
+        status:
+          description: BareMetalMachineStatus defines the observed state of BareMetalMachine
+          properties:
+            addresses:
+              description: Addresses is a list of addresses assigned to the machine.
+                This field is copied from the infrastructure provider reference.
+              items:
+                description: MachineAddress contains information for the node's address.
+                properties:
+                  address:
+                    description: The machine address.
+                    type: string
+                  type:
+                    description: Machine address type, one of Hostname, ExternalIP
+                      or InternalIP.
+                    type: string
+                required:
+                - address
+                - type
+                type: object
+              type: array
+            bootstrapReady:
+              description: BootstrapReady is the state of the bootstrap provider.
+              type: boolean
+            errorMessage:
+              description: "ErrorMessage will be set in the event that there is a
+                terminal problem reconciling the Machine and will contain a more verbose
+                string suitable for logging and human consumption. \n This field should
+                not be set for transitive errors that a controller faces that are
+                expected to be fixed automatically over time (like service outages),
+                but instead indicate that something is fundamentally wrong with the
+                Machine's spec or the configuration of the controller, and that manual
+                intervention is required. Examples of terminal errors would be invalid
+                combinations of settings in the spec, values that are unsupported
+                by the controller, or the responsible controller itself being critically
+                misconfigured. \n Any transient errors that occur during the reconciliation
+                of Machines can be added as events to the Machine object and/or logged
+                in the controller's output."
+              type: string
+            errorReason:
+              description: "ErrorReason will be set in the event that there is a terminal
+                problem reconciling the Machine and will contain a succinct value
+                suitable for machine interpretation. \n This field should not be set
+                for transitive errors that a controller faces that are expected to
+                be fixed automatically over time (like service outages), but instead
+                indicate that something is fundamentally wrong with the Machine's
+                spec or the configuration of the controller, and that manual intervention
+                is required. Examples of terminal errors would be invalid combinations
+                of settings in the spec, values that are unsupported by the controller,
+                or the responsible controller itself being critically misconfigured.
+                \n Any transient errors that occur during the reconciliation of Machines
+                can be added as events to the Machine object and/or logged in the
+                controller's output."
+              type: string
+            infrastructureReady:
+              description: InfrastructureReady is the state of the infrastructure
+                provider.
+              type: boolean
+            lastUpdated:
+              description: LastUpdated identifies when this status was last observed.
+              format: date-time
+              type: string
+            nodeRef:
+              description: NodeRef will point to the corresponding Node if it exists.
+              properties:
+                apiVersion:
+                  description: API version of the referent.
+                  type: string
+                fieldPath:
+                  description: 'If referring to a piece of an object instead of an
+                    entire object, this string should contain a valid JSON/Go field
+                    access statement, such as desiredState.manifest.containers[2].
+                    For example, if the object reference is to a container within
+                    a pod, this would take on a value like: "spec.containers{name}"
+                    (where "name" refers to the name of the container that triggered
+                    the event) or if no container name is specified "spec.containers[2]"
+                    (container with index 2 in this pod). This syntax is chosen only
+                    to have some well-defined way of referencing a part of an object.
+                    TODO: this design is not final and this field is subject to change
+                    in the future.'
+                  type: string
+                kind:
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                  type: string
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                  type: string
+                namespace:
+                  description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                  type: string
+                resourceVersion:
+                  description: 'Specific resourceVersion to which this reference is
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                  type: string
+                uid:
+                  description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                  type: string
+              type: object
+            phase:
+              description: Phase represents the current phase of machine actuation.
+                E.g. Pending, Running, Terminating, Failed etc.
+              type: string
+            ready:
+              description: 'Ready is the state of the metal3. TODO : Document the
+                variable : mhrivnak: " it would be good to document what this means,
+                how to interpret it, under what circumstances the value changes, etc."'
+              type: boolean
+            version:
+              description: Version specifies the current version of Kubernetes running
+                on the corresponding Node. This is meant to be a means of bubbling
+                up status from the Node to the Machine. It is entirely optional, but
+                useful for end-user UX if it’s present.
+              type: string
+          type: object
+      type: object
+  version: v1alpha2
+  versions:
+  - name: v1alpha2
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

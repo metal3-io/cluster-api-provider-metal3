@@ -20,3 +20,13 @@ For more information about this actuator and related repositories, see
 
 See the [API Documentation](docs/api.md) for details about the `providerSpec`
 API used with this `cluster-api` provider.
+
+## Run locally
+
+    make deploy-capi
+    make install
+    make run
+
+## Run in cluster
+
+    make deploy
