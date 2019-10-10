@@ -54,5 +54,5 @@ replace (
 	sigs.k8s.io/cluster-api => github.com/keleustes/cluster-api v1.16.1
 	sigs.k8s.io/cluster-api-bootstrap-provider-kubeadm => github.com/keleustes/cluster-api-bootstrap-provider-kubeadm v1.16.1
 	sigs.k8s.io/controller-runtime => github.com/keleustes/controller-runtime v1.16.1
-	sigs.k8s.io/kustomize/v3 => github.com/keleustes/kustomize/v3 v3.16.1
+	sigs.k8s.io/kustomize/v3 => github.com/keleustes/kustomize/v3 v3.16.4
 )
