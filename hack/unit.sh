@@ -3,6 +3,7 @@
 set -eux
 
 IS_CONTAINER=${IS_CONTAINER:-false}
+ARTIFACTS=${ARTIFACTS:-/tmp}
 
 if [ "${IS_CONTAINER}" != "false" ]; then
   eval "$(go env)"
