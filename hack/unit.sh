@@ -7,7 +7,7 @@ IS_CONTAINER=${IS_CONTAINER:-false}
 if [ "${IS_CONTAINER}" != "false" ]; then
   eval "$(go env)"
   cd "${GOPATH}"/src/github.com/metal3-io/cluster-api-provider-baremetal
-  go test ./pkg/... ./cmd/... -coverprofile /cover.out
+  go test ./pkg/... ./cmd/... -coverprofile "${ARTIFACTS}"/cover.out
 else
   podman run --rm \
     --env IS_CONTAINER=TRUE \
