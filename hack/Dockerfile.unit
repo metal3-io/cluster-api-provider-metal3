@@ -1,0 +1,14 @@
+FROM registry.access.redhat.com/ubi8/ubi
+
+RUN INSTALL_PKGS=" \
+      golang \
+      " && \
+    yum install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    yum clean all
+
+WORKDIR /tools
+COPY /tools /tools
+RUN ./install_kustomize.sh
+RUN ./install_kubebuilder.sh
+RUN mv kubebuilder /usr/local/.
