@@ -81,10 +81,6 @@ fi
 
 mkdir -p "${OUTPUT_DIR}"
 
-# Generate BAREMETAL Credentials.
-export SOME_CREDENTIALS="SOME_CREDENTIALS"
-export BAREMETAL_B64ENCODED_CREDENTIAL="$(echo -n "$SOME_CREDENTIALS" | base64 | tr -d '\n')"
-
 # Generate cluster resources.
 kustomize build "${SOURCE_DIR}/cluster" | envsubst > "${CLUSTER_GENERATED_FILE}"
 echo "Generated ${CLUSTER_GENERATED_FILE}"
@@ -118,4 +114,3 @@ echo "Generated ${COMPONENTS_BAREMETAL_GENERATED_FILE}"
 # Generate a single provider components file.
 kustomize build "${SOURCE_DIR}/provider-components" | envsubst > "${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"
-echo "WARNING: ${PROVIDER_COMPONENTS_GENERATED_FILE} includes BAREMETAL credentials"

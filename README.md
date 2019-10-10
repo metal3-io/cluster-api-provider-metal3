@@ -23,10 +23,14 @@ API used with this `cluster-api` provider.
 
 ## Run locally
 
+```sh
     make deploy-capi
     make install
     make run
+```
 
 ## Run in cluster
 
+```sh
     make deploy
+```

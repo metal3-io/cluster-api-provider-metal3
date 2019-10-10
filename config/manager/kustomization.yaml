@@ -6,10 +6,3 @@ resources:
 
 generatorOptions:
  disableNameSuffixHash: true
-
-secretGenerator:
-- name: manager-bootstrap-credentials
-  namespace: system
-  type: Opaque
-  envs:
-  - secrets.txt
