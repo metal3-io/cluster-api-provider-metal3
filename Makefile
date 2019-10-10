@@ -182,27 +182,14 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
-	# baremetal-operator v1 alpha1 is not compliant with kubernetes
-	# $(CONTROLLER_GEN) \
-	#	paths=github.com/metal3-io/baremetal-operator/pkg/apis/... \
-	#	crd:trivialVersions=true \
-	#	output:crd:dir=$(METAL3_CRD_ROOT) \
-	#	output:none
 	$(CONTROLLER_GEN) \
 		paths=./controllers/... \
 		output:rbac:dir=$(RBAC_ROOT) \
 		rbac:roleName=manager-role
 
 .PHONY: generate-examples
-generate-examples: clean-examples ## Generate examples configurations to run a cluster.
+generate-examples: manifests clean-examples ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
-
-apply-examples: generate-examples
-	kubectl apply -f ./examples/_out/provider-components.yaml
-	kubectl apply -f ./examples/_out/metal3plane.yaml
-	kubectl apply -f ./examples/_out/cluster.yaml
-	kubectl apply -f ./examples/_out/machinedeployment.yaml
-	kubectl apply -f ./examples/_out/controlplane.yaml
 
 ## --------------------------------------
 ## Docker
@@ -259,18 +246,19 @@ set-manifest-pull-policy:
 ## Deploying
 ## --------------------------------------
 
-manifests: generate-manifests
+manifests: generate-manifests $(KUSTOMIZE)
 	$(KUSTOMIZE) build config/default \
 		-o examples/provider-components/provider-components-baremetal.yaml
 	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/config/default/?ref=master" \
 		-o examples/provider-components/provider-components-kubeadm.yaml
 	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=master" \
 		-o examples/provider-components/provider-components-cluster-api.yaml
+
 unit: manifests
 	go test ./api/... ./controllers/... -coverprofile cover.out
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet
+run: generate fmt vet install
 	go run ./main.go
 
 # Install CRDs into a cluster
@@ -278,13 +266,14 @@ install: manifests
 	kubectl apply -k config/crd
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests deploy-capi
-	kubectl apply -f examples/provider-components/provider-components-baremetal.yaml
+deploy: manifests generate-examples
+	kubectl apply -f examples/_out/provider-components.yaml
 
-# Deploy CAPI controllers in the configured Kubernetes cluster in ~/.kube/config
-deploy-capi: manifests
-	kubectl apply -f examples/provider-components/provider-components-cluster-api.yaml
-	kubectl apply -f examples/provider-components/provider-components-kubeadm.yaml
+deploy-examples: generate-examples
+	kubectl apply -f ./examples/_out/metal3plane.yaml
+	kubectl apply -f ./examples/_out/cluster.yaml
+	kubectl apply -f ./examples/_out/machinedeployment.yaml
+	kubectl apply -f ./examples/_out/controlplane.yaml
 
 ## --------------------------------------
 ## Release
