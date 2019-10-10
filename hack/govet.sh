@@ -6,6 +6,7 @@ IS_CONTAINER=${IS_CONTAINER:-false}
 
 if [ "${IS_CONTAINER}" != "false" ]; then
   TOP_DIR="${1:-.}"
+  export XDG_CACHE_HOME="/tmp/.cache"
   go vet "${TOP_DIR}"/pkg/... "${TOP_DIR}"/cmd/...
 else
   podman run --rm \
