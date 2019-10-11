@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"log"
 	"math/rand"
@@ -194,6 +195,11 @@ func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
 		log.Printf("Machine %s already associated with host %s", mgr.Machine.Name, host.Name)
 	}
 
+	err = mgr.mergeUserData(ctx)
+	if err != nil {
+		return providerId, err
+	}
+
 	providerId = host.Name
 	err = mgr.setHostSpec(ctx, host)
 	if err != nil {
@@ -213,6 +219,59 @@ func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
 	return providerId, nil
 }
 
+// Merge the UserData from the machine and the user
+func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
+	if mgr.Machine.Spec.Bootstrap.Data != nil {
+		decodedUserDataBytes, err := base64.StdEncoding.DecodeString(*mgr.Machine.Spec.Bootstrap.Data)
+		decodedUserData := string(decodedUserDataBytes)
+		if err != nil {
+			return err
+		}
+
+		bootstrapSecret := &corev1.Secret{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Secret",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      mgr.Machine.Name + "-user-data",
+				Namespace: mgr.Machine.Namespace,
+			},
+			Data: map[string][]byte{
+				"userData": []byte(decodedUserData),
+			},
+			Type: "Opaque",
+		}
+
+		tmpBootstrapSecret := corev1.Secret{}
+		key := client.ObjectKey{
+			Name:      mgr.Machine.Name + "-user-data",
+			Namespace: mgr.Machine.Namespace,
+		}
+		err = mgr.client.Get(ctx, key, &tmpBootstrapSecret)
+		if errors.IsNotFound(err) {
+			// Create the secret with use data
+			err = mgr.client.Create(ctx, bootstrapSecret)
+		} else if err != nil {
+			return err
+		} else {
+			// Update the secret with use data
+			err = mgr.client.Update(ctx, bootstrapSecret)
+		}
+
+		if err != nil {
+			log.Println("Unable to create secret for bootstrap")
+			return err
+		}
+		mgr.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
+			Name:      mgr.Machine.Name + "-user-data",
+			Namespace: mgr.Machine.Namespace,
+		}
+
+	}
+	return nil
+}
+
 // Delete deletes a machine and is invoked by the Machine Controller
 func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 	log.Printf("Deleting machine %v .", mgr.Machine.Name)
@@ -222,6 +281,7 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 	if err != nil {
 		return providerId, err
 	}
+	log.Printf("Updating BaremetalHost %v", host.Name)
 	if host != nil && host.Spec.ConsumerRef != nil {
 		// don't remove the ConsumerRef if it references some other machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, mgr.Machine) {
@@ -244,9 +304,10 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 
 		waiting := true
 		switch host.Status.Provisioning.State {
+		// TODO? remove empty string that is the status without BMO running
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
-			bmh.StateReady, bmh.StateValidationError:
+			bmh.StateReady, bmh.StateValidationError, "":
 			// Host is not provisioned
 			waiting = false
 		case bmh.StateExternallyProvisioned:
@@ -262,6 +323,22 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 			if err != nil && !errors.IsNotFound(err) {
 				return providerId, err
 			}
+		}
+	}
+	log.Printf("Deleting User data secret for machine %v .", mgr.Machine.Name)
+	tmpBootstrapSecret := corev1.Secret{}
+	key := client.ObjectKey{
+		Name:      mgr.Machine.Name + "-user-data",
+		Namespace: mgr.Machine.Namespace,
+	}
+	err = mgr.client.Get(ctx, key, &tmpBootstrapSecret)
+	if err != nil && !errors.IsNotFound(err) {
+		return providerId, err
+	} else if err == nil {
+		// Delete the secret with use data
+		err = mgr.client.Delete(ctx, &tmpBootstrapSecret)
+		if err != nil {
+			return providerId, err
 		}
 	}
 	log.Printf("finished deleting machine %v.", mgr.Machine.Name)
@@ -334,7 +411,7 @@ func (mgr *MachineManager) GetKubeConfig() (string, error) {
 // that contains a reference to the host. Returns nil if not found. Assumes the
 // host is in the same namespace as the machine.
 func (mgr *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error) {
-	annotations := mgr.Machine.ObjectMeta.GetAnnotations()
+	annotations := mgr.BareMetalMachine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		return nil, nil
 	}
@@ -460,7 +537,8 @@ func (mgr *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalH
 	// A host with an existing image is already provisioned and
 	// upgrades are not supported at this time. To re-provision a
 	// host, we must fully deprovision it and then provision it again.
-	if host.Spec.Image == nil {
+	// Not provisioning while we do not have the UserData
+	if host.Spec.Image == nil && mgr.BareMetalMachine.Spec.UserData != nil {
 		host.Spec.Image = &bmh.Image{
 			URL:      mgr.BareMetalMachine.Spec.Image.URL,
 			Checksum: mgr.BareMetalMachine.Spec.Image.Checksum,
