@@ -88,6 +88,8 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		}
 	}()
 
+	log.Info("Reconciling BaremetalCluster")
+
 	// Handle deleted clusters
 	if !baremetalCluster.DeletionTimestamp.IsZero() {
 		return reconcileDelete(clusterMgr)

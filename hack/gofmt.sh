@@ -5,14 +5,14 @@ set -eux
 IS_CONTAINER=${IS_CONTAINER:-false}
 
 if [ "${IS_CONTAINER}" != "false" ]; then
-  TOP_DIR="${1:-.}"
-  go fmt "${TOP_DIR}"/pkg/... "${TOP_DIR}"/cmd/...
+  export XDG_CACHE_HOME=/tmp/.cache
+  make fmt
 else
   podman run --rm \
     --env IS_CONTAINER=TRUE \
-    --volume "${PWD}:/workdir:ro,z" \
+    --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-baremetal:ro,z" \
     --entrypoint sh \
-    --workdir /workdir \
+    --workdir /go/src/github.com/metal3-io/cluster-api-provider-baremetal \
     registry.hub.docker.com/library/golang:1.12 \
-    /workdir/hack/gofmt.sh "${@}"
+    /go/src/github.com/metal3-io/cluster-api-provider-baremetal/hack/gofmt.sh
 fi;
