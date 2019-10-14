@@ -28,6 +28,7 @@ const (
 
 // BareMetalClusterSpec defines the desired state of BareMetalCluster.
 type BareMetalClusterSpec struct {
+	APIEndpoint string `json:"apiEndpoint"`
 }
 
 // BareMetalClusterStatus defines the observed state of BareMetalCluster.
