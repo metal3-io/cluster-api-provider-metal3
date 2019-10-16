@@ -81,7 +81,7 @@ testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
 
 .PHONY: test
 test: testprereqs generate fmt lint ## Run tests
-	go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile /cover.out
+	go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile ./cover.out
 
 .PHONY: test-integration
 test-integration: ## Run integration tests

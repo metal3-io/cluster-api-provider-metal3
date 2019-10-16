@@ -7,10 +7,9 @@ IS_CONTAINER=${IS_CONTAINER:-false}
 if [ "${IS_CONTAINER}" != "false" ]; then
   #TODO Temporary hack : Remove after the image is fixed
   exit 0
-  mkdir /tmp/unit
-  cp -r ./* /tmp/unit
-  cd /tmp/unit
-  cp -r /usr/local/tools/bin ./hack/tools
+  export XDG_CACHE_HOME=/tmp/.cache
+  cp -r ./* /tmp/unittests
+  cd /tmp/unittests
   make test
 else
   podman run --rm \

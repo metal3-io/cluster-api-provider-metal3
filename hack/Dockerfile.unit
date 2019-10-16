@@ -1,6 +1,9 @@
 FROM registry.hub.docker.com/library/golang:1.12
 
-WORKDIR /usr/local/tools
-COPY /hack/tools /usr/local/tools
-RUN ./install_kustomize.sh
-RUN ./install_kubebuilder.sh
+WORKDIR /usr/local/kubebuilder
+COPY /hack/tools /usr/local/kubebuilder/
+RUN mkdir -p /tmp/unittests && \
+    mkdir -p /tmp/unittests/hack/tools && \
+    ./install_kustomize.sh && \
+    ./install_kubebuilder.sh && \
+    cp -r /usr/local/kubebuilder/bin /tmp/unittests/hack/tools
