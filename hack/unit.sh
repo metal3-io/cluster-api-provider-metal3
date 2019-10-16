@@ -5,11 +5,11 @@ set -eux
 IS_CONTAINER=${IS_CONTAINER:-false}
 
 if [ "${IS_CONTAINER}" != "false" ]; then
-  #TODO Temporary hack : Remove after the image is fixed
-  exit 0
   export XDG_CACHE_HOME=/tmp/.cache
-  cp -r ./* /tmp/unittests
-  cd /tmp/unittests
+  mkdir /tmp/unit
+  cp -r ./* /tmp/unit
+  cp -r /usr/local/kubebuilder/bin /tmp/unit/hack/tools
+  cd /tmp/unit
   make test
 else
   podman run --rm \
