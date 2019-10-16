@@ -10,7 +10,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   mkdir /tmp/unit
   cp -r ./* /tmp/unit
   cd /tmp/unit
-  cp -r /tools/bin ./hack/tools
+  cp -r /usr/local/tools/bin ./hack/tools
   make test
 else
   podman run --rm \
