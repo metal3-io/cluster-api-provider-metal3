@@ -1,6 +1,6 @@
 FROM registry.hub.docker.com/library/golang:1.12
 
-WORKDIR /tools
-COPY /hack/tools /tools
+WORKDIR /usr/local/tools
+COPY /hack/tools /usr/local/tools
 RUN ./install_kustomize.sh
 RUN ./install_kubebuilder.sh
