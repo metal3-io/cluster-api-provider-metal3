@@ -251,7 +251,7 @@ manifests: generate-manifests $(KUSTOMIZE)
 		-o examples/provider-components/provider-components-baremetal.yaml
 	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/config/default/?ref=master" \
 		-o examples/provider-components/provider-components-kubeadm.yaml
-	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=master" \
+	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=release-0.2" \
 		-o examples/provider-components/provider-components-cluster-api.yaml
 
 unit: manifests
