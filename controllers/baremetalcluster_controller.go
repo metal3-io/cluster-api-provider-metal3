@@ -25,9 +25,9 @@ import (
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -88,8 +88,8 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, baremetalCluster.ObjectMeta)
 	if err != nil {
 		error := capierrors.InvalidConfigurationClusterError
-		baremetalCluster.Status.ErrorReason = &error
-		baremetalCluster.Status.ErrorMessage = pointer.StringPtr("Unable to get owner cluster")
+		baremetalCluster.Status.FailureReason = &error
+		baremetalCluster.Status.FailureMessage = pointer.StringPtr("Unable to get owner cluster")
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {

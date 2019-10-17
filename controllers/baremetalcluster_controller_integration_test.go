@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -81,8 +81,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			}
 			if tc.ErrorReasonExpected {
 				_ = c.Get(context.TODO(), *getKey(baremetalClusterName), testclstr)
-				Expect(testclstr.Status.ErrorReason).NotTo(BeNil())
-				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.ErrorReason))
+				Expect(testclstr.Status.FailureReason).NotTo(BeNil())
+				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.FailureReason))
 			}
 		},
 		// Given cluster, but no baremetalcluster resource
@@ -125,8 +125,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), nil, nil),
 					newCluster(clusterName, nil, nil),
 				},
-				ErrorExpected:       true,
-				ErrorType:           &infrav1.APIEndPointError{},
+				ErrorExpected: true,
+				//ErrorType:           &infrav1.APIEndPointError{},
 				RequeueExpected:     false,
 				ErrorReasonExpected: true,
 				ErrorReason:         capierrors.InvalidConfigurationClusterError,

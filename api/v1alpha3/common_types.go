@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha3
 
 import (
 	"k8s.io/apimachinery/pkg/selection"
@@ -40,7 +40,6 @@ type HostSelector struct {
 	MatchExpressions []HostSelectorRequirement `json:"matchExpressions,omitempty"`
 }
 
-// HostSelectorRequirement struct
 type HostSelectorRequirement struct {
 	Key      string             `json:"key"`
 	Operator selection.Operator `json:"operator"`

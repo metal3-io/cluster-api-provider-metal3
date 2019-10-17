@@ -14,19 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha2
+package v1alpha3
 
 import (
 	"fmt"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
 const (
-	// MachineFinalizer allows ReconcileBareMetalMachine to clean up resources associated with BareMetalMachine before
+	// MachineFinalizer allows ReconcileBareMetalMachine to clean up resources associated with AWSMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "baremetalmachine.infrastructure.cluster.x-k8s.io"
 )
@@ -50,6 +49,10 @@ type BareMetalMachineSpec struct {
 	// This is used to limit the set of BareMetalHost objects considered for
 	// claiming for a BaremetalMachine.
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
+
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
@@ -75,26 +78,26 @@ type BareMetalMachineStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// ErrorReason will be set in the event that there is a terminal problem
+	// FailureReason will be set in the event that there is a terminal problem
 	// reconciling the BaremetalMachine and will contain a succinct value suitable
 	// for machine interpretation.
 	//
 	// This field should not be set for transitive errors that a controller
 	// faces that are expected to be fixed automatically over
 	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the BaremetalMachine's spec or the configuration
-	// of the controller, and that manual intervention is required. Examples
+	// fundamentally wrong with the BaremetalMachine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
 	// of terminal errors would be invalid combinations of settings in the
 	// spec, values that are unsupported by the controller, or the
 	// responsible controller itself being critically misconfigured.
 	//
-	// Any transient errors that occur during the reconciliation of
-	// BaremetalMachines can be added as events to the BaremetalMachine object
-	// and/or logged in the controller's output.
+	// Any transient errors that occur during the reconciliation of Machines
+	// can be added as events to the BaremetalMachine object and/or logged in the
+	// controller's output.
 	// +optional
-	ErrorReason *capierrors.MachineStatusError `json:"errorReason,omitempty"`
+	FailureReason *capierrors.MachineStatusError `json:"failureReason,omitempty"`
 
-	// ErrorMessage will be set in the event that there is a terminal problem
+	// FailureMessage will be set in the event that there is a terminal problem
 	// reconciling the BaremetalMachine and will contain a more verbose string suitable
 	// for logging and human consumption.
 	//
@@ -107,11 +110,11 @@ type BareMetalMachineStatus struct {
 	// spec, values that are unsupported by the controller, or the
 	// responsible controller itself being critically misconfigured.
 	//
-	// Any transient errors that occur during the reconciliation of
-	// BaremetalMachines can be added as events to the BaremetalMachine object
-	// and/or logged in the controller's output.
+	// Any transient errors that occur during the reconciliation of Machines
+	// can be added as events to the BaremetalMachine object and/or logged in the
+	// controller's output.
 	// +optional
-	ErrorMessage *string `json:"errorMessage,omitempty"`
+	FailureMessage *string `json:"failureMessage,omitempty"`
 
 	// Addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
@@ -132,13 +135,12 @@ type BareMetalMachineStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:path=baremetalmachines,scope=Namespaced,categories=cluster-api,shortName=bmm;bmmachine
+// +kubebuilder:resource:path=baremetalmachines,scope=Namespaced,categories=cluster-api
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
-// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="Machines current phase"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="BaremetalMachine is Ready"
-// +kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.errorReason",description="Most recent error"
 
 // BareMetalMachine is the Schema for the baremetalmachines API
 type BareMetalMachine struct {

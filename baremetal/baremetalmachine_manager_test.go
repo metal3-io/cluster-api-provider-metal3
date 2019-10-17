@@ -38,8 +38,8 @@ import (
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -353,20 +353,20 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 			machineMgr.setError("abc", capierrors.InvalidConfigurationMachineError)
 
-			Expect(*bmMachine.Status.ErrorReason).To(Equal(
+			Expect(*bmMachine.Status.FailureReason).To(Equal(
 				capierrors.InvalidConfigurationMachineError,
 			))
-			Expect(*bmMachine.Status.ErrorMessage).To(Equal("abc"))
+			Expect(*bmMachine.Status.FailureMessage).To(Equal("abc"))
 
 			machineMgr.clearError()
 
-			Expect(bmMachine.Status.ErrorReason).To(BeNil())
-			Expect(bmMachine.Status.ErrorMessage).To(BeNil())
+			Expect(bmMachine.Status.FailureReason).To(BeNil())
+			Expect(bmMachine.Status.FailureMessage).To(BeNil())
 		},
 		Entry("No errors", capbm.BareMetalMachine{}),
 		Entry("Overwrite existing error message", capbm.BareMetalMachine{
 			Status: capbm.BareMetalMachineStatus{
-				ErrorMessage: pointer.StringPtr("cba"),
+				FailureMessage: pointer.StringPtr("cba"),
 			},
 		}),
 	)

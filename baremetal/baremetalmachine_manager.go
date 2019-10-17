@@ -26,8 +26,6 @@ import (
 
 	// comment for go-lint
 	"github.com/go-logr/logr"
-	_ "github.com/go-logr/logr"
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -41,8 +39,8 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,7 +57,7 @@ const (
 	bmRoleNode         = "node"
 )
 
-// ClusterManagerInterface is an interface for a ClusterManager
+// MachineManagerInterface is an interface for a ClusterManager
 type MachineManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
@@ -630,17 +628,17 @@ func (m *MachineManager) HasAnnotation() bool {
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
 func (m *MachineManager) setError(message string, reason capierrors.MachineStatusError) {
-	m.BareMetalMachine.Status.ErrorMessage = &message
-	m.BareMetalMachine.Status.ErrorReason = &reason
+	m.BareMetalMachine.Status.FailureMessage = &message
+	m.BareMetalMachine.Status.FailureReason = &reason
 }
 
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
 // nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
 // machine was updated.
 func (m *MachineManager) clearError() {
-	if m.BareMetalMachine.Status.ErrorMessage != nil || m.BareMetalMachine.Status.ErrorReason != nil {
-		m.BareMetalMachine.Status.ErrorMessage = nil
-		m.BareMetalMachine.Status.ErrorReason = nil
+	if m.BareMetalMachine.Status.FailureMessage != nil || m.BareMetalMachine.Status.FailureReason != nil {
+		m.BareMetalMachine.Status.FailureMessage = nil
+		m.BareMetalMachine.Status.FailureReason = nil
 	}
 }
 

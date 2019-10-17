@@ -31,7 +31,7 @@ spec:
     description: Whether the host is online or not
     name: Online
     type: string
-  - JSONPath: .status.errorMessage
+  - JSONPath: .Status.FailureMessage
     description: Most recent error
     name: Error
     type: string

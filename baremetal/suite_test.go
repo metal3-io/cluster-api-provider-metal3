@@ -29,8 +29,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -85,7 +85,7 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 				Name:       baremetalClusterName,
 				Namespace:  namespaceName,
 				Kind:       "InfrastructureConfig",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
 			},
 		},
 		Status: clusterv1.ClusterStatus{

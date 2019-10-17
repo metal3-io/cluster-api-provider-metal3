@@ -21,8 +21,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"k8s.io/klog/klogr"
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
