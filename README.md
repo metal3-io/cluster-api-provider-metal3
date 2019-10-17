@@ -21,16 +21,39 @@ For more information about this actuator and related repositories, see
 See the [API Documentation](docs/api.md) for details about the `providerSpec`
 API used with this `cluster-api` provider.
 
-## Run locally
+## Deployment and examples
+
+### Deploy CAPBM CRDs
+
+Deploys CAPBM CRDs
 
 ```sh
-    make deploy-capi
     make install
-    make run
 ```
 
-## Run in cluster
+### Run locally
+
+Deploys CAPI, CABPK and CAPBM CRDs, runs CAPI and CABPK controllers in cluster
+and runs CAPBM controller locally
 
 ```sh
     make deploy
+    kubectl scale -n capbm-system deployment.v1.apps/capbm-controller-manager \
+      --replicas 0
+    make run
+```
+
+### Run in cluster
+
+Deploys CAPBM CRDs and controllers in cluster
+
+```sh
+    make deploy
+```
+
+### Deploy an example
+
+```sh
+    make deploy
+    make deploy-examples
 ```
