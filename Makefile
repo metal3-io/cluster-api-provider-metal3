@@ -264,6 +264,7 @@ run: generate fmt vet install
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -k config/crd
+	kubectl apply -k config/rbac
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests generate-examples
