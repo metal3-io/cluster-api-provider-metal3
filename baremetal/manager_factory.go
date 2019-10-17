@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ManagerFactory only contains a client
 type ManagerFactory struct {
 	client client.Client
 }

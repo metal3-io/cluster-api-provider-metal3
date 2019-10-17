@@ -170,7 +170,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	// }
 
 	//Create the baremetal container hosting the machine
-	providerId, err := machineMgr.Create(ctx)
+	providerID, err := machineMgr.Create(ctx)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker BareMetalMachine")
 	}
@@ -190,7 +190,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	// }
 
 	// Make sure Spec.ProviderID is always set.
-	machineMgr.SetProviderID(fmt.Sprintf("metal3:////%s", providerId))
+	machineMgr.SetProviderID(fmt.Sprintf("metal3:////%s", providerID))
 
 	// Mark the capbmMachine ready
 	machineMgr.SetReady()

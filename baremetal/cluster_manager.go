@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
+	// TODO Why blank import ?
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
@@ -78,7 +79,7 @@ func (s *ClusterManager) UpdateConfiguration() error {
 	return nil
 }
 
-// IP returns the cluster manager IP address
+// APIEndpoints returns the cluster manager IP address
 func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
 	return []capbm.APIEndpoint{
 		{
