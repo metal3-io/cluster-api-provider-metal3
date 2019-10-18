@@ -52,7 +52,7 @@ type BareMetalClusterReconciler struct {
 // and what is in the BareMetalCluster.Spec
 func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	log := log.Log.WithName(clusterControllerName).WithValues("baremetal-cluster", req.NamespacedName)
+	clusterLog := log.Log.WithName(clusterControllerName).WithValues("baremetal-cluster", req.NamespacedName)
 
 	// Fetch the BareMetalCluster instance
 	baremetalCluster := &capbm.BareMetalCluster{}
@@ -69,14 +69,14 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info("Waiting for Cluster Controller to set OwnerRef on BareMetalCluster")
+		clusterLog.Info("Waiting for Cluster Controller to set OwnerRef on BareMetalCluster")
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", cluster.Name)
+	clusterLog = clusterLog.WithValues("cluster", cluster.Name)
 
 	// Create a helper for managing a baremetal cluster.
-	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster)
+	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster, clusterLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
@@ -88,7 +88,7 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		}
 	}()
 
-	log.Info("Reconciling BaremetalCluster")
+	clusterMgr.Log.Info("Reconciling BaremetalCluster")
 
 	// Handle deleted clusters
 	if !baremetalCluster.DeletionTimestamp.IsZero() {

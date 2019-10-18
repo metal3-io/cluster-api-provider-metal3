@@ -17,11 +17,13 @@ limitations under the License.
 package baremetal
 
 import (
+	"github.com/go-logr/logr"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ManagerFactory only contains a client
 type ManagerFactory struct {
 	client client.Client
 }
@@ -32,12 +34,15 @@ func NewManagerFactory(client client.Client) ManagerFactory {
 }
 
 // NewClusterManager creates a new ClusterManager
-func (f ManagerFactory) NewClusterManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster) (*ClusterManager, error) {
-	return newClusterManager(f.client, capiCluster, capbmCluster)
+func (f ManagerFactory) NewClusterManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (*ClusterManager, error) {
+	return newClusterManager(f.client, capiCluster, capbmCluster, clusterLog)
 }
 
 // NewMachineManager creates a new MachineManager
-func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster,
-	capiMachine *capi.Machine, capbmMachine *capbm.BareMetalMachine) (*MachineManager, error) {
-	return newMachineManager(f.client, capiCluster, capbmCluster, capiMachine, capbmMachine)
+func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
+	capbmCluster *capbm.BareMetalCluster,
+	capiMachine *capi.Machine, capbmMachine *capbm.BareMetalMachine,
+	machineLog logr.Logger) (*MachineManager, error) {
+	return newMachineManager(f.client, capiCluster, capbmCluster, capiMachine,
+		capbmMachine, machineLog)
 }

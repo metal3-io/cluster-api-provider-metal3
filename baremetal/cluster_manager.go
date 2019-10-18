@@ -19,9 +19,10 @@ package baremetal
 import (
 	"context"
 
-	_ "github.com/go-logr/logr"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
+	// TODO Why blank import ?
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
@@ -37,13 +38,14 @@ type ClusterManager struct {
 
 	Cluster          *capi.Cluster
 	BareMetalCluster *capbm.BareMetalCluster
-	// log          logr.Logger
+	Log              logr.Logger
 	// name string
 }
 
 // newClusterManager returns a new helper for managing a cluster with a given name.
 func newClusterManager(client client.Client,
-	cluster *capi.Cluster, bareMetalCluster *capbm.BareMetalCluster) (*ClusterManager, error) {
+	cluster *capi.Cluster, bareMetalCluster *capbm.BareMetalCluster,
+	clusterLog logr.Logger) (*ClusterManager, error) {
 	if cluster == nil {
 		return nil, errors.New("Cluster is required when creating a ClusterManager")
 	}
@@ -62,6 +64,7 @@ func newClusterManager(client client.Client,
 
 		Cluster:          cluster,
 		BareMetalCluster: bareMetalCluster,
+		Log:              clusterLog,
 	}, nil
 }
 
@@ -76,7 +79,7 @@ func (s *ClusterManager) UpdateConfiguration() error {
 	return nil
 }
 
-// IP returns the cluster manager IP address
+// APIEndpoints returns the cluster manager IP address
 func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
 	return []capbm.APIEndpoint{
 		{

@@ -17,8 +17,10 @@ require (
 	go.uber.org/atomic v1.4.0 // indirect
 	go.uber.org/zap v1.10.0 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
+	golang.org/x/lint v0.0.0-20190930215403-16217165b5de // indirect
 	golang.org/x/net v0.0.0-20190812203447-cdfb69ac37fc
 	golang.org/x/sys v0.0.0-20190712062909-fae7ac547cb7 // indirect
+	golang.org/x/tools v0.0.0-20191017101817-846f856e7d71 // indirect
 	google.golang.org/appengine v1.6.1 // indirect
 	k8s.io/api v0.0.0
 	k8s.io/apimachinery v0.0.0

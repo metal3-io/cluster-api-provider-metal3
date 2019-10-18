@@ -59,7 +59,7 @@ type BareMetalMachineReconciler struct {
 // Reconcile handles BareMetalMachine events
 func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	log := r.Log.WithName(machineControllerName).WithValues("baremetal-machine", req.NamespacedName)
+	machineLog := r.Log.WithName(machineControllerName).WithValues("baremetal-machine", req.NamespacedName)
 
 	// Fetch the BareMetalMachine instance.
 	capbmMachine := &capbm.BareMetalMachine{}
@@ -76,28 +76,28 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, err
 	}
 	if capiMachine == nil {
-		log.Info("Waiting for Machine Controller to set OwnerRef on BareMetalMachine")
+		machineLog.Info("Waiting for Machine Controller to set OwnerRef on BareMetalMachine")
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("machine", capiMachine.Name)
+	machineLog = machineLog.WithValues("machine", capiMachine.Name)
 
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
-		log.Info("BareMetalMachine owner Machine is missing cluster label or cluster does not exist")
+		machineLog.Info("BareMetalMachine owner Machine is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
-		log.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", capi.MachineClusterLabelName))
+		machineLog.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", capi.MachineClusterLabelName))
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", cluster.Name)
+	machineLog = machineLog.WithValues("cluster", cluster.Name)
 
 	// Make sure infrastructure is ready
 	if !cluster.Status.InfrastructureReady {
-		log.Info("Waiting for BareMetalCluster Controller to create cluster infrastructure")
+		machineLog.Info("Waiting for BareMetalCluster Controller to create cluster infrastructure")
 		return ctrl.Result{}, nil
 	}
 
@@ -108,14 +108,14 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err := r.Client.Get(ctx, baremetalClusterName, baremetalCluster); err != nil {
-		log.Info("BareMetalCluster is not available yet")
+		machineLog.Info("BareMetalCluster is not available yet")
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("baremetal-cluster", baremetalCluster.Name)
+	machineLog = machineLog.WithValues("baremetal-cluster", baremetalCluster.Name)
 
 	// Create a helper for managing the baremetal container hosting the machine.
-	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, baremetalCluster, capiMachine, capbmMachine)
+	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, baremetalCluster, capiMachine, capbmMachine, machineLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the machineMgr")
 	}
@@ -124,7 +124,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
 	// baremetal load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
 	// updating the cluster load balancer configuration when control plane machines are added/removed
-	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster)
+	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster, machineLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
@@ -142,7 +142,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, machineMgr, clusterMgr, log)
+	return r.reconcileNormal(ctx, machineMgr, clusterMgr, machineLog)
 }
 
 func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
@@ -170,7 +170,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	// }
 
 	//Create the baremetal container hosting the machine
-	providerId, err := machineMgr.Create(ctx)
+	providerID, err := machineMgr.Create(ctx)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker BareMetalMachine")
 	}
@@ -190,7 +190,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	// }
 
 	// Make sure Spec.ProviderID is always set.
-	machineMgr.SetProviderID(fmt.Sprintf("metal3:////%s", providerId))
+	machineMgr.SetProviderID(fmt.Sprintf("metal3:////%s", providerID))
 
 	// Mark the capbmMachine ready
 	machineMgr.SetReady()
