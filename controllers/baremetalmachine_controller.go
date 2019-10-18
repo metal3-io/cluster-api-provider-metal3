@@ -50,6 +50,7 @@ type BareMetalMachineReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=baremetalmachines/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Add RBAC rules to access cluster-api resources
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;create;update;patch;delete
@@ -209,7 +210,12 @@ func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 
 	// delete the machine
 	if _, err := machineMgr.Delete(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalMachine")
+		switch err.(type) {
+		case *baremetal.RequeueAfterError:
+			return ctrl.Result{}, errors.Wrap(err, "Deprovisioning BaremetalHost, requeuing")
+		default:
+			return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalMachine")
+		}
 	}
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
