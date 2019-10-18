@@ -283,8 +283,9 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 	if err != nil {
 		return providerID, err
 	}
-	mgr.Log.Info("Updating host", "host", host.Name)
+
 	if host != nil && host.Spec.ConsumerRef != nil {
+		mgr.Log.Info("Updating host", "host", host.Name)
 		// don't remove the ConsumerRef if it references some other machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, mgr.Machine) {
 			mgr.Log.Info("host associated with another machine",
