@@ -202,7 +202,7 @@ func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
 		return providerID, err
 	}
 
-	providerID = host.Name
+	providerID = fmt.Sprintf("%v//%v", host.Namespace, host.Name)
 	err = mgr.setHostSpec(ctx, host)
 	if err != nil {
 		return providerID, err
@@ -293,7 +293,7 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 			return providerID, nil
 		}
 
-		providerID = host.Name
+		providerID = fmt.Sprintf("%v//%v", host.Namespace, host.Name)
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
 			host.Spec.Image = nil
 			host.Spec.Online = false
@@ -364,7 +364,7 @@ func (mgr *MachineManager) Update(ctx context.Context) (string, error) {
 		return providerID, fmt.Errorf("host not found for machine %s", mgr.Machine.Name)
 	}
 
-	providerID = host.Name
+	providerID = fmt.Sprintf("%v//%v", host.Namespace, host.Name)
 	err = mgr.ensureAnnotation(ctx, host)
 	if err != nil {
 		return providerID, err
