@@ -29,6 +29,14 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"net/url"
+	"strconv"
+)
+
+//Constant variables
+const (
+	APIEndpointPort = "6443"
 )
 
 // ClusterManager is responsible for performing machine reconciliation
@@ -81,10 +89,41 @@ func (s *ClusterManager) UpdateConfiguration() error {
 
 // APIEndpoints returns the cluster manager IP address
 func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
+	//Get IP address from spec, which gets it from posted cr yaml
+	// Once IP is handled, consider setting the port
+
+	endPoint := s.BareMetalCluster.Spec.APIEndpoint
+
+	// Parse
+	u, err := url.Parse(endPoint)
+	if err != nil {
+		s.Log.Error(err, "Unable to parse IP and PORT from the given url")
+	}
+
+	ip := u.Hostname()
+	p := u.Port()
+
+	// validate APIEndpoint
+	if ip == "" {
+		err := errors.New("APIEndpoint IP cannot be empty")
+		s.Log.Error(err, "Invalid IP of APIEndpoint")
+		return nil, err
+	}
+
+	if p == "" {
+		p = APIEndpointPort
+	}
+	port, err := strconv.Atoi(p)
+
+	if err != nil {
+		s.Log.Error(err, "Invalid Port")
+		return nil, err
+	}
+
 	return []capbm.APIEndpoint{
 		{
-			Host: "",
-			Port: 8080,
+			Host: ip,
+			Port: port,
 		},
 	}, nil
 }

@@ -23,3 +23,5 @@ metadata:
 #   cloudName: ${CLUSTER_NAME}
 #   cloudsSecret:
 #     name: cloud-config
+spec: 
+  apiEndpoint: "http://192.168.111.249:6443" # IP has to match in keepalived.conf
