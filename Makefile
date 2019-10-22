@@ -259,7 +259,7 @@ unit: manifests
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet install
-	go run ./main.go
+	go run ./main.go --enable-leader-election
 
 # Install CRDs into a cluster
 install: manifests

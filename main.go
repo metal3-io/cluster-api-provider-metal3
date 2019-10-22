@@ -71,6 +71,7 @@ func main() {
 		Scheme:             myscheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
+		LeaderElectionID:   "controller-leader-election-capbm",
 		SyncPeriod:         &syncPeriod,
 	})
 	if err != nil {
