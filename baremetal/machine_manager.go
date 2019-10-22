@@ -24,16 +24,16 @@ import (
 	"strings"
 	"time"
 
+	// comment for go-lint
 	"github.com/go-logr/logr"
-	pkgerrors "github.com/pkg/errors"
+	_ "github.com/go-logr/logr"
+	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	// TODO Why blank import ?
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/tools/cache"
@@ -49,6 +49,8 @@ import (
 )
 
 const (
+	// ProviderName is exported
+	ProviderName = "baremetal"
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
 	HostAnnotation = "metal3.io/BareMetalHost"
@@ -91,35 +93,35 @@ func newMachineManager(client client.Client,
 }
 
 // Name returns the BareMetalMachine name.
-func (mgr *MachineManager) Name() string {
-	return mgr.BareMetalMachine.Name
+func (m *MachineManager) Name() string {
+	return m.BareMetalMachine.Name
 }
 
 // Namespace returns the namespace name.
-func (mgr *MachineManager) Namespace() string {
-	return mgr.BareMetalMachine.Namespace
+func (m *MachineManager) Namespace() string {
+	return m.BareMetalMachine.Namespace
 }
 
 // IsControlPlane returns true if the machine is a control plane.
-func (mgr *MachineManager) IsControlPlane() bool {
-	return util.IsControlPlaneMachine(mgr.Machine)
+func (m *MachineManager) IsControlPlane() bool {
+	return util.IsControlPlaneMachine(m.Machine)
 }
 
 // Role returns the machine role from the labels.
-func (mgr *MachineManager) Role() string {
-	if util.IsControlPlaneMachine(mgr.Machine) {
+func (m *MachineManager) Role() string {
+	if util.IsControlPlaneMachine(m.Machine) {
 		return "control-plane"
 	}
 	return "node"
 }
 
 // GetProviderID return the provider identifier for this machine
-func (mgr *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
-	if mgr.BareMetalMachine.Spec.ProviderID != nil {
-		return mgr.BareMetalMachine.Spec.ProviderID, nil
+func (m *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
+	if m.BareMetalMachine.Spec.ProviderID != nil {
+		return m.BareMetalMachine.Spec.ProviderID, nil
 	}
 	// look for associated BMH
-	host, err := mgr.getHost(ctx)
+	host, err := m.getHost(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -136,98 +138,98 @@ func (mgr *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
 	}
 }
 
-// SetProviderID sets the docker provider ID for the kubernetes node
-func (mgr *MachineManager) SetProviderID(ctx context.Context, providerID *string) {
-	mgr.BareMetalMachine.Spec.ProviderID = providerID
+// SetProviderID sets the bare metal provider ID for the kubernetes node
+func (m *MachineManager) SetProviderID(ctx context.Context, providerID *string) {
+	m.BareMetalMachine.Spec.ProviderID = providerID
 }
 
 // SetReady sets the AzureMachine Ready Status
-func (mgr *MachineManager) SetReady() {
-	mgr.BareMetalMachine.Status.Ready = true
+func (m *MachineManager) SetReady() {
+	m.BareMetalMachine.Status.Ready = true
 }
 
 // SetAnnotation sets a key value annotation on the BareMetalMachine.
-func (mgr *MachineManager) SetAnnotation(key, value string) {
-	if mgr.BareMetalMachine.Annotations == nil {
-		mgr.BareMetalMachine.Annotations = map[string]string{}
+func (m *MachineManager) SetAnnotation(key, value string) {
+	if m.BareMetalMachine.Annotations == nil {
+		m.BareMetalMachine.Annotations = map[string]string{}
 	}
-	mgr.BareMetalMachine.Annotations[key] = value
+	m.BareMetalMachine.Annotations[key] = value
 }
 
 // Close the MachineManager by updating the machine spec, machine status.
-func (mgr *MachineManager) Close() error {
-	return mgr.patchHelper.Patch(context.TODO(), mgr.BareMetalMachine)
+func (m *MachineManager) Close() error {
+	return m.patchHelper.Patch(context.TODO(), m.BareMetalMachine)
 }
 
-// Create creates a machine and is invoked by the Machine Controller
-func (mgr *MachineManager) Associate(ctx context.Context) error {
-	mgr.Log.Info("Creating machine")
+// Associate associates a machine and is invoked by the Machine Controller
+func (m *MachineManager) Associate(ctx context.Context) error {
+	m.Log.Info("Associating machine", "machine", m.Machine.Name)
 
 	// load and validate the config
-	if mgr.BareMetalMachine == nil {
+	if m.BareMetalMachine == nil {
 		// Should have been picked earlier. Do not requeue
 		return nil
 	}
 
-	config := mgr.BareMetalMachine.Spec
+	config := m.BareMetalMachine.Spec
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
-		mgr.setError(ctx, err.Error())
+		m.setError(ctx, err.Error())
 		return nil
 	}
 
 	// clear an error if one was previously set
-	mgr.clearError(ctx)
+	m.clearError(ctx)
 
 	// look for associated BMH
-	host, err := mgr.getHost(ctx)
+	host, err := m.getHost(ctx)
 	if err != nil {
 		return err
 	}
 
 	// none found, so try to choose one
 	if host == nil {
-		host, err = mgr.chooseHost(ctx)
+		host, err = m.chooseHost(ctx)
 		if err != nil {
 			return err
 		}
 		if host == nil {
-			mgr.Log.Info("No available host found. Requeuing.")
+			m.Log.Info("No available host found. Requeuing.")
 			return &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
-		mgr.Log.Info("Associating machine with host", "host", host.Name)
+		m.Log.Info("Associating machine with host", "host", host.Name)
 	} else {
-		mgr.Log.Info("Machine already associated with host", "host", host.Name)
+		m.Log.Info("Machine already associated with host", "host", host.Name)
 	}
 
-	err = mgr.mergeUserData(ctx)
+	err = m.mergeUserData(ctx)
 	if err != nil {
 		return err
 	}
 
-	err = mgr.setHostSpec(ctx, host)
+	err = m.setHostSpec(ctx, host)
 	if err != nil {
 		return err
 	}
 
-	err = mgr.ensureAnnotation(ctx, host)
+	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		return err
 	}
 
-	if err := mgr.updateMachineStatus(ctx, host); err != nil {
+	if err := m.updateMachineStatus(ctx, host); err != nil {
 		return err
 	}
 
-	mgr.Log.Info("Finished creating machine")
+	m.Log.Info("Finished creating machine")
 	return nil
 }
 
 // Merge the UserData from the machine and the user
-func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
-	if mgr.Machine.Spec.Bootstrap.Data != nil {
-		decodedUserDataBytes, err := base64.StdEncoding.DecodeString(*mgr.Machine.Spec.Bootstrap.Data)
+func (m *MachineManager) mergeUserData(ctx context.Context) error {
+	if m.Machine.Spec.Bootstrap.Data != nil {
+		decodedUserDataBytes, err := base64.StdEncoding.DecodeString(*m.Machine.Spec.Bootstrap.Data)
 		decodedUserData := string(decodedUserDataBytes)
 		if err != nil {
 			return err
@@ -239,8 +241,8 @@ func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      mgr.BareMetalMachine.Name + "-user-data",
-				Namespace: mgr.BareMetalMachine.Namespace,
+				Name:      m.BareMetalMachine.Name + "-user-data",
+				Namespace: m.BareMetalMachine.Namespace,
 			},
 			Data: map[string][]byte{
 				"userData": []byte(decodedUserData),
@@ -250,48 +252,47 @@ func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
 
 		tmpBootstrapSecret := corev1.Secret{}
 		key := client.ObjectKey{
-			Name:      mgr.BareMetalMachine.Name + "-user-data",
-			Namespace: mgr.BareMetalMachine.Namespace,
+			Name:      m.BareMetalMachine.Name + "-user-data",
+			Namespace: m.BareMetalMachine.Namespace,
 		}
-		err = mgr.client.Get(ctx, key, &tmpBootstrapSecret)
+		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
 		if errors.IsNotFound(err) {
-			// Create the secret with use data
-			err = mgr.client.Create(ctx, bootstrapSecret)
+			// Create the secret with user data
+			err = m.client.Create(ctx, bootstrapSecret)
 		} else if err != nil {
 			return err
 		} else {
-			// Update the secret with use data
-			err = mgr.client.Update(ctx, bootstrapSecret)
+			// Update the secret with user data
+			err = m.client.Update(ctx, bootstrapSecret)
 		}
 
 		if err != nil {
-			mgr.Log.Info("Unable to create secret for bootstrap")
+			m.Log.Info("Unable to create secret for bootstrap")
 			return err
 		}
-		mgr.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
-			Name:      mgr.BareMetalMachine.Name + "-user-data",
-			Namespace: mgr.BareMetalMachine.Namespace,
+		m.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
+			Name:      m.BareMetalMachine.Name + "-user-data",
+			Namespace: m.BareMetalMachine.Namespace,
 		}
 
 	}
 	return nil
 }
 
-// Delete deletes a machine and is invoked by the Machine Controller
-func (mgr *MachineManager) Delete(ctx context.Context) error {
-	mgr.Log.Info("Deleting machine")
+// Delete deletes a bare metal machine and is invoked by the Machine Controller
+func (m *MachineManager) Delete(ctx context.Context) error {
+	m.Log.Info("Deleting bare metal machine", "baremetalmachine", m.BareMetalMachine.Name)
 
-	host, err := mgr.getHost(ctx)
+	host, err := m.getHost(ctx)
 	if err != nil {
 		return err
 	}
 
 	if host != nil && host.Spec.ConsumerRef != nil {
-		mgr.Log.Info("Updating host", "host", host.Name)
-		// don't remove the ConsumerRef if it references some other machine
-		if !consumerRefMatches(host.Spec.ConsumerRef, mgr.Machine) {
-			mgr.Log.Info("host associated with another machine",
-				"host", host.Name)
+		// don't remove the ConsumerRef if it references some other bare metal machine
+		if !consumerRefMatches(host.Spec.ConsumerRef, m.Machine) {
+			m.Log.Info("host associated with another bare metal machine", "host",
+				host.Name)
 			return nil
 		}
 
@@ -299,7 +300,7 @@ func (mgr *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.Image = nil
 			host.Spec.Online = false
 			host.Spec.UserData = nil
-			err = mgr.client.Update(ctx, host)
+			err = m.client.Update(ctx, host)
 			if err != nil && !errors.IsNotFound(err) {
 				return err
 			}
@@ -322,73 +323,75 @@ func (mgr *MachineManager) Delete(ctx context.Context) error {
 		if waiting {
 			return &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
+
 		host.Spec.ConsumerRef = nil
-		err = mgr.client.Update(ctx, host)
+		err = m.client.Update(ctx, host)
 		if err != nil && !errors.IsNotFound(err) {
 			return err
 		}
 	}
-	mgr.Log.Info("Deleting User data secret for machine")
+
+	m.Log.Info("Deleting User data secret for machine")
 	tmpBootstrapSecret := corev1.Secret{}
 	key := client.ObjectKey{
-		Name:      mgr.BareMetalMachine.Name + "-user-data",
-		Namespace: mgr.BareMetalMachine.Namespace,
+		Name:      m.BareMetalMachine.Name + "-user-data",
+		Namespace: m.BareMetalMachine.Namespace,
 	}
-	err = mgr.client.Get(ctx, key, &tmpBootstrapSecret)
+	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	} else if err == nil {
 		// Delete the secret with use data
-		err = mgr.client.Delete(ctx, &tmpBootstrapSecret)
+		err = m.client.Delete(ctx, &tmpBootstrapSecret)
 		if err != nil {
 			return err
 		}
 	}
-	mgr.Log.Info("finished deleting machine")
+	m.Log.Info("finished deleting bare metal machine")
 	return nil
 }
 
 // Update updates a machine and is invoked by the Machine Controller
-func (mgr *MachineManager) Update(ctx context.Context) error {
-	mgr.Log.Info("Updating machine")
+func (m *MachineManager) Update(ctx context.Context) error {
+	m.Log.Info("Updating machine")
 
 	// clear any error message that was previously set. This method doesn't set
 	// error messages yet, so we know that it's incorrect to have one here.
-	mgr.clearError(ctx)
+	m.clearError(ctx)
 
-	host, err := mgr.getHost(ctx)
+	host, err := m.getHost(ctx)
 	if err != nil {
 		return err
 	}
 	if host == nil {
-		return fmt.Errorf("host not found for machine %s", mgr.Machine.Name)
+		return fmt.Errorf("host not found for machine %s", m.Machine.Name)
 	}
 
-	err = mgr.ensureAnnotation(ctx, host)
+	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		return err
 	}
 
-	if err := mgr.updateMachineStatus(ctx, host); err != nil {
+	if err := m.updateMachineStatus(ctx, host); err != nil {
 		return err
 	}
 
-	mgr.Log.Info("Finished updating machine")
+	m.Log.Info("Finished updating machine")
 	return nil
 }
 
-// Exists tests for the existence of a machine and is invoked by the Machine Controller
-func (mgr *MachineManager) Exists(ctx context.Context) (bool, error) {
-	mgr.Log.Info("Checking if machine exists.")
-	host, err := mgr.getHost(ctx)
+// Exists tests for the existence of a bare metal machine and is invoked by the Machine Controller
+func (m *MachineManager) Exists(ctx context.Context) (bool, error) {
+	m.Log.Info("Checking if machine exists.")
+	host, err := m.getHost(ctx)
 	if err != nil {
 		return false, err
 	}
 	if host == nil {
-		mgr.Log.Info("Machine does not exist.")
+		m.Log.Info("Machine does not exist.")
 		return false, nil
 	}
-	mgr.Log.Info("Machine exists.")
+	m.Log.Info("Machine exists.")
 	return true, nil
 }
 
@@ -397,22 +400,22 @@ func (mgr *MachineManager) Exists(ctx context.Context) (bool, error) {
 // (https://github.com/kubernetes-sigs/cluster-api/issues/160).
 
 // GetIP returns IP address of the machine in the cluster.
-func (mgr *MachineManager) GetIP() (string, error) {
-	mgr.Log.Info("Getting IP of machine")
+func (m *MachineManager) GetIP() (string, error) {
+	m.Log.Info("Getting IP of machine.")
 	return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
 // GetKubeConfig gets a kubeconfig from the running control plane.
-func (mgr *MachineManager) GetKubeConfig() (string, error) {
-	mgr.Log.Info("Getting Kubeconfig.")
+func (m *MachineManager) GetKubeConfig() (string, error) {
+	m.Log.Info("Getting Kubeconfig.")
 	return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
 // getHost gets the associated host by looking for an annotation on the machine
 // that contains a reference to the host. Returns nil if not found. Assumes the
 // host is in the same namespace as the machine.
-func (mgr *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error) {
-	annotations := mgr.BareMetalMachine.ObjectMeta.GetAnnotations()
+func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error) {
+	annotations := m.BareMetalMachine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		return nil, nil
 	}
@@ -422,7 +425,7 @@ func (mgr *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, err
 	}
 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
 	if err != nil {
-		mgr.Log.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+		m.Log.Error(err, "Error parsing annotation value", "annotation key", hostKey)
 		return nil, err
 	}
 
@@ -431,9 +434,9 @@ func (mgr *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, err
 		Name:      hostName,
 		Namespace: hostNamespace,
 	}
-	err = mgr.client.Get(ctx, key, &host)
+	err = m.client.Get(ctx, key, &host)
 	if errors.IsNotFound(err) {
-		mgr.Log.Info("Annotated host not found", "host", hostKey)
+		m.Log.Info("Annotated host not found", "host", hostKey)
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -442,17 +445,17 @@ func (mgr *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, err
 }
 
 // chooseHost iterates through known hosts and returns one that can be
-// associated with the machine. It searches all hosts in case one already has an
-// association with this machine.
-func (mgr *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, error) {
+// associated with the bare metal machine. It searches all hosts in case one already has an
+// association with this bare metal machine.
+func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, error) {
 
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
 	opts := &client.ListOptions{
-		Namespace: mgr.Machine.Namespace,
+		Namespace: m.Machine.Namespace,
 	}
 
-	err := mgr.client.List(ctx, &hosts, opts)
+	err := m.client.List(ctx, &hosts, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -461,23 +464,27 @@ func (mgr *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, 
 	// I think it's because we have a local cache of all BareMetalHosts.
 	labelSelector := labels.NewSelector()
 	var reqs labels.Requirements
-	for labelKey, labelVal := range mgr.BareMetalMachine.Spec.HostSelector.MatchLabels {
-		mgr.Log.Info("Adding requirement to match label", "label key", labelKey,
+
+	for labelKey, labelVal := range m.BareMetalMachine.Spec.HostSelector.MatchLabels {
+		m.Log.Info("Adding requirement to match label",
+			"label key", labelKey,
 			"label value", labelVal)
 		r, err := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
 		if err != nil {
-			mgr.Log.Error(err, "Failed to create MatchLabel requirement, not choosing host")
+			m.Log.Error(err, "Failed to create MatchLabel requirement, not choosing host")
 			return nil, err
 		}
 		reqs = append(reqs, *r)
 	}
-	for _, req := range mgr.BareMetalMachine.Spec.HostSelector.MatchExpressions {
-		mgr.Log.Info("Adding requirement to match label", "label key", req.Key,
-			"label operator", req.Operator, "label value", req.Values)
+	for _, req := range m.BareMetalMachine.Spec.HostSelector.MatchExpressions {
+		m.Log.Info("Adding requirement to match label",
+			"label key", req.Key,
+			"label operator", req.Operator,
+			"label value", req.Values)
 		lowercaseOperator := selection.Operator(strings.ToLower(string(req.Operator)))
 		r, err := labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
 		if err != nil {
-			mgr.Log.Error(err, "Failed to create MatchExpression requirement, not choosing host")
+			m.Log.Error(err, "Failed to create MatchExpression requirement, not choosing host")
 			return nil, err
 		}
 		reqs = append(reqs, *r)
@@ -489,17 +496,17 @@ func (mgr *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, 
 	for i, host := range hosts.Items {
 		if host.Available() {
 			if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
-				mgr.Log.Info("Host matched hostSelector for Machine", "host", host.Name)
+				m.Log.Info("Host matched hostSelector for BareMetalMachine", "host", host.Name)
 				availableHosts = append(availableHosts, &hosts.Items[i])
 			} else {
-				mgr.Log.Info("Host did not match hostSelector for Machine", "host", host.Name)
+				m.Log.Info("Host did not match hostSelector for BareMetalMachine", "host", host.Name)
 			}
-		} else if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, mgr.Machine) {
-			mgr.Log.Info("found host with existing ConsumerRef", "host", host.Name)
+		} else if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Machine) {
+			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
 			return &hosts.Items[i], nil
 		}
 	}
-	mgr.Log.Info(fmt.Sprintf("%d hosts available while choosing host for machine", len(availableHosts)))
+	m.Log.Info(fmt.Sprintf("%d hosts available while choosing host for bare metal machine", len(availableHosts)))
 	if len(availableHosts) == 0 {
 		return nil, nil
 	}
@@ -532,7 +539,7 @@ func consumerRefMatches(consumer *corev1.ObjectReference, machine *capi.Machine)
 // setHostSpec will ensure the host's Spec is set according to the machine's
 // details. It will then update the host via the kube API. If UserData does not
 // include a Namespace, it will default to the Machine's namespace.
-func (mgr *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHost) error {
+func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHost) error {
 
 	// We only want to update the image setting if the host does not
 	// already have an image.
@@ -541,38 +548,38 @@ func (mgr *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalH
 	// upgrades are not supported at this time. To re-provision a
 	// host, we must fully deprovision it and then provision it again.
 	// Not provisioning while we do not have the UserData
-	if host.Spec.Image == nil && mgr.BareMetalMachine.Spec.UserData != nil {
+	if host.Spec.Image == nil && m.BareMetalMachine.Spec.UserData != nil {
 		host.Spec.Image = &bmh.Image{
-			URL:      mgr.BareMetalMachine.Spec.Image.URL,
-			Checksum: mgr.BareMetalMachine.Spec.Image.Checksum,
+			URL:      m.BareMetalMachine.Spec.Image.URL,
+			Checksum: m.BareMetalMachine.Spec.Image.Checksum,
 		}
-		host.Spec.UserData = mgr.BareMetalMachine.Spec.UserData
+		host.Spec.UserData = m.BareMetalMachine.Spec.UserData
 		if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
-			host.Spec.UserData.Namespace = mgr.Machine.Namespace
+			host.Spec.UserData.Namespace = m.Machine.Namespace
 		}
 	}
 
 	host.Spec.ConsumerRef = &corev1.ObjectReference{
 		Kind:       "Machine",
-		Name:       mgr.Machine.Name,
-		Namespace:  mgr.Machine.Namespace,
-		APIVersion: mgr.Machine.APIVersion,
+		Name:       m.Machine.Name,
+		Namespace:  m.Machine.Namespace,
+		APIVersion: m.Machine.APIVersion,
 	}
 
 	host.Spec.Online = true
-	return mgr.client.Update(ctx, host)
+	return m.client.Update(ctx, host)
 }
 
 // ensureAnnotation makes sure the machine has an annotation that references the
 // host and uses the API to update the machine if necessary.
-func (mgr *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareMetalHost) error {
-	annotations := mgr.BareMetalMachine.ObjectMeta.GetAnnotations()
+func (m *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareMetalHost) error {
+	annotations := m.BareMetalMachine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
 	hostKey, err := cache.MetaNamespaceKeyFunc(host)
 	if err != nil {
-		mgr.Log.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+		m.Log.Error(err, "Error parsing annotation value", "annotation key", hostKey)
 		return err
 	}
 	existing, ok := annotations[HostAnnotation]
@@ -580,18 +587,18 @@ func (mgr *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareM
 		if existing == hostKey {
 			return nil
 		}
-		mgr.Log.Info("Warning: found stray annotation for host on machine. Overwriting.", "host", existing)
+		m.Log.Info("Warning: found stray annotation for host on machine. Overwriting.", "host", existing)
 	}
 	annotations[HostAnnotation] = hostKey
-	mgr.BareMetalMachine.ObjectMeta.SetAnnotations(annotations)
-	// Will be done by mgr.Close()
-	// return mgr.client.Update(ctx, mgr.BareMetalMachine)
+	m.BareMetalMachine.ObjectMeta.SetAnnotations(annotations)
+	// Will be done by m.Close()
+	//return m.client.Update(ctx, m.BareMetalMachine)
 	return nil
 }
 
-// hasAnnotation makes sure the machine has an annotation that references a host
-func (mgr *MachineManager) HasAnnotation() bool {
-	annotations := mgr.BareMetalMachine.ObjectMeta.GetAnnotations()
+// HasAnnotation makes sure the machine has an annotation that references a host
+func (m *MachineManager) HasAnnotation() bool {
+	annotations := m.BareMetalMachine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		return false
 	}
@@ -602,44 +609,44 @@ func (mgr *MachineManager) HasAnnotation() bool {
 // setError sets the ErrorMessage and ErrorReason fields on the machine and logs
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
-func (mgr *MachineManager) setError(ctx context.Context, message string) {
-	mgr.BareMetalMachine.Status.ErrorMessage = &message
+func (m *MachineManager) setError(ctx context.Context, message string) {
+	m.BareMetalMachine.Status.ErrorMessage = &message
 	reason := capierrors.InvalidConfigurationMachineError
-	mgr.BareMetalMachine.Status.ErrorReason = &reason
+	m.BareMetalMachine.Status.ErrorReason = &reason
 }
 
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
 // nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
 // machine was updated.
-func (mgr *MachineManager) clearError(ctx context.Context) {
-	if mgr.BareMetalMachine.Status.ErrorMessage != nil || mgr.BareMetalMachine.Status.ErrorReason != nil {
-		mgr.BareMetalMachine.Status.ErrorMessage = nil
-		mgr.BareMetalMachine.Status.ErrorReason = nil
+func (m *MachineManager) clearError(ctx context.Context) {
+	if m.BareMetalMachine.Status.ErrorMessage != nil || m.BareMetalMachine.Status.ErrorReason != nil {
+		m.BareMetalMachine.Status.ErrorMessage = nil
+		m.BareMetalMachine.Status.ErrorReason = nil
 	}
 }
 
 // updateMachineStatus updates a machine object's status.
-func (mgr *MachineManager) updateMachineStatus(ctx context.Context, host *bmh.BareMetalHost) error {
-	addrs := mgr.nodeAddresses(host)
+func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmh.BareMetalHost) error {
+	addrs := m.nodeAddresses(host)
 
-	machineCopy := mgr.BareMetalMachine.DeepCopy()
+	machineCopy := m.BareMetalMachine.DeepCopy()
 	machineCopy.Status.Addresses = addrs
 
-	if equality.Semantic.DeepEqual(mgr.Machine.Status, machineCopy.Status) {
+	if equality.Semantic.DeepEqual(m.Machine.Status, machineCopy.Status) {
 		// Status did not change
 		return nil
 	}
 
 	now := metav1.Now()
-	mgr.BareMetalMachine.Status.LastUpdated = &now
-	mgr.BareMetalMachine.Status.Addresses = addrs
+	m.BareMetalMachine.Status.LastUpdated = &now
+	m.BareMetalMachine.Status.Addresses = addrs
 
 	return nil
 }
 
 // NodeAddresses returns a slice of corev1.NodeAddress objects for a
 // given Baremetal machine.
-func (mgr *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAddress {
+func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAddress {
 	addrs := []capi.MachineAddress{}
 
 	// If the host is nil or we have no hw details, return an empty address array.
