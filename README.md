@@ -23,6 +23,14 @@ API used with this `cluster-api` provider.
 
 ## Deployment and examples
 
+### Deploy Baremetal Operator CRDs and CRs
+
+for testing purposes only, when Baremetal Operator is not deployed
+
+```sh
+    make deploy-bmo-cr
+```
+
 ### Deploy CAPBM CRDs
 
 Deploys CAPBM CRDs

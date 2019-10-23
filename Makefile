@@ -265,12 +265,16 @@ run: generate fmt vet install
 install: manifests
 	kubectl apply -k config/crd
 
+#Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
+deploy-bmo-cr: generate-examples
+	kubectl apply -f ./examples/_out/metal3crds.yaml
+	kubectl apply -f ./examples/_out/metal3plane.yaml
+
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: manifests generate-examples
 	kubectl apply -f examples/_out/provider-components.yaml
 
 deploy-examples: generate-examples
-	kubectl apply -f ./examples/_out/metal3plane.yaml
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml

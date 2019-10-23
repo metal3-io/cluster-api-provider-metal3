@@ -43,6 +43,7 @@ CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
 CONTROLPLANE_GENERATED_FILE=${OUTPUT_DIR}/controlplane.yaml
 MACHINEDEPLOYMENT_GENERATED_FILE=${OUTPUT_DIR}/machinedeployment.yaml
 METAL3PLANE_GENERATED_FILE=${OUTPUT_DIR}/metal3plane.yaml
+METAL3CRDS_GENERATED_FILE=${OUTPUT_DIR}/metal3crds.yaml
 
 # Overwrite flag.
 OVERWRITE=0
@@ -89,7 +90,11 @@ echo "Generated ${CLUSTER_GENERATED_FILE}"
 kustomize build "${SOURCE_DIR}/controlplane" | envsubst > "${CONTROLPLANE_GENERATED_FILE}"
 echo "Generated ${CONTROLPLANE_GENERATED_FILE}"
 
-# Generate metal3place resources.
+# Generate metal3crds resources.
+kustomize build "${SOURCE_DIR}/metal3crds" | envsubst > "${METAL3CRDS_GENERATED_FILE}"
+echo "Generated ${METAL3CRDS_GENERATED_FILE}"
+
+# Generate metal3plane resources.
 kustomize build "${SOURCE_DIR}/metal3plane" | envsubst > "${METAL3PLANE_GENERATED_FILE}"
 echo "Generated ${METAL3PLANE_GENERATED_FILE}"
 
