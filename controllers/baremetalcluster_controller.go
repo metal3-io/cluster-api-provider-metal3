@@ -96,30 +96,24 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(clusterMgr)
+	return reconcileNormal(ctx, clusterMgr)
 }
 
-func reconcileNormal(clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
+func reconcileNormal(ctx context.Context, clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
 	// If the BareMetalCluster doesn't have finalizer, add it.
 	if !util.Contains(clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer) {
 		clusterMgr.BareMetalCluster.Finalizers = append(clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer)
 	}
 
 	//Create the baremetal cluster (no-op)
-	if err := clusterMgr.Create(); err != nil {
+	if err := clusterMgr.Create(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to create the cluster")
 	}
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull it
-	endpoints, err := clusterMgr.APIEndpoints()
-	if err != nil {
+	if err := clusterMgr.UpdateClusterStatus(); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the API endpoint")
 	}
-
-	clusterMgr.BareMetalCluster.Status.APIEndpoints = endpoints
-
-	// Mark the baremetalCluster ready
-	clusterMgr.BareMetalCluster.Status.Ready = true
 
 	return ctrl.Result{}, nil
 }

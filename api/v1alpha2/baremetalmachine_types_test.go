@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func TestSpecIsValid(t *testing.T) {
+func TestMachineSpecIsValid(t *testing.T) {
 	cases := []struct {
 		Spec          BareMetalMachineSpec
 		ErrorExpected bool
