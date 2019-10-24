@@ -7,7 +7,6 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_baremetalclusters.yaml
 - bases/infrastructure.cluster.x-k8s.io_baremetalmachines.yaml
 - bases/infrastructure.cluster.x-k8s.io_baremetalmachinetemplates.yaml
-- metal3/metal3.io_baremetalhosts.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 #patches:
