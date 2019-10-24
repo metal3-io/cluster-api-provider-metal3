@@ -144,16 +144,6 @@ func (mgr *MachineManager) Close() error {
 	return mgr.patchHelper.Patch(context.TODO(), mgr.BareMetalMachine)
 }
 
-// ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`
-func (mgr *MachineManager) ExecBootstrap(data string) error {
-	return nil
-}
-
-// KubeadmReset will run `kubeadm reset` on the machine.
-func (mgr *MachineManager) KubeadmReset() error {
-	return nil
-}
-
 // Create creates a machine and is invoked by the Machine Controller
 func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
 	mgr.Log.Info("Creating machine")
