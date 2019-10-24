@@ -25,8 +25,11 @@ import (
 	// TODO Why blank import ?
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -77,8 +80,19 @@ func newClusterManager(client client.Client,
 }
 
 // Create creates a docker container hosting a cluster manager for the cluster.
-func (s *ClusterManager) Create() error {
-	// Create if not exists.
+func (s *ClusterManager) Create(ctx context.Context) error {
+
+	config := s.BareMetalCluster.Spec
+	err := config.IsValid()
+	if err != nil {
+		// Should have been picked earlier. Do not requeue
+		s.setError(ctx, err.Error())
+		return err
+	}
+
+	// clear an error if one was previously set
+	s.clearError(ctx)
+
 	return nil
 }
 
@@ -131,6 +145,48 @@ func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
 // Delete function, no-op for now
 func (s *ClusterManager) Delete() error {
 	return nil
+}
+
+// updateMachineStatus updates a machine object's status.
+func (s *ClusterManager) UpdateClusterStatus() error {
+
+	// Get APIEndpoints from  BaremetalCluster Spec
+	endpoints, err := s.APIEndpoints()
+	if err != nil {
+		return err
+	}
+
+	if equality.Semantic.DeepEqual(s.BareMetalCluster.Status.APIEndpoints, endpoints) {
+		// Endpoints did not change
+		return nil
+	}
+
+	s.BareMetalCluster.Status.APIEndpoints = endpoints
+	// Mark the baremetalCluster ready
+	s.BareMetalCluster.Status.Ready = true
+	now := metav1.Now()
+	s.BareMetalCluster.Status.LastUpdated = &now
+
+	return nil
+}
+
+// setError sets the ErrorMessage and ErrorReason fields on the machine and logs
+// the message. It assumes the reason is invalid configuration, since that is
+// currently the only relevant MachineStatusError choice.
+func (s *ClusterManager) setError(ctx context.Context, message string) {
+	s.BareMetalCluster.Status.ErrorMessage = &message
+	reason := capierrors.InvalidConfigurationClusterError
+	s.BareMetalCluster.Status.ErrorReason = &reason
+}
+
+// clearError removes the ErrorMessage from the machine's Status if set. Returns
+// nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
+// machine was updated.
+func (s *ClusterManager) clearError(ctx context.Context) {
+	if s.BareMetalCluster.Status.ErrorMessage != nil || s.BareMetalCluster.Status.ErrorReason != nil {
+		s.BareMetalCluster.Status.ErrorMessage = nil
+		s.BareMetalCluster.Status.ErrorReason = nil
+	}
 }
 
 // Close closes the current scope persisting the cluster configuration and status.

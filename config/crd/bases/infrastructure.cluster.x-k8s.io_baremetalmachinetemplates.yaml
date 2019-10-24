@@ -44,7 +44,7 @@ spec:
                     hostSelector:
                       description: HostSelector specifies matching criteria for labels
                         on BareMetalHosts. This is used to limit the set of BareMetalHost
-                        objects considered for claiming for a Machine.
+                        objects considered for claiming for a BaremetalMachine.
                       properties:
                         matchExpressions:
                           description: Label match expressions that must be true on
@@ -96,7 +96,8 @@ spec:
                     userData:
                       description: UserData references the Secret that holds user
                         data needed by the bare metal operator. The Namespace is optional;
-                        it will default to the Machine's namespace if not specified.
+                        it will default to the BaremetalMachine's namespace if not
+                        specified.
                       properties:
                         name:
                           description: Name is unique within a namespace to reference
