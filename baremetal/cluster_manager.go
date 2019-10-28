@@ -96,11 +96,6 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 	return nil
 }
 
-// UpdateConfiguration updates the external cluster manager configuration with new control plane nodes.
-func (s *ClusterManager) UpdateConfiguration() error {
-	return nil
-}
-
 // APIEndpoints returns the cluster manager IP address
 func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
 	//Get IP address from spec, which gets it from posted cr yaml

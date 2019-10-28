@@ -175,20 +175,6 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, errors.Wrap(err, "failed to create worker BareMetalMachine")
 	}
 
-	// if the machine is a control plane added, update the load balancer configuration
-	if util.IsControlPlaneMachine(machineMgr.Machine) {
-		if err := clusterMgr.UpdateConfiguration(); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update BareMetalCluster.loadbalancer configuration")
-		}
-	}
-
-	// exec bootstrap
-	// NB. this step is necessary to mimic the behaviour of cloud-init that is embedded in the base images
-	// for other cloud providers
-	// if err := machineMgr.ExecBootstrap(*machineMgr.Machine.Spec.Bootstrap.Data); err != nil {
-	//	return ctrl.Result{}, errors.Wrap(err, "failed to exec BareMetalMachine bootstrap")
-	// }
-
 	// Make sure Spec.ProviderID is always set.
 	machineMgr.SetProviderID(fmt.Sprintf("metal3:////%s", providerID))
 
@@ -200,13 +186,6 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 
 func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr *baremetal.MachineManager, clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
-	// if the deleted machine is a control-plane node, exec kubeadm reset so the etcd member hosted
-	// on the machine gets removed in a controlled way
-	if util.IsControlPlaneMachine(machineMgr.Machine) {
-		if err := machineMgr.KubeadmReset(); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to execute kubeadm reset")
-		}
-	}
 
 	// delete the machine
 	if _, err := machineMgr.Delete(ctx); err != nil {
@@ -215,13 +194,6 @@ func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 			return ctrl.Result{}, errors.Wrap(err, "Deprovisioning BaremetalHost, requeuing")
 		default:
 			return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalMachine")
-		}
-	}
-
-	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
-	if util.IsControlPlaneMachine(machineMgr.Machine) {
-		if err := clusterMgr.UpdateConfiguration(); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to update BareMetalCluster configuration")
 		}
 	}
 
