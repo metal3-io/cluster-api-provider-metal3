@@ -22,9 +22,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 	infrastructurev1alpha2 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -39,6 +43,19 @@ var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
 
+func init() {
+	klog.InitFlags(nil)
+}
+func setupScheme() *runtime.Scheme {
+	s := runtime.NewScheme()
+	if err := clusterv1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := infrav1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	return s
+}
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 
