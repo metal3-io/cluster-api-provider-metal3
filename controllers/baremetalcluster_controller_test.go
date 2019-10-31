@@ -28,12 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-const (
-	clusterName          = "testCluster"
-	baremetalClusterName = "testBaremetalCluster"
-	namespaceName        = "test"
-)
-
 var _ = Describe("Reconcile Baremetalcluster", func() {
 
 	testCluster := &clusterv1.Cluster{
