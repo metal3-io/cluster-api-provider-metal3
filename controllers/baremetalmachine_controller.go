@@ -153,11 +153,6 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		machineMgr.BareMetalMachine.Finalizers = append(machineMgr.BareMetalMachine.Finalizers, capbm.MachineFinalizer)
 	}
 
-	if !machineMgr.Cluster.Status.InfrastructureReady {
-		log.Info("Cluster infrastructure is not ready yet")
-		return ctrl.Result{}, nil
-	}
-
 	// if the machine is already provisioned, return
 	// if machineMgr.BareMetalMachine.Spec.ProviderID != nil {
 	//	return ctrl.Result{}, nil
