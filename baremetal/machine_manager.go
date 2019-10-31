@@ -226,8 +226,8 @@ func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
 				APIVersion: "v1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      mgr.Machine.Name + "-user-data",
-				Namespace: mgr.Machine.Namespace,
+				Name:      mgr.BareMetalMachine.Name + "-user-data",
+				Namespace: mgr.BareMetalMachine.Namespace,
 			},
 			Data: map[string][]byte{
 				"userData": []byte(decodedUserData),
@@ -237,8 +237,8 @@ func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
 
 		tmpBootstrapSecret := corev1.Secret{}
 		key := client.ObjectKey{
-			Name:      mgr.Machine.Name + "-user-data",
-			Namespace: mgr.Machine.Namespace,
+			Name:      mgr.BareMetalMachine.Name + "-user-data",
+			Namespace: mgr.BareMetalMachine.Namespace,
 		}
 		err = mgr.client.Get(ctx, key, &tmpBootstrapSecret)
 		if errors.IsNotFound(err) {
@@ -256,8 +256,8 @@ func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
 			return err
 		}
 		mgr.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
-			Name:      mgr.Machine.Name + "-user-data",
-			Namespace: mgr.Machine.Namespace,
+			Name:      mgr.BareMetalMachine.Name + "-user-data",
+			Namespace: mgr.BareMetalMachine.Namespace,
 		}
 
 	}
@@ -320,8 +320,8 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 	mgr.Log.Info("Deleting User data secret for machine")
 	tmpBootstrapSecret := corev1.Secret{}
 	key := client.ObjectKey{
-		Name:      mgr.Machine.Name + "-user-data",
-		Namespace: mgr.Machine.Namespace,
+		Name:      mgr.BareMetalMachine.Name + "-user-data",
+		Namespace: mgr.BareMetalMachine.Namespace,
 	}
 	err = mgr.client.Get(ctx, key, &tmpBootstrapSecret)
 	if err != nil && !errors.IsNotFound(err) {
