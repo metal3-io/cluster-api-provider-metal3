@@ -3,12 +3,13 @@
 set -eux
 
 IS_CONTAINER=${IS_CONTAINER:-false}
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
   export XDG_CACHE_HOME=/tmp/.cache
   make vet
 else
-  podman run --rm \
+  "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
     --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-baremetal:ro,z" \
     --entrypoint sh \
