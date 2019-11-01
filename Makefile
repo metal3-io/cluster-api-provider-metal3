@@ -279,6 +279,12 @@ deploy-examples: generate-examples
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml
 
+delete-examples: generate-examples
+	kubectl delete -f ./examples/_out/controlplane.yaml
+	kubectl delete -f ./examples/_out/machinedeployment.yaml
+	kubectl delete -f ./examples/_out/cluster.yaml
+
+
 ## --------------------------------------
 ## Release
 ## --------------------------------------

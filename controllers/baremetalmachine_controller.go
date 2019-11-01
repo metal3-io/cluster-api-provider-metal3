@@ -154,27 +154,41 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	// if the machine is already provisioned, return
-	// if machineMgr.BareMetalMachine.Spec.ProviderID != nil {
-	//	return ctrl.Result{}, nil
-	// }
-
-	// Make sure bootstrap data is available and populated.
-	// if machineMgr.Machine.Spec.Bootstrap.Data == nil {
-	// 	log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
-	// 	return ctrl.Result{}, nil
-	// }
-
-	//Create the baremetal container hosting the machine
-	providerID, err := machineMgr.Create(ctx)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create worker BareMetalMachine")
+	if machineMgr.BareMetalMachine.Spec.ProviderID != nil && machineMgr.BareMetalMachine.Status.Ready {
+		return ctrl.Result{}, nil
 	}
 
-	// Make sure Spec.ProviderID is always set.
-	machineMgr.SetProviderID(fmt.Sprintf("metal3:////%s", providerID))
+	// Make sure bootstrap data is available and populated.
+	if machineMgr.Machine.Spec.Bootstrap.Data == nil {
+		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+		return ctrl.Result{}, nil
+	}
 
-	// Mark the capbmMachine ready
-	machineMgr.SetReady()
+	// Check if the baremetalmachine was associated with a baremetalhost
+	if !machineMgr.HasAnnotation() {
+		//Associate the baremetalhost hosting the machine
+		err := machineMgr.Associate(ctx)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to associate the BareMetalMachine to a BaremetalHost")
+		}
+	}
+
+	providerID, err := machineMgr.GetProviderID(ctx)
+	if err != nil {
+		switch err.(type) {
+		case *baremetal.RequeueAfterError:
+			return ctrl.Result{}, errors.Wrap(err, "Provisioning BaremetalHost, requeuing")
+		default:
+			return ctrl.Result{}, errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
+		}
+	}
+	if providerID != nil {
+		// Make sure Spec.ProviderID is always set.
+		machineMgr.SetProviderID(ctx, providerID)
+
+		// Mark the capbmMachine ready
+		machineMgr.SetReady()
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -183,7 +197,7 @@ func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr *baremetal.MachineManager, clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
 
 	// delete the machine
-	if _, err := machineMgr.Delete(ctx); err != nil {
+	if err := machineMgr.Delete(ctx); err != nil {
 		switch err.(type) {
 		case *baremetal.RequeueAfterError:
 			return ctrl.Result{}, errors.Wrap(err, "Deprovisioning BaremetalHost, requeuing")

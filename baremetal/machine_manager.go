@@ -114,16 +114,28 @@ func (mgr *MachineManager) Role() string {
 }
 
 // GetProviderID return the provider identifier for this machine
-func (mgr *MachineManager) GetProviderID() string {
+func (mgr *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
 	if mgr.BareMetalMachine.Spec.ProviderID != nil {
-		return *mgr.BareMetalMachine.Spec.ProviderID
+		return mgr.BareMetalMachine.Spec.ProviderID, nil
 	}
-	return ""
+	// look for associated BMH
+	host, err := mgr.getHost(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if host.Status.Provisioning.State == bmh.StateProvisioned {
+		return pointer.StringPtr(fmt.Sprintf(
+			"metal3://%s",
+			host.Status.Provisioning.ID,
+		)), nil
+	} else {
+		return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
 }
 
 // SetProviderID sets the docker provider ID for the kubernetes node
-func (mgr *MachineManager) SetProviderID(v string) {
-	mgr.BareMetalMachine.Spec.ProviderID = pointer.StringPtr(v)
+func (mgr *MachineManager) SetProviderID(ctx context.Context, providerID *string) {
+	mgr.BareMetalMachine.Spec.ProviderID = providerID
 }
 
 // SetReady sets the AzureMachine Ready Status
@@ -145,14 +157,13 @@ func (mgr *MachineManager) Close() error {
 }
 
 // Create creates a machine and is invoked by the Machine Controller
-func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
+func (mgr *MachineManager) Associate(ctx context.Context) error {
 	mgr.Log.Info("Creating machine")
-	providerID := ""
 
 	// load and validate the config
 	if mgr.BareMetalMachine == nil {
 		// Should have been picked earlier. Do not requeue
-		return providerID, nil
+		return nil
 	}
 
 	config := mgr.BareMetalMachine.Spec
@@ -160,7 +171,7 @@ func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
 		mgr.setError(ctx, err.Error())
-		return providerID, nil
+		return nil
 	}
 
 	// clear an error if one was previously set
@@ -169,18 +180,18 @@ func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
 	// look for associated BMH
 	host, err := mgr.getHost(ctx)
 	if err != nil {
-		return providerID, err
+		return err
 	}
 
 	// none found, so try to choose one
 	if host == nil {
 		host, err = mgr.chooseHost(ctx)
 		if err != nil {
-			return providerID, err
+			return err
 		}
 		if host == nil {
 			mgr.Log.Info("No available host found. Requeuing.")
-			return providerID, &RequeueAfterError{RequeueAfter: requeueAfter}
+			return &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
 		mgr.Log.Info("Associating machine with host", "host", host.Name)
 	} else {
@@ -189,26 +200,25 @@ func (mgr *MachineManager) Create(ctx context.Context) (string, error) {
 
 	err = mgr.mergeUserData(ctx)
 	if err != nil {
-		return providerID, err
+		return err
 	}
 
-	providerID = fmt.Sprintf("%v//%v", host.Namespace, host.Name)
 	err = mgr.setHostSpec(ctx, host)
 	if err != nil {
-		return providerID, err
+		return err
 	}
 
 	err = mgr.ensureAnnotation(ctx, host)
 	if err != nil {
-		return providerID, err
+		return err
 	}
 
 	if err := mgr.updateMachineStatus(ctx, host); err != nil {
-		return providerID, err
+		return err
 	}
 
 	mgr.Log.Info("Finished creating machine")
-	return providerID, nil
+	return nil
 }
 
 // Merge the UserData from the machine and the user
@@ -265,13 +275,12 @@ func (mgr *MachineManager) mergeUserData(ctx context.Context) error {
 }
 
 // Delete deletes a machine and is invoked by the Machine Controller
-func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
+func (mgr *MachineManager) Delete(ctx context.Context) error {
 	mgr.Log.Info("Deleting machine")
-	providerID := ""
 
 	host, err := mgr.getHost(ctx)
 	if err != nil {
-		return providerID, err
+		return err
 	}
 
 	if host != nil && host.Spec.ConsumerRef != nil {
@@ -280,19 +289,18 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 		if !consumerRefMatches(host.Spec.ConsumerRef, mgr.Machine) {
 			mgr.Log.Info("host associated with another machine",
 				"host", host.Name)
-			return providerID, nil
+			return nil
 		}
 
-		providerID = fmt.Sprintf("%v//%v", host.Namespace, host.Name)
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
 			host.Spec.Image = nil
 			host.Spec.Online = false
 			host.Spec.UserData = nil
 			err = mgr.client.Update(ctx, host)
 			if err != nil && !errors.IsNotFound(err) {
-				return host.Name, err
+				return err
 			}
-			return providerID, &RequeueAfterError{}
+			return &RequeueAfterError{}
 		}
 
 		waiting := true
@@ -309,12 +317,12 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 			waiting = host.Status.PoweredOn
 		}
 		if waiting {
-			return providerID, &RequeueAfterError{RequeueAfter: requeueAfter}
+			return &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
 		host.Spec.ConsumerRef = nil
 		err = mgr.client.Update(ctx, host)
 		if err != nil && !errors.IsNotFound(err) {
-			return providerID, err
+			return err
 		}
 	}
 	mgr.Log.Info("Deleting User data secret for machine")
@@ -325,22 +333,21 @@ func (mgr *MachineManager) Delete(ctx context.Context) (string, error) {
 	}
 	err = mgr.client.Get(ctx, key, &tmpBootstrapSecret)
 	if err != nil && !errors.IsNotFound(err) {
-		return providerID, err
+		return err
 	} else if err == nil {
 		// Delete the secret with use data
 		err = mgr.client.Delete(ctx, &tmpBootstrapSecret)
 		if err != nil {
-			return providerID, err
+			return err
 		}
 	}
 	mgr.Log.Info("finished deleting machine")
-	return providerID, nil
+	return nil
 }
 
 // Update updates a machine and is invoked by the Machine Controller
-func (mgr *MachineManager) Update(ctx context.Context) (string, error) {
+func (mgr *MachineManager) Update(ctx context.Context) error {
 	mgr.Log.Info("Updating machine")
-	providerID := ""
 
 	// clear any error message that was previously set. This method doesn't set
 	// error messages yet, so we know that it's incorrect to have one here.
@@ -348,24 +355,23 @@ func (mgr *MachineManager) Update(ctx context.Context) (string, error) {
 
 	host, err := mgr.getHost(ctx)
 	if err != nil {
-		return providerID, err
+		return err
 	}
 	if host == nil {
-		return providerID, fmt.Errorf("host not found for machine %s", mgr.Machine.Name)
+		return fmt.Errorf("host not found for machine %s", mgr.Machine.Name)
 	}
 
-	providerID = fmt.Sprintf("%v//%v", host.Namespace, host.Name)
 	err = mgr.ensureAnnotation(ctx, host)
 	if err != nil {
-		return providerID, err
+		return err
 	}
 
 	if err := mgr.updateMachineStatus(ctx, host); err != nil {
-		return providerID, err
+		return err
 	}
 
 	mgr.Log.Info("Finished updating machine")
-	return providerID, nil
+	return nil
 }
 
 // Exists tests for the existence of a machine and is invoked by the Machine Controller
@@ -578,6 +584,16 @@ func (mgr *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareM
 	// Will be done by mgr.Close()
 	// return mgr.client.Update(ctx, mgr.BareMetalMachine)
 	return nil
+}
+
+// hasAnnotation makes sure the machine has an annotation that references a host
+func (mgr *MachineManager) HasAnnotation() bool {
+	annotations := mgr.BareMetalMachine.ObjectMeta.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	_, ok := annotations[HostAnnotation]
+	return ok
 }
 
 // setError sets the ErrorMessage and ErrorReason fields on the machine and logs
