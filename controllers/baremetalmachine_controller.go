@@ -67,13 +67,14 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
+
+		return ctrl.Result{}, errors.Wrapf(err, fmt.Sprintf("%#v", apierrors.ReasonForError(err)))
 	}
 
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capbmMachine.ObjectMeta)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine could not be retrieved")
 	}
 	if capiMachine == nil {
 		machineLog.Info("Waiting for Machine Controller to set OwnerRef on BareMetalMachine")
@@ -85,11 +86,11 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
-		machineLog.Info("BareMetalMachine owner Machine is missing cluster label or cluster does not exist")
-		return ctrl.Result{}, err
+		machineLog.Info("BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
+		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
 	}
 	if cluster == nil {
-		machineLog.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", capi.MachineClusterLabelName))
+		machineLog.Info(fmt.Sprintf("The machine is NOT associated with a cluster using the label %s: <name of cluster>", capi.MachineClusterLabelName))
 		return ctrl.Result{}, nil
 	}
 
@@ -108,7 +109,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err := r.Client.Get(ctx, baremetalClusterName, baremetalCluster); err != nil {
-		machineLog.Info("BareMetalCluster is not available yet")
+		machineLog.Info("Waiting for BareMetalCluster Controller to create the BareMetalCluster")
 		return ctrl.Result{}, nil
 	}
 
