@@ -33,7 +33,6 @@ import (
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -41,6 +40,10 @@ import (
 )
 
 var _ = Describe("Reconcile Baremetalcluster", func() {
+
+	providerID := "metal3:///foo/bar"
+
+	bootstrapData := "Qm9vdHN0cmFwIERhdGEK"
 
 	type TestCaseReconcile struct {
 		Objects        []runtime.Object
@@ -175,6 +178,132 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				RequeeExpected: false,
 			},
 		),
+		//BaremetalMachine already deployed
+		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster exist",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&infrav1.BareMetalMachine{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            bareMetalMachineName,
+							Namespace:       namespaceName,
+							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
+						},
+						Spec: infrav1.BareMetalMachineSpec{
+							ProviderID: &providerID,
+						},
+						Status: infrav1.BareMetalMachineStatus{
+							Ready: true,
+						},
+					},
+					newMachine(clusterName, machineName, bareMetalMachineName),
+					newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
+			},
+		),
+		//Bootstrap data available on machine
+		Entry("Should not return an error when bootstrap data is available, no annotation",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
+					&clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      machineName,
+							Namespace: namespaceName,
+							Labels: map[string]string{
+								clusterv1.MachineClusterLabelName: clusterName,
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: v1.ObjectReference{
+								Name:       bareMetalMachineName,
+								Namespace:  namespaceName,
+								Kind:       "BareMetalMachine",
+								APIVersion: infrav1.GroupVersion.String(),
+							},
+							Bootstrap: clusterv1.Bootstrap{
+								Data: &bootstrapData,
+							},
+						},
+					},
+					newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					&bmh.BareMetalHost{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmh-0",
+							Namespace: namespaceName,
+						},
+						Spec: bmh.BareMetalHostSpec{},
+						Status: bmh.BareMetalHostStatus{
+							Provisioning: bmh.ProvisionStatus{
+								State: bmh.StateProvisioned,
+							},
+						},
+					},
+				},
+				ErrorExpected:  false,
+				RequeeExpected: true,
+			},
+		),
+		//Bootstrap data available on machine
+		Entry("Should not return an error when bootstrap data is available",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&infrav1.BareMetalMachine{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      bareMetalMachineName,
+							Namespace: namespaceName,
+							Annotations: map[string]string{
+								baremetal.HostAnnotation: "testNameSpace/bmh-0",
+							},
+							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
+						},
+						Spec:   infrav1.BareMetalMachineSpec{},
+						Status: infrav1.BareMetalMachineStatus{},
+					},
+					&clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      machineName,
+							Namespace: namespaceName,
+							Labels: map[string]string{
+								clusterv1.MachineClusterLabelName: clusterName,
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: v1.ObjectReference{
+								Name:       bareMetalMachineName,
+								Namespace:  namespaceName,
+								Kind:       "BareMetalMachine",
+								APIVersion: infrav1.GroupVersion.String(),
+							},
+							Bootstrap: clusterv1.Bootstrap{
+								Data: &bootstrapData,
+							},
+						},
+					},
+					newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					&bmh.BareMetalHost{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmh-0",
+							Namespace: namespaceName,
+						},
+						Spec: bmh.BareMetalHostSpec{},
+						Status: bmh.BareMetalHostStatus{
+							Provisioning: bmh.ProvisionStatus{
+								State: bmh.StateProvisioned,
+							},
+						},
+					},
+				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
+			},
+		),
 		//Given deletion timestamp, delete is reconciled
 		Entry("Should not return an error and finish deletion of BareMetalMachine",
 			TestCaseReconcile{
@@ -213,6 +342,65 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				},
 				ErrorExpected:  false,
 				RequeeExpected: false,
+			},
+		),
+		//Given deletion timestamp, delete is reconciled and requeued
+		Entry("Should not return an error and deprovision bmh",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&corev1.Secret{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Secret",
+							APIVersion: "v1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      bareMetalMachineName + "-user-data",
+							Namespace: namespaceName,
+						},
+
+						Type: "Opaque",
+					},
+					&infrav1.BareMetalMachine{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              bareMetalMachineName,
+							Namespace:         namespaceName,
+							DeletionTimestamp: &deletionTimestamp,
+							Annotations: map[string]string{
+								baremetal.HostAnnotation: "testNameSpace/bmh-0",
+							},
+							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
+						},
+						Spec: infrav1.BareMetalMachineSpec{
+							UserData: &corev1.SecretReference{
+								Name:      bareMetalMachineName + "-user-data",
+								Namespace: namespaceName,
+							},
+						},
+						Status: infrav1.BareMetalMachineStatus{},
+					},
+					newMachine(clusterName, machineName, bareMetalMachineName),
+					newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					&bmh.BareMetalHost{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmh-0",
+							Namespace: namespaceName,
+						},
+						Spec: bmh.BareMetalHostSpec{
+							ConsumerRef: &corev1.ObjectReference{
+								Name:       machineName,
+								Namespace:  namespaceName,
+								Kind:       "Machine",
+								APIVersion: clusterv1.GroupVersion.String(),
+							},
+							Online: true,
+						},
+						Status: bmh.BareMetalHostStatus{},
+					},
+				},
+				ErrorExpected:  false,
+				RequeeExpected: true,
 			},
 		),
 	)
@@ -325,7 +513,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 							Name:       "someothermachine",
 							Namespace:  "myns",
 							Kind:       "Machine",
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 					},
 				},

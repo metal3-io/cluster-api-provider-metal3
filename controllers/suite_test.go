@@ -33,6 +33,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 
+	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -67,6 +68,9 @@ func setupScheme() *runtime.Scheme {
 		panic(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := bmh.SchemeBuilder.AddToScheme(s); err != nil {
 		panic(err)
 	}
 
@@ -192,6 +196,10 @@ func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, 
 
 func newMachine(clusterName, machineName string, bareMetalMachineName string) *clusterv1.Machine {
 	machine := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Machine",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: namespaceName,
@@ -225,7 +233,9 @@ func newBareMetalMachine(name string, ownerRef *metav1.OwnerReference, spec *inf
 	}
 
 	return &infrav1.BareMetalMachine{
-		TypeMeta: metav1.TypeMeta{},
+		TypeMeta: metav1.TypeMeta{
+			Kind: "BareMetalMachine",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            name,
 			Namespace:       namespaceName,
