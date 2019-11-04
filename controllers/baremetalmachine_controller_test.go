@@ -23,7 +23,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -40,441 +42,193 @@ import (
 
 var _ = Describe("Reconcile Baremetalcluster", func() {
 
-	RefTestBareMetalCluster := &infrav1.BareMetalCluster{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "BareMetalCluster",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      baremetalClusterName,
-			Namespace: namespaceName,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Cluster",
-					Name:       clusterName,
-				},
-			},
-		},
-		Spec: infrav1.BareMetalClusterSpec{
-			APIEndpoint: "http://192.168.111.249:6443",
-		},
+	type TestCaseReconcile struct {
+		Objects        []runtime.Object
+		ErrorExpected  bool
+		RequeeExpected bool
 	}
 
-	RefTestCluster := &clusterv1.Cluster{
+	DescribeTable("Reconcile tests",
+		func(tc TestCaseReconcile) {
+			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
 
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: namespaceName,
-		},
-		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &v1.ObjectReference{
-				Name:       baremetalClusterName,
-				Namespace:  namespaceName,
-				Kind:       "InfrastructureConfig",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-			},
-		},
-		Status: clusterv1.ClusterStatus{
-			InfrastructureReady: true,
-		},
-	}
-	//Given machine, but no baremetalMachine resource
-	It("Should not return an error when baremetalcluster is not found", func() {
-		m := newMachine(clusterName, machineName, nil)
-		c := fake.NewFakeClientWithScheme(setupScheme(), m)
+			r := &BareMetalMachineReconciler{
+				Client:         c,
+				ManagerFactory: baremetal.NewManagerFactory(c),
+				Log:            klogr.New(),
+			}
 
-		r := &BareMetalMachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-		}
-
-		res, err := r.Reconcile(req)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
-
-	//Given both machine and baremetalMachine with OwnerRef not set.
-	It("Should not return an error if OwnerRef is not set on BareMetalCluster", func() {
-
-		baremetalMachine := &infrav1.BareMetalMachine{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-			Spec:   infrav1.BareMetalMachineSpec{},
-			Status: infrav1.BareMetalMachineStatus{},
-		}
-		m := newMachine(clusterName, machineName, baremetalMachine)
-		c := fake.NewFakeClientWithScheme(setupScheme(), m, baremetalMachine)
-
-		r := &BareMetalMachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-		}
-
-		res, err := r.Reconcile(req)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
-
-	//Given both machine and baremetalMachine with OwnerRef set, Machine is not namespaced, it should error.
-	It("Should return an error when Machine cannot be found", func() {
-
-		baremetalMachine := &infrav1.BareMetalMachine{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       machineName,
-					},
-				},
-			},
-			Spec:   infrav1.BareMetalMachineSpec{},
-			Status: infrav1.BareMetalMachineStatus{},
-		}
-		c := fake.NewFakeClientWithScheme(setupScheme(), baremetalMachine)
-
-		r := &BareMetalMachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-		}
-
-		res, err := r.Reconcile(req)
-		Expect(err).To(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
-
-	//Given machine with cluster label but cluster non-existent, it should error.
-	It("Should return an error when owner Cluster cannot be found", func() {
-
-		baremetalMachine := &infrav1.BareMetalMachine{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       machineName,
-					},
-				},
-			},
-			Spec:   infrav1.BareMetalMachineSpec{},
-			Status: infrav1.BareMetalMachineStatus{},
-		}
-		m := newMachine(clusterName, machineName, baremetalMachine)
-		c := fake.NewFakeClientWithScheme(setupScheme(), m, baremetalMachine)
-
-		r := &BareMetalMachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-		}
-
-		res, err := r.Reconcile(req)
-		Expect(err).To(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
-
-	//Given owner cluster infra not ready, it should wait and not return error
-	It("Should not return an error when owner Cluster infrastructure is not ready", func() {
-		cluster1 := newCluster(clusterName)
-		baremetalMachine := &infrav1.BareMetalMachine{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       machineName,
-					},
-				},
-			},
-			Spec:   infrav1.BareMetalMachineSpec{},
-			Status: infrav1.BareMetalMachineStatus{},
-		}
-		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      machineName,
-				Namespace: namespaceName,
-				Labels: map[string]string{
-					clusterv1.MachineClusterLabelName: clusterName,
-				},
-			},
-			Spec: clusterv1.MachineSpec{
-				InfrastructureRef: v1.ObjectReference{
-					Name:       baremetalMachine.Name,
-					Namespace:  baremetalMachine.Namespace,
-					Kind:       baremetalMachine.Kind,
-					APIVersion: baremetalMachine.GroupVersionKind().GroupVersion().String(),
-				},
-			},
-		}
-		c := fake.NewFakeClientWithScheme(setupScheme(), m, baremetalMachine, cluster1)
-
-		r := &BareMetalMachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-		}
-
-		res, err := r.Reconcile(req)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
-
-	//Given owner cluster infra is ready and BMCluster does not exist, it should not return an error
-	It("Should not return an error when owner Cluster infrastructure is ready and BMCluster does not exist", func() {
-
-		baremetalMachine := &infrav1.BareMetalMachine{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       machineName,
-					},
-				},
-			},
-			Spec:   infrav1.BareMetalMachineSpec{},
-			Status: infrav1.BareMetalMachineStatus{},
-		}
-		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      machineName,
-				Namespace: namespaceName,
-				Labels: map[string]string{
-					clusterv1.MachineClusterLabelName: clusterName,
-				},
-			},
-			Spec: clusterv1.MachineSpec{
-				InfrastructureRef: v1.ObjectReference{
-					Name:       baremetalMachine.Name,
-					Namespace:  baremetalMachine.Namespace,
-					Kind:       baremetalMachine.Kind,
-					APIVersion: baremetalMachine.GroupVersionKind().GroupVersion().String(),
-				},
-			},
-		}
-		c := fake.NewFakeClientWithScheme(setupScheme(), m, baremetalMachine, RefTestCluster)
-
-		r := &BareMetalMachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-		}
-
-		res, err := r.Reconcile(req)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
-
-	//Given owner cluster infra is ready and BMCluster exists, it should not return an error
-	It("Should not return an error when owner Cluster infrastructure is ready and BMCluster exist", func() {
-
-		baremetalMachine := &infrav1.BareMetalMachine{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       machineName,
-					},
-				},
-			},
-			Spec:   infrav1.BareMetalMachineSpec{},
-			Status: infrav1.BareMetalMachineStatus{},
-		}
-		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      machineName,
-				Namespace: namespaceName,
-				Labels: map[string]string{
-					clusterv1.MachineClusterLabelName: clusterName,
-				},
-			},
-			Spec: clusterv1.MachineSpec{
-				InfrastructureRef: v1.ObjectReference{
-					Name:       baremetalMachine.Name,
-					Namespace:  baremetalMachine.Namespace,
-					Kind:       baremetalMachine.Kind,
-					APIVersion: baremetalMachine.GroupVersionKind().GroupVersion().String(),
-				},
-			},
-		}
-		c := fake.NewFakeClientWithScheme(setupScheme(), m, baremetalMachine, RefTestCluster, RefTestBareMetalCluster)
-
-		r := &BareMetalMachineReconciler{
-			Client:         c,
-			ManagerFactory: baremetal.NewManagerFactory(c),
-			Log:            klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			},
-		}
-
-		res, err := r.Reconcile(req)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
-
-	//Given deletion timestamp, delete is reconciled
-	It("Should not return an error and finish deletion of BareMetalMachine", func() {
-
-		baremetalMachine := &infrav1.BareMetalMachine{
-			TypeMeta: metav1.TypeMeta{},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-				OwnerReferences: []metav1.OwnerReference{
-					{
-						APIVersion: clusterv1.GroupVersion.String(),
-						Kind:       "Machine",
-						Name:       machineName,
-					},
-				},
-			},
-			Spec: infrav1.BareMetalMachineSpec{
-				UserData: &corev1.SecretReference{
-					Name:      bareMetalMachineName + "-user-data",
+			req := reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      bareMetalMachineName,
 					Namespace: namespaceName,
 				},
-			},
-			Status: infrav1.BareMetalMachineStatus{},
-		}
-		m := &clusterv1.Machine{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      machineName,
-				Namespace: namespaceName,
-				Labels: map[string]string{
-					clusterv1.MachineClusterLabelName: clusterName,
+			}
+
+			res, err := r.Reconcile(req)
+			if tc.ErrorExpected {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			if tc.RequeeExpected {
+				Expect(res.Requeue).NotTo(BeFalse())
+			} else {
+				Expect(res.Requeue).To(BeFalse())
+			}
+		},
+		//Given machine, but no baremetalMachine resource
+		Entry("Should not return an error when baremetalcluster is not found",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newMachine(clusterName, machineName, ""),
 				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
 			},
-			Spec: clusterv1.MachineSpec{
-				InfrastructureRef: v1.ObjectReference{
-					Name:       baremetalMachine.Name,
-					Namespace:  baremetalMachine.Namespace,
-					Kind:       baremetalMachine.Kind,
-					APIVersion: baremetalMachine.GroupVersionKind().GroupVersion().String(),
+		),
+		//Given both machine and baremetalMachine with OwnerRef not set.
+		Entry("Should not return an error if OwnerRef is not set on BareMetalCluster",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newBareMetalMachine(bareMetalMachineName, nil, nil, nil),
+					newMachine(clusterName, machineName, ""),
 				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
 			},
-		}
-		machineSecret := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
+		),
+		//Given baremetalMachine with OwnerRef set, Machine is not found, it should error.
+		Entry("Should return an error when Machine cannot be found",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
+				},
+				ErrorExpected:  true,
+				RequeeExpected: false,
 			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      bareMetalMachineName + "-user-data",
-				Namespace: namespaceName,
+		),
+		//Given machine with cluster label but cluster non-existent, it should error.
+		Entry("Should return an error when owner Cluster cannot be found",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
+					newMachine(clusterName, machineName, bareMetalMachineName),
+				},
+				ErrorExpected:  true,
+				RequeeExpected: false,
 			},
-
-			Type: "Opaque",
-		}
-
-		deletionTimestamp := metav1.Now()
-		baremetalMachine.SetDeletionTimestamp(&deletionTimestamp)
-		c := fake.NewFakeClientWithScheme(setupScheme(), machineSecret, m, baremetalMachine, RefTestCluster, RefTestBareMetalCluster)
-
-		r := &BareMetalMachineReconciler{
-			Client:         c,
-			ManagerFactory: baremetal.NewManagerFactory(c),
-			Log:            klogr.New(),
-		}
-
-		req := reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
+		),
+		//Given owner cluster infra not ready, it should wait and not return error
+		Entry("Should not return an error when owner Cluster infrastructure is not ready",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&clusterv1.Cluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "Cluster",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      clusterName,
+							Namespace: namespaceName,
+						},
+						Spec: clusterv1.ClusterSpec{
+							InfrastructureRef: &v1.ObjectReference{
+								Name:       baremetalClusterName,
+								Namespace:  namespaceName,
+								Kind:       "InfrastructureConfig",
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+							},
+						},
+						Status: clusterv1.ClusterStatus{
+							InfrastructureReady: false,
+						},
+					},
+					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
+					newMachine(clusterName, machineName, bareMetalMachineName),
+				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
 			},
-		}
+		),
+		//Given owner cluster infra is ready and BMCluster does not exist, it should not return an error
+		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster does not exist",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
+					newMachine(clusterName, machineName, bareMetalMachineName),
+					newCluster(clusterName),
+				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
+			},
+		),
+		//Given owner cluster infra is ready and BMCluster exists, it should not return an error
+		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster exist",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
+					newMachine(clusterName, machineName, bareMetalMachineName),
+					newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
+			},
+		),
+		//Given deletion timestamp, delete is reconciled
+		Entry("Should not return an error and finish deletion of BareMetalMachine",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&corev1.Secret{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "Secret",
+							APIVersion: "v1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      bareMetalMachineName + "-user-data",
+							Namespace: namespaceName,
+						},
 
-		res, err := r.Reconcile(req)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(res.Requeue).To(BeFalse())
-
-	})
+						Type: "Opaque",
+					},
+					&infrav1.BareMetalMachine{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              bareMetalMachineName,
+							Namespace:         namespaceName,
+							DeletionTimestamp: &deletionTimestamp,
+							OwnerReferences:   []metav1.OwnerReference{*bmmOwnerRef},
+						},
+						Spec: infrav1.BareMetalMachineSpec{
+							UserData: &corev1.SecretReference{
+								Name:      bareMetalMachineName + "-user-data",
+								Namespace: namespaceName,
+							},
+						},
+						Status: infrav1.BareMetalMachineStatus{},
+					},
+					newMachine(clusterName, machineName, bareMetalMachineName),
+					newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+				},
+				ErrorExpected:  false,
+				RequeeExpected: false,
+			},
+		),
+	)
 
 	// Legacy tests
 	It("TestBareMetalMachineReconciler_BareMetalClusterToBareMetalMachines", func() {
-		clusterName := "my-cluster"
-		baremetalCluster := newBareMetalCluster(clusterName, "my-baremetal-cluster")
-		baremetalMachine1 := newBareMetalMachine("my-baremetal-machine-0")
-		baremetalMachine2 := newBareMetalMachine("my-baremetal-machine-1")
+		baremetalCluster := newBareMetalCluster("my-baremetal-cluster",
+			bmcOwnerRef, bmcSpec, nil,
+		)
 		objects := []runtime.Object{
 			newCluster(clusterName),
 			baremetalCluster,
-			newMachine(clusterName, "my-machine-0", baremetalMachine1),
-			newMachine(clusterName, "my-machine-1", baremetalMachine2),
+			newMachine(clusterName, "my-machine-0", "my-baremetal-machine-0"),
+			newMachine(clusterName, "my-machine-1", "my-baremetal-machine-1"),
 			// Intentionally omitted
-			newMachine(clusterName, "my-machine-2", nil),
+			newMachine(clusterName, "my-machine-2", ""),
 		}
 		c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 		r := BareMetalMachineReconciler{
@@ -497,15 +251,15 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 	})
 
 	It("TestBareMetalMachineReconciler_BareMetalClusterToBareMetalMachines_with_no_cluster", func() {
-		baremetalCluster := newBareMetalCluster(clusterName, "my-baremetal-cluster")
-		baremetalMachine1 := newBareMetalMachine("my-baremetal-machine-0")
-		baremetalMachine2 := newBareMetalMachine("my-baremetal-machine-1")
+		baremetalCluster := newBareMetalCluster("my-baremetal-cluster",
+			bmcOwnerRef, bmcSpec, nil,
+		)
 		objects := []runtime.Object{
 			baremetalCluster,
-			newMachine(clusterName, "my-machine-0", baremetalMachine1),
-			newMachine(clusterName, "my-machine-1", baremetalMachine2),
+			newMachine(clusterName, "my-machine-0", "my-baremetal-machine-0"),
+			newMachine(clusterName, "my-machine-1", "my-baremetal-machine-1"),
 			// Intentionally omitted
-			newMachine(clusterName, "my-machine-2", nil),
+			newMachine(clusterName, "my-machine-2", ""),
 		}
 		c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 		r := BareMetalMachineReconciler{
@@ -533,41 +287,14 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Expect(len(out)).To(Equal(0), "Expected 0 request, found %d", len(out))
 	})
 
-	It("TestBareMetalHostToBareMetalMachines", func() {
-		r := BareMetalMachineReconciler{}
+	type TestCaseBMHToBMM struct {
+		Host          *bmh.BareMetalHost
+		ExpectRequest bool
+	}
 
-		for _, tc := range []struct {
-			Host          *bmh.BareMetalHost
-			ExpectRequest bool
-		}{
-			{
-				Host: &bmh.BareMetalHost{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "host1",
-						Namespace: "myns",
-					},
-					Spec: bmh.BareMetalHostSpec{
-						ConsumerRef: &corev1.ObjectReference{
-							Name:       "someothermachine",
-							Namespace:  "myns",
-							Kind:       "Machine",
-							APIVersion: capi.GroupVersion.String(),
-						},
-					},
-				},
-				ExpectRequest: true,
-			},
-			{
-				Host: &bmh.BareMetalHost{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "host1",
-						Namespace: "myns",
-					},
-					Spec: bmh.BareMetalHostSpec{},
-				},
-				ExpectRequest: false,
-			},
-		} {
+	DescribeTable("BareMetalHost To BareMetalMachines tests",
+		func(tc TestCaseBMHToBMM) {
+			r := BareMetalMachineReconciler{}
 			obj := handler.MapObject{
 				Object: tc.Host,
 			}
@@ -584,74 +311,40 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
 
 			}
-		}
-
-	})
-})
-
-func contains(haystack []string, needle string) bool {
-	for _, straw := range haystack {
-		if straw == needle {
-			return true
-		}
-	}
-	return false
-}
-
-func newCluster(clusterName string) *clusterv1.Cluster {
-	return &clusterv1.Cluster{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: namespaceName,
 		},
-	}
-}
-
-func newBareMetalCluster(clusterName, baremetalName string) *infrav1.BareMetalCluster {
-	return &infrav1.BareMetalCluster{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: baremetalName,
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: clusterv1.GroupVersion.String(),
-					Kind:       "Cluster",
-					Name:       clusterName,
+		//Given machine, but no baremetalMachine resource
+		Entry("BareMetalHost To BareMetalMachines",
+			TestCaseBMHToBMM{
+				Host: &bmh.BareMetalHost{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host1",
+						Namespace: "myns",
+					},
+					Spec: bmh.BareMetalHostSpec{
+						ConsumerRef: &corev1.ObjectReference{
+							Name:       "someothermachine",
+							Namespace:  "myns",
+							Kind:       "Machine",
+							APIVersion: capi.GroupVersion.String(),
+						},
+					},
 				},
+				ExpectRequest: true,
 			},
-		},
-	}
-}
-
-func newMachine(clusterName, machineName string, baremetalMachine *infrav1.BareMetalMachine) *clusterv1.Machine {
-	machine := &clusterv1.Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      machineName,
-			Namespace: namespaceName,
-			Labels: map[string]string{
-				clusterv1.MachineClusterLabelName: clusterName,
+		),
+		//Given machine, but no baremetalMachine resource
+		Entry("BareMetalHost To BareMetalMachines, no ConsumerRef",
+			TestCaseBMHToBMM{
+				Host: &bmh.BareMetalHost{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host1",
+						Namespace: "myns",
+					},
+					Spec: bmh.BareMetalHostSpec{},
+				},
+				ExpectRequest: false,
 			},
-		},
-	}
-	if baremetalMachine != nil {
-		machine.Spec.InfrastructureRef = v1.ObjectReference{
-			Name:       baremetalMachine.Name,
-			Namespace:  baremetalMachine.Namespace,
-			Kind:       baremetalMachine.Kind,
-			APIVersion: baremetalMachine.GroupVersionKind().GroupVersion().String(),
-		}
-	}
-	return machine
-}
+		),
+	)
 
-func newBareMetalMachine(name string) *infrav1.BareMetalMachine {
-	return &infrav1.BareMetalMachine{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec:   infrav1.BareMetalMachineSpec{},
-		Status: infrav1.BareMetalMachineStatus{},
-	}
-}
+})

@@ -23,6 +23,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -111,3 +113,125 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+var deletionTimestamp = metav1.Now()
+
+var bmcSpec = &infrav1.BareMetalClusterSpec{
+	APIEndpoint: "http://192.168.111.249:6443",
+}
+
+var bmcOwnerRef = &metav1.OwnerReference{
+	APIVersion: clusterv1.GroupVersion.String(),
+	Kind:       "Cluster",
+	Name:       clusterName,
+}
+
+var bmmOwnerRef = &metav1.OwnerReference{
+	APIVersion: clusterv1.GroupVersion.String(),
+	Kind:       "Machine",
+	Name:       machineName,
+}
+
+func contains(haystack []string, needle string) bool {
+	for _, straw := range haystack {
+		if straw == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func newCluster(clusterName string) *clusterv1.Cluster {
+	return &clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "Cluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: namespaceName,
+		},
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &v1.ObjectReference{
+				Name:       baremetalClusterName,
+				Namespace:  namespaceName,
+				Kind:       "InfrastructureConfig",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
+			},
+		},
+		Status: clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+		},
+	}
+}
+
+func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1.BareMetalClusterSpec, status *infrav1.BareMetalClusterStatus) *infrav1.BareMetalCluster {
+	if spec == nil {
+		spec = &infrav1.BareMetalClusterSpec{}
+	}
+	if status == nil {
+		status = &infrav1.BareMetalClusterStatus{}
+	}
+	ownerRefs := []metav1.OwnerReference{}
+	if ownerRef != nil {
+		ownerRefs = []metav1.OwnerReference{*ownerRef}
+	}
+
+	return &infrav1.BareMetalCluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "BareMetalCluster",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            baremetalClusterName,
+			Namespace:       namespaceName,
+			OwnerReferences: ownerRefs,
+		},
+		Spec:   *spec,
+		Status: *status,
+	}
+}
+
+func newMachine(clusterName, machineName string, bareMetalMachineName string) *clusterv1.Machine {
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      machineName,
+			Namespace: namespaceName,
+			Labels: map[string]string{
+				clusterv1.MachineClusterLabelName: clusterName,
+			},
+		},
+	}
+	if bareMetalMachineName != "" {
+		machine.Spec.InfrastructureRef = v1.ObjectReference{
+			Name:       bareMetalMachineName,
+			Namespace:  namespaceName,
+			Kind:       "BareMetalMachine",
+			APIVersion: infrav1.GroupVersion.String(),
+		}
+	}
+	return machine
+}
+
+func newBareMetalMachine(name string, ownerRef *metav1.OwnerReference, spec *infrav1.BareMetalMachineSpec, status *infrav1.BareMetalMachineStatus) *infrav1.BareMetalMachine {
+
+	if spec == nil {
+		spec = &infrav1.BareMetalMachineSpec{}
+	}
+	if status == nil {
+		status = &infrav1.BareMetalMachineStatus{}
+	}
+	ownerRefs := []metav1.OwnerReference{}
+	if ownerRef != nil {
+		ownerRefs = []metav1.OwnerReference{*ownerRef}
+	}
+
+	return &infrav1.BareMetalMachine{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespaceName,
+			OwnerReferences: ownerRefs,
+		},
+		Spec:   *spec,
+		Status: *status,
+	}
+}
