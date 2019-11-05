@@ -45,8 +45,6 @@ spec:
     - bmhost
     singular: baremetalhost
   scope: Namespaced
-  subresources:
-    status: {}
   validation:
     openAPIV3Schema:
       description: BareMetalHost is the Schema for the baremetalhosts API
@@ -236,9 +234,10 @@ spec:
                       type: string
                     clockMegahertz:
                       description: ClockSpeed is a clock speed in MHz
-                      format: int64
-                      type: integer
+                      format: double
+                      type: number
                     count:
+                      format: int64
                       type: integer
                     flags:
                       items:

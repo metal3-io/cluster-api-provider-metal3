@@ -156,11 +156,12 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 
 	// if the machine is already provisioned, return
 	if machineMgr.BareMetalMachine.Spec.ProviderID != nil && machineMgr.BareMetalMachine.Status.Ready {
-		return ctrl.Result{}, nil
+		err := machineMgr.Update(ctx)
+		return ctrl.Result{}, err
 	}
 
 	// Make sure bootstrap data is available and populated.
-	if machineMgr.Machine.Spec.Bootstrap.Data == nil {
+	if !machineMgr.Machine.Status.BootstrapReady {
 		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
 		return ctrl.Result{}, nil
 	}
@@ -190,7 +191,8 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		machineMgr.SetReady()
 	}
 
-	return ctrl.Result{}, nil
+	err = machineMgr.Update(ctx)
+	return ctrl.Result{}, err
 }
 
 func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,

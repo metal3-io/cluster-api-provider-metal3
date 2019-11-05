@@ -218,10 +218,6 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
-	if err := m.updateMachineStatus(ctx, host); err != nil {
-		return err
-	}
-
 	m.Log.Info("Finished creating machine")
 	return nil
 }
