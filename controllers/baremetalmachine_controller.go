@@ -139,7 +139,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	// Handle deleted machines
 	if !capbmMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, machineMgr, clusterMgr)
+		return r.reconcileDelete(ctx, machineMgr, clusterMgr, machineLog)
 	}
 
 	// Handle non-deleted machines
@@ -176,12 +176,11 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 
 	providerID, err := machineMgr.GetProviderID(ctx)
 	if err != nil {
-		switch err.(type) {
-		case *baremetal.RequeueAfterError:
-			return ctrl.Result{}, errors.Wrap(err, "Provisioning BaremetalHost, requeuing")
-		default:
-			return ctrl.Result{}, errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
+		if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
+			log.Info("Provisioning BaremetalHost, requeuing")
+			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
+		return ctrl.Result{}, errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
 	}
 	if providerID != nil {
 		// Make sure Spec.ProviderID is always set.
@@ -195,16 +194,16 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 }
 
 func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
-	machineMgr *baremetal.MachineManager, clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
+	machineMgr *baremetal.MachineManager, clusterMgr *baremetal.ClusterManager,
+	log logr.Logger) (ctrl.Result, error) {
 
 	// delete the machine
 	if err := machineMgr.Delete(ctx); err != nil {
-		switch err.(type) {
-		case *baremetal.RequeueAfterError:
-			return ctrl.Result{}, errors.Wrap(err, "Deprovisioning BaremetalHost, requeuing")
-		default:
-			return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalMachine")
+		if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
+			log.Info("Deprovisioning BaremetalHost, requeuing")
+			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
+		return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalMachine")
 	}
 
 	// Machine is deleted so remove the finalizer.
