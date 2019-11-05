@@ -255,7 +255,7 @@ manifests: generate-manifests $(KUSTOMIZE)
 		-o examples/provider-components/provider-components-cluster-api.yaml
 
 unit: manifests
-	go test ./api/... ./controllers/... -coverprofile cover.out
+	go test ./api/... ./controllers/... ./baremetal/... -coverprofile cover.out
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet install
