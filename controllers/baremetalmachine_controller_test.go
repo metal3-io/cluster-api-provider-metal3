@@ -179,14 +179,17 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			},
 		),
 		//BaremetalMachine already deployed
-		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster exist",
+		Entry("Should not return an error when BaremetalMachine is deployed",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
 					&infrav1.BareMetalMachine{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
-							Name:            bareMetalMachineName,
-							Namespace:       namespaceName,
+							Name:      bareMetalMachineName,
+							Namespace: namespaceName,
+							Annotations: map[string]string{
+								baremetal.HostAnnotation: "testNameSpace/bmh-0",
+							},
 							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
 						},
 						Spec: infrav1.BareMetalMachineSpec{
@@ -199,6 +202,18 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newMachine(clusterName, machineName, bareMetalMachineName),
 					newCluster(clusterName),
 					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					&bmh.BareMetalHost{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmh-0",
+							Namespace: namespaceName,
+						},
+						Spec: bmh.BareMetalHostSpec{},
+						Status: bmh.BareMetalHostStatus{
+							Provisioning: bmh.ProvisionStatus{
+								State: bmh.StateProvisioned,
+							},
+						},
+					},
 				},
 				ErrorExpected:  false,
 				RequeeExpected: false,
@@ -227,6 +242,9 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 							Bootstrap: clusterv1.Bootstrap{
 								Data: &bootstrapData,
 							},
+						},
+						Status: clusterv1.MachineStatus{
+							BootstrapReady: true,
 						},
 					},
 					newCluster(clusterName),
@@ -283,6 +301,9 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 							Bootstrap: clusterv1.Bootstrap{
 								Data: &bootstrapData,
 							},
+						},
+						Status: clusterv1.MachineStatus{
+							BootstrapReady: true,
 						},
 					},
 					newCluster(clusterName),
