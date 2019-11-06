@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -35,6 +36,7 @@ import (
 
 const (
 	clusterControllerName = "BareMetalCluster-controller"
+	requeueAfter          = time.Second * 30
 )
 
 // BareMetalClusterReconciler reconciles a BareMetalCluster object
@@ -92,7 +94,7 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	// Handle deleted clusters
 	if !baremetalCluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(clusterMgr)
+		return r.reconcileDelete(ctx, clusterMgr)
 	}
 
 	// Handle non-deleted clusters
@@ -118,14 +120,34 @@ func reconcileNormal(ctx context.Context, clusterMgr *baremetal.ClusterManager) 
 	return ctrl.Result{}, nil
 }
 
-func reconcileDelete(clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
-	// Delete the baremetal container hosting the load balancer
+func (r *BareMetalClusterReconciler) reconcileDelete(ctx context.Context,
+	clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
+
+	// Verify that no baremetalmachine depend on the baremetalcluster
+	descendants, err := r.listDescendants(ctx, clusterMgr.BareMetalCluster)
+	if err != nil {
+		clusterMgr.Log.Error(err, "Failed to list descendants")
+		return ctrl.Result{}, err
+	}
+
+	if descendants.length() > 0 {
+		clusterMgr.Log.Info(
+			"BaremetalCluster still has descendants - need to requeue", "descendants",
+			descendants.length(),
+		)
+		// Requeue so we can check the next time to see if there are still any
+		// descendants left.
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	}
+
 	if err := clusterMgr.Delete(); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	clusterMgr.BareMetalCluster.Finalizers = util.Filter(clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer)
+	clusterMgr.BareMetalCluster.Finalizers = util.Filter(
+		clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer,
+	)
 
 	return ctrl.Result{}, nil
 }
@@ -137,8 +159,49 @@ func (r *BareMetalClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(
 			&source.Kind{Type: &capi.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: util.ClusterToInfrastructureMapFunc(capbm.GroupVersion.WithKind("BareMetalCluster")),
+				ToRequests: util.ClusterToInfrastructureMapFunc(
+					capbm.GroupVersion.WithKind("BareMetalCluster"),
+				),
 			},
 		).
 		Complete(r)
+}
+
+type clusterDescendants struct {
+	machines capi.MachineList
+}
+
+// length returns the number of descendants
+func (c *clusterDescendants) length() int {
+	return len(c.machines.Items)
+}
+
+// listDescendants returns a list of all Machines, for the cluster owning the
+// BaremetalCluster.
+func (r *BareMetalClusterReconciler) listDescendants(ctx context.Context,
+	baremetalCluster *capbm.BareMetalCluster) (clusterDescendants, error) {
+
+	var descendants clusterDescendants
+	cluster, err := util.GetOwnerCluster(ctx, r.Client,
+		baremetalCluster.ObjectMeta,
+	)
+	if err != nil {
+		return descendants, err
+	}
+
+	listOptions := []client.ListOption{
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels(map[string]string{
+			capi.MachineClusterLabelName: cluster.Name,
+		}),
+	}
+
+	if r.Client.List(ctx, &descendants.machines, listOptions...) != nil {
+		return descendants, errors.Wrapf(err,
+			"failed to list BaremetalMachines for cluster %s/%s",
+			cluster.Namespace, cluster.Name,
+		)
+	}
+
+	return descendants, nil
 }

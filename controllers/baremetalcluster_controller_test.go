@@ -140,6 +140,29 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				RequeeExpected: false,
 			},
 		),
+		// Reconcile Deletion, wait for baremetalmachine
+		Entry("reconcileDelete should wait for baremetalmachine",
+			TestCaseReconcileBMC{
+				Objects: []runtime.Object{
+					&infrav1.BareMetalCluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "BareMetalCluster",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              baremetalClusterName,
+							Namespace:         namespaceName,
+							DeletionTimestamp: &deletionTimestamp,
+							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef},
+						},
+						Spec: *bmcSpec,
+					},
+					newCluster(clusterName),
+					newMachine(clusterName, machineName, ""),
+				},
+				ErrorExpected:  false,
+				RequeeExpected: true,
+			},
+		),
 	)
 
 })
