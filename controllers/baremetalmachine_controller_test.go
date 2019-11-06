@@ -46,9 +46,9 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 	bootstrapData := "Qm9vdHN0cmFwIERhdGEK"
 
 	type TestCaseReconcile struct {
-		Objects        []runtime.Object
-		ErrorExpected  bool
-		RequeeExpected bool
+		Objects         []runtime.Object
+		ErrorExpected   bool
+		RequeueExpected bool
 	}
 
 	DescribeTable("Reconcile tests",
@@ -74,7 +74,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
-			if tc.RequeeExpected {
+			if tc.RequeueExpected {
 				Expect(res.Requeue).NotTo(BeFalse())
 			} else {
 				Expect(res.Requeue).To(BeFalse())
@@ -86,8 +86,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Objects: []runtime.Object{
 					newMachine(clusterName, machineName, ""),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//Given both machine and baremetalMachine with OwnerRef not set.
@@ -97,8 +97,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalMachine(bareMetalMachineName, nil, nil, nil),
 					newMachine(clusterName, machineName, ""),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//Given baremetalMachine with OwnerRef set, Machine is not found, it should error.
@@ -107,8 +107,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Objects: []runtime.Object{
 					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
 				},
-				ErrorExpected:  true,
-				RequeeExpected: false,
+				ErrorExpected:   true,
+				RequeueExpected: false,
 			},
 		),
 		//Given machine with cluster label but cluster non-existent, it should error.
@@ -118,8 +118,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
 					newMachine(clusterName, machineName, bareMetalMachineName),
 				},
-				ErrorExpected:  true,
-				RequeeExpected: false,
+				ErrorExpected:   true,
+				RequeueExpected: false,
 			},
 		),
 		//Given owner cluster infra not ready, it should wait and not return error
@@ -149,8 +149,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
 					newMachine(clusterName, machineName, bareMetalMachineName),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//Given owner cluster infra is ready and BMCluster does not exist, it should not return an error
@@ -161,8 +161,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newMachine(clusterName, machineName, bareMetalMachineName),
 					newCluster(clusterName),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//Given owner cluster infra is ready and BMCluster exists, it should not return an error
@@ -174,8 +174,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newCluster(clusterName),
 					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//BaremetalMachine already deployed
@@ -215,8 +215,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 					},
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//Bootstrap data available on machine
@@ -262,8 +262,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 					},
 				},
-				ErrorExpected:  false,
-				RequeeExpected: true,
+				ErrorExpected:   false,
+				RequeueExpected: true,
 			},
 		),
 		//Bootstrap data available on machine
@@ -321,8 +321,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 					},
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//Given deletion timestamp, delete is reconciled
@@ -361,8 +361,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newCluster(clusterName),
 					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		//Given deletion timestamp, delete is reconciled and requeued
@@ -420,8 +420,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						Status: bmh.BareMetalHostStatus{},
 					},
 				},
-				ErrorExpected:  false,
-				RequeeExpected: true,
+				ErrorExpected:   false,
+				RequeueExpected: true,
 			},
 		),
 	)

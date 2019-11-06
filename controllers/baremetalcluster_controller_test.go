@@ -31,9 +31,9 @@ import (
 var _ = Describe("Reconcile Baremetalcluster", func() {
 
 	type TestCaseReconcileBMC struct {
-		Objects        []runtime.Object
-		ErrorExpected  bool
-		RequeeExpected bool
+		Objects         []runtime.Object
+		ErrorExpected   bool
+		RequeueExpected bool
 	}
 
 	DescribeTable("Reconcile tests BaremetalCluster",
@@ -59,7 +59,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
-			if tc.RequeeExpected {
+			if tc.RequeueExpected {
 				Expect(res.Requeue).NotTo(BeFalse())
 			} else {
 				Expect(res.Requeue).To(BeFalse())
@@ -71,8 +71,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Objects: []runtime.Object{
 					newCluster(clusterName),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		// Given no cluster resource
@@ -81,8 +81,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Objects: []runtime.Object{
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
 				},
-				ErrorExpected:  true,
-				RequeeExpected: false,
+				ErrorExpected:   true,
+				RequeueExpected: false,
 			},
 		),
 		// Given cluster and baremetalcluster with no owner reference
@@ -92,8 +92,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
 					newCluster(clusterName),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		// Given cluster and BareMetalCluster with no APIEndpoint
@@ -103,8 +103,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, nil, nil),
 					newCluster(clusterName),
 				},
-				ErrorExpected:  true,
-				RequeeExpected: false,
+				ErrorExpected:   true,
+				RequeueExpected: false,
 			},
 		),
 		// Given cluster and BareMetalCluster with mandatory fields
@@ -114,8 +114,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
 					newCluster(clusterName),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
 			},
 		),
 		// Reconcile Deletion
@@ -136,8 +136,31 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					},
 					newCluster(clusterName),
 				},
-				ErrorExpected:  false,
-				RequeeExpected: false,
+				ErrorExpected:   false,
+				RequeueExpected: false,
+			},
+		),
+		// Reconcile Deletion, wait for baremetalmachine
+		Entry("reconcileDelete should wait for baremetalmachine",
+			TestCaseReconcileBMC{
+				Objects: []runtime.Object{
+					&infrav1.BareMetalCluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "BareMetalCluster",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              baremetalClusterName,
+							Namespace:         namespaceName,
+							DeletionTimestamp: &deletionTimestamp,
+							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef},
+						},
+						Spec: *bmcSpec,
+					},
+					newCluster(clusterName),
+					newMachine(clusterName, machineName, ""),
+				},
+				ErrorExpected:   false,
+				RequeueExpected: true,
 			},
 		),
 	)
