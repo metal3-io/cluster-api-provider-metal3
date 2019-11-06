@@ -133,9 +133,8 @@ func (m *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
 			"metal3://%s",
 			host.Status.Provisioning.ID,
 		)), nil
-	} else {
-		return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
+	return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 }
 
 // SetProviderID sets the bare metal provider ID for the kubernetes node
