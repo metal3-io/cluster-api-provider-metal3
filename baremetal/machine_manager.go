@@ -131,7 +131,7 @@ func (m *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
 	if host.Status.Provisioning.State == bmh.StateProvisioned {
 		return pointer.StringPtr(fmt.Sprintf(
 			"metal3://%s",
-			host.Status.Provisioning.ID,
+			string(host.ObjectMeta.UID),
 		)), nil
 	}
 	return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
