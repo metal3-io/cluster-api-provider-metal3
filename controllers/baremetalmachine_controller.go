@@ -71,9 +71,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		er := errors.Wrapf(err, fmt.Sprintf("%#v", apierrors.ReasonForError(err)))
-		setErrorBMMachine(capbmMachine, err, capierrors.CreateMachineError)
-		return ctrl.Result{}, er
+		return ctrl.Result{}, err
 	}
 	//clear an error if one was previously set
 	clearErrorBMMachine(capbmMachine)
@@ -99,7 +97,8 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		er := errors.Wrapf(err, "BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
 		machineLog.Info("BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
 		setErrorBMMachine(capbmMachine, er, capierrors.InvalidConfigurationMachineError)
-		return ctrl.Result{}, errors.Wrapf(err, "Barer label or cluster does not exist")
+
+		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine is missing label or the cluster does not exist")
 	}
 	if cluster == nil {
 		machineLog.Info(fmt.Sprintf("The machine is NOT associated with a cluster using the label %s: <name of cluster>", capi.MachineClusterLabelName))
