@@ -19,6 +19,7 @@ package v1alpha2
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -35,6 +36,16 @@ type BareMetalClusterSpec struct {
 	APIEndpoint string `json:"apiEndpoint"`
 }
 
+// APIEndPointError represents error in the APIEndPoint in BareMetalCluster.Spec
+type APIEndPointError struct {
+	Message string
+}
+
+// Error implements the error interface and returns the error message
+func (e *APIEndPointError) Error() string {
+	return fmt.Sprintf("APIEndPoint is not valid, %s", e.Message)
+}
+
 // IsValid returns an error if the object is not valid, otherwise nil. The
 // string representation of the error is suitable for human consumption.
 func (s *BareMetalClusterSpec) IsValid() error {
@@ -43,11 +54,19 @@ func (s *BareMetalClusterSpec) IsValid() error {
 		missing = append(missing, "APIEndpoint")
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("Missing fields from Spec: %v", missing)
+		return &APIEndPointError{fmt.Sprintf("Missing fields from Spec: %s", missing)}
 	}
 	u, err := url.Parse(s.APIEndpoint)
+
 	if err != nil || u.Hostname() == "" {
-		return fmt.Errorf("Incorrect API endpoint, expecting [scheme:]//host[:port]")
+		return &APIEndPointError{"Incorrect API endpoint, expecting [scheme:]//host[:port]"}
+	}
+
+	if u.Port() != "" {
+		_, err = strconv.Atoi(u.Port())
+		if err != nil {
+			return &APIEndPointError{"Invalid Port"}
+		}
 	}
 	return nil
 }
