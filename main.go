@@ -33,6 +33,7 @@ import (
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
+	capbmremote "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/remote"
 	"sigs.k8s.io/cluster-api-provider-baremetal/controllers"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -88,9 +89,10 @@ func main() {
 	}
 
 	if err := (&controllers.BareMetalMachineReconciler{
-		Client:         mgr.GetClient(),
-		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
-		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
+		Client:           mgr.GetClient(),
+		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:              ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
+		CapiClientGetter: capbmremote.NewClusterClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachineReconciler")
 		os.Exit(1)

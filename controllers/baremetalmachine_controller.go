@@ -45,9 +45,10 @@ const (
 
 // BareMetalMachineReconciler reconciles a BareMetalMachine object
 type BareMetalMachineReconciler struct {
-	Client         client.Client
-	ManagerFactory baremetal.ManagerFactory
-	Log            logr.Logger
+	Client           client.Client
+	ManagerFactory   baremetal.ManagerFactory
+	Log              logr.Logger
+	CapiClientGetter baremetal.ClientGetter
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=baremetalmachines,verbs=get;list;watch;create;update;patch;delete
@@ -191,7 +192,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		}
 	}
 
-	providerID, err := machineMgr.GetProviderID(ctx)
+	bmhID, err := machineMgr.GetBaremetalHostID(ctx)
 	if err != nil {
 		if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
 			log.Info("Provisioning BaremetalHost, requeuing")
@@ -201,12 +202,22 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		setErrorBMMachine(machineMgr.BareMetalMachine, er, capierrors.CreateMachineError)
 		return ctrl.Result{}, er
 	}
-	if providerID != nil {
-		// Make sure Spec.ProviderID is always set.
-		machineMgr.SetProviderID(ctx, providerID)
+	if bmhID != nil {
+		providerID := fmt.Sprintf("metal3://%s", *bmhID)
+		// Set the providerID on the node if no Cloud provider
+		if machineMgr.BareMetalCluster.Spec.NoCloudProvider {
+			err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
+			if err != nil {
+				if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
+					return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+				}
+				return ctrl.Result{}, errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
+			}
+			log.Info("ProviderID set on target node")
+		}
 
-		// Mark the capbmMachine ready
-		machineMgr.SetReady()
+		// Make sure Spec.ProviderID is set and mark the capbmMachine ready
+		machineMgr.SetProviderID(ctx, &providerID)
 	}
 
 	err = machineMgr.Update(ctx)

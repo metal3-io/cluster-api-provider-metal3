@@ -31,7 +31,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -39,6 +38,9 @@ import (
 	"k8s.io/utils/pointer"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -106,11 +108,8 @@ func (m *MachineManager) Role() string {
 	return "node"
 }
 
-// GetProviderID return the provider identifier for this machine
-func (m *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
-	if m.BareMetalMachine.Spec.ProviderID != nil {
-		return m.BareMetalMachine.Spec.ProviderID, nil
-	}
+// GetBaremetalHostID return the provider identifier for this machine
+func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error) {
 	// look for associated BMH
 	host, err := m.getHost(ctx)
 	if err != nil {
@@ -120,10 +119,7 @@ func (m *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
 		return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	if host.Status.Provisioning.State == bmh.StateProvisioned {
-		return pointer.StringPtr(fmt.Sprintf(
-			"metal3://%s",
-			string(host.ObjectMeta.UID),
-		)), nil
+		return pointer.StringPtr(string(host.ObjectMeta.UID)), nil
 	}
 	return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 }
@@ -131,10 +127,6 @@ func (m *MachineManager) GetProviderID(ctx context.Context) (*string, error) {
 // SetProviderID sets the bare metal provider ID for the kubernetes node
 func (m *MachineManager) SetProviderID(ctx context.Context, providerID *string) {
 	m.BareMetalMachine.Spec.ProviderID = providerID
-}
-
-// SetReady sets the AzureMachine Ready Status
-func (m *MachineManager) SetReady() {
 	m.BareMetalMachine.Status.Ready = true
 }
 
@@ -237,7 +229,7 @@ func (m *MachineManager) mergeUserData(ctx context.Context) error {
 			Namespace: m.BareMetalMachine.Namespace,
 		}
 		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-		if errors.IsNotFound(err) {
+		if apierrors.IsNotFound(err) {
 			// Create the secret with user data
 			err = m.client.Create(ctx, bootstrapSecret)
 		} else if err != nil {
@@ -282,7 +274,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.Online = false
 			host.Spec.UserData = nil
 			err = m.client.Update(ctx, host)
-			if err != nil && !errors.IsNotFound(err) {
+			if err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
 			return &RequeueAfterError{}
@@ -307,7 +299,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		host.Spec.ConsumerRef = nil
 		err = m.client.Update(ctx, host)
-		if err != nil && !errors.IsNotFound(err) {
+		if err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
 	}
@@ -319,7 +311,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		Namespace: m.BareMetalMachine.Namespace,
 	}
 	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	} else if err == nil {
 		// Delete the secret with use data
@@ -416,7 +408,7 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 		Namespace: hostNamespace,
 	}
 	err = m.client.Get(ctx, key, &host)
-	if errors.IsNotFound(err) {
+	if apierrors.IsNotFound(err) {
 		m.Log.Info("Annotated host not found", "host", hostKey)
 		return nil, nil
 	} else if err != nil {
@@ -653,4 +645,39 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 	}
 
 	return addrs
+}
+
+type ClientGetter func(c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
+
+// SetNodeProviderID sets the bare metal provider ID on the kubernetes node
+func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
+	corev1Remote, err := clientFactory(m.client, m.Cluster)
+	if err != nil {
+		return errors.Wrap(err, "Error creating a remote client")
+	}
+
+	nodes, err := corev1Remote.Nodes().List(metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("metal3.io/uuid=%v", bmhID),
+	})
+	if err != nil {
+		m.Log.Info(fmt.Sprintf("error while accessing cluster: %v", err))
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	if len(nodes.Items) == 0 {
+		// The node could either be still running cloud-init or have been
+		// deleted manually. TODO: handle a manual deletion case
+		m.Log.Info("Target node is not found, requeuing")
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	for _, node := range nodes.Items {
+		if node.Spec.ProviderID == providerID {
+			continue
+		}
+		node.Spec.ProviderID = providerID
+		_, err = corev1Remote.Nodes().Update(&node)
+		if err != nil {
+			return errors.Wrap(err, "unable to get update node for baremetal host")
+		}
+	}
+	return nil
 }

@@ -36,12 +36,16 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientfake "k8s.io/client-go/kubernetes/fake"
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -55,6 +59,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 
 	type TestCaseReconcile struct {
 		Objects                 []runtime.Object
+		TargetObjects           []runtime.Object
 		ErrorExpected           bool
 		RequeueExpected         bool
 		ErrorReasonExpected     bool
@@ -79,11 +84,17 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			testBMHost := &bmh.BareMetalHost{}
 
 			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
+			mockCapiClientGetter := func(c client.Client, cluster *capi.Cluster) (
+				clientcorev1.CoreV1Interface, error,
+			) {
+				return clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1(), nil
+			}
 
 			r := &BareMetalMachineReconciler{
-				Client:         c,
-				ManagerFactory: baremetal.NewManagerFactory(c),
-				Log:            klogr.New(),
+				Client:           c,
+				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Log:              klogr.New(),
+				CapiClientGetter: mockCapiClientGetter,
 			}
 
 			req := reconcile.Request{
@@ -511,6 +522,176 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				CheckBootStrapReady:     true,
 			},
 		),
+		//Given: Baremetalmachine with annotation to a BMH provisioned, machine with
+		// bootstrap data, no target cluster node available
+		//Expected: no error, requeing. ProviderID should not be set.
+		Entry("Should requeue when patching an unavailable node",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&infrav1.BareMetalMachine{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      bareMetalMachineName,
+							Namespace: namespaceName,
+							Annotations: map[string]string{
+								baremetal.HostAnnotation: "testNameSpace/bmh-0",
+							},
+							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
+						},
+						Spec:   infrav1.BareMetalMachineSpec{},
+						Status: infrav1.BareMetalMachineStatus{},
+					},
+					&clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      machineName,
+							Namespace: namespaceName,
+							Labels: map[string]string{
+								clusterv1.MachineClusterLabelName: clusterName,
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: v1.ObjectReference{
+								Name:       bareMetalMachineName,
+								Namespace:  namespaceName,
+								Kind:       "BareMetalMachine",
+								APIVersion: infrav1.GroupVersion.String(),
+							},
+							Bootstrap: clusterv1.Bootstrap{
+								Data: &bootstrapData,
+							},
+						},
+						Status: clusterv1.MachineStatus{
+							BootstrapReady: true,
+						},
+					},
+					newCluster(clusterName),
+					&infrav1.BareMetalCluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "BareMetalCluster",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            baremetalClusterName,
+							Namespace:       namespaceName,
+							OwnerReferences: []metav1.OwnerReference{*bmcOwnerRef},
+						},
+						Spec: infrav1.BareMetalClusterSpec{
+							APIEndpoint:     "http://192.168.111.249:6443",
+							NoCloudProvider: true,
+						},
+					},
+					&bmh.BareMetalHost{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmh-0",
+							Namespace: namespaceName,
+						},
+						Spec: bmh.BareMetalHostSpec{},
+						Status: bmh.BareMetalHostStatus{
+							Provisioning: bmh.ProvisionStatus{
+								State: bmh.StateProvisioned,
+							},
+						},
+					},
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+				CheckBMFinalizer:        true,
+				CheckBMProviderID:       false,
+				CheckBootStrapReady:     true,
+			},
+		),
+		//Given: Baremetalmachine with annotation to a BMH provisioned, machine with
+		// bootstrap data, target cluster node available
+		//Expected: no error, no requeue. ProviderID should be set.
+		Entry("Should not requeue when patching an available node",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&infrav1.BareMetalMachine{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      bareMetalMachineName,
+							Namespace: namespaceName,
+							Annotations: map[string]string{
+								baremetal.HostAnnotation: "testNameSpace/bmh-0",
+							},
+							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
+						},
+						Spec:   infrav1.BareMetalMachineSpec{},
+						Status: infrav1.BareMetalMachineStatus{},
+					},
+					&clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      machineName,
+							Namespace: namespaceName,
+							Labels: map[string]string{
+								clusterv1.MachineClusterLabelName: clusterName,
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: v1.ObjectReference{
+								Name:       bareMetalMachineName,
+								Namespace:  namespaceName,
+								Kind:       "BareMetalMachine",
+								APIVersion: infrav1.GroupVersion.String(),
+							},
+							Bootstrap: clusterv1.Bootstrap{
+								Data: &bootstrapData,
+							},
+						},
+						Status: clusterv1.MachineStatus{
+							BootstrapReady: true,
+						},
+					},
+					newCluster(clusterName),
+					&infrav1.BareMetalCluster{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "BareMetalCluster",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            baremetalClusterName,
+							Namespace:       namespaceName,
+							OwnerReferences: []metav1.OwnerReference{*bmcOwnerRef},
+						},
+						Spec: infrav1.BareMetalClusterSpec{
+							APIEndpoint:     "http://192.168.111.249:6443",
+							NoCloudProvider: true,
+						},
+					},
+					&bmh.BareMetalHost{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmh-0",
+							Namespace: namespaceName,
+							UID:       "54db7dd5-269a-4d94-a12a-c4eafcecb8e7",
+						},
+						Spec: bmh.BareMetalHostSpec{},
+						Status: bmh.BareMetalHostStatus{
+							Provisioning: bmh.ProvisionStatus{
+								State: bmh.StateProvisioned,
+							},
+						},
+					},
+				},
+				TargetObjects: []runtime.Object{
+					&v1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "bmh-0",
+							Labels: map[string]string{
+								"metal3.io/uuid": "54db7dd5-269a-4d94-a12a-c4eafcecb8e7",
+							},
+						},
+						Spec: v1.NodeSpec{},
+					},
+				},
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBMFinalizer:    true,
+				CheckBMProviderID:   true,
+				CheckBootStrapReady: true,
+			},
+		),
+
 		//Given: Deletion timestamp on BMMachine, No BMHost Given
 		//Expected: Delete is reconciled,BMMachine Finalizer is removed
 		Entry("Should not return an error and finish deletion of BareMetalMachine",

@@ -33,7 +33,8 @@ const (
 
 // BareMetalClusterSpec defines the desired state of BareMetalCluster.
 type BareMetalClusterSpec struct {
-	APIEndpoint string `json:"apiEndpoint"`
+	APIEndpoint     string `json:"apiEndpoint"`
+	NoCloudProvider bool   `json:"noCloudProvider,omitempty"`
 }
 
 // APIEndPointError represents error in the APIEndPoint in BareMetalCluster.Spec

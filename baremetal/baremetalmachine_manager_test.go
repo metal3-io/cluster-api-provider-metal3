@@ -2,6 +2,7 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"testing"
@@ -10,8 +11,11 @@ import (
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	clientfake "k8s.io/client-go/kubernetes/fake"
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -25,7 +29,7 @@ const (
 	testUserDataSecretName = "worker-user-data"
 )
 
-var ProviderID = "12345ID6789"
+var ProviderID = "metal3://12345ID6789"
 var bmmSpec = &capbm.BareMetalMachineSpec{
 	ProviderID: &ProviderID,
 }
@@ -637,42 +641,94 @@ func TestGetSetProviderID(t *testing.T) {
 	if err != nil {
 		log.Printf("AddToScheme failed: %v", err)
 	}
-
-	host := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "myhost",
-			Namespace: "myns",
-		},
-	}
-	c := fakeclient.NewFakeClientWithScheme(scheme, &host)
 	testCases := map[string]struct {
-		Client        client.Client
 		Machine       *capi.Machine
 		BMMachine     *capbm.BareMetalMachine
+		Host          *bmh.BareMetalHost
 		ExpectPresent bool
+		ExpectError   bool
 	}{
+		"Set ProviderID, empty annotations": {
+			Machine:   newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaEmptyAnnotations),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+			},
+			ExpectPresent: false,
+			ExpectError:   true,
+		},
 		"Set ProviderID": {
-			Client:        c,
-			Machine:       newMachine("", "", nil),
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaEmptyAnnotations),
+			Machine:   newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaWithValidAnnotations),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+					UID:       "12345ID6789",
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateProvisioned,
+					},
+				},
+			},
 			ExpectPresent: true,
+			ExpectError:   false,
+		},
+		"Set ProviderID, wrong state": {
+			Machine:   newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaWithValidAnnotations),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+					UID:       "12345ID6789",
+				},
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateProvisioning,
+					},
+				},
+			},
+			ExpectPresent: false,
+			ExpectError:   true,
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Logf("## TC-%s ##", name)
-		machineMgr, err := newMachineManager(tc.Client, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+		c := fakeclient.NewFakeClientWithScheme(scheme, tc.Host)
+		machineMgr, err := newMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
 		if err != nil {
 			t.Error(err)
 		}
 
-		id, err := machineMgr.GetProviderID(context.TODO())
+		bmhID, err := machineMgr.GetBaremetalHostID(context.TODO())
 		if err != nil {
-			t.Error(err)
+			if !tc.ExpectError {
+				t.Error(err)
+			}
+		} else {
+			if tc.ExpectError {
+				t.Error("Expected an error")
+			}
 		}
 
-		if id != tc.BMMachine.Spec.ProviderID {
-			t.Error("ProviderID not matching!!")
+		if bmhID == nil {
+			if tc.ExpectPresent {
+				t.Error("No BaremetalHost UID found")
+			}
+			continue
+		}
+
+		providerID := fmt.Sprintf("metal3://%s", *bmhID)
+
+		if providerID != *tc.BMMachine.Spec.ProviderID {
+			t.Errorf("ProviderID not matching!! expected %s, got %s", providerID,
+				*tc.BMMachine.Spec.ProviderID)
 		}
 	}
 }
@@ -1221,6 +1277,107 @@ func TestNodeAddresses(t *testing.T) {
 			if address != nodeAddresses[i] {
 				t.Errorf("expected Address %v, found %v", address, nodeAddresses[i])
 			}
+		}
+	}
+}
+
+func TestSetNodeProviderID(t *testing.T) {
+	scheme := runtime.NewScheme()
+	err := capi.AddToScheme(scheme)
+	if err != nil {
+		log.Printf("AddToScheme failed: %v", err)
+	}
+	err = bmoapis.AddToScheme(scheme)
+	if err != nil {
+		log.Printf("AddToScheme failed: %v", err)
+	}
+
+	testCases := map[string]struct {
+		Node               v1.Node
+		HostID             string
+		ExpectedError      bool
+		ExpectedProviderID string
+	}{
+		"Set target ProviderID, No matching node": {
+			Node:               v1.Node{},
+			HostID:             "abcd",
+			ExpectedError:      true,
+			ExpectedProviderID: "metal3://abcd",
+		},
+		"Set target ProviderID, matching node": {
+			Node: v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"metal3.io/uuid": "abcd",
+					},
+				},
+			},
+			HostID:             "abcd",
+			ExpectedError:      false,
+			ExpectedProviderID: "metal3://abcd",
+		},
+		"Set target ProviderID, providerID set": {
+			Node: v1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"metal3.io/uuid": "abcd",
+					},
+				},
+				Spec: v1.NodeSpec{
+					ProviderID: "metal3://abcd",
+				},
+			},
+			HostID:             "abcd",
+			ExpectedError:      false,
+			ExpectedProviderID: "metal3://abcd",
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Logf("## TC-%s ##", name)
+
+		c := fakeclient.NewFakeClientWithScheme(scheme)
+		corev1Client := clientfake.NewSimpleClientset(&tc.Node).CoreV1()
+		mockCapiClientGetter := func(c client.Client, cluster *capi.Cluster) (
+			clientcorev1.CoreV1Interface, error,
+		) {
+			return corev1Client, nil
+		}
+		machineMgr, err := newMachineManager(c, nil, nil,
+			&capi.Machine{}, &capbm.BareMetalMachine{}, klogr.New(),
+		)
+
+		if err != nil {
+			t.Error(err)
+		}
+
+		err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
+			tc.ExpectedProviderID, mockCapiClientGetter,
+		)
+
+		if tc.ExpectedError {
+			if err == nil {
+				t.Errorf("Expected error when trying to set node provider ID")
+			}
+			continue
+		} else {
+			if err != nil {
+				t.Errorf("Did not expect error when setting node providerID : %v", err)
+				continue
+			}
+		}
+
+		// get the result
+		node, err := corev1Client.Nodes().Get(tc.Node.Name, metav1.GetOptions{})
+		if err != nil {
+			t.Errorf("Get failed, %v", err)
+			return
+		}
+
+		if node.Spec.ProviderID != tc.ExpectedProviderID {
+			t.Errorf("Wrong providerID, expected %v, got %v", tc.ExpectedProviderID,
+				node.Spec.ProviderID,
+			)
 		}
 	}
 }
