@@ -13,6 +13,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"reflect"
 
 	. "github.com/onsi/ginkgo"
@@ -20,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -27,6 +29,7 @@ import (
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -34,14 +37,17 @@ import (
 var _ = Describe("Reconcile Baremetalcluster", func() {
 
 	type TestCaseReconcileBMC struct {
-		Objects         []runtime.Object
-		ErrorExpected   bool
-		RequeueExpected bool
-		ErrorType       error
+		Objects             []runtime.Object
+		ErrorType           error
+		ErrorExpected       bool
+		RequeueExpected     bool
+		ErrorReasonExpected bool
+		ErrorReason         capierrors.ClusterStatusError
 	}
 
 	DescribeTable("Reconcile tests BaremetalCluster",
 		func(tc TestCaseReconcileBMC) {
+			testclstr := &infrav1.BareMetalCluster{}
 			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
 
 			r := &BareMetalClusterReconciler{
@@ -58,6 +64,11 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			}
 
 			res, err := r.Reconcile(req)
+
+			key := client.ObjectKey{
+				Name:      baremetalClusterName,
+				Namespace: namespaceName,
+			}
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
 				if tc.ErrorType != nil {
@@ -72,6 +83,11 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Expect(res.RequeueAfter).To(Equal(requeueAfter))
 			} else {
 				Expect(res.Requeue).To(BeFalse())
+			}
+			if tc.ErrorReasonExpected {
+				_ = c.Get(context.TODO(), key, testclstr)
+				Expect(testclstr.Status.ErrorReason).NotTo(Equal(nil))
+				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.ErrorReason))
 			}
 		},
 		// Given cluster, but no baremetalcluster resource
@@ -90,8 +106,10 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Objects: []runtime.Object{
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
 				},
-				ErrorExpected:   true,
-				RequeueExpected: false,
+				ErrorExpected:       true,
+				ErrorReasonExpected: true,
+				ErrorReason:         capierrors.InvalidConfigurationClusterError,
+				RequeueExpected:     false,
 			},
 		),
 		// Given cluster and baremetalcluster with no owner reference
@@ -112,9 +130,11 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, nil, nil),
 					newCluster(clusterName),
 				},
-				ErrorExpected:   true,
-				ErrorType:       &infrav1.APIEndPointError{},
-				RequeueExpected: false,
+				ErrorExpected:       true,
+				ErrorType:           &infrav1.APIEndPointError{},
+				RequeueExpected:     false,
+				ErrorReasonExpected: true,
+				ErrorReason:         capierrors.InvalidConfigurationClusterError,
 			},
 		),
 		// Given cluster and BareMetalCluster with mandatory fields
