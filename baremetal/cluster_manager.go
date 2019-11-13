@@ -112,18 +112,10 @@ func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
 	ip := u.Hostname()
 	p := u.Port()
 
-	// validate APIEndpoint
-	if ip == "" {
-		err := errors.New("APIEndpoint IP cannot be empty")
-		s.Log.Error(err, "Invalid IP of APIEndpoint")
-		return nil, err
-	}
-
 	if p == "" {
 		p = APIEndpointPort
 	}
 	port, err := strconv.Atoi(p)
-
 	if err != nil {
 		s.Log.Error(err, "Invalid Port")
 		return nil, err
