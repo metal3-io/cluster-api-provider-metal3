@@ -38,10 +38,10 @@ var bmmSecret = &capbm.BareMetalMachineSpec{
 }
 
 var consumerRef = &corev1.ObjectReference{
-	Name:       "mymachine",
+	Name:       "mybmmachine",
 	Namespace:  "myns",
-	Kind:       "Machine",
-	APIVersion: capi.GroupVersion.String(),
+	Kind:       "BMMachine",
+	APIVersion: capbm.GroupVersion.String(),
 }
 
 var consumerRefSome = &corev1.ObjectReference{
@@ -70,7 +70,7 @@ var bmhSpecNoImg = &bmh.BareMetalHostSpec{
 }
 
 var bmmObjectMetaWithValidAnnotations = &metav1.ObjectMeta{
-	Name:            "bmmachine",
+	Name:            "mybmmachine",
 	Namespace:       "myns",
 	OwnerReferences: []metav1.OwnerReference{},
 	Annotations: map[string]string{
@@ -139,8 +139,8 @@ func TestChooseHost(t *testing.T) {
 			ConsumerRef: &corev1.ObjectReference{
 				Name:       "someothermachine",
 				Namespace:  "myns",
-				Kind:       "Machine",
-				APIVersion: capi.GroupVersion.String(),
+				Kind:       "BMMachine",
+				APIVersion: capbm.GroupVersion.String(),
 			},
 		},
 	}
@@ -155,8 +155,8 @@ func TestChooseHost(t *testing.T) {
 			ConsumerRef: &corev1.ObjectReference{
 				Name:       "machine1",
 				Namespace:  "myns",
-				Kind:       "Machine",
-				APIVersion: capi.GroupVersion.String(),
+				Kind:       "BMMachine",
+				APIVersion: capbm.GroupVersion.String(),
 			},
 		},
 	}
@@ -1292,7 +1292,7 @@ func newBareMetalMachine(name string,
 
 	typeMeta := &metav1.TypeMeta{
 		Kind:       "BMMachine",
-		APIVersion: capi.GroupVersion.String(),
+		APIVersion: capbm.GroupVersion.String(),
 	}
 
 	if spec == nil {
