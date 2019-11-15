@@ -19,13 +19,20 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"time"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/pointer"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -47,16 +54,29 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 	bootstrapData := "Qm9vdHN0cmFwIERhdGEK"
 
 	type TestCaseReconcile struct {
-		Objects             []runtime.Object
-		ErrorExpected       bool
-		RequeueExpected     bool
-		ErrorReasonExpected bool
-		ErrorReason         capierrors.MachineStatusError
+		Objects                 []runtime.Object
+		ErrorExpected           bool
+		RequeueExpected         bool
+		ErrorReasonExpected     bool
+		ErrorReason             capierrors.MachineStatusError
+		ErrorType               error
+		ExpectedRequeueDuration time.Duration
+		LabelExpected           bool
+		ClusterInfraReady       bool
+		CheckBMFinalizer        bool
+		CheckBMState            bool
+		CheckBMProviderID       bool
+		CheckBootStrapReady     bool
+		CheckBMHostCleaned      bool
+		CheckBMHostProvisioned  bool
 	}
 
 	DescribeTable("Reconcile tests",
 		func(tc TestCaseReconcile) {
-			testbmm := &infrav1.BareMetalMachine{}
+			testmachine := &clusterv1.Machine{}
+			testcluster := &clusterv1.Cluster{}
+			testBMmachine := &infrav1.BareMetalMachine{}
+			testBMHost := &bmh.BareMetalHost{}
 
 			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
 
@@ -72,59 +92,102 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					Namespace: namespaceName,
 				},
 			}
-			key := client.ObjectKey{
-				Name:      bareMetalMachineName,
-				Namespace: namespaceName,
-			}
 			res, err := r.Reconcile(req)
+			_ = c.Get(context.TODO(), *getKey(machineName), testmachine)
+			objMeta := testmachine.ObjectMeta
+			_ = c.Get(context.TODO(), *getKey(clusterName), testcluster)
+			_ = c.Get(context.TODO(), *getKey(bareMetalMachineName), testBMmachine)
+			_ = c.Get(context.TODO(), *getKey("bmh-0"), testBMHost)
+
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
+				if tc.ErrorType != nil {
+					Expect(reflect.TypeOf(tc.ErrorType) == reflect.TypeOf(errors.Cause(err))).To(BeTrue())
+				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.RequeueExpected {
 				Expect(res.Requeue).NotTo(BeFalse())
+				Expect(res.RequeueAfter).To(Equal(tc.ExpectedRequeueDuration))
 			} else {
 				Expect(res.Requeue).To(BeFalse())
 			}
 			if tc.ErrorReasonExpected {
-				_ = c.Get(context.TODO(), key, testbmm)
-				Expect(testbmm.Status.ErrorReason).NotTo(BeNil())
-				Expect(tc.ErrorReason).To(Equal(*testbmm.Status.ErrorReason))
+				Expect(testBMmachine.Status.ErrorReason).NotTo(BeNil())
+				Expect(tc.ErrorReason).To(Equal(*testBMmachine.Status.ErrorReason))
 			}
+			if tc.LabelExpected {
+				Expect(objMeta.Labels[clusterv1.MachineClusterLabelName]).NotTo(BeNil())
+			}
+			if tc.CheckBMFinalizer {
+				Expect(util.Contains(testBMmachine.Finalizers, infrav1.MachineFinalizer)).To(BeTrue())
+			}
+			if tc.CheckBMState {
+				Expect(testBMmachine.Status.Ready).To(BeTrue())
+			}
+			if tc.CheckBMProviderID {
+				Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("metal3://%s",
+					string(testBMHost.ObjectMeta.UID)))))
+			}
+			if tc.CheckBootStrapReady {
+				Expect(testmachine.Status.BootstrapReady).To(BeTrue())
+			} else {
+				Expect(testmachine.Status.BootstrapReady).To(BeFalse())
+			}
+			if tc.CheckBMHostCleaned {
+				Expect(testBMHost.Spec.Image).To(BeNil())
+				Expect(testBMHost.Spec.Online).To(BeFalse())
+				Expect(testBMHost.Spec.UserData).To(BeNil())
+			}
+			if tc.CheckBMHostProvisioned {
+				Expect(*testBMHost.Spec.Image).Should(BeEquivalentTo(testBMmachine.Spec.Image))
+				Expect(testBMHost.Spec.UserData).NotTo(BeNil())
+				Expect(testBMHost.Spec.ConsumerRef.Name).To(Equal(testBMmachine.Name))
+			}
+			if tc.ClusterInfraReady {
+				Expect(testcluster.Status.InfrastructureReady).To(BeTrue())
+			} else {
+				Expect(testcluster.Status.InfrastructureReady).To(BeFalse())
+			}
+
 		},
-		//Given machine, but no baremetalMachine resource
-		Entry("Should not return an error when baremetalcluster is not found",
+		//Given: machine with a bareMetalMachine in Spec.Infra. No baremetalMachine object
+		//Expected: No error. NotFound error is consumed by reconciler and returns nil.
+		Entry("Should not return an error when baremetalMachine is not found",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newMachine(clusterName, machineName, ""),
+					newMachine(clusterName, machineName, bareMetalMachineName),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
 			},
 		),
-		//Given both machine and baremetalMachine with OwnerRef not set.
+		//Given: baremetalMachine with OwnerRef not set.
+		//Expected: No error. Reconciler waits for  Machine Controller to set OwnerRef
 		Entry("Should not return an error if OwnerRef is not set on BareMetalCluster",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
 					newBareMetalMachine(bareMetalMachineName, nil, nil, nil),
-					newMachine(clusterName, machineName, ""),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
 			},
 		),
-		//Given baremetalMachine with OwnerRef set, Machine is not found, it should error.
+		//Given: baremetalMachine with OwnerRef set, No Machine object.
+		//Expected: Error. Machine not found.
 		Entry("Should return an error when Machine cannot be found",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
 					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
 				},
 				ErrorExpected:   true,
+				ErrorType:       &apierrors.StatusError{},
 				RequeueExpected: false,
 			},
 		),
-		//Given machine with cluster label but cluster non-existent, it should error.
+		//Given: Machine with cluster label. but no Cluster object.
+		//Expected: Error. Cluster not found
 		Entry("Should return an error when owner Cluster cannot be found",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
@@ -137,7 +200,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				RequeueExpected:     false,
 			},
 		),
-		//Given owner cluster infra not ready, it should wait and not return error
+		//Given: Machine, BareMetalMachine, Cluster. No BareMetalCluster. Cluster Infra not ready
+		//Expected: No Error. it should wait and not return error
 		Entry("Should not return an error when owner Cluster infrastructure is not ready",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
@@ -164,11 +228,13 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
 					newMachine(clusterName, machineName, bareMetalMachineName),
 				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
+				ErrorExpected:     false,
+				RequeueExpected:   false,
+				ClusterInfraReady: false,
 			},
 		),
-		//Given owner cluster infra is ready and BMCluster does not exist, it should not return an error
+		//Given: Machine, BareMetalMachine, Cluster. No BareMetalCluster. Cluster Infra ready
+		//Expected: No error. Reconciler should wait for BMC Controller to create the BMCluster
 		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster does not exist",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
@@ -176,11 +242,13 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newMachine(clusterName, machineName, bareMetalMachineName),
 					newCluster(clusterName),
 				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
+				ErrorExpected:     false,
+				RequeueExpected:   false,
+				ClusterInfraReady: true,
 			},
 		),
-		//Given owner cluster infra is ready and BMCluster exists, it should not return an error
+		//Given: Machine, BareMetalMachine (No Spec/Status), Cluster, BareMetalCluster. Cluster Infra ready
+		//Expected: No error. Reconciler should set Finalizer on BareMetalMachine
 		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster exist",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
@@ -189,11 +257,14 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newCluster(clusterName),
 					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
 				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
+				ErrorExpected:     false,
+				RequeueExpected:   false,
+				ClusterInfraReady: true,
+				CheckBMFinalizer:  true,
 			},
 		),
-		//BaremetalMachine already deployed
+		//Given: BMMachine (Spec: Provider ID, Status: Ready), BMHost(Provisioned).
+		//Expected: Since BMH is in provisioned state, nothing will happen since machine. bootstrapReady is false.
 		Entry("Should not return an error when BaremetalMachine is deployed",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
@@ -230,15 +301,28 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 					},
 				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBMFinalizer:    true,
+				CheckBMState:        true,
+				CheckBootStrapReady: false,
 			},
 		),
-		//Bootstrap data available on machine
-		Entry("Should not return an error when bootstrap data is available, no annotation",
+		//Given: Machine has Bootstrap data available while BMMachine has no Host Annotation
+		//Expected: Requeue Expected
+		//			BMHost.Spec.Image = BMmachine.Spec.Image,
+		// 			BMHost.Spec.UserData is populated
+		// 			Expect BMHost.Spec.ConsumerRef.Name = BMmachine.Name
+		Entry("Should set BMH Spec in correct state and requeue when all objects are available but no annotation",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
+					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, &infrav1.BareMetalMachineSpec{
+						Image: infrav1.Image{
+							Checksum: "abcd",
+							URL:      "abcd",
+						},
+					}, nil),
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      machineName,
@@ -269,24 +353,28 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 							Name:      "bmh-0",
 							Namespace: namespaceName,
 						},
-						Spec: bmh.BareMetalHostSpec{},
-						Status: bmh.BareMetalHostStatus{
-							Provisioning: bmh.ProvisionStatus{
-								State: bmh.StateProvisioned,
-							},
-						},
+						Spec:   bmh.BareMetalHostSpec{},
+						Status: bmh.BareMetalHostStatus{},
 					},
 				},
-				ErrorExpected:   false,
-				RequeueExpected: true,
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+				CheckBMFinalizer:        true,
+				CheckBootStrapReady:     true,
+				CheckBMHostProvisioned:  true,
 			},
 		),
-		//Bootstrap data available on machine
-		Entry("Should not return an error when bootstrap data is available",
+		//Given: Machine(with Bootstrap data), BMMachine (Annotation Given, no provider ID), BMH (provisioned)
+		//Expected: No Error, BMH.Spec.ProviderID is set properly based on the UID
+		Entry("Should set ProviderID when bootstrap data is available, ProviderID is not given, BMH is provisioned",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
 					&infrav1.BareMetalMachine{
-						TypeMeta: metav1.TypeMeta{},
+						TypeMeta: metav1.TypeMeta{
+							Kind: "BareMetalMachine",
+						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      bareMetalMachineName,
 							Namespace: namespaceName,
@@ -295,7 +383,12 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 							},
 							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
 						},
-						Spec:   infrav1.BareMetalMachineSpec{},
+						Spec: infrav1.BareMetalMachineSpec{
+							Image: infrav1.Image{
+								Checksum: "abcd",
+								URL:      "abcd",
+							},
+						},
 						Status: infrav1.BareMetalMachineStatus{},
 					},
 					&clusterv1.Machine{
@@ -326,6 +419,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					&bmh.BareMetalHost{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "bmh-0",
+							UID:       types.UID("69d18408-27cd-4670-887b-a321bc1523ea"),
 							Namespace: namespaceName,
 						},
 						Spec: bmh.BareMetalHostSpec{},
@@ -336,11 +430,89 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 					},
 				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBMFinalizer:    true,
+				CheckBMProviderID:   true,
+				CheckBootStrapReady: true,
 			},
 		),
-		//Given deletion timestamp, delete is reconciled
+		//Given: Machine(with Bootstrap data), BMMachine (Annotation Given, no provider ID), BMH (provisioning)
+		//Expected: No Error, Requeue expected
+		//		BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
+		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					&infrav1.BareMetalMachine{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "BareMetalMachine",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      bareMetalMachineName,
+							Namespace: namespaceName,
+							Annotations: map[string]string{
+								baremetal.HostAnnotation: "testNameSpace/bmh-0",
+							},
+							OwnerReferences: []metav1.OwnerReference{*bmmOwnerRef},
+						},
+						Spec: infrav1.BareMetalMachineSpec{
+							Image: infrav1.Image{
+								Checksum: "abcd",
+								URL:      "abcd",
+							},
+						},
+						Status: infrav1.BareMetalMachineStatus{},
+					},
+					&clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      machineName,
+							Namespace: namespaceName,
+							Labels: map[string]string{
+								clusterv1.MachineClusterLabelName: clusterName,
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: v1.ObjectReference{
+								Name:       bareMetalMachineName,
+								Namespace:  namespaceName,
+								Kind:       "BareMetalMachine",
+								APIVersion: infrav1.GroupVersion.String(),
+							},
+							Bootstrap: clusterv1.Bootstrap{
+								Data: &bootstrapData,
+							},
+						},
+						Status: clusterv1.MachineStatus{
+							BootstrapReady: true,
+						},
+					},
+					newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					&bmh.BareMetalHost{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmh-0",
+							UID:       types.UID("69d18408-27cd-4670-887b-a321bc1523ea"),
+							Namespace: namespaceName,
+						},
+						Spec: bmh.BareMetalHostSpec{},
+						Status: bmh.BareMetalHostStatus{
+							Provisioning: bmh.ProvisionStatus{
+								State: bmh.StateProvisioning,
+							},
+						},
+					},
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+				CheckBMFinalizer:        true,
+				CheckBootStrapReady:     true,
+			},
+		),
+		//Given: Deletion timestamp on BMMachine, No BMHost Given
+		//Expected: Delete is reconciled,BMMachine Finalizer is removed
 		Entry("Should not return an error and finish deletion of BareMetalMachine",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
@@ -376,11 +548,15 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newCluster(clusterName),
 					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
 				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
+				ErrorExpected:     false,
+				RequeueExpected:   false,
+				ClusterInfraReady: true,
+				CheckBMFinalizer:  false,
 			},
 		),
-		//Given deletion timestamp, delete is reconciled and requeued
+		//Given: Deletion timestamp on BMMachine, BMHost Given
+		//Expected: Requeue Expected
+		//          Delete is reconciled. BMH should be deprovisioned
 		Entry("Should not return an error and deprovision bmh",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
@@ -438,8 +614,11 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						Status: bmh.BareMetalHostStatus{},
 					},
 				},
-				ErrorExpected:   false,
-				RequeueExpected: true,
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: time.Second * 0,
+				ClusterInfraReady:       true,
+				CheckBMHostCleaned:      true,
 			},
 		),
 	)

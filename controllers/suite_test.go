@@ -145,6 +145,13 @@ func contains(haystack []string, needle string) bool {
 	return false
 }
 
+func getKey(objectName string) *client.ObjectKey {
+	return &client.ObjectKey{
+		Name:      objectName,
+		Namespace: namespaceName,
+	}
+}
+
 func newCluster(clusterName string) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
