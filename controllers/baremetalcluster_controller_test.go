@@ -13,9 +13,12 @@ limitations under the License.
 package controllers
 
 import (
+	"reflect"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +37,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Objects         []runtime.Object
 		ErrorExpected   bool
 		RequeueExpected bool
+		ErrorType       error
 	}
 
 	DescribeTable("Reconcile tests BaremetalCluster",
@@ -56,11 +60,16 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			res, err := r.Reconcile(req)
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
+				if tc.ErrorType != nil {
+					Expect(reflect.TypeOf(tc.ErrorType)).To(Equal(reflect.TypeOf(errors.Cause(err))))
+				}
+
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.RequeueExpected {
 				Expect(res.Requeue).NotTo(BeFalse())
+				Expect(res.RequeueAfter).To(Equal(requeueAfter))
 			} else {
 				Expect(res.Requeue).To(BeFalse())
 			}
@@ -104,6 +113,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newCluster(clusterName),
 				},
 				ErrorExpected:   true,
+				ErrorType:       &infrav1.APIEndPointError{},
 				RequeueExpected: false,
 			},
 		),
