@@ -382,7 +382,10 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						Type: "Opaque",
 					},
 					&infrav1.BareMetalMachine{
-						TypeMeta: metav1.TypeMeta{},
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "BareMetalMachine",
+							APIVersion: infrav1.GroupVersion.String(),
+						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:              bareMetalMachineName,
 							Namespace:         namespaceName,
@@ -410,10 +413,10 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 						Spec: bmh.BareMetalHostSpec{
 							ConsumerRef: &corev1.ObjectReference{
-								Name:       machineName,
+								Name:       bareMetalMachineName,
 								Namespace:  namespaceName,
-								Kind:       "Machine",
-								APIVersion: clusterv1.GroupVersion.String(),
+								Kind:       "BareMetalMachine",
+								APIVersion: infrav1.GroupVersion.String(),
 							},
 							Online: true,
 						},
@@ -513,8 +516,10 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
 
 				req := reqs[0]
-				Expect(req.NamespacedName.Name).To(Equal(tc.Host.Spec.ConsumerRef.Name), "Expected name %s, found %s", tc.Host.Spec.ConsumerRef.Name, req.NamespacedName.Name)
-				Expect(req.NamespacedName.Namespace).To(Equal(tc.Host.Spec.ConsumerRef.Namespace), "Expected namespace %s, found %s", tc.Host.Spec.ConsumerRef.Namespace, req.NamespacedName.Namespace)
+				Expect(req.NamespacedName.Name).To(Equal(tc.Host.Spec.ConsumerRef.Name),
+					"Expected name %s, found %s", tc.Host.Spec.ConsumerRef.Name, req.NamespacedName.Name)
+				Expect(req.NamespacedName.Namespace).To(Equal(tc.Host.Spec.ConsumerRef.Namespace),
+					"Expected namespace %s, found %s", tc.Host.Spec.ConsumerRef.Namespace, req.NamespacedName.Namespace)
 
 			} else {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
@@ -533,8 +538,8 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       "someothermachine",
 							Namespace:  "myns",
-							Kind:       "Machine",
-							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "BareMetalMachine",
+							APIVersion: infrav1.GroupVersion.String(),
 						},
 					},
 				},

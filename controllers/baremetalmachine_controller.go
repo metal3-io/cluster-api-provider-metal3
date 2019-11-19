@@ -276,11 +276,13 @@ func (r *BareMetalMachineReconciler) BareMetalClusterToBareMetalMachines(o handl
 	return result
 }
 
-// BareMetalHostToBareMetalMachines will return a reconcile request for a Machine if the event is for a
-// BareMetalHost and that BareMetalHost references a Machine.
+// BareMetalHostToBareMetalMachines will return a reconcile request for a BareMetalMachine if the event is for a
+// BareMetalHost and that BareMetalHost references a BareMetalMachine.
 func (r *BareMetalMachineReconciler) BareMetalHostToBareMetalMachines(obj handler.MapObject) []ctrl.Request {
 	if host, ok := obj.Object.(*bmh.BareMetalHost); ok {
-		if host.Spec.ConsumerRef != nil && host.Spec.ConsumerRef.Kind == "Machine" && host.Spec.ConsumerRef.APIVersion == capi.GroupVersion.String() {
+		if host.Spec.ConsumerRef != nil &&
+			host.Spec.ConsumerRef.Kind == "BareMetalMachine" &&
+			host.Spec.ConsumerRef.APIVersion == capbm.GroupVersion.String() {
 			return []ctrl.Request{
 				ctrl.Request{
 					NamespacedName: types.NamespacedName{

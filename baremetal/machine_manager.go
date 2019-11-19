@@ -285,7 +285,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 	if host != nil && host.Spec.ConsumerRef != nil {
 		// don't remove the ConsumerRef if it references some other bare metal machine
-		if !consumerRefMatches(host.Spec.ConsumerRef, m.Machine) {
+		if !consumerRefMatches(host.Spec.ConsumerRef, m.BareMetalMachine) {
 			m.Log.Info("host associated with another bare metal machine", "host",
 				host.Name)
 			return nil
@@ -496,7 +496,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 			} else {
 				m.Log.Info("Host did not match hostSelector for BareMetalMachine", "host", host.Name)
 			}
-		} else if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Machine) {
+		} else if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.BareMetalMachine) {
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
 			return &hosts.Items[i], nil
 		}
@@ -514,18 +514,18 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 }
 
 // consumerRefMatches returns a boolean based on whether the consumer
-// reference and machine metadata match
-func consumerRefMatches(consumer *corev1.ObjectReference, machine *capi.Machine) bool {
-	if consumer.Name != machine.Name {
+// reference and bare metal machine metadata match
+func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capbm.BareMetalMachine) bool {
+	if consumer.Name != bmmachine.Name {
 		return false
 	}
-	if consumer.Namespace != machine.Namespace {
+	if consumer.Namespace != bmmachine.Namespace {
 		return false
 	}
-	if consumer.Kind != machine.Kind {
+	if consumer.Kind != bmmachine.Kind {
 		return false
 	}
-	if consumer.APIVersion != machine.APIVersion {
+	if consumer.APIVersion != bmmachine.APIVersion {
 		return false
 	}
 	return true
@@ -555,10 +555,10 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 	}
 
 	host.Spec.ConsumerRef = &corev1.ObjectReference{
-		Kind:       "Machine",
-		Name:       m.Machine.Name,
-		Namespace:  m.Machine.Namespace,
-		APIVersion: m.Machine.APIVersion,
+		Kind:       "BareMetalMachine",
+		Name:       m.BareMetalMachine.Name,
+		Namespace:  m.BareMetalMachine.Namespace,
+		APIVersion: m.BareMetalMachine.APIVersion,
 	}
 
 	host.Spec.Online = true
