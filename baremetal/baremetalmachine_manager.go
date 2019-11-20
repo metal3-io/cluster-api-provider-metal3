@@ -676,7 +676,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		node.Spec.ProviderID = providerID
 		_, err = corev1Remote.Nodes().Update(&node)
 		if err != nil {
-			return errors.Wrap(err, "unable to get update node for baremetal host")
+			return errors.Wrap(err, "unable to update node for baremetal host")
 		}
 	}
 	return nil

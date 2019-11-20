@@ -89,7 +89,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Entry("Should not return an error when baremetalcluster is not found",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newCluster(clusterName),
+					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
@@ -112,7 +112,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
 					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
-					newCluster(clusterName),
+					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
@@ -123,7 +123,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, nil, nil),
-					newCluster(clusterName),
+					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:       true,
 				ErrorType:           &infrav1.APIEndPointError{},
@@ -137,7 +137,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
-					newCluster(clusterName),
+					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
@@ -159,7 +159,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 						Spec: *bmcSpec,
 					},
-					newCluster(clusterName),
+					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
@@ -181,7 +181,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 						},
 						Spec: *bmcSpec,
 					},
-					newCluster(clusterName),
+					newCluster(clusterName, nil, nil),
 					newMachine(clusterName, machineName, ""),
 				},
 				ErrorExpected:   false,

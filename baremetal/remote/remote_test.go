@@ -110,7 +110,7 @@ func TestNewClusterClient(t *testing.T) {
 		client := fake.NewFakeClient(invalidSecret)
 		_, err := NewClusterClient(client, clusterWithInvalidKubeConfig)
 		if err == nil || apierrors.IsNotFound(err) {
-			t.Fatalf("Expected error, got %v", err)
+			t.Fatalf("Expected error other than not found, got %v", err)
 		}
 	})
 
