@@ -12,14 +12,14 @@ For more information about this actuator and related repositories, see
   end-to-end development and test environment for
   `cluster-api-provider-baremetal` and
   [baremetal-operator](https://github.com/metal3-io/baremetal-operator).
-* [Setting up for tests](docs/dev/setup.md)
-* Using [Minikube](docs/dev/minikube.md)
-* Using [OpenShift 4](docs/dev/openshift.md)
+* [Setting up for tests](docs/dev-setup.md)
 
 ## API
 
 See the [API Documentation](docs/api.md) for details about the `providerSpec`
-API used with this `cluster-api` provider.
+API used with this `cluster-api` provider. You can also see the [cluster
+deployment workflow](docs/deployment_workflow.md) for the outline of the
+deployment process.
 
 ## Deployment and examples
 
