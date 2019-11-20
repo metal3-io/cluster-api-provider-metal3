@@ -174,7 +174,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
-		m.setError(ctx, err.Error())
+		m.setError(ctx, err.Error(), capierrors.InvalidConfigurationMachineError)
 		return nil
 	}
 
@@ -604,9 +604,8 @@ func (m *MachineManager) HasAnnotation() bool {
 // setError sets the ErrorMessage and ErrorReason fields on the machine and logs
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
-func (m *MachineManager) setError(ctx context.Context, message string) {
+func (m *MachineManager) setError(ctx context.Context, message string, reason capierrors.MachineStatusError) {
 	m.BareMetalMachine.Status.ErrorMessage = &message
-	reason := capierrors.InvalidConfigurationMachineError
 	m.BareMetalMachine.Status.ErrorReason = &reason
 }
 
