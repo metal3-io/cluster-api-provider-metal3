@@ -68,7 +68,7 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
-	// Always close the scope when exiting this function so we can persist any BaremetalMachine changes.
+	// Always patch baremetalCluster when exiting this function so we can persist any BaremetalCluster changes.
 	defer func() {
 		err := helper.Patch(ctx, baremetalCluster)
 		if err != nil {

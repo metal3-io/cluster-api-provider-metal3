@@ -86,7 +86,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 			}
 			if tc.ErrorReasonExpected {
 				_ = c.Get(context.TODO(), key, testclstr)
-				Expect(testclstr.Status.ErrorReason).NotTo(Equal(nil))
+				Expect(testclstr.Status.ErrorReason).NotTo(BeNil())
 				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.ErrorReason))
 			}
 		},
