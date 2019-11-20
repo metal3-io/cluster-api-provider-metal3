@@ -64,6 +64,17 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	// Fetch the BareMetalCluster instance
 	baremetalCluster := &capbm.BareMetalCluster{}
+
+	if err := r.Client.Get(ctx, req.NamespacedName, baremetalCluster); err != nil {
+		if apierrors.IsNotFound(err) {
+			er := errors.New("Unable to get owner cluster")
+			setErrorBMCluster(baremetalCluster, er, capierrors.InvalidConfigurationClusterError)
+			return ctrl.Result{}, nil
+		}
+
+		return ctrl.Result{}, err
+	}
+
 	helper, err := patch.NewHelper(baremetalCluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
@@ -75,16 +86,6 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 			clusterLog.Info("failed to Patch baremetalCluster")
 		}
 	}()
-	if err := r.Client.Get(ctx, req.NamespacedName, baremetalCluster); err != nil {
-		if apierrors.IsNotFound(err) {
-			er := errors.New("Unable to get owner cluster")
-			setErrorBMCluster(baremetalCluster, er, capierrors.InvalidConfigurationClusterError)
-			return ctrl.Result{}, nil
-		}
-
-		return ctrl.Result{}, err
-	}
-
 	// clear an error if one was previously set
 	clearErrorBMCluster(baremetalCluster)
 	// Fetch the Cluster.

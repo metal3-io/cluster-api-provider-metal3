@@ -30,7 +30,6 @@ import (
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"net/url"
@@ -44,8 +43,7 @@ const (
 
 // ClusterManager is responsible for performing machine reconciliation
 type ClusterManager struct {
-	client      client.Client
-	patchHelper *patch.Helper
+	client client.Client
 
 	Cluster          *capi.Cluster
 	BareMetalCluster *capbm.BareMetalCluster
@@ -64,14 +62,8 @@ func newClusterManager(client client.Client,
 		return nil, errors.New("BareMetalCluster is required when creating a ClusterManager")
 	}
 
-	helper, err := patch.NewHelper(bareMetalCluster, client)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to init patch helper")
-	}
-
 	return &ClusterManager{
-		client:      client,
-		patchHelper: helper,
+		client: client,
 
 		Cluster:          cluster,
 		BareMetalCluster: bareMetalCluster,
@@ -173,9 +165,4 @@ func (s *ClusterManager) clearError(ctx context.Context) {
 		s.BareMetalCluster.Status.ErrorMessage = nil
 		s.BareMetalCluster.Status.ErrorReason = nil
 	}
-}
-
-// Close closes the current scope persisting the cluster configuration and status.
-func (s *ClusterManager) Close() error {
-	return s.patchHelper.Patch(context.TODO(), s.BareMetalCluster)
 }

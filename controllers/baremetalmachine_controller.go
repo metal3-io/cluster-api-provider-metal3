@@ -32,6 +32,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -73,6 +74,17 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		}
 		return ctrl.Result{}, err
 	}
+	helper, err := patch.NewHelper(capbmMachine, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+	}
+	// Always patch capbMachine exiting this function so we can persist any BareMetalMachine changes.
+	defer func() {
+		err := helper.Patch(ctx, capbmMachine)
+		if err != nil {
+			machineLog.Info("failed to Patch capbmMachine")
+		}
+	}()
 	//clear an error if one was previously set
 	clearErrorBMMachine(capbmMachine)
 
@@ -80,9 +92,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capbmMachine.ObjectMeta)
 
 	if err != nil {
-		er := errors.Wrapf(err, "BareMetalMachine's owner Machine could not be retrieved")
-		setErrorBMMachine(capbmMachine, er, capierrors.CreateMachineError)
-		return ctrl.Result{}, er
+		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine could not be retrieved")
 	}
 	if capiMachine == nil {
 		machineLog.Info("Waiting for Machine Controller to set OwnerRef on BareMetalMachine")
@@ -94,7 +104,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
-		er := errors.Wrapf(err, "BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
+		er := errors.New("BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
 		machineLog.Info("BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
 		setErrorBMMachine(capbmMachine, er, capierrors.InvalidConfigurationMachineError)
 
@@ -140,13 +150,6 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
-
-	// Always patch capbmMachine when exiting this function so we can persist any BareMetalMachine changes.
-	defer func() {
-		if err := machineMgr.Close(); err != nil && rerr == nil {
-			rerr = err
-		}
-	}()
 
 	// Handle deleted machines
 	if !capbmMachine.ObjectMeta.DeletionTimestamp.IsZero() {
