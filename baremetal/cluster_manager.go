@@ -86,7 +86,7 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
-		s.setError(ctx, err.Error())
+		s.setError(ctx, err.Error(), capierrors.InvalidConfigurationClusterError)
 		return err
 	}
 
@@ -160,9 +160,8 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 // setError sets the ErrorMessage and ErrorReason fields on the machine and logs
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
-func (s *ClusterManager) setError(ctx context.Context, message string) {
+func (s *ClusterManager) setError(ctx context.Context, message string, reason capierrors.ClusterStatusError) {
 	s.BareMetalCluster.Status.ErrorMessage = &message
-	reason := capierrors.InvalidConfigurationClusterError
 	s.BareMetalCluster.Status.ErrorReason = &reason
 }
 
