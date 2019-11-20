@@ -141,7 +141,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
 
-	// Always close the scope when exiting this function so we can persist any BareMetalMachine changes.
+	// Always patch capbmMachine when exiting this function so we can persist any BareMetalMachine changes.
 	defer func() {
 		if err := machineMgr.Close(); err != nil && rerr == nil {
 			rerr = err
