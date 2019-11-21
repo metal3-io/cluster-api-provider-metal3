@@ -29,7 +29,6 @@ import (
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -65,10 +64,6 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 
 			res, err := r.Reconcile(req)
 
-			key := client.ObjectKey{
-				Name:      baremetalClusterName,
-				Namespace: namespaceName,
-			}
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
 				if tc.ErrorType != nil {
@@ -85,7 +80,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Expect(res.Requeue).To(BeFalse())
 			}
 			if tc.ErrorReasonExpected {
-				_ = c.Get(context.TODO(), key, testclstr)
+				_ = c.Get(context.TODO(), *getKey(baremetalClusterName), testclstr)
 				Expect(testclstr.Status.ErrorReason).NotTo(BeNil())
 				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.ErrorReason))
 			}
