@@ -12,6 +12,9 @@ spec:
     - cluster-api
     kind: BareMetalCluster
     plural: baremetalclusters
+    shortNames:
+    - bmc
+    - bmcluster
   scope: Namespaced
   subresources:
     status: {}

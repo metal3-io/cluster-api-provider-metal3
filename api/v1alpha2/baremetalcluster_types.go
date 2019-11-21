@@ -127,7 +127,7 @@ type BareMetalClusterStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:path=baremetalclusters,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=baremetalclusters,scope=Namespaced,categories=cluster-api,shortName=bmc;bmcluster
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true

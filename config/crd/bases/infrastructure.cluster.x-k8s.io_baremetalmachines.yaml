@@ -21,6 +21,9 @@ spec:
     - cluster-api
     kind: BareMetalMachine
     plural: baremetalmachines
+    shortNames:
+    - bmm
+    - bmmachine
   scope: Namespaced
   subresources:
     status: {}

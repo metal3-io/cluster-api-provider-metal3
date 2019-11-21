@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -131,7 +132,7 @@ type BareMetalMachineStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:path=baremetalmachines,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=baremetalmachines,scope=Namespaced,categories=cluster-api,shortName=bmm;bmmachine
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
