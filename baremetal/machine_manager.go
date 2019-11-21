@@ -29,7 +29,6 @@ import (
 	_ "github.com/go-logr/logr"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	pkgerrors "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -44,7 +43,6 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -59,8 +57,7 @@ const (
 
 // MachineManager is responsible for performing machine reconciliation
 type MachineManager struct {
-	client      client.Client
-	patchHelper *patch.Helper
+	client client.Client
 
 	Cluster          *capi.Cluster
 	BareMetalCluster *capbm.BareMetalCluster
@@ -75,14 +72,8 @@ func newMachineManager(client client.Client,
 	machine *capi.Machine, baremetalMachine *capbm.BareMetalMachine,
 	machineLog logr.Logger) (*MachineManager, error) {
 
-	helper, err := patch.NewHelper(machine, client)
-	if err != nil {
-		return nil, pkgerrors.Wrap(err, "failed to init patch helper")
-	}
-
 	return &MachineManager{
-		client:      client,
-		patchHelper: helper,
+		client: client,
 
 		Cluster:          cluster,
 		BareMetalCluster: baremetalCluster,
@@ -153,11 +144,6 @@ func (m *MachineManager) SetAnnotation(key, value string) {
 		m.BareMetalMachine.Annotations = map[string]string{}
 	}
 	m.BareMetalMachine.Annotations[key] = value
-}
-
-// Close the MachineManager by updating the machine spec, machine status.
-func (m *MachineManager) Close() error {
-	return m.patchHelper.Patch(context.TODO(), m.BareMetalMachine)
 }
 
 // Associate associates a machine and is invoked by the Machine Controller
@@ -586,8 +572,7 @@ func (m *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareMet
 	}
 	annotations[HostAnnotation] = hostKey
 	m.BareMetalMachine.ObjectMeta.SetAnnotations(annotations)
-	// Will be done by m.Close()
-	//return m.client.Update(ctx, m.BareMetalMachine)
+
 	return nil
 }
 

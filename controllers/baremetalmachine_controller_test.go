@@ -17,15 +17,14 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +33,8 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -46,13 +47,17 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 	bootstrapData := "Qm9vdHN0cmFwIERhdGEK"
 
 	type TestCaseReconcile struct {
-		Objects         []runtime.Object
-		ErrorExpected   bool
-		RequeueExpected bool
+		Objects             []runtime.Object
+		ErrorExpected       bool
+		RequeueExpected     bool
+		ErrorReasonExpected bool
+		ErrorReason         capierrors.MachineStatusError
 	}
 
 	DescribeTable("Reconcile tests",
 		func(tc TestCaseReconcile) {
+			testbmm := &infrav1.BareMetalMachine{}
+
 			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
 
 			r := &BareMetalMachineReconciler{
@@ -67,7 +72,10 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					Namespace: namespaceName,
 				},
 			}
-
+			key := client.ObjectKey{
+				Name:      bareMetalMachineName,
+				Namespace: namespaceName,
+			}
 			res, err := r.Reconcile(req)
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
@@ -78,6 +86,11 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				Expect(res.Requeue).NotTo(BeFalse())
 			} else {
 				Expect(res.Requeue).To(BeFalse())
+			}
+			if tc.ErrorReasonExpected {
+				_ = c.Get(context.TODO(), key, testbmm)
+				Expect(testbmm.Status.ErrorReason).NotTo(BeNil())
+				Expect(tc.ErrorReason).To(Equal(*testbmm.Status.ErrorReason))
 			}
 		},
 		//Given machine, but no baremetalMachine resource
@@ -118,8 +131,10 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 					newBareMetalMachine(bareMetalMachineName, bmmOwnerRef, nil, nil),
 					newMachine(clusterName, machineName, bareMetalMachineName),
 				},
-				ErrorExpected:   true,
-				RequeueExpected: false,
+				ErrorExpected:       true,
+				ErrorReasonExpected: true,
+				ErrorReason:         capierrors.InvalidConfigurationMachineError,
+				RequeueExpected:     false,
 			},
 		),
 		//Given owner cluster infra not ready, it should wait and not return error
