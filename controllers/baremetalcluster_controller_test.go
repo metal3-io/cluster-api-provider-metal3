@@ -14,180 +14,194 @@ package controllers
 
 import (
 	"context"
-	"reflect"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
-	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
-	fakebm "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/fake"
+	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
+	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mock_baremetal"
 
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = Describe("Reconcile Baremetalcluster", func() {
-
-	type TestCaseReconcileBMC struct {
-		Objects             []runtime.Object
-		ErrorType           error
-		ErrorExpected       bool
-		RequeueExpected     bool
-		ErrorReasonExpected bool
-		ErrorReason         capierrors.ClusterStatusError
+func TestReconcileNormal(t *testing.T) {
+	testCases := map[string]struct {
+		CreateError   bool
+		UpdateError   bool
+		ExpectError   bool
+		ExpectRequeue bool
+	}{
+		"No errors": {
+			CreateError:   false,
+			UpdateError:   false,
+			ExpectError:   false,
+			ExpectRequeue: false,
+		},
+		"Create error": {
+			CreateError:   true,
+			UpdateError:   false,
+			ExpectError:   true,
+			ExpectRequeue: false,
+		},
+		"Update error": {
+			CreateError:   false,
+			UpdateError:   true,
+			ExpectError:   true,
+			ExpectRequeue: false,
+		},
 	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			var returnedError error
+			ctrl := gomock.NewController(t)
 
-	DescribeTable("Reconcile tests BaremetalCluster",
-		func(tc TestCaseReconcileBMC) {
-			testclstr := &infrav1.BareMetalCluster{}
-			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
+			// Assert that Bar() is invoked.
+			defer ctrl.Finish()
 
+			m := mock_baremetal.NewMockClusterManagerInterface(ctrl)
+
+			m.EXPECT().SetFinalizer()
+
+			if tc.CreateError {
+				returnedError = errors.New("Error")
+				m.EXPECT().UpdateClusterStatus().MaxTimes(0)
+			} else {
+				if tc.UpdateError {
+					returnedError = errors.New("Error")
+				} else {
+					returnedError = nil
+				}
+				m.EXPECT().UpdateClusterStatus().Return(returnedError)
+				returnedError = nil
+			}
+			m.EXPECT().
+				Create(context.TODO()).Return(returnedError)
+
+			res, err := reconcileNormal(context.TODO(), m)
+
+			if tc.ExpectError {
+				if err == nil {
+					t.Error("Expected an error")
+				}
+			} else {
+				if err != nil {
+					t.Error("Did not expect an error")
+				}
+			}
+			if tc.ExpectRequeue {
+				if res.Requeue == false {
+					t.Error("Expected a requeue")
+				}
+			} else {
+				if res.Requeue != false {
+					t.Error("Did not expect a requeue")
+				}
+			}
+		})
+	}
+}
+
+func TestReconcileDelete(t *testing.T) {
+	testCases := map[string]struct {
+		DescendantsCount int
+		DescendantsError bool
+		DeleteError      bool
+		ExpectError      bool
+		ExpectRequeue    bool
+	}{
+		"No errors": {
+			DescendantsCount: 0,
+			DescendantsError: false,
+			DeleteError:      false,
+			ExpectError:      false,
+			ExpectRequeue:    false,
+		},
+		"Descendants left": {
+			DescendantsCount: 1,
+			DescendantsError: false,
+			DeleteError:      false,
+			ExpectError:      false,
+			ExpectRequeue:    true,
+		},
+		"Descendants error": {
+			DescendantsCount: 0,
+			DescendantsError: true,
+			DeleteError:      false,
+			ExpectError:      true,
+			ExpectRequeue:    false,
+		},
+		"Delete error": {
+			DescendantsCount: 0,
+			DescendantsError: false,
+			DeleteError:      true,
+			ExpectError:      true,
+			ExpectRequeue:    false,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			var returnedError error
+			ctrl := gomock.NewController(t)
+
+			// Assert that Bar() is invoked.
+			defer ctrl.Finish()
+
+			m := mock_baremetal.NewMockClusterManagerInterface(ctrl)
+			c := fake.NewFakeClientWithScheme(setupScheme())
 			r := &BareMetalClusterReconciler{
 				Client:         c,
-				ManagerFactory: fakebm.NewFakeManagerFactory(c),
+				ManagerFactory: baremetal.NewManagerFactory(c),
 				Log:            klogr.New(),
 			}
 
-			req := reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      baremetalClusterName,
-					Namespace: namespaceName,
-				},
-			}
-
-			res, err := r.Reconcile(req)
-
-			if tc.ErrorExpected {
-				Expect(err).To(HaveOccurred())
-				if tc.ErrorType != nil {
-					Expect(reflect.TypeOf(tc.ErrorType)).To(Equal(reflect.TypeOf(errors.Cause(err))))
+			// If we get an error while listing descendants or some still exists,
+			// we will exit with error or requeue.
+			if tc.DescendantsError || tc.DescendantsCount != 0 {
+				m.EXPECT().Delete().MaxTimes(0)
+				m.EXPECT().UnsetFinalizer().MaxTimes(0)
+			} else {
+				// if no descendants are left, but we hit an error during delete,
+				// we do not remove the finalizers
+				if tc.DeleteError {
+					m.EXPECT().UnsetFinalizer().MaxTimes(0)
+					returnedError = errors.New("Error")
+				} else {
+					m.EXPECT().UnsetFinalizer()
+					returnedError = nil
 				}
+				m.EXPECT().Delete().Return(returnedError)
+			}
 
+			if tc.DescendantsError {
+				returnedError = errors.New("Error")
 			} else {
-				Expect(err).NotTo(HaveOccurred())
+				returnedError = nil
 			}
-			if tc.RequeueExpected {
-				Expect(res.Requeue).NotTo(BeFalse())
-				Expect(res.RequeueAfter).To(Equal(requeueAfter))
-			} else {
-				Expect(res.Requeue).To(BeFalse())
-			}
-			if tc.ErrorReasonExpected {
-				_ = c.Get(context.TODO(), *getKey(baremetalClusterName), testclstr)
-				Expect(testclstr.Status.ErrorReason).NotTo(BeNil())
-				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.ErrorReason))
-			}
-		},
-		// Given cluster, but no baremetalcluster resource
-		Entry("Should not return an error when baremetalcluster is not found",
-			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
-					newCluster(clusterName, nil, nil),
-				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
-			},
-		),
-		// Given no cluster resource
-		Entry("Should return en error when cluster is not found",
-			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
-				},
-				ErrorExpected:       true,
-				ErrorReasonExpected: true,
-				ErrorReason:         capierrors.InvalidConfigurationClusterError,
-				RequeueExpected:     false,
-			},
-		),
-		// Given cluster and baremetalcluster with no owner reference
-		Entry("Should not return an error if OwnerRef is not set on BareMetalCluster",
-			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
-					newCluster(clusterName, nil, nil),
-				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
-			},
-		),
-		// Given cluster and BareMetalCluster with no APIEndpoint
-		Entry("Should return an error if APIEndpoint is not set",
-			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, nil, nil),
-					newCluster(clusterName, nil, nil),
-				},
-				ErrorExpected:       true,
-				ErrorType:           &infrav1.APIEndPointError{},
-				RequeueExpected:     false,
-				ErrorReasonExpected: true,
-				ErrorReason:         capierrors.InvalidConfigurationClusterError,
-			},
-		),
-		// Given cluster and BareMetalCluster with mandatory fields
-		Entry("Should not return an error when mandatory fields are provided",
-			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
-					newCluster(clusterName, nil, nil),
-				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
-			},
-		),
-		// Reconcile Deletion
-		Entry("Should reconcileDelete when deletion timestamp is set.",
-			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
-					&infrav1.BareMetalCluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "BareMetalCluster",
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:              baremetalClusterName,
-							Namespace:         namespaceName,
-							DeletionTimestamp: &deletionTimestamp,
-							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef},
-						},
-						Spec: *bmcSpec,
-					},
-					newCluster(clusterName, nil, nil),
-				},
-				ErrorExpected:   false,
-				RequeueExpected: false,
-			},
-		),
-		// Reconcile Deletion, wait for baremetalmachine
-		Entry("reconcileDelete should wait for baremetalmachine",
-			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
-					&infrav1.BareMetalCluster{
-						TypeMeta: metav1.TypeMeta{
-							Kind: "BareMetalCluster",
-						},
-						ObjectMeta: metav1.ObjectMeta{
-							Name:              baremetalClusterName,
-							Namespace:         namespaceName,
-							DeletionTimestamp: &deletionTimestamp,
-							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef},
-						},
-						Spec: *bmcSpec,
-					},
-					newCluster(clusterName, nil, nil),
-					newMachine(clusterName, machineName, ""),
-				},
-				ErrorExpected:   false,
-				RequeueExpected: true,
-			},
-		),
-	)
+			m.EXPECT().
+				CountDescendants(context.TODO(), c).Return(tc.DescendantsCount, returnedError)
 
-})
+			res, err := r.reconcileDelete(context.TODO(), m)
+
+			if tc.ExpectError {
+				if err == nil {
+					t.Error("Expected an error")
+				}
+			} else {
+				if err != nil {
+					t.Error("Did not expect an error")
+				}
+			}
+			if tc.ExpectRequeue {
+				if res.Requeue == false {
+					t.Error("Expected a requeue")
+				}
+			} else {
+				if res.Requeue != false {
+					t.Error("Did not expect a requeue")
+				}
+			}
+		})
+	}
+}

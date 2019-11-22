@@ -64,34 +64,23 @@ type ClusterManager struct {
 }
 
 // NewClusterManager returns a new helper for managing a cluster with a given name.
-func NewClusterManager(ctx context.Context, client client.Client,
+func NewClusterManager(client client.Client, cluster *capi.Cluster,
 	bareMetalCluster *capbm.BareMetalCluster,
 	clusterLog logr.Logger) (ClusterManagerInterface, error) {
 
 	if bareMetalCluster == nil {
 		return nil, errors.New("BareMetalCluster is required when creating a ClusterManager")
 	}
+	if cluster == nil {
+		return nil, errors.New("Cluster is required when creating a ClusterManager")
+	}
 
-	clusterManager := ClusterManager{
+	return &ClusterManager{
 		client:           client,
 		BareMetalCluster: bareMetalCluster,
-	}
-
-	// Fetch the Cluster.
-	cluster, err := util.GetOwnerCluster(ctx, client, bareMetalCluster.ObjectMeta)
-	if err != nil {
-		clusterManager.setError("Unable to get owner cluster", capierrors.InvalidConfigurationClusterError)
-		return nil, err
-	}
-	if cluster == nil {
-		clusterLog.Info("Waiting for Cluster Controller to set OwnerRef on BareMetalCluster")
-		return nil, nil
-	}
-
-	clusterLog = clusterLog.WithValues("cluster", cluster.Name)
-	clusterManager.Cluster = cluster
-	clusterManager.Log = clusterLog
-	return &clusterManager, nil
+		Cluster:          cluster,
+		Log:              clusterLog,
+	}, nil
 }
 
 // Set finalizer

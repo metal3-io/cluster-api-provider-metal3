@@ -61,12 +61,7 @@ type tcTest struct {
 	ExpectSuccess bool
 }
 
-var testCases = map[string]struct {
-	c             client.Client
-	BMCluster     *infrav1.BareMetalCluster
-	Cluster       *clusterv1.Cluster
-	ExpectSuccess bool
-}{
+var testCases = map[string]tcTest{
 	"Cluster and BMCluster exist": {
 		Cluster:       newCluster(clusterName),
 		BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
@@ -80,7 +75,7 @@ var testCases = map[string]struct {
 	"Cluster empty, BMCluster exists": {
 		Cluster:       &clusterv1.Cluster{},
 		BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
-		ExpectSuccess: false,
+		ExpectSuccess: true,
 	},
 	"Cluster empty, BMCluster exists without owner": {
 		Cluster:       &clusterv1.Cluster{},
@@ -152,19 +147,13 @@ func TestNewClusterManagerUpdateClusterStatus(t *testing.T) {
 					}
 				} else {
 					apiEndPoints := tc.BMCluster.Status.APIEndpoints
-					if err != nil {
-						if tc.ExpectSuccess {
-							t.Error(err)
+					if !tc.ExpectSuccess {
+						if apiEndPoints[0].Host != "" {
+							t.Errorf("APIEndPoints Host not empty %s", apiEndPoints[0].Host)
 						}
 					} else {
-						if !tc.ExpectSuccess {
-							if apiEndPoints[0].Host != "" {
-								t.Errorf("APIEndPoints Host not empty %s", apiEndPoints[0].Host)
-							}
-						} else {
-							if apiEndPoints[0].Host != "192.168.111.249" || apiEndPoints[0].Port != 6443 {
-								t.Errorf("APIEndPoints mismatch %s:%d", apiEndPoints[0].Host, apiEndPoints[0].Port)
-							}
+						if apiEndPoints[0].Host != "192.168.111.249" || apiEndPoints[0].Port != 6443 {
+							t.Errorf("APIEndPoints mismatch %s:%d", apiEndPoints[0].Host, apiEndPoints[0].Port)
 						}
 					}
 				}
@@ -204,7 +193,7 @@ func newSetup(t *testing.T, tc tcTest) (ClusterManagerInterface, error) {
 		tc.c = fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 	}
 
-	clusterMgr, err := NewClusterManager(context.TODO(), tc.c, tc.BMCluster, klogr.New())
+	clusterMgr, err := NewClusterManager(tc.c, tc.Cluster, tc.BMCluster, klogr.New())
 	if err != nil {
 		if tc.ExpectSuccess {
 			t.Error(err)

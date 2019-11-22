@@ -22,11 +22,13 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/utils/pointer"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -82,8 +84,24 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		}
 	}()
 
+	// Fetch the Cluster.
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, baremetalCluster.ObjectMeta)
+	if err != nil {
+		error := capierrors.InvalidConfigurationClusterError
+		baremetalCluster.Status.ErrorReason = &error
+		baremetalCluster.Status.ErrorMessage = pointer.StringPtr("Unable to get owner cluster")
+		return ctrl.Result{}, err
+	}
+	if cluster == nil {
+		clusterLog.Info("Waiting for Cluster Controller to set OwnerRef on BareMetalCluster")
+		return ctrl.Result{}, nil
+	}
+
+	clusterLog = clusterLog.WithValues("cluster", cluster.Name)
+	clusterLog.Info("Reconciling BaremetalCluster")
+
 	// Create a helper for managing a baremetal cluster.
-	clusterMgr, err := r.ManagerFactory.NewClusterManager(ctx, baremetalCluster, clusterLog)
+	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster, clusterLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
