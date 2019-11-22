@@ -45,9 +45,10 @@ const (
 
 // BareMetalMachineReconciler reconciles a BareMetalMachine object
 type BareMetalMachineReconciler struct {
-	Client         client.Client
-	ManagerFactory baremetal.ManagerFactory
-	Log            logr.Logger
+	Client           client.Client
+	ManagerFactory   baremetal.ManagerFactory
+	Log              logr.Logger
+	CapiClientGetter baremetal.ClientGetter
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=baremetalmachines,verbs=get;list;watch;create;update;patch;delete
@@ -153,16 +154,17 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	// Handle deleted machines
 	if !capbmMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, machineMgr, clusterMgr, machineLog)
+		return r.reconcileDelete(ctx, machineMgr, clusterMgr)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, machineMgr, clusterMgr, machineLog)
+	return r.reconcileNormal(ctx, machineMgr, clusterMgr)
 }
 
 func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr *baremetal.MachineManager,
-	clusterMgr *baremetal.ClusterManager, log logr.Logger) (ctrl.Result, error) {
+	clusterMgr *baremetal.ClusterManager,
+) (ctrl.Result, error) {
 	// If the BareMetalMachine doesn't have finalizer, add it.
 	if !util.Contains(machineMgr.BareMetalMachine.Finalizers, capbm.MachineFinalizer) {
 		machineMgr.BareMetalMachine.Finalizers = append(machineMgr.BareMetalMachine.Finalizers, capbm.MachineFinalizer)
@@ -176,7 +178,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 
 	// Make sure bootstrap data is available and populated.
 	if !machineMgr.Machine.Status.BootstrapReady {
-		log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+		machineMgr.Log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
 		return ctrl.Result{}, nil
 	}
 
@@ -191,22 +193,32 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		}
 	}
 
-	providerID, err := machineMgr.GetProviderID(ctx)
+	bmhID, err := machineMgr.GetBaremetalHostID(ctx)
 	if err != nil {
 		if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-			log.Info("Provisioning BaremetalHost, requeuing")
+			machineMgr.Log.Info("Provisioning BaremetalHost, requeuing")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
 		er := errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
 		setErrorBMMachine(machineMgr.BareMetalMachine, er, capierrors.CreateMachineError)
 		return ctrl.Result{}, er
 	}
-	if providerID != nil {
-		// Make sure Spec.ProviderID is always set.
-		machineMgr.SetProviderID(ctx, providerID)
+	if bmhID != nil {
+		providerID := fmt.Sprintf("metal3://%s", *bmhID)
+		// Set the providerID on the node if no Cloud provider
+		if machineMgr.BareMetalCluster.Spec.NoCloudProvider {
+			err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
+			if err != nil {
+				if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
+					return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+				}
+				return ctrl.Result{}, errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
+			}
+			machineMgr.Log.Info("ProviderID set on target node")
+		}
 
-		// Mark the capbmMachine ready
-		machineMgr.SetReady()
+		// Make sure Spec.ProviderID is set and mark the capbmMachine ready
+		machineMgr.SetProviderID(ctx, &providerID)
 	}
 
 	err = machineMgr.Update(ctx)
@@ -215,12 +227,12 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 
 func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr *baremetal.MachineManager, clusterMgr *baremetal.ClusterManager,
-	log logr.Logger) (ctrl.Result, error) {
+) (ctrl.Result, error) {
 
 	// delete the machine
 	if err := machineMgr.Delete(ctx); err != nil {
 		if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-			log.Info("Deprovisioning BaremetalHost, requeuing")
+			machineMgr.Log.Info("Deprovisioning BaremetalHost, requeuing")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
 

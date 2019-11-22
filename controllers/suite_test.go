@@ -130,12 +130,6 @@ var bmcOwnerRef = &metav1.OwnerReference{
 	Name:       clusterName,
 }
 
-var bmmOwnerRef = &metav1.OwnerReference{
-	APIVersion: clusterv1.GroupVersion.String(),
-	Kind:       "Machine",
-	Name:       machineName,
-}
-
 func contains(haystack []string, needle string) bool {
 	for _, straw := range haystack {
 		if straw == needle {
@@ -152,26 +146,33 @@ func getKey(objectName string) *client.ObjectKey {
 	}
 }
 
-func newCluster(clusterName string) *clusterv1.Cluster {
+func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *clusterv1.ClusterStatus) *clusterv1.Cluster {
+	if spec == nil {
+		spec = &clusterv1.ClusterSpec{
+			InfrastructureRef: &v1.ObjectReference{
+				Name:       baremetalClusterName,
+				Namespace:  namespaceName,
+				Kind:       "BareMetalCluster",
+				APIVersion: infrav1.GroupVersion.String(),
+			},
+		}
+	}
+	if status == nil {
+		status = &clusterv1.ClusterStatus{
+			InfrastructureReady: true,
+		}
+	}
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "Cluster",
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
 			Namespace: namespaceName,
 		},
-		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &v1.ObjectReference{
-				Name:       baremetalClusterName,
-				Namespace:  namespaceName,
-				Kind:       "InfrastructureConfig",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-			},
-		},
-		Status: clusterv1.ClusterStatus{
-			InfrastructureReady: true,
-		},
+		Spec:   *spec,
+		Status: *status,
 	}
 }
 
@@ -189,7 +190,8 @@ func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, 
 
 	return &infrav1.BareMetalCluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "BareMetalCluster",
+			Kind:       "BareMetalCluster",
+			APIVersion: infrav1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            baremetalClusterName,
@@ -226,29 +228,63 @@ func newMachine(clusterName, machineName string, bareMetalMachineName string) *c
 	return machine
 }
 
-func newBareMetalMachine(name string, ownerRef *metav1.OwnerReference, spec *infrav1.BareMetalMachineSpec, status *infrav1.BareMetalMachineStatus) *infrav1.BareMetalMachine {
+func newBareMetalMachine(name string, meta *metav1.ObjectMeta,
+	spec *infrav1.BareMetalMachineSpec, status *infrav1.BareMetalMachineStatus,
+) *infrav1.BareMetalMachine {
 
+	if meta == nil {
+		meta = &metav1.ObjectMeta{
+			Name:            name,
+			Namespace:       namespaceName,
+			OwnerReferences: []metav1.OwnerReference{},
+			Annotations:     map[string]string{},
+		}
+	}
+	meta.Name = name
 	if spec == nil {
 		spec = &infrav1.BareMetalMachineSpec{}
 	}
 	if status == nil {
 		status = &infrav1.BareMetalMachineStatus{}
 	}
-	ownerRefs := []metav1.OwnerReference{}
-	if ownerRef != nil {
-		ownerRefs = []metav1.OwnerReference{*ownerRef}
-	}
 
 	return &infrav1.BareMetalMachine{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "BareMetalMachine",
+			Kind:       "BareMetalMachine",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+		ObjectMeta: *meta,
+		Spec:       *spec,
+		Status:     *status,
+	}
+}
+
+func newBareMetalHost(spec *bmh.BareMetalHostSpec,
+	status *bmh.BareMetalHostStatus,
+) *bmh.BareMetalHost {
+
+	if spec == nil {
+		spec = &bmh.BareMetalHostSpec{}
+	}
+	if status == nil {
+		status = &bmh.BareMetalHostStatus{
+			Provisioning: bmh.ProvisionStatus{
+				State: bmh.StateProvisioned,
+			},
+		}
+	}
+	return &bmh.BareMetalHost{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "BareMetalHost",
+			APIVersion: bmh.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            name,
-			Namespace:       namespaceName,
-			OwnerReferences: ownerRefs,
+			Name:      "bmh-0",
+			Namespace: namespaceName,
+			UID:       "54db7dd5-269a-4d94-a12a-c4eafcecb8e7",
 		},
 		Spec:   *spec,
 		Status: *status,
 	}
+
 }
