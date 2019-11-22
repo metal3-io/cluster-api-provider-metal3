@@ -17,6 +17,7 @@ limitations under the License.
 package fake
 
 import (
+	"context"
 	"github.com/go-logr/logr"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
@@ -35,8 +36,8 @@ func NewFakeManagerFactory(client client.Client) FakeManagerFactory {
 }
 
 // FakeNewClusterManager creates a new FakeClusterManager
-func (f FakeManagerFactory) NewClusterManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
-	return baremetal.NewClusterManager(f.client, capiCluster, capbmCluster, clusterLog)
+func (f FakeManagerFactory) NewClusterManager(ctx context.Context, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
+	return baremetal.NewClusterManager(ctx, f.client, capbmCluster, clusterLog)
 }
 
 // FakeNewMachineManager creates a new FakeMachineManager

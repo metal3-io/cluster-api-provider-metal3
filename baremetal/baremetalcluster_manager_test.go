@@ -80,6 +80,11 @@ var testCases = map[string]struct {
 	"Cluster empty, BMCluster exists": {
 		Cluster:       &clusterv1.Cluster{},
 		BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+		ExpectSuccess: false,
+	},
+	"Cluster empty, BMCluster exists without owner": {
+		Cluster:       &clusterv1.Cluster{},
+		BMCluster:     newBareMetalCluster(baremetalClusterName, nil, bmcSpec, nil),
 		ExpectSuccess: true,
 	},
 	"Cluster and BMCluster are nil": {
@@ -104,13 +109,12 @@ func TestNewClusterManagerCreate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 
 			clusterMgr, err := newSetup(t, tc)
-			if clusterMgr == nil {
+			if err != nil {
 				if tc.ExpectSuccess {
 					t.Error(err)
 				}
 			} else {
-				if err != nil {
-					t.Error(err)
+				if clusterMgr == nil {
 					return
 				}
 				err = clusterMgr.Create(context.TODO())
@@ -133,13 +137,12 @@ func TestNewClusterManagerUpdateClusterStatus(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 
 			clusterMgr, err := newSetup(t, tc)
-			if clusterMgr == nil {
+			if err != nil {
 				if tc.ExpectSuccess {
 					t.Error(err)
 				}
 			} else {
-				if err != nil {
-					t.Error(err)
+				if clusterMgr == nil {
 					return
 				}
 				err = clusterMgr.UpdateClusterStatus()
@@ -148,7 +151,7 @@ func TestNewClusterManagerUpdateClusterStatus(t *testing.T) {
 						t.Error(err)
 					}
 				} else {
-					apiEndPoints, err := clusterMgr.APIEndpoints()
+					apiEndPoints := tc.BMCluster.Status.APIEndpoints
 					if err != nil {
 						if tc.ExpectSuccess {
 							t.Error(err)
@@ -201,7 +204,7 @@ func newSetup(t *testing.T, tc tcTest) (ClusterManagerInterface, error) {
 		tc.c = fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 	}
 
-	clusterMgr, err := NewClusterManager(tc.c, tc.Cluster, tc.BMCluster, klogr.New())
+	clusterMgr, err := NewClusterManager(context.TODO(), tc.c, tc.BMCluster, klogr.New())
 	if err != nil {
 		if tc.ExpectSuccess {
 			t.Error(err)

@@ -147,7 +147,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
 	// baremetal load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
 	// updating the cluster load balancer configuration when control plane machines are added/removed
-	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster, machineLog)
+	clusterMgr, err := r.ManagerFactory.NewClusterManager(ctx, baremetalCluster, machineLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
@@ -289,10 +289,7 @@ func (r *BareMetalMachineReconciler) BareMetalClusterToBareMetalMachines(o handl
 	case apierrors.IsNotFound(err) || cluster == nil:
 		return result
 	case err != nil:
-
-		er := errors.New("failed to get owning cluster")
 		log.Error(err, "failed to get owning cluster")
-		setErrorBMCluster(c, er, capierrors.InvalidConfigurationClusterError)
 		return result
 	}
 

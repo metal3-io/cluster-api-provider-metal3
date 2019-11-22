@@ -18,18 +18,15 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/utils/pointer"
 
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -67,8 +64,6 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	if err := r.Client.Get(ctx, req.NamespacedName, baremetalCluster); err != nil {
 		if apierrors.IsNotFound(err) {
-			er := errors.New("Unable to get owner cluster")
-			setErrorBMCluster(baremetalCluster, er, capierrors.InvalidConfigurationClusterError)
 			return ctrl.Result{}, nil
 		}
 
@@ -86,29 +81,15 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 			clusterLog.Info("failed to Patch baremetalCluster")
 		}
 	}()
-	// clear an error if one was previously set
-	clearErrorBMCluster(baremetalCluster)
-	// Fetch the Cluster.
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, baremetalCluster.ObjectMeta)
-	if err != nil {
-		er := errors.New("Unable to get owner cluster")
-		setErrorBMCluster(baremetalCluster, er, capierrors.InvalidConfigurationClusterError)
-		return ctrl.Result{}, err
-	}
-	if cluster == nil {
-		clusterLog.Info("Waiting for Cluster Controller to set OwnerRef on BareMetalCluster")
-		return ctrl.Result{}, nil
-	}
-
-	clusterLog = clusterLog.WithValues("cluster", cluster.Name)
 
 	// Create a helper for managing a baremetal cluster.
-	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster, clusterLog)
+	clusterMgr, err := r.ManagerFactory.NewClusterManager(ctx, baremetalCluster, clusterLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
-
-	clusterMgr.GetLog().Info("Reconciling BaremetalCluster")
+	if clusterMgr == nil {
+		return ctrl.Result{}, nil
+	}
 
 	// Handle deleted clusters
 	if !baremetalCluster.DeletionTimestamp.IsZero() {
@@ -121,22 +102,15 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
 	// If the BareMetalCluster doesn't have finalizer, add it.
-	if !util.Contains(clusterMgr.GetBareMetalCluster().Finalizers, capbm.ClusterFinalizer) {
-		clusterMgr.GetBareMetalCluster().Finalizers = append(clusterMgr.GetBareMetalCluster().Finalizers, capbm.ClusterFinalizer)
-	}
+	clusterMgr.SetFinalizer()
 
 	//Create the baremetal cluster (no-op)
 	if err := clusterMgr.Create(ctx); err != nil {
-		er := errors.New("failed to create the cluster")
-		setErrorBMCluster(clusterMgr.GetBareMetalCluster(), er, capierrors.InvalidConfigurationClusterError)
 		return ctrl.Result{}, err
 	}
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull it
 	if err := clusterMgr.UpdateClusterStatus(); err != nil {
-		er := errors.New("failed to get ip for the API endpoint")
-		setErrorBMCluster(clusterMgr.GetBareMetalCluster(), er, capierrors.InvalidConfigurationClusterError)
-
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the API endpoint")
 	}
 
@@ -147,34 +121,22 @@ func (r *BareMetalClusterReconciler) reconcileDelete(ctx context.Context,
 	clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
 
 	// Verify that no baremetalmachine depend on the baremetalcluster
-	descendants, err := r.listDescendants(ctx, clusterMgr.GetBareMetalCluster())
+	descendants, err := clusterMgr.CountDescendants(ctx, r.Client)
 	if err != nil {
-		clusterMgr.GetLog().Error(err, "Failed to list descendants")
-
 		return ctrl.Result{}, err
 	}
-
-	if descendants.length() > 0 {
-		clusterMgr.GetLog().Info(
-			"BaremetalCluster still has descendants - need to requeue", "descendants",
-			descendants.length(),
-		)
+	if descendants > 0 {
 		// Requeue so we can check the next time to see if there are still any
 		// descendants left.
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	if err := clusterMgr.Delete(); err != nil {
-		er := errors.New("failed to delete BareMetalCluster")
-		setErrorBMCluster(clusterMgr.GetBareMetalCluster(), er, capierrors.DeleteClusterError)
-
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalCluster")
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	clusterMgr.GetBareMetalCluster().Finalizers = util.Filter(
-		clusterMgr.GetBareMetalCluster().Finalizers, capbm.ClusterFinalizer,
-	)
+	clusterMgr.UnsetFinalizer()
 
 	return ctrl.Result{}, nil
 }
@@ -192,60 +154,4 @@ func (r *BareMetalClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).
 		Complete(r)
-}
-
-type clusterDescendants struct {
-	machines capi.MachineList
-}
-
-// length returns the number of descendants
-func (c *clusterDescendants) length() int {
-	return len(c.machines.Items)
-}
-
-// listDescendants returns a list of all Machines, for the cluster owning the
-// BaremetalCluster.
-func (r *BareMetalClusterReconciler) listDescendants(ctx context.Context,
-	baremetalCluster *capbm.BareMetalCluster) (clusterDescendants, error) {
-
-	var descendants clusterDescendants
-	cluster, err := util.GetOwnerCluster(ctx, r.Client,
-		baremetalCluster.ObjectMeta,
-	)
-	if err != nil {
-		return descendants, err
-	}
-
-	listOptions := []client.ListOption{
-		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels(map[string]string{
-			capi.MachineClusterLabelName: cluster.Name,
-		}),
-	}
-
-	if r.Client.List(ctx, &descendants.machines, listOptions...) != nil {
-
-		errMsg := fmt.Sprintf("failed to list BaremetalMachines for cluster %s/%s", cluster.Namespace, cluster.Name)
-		return descendants, errors.Wrapf(err, errMsg)
-	}
-
-	return descendants, nil
-}
-
-// setError sets the ErrorMessage and ErrorReason fields on the baremetalcluster
-func setErrorBMCluster(bmc *capbm.BareMetalCluster, message error, reason capierrors.ClusterStatusError) {
-
-	bmc.Status.ErrorMessage = pointer.StringPtr(message.Error())
-	bmc.Status.ErrorReason = &reason
-
-}
-
-// clearError removes the ErrorMessage from the baremetalcluster's Status if set.
-func clearErrorBMCluster(bmc *capbm.BareMetalCluster) {
-
-	if bmc.Status.ErrorMessage != nil || bmc.Status.ErrorReason != nil {
-		bmc.Status.ErrorMessage = nil
-		bmc.Status.ErrorReason = nil
-	}
-
 }

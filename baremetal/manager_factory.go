@@ -17,6 +17,8 @@ limitations under the License.
 package baremetal
 
 import (
+	"context"
+
 	"github.com/go-logr/logr"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
@@ -24,7 +26,9 @@ import (
 )
 
 type ManagerFactoryInterface interface {
-	NewClusterManager(*capi.Cluster, *capbm.BareMetalCluster, logr.Logger) (ClusterManagerInterface, error)
+	NewClusterManager(ctx context.Context,
+		bareMetalCluster *capbm.BareMetalCluster,
+		clusterLog logr.Logger) (ClusterManagerInterface, error)
 	NewMachineManager(*capi.Cluster, *capbm.BareMetalCluster, *capi.Machine,
 		*capbm.BareMetalMachine, logr.Logger) (MachineManagerInterface, error)
 }
@@ -40,8 +44,8 @@ func NewManagerFactory(client client.Client) ManagerFactory {
 }
 
 // NewClusterManager creates a new ClusterManager
-func (f ManagerFactory) NewClusterManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
-	return NewClusterManager(f.client, capiCluster, capbmCluster, clusterLog)
+func (f ManagerFactory) NewClusterManager(ctx context.Context, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
+	return NewClusterManager(ctx, f.client, capbmCluster, clusterLog)
 }
 
 // NewMachineManager creates a new MachineManager
