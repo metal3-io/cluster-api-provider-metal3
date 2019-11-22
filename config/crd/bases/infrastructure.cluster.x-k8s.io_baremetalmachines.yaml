@@ -11,9 +11,17 @@ spec:
     description: Provider ID
     name: ProviderID
     type: string
+  - JSONPath: .status.phase
+    description: Machines current phase
+    name: Phase
+    type: string
   - JSONPath: .status.ready
     description: BaremetalMachine is Ready
     name: Ready
+    type: string
+  - JSONPath: .status.errorReason
+    description: Most recent error
+    name: Error
     type: string
   group: infrastructure.cluster.x-k8s.io
   names:

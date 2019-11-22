@@ -132,6 +132,9 @@ type BareMetalClusterStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="BaremetalCluster is Ready"
+// +kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.errorReason",description="Most recent error"
+// +kubebuilder:printcolumn:name="APIEndpoints",type="string",JSONPath=".status.apiEndpoints",description="API endpoints"
 
 // BareMetalCluster is the Schema for the baremetalclusters API
 type BareMetalCluster struct {

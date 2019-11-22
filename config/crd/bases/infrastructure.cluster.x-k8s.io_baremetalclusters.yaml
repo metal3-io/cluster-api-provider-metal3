@@ -6,6 +6,19 @@ metadata:
   creationTimestamp: null
   name: baremetalclusters.infrastructure.cluster.x-k8s.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .status.ready
+    description: BaremetalCluster is Ready
+    name: Ready
+    type: string
+  - JSONPath: .status.errorReason
+    description: Most recent error
+    name: Error
+    type: string
+  - JSONPath: .status.apiEndpoints
+    description: API endpoints
+    name: APIEndpoints
+    type: string
   group: infrastructure.cluster.x-k8s.io
   names:
     categories:
@@ -39,6 +52,8 @@ spec:
           properties:
             apiEndpoint:
               type: string
+            noCloudProvider:
+              type: boolean
           required:
           - apiEndpoint
           type: object
