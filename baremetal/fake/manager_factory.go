@@ -14,41 +14,36 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package baremetal
+package fake
 
 import (
 	"github.com/go-logr/logr"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type ManagerFactoryInterface interface {
-	NewClusterManager(*capi.Cluster, *capbm.BareMetalCluster, logr.Logger) (ClusterManagerInterface, error)
-	NewMachineManager(*capi.Cluster, *capbm.BareMetalCluster, *capi.Machine,
-		*capbm.BareMetalMachine, logr.Logger) (MachineManagerInterface, error)
-}
-
 // ManagerFactory only contains a client
-type ManagerFactory struct {
+type FakeManagerFactory struct {
 	client client.Client
 }
 
 // NewManagerFactory returns a new factory.
-func NewManagerFactory(client client.Client) ManagerFactory {
-	return ManagerFactory{client: client}
+func NewFakeManagerFactory(client client.Client) FakeManagerFactory {
+	return FakeManagerFactory{client: client}
 }
 
-// NewClusterManager creates a new ClusterManager
-func (f ManagerFactory) NewClusterManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
-	return NewClusterManager(f.client, capiCluster, capbmCluster, clusterLog)
+// FakeNewClusterManager creates a new FakeClusterManager
+func (f FakeManagerFactory) NewClusterManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
+	return baremetal.NewClusterManager(f.client, capiCluster, capbmCluster, clusterLog)
 }
 
-// NewMachineManager creates a new MachineManager
-func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
+// FakeNewMachineManager creates a new FakeMachineManager
+func (f FakeManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
 	capbmCluster *capbm.BareMetalCluster,
 	capiMachine *capi.Machine, capbmMachine *capbm.BareMetalMachine,
-	machineLog logr.Logger) (MachineManagerInterface, error) {
-	return NewMachineManager(f.client, capiCluster, capbmCluster, capiMachine,
+	machineLog logr.Logger) (baremetal.MachineManagerInterface, error) {
+	return baremetal.NewMachineManager(f.client, capiCluster, capbmCluster, capiMachine,
 		capbmMachine, machineLog)
 }

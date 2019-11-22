@@ -41,6 +41,17 @@ const (
 	APIEndpointPort = "6443"
 )
 
+// ClusterManagerInterface is an interface for a ClusterManager
+type ClusterManagerInterface interface {
+	Create(context.Context) error
+	APIEndpoints() ([]capbm.APIEndpoint, error)
+	Delete() error
+	UpdateClusterStatus() error
+	GetCluster() *capi.Cluster
+	GetBareMetalCluster() *capbm.BareMetalCluster
+	GetLog() logr.Logger
+}
+
 // ClusterManager is responsible for performing machine reconciliation
 type ClusterManager struct {
 	client client.Client
@@ -51,10 +62,10 @@ type ClusterManager struct {
 	// name string
 }
 
-// newClusterManager returns a new helper for managing a cluster with a given name.
-func newClusterManager(client client.Client,
+// NewClusterManager returns a new helper for managing a cluster with a given name.
+func NewClusterManager(client client.Client,
 	cluster *capi.Cluster, bareMetalCluster *capbm.BareMetalCluster,
-	clusterLog logr.Logger) (*ClusterManager, error) {
+	clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	if cluster == nil {
 		return nil, errors.New("Cluster is required when creating a ClusterManager")
 	}
@@ -69,6 +80,21 @@ func newClusterManager(client client.Client,
 		BareMetalCluster: bareMetalCluster,
 		Log:              clusterLog,
 	}, nil
+}
+
+// Returns the cluster
+func (s *ClusterManager) GetCluster() *capi.Cluster {
+	return s.Cluster
+}
+
+// Returns the Baremetal cluster
+func (s *ClusterManager) GetBareMetalCluster() *capbm.BareMetalCluster {
+	return s.BareMetalCluster
+}
+
+// Returns the logger
+func (s *ClusterManager) GetLog() logr.Logger {
+	return s.Log
 }
 
 // Create creates a docker container hosting a cluster manager for the cluster.

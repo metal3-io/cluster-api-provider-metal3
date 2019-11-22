@@ -190,7 +190,7 @@ func setupScheme() *runtime.Scheme {
 	return s
 }
 
-func newSetup(t *testing.T, tc tcTest) (*ClusterManager, error) {
+func newSetup(t *testing.T, tc tcTest) (ClusterManagerInterface, error) {
 	objects := []runtime.Object{
 		tc.Cluster, tc.BMCluster,
 	}
@@ -201,7 +201,7 @@ func newSetup(t *testing.T, tc tcTest) (*ClusterManager, error) {
 		tc.c = fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 	}
 
-	clusterMgr, err := newClusterManager(tc.c, tc.Cluster, tc.BMCluster, klogr.New())
+	clusterMgr, err := NewClusterManager(tc.c, tc.Cluster, tc.BMCluster, klogr.New())
 	if err != nil {
 		if tc.ExpectSuccess {
 			t.Error(err)

@@ -20,7 +20,6 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	fakebm "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/fake"
 
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -51,7 +51,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 
 			r := &BareMetalClusterReconciler{
 				Client:         c,
-				ManagerFactory: baremetal.NewManagerFactory(c),
+				ManagerFactory: fakebm.NewFakeManagerFactory(c),
 				Log:            klogr.New(),
 			}
 

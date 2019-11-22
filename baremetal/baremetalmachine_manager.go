@@ -57,6 +57,31 @@ const (
 	requeueAfter   = time.Second * 30
 )
 
+// ClusterManagerInterface is an interface for a ClusterManager
+type MachineManagerInterface interface {
+	GetCluster() *capi.Cluster
+	GetBareMetalCluster() *capbm.BareMetalCluster
+	GetMachine() *capi.Machine
+	GetBareMetalMachine() *capbm.BareMetalMachine
+	GetLog() logr.Logger
+
+	Name() string
+	Namespace() string
+	IsControlPlane() bool
+	Role() string
+	GetBaremetalHostID(context.Context) (*string, error)
+	SetProviderID(context.Context, *string)
+	SetAnnotation(string, string)
+	Associate(context.Context) error
+	Delete(context.Context) error
+	Update(context.Context) error
+	Exists(context.Context) (bool, error)
+	GetIP() (string, error)
+	GetKubeConfig() (string, error)
+	HasAnnotation() bool
+	SetNodeProviderID(context.Context, string, string, ClientGetter) error
+}
+
 // MachineManager is responsible for performing machine reconciliation
 type MachineManager struct {
 	client client.Client
@@ -68,8 +93,8 @@ type MachineManager struct {
 	Log              logr.Logger
 }
 
-// NewMachineManager returns a new helper for managing a cluster with a given name.
-func newMachineManager(client client.Client,
+// NewMachineManager returns a new helper for managing a machine
+func NewMachineManager(client client.Client,
 	cluster *capi.Cluster, baremetalCluster *capbm.BareMetalCluster,
 	machine *capi.Machine, baremetalMachine *capbm.BareMetalMachine,
 	machineLog logr.Logger) (*MachineManager, error) {
@@ -83,6 +108,31 @@ func newMachineManager(client client.Client,
 		BareMetalMachine: baremetalMachine,
 		Log:              machineLog,
 	}, nil
+}
+
+// Returns the cluster
+func (m *MachineManager) GetCluster() *capi.Cluster {
+	return m.Cluster
+}
+
+// Returns the Baremetal cluster
+func (m *MachineManager) GetBareMetalCluster() *capbm.BareMetalCluster {
+	return m.BareMetalCluster
+}
+
+// Returns the machine
+func (m *MachineManager) GetMachine() *capi.Machine {
+	return m.Machine
+}
+
+// Returns the Baremetal machine
+func (m *MachineManager) GetBareMetalMachine() *capbm.BareMetalMachine {
+	return m.BareMetalMachine
+}
+
+// Returns the logger
+func (m *MachineManager) GetLog() logr.Logger {
+	return m.Log
 }
 
 // Name returns the BareMetalMachine name.

@@ -47,7 +47,7 @@ const (
 // BareMetalClusterReconciler reconciles a BareMetalCluster object
 type BareMetalClusterReconciler struct {
 	Client         client.Client
-	ManagerFactory baremetal.ManagerFactory
+	ManagerFactory baremetal.ManagerFactoryInterface
 	Log            logr.Logger
 }
 
@@ -108,7 +108,7 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
 	}
 
-	clusterMgr.Log.Info("Reconciling BaremetalCluster")
+	clusterMgr.GetLog().Info("Reconciling BaremetalCluster")
 
 	// Handle deleted clusters
 	if !baremetalCluster.DeletionTimestamp.IsZero() {
@@ -119,23 +119,23 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	return reconcileNormal(ctx, clusterMgr)
 }
 
-func reconcileNormal(ctx context.Context, clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
+func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
 	// If the BareMetalCluster doesn't have finalizer, add it.
-	if !util.Contains(clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer) {
-		clusterMgr.BareMetalCluster.Finalizers = append(clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer)
+	if !util.Contains(clusterMgr.GetBareMetalCluster().Finalizers, capbm.ClusterFinalizer) {
+		clusterMgr.GetBareMetalCluster().Finalizers = append(clusterMgr.GetBareMetalCluster().Finalizers, capbm.ClusterFinalizer)
 	}
 
 	//Create the baremetal cluster (no-op)
 	if err := clusterMgr.Create(ctx); err != nil {
 		er := errors.New("failed to create the cluster")
-		setErrorBMCluster(clusterMgr.BareMetalCluster, er, capierrors.InvalidConfigurationClusterError)
+		setErrorBMCluster(clusterMgr.GetBareMetalCluster(), er, capierrors.InvalidConfigurationClusterError)
 		return ctrl.Result{}, err
 	}
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull it
 	if err := clusterMgr.UpdateClusterStatus(); err != nil {
 		er := errors.New("failed to get ip for the API endpoint")
-		setErrorBMCluster(clusterMgr.BareMetalCluster, er, capierrors.InvalidConfigurationClusterError)
+		setErrorBMCluster(clusterMgr.GetBareMetalCluster(), er, capierrors.InvalidConfigurationClusterError)
 
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the API endpoint")
 	}
@@ -144,18 +144,18 @@ func reconcileNormal(ctx context.Context, clusterMgr *baremetal.ClusterManager) 
 }
 
 func (r *BareMetalClusterReconciler) reconcileDelete(ctx context.Context,
-	clusterMgr *baremetal.ClusterManager) (ctrl.Result, error) {
+	clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
 
 	// Verify that no baremetalmachine depend on the baremetalcluster
-	descendants, err := r.listDescendants(ctx, clusterMgr.BareMetalCluster)
+	descendants, err := r.listDescendants(ctx, clusterMgr.GetBareMetalCluster())
 	if err != nil {
-		clusterMgr.Log.Error(err, "Failed to list descendants")
+		clusterMgr.GetLog().Error(err, "Failed to list descendants")
 
 		return ctrl.Result{}, err
 	}
 
 	if descendants.length() > 0 {
-		clusterMgr.Log.Info(
+		clusterMgr.GetLog().Info(
 			"BaremetalCluster still has descendants - need to requeue", "descendants",
 			descendants.length(),
 		)
@@ -166,14 +166,14 @@ func (r *BareMetalClusterReconciler) reconcileDelete(ctx context.Context,
 
 	if err := clusterMgr.Delete(); err != nil {
 		er := errors.New("failed to delete BareMetalCluster")
-		setErrorBMCluster(clusterMgr.BareMetalCluster, er, capierrors.DeleteClusterError)
+		setErrorBMCluster(clusterMgr.GetBareMetalCluster(), er, capierrors.DeleteClusterError)
 
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete BareMetalCluster")
 	}
 
 	// Cluster is deleted so remove the finalizer.
-	clusterMgr.BareMetalCluster.Finalizers = util.Filter(
-		clusterMgr.BareMetalCluster.Finalizers, capbm.ClusterFinalizer,
+	clusterMgr.GetBareMetalCluster().Finalizers = util.Filter(
+		clusterMgr.GetBareMetalCluster().Finalizers, capbm.ClusterFinalizer,
 	)
 
 	return ctrl.Result{}, nil
