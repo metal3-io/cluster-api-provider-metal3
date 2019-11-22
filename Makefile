@@ -257,6 +257,9 @@ manifests: generate-manifests $(KUSTOMIZE)
 unit: manifests
 	go test ./api/... ./controllers/... ./baremetal/... -coverprofile cover.out
 
+unit-cover-html: unit
+	go tool cover -html=cover.out
+
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet install
 	go run ./main.go
