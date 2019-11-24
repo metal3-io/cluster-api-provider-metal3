@@ -80,7 +80,7 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	defer func() {
 		err := helper.Patch(ctx, baremetalCluster)
 		if err != nil {
-			clusterLog.Info("failed to Patch baremetalCluster")
+			clusterLog.Error(err, "failed to Patch baremetalCluster")
 		}
 	}()
 
@@ -139,7 +139,7 @@ func (r *BareMetalClusterReconciler) reconcileDelete(ctx context.Context,
 	clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
 
 	// Verify that no baremetalmachine depend on the baremetalcluster
-	descendants, err := clusterMgr.CountDescendants(ctx, r.Client)
+	descendants, err := clusterMgr.CountDescendants(ctx)
 	if err != nil {
 		return ctrl.Result{}, err
 	}

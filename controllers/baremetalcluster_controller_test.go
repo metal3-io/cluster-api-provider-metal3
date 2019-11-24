@@ -180,7 +180,7 @@ func TestReconcileDelete(t *testing.T) {
 				returnedError = nil
 			}
 			m.EXPECT().
-				CountDescendants(context.TODO(), c).Return(tc.DescendantsCount, returnedError)
+				CountDescendants(context.TODO()).Return(tc.DescendantsCount, returnedError)
 
 			res, err := r.reconcileDelete(context.TODO(), m)
 

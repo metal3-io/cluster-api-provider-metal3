@@ -26,7 +26,6 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
-	client "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // MockClusterManagerInterface is a mock of ClusterManagerInterface interface
@@ -119,16 +118,16 @@ func (mr *MockClusterManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call
 }
 
 // CountDescendants mocks base method
-func (m *MockClusterManagerInterface) CountDescendants(arg0 context.Context, arg1 client.Client) (int, error) {
+func (m *MockClusterManagerInterface) CountDescendants(arg0 context.Context) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CountDescendants", arg0, arg1)
+	ret := m.ctrl.Call(m, "CountDescendants", arg0)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CountDescendants indicates an expected call of CountDescendants
-func (mr *MockClusterManagerInterfaceMockRecorder) CountDescendants(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockClusterManagerInterfaceMockRecorder) CountDescendants(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountDescendants", reflect.TypeOf((*MockClusterManagerInterface)(nil).CountDescendants), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountDescendants", reflect.TypeOf((*MockClusterManagerInterface)(nil).CountDescendants), arg0)
 }

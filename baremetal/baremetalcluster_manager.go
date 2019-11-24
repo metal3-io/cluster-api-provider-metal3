@@ -50,7 +50,7 @@ type ClusterManagerInterface interface {
 	UpdateClusterStatus() error
 	SetFinalizer()
 	UnsetFinalizer()
-	CountDescendants(context.Context, client.Client) (int, error)
+	CountDescendants(context.Context) (int, error)
 }
 
 // ClusterManager is responsible for performing machine reconciliation
@@ -86,9 +86,9 @@ func NewClusterManager(client client.Client, cluster *capi.Cluster,
 // Set finalizer
 func (s *ClusterManager) SetFinalizer() {
 	// If the BareMetalCluster doesn't have finalizer, add it.
-	if !util.Contains(s.BareMetalCluster.Finalizers, capbm.ClusterFinalizer) {
-		s.BareMetalCluster.Finalizers = append(
-			s.BareMetalCluster.Finalizers, capbm.ClusterFinalizer,
+	if !util.Contains(s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer) {
+		s.BareMetalCluster.ObjectMeta.Finalizers = append(
+			s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer,
 		)
 	}
 }
@@ -96,8 +96,8 @@ func (s *ClusterManager) SetFinalizer() {
 // Unset finalizer
 func (s *ClusterManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
-	s.BareMetalCluster.Finalizers = util.Filter(
-		s.BareMetalCluster.Finalizers, capbm.ClusterFinalizer,
+	s.BareMetalCluster.ObjectMeta.Finalizers = util.Filter(
+		s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer,
 	)
 }
 
@@ -200,9 +200,9 @@ func (s *ClusterManager) clearError() {
 
 // CountDescendants will return the number of descendants objects of the
 // BaremetalCluster
-func (s *ClusterManager) CountDescendants(ctx context.Context, clt client.Client) (int, error) {
+func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
 	// Verify that no baremetalmachine depend on the baremetalcluster
-	descendants, err := s.listDescendants(ctx, clt)
+	descendants, err := s.listDescendants(ctx)
 	if err != nil {
 		s.Log.Error(err, "Failed to list descendants")
 
@@ -229,10 +229,10 @@ func (c *clusterDescendants) length() int {
 
 // ListDescendants returns a list of all Machines, for the cluster owning the
 // BaremetalCluster.
-func (s *ClusterManager) listDescendants(ctx context.Context, clt client.Client) (clusterDescendants, error) {
+func (s *ClusterManager) listDescendants(ctx context.Context) (clusterDescendants, error) {
 
 	var descendants clusterDescendants
-	cluster, err := util.GetOwnerCluster(ctx, clt,
+	cluster, err := util.GetOwnerCluster(ctx, s.client,
 		s.BareMetalCluster.ObjectMeta,
 	)
 	if err != nil {
@@ -246,8 +246,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context, clt client.Client)
 		}),
 	}
 
-	if clt.List(ctx, &descendants.machines, listOptions...) != nil {
-
+	if s.client.List(ctx, &descendants.machines, listOptions...) != nil {
 		errMsg := fmt.Sprintf("failed to list BaremetalMachines for cluster %s/%s", cluster.Namespace, cluster.Name)
 		return descendants, errors.Wrapf(err, errMsg)
 	}
