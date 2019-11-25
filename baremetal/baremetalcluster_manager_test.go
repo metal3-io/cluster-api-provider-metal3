@@ -87,13 +87,13 @@ func TestNewClusterManager(t *testing.T) {
 func TestFinalizers(t *testing.T) {
 	testCases := map[string]tcTest{
 		"No finalizers": {
-			Cluster: newCluster(clusterName),
+			Cluster: nil,
 			BMCluster: newBareMetalCluster(baremetalClusterName,
 				bmcOwnerRef, nil, nil,
 			),
 		},
 		"finalizers": {
-			Cluster: newCluster(clusterName),
+			Cluster: nil,
 			BMCluster: &infrav1.BareMetalCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "BareMetalCluster",

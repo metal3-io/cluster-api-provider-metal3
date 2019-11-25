@@ -34,8 +34,11 @@ import (
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
+	"k8s.io/utils/pointer"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -171,6 +174,216 @@ var bmhStatus = &bmh.BareMetalHostStatus{
 	Provisioning: bmh.ProvisionStatus{
 		State: bmh.StateNone,
 	},
+}
+
+func TestBMMachineFinalizers(t *testing.T) {
+	testCases := map[string]capbm.BareMetalMachine{
+		"No finalizers": capbm.BareMetalMachine{},
+		"finalizers": capbm.BareMetalMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Finalizers: []string{capbm.ClusterFinalizer},
+			},
+		},
+	}
+	for name, bmMachine := range testCases {
+		t.Run(name, func(t *testing.T) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &bmMachine)
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, &bmMachine, klogr.New())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			machineMgr.SetFinalizer()
+
+			if !util.Contains(bmMachine.ObjectMeta.Finalizers,
+				capbm.MachineFinalizer,
+			) {
+				t.Errorf("Expected finalizer %v in %v", capbm.MachineFinalizer,
+					bmMachine.ObjectMeta.Finalizers,
+				)
+			}
+
+			machineMgr.UnsetFinalizer()
+
+			if util.Contains(bmMachine.ObjectMeta.Finalizers,
+				capbm.MachineFinalizer,
+			) {
+				t.Errorf("Did not expect finalizer %v in %v", capbm.MachineFinalizer,
+					bmMachine.ObjectMeta.Finalizers,
+				)
+			}
+		})
+	}
+}
+
+func TestSetProviderID(t *testing.T) {
+	testCases := map[string]capbm.BareMetalMachine{
+		"no ProviderID": capbm.BareMetalMachine{},
+		"existing ProviderID": capbm.BareMetalMachine{
+			Spec: capbm.BareMetalMachineSpec{
+				ProviderID: pointer.StringPtr("wrong"),
+			},
+			Status: capbm.BareMetalMachineStatus{
+				Ready: true,
+			},
+		},
+	}
+	for name, bmMachine := range testCases {
+		t.Run(name, func(t *testing.T) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &bmMachine)
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, &bmMachine, klogr.New())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			machineMgr.SetProviderID("correct")
+
+			if *bmMachine.Spec.ProviderID != "correct" {
+				t.Errorf("Error on providerID, expected 'correct', got %v",
+					*bmMachine.Spec.ProviderID,
+				)
+			}
+			if !bmMachine.Status.Ready {
+				t.Error("Expected ready status")
+			}
+
+		})
+	}
+}
+
+func TestIsProvisioned(t *testing.T) {
+	testCases := map[string]struct {
+		BMMachine  capbm.BareMetalMachine
+		ExpectTrue bool
+	}{
+		"provisioned": {
+			BMMachine: capbm.BareMetalMachine{
+				Spec: capbm.BareMetalMachineSpec{
+					ProviderID: pointer.StringPtr("abc"),
+				},
+				Status: capbm.BareMetalMachineStatus{
+					Ready: true,
+				},
+			},
+			ExpectTrue: true,
+		},
+		"missing ready": {
+			BMMachine: capbm.BareMetalMachine{
+				Spec: capbm.BareMetalMachineSpec{
+					ProviderID: pointer.StringPtr("abc"),
+				},
+			},
+			ExpectTrue: false,
+		},
+		"missing providerID": {
+			BMMachine: capbm.BareMetalMachine{
+				Status: capbm.BareMetalMachineStatus{
+					Ready: true,
+				},
+			},
+			ExpectTrue: false,
+		},
+		"nothing ready": {
+			BMMachine:  capbm.BareMetalMachine{},
+			ExpectTrue: false,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &tc.BMMachine)
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, &tc.BMMachine, klogr.New())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			provisioningState := machineMgr.IsProvisioned()
+
+			if provisioningState != tc.ExpectTrue {
+				t.Error("Wrong provisioning status")
+			}
+		})
+	}
+}
+
+func TestBootstrapReady(t *testing.T) {
+	testCases := map[string]struct {
+		Machine    capi.Machine
+		ExpectTrue bool
+	}{
+		"ready": {
+			Machine: capi.Machine{
+				Status: capi.MachineStatus{
+					BootstrapReady: true,
+				},
+			},
+			ExpectTrue: true,
+		},
+		"not ready": {
+			Machine:    capi.Machine{},
+			ExpectTrue: false,
+		},
+	}
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, &tc.Machine, nil, klogr.New())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			bootstrapState := machineMgr.IsBootstrapReady()
+
+			if bootstrapState != tc.ExpectTrue {
+				t.Error("Wrong bootstrap status")
+			}
+		})
+	}
+}
+
+func TestBMMachineErrors(t *testing.T) {
+	testCases := map[string]capbm.BareMetalMachine{
+		"No errors": capbm.BareMetalMachine{},
+		"Error message": capbm.BareMetalMachine{
+			Status: capbm.BareMetalMachineStatus{
+				ErrorMessage: pointer.StringPtr("cba"),
+			},
+		},
+	}
+	for name, bmMachine := range testCases {
+		t.Run(name, func(t *testing.T) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine, klogr.New())
+			if err != nil {
+				t.Error(err)
+				return
+			}
+
+			machineMgr.setError("abc", capierrors.InvalidConfigurationMachineError)
+
+			if *bmMachine.Status.ErrorReason != capierrors.InvalidConfigurationMachineError {
+				t.Errorf("Expected error reason %v instead of %v",
+					capierrors.InvalidConfigurationMachineError,
+					bmMachine.Status.ErrorReason,
+				)
+			}
+			if *bmMachine.Status.ErrorMessage != "abc" {
+				t.Errorf("Expected error message abc instead of %v",
+					bmMachine.Status.ErrorMessage,
+				)
+			}
+
+			machineMgr.clearError()
+
+			if bmMachine.Status.ErrorReason != nil {
+				t.Error("Did not expect an error reason")
+			}
+			if bmMachine.Status.ErrorMessage != nil {
+				t.Error("Did not expect an error message")
+			}
+		})
+	}
 }
 
 func TestChooseHost(t *testing.T) {
