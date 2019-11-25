@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -30,6 +31,7 @@ import (
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"net/url"
@@ -41,6 +43,16 @@ const (
 	APIEndpointPort = "6443"
 )
 
+// ClusterManagerInterface is an interface for a ClusterManager
+type ClusterManagerInterface interface {
+	Create(context.Context) error
+	Delete() error
+	UpdateClusterStatus() error
+	SetFinalizer()
+	UnsetFinalizer()
+	CountDescendants(context.Context) (int, error)
+}
+
 // ClusterManager is responsible for performing machine reconciliation
 type ClusterManager struct {
 	client client.Client
@@ -51,24 +63,42 @@ type ClusterManager struct {
 	// name string
 }
 
-// newClusterManager returns a new helper for managing a cluster with a given name.
-func newClusterManager(client client.Client,
-	cluster *capi.Cluster, bareMetalCluster *capbm.BareMetalCluster,
-	clusterLog logr.Logger) (*ClusterManager, error) {
-	if cluster == nil {
-		return nil, errors.New("Cluster is required when creating a ClusterManager")
-	}
+// NewClusterManager returns a new helper for managing a cluster with a given name.
+func NewClusterManager(client client.Client, cluster *capi.Cluster,
+	bareMetalCluster *capbm.BareMetalCluster,
+	clusterLog logr.Logger) (ClusterManagerInterface, error) {
+
 	if bareMetalCluster == nil {
 		return nil, errors.New("BareMetalCluster is required when creating a ClusterManager")
 	}
+	if cluster == nil {
+		return nil, errors.New("Cluster is required when creating a ClusterManager")
+	}
 
 	return &ClusterManager{
-		client: client,
-
-		Cluster:          cluster,
+		client:           client,
 		BareMetalCluster: bareMetalCluster,
+		Cluster:          cluster,
 		Log:              clusterLog,
 	}, nil
+}
+
+// SetFinalizer sets finalizer
+func (s *ClusterManager) SetFinalizer() {
+	// If the BareMetalCluster doesn't have finalizer, add it.
+	if !util.Contains(s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer) {
+		s.BareMetalCluster.ObjectMeta.Finalizers = append(
+			s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer,
+		)
+	}
+}
+
+// UnsetFinalizer unsets finalizer
+func (s *ClusterManager) UnsetFinalizer() {
+	// Cluster is deleted so remove the finalizer.
+	s.BareMetalCluster.ObjectMeta.Finalizers = util.Filter(
+		s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer,
+	)
 }
 
 // Create creates a docker container hosting a cluster manager for the cluster.
@@ -78,18 +108,18 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
-		s.setError(ctx, err.Error(), capierrors.InvalidConfigurationClusterError)
+		s.setError(err.Error(), capierrors.InvalidConfigurationClusterError)
 		return err
 	}
 
 	// clear an error if one was previously set
-	s.clearError(ctx)
+	s.clearError()
 
 	return nil
 }
 
-// APIEndpoints returns the cluster manager IP address
-func (s *ClusterManager) APIEndpoints() ([]capbm.APIEndpoint, error) {
+// apiEndpoints returns the cluster manager IP address
+func (s *ClusterManager) apiEndpoints() ([]capbm.APIEndpoint, error) {
 	//Get IP address from spec, which gets it from posted cr yaml
 	// Once IP is handled, consider setting the port
 
@@ -126,12 +156,13 @@ func (s *ClusterManager) Delete() error {
 	return nil
 }
 
-// updateMachineStatus updates a machine object's status.
+// UpdateClusterStatus updates a machine object's status.
 func (s *ClusterManager) UpdateClusterStatus() error {
 
 	// Get APIEndpoints from  BaremetalCluster Spec
-	endpoints, err := s.APIEndpoints()
+	endpoints, err := s.apiEndpoints()
 	if err != nil {
+		s.setError(err.Error(), capierrors.InvalidConfigurationClusterError)
 		return err
 	}
 
@@ -152,7 +183,7 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 // setError sets the ErrorMessage and ErrorReason fields on the machine and logs
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
-func (s *ClusterManager) setError(ctx context.Context, message string, reason capierrors.ClusterStatusError) {
+func (s *ClusterManager) setError(message string, reason capierrors.ClusterStatusError) {
 	s.BareMetalCluster.Status.ErrorMessage = &message
 	s.BareMetalCluster.Status.ErrorReason = &reason
 }
@@ -160,9 +191,58 @@ func (s *ClusterManager) setError(ctx context.Context, message string, reason ca
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
 // nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
 // machine was updated.
-func (s *ClusterManager) clearError(ctx context.Context) {
+func (s *ClusterManager) clearError() {
 	if s.BareMetalCluster.Status.ErrorMessage != nil || s.BareMetalCluster.Status.ErrorReason != nil {
 		s.BareMetalCluster.Status.ErrorMessage = nil
 		s.BareMetalCluster.Status.ErrorReason = nil
 	}
+}
+
+// CountDescendants will return the number of descendants objects of the
+// BaremetalCluster
+func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
+	// Verify that no baremetalmachine depend on the baremetalcluster
+	descendants, err := s.listDescendants(ctx)
+	if err != nil {
+		s.Log.Error(err, "Failed to list descendants")
+
+		return 0, err
+	}
+
+	nbDescendants := len(descendants.Items)
+
+	if nbDescendants > 0 {
+		s.Log.Info(
+			"BaremetalCluster still has descendants - need to requeue", "descendants",
+			nbDescendants,
+		)
+	}
+	return nbDescendants, nil
+}
+
+// listDescendants returns a list of all Machines, for the cluster owning the
+// BaremetalCluster.
+func (s *ClusterManager) listDescendants(ctx context.Context) (capi.MachineList, error) {
+
+	machines := capi.MachineList{}
+	cluster, err := util.GetOwnerCluster(ctx, s.client,
+		s.BareMetalCluster.ObjectMeta,
+	)
+	if err != nil {
+		return machines, err
+	}
+
+	listOptions := []client.ListOption{
+		client.InNamespace(cluster.Namespace),
+		client.MatchingLabels(map[string]string{
+			capi.MachineClusterLabelName: cluster.Name,
+		}),
+	}
+
+	if s.client.List(ctx, &machines, listOptions...) != nil {
+		errMsg := fmt.Sprintf("failed to list BaremetalMachines for cluster %s/%s", cluster.Namespace, cluster.Name)
+		return machines, errors.Wrapf(err, errMsg)
+	}
+
+	return machines, nil
 }

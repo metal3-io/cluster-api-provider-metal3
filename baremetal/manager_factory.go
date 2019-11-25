@@ -23,6 +23,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type ManagerFactoryInterface interface {
+	NewClusterManager(cluster *capi.Cluster,
+		bareMetalCluster *capbm.BareMetalCluster,
+		clusterLog logr.Logger) (ClusterManagerInterface, error)
+	NewMachineManager(*capi.Cluster, *capbm.BareMetalCluster, *capi.Machine,
+		*capbm.BareMetalMachine, logr.Logger) (MachineManagerInterface, error)
+}
+
 // ManagerFactory only contains a client
 type ManagerFactory struct {
 	client client.Client
@@ -34,15 +42,15 @@ func NewManagerFactory(client client.Client) ManagerFactory {
 }
 
 // NewClusterManager creates a new ClusterManager
-func (f ManagerFactory) NewClusterManager(capiCluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (*ClusterManager, error) {
-	return newClusterManager(f.client, capiCluster, capbmCluster, clusterLog)
+func (f ManagerFactory) NewClusterManager(cluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
+	return NewClusterManager(f.client, cluster, capbmCluster, clusterLog)
 }
 
 // NewMachineManager creates a new MachineManager
 func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
 	capbmCluster *capbm.BareMetalCluster,
 	capiMachine *capi.Machine, capbmMachine *capbm.BareMetalMachine,
-	machineLog logr.Logger) (*MachineManager, error) {
-	return newMachineManager(f.client, capiCluster, capbmCluster, capiMachine,
+	machineLog logr.Logger) (MachineManagerInterface, error) {
+	return NewMachineManager(f.client, capiCluster, capbmCluster, capiMachine,
 		capbmMachine, machineLog)
 }

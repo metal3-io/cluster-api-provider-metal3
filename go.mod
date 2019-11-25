@@ -7,6 +7,7 @@ require (
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/gogo/protobuf v1.3.0 // indirect
 	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
+	github.com/golang/mock v1.3.1
 	github.com/metal3-io/baremetal-operator v0.0.0-20191004200613-f048f3bc5f05
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0

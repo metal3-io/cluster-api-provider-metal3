@@ -282,7 +282,7 @@ func TestChooseHost(t *testing.T) {
 		t.Logf("## TC-%s ##", name)
 		c := fakeclient.NewFakeClientWithScheme(scheme, tc.Hosts...)
 
-		machineMgr, err := newMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
 		if err != nil {
 			t.Errorf("%v", err)
 		}
@@ -430,8 +430,8 @@ func TestSetHostSpec(t *testing.T) {
 
 			c := fakeclient.NewFakeClientWithScheme(scheme, &tc.Host)
 
-			//machineMgr, err := newMachineManager(c, nil, nil, &machine, bmmconfig)
-			machineMgr, err := newMachineManager(c, nil, nil, &tc.Machine, &tc.BMMachine)
+			//machineMgr, err := NewMachineManager(c, nil, nil, &machine, bmmconfig)
+			machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine, &tc.BMMachine)
 			if err != nil {
 				t.Errorf("%v", err)
 				return
@@ -556,7 +556,7 @@ func TestExists(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Logf("## TC-%s ##", name)
-		machineMgr, err := newMachineManager(tc.Client, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(tc.Client, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
 		if err != nil {
 			t.Error(err)
 		}
@@ -619,7 +619,7 @@ func TestGetHost(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Logf("## TC-%s ##", name)
-		machineMgr, err := newMachineManager(tc.Client, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(tc.Client, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
 		if err != nil {
 			t.Error(err)
 		}
@@ -701,7 +701,7 @@ func TestGetSetProviderID(t *testing.T) {
 	for name, tc := range testCases {
 		t.Logf("## TC-%s ##", name)
 		c := fakeclient.NewFakeClientWithScheme(scheme, tc.Host)
-		machineMgr, err := newMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
 		if err != nil {
 			t.Error(err)
 		}
@@ -772,7 +772,7 @@ func TestEnsureAnnotation(t *testing.T) {
 		t.Logf("## TC-%s ##", name)
 		c := fakeclient.NewFakeClientWithScheme(scheme, tc.BMMachine)
 
-		machineMgr, err := newMachineManager(c, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
 		if err != nil {
 			t.Error(err)
 		}
@@ -907,7 +907,7 @@ func TestDelete(t *testing.T) {
 			}
 		}
 
-		machineMgr, err := newMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
 
 		if err != nil {
 			t.Error(err)
@@ -1142,7 +1142,7 @@ func TestUpdateMachineStatus(t *testing.T) {
 		t.Logf("## TC-%s ##", name)
 		c := fakeclient.NewFakeClientWithScheme(scheme, &tc.BMMachine)
 
-		machineMgr, err := newMachineManager(c, nil, nil, tc.Machine, &tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, &tc.BMMachine, klogr.New())
 		if err != nil {
 			t.Error(err)
 		}
@@ -1261,7 +1261,7 @@ func TestNodeAddresses(t *testing.T) {
 		var nodeAddresses []capi.MachineAddress
 
 		c := fakeclient.NewFakeClientWithScheme(scheme)
-		machineMgr, err := newMachineManager(c, nil, nil, &tc.Machine, &tc.BMMachine, klogr.New())
+		machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine, &tc.BMMachine, klogr.New())
 
 		if err != nil {
 			t.Error(err)
@@ -1343,7 +1343,7 @@ func TestSetNodeProviderID(t *testing.T) {
 		) {
 			return corev1Client, nil
 		}
-		machineMgr, err := newMachineManager(c, nil, nil,
+		machineMgr, err := NewMachineManager(c, nil, nil,
 			&capi.Machine{}, &capbm.BareMetalMachine{}, klogr.New(),
 		)
 
