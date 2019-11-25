@@ -363,9 +363,9 @@ func TestListDescendants(t *testing.T) {
 					t.Error("Expected an error")
 				}
 			}
-			if descendants.length() != tc.ExpectedDescendants {
+			if len(descendants.Items) != tc.ExpectedDescendants {
 				t.Errorf("Expected %v descendants, got %v", tc.ExpectedDescendants,
-					descendants.length(),
+					len(descendants.Items),
 				)
 			}
 		})

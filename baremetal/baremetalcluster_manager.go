@@ -83,7 +83,7 @@ func NewClusterManager(client client.Client, cluster *capi.Cluster,
 	}, nil
 }
 
-// Set finalizer
+// SetFinalizer sets finalizer
 func (s *ClusterManager) SetFinalizer() {
 	// If the BareMetalCluster doesn't have finalizer, add it.
 	if !util.Contains(s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer) {
@@ -93,7 +93,7 @@ func (s *ClusterManager) SetFinalizer() {
 	}
 }
 
-// Unset finalizer
+// UnsetFinalizer unsets finalizer
 func (s *ClusterManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	s.BareMetalCluster.ObjectMeta.Finalizers = util.Filter(
@@ -118,7 +118,7 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 	return nil
 }
 
-// APIEndpoints returns the cluster manager IP address
+// apiEndpoints returns the cluster manager IP address
 func (s *ClusterManager) apiEndpoints() ([]capbm.APIEndpoint, error) {
 	//Get IP address from spec, which gets it from posted cr yaml
 	// Once IP is handled, consider setting the port
@@ -156,7 +156,7 @@ func (s *ClusterManager) Delete() error {
 	return nil
 }
 
-// updateMachineStatus updates a machine object's status.
+// UpdateClusterStatus updates a machine object's status.
 func (s *ClusterManager) UpdateClusterStatus() error {
 
 	// Get APIEndpoints from  BaremetalCluster Spec
@@ -209,34 +209,27 @@ func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
 		return 0, err
 	}
 
-	if descendants.length() > 0 {
+	nbDescendants := len(descendants.Items)
+
+	if nbDescendants > 0 {
 		s.Log.Info(
 			"BaremetalCluster still has descendants - need to requeue", "descendants",
-			descendants.length(),
+			nbDescendants,
 		)
 	}
-	return descendants.length(), nil
+	return nbDescendants, nil
 }
 
-type clusterDescendants struct {
-	machines capi.MachineList
-}
-
-// length returns the number of descendants
-func (c *clusterDescendants) length() int {
-	return len(c.machines.Items)
-}
-
-// ListDescendants returns a list of all Machines, for the cluster owning the
+// listDescendants returns a list of all Machines, for the cluster owning the
 // BaremetalCluster.
-func (s *ClusterManager) listDescendants(ctx context.Context) (clusterDescendants, error) {
+func (s *ClusterManager) listDescendants(ctx context.Context) (capi.MachineList, error) {
 
-	var descendants clusterDescendants
+	machines := capi.MachineList{}
 	cluster, err := util.GetOwnerCluster(ctx, s.client,
 		s.BareMetalCluster.ObjectMeta,
 	)
 	if err != nil {
-		return descendants, err
+		return machines, err
 	}
 
 	listOptions := []client.ListOption{
@@ -246,10 +239,10 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (clusterDescendant
 		}),
 	}
 
-	if s.client.List(ctx, &descendants.machines, listOptions...) != nil {
+	if s.client.List(ctx, &machines, listOptions...) != nil {
 		errMsg := fmt.Sprintf("failed to list BaremetalMachines for cluster %s/%s", cluster.Namespace, cluster.Name)
-		return descendants, errors.Wrapf(err, errMsg)
+		return machines, errors.Wrapf(err, errMsg)
 	}
 
-	return descendants, nil
+	return machines, nil
 }
