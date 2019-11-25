@@ -17,22 +17,207 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"fmt"
-
-	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	"github.com/golang/mock/gomock"
+	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
+	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
+	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mock_baremetal"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
+
+func setReconcileNormalExpectations(ctrl *gomock.Controller,
+	tc reconcileNormalTestCase, r *BareMetalMachineReconciler,
+) *mock_baremetal.MockMachineManagerInterface {
+
+	m := mock_baremetal.NewMockMachineManagerInterface(ctrl)
+
+	m.EXPECT().SetFinalizer()
+
+	m.EXPECT().IsProvisioned().Return(tc.Provisioned)
+	if tc.Provisioned {
+		m.EXPECT().Update(context.TODO())
+		m.EXPECT().IsBootstrapReady().MaxTimes(0)
+		m.EXPECT().HasAnnotation().MaxTimes(0)
+		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
+		return m
+	}
+
+	m.EXPECT().IsBootstrapReady().Return(!tc.BootstrapNotReady)
+	if tc.BootstrapNotReady {
+		m.EXPECT().HasAnnotation().MaxTimes(0)
+		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
+		m.EXPECT().Update(context.TODO()).MaxTimes(0)
+		return m
+	}
+
+	m.EXPECT().HasAnnotation().Return(tc.Annotated)
+	if !tc.Annotated {
+		if tc.AssociateFails {
+			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
+			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
+			m.EXPECT().Update(context.TODO()).MaxTimes(0)
+			return m
+		} else {
+			m.EXPECT().Associate(context.TODO()).Return(nil)
+		}
+	}
+
+	if tc.GetBMHIDFails {
+		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil,
+			errors.New("Failed"),
+		)
+		m.EXPECT().Update(context.TODO()).MaxTimes(0)
+		m.EXPECT().SetProviderID("abc").MaxTimes(0)
+		return m
+	}
+
+	var bmhID *string
+	if tc.BMHIDSet {
+		bmhID = pointer.StringPtr("abc")
+	} else {
+		bmhID = nil
+	}
+	m.EXPECT().GetBaremetalHostID(context.TODO()).Return(bmhID, nil)
+	if tc.BMHIDSet {
+
+		if tc.SetNodeProviderIDFails {
+			m.EXPECT().
+				SetNodeProviderID("abc", "metal3://abc", nil).
+				Return(errors.New("Failed"))
+			m.EXPECT().SetProviderID("abc").MaxTimes(0)
+			m.EXPECT().Update(context.TODO()).MaxTimes(0)
+			return m
+		}
+
+		m.EXPECT().
+			SetNodeProviderID("abc", "metal3://abc", nil).
+			Return(nil)
+		m.EXPECT().SetProviderID("metal3://abc")
+
+	} else {
+
+		m.EXPECT().
+			SetNodeProviderID("abc", "metal3://abc", nil).
+			MaxTimes(0)
+	}
+
+	m.EXPECT().Update(context.TODO())
+	return m
+}
+
+type reconcileNormalTestCase struct {
+	ExpectError            bool
+	ExpectRequeue          bool
+	Provisioned            bool
+	BootstrapNotReady      bool
+	Annotated              bool
+	AssociateFails         bool
+	GetBMHIDFails          bool
+	BMHIDSet               bool
+	SetNodeProviderIDFails bool
+}
+
+func TestMachineReconcileNormal(t *testing.T) {
+	testCases := map[string]reconcileNormalTestCase{
+		"Provisioned": {
+			ExpectError:   false,
+			ExpectRequeue: false,
+			Provisioned:   true,
+		},
+		"Bootstrap not ready": {
+			ExpectError:       false,
+			ExpectRequeue:     false,
+			BootstrapNotReady: true,
+		},
+		"Not Annotated": {
+			ExpectError:   false,
+			ExpectRequeue: false,
+			Annotated:     false,
+		},
+		"Not Annotated, Associate fails": {
+			ExpectError:    true,
+			ExpectRequeue:  false,
+			Annotated:      false,
+			AssociateFails: true,
+		},
+		"Annotated": {
+			ExpectError:   false,
+			ExpectRequeue: false,
+			Annotated:     true,
+		},
+		"GetBMHID Fails": {
+			ExpectError:   true,
+			ExpectRequeue: false,
+			GetBMHIDFails: true,
+		},
+		"BMH ID set": {
+			ExpectError:   false,
+			ExpectRequeue: false,
+			BMHIDSet:      true,
+		},
+		"BMH ID set, SetNodeProviderID fails": {
+			ExpectError:            true,
+			ExpectRequeue:          false,
+			BMHIDSet:               true,
+			SetNodeProviderIDFails: true,
+		},
+	}
+	for name, tc := range testCases {
+		ctrl := gomock.NewController(t)
+
+		// Assert that Bar() is invoked.
+		defer ctrl.Finish()
+
+		c := fake.NewFakeClientWithScheme(setupScheme())
+
+		r := &BareMetalMachineReconciler{
+			Client:           c,
+			ManagerFactory:   baremetal.NewManagerFactory(c),
+			Log:              klogr.New(),
+			CapiClientGetter: nil,
+		}
+
+		m := setReconcileNormalExpectations(ctrl, tc, r)
+
+		t.Run(name, func(t *testing.T) {
+			res, err := r.reconcileNormal(context.TODO(), m)
+
+			if tc.ExpectError {
+				if err == nil {
+					t.Error("Expected an error")
+				}
+			} else {
+				if err != nil {
+					t.Error("Did not expect an error")
+				}
+			}
+			if tc.ExpectRequeue {
+				if res.Requeue == false {
+					t.Error("Expected a requeue")
+				}
+			} else {
+				if res.Requeue != false {
+					t.Error("Did not expect a requeue")
+				}
+			}
+		})
+	}
+}
 
 var _ = Describe("BareMetalMachine manager", func() {
 
