@@ -507,7 +507,7 @@ func TestExists(t *testing.T) {
 			t.Error(err)
 		}
 
-		result, err := machineMgr.Exists(context.TODO())
+		result, err := machineMgr.exists(context.TODO())
 		if err != nil {
 			t.Error(err)
 		}
@@ -717,12 +717,12 @@ func TestSmallFunctions(t *testing.T) {
 			t.Error(err)
 		}
 
-		role := machineMgr.Role()
+		role := machineMgr.role()
 		if role != "control-plane" && role != "node" {
 			t.Errorf("Invalid machine role %s", role)
 		}
 
-		isCtrlPlane := machineMgr.IsControlPlane()
+		isCtrlPlane := machineMgr.isControlPlane()
 		if tc.ExpectCtrlNode {
 			if !isCtrlPlane {
 				t.Error("Control plane node expected")
@@ -789,8 +789,8 @@ func TestEnsureAnnotation(t *testing.T) {
 		}
 
 		key := client.ObjectKey{
-			Name:      machineMgr.Name(),
-			Namespace: machineMgr.Namespace(),
+			Name:      tc.BMMachine.ObjectMeta.Name,
+			Namespace: tc.BMMachine.ObjectMeta.Namespace,
 		}
 
 		bmmachine := capbm.BareMetalMachine{}
@@ -835,8 +835,6 @@ func TestEnsureAnnotation(t *testing.T) {
 				t.Error("host annotation value should not match")
 			}
 		}
-
-		machineMgr.SetAnnotation(HostAnnotation, tc.BMMachine.Annotations[HostAnnotation])
 	}
 }
 
@@ -1151,8 +1149,8 @@ func TestUpdateMachineStatus(t *testing.T) {
 		}
 
 		key := client.ObjectKey{
-			Name:      machineMgr.Name(),
-			Namespace: machineMgr.Namespace(),
+			Name:      tc.BMMachine.ObjectMeta.Name,
+			Namespace: tc.BMMachine.ObjectMeta.Namespace,
 		}
 
 		bmmachine := capbm.BareMetalMachine{}
@@ -1334,7 +1332,10 @@ func TestSetNodeProviderID(t *testing.T) {
 		) {
 			return corev1Client, nil
 		}
-		machineMgr, err := NewMachineManager(c, nil, nil,
+		machineMgr, err := NewMachineManager(c, newCluster(clusterName),
+			newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+				&capbm.BareMetalClusterSpec{NoCloudProvider: true}, nil,
+			),
 			&capi.Machine{}, &capbm.BareMetalMachine{}, klogr.New(),
 		)
 
@@ -1343,7 +1344,7 @@ func TestSetNodeProviderID(t *testing.T) {
 			continue
 		}
 
-		err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
+		err = machineMgr.SetNodeProviderID(tc.HostID,
 			tc.ExpectedProviderID, mockCapiClientGetter,
 		)
 

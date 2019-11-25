@@ -41,12 +41,6 @@ var bmcSpecApiEmpty = &infrav1.BareMetalClusterSpec{
 	APIEndpoint: "",
 }
 
-var bmcOwnerRef = &metav1.OwnerReference{
-	APIVersion: clusterv1.GroupVersion.String(),
-	Kind:       "Cluster",
-	Name:       clusterName,
-}
-
 type tcTest struct {
 	BMCluster     *infrav1.BareMetalCluster
 	Cluster       *clusterv1.Cluster
