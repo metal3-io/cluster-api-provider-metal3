@@ -185,6 +185,12 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
 		ClusterManagerInterface
 
+	$(MOCKGEN) \
+	  -destination=./baremetal/mock_baremetal/mock_baremetalmachine_manager.go \
+	  -source=./baremetal/baremetalmachine_manager.go \
+		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
+		MachineManagerInterface
+
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
