@@ -142,27 +142,17 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the machineMgr")
 	}
 
-	// Create a helper for managing a baremetal container hosting the loadbalancer.
-	// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
-	// baremetal load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
-	// updating the cluster load balancer configuration when control plane machines are added/removed
-	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster, machineLog)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
-	}
-
 	// Handle deleted machines
 	if !capbmMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, machineMgr, clusterMgr)
+		return r.reconcileDelete(ctx, machineMgr)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, machineMgr, clusterMgr)
+	return r.reconcileNormal(ctx, machineMgr)
 }
 
 func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
-	clusterMgr baremetal.ClusterManagerInterface,
 ) (ctrl.Result, error) {
 	// If the BareMetalMachine doesn't have finalizer, add it.
 	if !util.Contains(machineMgr.GetBareMetalMachine().Finalizers, capbm.MachineFinalizer) {
@@ -224,7 +214,6 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 
 func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
-	clusterMgr baremetal.ClusterManagerInterface,
 ) (ctrl.Result, error) {
 
 	// delete the machine
