@@ -111,7 +111,7 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	// Handle deleted clusters
 	if !baremetalCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, clusterMgr)
+		return reconcileDelete(ctx, clusterMgr)
 	}
 
 	// Handle non-deleted clusters
@@ -135,7 +135,7 @@ func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInt
 	return ctrl.Result{}, nil
 }
 
-func (r *BareMetalClusterReconciler) reconcileDelete(ctx context.Context,
+func reconcileDelete(ctx context.Context,
 	clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
 
 	// Verify that no baremetalmachine depend on the baremetalcluster

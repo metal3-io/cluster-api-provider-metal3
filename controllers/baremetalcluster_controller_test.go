@@ -19,11 +19,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 
-	"k8s.io/klog/klogr"
-	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mock_baremetal"
-
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestReconcileNormal(t *testing.T) {
@@ -149,12 +145,6 @@ func TestReconcileDelete(t *testing.T) {
 			defer ctrl.Finish()
 
 			m := mock_baremetal.NewMockClusterManagerInterface(ctrl)
-			c := fake.NewFakeClientWithScheme(setupScheme())
-			r := &BareMetalClusterReconciler{
-				Client:         c,
-				ManagerFactory: baremetal.NewManagerFactory(c),
-				Log:            klogr.New(),
-			}
 
 			// If we get an error while listing descendants or some still exists,
 			// we will exit with error or requeue.
@@ -182,7 +172,7 @@ func TestReconcileDelete(t *testing.T) {
 			m.EXPECT().
 				CountDescendants(context.TODO()).Return(tc.DescendantsCount, returnedError)
 
-			res, err := r.reconcileDelete(context.TODO(), m)
+			res, err := reconcileDelete(context.TODO(), m)
 
 			if tc.ExpectError {
 				if err == nil {
