@@ -20,7 +20,7 @@
 // Source: ./baremetal/baremetalcluster_manager.go
 
 // Package mock_baremetal is a generated GoMock package.
-package mock_baremetal
+package baremetal_mocks
 
 import (
 	context "context"

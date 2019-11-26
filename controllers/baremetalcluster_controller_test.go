@@ -19,7 +19,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mock_baremetal"
+	baremetal_mocks "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mocks"
 )
 
 func TestReconcileNormal(t *testing.T) {
@@ -53,10 +53,10 @@ func TestReconcileNormal(t *testing.T) {
 			var returnedError error
 			ctrl := gomock.NewController(t)
 
-			// Assert that Bar() is invoked.
+			// Defer call to Finish
 			defer ctrl.Finish()
 
-			m := mock_baremetal.NewMockClusterManagerInterface(ctrl)
+			m := baremetal_mocks.NewMockClusterManagerInterface(ctrl)
 
 			m.EXPECT().SetFinalizer()
 
@@ -141,10 +141,10 @@ func TestReconcileDelete(t *testing.T) {
 			var returnedError error
 			ctrl := gomock.NewController(t)
 
-			// Assert that Bar() is invoked.
+			// Defer call to Finish
 			defer ctrl.Finish()
 
-			m := mock_baremetal.NewMockClusterManagerInterface(ctrl)
+			m := baremetal_mocks.NewMockClusterManagerInterface(ctrl)
 
 			// If we get an error while listing descendants or some still exists,
 			// we will exit with error or requeue.
