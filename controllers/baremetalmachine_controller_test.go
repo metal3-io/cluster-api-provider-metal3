@@ -86,14 +86,10 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		return m
 	}
 
-	var bmhID *string
 	if tc.BMHIDSet {
-		bmhID = pointer.StringPtr("abc")
-	} else {
-		bmhID = nil
-	}
-	m.EXPECT().GetBaremetalHostID(context.TODO()).Return(bmhID, nil)
-	if tc.BMHIDSet {
+		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
+			pointer.StringPtr("abc"), nil,
+		)
 
 		if tc.SetNodeProviderIDFails {
 			m.EXPECT().
@@ -110,6 +106,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().SetProviderID("metal3://abc")
 
 	} else {
+		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
 
 		m.EXPECT().
 			SetNodeProviderID("abc", "metal3://abc", nil).
@@ -180,7 +177,6 @@ func TestMachineReconcileNormal(t *testing.T) {
 	for name, tc := range testCases {
 		ctrl := gomock.NewController(t)
 
-		// Assert that Bar() is invoked.
 		defer ctrl.Finish()
 
 		c := fake.NewFakeClientWithScheme(setupScheme())
@@ -196,6 +192,93 @@ func TestMachineReconcileNormal(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			res, err := r.reconcileNormal(context.TODO(), m)
+
+			if tc.ExpectError {
+				if err == nil {
+					t.Error("Expected an error")
+				}
+			} else {
+				if err != nil {
+					t.Error("Did not expect an error")
+				}
+			}
+			if tc.ExpectRequeue {
+				if res.Requeue == false {
+					t.Error("Expected a requeue")
+				}
+			} else {
+				if res.Requeue != false {
+					t.Error("Did not expect a requeue")
+				}
+			}
+		})
+	}
+}
+
+type reconcileDeleteTestCase struct {
+	ExpectError   bool
+	ExpectRequeue bool
+	DeleteFails   bool
+	DeleteRequeue bool
+}
+
+func setReconcileDeleteExpectations(ctrl *gomock.Controller,
+	tc reconcileDeleteTestCase, r *BareMetalMachineReconciler,
+) *mock_baremetal.MockMachineManagerInterface {
+
+	m := mock_baremetal.NewMockMachineManagerInterface(ctrl)
+
+	if tc.DeleteFails {
+		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
+		m.EXPECT().UnsetFinalizer().MaxTimes(0)
+		return m
+	} else if tc.DeleteRequeue {
+		m.EXPECT().Delete(context.TODO()).Return(&baremetal.RequeueAfterError{})
+		m.EXPECT().UnsetFinalizer().MaxTimes(0)
+		return m
+	} else {
+		m.EXPECT().Delete(context.TODO()).Return(nil)
+	}
+
+	m.EXPECT().UnsetFinalizer()
+	return m
+}
+
+func TestMachineReconcileDelete(t *testing.T) {
+	testCases := map[string]reconcileDeleteTestCase{
+		"Deletion success": {
+			ExpectError:   false,
+			ExpectRequeue: false,
+		},
+		"Deletion failure": {
+			ExpectError:   true,
+			ExpectRequeue: false,
+			DeleteFails:   true,
+		},
+		"Deletion requeue": {
+			ExpectError:   false,
+			ExpectRequeue: true,
+			DeleteRequeue: true,
+		},
+	}
+	for name, tc := range testCases {
+		ctrl := gomock.NewController(t)
+
+		defer ctrl.Finish()
+
+		c := fake.NewFakeClientWithScheme(setupScheme())
+
+		r := &BareMetalMachineReconciler{
+			Client:           c,
+			ManagerFactory:   baremetal.NewManagerFactory(c),
+			Log:              klogr.New(),
+			CapiClientGetter: nil,
+		}
+
+		m := setReconcileDeleteExpectations(ctrl, tc, r)
+
+		t.Run(name, func(t *testing.T) {
+			res, err := r.reconcileDelete(context.TODO(), m)
 
 			if tc.ExpectError {
 				if err == nil {
