@@ -202,6 +202,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
+
 		m.setError(ctx, err.Error(), capierrors.InvalidConfigurationMachineError)
 		return nil
 	}

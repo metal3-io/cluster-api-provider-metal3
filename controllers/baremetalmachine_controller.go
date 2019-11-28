@@ -105,9 +105,8 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
-		er := errors.New("BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
 		machineLog.Info("BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
-		setErrorBMMachine(capbmMachine, er, capierrors.InvalidConfigurationMachineError)
+		setErrorBMMachine(capbmMachine, "BareMetalMachine's owner Machine is missing cluster label or cluster does not exist", capierrors.InvalidConfigurationMachineError)
 
 		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine is missing label or the cluster does not exist")
 	}
@@ -187,9 +186,8 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		//Associate the baremetalhost hosting the machine
 		err := machineMgr.Associate(ctx)
 		if err != nil {
-			er := errors.Wrap(err, "failed to associate the BareMetalMachine to a BaremetalHost")
-			setErrorBMMachine(machineMgr.GetBareMetalMachine(), er, capierrors.CreateMachineError)
-			return ctrl.Result{}, er
+			setErrorBMMachine(machineMgr.GetBareMetalMachine(), "failed to associate the BareMetalMachine to a BaremetalHost", capierrors.CreateMachineError)
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -199,9 +197,8 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 			machineMgr.GetLog().Info("Provisioning BaremetalHost, requeuing")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
-		er := errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
-		setErrorBMMachine(machineMgr.GetBareMetalMachine(), er, capierrors.CreateMachineError)
-		return ctrl.Result{}, er
+		setErrorBMMachine(machineMgr.GetBareMetalMachine(), "failed to get the providerID for the BaremetalMachine", capierrors.CreateMachineError)
+		return ctrl.Result{}, err
 	}
 	if bmhID != nil {
 		providerID := fmt.Sprintf("metal3://%s", *bmhID)
@@ -237,9 +234,8 @@ func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 		}
 
-		er := errors.Wrap(err, "failed to delete BareMetalMachine")
-		setErrorBMMachine(machineMgr.GetBareMetalMachine(), er, capierrors.DeleteMachineError)
-		return ctrl.Result{}, er
+		setErrorBMMachine(machineMgr.GetBareMetalMachine(), "failed to delete BareMetalMachine", capierrors.DeleteMachineError)
+		return ctrl.Result{}, err
 	}
 
 	// Machine is deleted so remove the finalizer.
@@ -331,9 +327,9 @@ func (r *BareMetalMachineReconciler) BareMetalHostToBareMetalMachines(obj handle
 }
 
 // setError sets the ErrorMessage and ErrorReason fields on the baremetalmachine
-func setErrorBMMachine(bmm *capbm.BareMetalMachine, message error, reason capierrors.MachineStatusError) {
+func setErrorBMMachine(bmm *capbm.BareMetalMachine, message string, reason capierrors.MachineStatusError) {
 
-	bmm.Status.ErrorMessage = pointer.StringPtr(message.Error())
+	bmm.Status.ErrorMessage = pointer.StringPtr(message)
 	bmm.Status.ErrorReason = &reason
 
 }
