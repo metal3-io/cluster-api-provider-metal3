@@ -108,7 +108,7 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
-		s.setError(err.Error(), capierrors.InvalidConfigurationClusterError)
+		s.setError("Invalid BareMetalCluster provided", capierrors.InvalidConfigurationClusterError)
 		return err
 	}
 
@@ -162,7 +162,7 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	// Get APIEndpoints from  BaremetalCluster Spec
 	endpoints, err := s.apiEndpoints()
 	if err != nil {
-		s.setError(err.Error(), capierrors.InvalidConfigurationClusterError)
+		s.setError("Invalid APIEndpoints values", capierrors.InvalidConfigurationClusterError)
 		return err
 	}
 
