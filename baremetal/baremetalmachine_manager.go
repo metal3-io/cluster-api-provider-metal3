@@ -53,8 +53,10 @@ const (
 	ProviderName = "baremetal"
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
-	HostAnnotation = "metal3.io/BareMetalHost"
-	requeueAfter   = time.Second * 30
+	HostAnnotation     = "metal3.io/BareMetalHost"
+	requeueAfter       = time.Second * 30
+	bmRoleControlPlane = "control-plane"
+	bmRoleNode         = "node"
 )
 
 // ClusterManagerInterface is an interface for a ClusterManager
@@ -142,9 +144,9 @@ func (m *MachineManager) isControlPlane() bool {
 // role returns the machine role from the labels.
 func (m *MachineManager) role() string {
 	if util.IsControlPlaneMachine(m.Machine) {
-		return "control-plane"
+		return bmRoleControlPlane
 	}
-	return "node"
+	return bmRoleNode
 }
 
 // GetBaremetalHostID return the provider identifier for this machine
@@ -198,7 +200,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
-	// none found, so try to choose one
+	// no BMH found, trying to choose from available ones
 	if host == nil {
 		host, err = m.chooseHost(ctx)
 		if err != nil {
@@ -312,8 +314,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	if host != nil && host.Spec.ConsumerRef != nil {
 		// don't remove the ConsumerRef if it references some other bare metal machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.BareMetalMachine) {
-			m.Log.Info("host associated with another bare metal machine", "host",
-				host.Name)
+			m.Log.Info("host already associated with another bare metal machine",
+				"host", host.Name)
 			return nil
 		}
 
@@ -725,7 +727,7 @@ func (m *MachineManager) SetNodeProviderID(bmhID, providerID string, clientFacto
 		node.Spec.ProviderID = providerID
 		_, err = corev1Remote.Nodes().Update(&node)
 		if err != nil {
-			return errors.Wrap(err, "unable to update node for baremetal host")
+			return errors.Wrap(err, "unable to update the target node")
 		}
 	}
 	m.Log.Info("ProviderID set on target node")

@@ -17,21 +17,29 @@ limitations under the License.
 package baremetal
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
 
+const (
+	RequeueDuration1 = 50
+	RequeueDuration2 = 40
+)
+
 func TestError(t *testing.T) {
-	err := &RequeueAfterError{30}
-	if err.Error() != "requeue in: 30ns" {
-		t.Errorf("Error, expected 30, got %s", err.RequeueAfter)
+	err := &RequeueAfterError{time.Second * RequeueDuration1}
+	if err.Error() != fmt.Sprintf("requeue in: %vs", RequeueDuration1) {
+		t.Errorf("Error, expected %vs, got %s", RequeueDuration1, err.RequeueAfter)
 	}
 }
 
 func TestGetRequeueAfter(t *testing.T) {
-	duration, _ := time.ParseDuration("30ns")
-	err := &RequeueAfterError{30}
+	duration, _ := time.ParseDuration(fmt.Sprintf("%vs", RequeueDuration2))
+	err := &RequeueAfterError{time.Second * RequeueDuration2}
 	if err.GetRequeueAfter() != duration {
-		t.Errorf("Error in duration, expected 30, got %s", err.RequeueAfter)
+		t.Errorf("Error in duration, expected %vs, got %s", RequeueDuration2,
+			err.RequeueAfter,
+		)
 	}
 }

@@ -209,7 +209,8 @@ func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 		return checkError(err, "failed to delete BareMetalMachine")
 	}
 
-	// Machine is deleted so remove the finalizer.
+	// BaremetalMachine is marked for deletion and ready to be deleted,
+	// so remove the finalizer.
 	machineMgr.UnsetFinalizer()
 
 	return ctrl.Result{}, nil

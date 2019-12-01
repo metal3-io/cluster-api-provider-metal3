@@ -285,7 +285,7 @@ func TestIsProvisioned(t *testing.T) {
 			},
 			ExpectTrue: false,
 		},
-		"nothing ready": {
+		"missing ProviderID and ready": {
 			BMMachine:  capbm.BareMetalMachine{},
 			ExpectTrue: false,
 		},
