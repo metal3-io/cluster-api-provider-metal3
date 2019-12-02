@@ -808,6 +808,38 @@ func TestDelete(t *testing.T) {
 			ExpectedResult: &clustererror.RequeueAfterError{},
 		},
 		{
+			CaseName: "deprovisioning not required, no host status",
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myhost",
+					Namespace: "myns",
+				},
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mymachine",
+						Namespace:  "myns",
+						Kind:       "Machine",
+						APIVersion: machinev1.SchemeGroupVersion.String(),
+					},
+				},
+			},
+			Machine: machinev1.Machine{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Machine",
+					APIVersion: machinev1.SchemeGroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: "myns",
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			ExpectedConsumerRef: nil,
+			ExpectedResult:      nil,
+		},
+		{
 			CaseName: "deprovisioning in progress",
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1466,7 +1498,7 @@ func TestNodeAddresses(t *testing.T) {
 		},
 		{
 			// no host at all, so this is a no-op
-			Host:                  nil,
+			Host: nil,
 			ExpectedNodeAddresses: nil,
 		},
 	}
