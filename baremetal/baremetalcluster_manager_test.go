@@ -41,12 +41,6 @@ var bmcSpecApiEmpty = &infrav1.BareMetalClusterSpec{
 	APIEndpoint: "",
 }
 
-var bmcOwnerRef = &metav1.OwnerReference{
-	APIVersion: clusterv1.GroupVersion.String(),
-	Kind:       "Cluster",
-	Name:       clusterName,
-}
-
 type tcTest struct {
 	BMCluster     *infrav1.BareMetalCluster
 	Cluster       *clusterv1.Cluster
@@ -93,13 +87,13 @@ func TestNewClusterManager(t *testing.T) {
 func TestFinalizers(t *testing.T) {
 	testCases := map[string]tcTest{
 		"No finalizers": {
-			Cluster: newCluster(clusterName),
+			Cluster: nil,
 			BMCluster: newBareMetalCluster(baremetalClusterName,
 				bmcOwnerRef, nil, nil,
 			),
 		},
 		"finalizers": {
-			Cluster: newCluster(clusterName),
+			Cluster: nil,
 			BMCluster: &infrav1.BareMetalCluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "BareMetalCluster",

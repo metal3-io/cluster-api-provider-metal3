@@ -111,6 +111,10 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine is missing label or the cluster does not exist")
 	}
 	if cluster == nil {
+		setErrorBMMachine(capbmMachine, fmt.Sprintf(
+			"The machine is NOT associated with a cluster using the label %s: <name of cluster>",
+			capi.MachineClusterLabelName,
+		), capierrors.InvalidConfigurationMachineError)
 		machineLog.Info(fmt.Sprintf("The machine is NOT associated with a cluster using the label %s: <name of cluster>", capi.MachineClusterLabelName))
 		return ctrl.Result{}, nil
 	}
@@ -142,42 +146,29 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the machineMgr")
 	}
 
-	// Create a helper for managing a baremetal container hosting the loadbalancer.
-	// NB. the machine controller has to manage the cluster load balancer because the current implementation of the
-	// baremetal load balancer does not support auto-discovery of control plane nodes, so CAPD should take care of
-	// updating the cluster load balancer configuration when control plane machines are added/removed
-	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, baremetalCluster, machineLog)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
-	}
-
 	// Handle deleted machines
 	if !capbmMachine.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, machineMgr, clusterMgr)
+		return r.reconcileDelete(ctx, machineMgr)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, machineMgr, clusterMgr)
+	return r.reconcileNormal(ctx, machineMgr)
 }
 
 func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
-	clusterMgr baremetal.ClusterManagerInterface,
 ) (ctrl.Result, error) {
 	// If the BareMetalMachine doesn't have finalizer, add it.
-	if !util.Contains(machineMgr.GetBareMetalMachine().Finalizers, capbm.MachineFinalizer) {
-		machineMgr.GetBareMetalMachine().Finalizers = append(machineMgr.GetBareMetalMachine().Finalizers, capbm.MachineFinalizer)
-	}
+	machineMgr.SetFinalizer()
 
 	// if the machine is already provisioned, return
-	if machineMgr.GetBareMetalMachine().Spec.ProviderID != nil && machineMgr.GetBareMetalMachine().Status.Ready {
+	if machineMgr.IsProvisioned() {
 		err := machineMgr.Update(ctx)
 		return ctrl.Result{}, err
 	}
 
 	// Make sure bootstrap data is available and populated.
-	if !machineMgr.GetMachine().Status.BootstrapReady {
-		machineMgr.GetLog().Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+	if !machineMgr.IsBootstrapReady() {
 		return ctrl.Result{}, nil
 	}
 
@@ -186,36 +177,23 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		//Associate the baremetalhost hosting the machine
 		err := machineMgr.Associate(ctx)
 		if err != nil {
-			setErrorBMMachine(machineMgr.GetBareMetalMachine(), "failed to associate the BareMetalMachine to a BaremetalHost", capierrors.CreateMachineError)
-			return ctrl.Result{}, err
+			return checkError(err, "failed to associate the BareMetalMachine to a BaremetalHost")
 		}
 	}
 
 	bmhID, err := machineMgr.GetBaremetalHostID(ctx)
 	if err != nil {
-		if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-			machineMgr.GetLog().Info("Provisioning BaremetalHost, requeuing")
-			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-		}
-		setErrorBMMachine(machineMgr.GetBareMetalMachine(), "failed to get the providerID for the BaremetalMachine", capierrors.CreateMachineError)
-		return ctrl.Result{}, err
+		return checkError(err, "failed to get the providerID for the BaremetalMachine")
 	}
 	if bmhID != nil {
 		providerID := fmt.Sprintf("metal3://%s", *bmhID)
 		// Set the providerID on the node if no Cloud provider
-		if machineMgr.GetBareMetalCluster().Spec.NoCloudProvider {
-			err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
-			if err != nil {
-				if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-					return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-				}
-				return ctrl.Result{}, errors.Wrap(err, "failed to get the providerID for the BaremetalMachine")
-			}
-			machineMgr.GetLog().Info("ProviderID set on target node")
+		err = machineMgr.SetNodeProviderID(*bmhID, providerID, r.CapiClientGetter)
+		if err != nil {
+			return checkError(err, "failed to get the providerID for the BaremetalMachine")
 		}
-
 		// Make sure Spec.ProviderID is set and mark the capbmMachine ready
-		machineMgr.SetProviderID(ctx, &providerID)
+		machineMgr.SetProviderID(providerID)
 	}
 
 	err = machineMgr.Update(ctx)
@@ -224,22 +202,16 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 
 func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
-	clusterMgr baremetal.ClusterManagerInterface,
 ) (ctrl.Result, error) {
 
 	// delete the machine
 	if err := machineMgr.Delete(ctx); err != nil {
-		if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-			machineMgr.GetLog().Info("Deprovisioning BaremetalHost, requeuing")
-			return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-		}
-
-		setErrorBMMachine(machineMgr.GetBareMetalMachine(), "failed to delete BareMetalMachine", capierrors.DeleteMachineError)
-		return ctrl.Result{}, err
+		return checkError(err, "failed to delete BareMetalMachine")
 	}
 
-	// Machine is deleted so remove the finalizer.
-	machineMgr.GetBareMetalMachine().Finalizers = util.Filter(machineMgr.GetBareMetalMachine().Finalizers, capbm.MachineFinalizer)
+	// BaremetalMachine is marked for deletion and ready to be deleted,
+	// so remove the finalizer.
+	machineMgr.UnsetFinalizer()
 
 	return ctrl.Result{}, nil
 }
@@ -342,4 +314,11 @@ func clearErrorBMMachine(bmm *capbm.BareMetalMachine) {
 		bmm.Status.ErrorReason = nil
 	}
 
+}
+
+func checkError(err error, errMessage string) (ctrl.Result, error) {
+	if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	}
+	return ctrl.Result{}, errors.Wrap(err, errMessage)
 }

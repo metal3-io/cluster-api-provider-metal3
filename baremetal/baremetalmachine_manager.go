@@ -53,33 +53,25 @@ const (
 	ProviderName = "baremetal"
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
-	HostAnnotation = "metal3.io/BareMetalHost"
-	requeueAfter   = time.Second * 30
+	HostAnnotation     = "metal3.io/BareMetalHost"
+	requeueAfter       = time.Second * 30
+	bmRoleControlPlane = "control-plane"
+	bmRoleNode         = "node"
 )
 
 // ClusterManagerInterface is an interface for a ClusterManager
 type MachineManagerInterface interface {
-	GetCluster() *capi.Cluster
-	GetBareMetalCluster() *capbm.BareMetalCluster
-	GetMachine() *capi.Machine
-	GetBareMetalMachine() *capbm.BareMetalMachine
-	GetLog() logr.Logger
-
-	Name() string
-	Namespace() string
-	IsControlPlane() bool
-	Role() string
+	SetFinalizer()
+	UnsetFinalizer()
+	IsProvisioned() bool
+	IsBootstrapReady() bool
 	GetBaremetalHostID(context.Context) (*string, error)
-	SetProviderID(context.Context, *string)
-	SetAnnotation(string, string)
 	Associate(context.Context) error
 	Delete(context.Context) error
 	Update(context.Context) error
-	Exists(context.Context) (bool, error)
-	GetIP() (string, error)
-	GetKubeConfig() (string, error)
 	HasAnnotation() bool
-	SetNodeProviderID(context.Context, string, string, ClientGetter) error
+	SetNodeProviderID(string, string, ClientGetter) error
+	SetProviderID(string)
 }
 
 // MachineManager is responsible for performing machine reconciliation
@@ -110,52 +102,51 @@ func NewMachineManager(client client.Client,
 	}, nil
 }
 
-// Returns the cluster
-func (m *MachineManager) GetCluster() *capi.Cluster {
-	return m.Cluster
+// SetFinalizer sets finalizer
+func (m *MachineManager) SetFinalizer() {
+	// If the BareMetalMachine doesn't have finalizer, add it.
+	if !util.Contains(m.BareMetalMachine.Finalizers, capbm.MachineFinalizer) {
+		m.BareMetalMachine.Finalizers = append(m.BareMetalMachine.Finalizers,
+			capbm.MachineFinalizer,
+		)
+	}
 }
 
-// Returns the Baremetal cluster
-func (m *MachineManager) GetBareMetalCluster() *capbm.BareMetalCluster {
-	return m.BareMetalCluster
+// UnsetFinalizer unsets finalizer
+func (m *MachineManager) UnsetFinalizer() {
+	// Cluster is deleted so remove the finalizer.
+	m.BareMetalMachine.Finalizers = util.Filter(m.BareMetalMachine.Finalizers,
+		capbm.MachineFinalizer,
+	)
 }
 
-// Returns the machine
-func (m *MachineManager) GetMachine() *capi.Machine {
-	return m.Machine
+// IsProvisioned checks if the machine is provisioned
+func (m *MachineManager) IsProvisioned() bool {
+	if m.BareMetalMachine.Spec.ProviderID != nil && m.BareMetalMachine.Status.Ready {
+		return true
+	}
+	return false
 }
 
-// Returns the Baremetal machine
-func (m *MachineManager) GetBareMetalMachine() *capbm.BareMetalMachine {
-	return m.BareMetalMachine
+// IsBootstrapReady checks if the machine is given Bootstrap data
+func (m *MachineManager) IsBootstrapReady() bool {
+	if !m.Machine.Status.BootstrapReady {
+		m.Log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
+	}
+	return m.Machine.Status.BootstrapReady
 }
 
-// Returns the logger
-func (m *MachineManager) GetLog() logr.Logger {
-	return m.Log
-}
-
-// Name returns the BareMetalMachine name.
-func (m *MachineManager) Name() string {
-	return m.BareMetalMachine.Name
-}
-
-// Namespace returns the namespace name.
-func (m *MachineManager) Namespace() string {
-	return m.BareMetalMachine.Namespace
-}
-
-// IsControlPlane returns true if the machine is a control plane.
-func (m *MachineManager) IsControlPlane() bool {
+// isControlPlane returns true if the machine is a control plane.
+func (m *MachineManager) isControlPlane() bool {
 	return util.IsControlPlaneMachine(m.Machine)
 }
 
-// Role returns the machine role from the labels.
-func (m *MachineManager) Role() string {
+// role returns the machine role from the labels.
+func (m *MachineManager) role() string {
 	if util.IsControlPlaneMachine(m.Machine) {
-		return "control-plane"
+		return bmRoleControlPlane
 	}
-	return "node"
+	return bmRoleNode
 }
 
 // GetBaremetalHostID return the provider identifier for this machine
@@ -163,29 +154,20 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 	// look for associated BMH
 	host, err := m.getHost(ctx)
 	if err != nil {
+		m.setError("Failed to get a BaremetalHost for the BareMetalMachine",
+			capierrors.CreateMachineError,
+		)
 		return nil, err
 	}
 	if host == nil {
+		m.Log.Info("BaremetalHost not associated, requeuing")
 		return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	if host.Status.Provisioning.State == bmh.StateProvisioned {
 		return pointer.StringPtr(string(host.ObjectMeta.UID)), nil
 	}
+	m.Log.Info("Provisioning BaremetalHost, requeuing")
 	return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
-}
-
-// SetProviderID sets the bare metal provider ID for the kubernetes node
-func (m *MachineManager) SetProviderID(ctx context.Context, providerID *string) {
-	m.BareMetalMachine.Spec.ProviderID = providerID
-	m.BareMetalMachine.Status.Ready = true
-}
-
-// SetAnnotation sets a key value annotation on the BareMetalMachine.
-func (m *MachineManager) SetAnnotation(key, value string) {
-	if m.BareMetalMachine.Annotations == nil {
-		m.BareMetalMachine.Annotations = map[string]string{}
-	}
-	m.BareMetalMachine.Annotations[key] = value
 }
 
 // Associate associates a machine and is invoked by the Machine Controller
@@ -202,24 +184,29 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
-
-		m.setError(ctx, err.Error(), capierrors.InvalidConfigurationMachineError)
+		m.setError(err.Error(), capierrors.InvalidConfigurationMachineError)
 		return nil
 	}
 
 	// clear an error if one was previously set
-	m.clearError(ctx)
+	m.clearError()
 
 	// look for associated BMH
 	host, err := m.getHost(ctx)
 	if err != nil {
+		m.setError("Failed to get the BaremetalHost for the BareMetalMachine",
+			capierrors.CreateMachineError,
+		)
 		return err
 	}
 
-	// none found, so try to choose one
+	// no BMH found, trying to choose from available ones
 	if host == nil {
 		host, err = m.chooseHost(ctx)
 		if err != nil {
+			m.setError("Failed to pick a BaremetalHost for the BareMetalMachine",
+				capierrors.CreateMachineError,
+			)
 			return err
 		}
 		if host == nil {
@@ -233,16 +220,25 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	err = m.mergeUserData(ctx)
 	if err != nil {
+		m.setError("Failed to set the UserData for the BareMetalMachine",
+			capierrors.CreateMachineError,
+		)
 		return err
 	}
 
 	err = m.setHostSpec(ctx, host)
 	if err != nil {
+		m.setError("Failed to associate the BaremetalHost to the BareMetalMachine",
+			capierrors.CreateMachineError,
+		)
 		return err
 	}
 
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
+		m.setError("Failed to annotate the BareMetalMachine",
+			capierrors.CreateMachineError,
+		)
 		return err
 	}
 
@@ -307,6 +303,9 @@ func (m *MachineManager) mergeUserData(ctx context.Context) error {
 func (m *MachineManager) Delete(ctx context.Context) error {
 	m.Log.Info("Deleting bare metal machine", "baremetalmachine", m.BareMetalMachine.Name)
 
+	// clear an error if one was previously set
+	m.clearError()
+
 	host, err := m.getHost(ctx)
 	if err != nil {
 		return err
@@ -315,8 +314,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	if host != nil && host.Spec.ConsumerRef != nil {
 		// don't remove the ConsumerRef if it references some other bare metal machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.BareMetalMachine) {
-			m.Log.Info("host associated with another bare metal machine", "host",
-				host.Name)
+			m.Log.Info("host already associated with another bare metal machine",
+				"host", host.Name)
 			return nil
 		}
 
@@ -326,8 +325,12 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.UserData = nil
 			err = m.client.Update(ctx, host)
 			if err != nil && !apierrors.IsNotFound(err) {
+				m.setError("Failed to delete BareMetalMachine",
+					capierrors.DeleteMachineError,
+				)
 				return err
 			}
+			m.Log.Info("Deprovisioning BaremetalHost, requeuing")
 			return &RequeueAfterError{}
 		}
 
@@ -345,12 +348,16 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			waiting = host.Status.PoweredOn
 		}
 		if waiting {
+			m.Log.Info("Deprovisioning BaremetalHost, requeuing")
 			return &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
 
 		host.Spec.ConsumerRef = nil
 		err = m.client.Update(ctx, host)
 		if err != nil && !apierrors.IsNotFound(err) {
+			m.setError("Failed to delete BareMetalMachine",
+				capierrors.DeleteMachineError,
+			)
 			return err
 		}
 	}
@@ -363,11 +370,17 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	}
 	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
 	if err != nil && !apierrors.IsNotFound(err) {
+		m.setError("Failed to delete BareMetalMachine",
+			capierrors.DeleteMachineError,
+		)
 		return err
 	} else if err == nil {
 		// Delete the secret with use data
 		err = m.client.Delete(ctx, &tmpBootstrapSecret)
 		if err != nil {
+			m.setError("Failed to delete BareMetalMachine",
+				capierrors.DeleteMachineError,
+			)
 			return err
 		}
 	}
@@ -381,7 +394,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 
 	// clear any error message that was previously set. This method doesn't set
 	// error messages yet, so we know that it's incorrect to have one here.
-	m.clearError(ctx)
+	m.clearError()
 
 	host, err := m.getHost(ctx)
 	if err != nil {
@@ -404,8 +417,8 @@ func (m *MachineManager) Update(ctx context.Context) error {
 	return nil
 }
 
-// Exists tests for the existence of a bare metal machine and is invoked by the Machine Controller
-func (m *MachineManager) Exists(ctx context.Context) (bool, error) {
+// exists tests for the existence of a bare metal machine and is invoked by the Machine Controller
+func (m *MachineManager) exists(ctx context.Context) (bool, error) {
 	m.Log.Info("Checking if machine exists.")
 	host, err := m.getHost(ctx)
 	if err != nil {
@@ -417,22 +430,6 @@ func (m *MachineManager) Exists(ctx context.Context) (bool, error) {
 	}
 	m.Log.Info("Machine exists.")
 	return true, nil
-}
-
-// The Machine Actuator interface must implement GetIP and GetKubeConfig functions as a workaround for issues
-// cluster-api#158 (https://github.com/kubernetes-sigs/cluster-api/issues/158) and cluster-api#160
-// (https://github.com/kubernetes-sigs/cluster-api/issues/160).
-
-// GetIP returns IP address of the machine in the cluster.
-func (m *MachineManager) GetIP() (string, error) {
-	m.Log.Info("Getting IP of machine.")
-	return "", fmt.Errorf("TODO: Not yet implemented")
-}
-
-// GetKubeConfig gets a kubeconfig from the running control plane.
-func (m *MachineManager) GetKubeConfig() (string, error) {
-	m.Log.Info("Getting Kubeconfig.")
-	return "", fmt.Errorf("TODO: Not yet implemented")
 }
 
 // getHost gets the associated host by looking for an annotation on the machine
@@ -632,7 +629,7 @@ func (m *MachineManager) HasAnnotation() bool {
 // setError sets the ErrorMessage and ErrorReason fields on the machine and logs
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
-func (m *MachineManager) setError(ctx context.Context, message string, reason capierrors.MachineStatusError) {
+func (m *MachineManager) setError(message string, reason capierrors.MachineStatusError) {
 	m.BareMetalMachine.Status.ErrorMessage = &message
 	m.BareMetalMachine.Status.ErrorReason = &reason
 }
@@ -640,7 +637,7 @@ func (m *MachineManager) setError(ctx context.Context, message string, reason ca
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
 // nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
 // machine was updated.
-func (m *MachineManager) clearError(ctx context.Context) {
+func (m *MachineManager) clearError() {
 	if m.BareMetalMachine.Status.ErrorMessage != nil || m.BareMetalMachine.Status.ErrorReason != nil {
 		m.BareMetalMachine.Status.ErrorMessage = nil
 		m.BareMetalMachine.Status.ErrorReason = nil
@@ -701,7 +698,10 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 type ClientGetter func(c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
 
 // SetNodeProviderID sets the bare metal provider ID on the kubernetes node
-func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
+func (m *MachineManager) SetNodeProviderID(bmhID, providerID string, clientFactory ClientGetter) error {
+	if !m.BareMetalCluster.Spec.NoCloudProvider {
+		return nil
+	}
 	corev1Remote, err := clientFactory(m.client, m.Cluster)
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
@@ -727,8 +727,16 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		node.Spec.ProviderID = providerID
 		_, err = corev1Remote.Nodes().Update(&node)
 		if err != nil {
-			return errors.Wrap(err, "unable to update node for baremetal host")
+			return errors.Wrap(err, "unable to update the target node")
 		}
 	}
+	m.Log.Info("ProviderID set on target node")
+
 	return nil
+}
+
+// SetProviderID sets the bare metal provider ID on the BaremetalMachine
+func (m *MachineManager) SetProviderID(providerID string) {
+	m.BareMetalMachine.Spec.ProviderID = &providerID
+	m.BareMetalMachine.Status.Ready = true
 }

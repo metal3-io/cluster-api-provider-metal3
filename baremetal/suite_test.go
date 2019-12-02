@@ -34,6 +34,12 @@ const (
 	namespaceName        = "testNameSpace"
 )
 
+var bmcOwnerRef = &metav1.OwnerReference{
+	APIVersion: clusterv1.GroupVersion.String(),
+	Kind:       "Cluster",
+	Name:       clusterName,
+}
+
 //-----------------------------------
 //------ Helper functions -----------
 //-----------------------------------
