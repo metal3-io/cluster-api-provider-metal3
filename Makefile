@@ -358,7 +358,7 @@ release-tag-latest: ## Adds the latest tag to the last build tag.
 ## --------------------------------------
 
 .PHONY: create-cluster
-create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS using examples
+create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster using examples
 	$(CLUSTERCTL) \
 	create cluster -v 4 \
 	--bootstrap-flags="name=clusterapi" \
@@ -370,7 +370,7 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS 
 
 
 .PHONY: create-cluster-management
-create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster on AWS in a KIND management cluster.
+create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster in a KIND management cluster.
 	kind create cluster --name=clusterapi
 	# Apply provider-components.
 	kubectl \

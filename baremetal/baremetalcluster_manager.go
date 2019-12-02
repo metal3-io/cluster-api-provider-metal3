@@ -101,7 +101,7 @@ func (s *ClusterManager) UnsetFinalizer() {
 	)
 }
 
-// Create creates a docker container hosting a cluster manager for the cluster.
+// Create creates a cluster manager for the cluster.
 func (s *ClusterManager) Create(ctx context.Context) error {
 
 	config := s.BareMetalCluster.Spec
