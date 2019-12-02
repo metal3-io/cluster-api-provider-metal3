@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	// MachineFinalizer allows ReconcileBareMetalMachine to clean up resources associated with AWSMachine before
+	// MachineFinalizer allows ReconcileBareMetalMachine to clean up resources associated with BareMetalMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "baremetalmachine.infrastructure.cluster.x-k8s.io"
 )
