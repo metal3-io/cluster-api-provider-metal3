@@ -17,6 +17,11 @@ limitations under the License.
 package baremetal
 
 import (
+	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,6 +38,12 @@ const (
 	baremetalClusterName = "testBaremetalCluster"
 	namespaceName        = "testNameSpace"
 )
+
+func TestManagers(t *testing.T) {
+	RegisterFailHandler(Fail)
+
+	RunSpecs(t, "Manager Suite")
+}
 
 var bmcOwnerRef = &metav1.OwnerReference{
 	APIVersion: clusterv1.GroupVersion.String(),
