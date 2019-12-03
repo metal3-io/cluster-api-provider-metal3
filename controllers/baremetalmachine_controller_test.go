@@ -35,16 +35,16 @@ import (
 	"k8s.io/utils/pointer"
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
-	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mock_baremetal"
+	baremetal_mocks "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mocks"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
 func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	tc reconcileNormalTestCase, r *BareMetalMachineReconciler,
-) *mock_baremetal.MockMachineManagerInterface {
+) *baremetal_mocks.MockMachineManagerInterface {
 
-	m := mock_baremetal.NewMockMachineManagerInterface(ctrl)
+	m := baremetal_mocks.NewMockMachineManagerInterface(ctrl)
 
 	m.EXPECT().SetFinalizer()
 
@@ -224,9 +224,9 @@ type reconcileDeleteTestCase struct {
 
 func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 	tc reconcileDeleteTestCase, r *BareMetalMachineReconciler,
-) *mock_baremetal.MockMachineManagerInterface {
+) *baremetal_mocks.MockMachineManagerInterface {
 
-	m := mock_baremetal.NewMockMachineManagerInterface(ctrl)
+	m := baremetal_mocks.NewMockMachineManagerInterface(ctrl)
 
 	if tc.DeleteFails {
 		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
