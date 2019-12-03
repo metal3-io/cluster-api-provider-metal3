@@ -27,6 +27,7 @@ import (
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1590,39 +1591,52 @@ func TestSetNodeProviderID(t *testing.T) {
 
 func TestAssociate(t *testing.T) {
 	testCases := map[string]struct {
-		Machine   *capi.Machine
-		Host      *bmh.BareMetalHost
-		BMMachine *capbm.BareMetalMachine
+		Machine       *capi.Machine
+		Host          *bmh.BareMetalHost
+		BMMachine     *capbm.BareMetalMachine
+		ExpectRequeue bool
 	}{
 		"Associate empty machine, baremetal machine spec nil": {
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			Host:      newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			Machine:       newMachine("", "", nil),
+			BMMachine:     newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
+			Host:          newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			ExpectRequeue: false,
 		},
 		"Associate empty machine, baremetal machine spec set": {
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
-			Host:      newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			Machine:       newMachine("", "", nil),
+			BMMachine:     newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
+			Host:          newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			ExpectRequeue: false,
 		},
 		"Associate empty machine, host empty, baremetal machine spec set": {
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
-			Host:      newBareMetalHost("", nil, bmh.StateNone, nil, false),
+			Machine:       newMachine("", "", nil),
+			BMMachine:     newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
+			Host:          newBareMetalHost("", nil, bmh.StateNone, nil, false),
+			ExpectRequeue: false,
 		},
-		"Associate machine, host empty, baremetal machine spec set": {
-			Machine:   newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
-			Host:      newBareMetalHost("", nil, bmh.StateNone, nil, false),
+		"Associate machine, host nil, baremetal machine spec set, requeue": {
+			Machine:       newMachine("myUniqueMachine", "", nil),
+			BMMachine:     newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
+			Host:          nil,
+			ExpectRequeue: true,
 		},
 	}
 
 	for name, tc := range testCases {
 		t.Logf("## TC-%s ##", name)
 
-		objects := []runtime.Object{
-			tc.Host,
-			tc.BMMachine,
-			tc.Machine,
+		var objects []runtime.Object
+		if tc.Host == nil {
+			objects = []runtime.Object{
+				tc.BMMachine,
+				tc.Machine,
+			}
+		} else {
+			objects = []runtime.Object{
+				tc.Host,
+				tc.BMMachine,
+				tc.Machine,
+			}
 		}
 		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 
@@ -1633,7 +1647,18 @@ func TestAssociate(t *testing.T) {
 
 		err = machineMgr.Associate(context.TODO())
 		if err != nil {
-			t.Error(err)
+			if !tc.ExpectRequeue {
+				t.Error(err)
+			} else {
+				requeueErr, ok := errors.Cause(err).(HasRequeueAfterError)
+				if !ok {
+					t.Error(requeueErr)
+				}
+			}
+		} else {
+			if tc.ExpectRequeue {
+				t.Error(err)
+			}
 		}
 	}
 }
