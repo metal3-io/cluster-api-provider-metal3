@@ -165,7 +165,7 @@ func (a *Actuator) Delete(ctx context.Context, cluster *machinev1.Cluster, machi
 		switch host.Status.Provisioning.State {
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
-			bmh.StateReady, bmh.StateValidationError:
+			bmh.StateReady, bmh.StateValidationError, bmh.StateNone:
 			// Host is not provisioned
 			waiting = false
 		case bmh.StateExternallyProvisioned:
