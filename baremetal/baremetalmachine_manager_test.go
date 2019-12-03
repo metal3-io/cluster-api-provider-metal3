@@ -1067,6 +1067,18 @@ func TestDelete(t *testing.T) {
 			ExpectedConsumerRef: consumerRef,
 			ExpectedResult:      &RequeueAfterError{},
 		},
+		"No Host status, deprovisioning needed": {
+			Host:                newBareMetalHost("myhost", bmhSpec, bmh.StateNone, nil, false),
+			Machine:             newMachine("mymachine", "", nil),
+			BMMachine:           newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
+			ExpectedConsumerRef: consumerRef,
+			ExpectedResult:      &RequeueAfterError{},
+		},
+		"No Host status, no deprovisioning needed": {
+			Host:      newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateNone, nil, false),
+			Machine:   newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
+		},
 		"Deprovisioning in progress": {
 			Host:                newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateDeprovisioning, bmhStatus, false),
 			Machine:             newMachine("mymachine", "", nil),

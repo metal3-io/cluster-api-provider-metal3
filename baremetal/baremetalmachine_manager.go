@@ -339,7 +339,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		// TODO? remove empty string that is the status without BMO running
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
-			bmh.StateReady, bmh.StateValidationError, "":
+			bmh.StateReady, bmh.StateValidationError, bmh.StateNone:
 			// Host is not provisioned
 			waiting = false
 		case bmh.StateExternallyProvisioned:
