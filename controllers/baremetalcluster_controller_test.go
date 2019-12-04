@@ -14,49 +14,47 @@ package controllers
 
 import (
 	"context"
-	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-
 	baremetal_mocks "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mocks"
 )
 
-func TestReconcileNormal(t *testing.T) {
-	testCases := map[string]struct {
+var _ = Describe("BareMetalCluster manager", func() {
+
+	type testCaseClusterNormal struct {
 		CreateError   bool
 		UpdateError   bool
 		ExpectError   bool
 		ExpectRequeue bool
-	}{
-		"No errors": {
-			CreateError:   false,
-			UpdateError:   false,
-			ExpectError:   false,
-			ExpectRequeue: false,
-		},
-		"Create error": {
-			CreateError:   true,
-			UpdateError:   false,
-			ExpectError:   true,
-			ExpectRequeue: false,
-		},
-		"Update error": {
-			CreateError:   false,
-			UpdateError:   true,
-			ExpectError:   true,
-			ExpectRequeue: false,
-		},
 	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
+
+	type testCaseClusterDelete struct {
+		DescendantsCount int
+		DescendantsError bool
+		DeleteError      bool
+		ExpectError      bool
+		ExpectRequeue    bool
+	}
+
+	var gomockCtrl *gomock.Controller
+
+	BeforeEach(func() {
+		gomockCtrl = gomock.NewController(GinkgoT())
+	})
+
+	AfterEach(func() {
+		gomockCtrl.Finish()
+	})
+
+	DescribeTable("Test ClusterReconcileNormal",
+		func(tc testCaseClusterNormal) {
 			var returnedError error
-			ctrl := gomock.NewController(t)
-
-			// Defer call to Finish
-			defer ctrl.Finish()
-
-			m := baremetal_mocks.NewMockClusterManagerInterface(ctrl)
+			m := baremetal_mocks.NewMockClusterManagerInterface(gomockCtrl)
 
 			m.EXPECT().SetFinalizer()
 
@@ -78,73 +76,40 @@ func TestReconcileNormal(t *testing.T) {
 			res, err := reconcileNormal(context.TODO(), m)
 
 			if tc.ExpectError {
-				if err == nil {
-					t.Error("Expected an error")
-				}
+				Expect(err).To(HaveOccurred())
 			} else {
-				if err != nil {
-					t.Error("Did not expect an error")
-				}
+				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.ExpectRequeue {
-				if res.Requeue == false {
-					t.Error("Expected a requeue")
-				}
+				Expect(res.Requeue).To(BeTrue())
 			} else {
-				if res.Requeue != false {
-					t.Error("Did not expect a requeue")
-				}
+				Expect(res.Requeue).To(BeFalse())
 			}
-		})
-	}
-}
+		},
+		Entry("No errors", testCaseClusterNormal{
+			CreateError:   false,
+			UpdateError:   false,
+			ExpectError:   false,
+			ExpectRequeue: false,
+		}),
+		Entry("Create error", testCaseClusterNormal{
+			CreateError:   true,
+			UpdateError:   false,
+			ExpectError:   true,
+			ExpectRequeue: false,
+		}),
+		Entry("Update error", testCaseClusterNormal{
+			CreateError:   false,
+			UpdateError:   true,
+			ExpectError:   true,
+			ExpectRequeue: false,
+		}),
+	)
 
-func TestReconcileDelete(t *testing.T) {
-	testCases := map[string]struct {
-		DescendantsCount int
-		DescendantsError bool
-		DeleteError      bool
-		ExpectError      bool
-		ExpectRequeue    bool
-	}{
-		"No errors": {
-			DescendantsCount: 0,
-			DescendantsError: false,
-			DeleteError:      false,
-			ExpectError:      false,
-			ExpectRequeue:    false,
-		},
-		"Descendants left": {
-			DescendantsCount: 1,
-			DescendantsError: false,
-			DeleteError:      false,
-			ExpectError:      false,
-			ExpectRequeue:    true,
-		},
-		"Descendants error": {
-			DescendantsCount: 0,
-			DescendantsError: true,
-			DeleteError:      false,
-			ExpectError:      true,
-			ExpectRequeue:    false,
-		},
-		"Delete error": {
-			DescendantsCount: 0,
-			DescendantsError: false,
-			DeleteError:      true,
-			ExpectError:      true,
-			ExpectRequeue:    false,
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
+	DescribeTable("Test ClusterReconcileDelete",
+		func(tc testCaseClusterDelete) {
 			var returnedError error
-			ctrl := gomock.NewController(t)
-
-			// Defer call to Finish
-			defer ctrl.Finish()
-
-			m := baremetal_mocks.NewMockClusterManagerInterface(ctrl)
+			m := baremetal_mocks.NewMockClusterManagerInterface(gomockCtrl)
 
 			// If we get an error while listing descendants or some still exists,
 			// we will exit with error or requeue.
@@ -170,28 +135,50 @@ func TestReconcileDelete(t *testing.T) {
 				returnedError = nil
 			}
 			m.EXPECT().
-				CountDescendants(context.TODO()).Return(tc.DescendantsCount, returnedError)
+				CountDescendants(context.TODO()).Return(tc.DescendantsCount,
+				returnedError,
+			)
 
 			res, err := reconcileDelete(context.TODO(), m)
 
 			if tc.ExpectError {
-				if err == nil {
-					t.Error("Expected an error")
-				}
+				Expect(err).To(HaveOccurred())
 			} else {
-				if err != nil {
-					t.Error("Did not expect an error")
-				}
+				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.ExpectRequeue {
-				if res.Requeue == false {
-					t.Error("Expected a requeue")
-				}
+				Expect(res.Requeue).To(BeTrue())
 			} else {
-				if res.Requeue != false {
-					t.Error("Did not expect a requeue")
-				}
+				Expect(res.Requeue).To(BeFalse())
 			}
-		})
-	}
-}
+		},
+		Entry("No errors", testCaseClusterDelete{
+			DescendantsCount: 0,
+			DescendantsError: false,
+			DeleteError:      false,
+			ExpectError:      false,
+			ExpectRequeue:    false,
+		}),
+		Entry("Descendants left", testCaseClusterDelete{
+			DescendantsCount: 1,
+			DescendantsError: false,
+			DeleteError:      false,
+			ExpectError:      false,
+			ExpectRequeue:    true,
+		}),
+		Entry("Descendants error", testCaseClusterDelete{
+			DescendantsCount: 0,
+			DescendantsError: true,
+			DeleteError:      false,
+			ExpectError:      true,
+			ExpectRequeue:    false,
+		}),
+		Entry("Delete error", testCaseClusterDelete{
+			DescendantsCount: 0,
+			DescendantsError: false,
+			DeleteError:      true,
+			ExpectError:      true,
+			ExpectRequeue:    false,
+		}),
+	)
+})
