@@ -17,50 +17,56 @@ limitations under the License.
 package baremetal
 
 import (
-	"testing"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"k8s.io/klog/klogr"
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func TestNewManagerFactory(t *testing.T) {
-	c := fakeclient.NewFakeClientWithScheme(setupScheme())
-	managerFactory := NewManagerFactory(c)
-	if managerFactory.client != c {
-		t.Fatal("Failed to create a new manager factory")
-	}
-}
-
-func TestFactoryNewClusterManager(t *testing.T) {
-	c := fakeclient.NewFakeClientWithScheme(setupScheme())
-	managerFactory := NewManagerFactory(c)
-	cluster := &capi.Cluster{}
-	capbmCluster := &capbm.BareMetalCluster{}
+var _ = Describe("Manager factory testing", func() {
+	var managerClient client.Client
+	var managerFactory ManagerFactory
 	clusterLog := klogr.New()
 
-	_, err := managerFactory.NewClusterManager(cluster, capbmCluster,
-		clusterLog,
-	)
-	if err != nil {
-		t.Error("Failed to create a cluster manager")
-	}
-}
+	BeforeEach(func() {
+		managerClient = fakeclient.NewFakeClientWithScheme(setupScheme())
+		managerFactory = NewManagerFactory(managerClient)
+	})
 
-func TestFactoryNewMachineManager(t *testing.T) {
-	c := fakeclient.NewFakeClientWithScheme(setupScheme())
-	managerFactory := NewManagerFactory(c)
-	cluster := &capi.Cluster{}
-	capbmCluster := &capbm.BareMetalCluster{}
-	machine := &capi.Machine{}
-	capbmMachine := &capbm.BareMetalMachine{}
-	clusterLog := klogr.New()
+	It("returns a manager factory", func() {
+		Expect(managerFactory.client).To(Equal(managerClient))
+	})
 
-	_, err := managerFactory.NewMachineManager(cluster, capbmCluster,
-		machine, capbmMachine, clusterLog,
-	)
-	if err != nil {
-		t.Error("Failed to create a machine manager")
-	}
-}
+	It("returns a cluster manager", func() {
+		_, err := managerFactory.NewClusterManager(&capi.Cluster{},
+			&capbm.BareMetalCluster{}, clusterLog,
+		)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("fails to return a cluster manager with nil cluster", func() {
+		_, err := managerFactory.NewClusterManager(nil, &capbm.BareMetalCluster{},
+			clusterLog,
+		)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("fails to return a cluster manager with nil bmcluster", func() {
+		_, err := managerFactory.NewClusterManager(&capi.Cluster{}, nil,
+			clusterLog,
+		)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("returns a machine manager", func() {
+		_, err := managerFactory.NewMachineManager(&capi.Cluster{},
+			&capbm.BareMetalCluster{}, &capi.Machine{}, &capbm.BareMetalMachine{},
+			clusterLog,
+		)
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
