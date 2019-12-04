@@ -18,8 +18,10 @@ package baremetal
 
 import (
 	"fmt"
-	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 const (
@@ -27,19 +29,15 @@ const (
 	RequeueDuration2 = 40
 )
 
-func TestError(t *testing.T) {
-	err := &RequeueAfterError{time.Second * RequeueDuration1}
-	if err.Error() != fmt.Sprintf("requeue in: %vs", RequeueDuration1) {
-		t.Errorf("Error, expected %vs, got %s", RequeueDuration1, err.RequeueAfter)
-	}
-}
+var _ = Describe("Errors testing", func() {
+	It("returns the correct error", func() {
+		err := &RequeueAfterError{time.Second * RequeueDuration1}
+		Expect(err.Error()).To(Equal(fmt.Sprintf("requeue in: %vs", RequeueDuration1)))
+	})
 
-func TestGetRequeueAfter(t *testing.T) {
-	duration, _ := time.ParseDuration(fmt.Sprintf("%vs", RequeueDuration2))
-	err := &RequeueAfterError{time.Second * RequeueDuration2}
-	if err.GetRequeueAfter() != duration {
-		t.Errorf("Error in duration, expected %vs, got %s", RequeueDuration2,
-			err.RequeueAfter,
-		)
-	}
-}
+	It("Gets the correct duration", func() {
+		duration, _ := time.ParseDuration(fmt.Sprintf("%vs", RequeueDuration2))
+		err := &RequeueAfterError{time.Second * RequeueDuration2}
+		Expect(err.GetRequeueAfter()).To(Equal(duration))
+	})
+})
