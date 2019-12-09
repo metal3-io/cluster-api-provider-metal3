@@ -18,7 +18,10 @@ package baremetal
 
 import (
 	"context"
-	"testing"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	_ "github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,7 +32,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -41,58 +44,81 @@ var bmcSpecApiEmpty = &infrav1.BareMetalClusterSpec{
 	APIEndpoint: "",
 }
 
-type tcTest struct {
+type testCaseBMClusterManager struct {
 	BMCluster     *infrav1.BareMetalCluster
 	Cluster       *clusterv1.Cluster
 	ExpectSuccess bool
 }
 
-func TestNewClusterManager(t *testing.T) {
-	testCases := map[string]tcTest{
-		"defined": {
-			Cluster:       &clusterv1.Cluster{},
-			BMCluster:     &infrav1.BareMetalCluster{},
-			ExpectSuccess: true,
-		},
-		"BMCluster undefined": {
-			Cluster:       &clusterv1.Cluster{},
-			BMCluster:     nil,
-			ExpectSuccess: false,
-		},
-		"Cluster undefined": {
-			Cluster:       nil,
-			BMCluster:     &infrav1.BareMetalCluster{},
-			ExpectSuccess: false,
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			c := fakeclient.NewFakeClientWithScheme(setupScheme())
-			_, err := NewClusterManager(c, tc.Cluster, tc.BMCluster,
-				klogr.New(),
-			)
-			if err != nil {
-				if tc.ExpectSuccess {
-					t.Errorf("Unexpected error : %v", err)
-				}
-			} else {
-				if !tc.ExpectSuccess {
-					t.Error("Expected error")
-				}
-			}
-		})
-	}
+type descendantsTestCase struct {
+	Machines            []*clusterv1.Machine
+	ExpectError         bool
+	ExpectedDescendants int
 }
 
-func TestFinalizers(t *testing.T) {
-	testCases := map[string]tcTest{
-		"No finalizers": {
+var _ = Describe("BareMetalCluster manager", func() {
+
+	Describe("Test New Cluster Manager", func() {
+
+		var fakeClient client.Client
+
+		BeforeEach(func() {
+			fakeClient = fakeclient.NewFakeClientWithScheme(setupScheme())
+		})
+
+		DescribeTable("Test NewClusterManager",
+			func(tc testCaseBMClusterManager) {
+				_, err := NewClusterManager(fakeClient, tc.Cluster, tc.BMCluster,
+					klogr.New(),
+				)
+				if tc.ExpectSuccess {
+					Expect(err).NotTo(HaveOccurred())
+				} else {
+					Expect(err).To(HaveOccurred())
+				}
+			},
+			Entry("Cluster and BMCluster Defined", testCaseBMClusterManager{
+				Cluster:       &clusterv1.Cluster{},
+				BMCluster:     &infrav1.BareMetalCluster{},
+				ExpectSuccess: true,
+			}),
+			Entry("BMCluster undefined", testCaseBMClusterManager{
+				Cluster:       &clusterv1.Cluster{},
+				BMCluster:     nil,
+				ExpectSuccess: false,
+			}),
+			Entry("Cluster undefined", testCaseBMClusterManager{
+				Cluster:       nil,
+				BMCluster:     &infrav1.BareMetalCluster{},
+				ExpectSuccess: false,
+			}),
+		)
+	})
+
+	DescribeTable("Test Finalizers",
+		func(tc testCaseBMClusterManager) {
+			clusterMgr, err := newBMClusterSetup(tc)
+			Expect(err).To(Succeed())
+
+			clusterMgr.SetFinalizer()
+
+			Expect(tc.BMCluster.ObjectMeta.Finalizers).To(ContainElement(
+				infrav1.ClusterFinalizer,
+			))
+
+			clusterMgr.UnsetFinalizer()
+
+			Expect(tc.BMCluster.ObjectMeta.Finalizers).NotTo(ContainElement(
+				infrav1.ClusterFinalizer,
+			))
+		},
+		Entry("No finalizers", testCaseBMClusterManager{
 			Cluster: nil,
 			BMCluster: newBareMetalCluster(baremetalClusterName,
 				bmcOwnerRef, nil, nil,
 			),
-		},
-		"finalizers": {
+		}),
+		Entry("Finalizers", testCaseBMClusterManager{
 			Cluster: nil,
 			BMCluster: &infrav1.BareMetalCluster{
 				TypeMeta: metav1.TypeMeta{
@@ -107,293 +133,202 @@ func TestFinalizers(t *testing.T) {
 				Spec:   infrav1.BareMetalClusterSpec{},
 				Status: infrav1.BareMetalClusterStatus{},
 			},
+		}),
+	)
+
+	DescribeTable("Test setting and clearing errors",
+		func(tc testCaseBMClusterManager) {
+			clusterMgr, err := newBMClusterSetup(tc)
+			Expect(err).To(Succeed())
+
+			clusterMgr.setError("abc", capierrors.InvalidConfigurationClusterError)
+
+			Expect(*tc.BMCluster.Status.ErrorReason).To(Equal(
+				capierrors.InvalidConfigurationClusterError,
+			))
+			Expect(*tc.BMCluster.Status.ErrorMessage).To(Equal("abc"))
+
+			clusterMgr.clearError()
+
+			Expect(tc.BMCluster.Status.ErrorReason).To(BeNil())
+			Expect(tc.BMCluster.Status.ErrorMessage).To(BeNil())
 		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			clusterMgr, err := newBMClusterSetup(t, tc)
-			if err != nil {
-				t.Error(err)
-				return
-			}
-
-			clusterMgr.SetFinalizer()
-
-			if !util.Contains(tc.BMCluster.ObjectMeta.Finalizers,
-				infrav1.ClusterFinalizer,
-			) {
-				t.Errorf("Expected finalizer %v in %v", infrav1.ClusterFinalizer,
-					tc.BMCluster.ObjectMeta.Finalizers,
-				)
-			}
-
-			clusterMgr.UnsetFinalizer()
-
-			if util.Contains(tc.BMCluster.ObjectMeta.Finalizers,
-				infrav1.ClusterFinalizer,
-			) {
-				t.Errorf("Did not expect finalizer %v in %v", infrav1.ClusterFinalizer,
-					tc.BMCluster.ObjectMeta.Finalizers,
-				)
-			}
-		})
-	}
-}
-
-func TestErrors(t *testing.T) {
-	testCases := map[string]tcTest{
-		"No errors": {
+		Entry("No pre-existing errors", testCaseBMClusterManager{
 			Cluster: newCluster(clusterName),
 			BMCluster: newBareMetalCluster(baremetalClusterName,
 				bmcOwnerRef, nil, nil,
 			),
-		},
-		"Error message": {
+		}),
+		Entry("Pre-existing error message overriden", testCaseBMClusterManager{
 			Cluster: newCluster(clusterName),
 			BMCluster: newBareMetalCluster(baremetalClusterName,
 				bmcOwnerRef, nil, &infrav1.BareMetalClusterStatus{
 					ErrorMessage: pointer.StringPtr("cba"),
 				},
 			),
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			clusterMgr, err := newBMClusterSetup(t, tc)
-			if err != nil {
-				t.Error(err)
-				return
-			}
+		}),
+	)
 
-			clusterMgr.setError("abc", capierrors.InvalidConfigurationClusterError)
-
-			if *tc.BMCluster.Status.ErrorReason != capierrors.InvalidConfigurationClusterError {
-				t.Errorf("Expected error reason %v instead of %v",
-					capierrors.InvalidConfigurationClusterError,
-					tc.BMCluster.Status.ErrorReason,
-				)
-			}
-			if *tc.BMCluster.Status.ErrorMessage != "abc" {
-				t.Errorf("Expected error message abc instead of %v",
-					tc.BMCluster.Status.ErrorMessage,
-				)
-			}
-
-			clusterMgr.clearError()
-
-			if tc.BMCluster.Status.ErrorReason != nil {
-				t.Error("Did not expect an error reason")
-			}
-			if tc.BMCluster.Status.ErrorMessage != nil {
-				t.Error("Did not expect an error message")
-			}
-		})
-	}
-}
-
-func TestBMClusterDelete(t *testing.T) {
-	var testCases = map[string]tcTest{
-		"delete": {
-			Cluster:   &clusterv1.Cluster{},
-			BMCluster: &infrav1.BareMetalCluster{},
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-
-			clusterMgr, err := newBMClusterSetup(t, tc)
-			if err != nil {
-				if tc.ExpectSuccess {
-					t.Error(err)
-					return
-				}
-			}
-
+	DescribeTable("Test BM cluster Delete",
+		func(tc testCaseBMClusterManager) {
+			clusterMgr, err := newBMClusterSetup(tc)
+			Expect(err).To(Succeed())
 			err = clusterMgr.Delete()
-			if err != nil {
-				if tc.ExpectSuccess {
-					t.Error(err)
-					return
-				}
-			}
-		})
-	}
-}
 
-var testCases = map[string]tcTest{
-	"Cluster and BMCluster exist": {
-		Cluster:       newCluster(clusterName),
-		BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
-		ExpectSuccess: true,
-	},
-	"Cluster exists, BMCluster empty": {
-		Cluster:       newCluster(clusterName),
-		BMCluster:     &infrav1.BareMetalCluster{},
-		ExpectSuccess: false,
-	},
-	"Cluster empty, BMCluster exists": {
-		Cluster:       &clusterv1.Cluster{},
-		BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
-		ExpectSuccess: true,
-	},
-	"Cluster empty, BMCluster exists without owner": {
-		Cluster:       &clusterv1.Cluster{},
-		BMCluster:     newBareMetalCluster(baremetalClusterName, nil, bmcSpec, nil),
-		ExpectSuccess: true,
-	},
-	"Cluster and BMCluster exist, BMC spec API empty": {
-		Cluster:       newCluster(clusterName),
-		BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpecApiEmpty, nil),
-		ExpectSuccess: false,
-	},
-}
-
-func TestNewClusterManagerCreate(t *testing.T) {
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-
-			clusterMgr, err := newBMClusterSetup(t, tc)
-			if err != nil {
-				if tc.ExpectSuccess {
-					t.Error(err)
-				}
+			if tc.ExpectSuccess {
+				Expect(err).To(Succeed())
 			} else {
-				if clusterMgr == nil {
-					return
-				}
-				err = clusterMgr.Create(context.TODO())
-				if err != nil {
-					if tc.ExpectSuccess {
-						t.Error(err)
-					}
-				} else {
-					if !tc.ExpectSuccess {
-						t.Error("Expected an error")
-					}
-				}
+				Expect(err).To(HaveOccurred())
 			}
-		})
-	}
-}
+		},
+		Entry("deleting BMCluster", testCaseBMClusterManager{
+			Cluster:       &clusterv1.Cluster{},
+			BMCluster:     &infrav1.BareMetalCluster{},
+			ExpectSuccess: true,
+		}),
+	)
 
-func TestNewClusterManagerUpdateClusterStatus(t *testing.T) {
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
+	DescribeTable("Test BMCluster Create",
+		func(tc testCaseBMClusterManager) {
+			clusterMgr, err := newBMClusterSetup(tc)
+			Expect(err).To(Succeed())
+			Expect(clusterMgr).NotTo(BeNil())
 
-			clusterMgr, err := newBMClusterSetup(t, tc)
-			if err != nil {
-				if tc.ExpectSuccess {
-					t.Error(err)
-				}
+			err = clusterMgr.Create(context.TODO())
+
+			if tc.ExpectSuccess {
+				Expect(err).To(Succeed())
 			} else {
-				if clusterMgr == nil {
-					return
-				}
-				err = clusterMgr.UpdateClusterStatus()
-				if err != nil {
-					if tc.ExpectSuccess {
-						t.Error(err)
-					}
-				} else {
-					apiEndPoints := tc.BMCluster.Status.APIEndpoints
-					if !tc.ExpectSuccess {
-						if apiEndPoints[0].Host != "" {
-							t.Errorf("APIEndPoints Host not empty %s", apiEndPoints[0].Host)
-						}
-					} else {
-						if apiEndPoints[0].Host != "192.168.111.249" || apiEndPoints[0].Port != 6443 {
-							t.Errorf("APIEndPoints mismatch %s:%d", apiEndPoints[0].Host, apiEndPoints[0].Port)
-						}
-					}
-				}
+				Expect(err).To(HaveOccurred())
 			}
-		})
-	}
-}
+		},
+		Entry("Cluster and BMCluster exist", testCaseBMClusterManager{
+			Cluster:       newCluster(clusterName),
+			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			ExpectSuccess: true,
+		}),
+		Entry("Cluster exists, BMCluster empty", testCaseBMClusterManager{
+			Cluster:       newCluster(clusterName),
+			BMCluster:     &infrav1.BareMetalCluster{},
+			ExpectSuccess: false,
+		}),
+		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{
+			Cluster:       &clusterv1.Cluster{},
+			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			ExpectSuccess: true,
+		}),
+		Entry("Cluster empty, BMCluster exists without owner", testCaseBMClusterManager{
+			Cluster:       &clusterv1.Cluster{},
+			BMCluster:     newBareMetalCluster(baremetalClusterName, nil, bmcSpec, nil),
+			ExpectSuccess: true,
+		}),
+		Entry("Cluster and BMCluster exist, BMC spec API empty", testCaseBMClusterManager{
+			Cluster:       newCluster(clusterName),
+			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpecApiEmpty, nil),
+			ExpectSuccess: false,
+		}),
+	)
 
-type descendantsTestCase struct {
-	Machines            []*clusterv1.Machine
-	ExpectError         bool
-	ExpectedDescendants int
-}
+	DescribeTable("Test BMCluster Update",
+		func(tc testCaseBMClusterManager) {
+			clusterMgr, err := newBMClusterSetup(tc)
+			Expect(err).To(Succeed())
+			Expect(clusterMgr).NotTo(BeNil())
 
-var descendantsTestCases = map[string]descendantsTestCase{
-	"No Descendants": {
-		Machines:            []*clusterv1.Machine{},
-		ExpectError:         false,
-		ExpectedDescendants: 0,
-	},
-	"One Descendant": {
-		Machines: []*clusterv1.Machine{
-			&clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-					Labels: map[string]string{
-						clusterv1.MachineClusterLabelName: clusterName,
+			err = clusterMgr.UpdateClusterStatus()
+			Expect(err).To(Succeed())
+
+			apiEndPoints := tc.BMCluster.Status.APIEndpoints
+			if tc.ExpectSuccess {
+				Expect(apiEndPoints[0].Host).To(Equal("192.168.111.249"))
+				Expect(apiEndPoints[0].Port).To(Equal(6443))
+			} else {
+				Expect(apiEndPoints[0].Host).To(Equal(""))
+			}
+		},
+		Entry("Cluster and BMCluster exist", testCaseBMClusterManager{
+			Cluster:       newCluster(clusterName),
+			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			ExpectSuccess: true,
+		}),
+		Entry("Cluster exists, BMCluster empty", testCaseBMClusterManager{
+			Cluster:       newCluster(clusterName),
+			BMCluster:     &infrav1.BareMetalCluster{},
+			ExpectSuccess: false,
+		}),
+		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{
+			Cluster:       &clusterv1.Cluster{},
+			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			ExpectSuccess: true,
+		}),
+		Entry("Cluster empty, BMCluster exists without owner", testCaseBMClusterManager{
+			Cluster:       &clusterv1.Cluster{},
+			BMCluster:     newBareMetalCluster(baremetalClusterName, nil, bmcSpec, nil),
+			ExpectSuccess: true,
+		}),
+		Entry("Cluster and BMCluster exist, BMC spec API empty", testCaseBMClusterManager{
+			Cluster:       newCluster(clusterName),
+			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpecApiEmpty, nil),
+			ExpectSuccess: false,
+		}),
+	)
+
+	var descendantsTestCases = []TableEntry{
+		Entry("No Cluster Descendants", descendantsTestCase{
+			Machines:            []*clusterv1.Machine{},
+			ExpectError:         false,
+			ExpectedDescendants: 0,
+		}),
+		Entry("One Cluster Descendant", descendantsTestCase{
+			Machines: []*clusterv1.Machine{
+				&clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespaceName,
+						Labels: map[string]string{
+							clusterv1.MachineClusterLabelName: clusterName,
+						},
 					},
 				},
 			},
-		},
-		ExpectError:         false,
-		ExpectedDescendants: 1,
-	},
-}
+			ExpectError:         false,
+			ExpectedDescendants: 1,
+		}),
+	}
 
-func TestListDescendants(t *testing.T) {
-
-	for name, tc := range descendantsTestCases {
-		t.Run(name, func(t *testing.T) {
-
+	DescribeTable("Test List Descendants",
+		func(tc descendantsTestCase) {
 			clusterMgr := descendantsSetup(tc)
 
 			descendants, err := clusterMgr.listDescendants(context.TODO())
-			if err != nil {
-				if !tc.ExpectError {
-					t.Error(err)
-					return
-				}
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
 			} else {
-				if tc.ExpectError {
-					t.Error("Expected an error")
-				}
+				Expect(err).To(Succeed())
 			}
-			if len(descendants.Items) != tc.ExpectedDescendants {
-				t.Errorf("Expected %v descendants, got %v", tc.ExpectedDescendants,
-					len(descendants.Items),
-				)
-			}
-		})
-	}
-}
 
-func TestCountDescendants(t *testing.T) {
+			Expect(len(descendants.Items)).To(Equal(tc.ExpectedDescendants))
+		},
+		descendantsTestCases...,
+	)
 
-	for name, tc := range descendantsTestCases {
-		t.Run(name, func(t *testing.T) {
-
+	DescribeTable("Test Count Descendants",
+		func(tc descendantsTestCase) {
 			clusterMgr := descendantsSetup(tc)
 			nbDescendants, err := clusterMgr.CountDescendants(context.TODO())
 
-			if err != nil {
-				if !tc.ExpectError {
-					t.Error(err)
-					return
-				}
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
 			} else {
-				if tc.ExpectError {
-					t.Error("Expected an error")
-				}
+				Expect(err).To(Succeed())
 			}
-			if nbDescendants != tc.ExpectedDescendants {
-				t.Errorf("Expected %v descendants, got %v", tc.ExpectedDescendants,
-					nbDescendants,
-				)
-			}
-		})
-	}
-}
 
-func newBMClusterSetup(t *testing.T, tc tcTest) (*ClusterManager, error) {
+			Expect(nbDescendants).To(Equal(tc.ExpectedDescendants))
+		},
+		descendantsTestCases...,
+	)
+})
+
+func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
 	objects := []runtime.Object{}
 
 	if tc.Cluster != nil {

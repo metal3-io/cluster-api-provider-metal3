@@ -24,7 +24,7 @@ import (
 	baremetal_mocks "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mocks"
 )
 
-var _ = Describe("BareMetalCluster manager", func() {
+var _ = Describe("BareMetalCluster controller", func() {
 
 	type testCaseClusterNormal struct {
 		CreateError   bool
