@@ -21,9 +21,11 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
-	"strings"
-	"testing"
 	"time"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
@@ -39,7 +41,6 @@ import (
 	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -124,44 +125,54 @@ var bmhSpecNoImg = &bmh.BareMetalHostSpec{
 	ConsumerRef: consumerRef,
 }
 
-var bmmObjectMetaWithValidAnnotations = &metav1.ObjectMeta{
-	Name:            "mybmmachine",
-	Namespace:       "myns",
-	OwnerReferences: []metav1.OwnerReference{},
-	Annotations: map[string]string{
-		HostAnnotation: "myns/myhost",
-	},
+func bmmObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "mybmmachine",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations: map[string]string{
+			HostAnnotation: "myns/myhost",
+		},
+	}
 }
 
-var bmmObjectMetaWithInvalidAnnotations = &metav1.ObjectMeta{
-	Name:            "bmmachine",
-	Namespace:       "myns",
-	OwnerReferences: []metav1.OwnerReference{},
-	Annotations: map[string]string{
-		HostAnnotation: "myns/wrongvalue",
-	},
+func bmmObjectMetaWithInvalidAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "foobarbmmachine",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations: map[string]string{
+			HostAnnotation: "myns/wrongvalue",
+		},
+	}
 }
 
-var bmmObjectMetaWithSomeAnnotations = &metav1.ObjectMeta{
-	Name:            "bmmachine",
-	Namespace:       "myns",
-	OwnerReferences: []metav1.OwnerReference{},
-	Annotations: map[string]string{
-		HostAnnotation: "myns/somehost",
-	},
+func bmmObjectMetaWithSomeAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "bmmachine",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations: map[string]string{
+			HostAnnotation: "myns/somehost",
+		},
+	}
 }
 
-var bmmObjectMetaEmptyAnnotations = &metav1.ObjectMeta{
-	Name:            "bmmachine",
-	Namespace:       "myns",
-	OwnerReferences: []metav1.OwnerReference{},
-	Annotations:     map[string]string{},
+func bmmObjectMetaEmptyAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "bmmachine",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations:     map[string]string{},
+	}
 }
 
-var bmmObjectMetaNoAnnotations = &metav1.ObjectMeta{
-	Name:            "bmmachine",
-	Namespace:       "myns",
-	OwnerReferences: []metav1.OwnerReference{},
+func bmmObjectMetaNoAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "bmmachine",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+	}
 }
 
 var bmhPowerStatus = &bmh.BareMetalHostStatus{
@@ -177,89 +188,74 @@ var bmhStatus = &bmh.BareMetalHostStatus{
 	},
 }
 
-func TestBMMachineFinalizers(t *testing.T) {
-	testCases := map[string]capbm.BareMetalMachine{
-		"No finalizers": capbm.BareMetalMachine{},
-		"finalizers": capbm.BareMetalMachine{
-			ObjectMeta: metav1.ObjectMeta{
-				Finalizers: []string{capbm.ClusterFinalizer},
-			},
-		},
-	}
-	for name, bmMachine := range testCases {
-		t.Run(name, func(t *testing.T) {
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &bmMachine)
-			machineMgr, err := NewMachineManager(c, nil, nil, nil, &bmMachine, klogr.New())
-			if err != nil {
-				t.Error(err)
-				return
-			}
+var _ = Describe("BareMetalMachine manager", func() {
+	DescribeTable("Test Finalizers",
+		func(bmMachine capbm.BareMetalMachine) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
+				klogr.New(),
+			)
+			Expect(err).To(Succeed())
 
 			machineMgr.SetFinalizer()
 
-			if !util.Contains(bmMachine.ObjectMeta.Finalizers,
+			Expect(bmMachine.ObjectMeta.Finalizers).To(ContainElement(
 				capbm.MachineFinalizer,
-			) {
-				t.Errorf("Expected finalizer %v in %v", capbm.MachineFinalizer,
-					bmMachine.ObjectMeta.Finalizers,
-				)
-			}
+			))
 
 			machineMgr.UnsetFinalizer()
 
-			if util.Contains(bmMachine.ObjectMeta.Finalizers,
+			Expect(bmMachine.ObjectMeta.Finalizers).NotTo(ContainElement(
 				capbm.MachineFinalizer,
-			) {
-				t.Errorf("Did not expect finalizer %v in %v", capbm.MachineFinalizer,
-					bmMachine.ObjectMeta.Finalizers,
-				)
-			}
-		})
-	}
-}
+			))
+		},
+		Entry("No finalizers", capbm.BareMetalMachine{}),
+		Entry("Additional Finalizers", capbm.BareMetalMachine{
+			ObjectMeta: metav1.ObjectMeta{
+				Finalizers: []string{"foo"},
+			},
+		}),
+	)
 
-func TestSetProviderID(t *testing.T) {
-	testCases := map[string]capbm.BareMetalMachine{
-		"no ProviderID": capbm.BareMetalMachine{},
-		"existing ProviderID": capbm.BareMetalMachine{
+	DescribeTable("Test SetProviderID",
+		func(bmMachine capbm.BareMetalMachine) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
+				klogr.New(),
+			)
+			Expect(err).To(Succeed())
+
+			machineMgr.SetProviderID("correct")
+
+			Expect(*bmMachine.Spec.ProviderID).To(Equal("correct"))
+			Expect(bmMachine.Status.Ready).To(BeTrue())
+		},
+		Entry("no ProviderID", capbm.BareMetalMachine{}),
+		Entry("existing ProviderID", capbm.BareMetalMachine{
 			Spec: capbm.BareMetalMachineSpec{
 				ProviderID: pointer.StringPtr("wrong"),
 			},
 			Status: capbm.BareMetalMachineStatus{
 				Ready: true,
 			},
-		},
-	}
-	for name, bmMachine := range testCases {
-		t.Run(name, func(t *testing.T) {
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &bmMachine)
-			machineMgr, err := NewMachineManager(c, nil, nil, nil, &bmMachine, klogr.New())
-			if err != nil {
-				t.Error(err)
-				return
-			}
+		}),
+	)
 
-			machineMgr.SetProviderID("correct")
-
-			if *bmMachine.Spec.ProviderID != "correct" {
-				t.Errorf("Error on providerID, expected 'correct', got %v",
-					*bmMachine.Spec.ProviderID,
-				)
-			}
-			if !bmMachine.Status.Ready {
-				t.Error("Expected ready status")
-			}
-
-		})
-	}
-}
-
-func TestIsProvisioned(t *testing.T) {
-	testCases := map[string]struct {
+	type testCaseProvisioned struct {
 		BMMachine  capbm.BareMetalMachine
 		ExpectTrue bool
-	}{
-		"provisioned": {
+	}
+
+	DescribeTable("Test IsProvisioned",
+		func(tc testCaseProvisioned) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.BMMachine,
+				klogr.New(),
+			)
+			Expect(err).To(Succeed())
+
+			provisioningState := machineMgr.IsProvisioned()
+
+			Expect(provisioningState).To(Equal(tc.ExpectTrue))
+		},
+		Entry("provisioned", testCaseProvisioned{
 			BMMachine: capbm.BareMetalMachine{
 				Spec: capbm.BareMetalMachineSpec{
 					ProviderID: pointer.StringPtr("abc"),
@@ -269,536 +265,492 @@ func TestIsProvisioned(t *testing.T) {
 				},
 			},
 			ExpectTrue: true,
-		},
-		"missing ready": {
+		}),
+		Entry("missing ready", testCaseProvisioned{
 			BMMachine: capbm.BareMetalMachine{
 				Spec: capbm.BareMetalMachineSpec{
 					ProviderID: pointer.StringPtr("abc"),
 				},
 			},
 			ExpectTrue: false,
-		},
-		"missing providerID": {
+		}),
+		Entry("missing providerID", testCaseProvisioned{
 			BMMachine: capbm.BareMetalMachine{
 				Status: capbm.BareMetalMachineStatus{
 					Ready: true,
 				},
 			},
 			ExpectTrue: false,
-		},
-		"missing ProviderID and ready": {
+		}),
+		Entry("missing ProviderID and ready", testCaseProvisioned{
 			BMMachine:  capbm.BareMetalMachine{},
 			ExpectTrue: false,
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &tc.BMMachine)
-			machineMgr, err := NewMachineManager(c, nil, nil, nil, &tc.BMMachine, klogr.New())
-			if err != nil {
-				t.Error(err)
-				return
-			}
+		}),
+	)
 
-			provisioningState := machineMgr.IsProvisioned()
-
-			if provisioningState != tc.ExpectTrue {
-				t.Error("Wrong provisioning status")
-			}
-		})
-	}
-}
-
-func TestBootstrapReady(t *testing.T) {
-	testCases := map[string]struct {
+	type testCaseBootstrapReady struct {
 		Machine    capi.Machine
 		ExpectTrue bool
-	}{
-		"ready": {
+	}
+
+	DescribeTable("Test BootstrapReady",
+		func(tc testCaseBootstrapReady) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, &tc.Machine, nil,
+				klogr.New(),
+			)
+			Expect(err).To(Succeed())
+
+			bootstrapState := machineMgr.IsBootstrapReady()
+
+			Expect(bootstrapState).To(Equal(tc.ExpectTrue))
+		},
+		Entry("ready", testCaseBootstrapReady{
 			Machine: capi.Machine{
 				Status: capi.MachineStatus{
 					BootstrapReady: true,
 				},
 			},
 			ExpectTrue: true,
-		},
-		"not ready": {
+		}),
+		Entry("not ready", testCaseBootstrapReady{
 			Machine:    capi.Machine{},
 			ExpectTrue: false,
-		},
-	}
-	for name, tc := range testCases {
-		t.Run(name, func(t *testing.T) {
-			machineMgr, err := NewMachineManager(nil, nil, nil, &tc.Machine, nil, klogr.New())
-			if err != nil {
-				t.Error(err)
-				return
-			}
+		}),
+	)
 
-			bootstrapState := machineMgr.IsBootstrapReady()
-
-			if bootstrapState != tc.ExpectTrue {
-				t.Error("Wrong bootstrap status")
-			}
-		})
-	}
-}
-
-func TestBMMachineErrors(t *testing.T) {
-	testCases := map[string]capbm.BareMetalMachine{
-		"No errors": capbm.BareMetalMachine{},
-		"Error message": capbm.BareMetalMachine{
-			Status: capbm.BareMetalMachineStatus{
-				ErrorMessage: pointer.StringPtr("cba"),
-			},
-		},
-	}
-	for name, bmMachine := range testCases {
-		t.Run(name, func(t *testing.T) {
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine, klogr.New())
-			if err != nil {
-				t.Error(err)
-				return
-			}
+	DescribeTable("Test setting and clearing errors",
+		func(bmMachine capbm.BareMetalMachine) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
+				klogr.New(),
+			)
+			Expect(err).To(Succeed())
 
 			machineMgr.setError("abc", capierrors.InvalidConfigurationMachineError)
 
-			if *bmMachine.Status.ErrorReason != capierrors.InvalidConfigurationMachineError {
-				t.Errorf("Expected error reason %v instead of %v",
-					capierrors.InvalidConfigurationMachineError,
-					bmMachine.Status.ErrorReason,
-				)
-			}
-			if *bmMachine.Status.ErrorMessage != "abc" {
-				t.Errorf("Expected error message abc instead of %v",
-					bmMachine.Status.ErrorMessage,
-				)
-			}
+			Expect(*bmMachine.Status.ErrorReason).To(Equal(
+				capierrors.InvalidConfigurationMachineError,
+			))
+			Expect(*bmMachine.Status.ErrorMessage).To(Equal("abc"))
 
 			machineMgr.clearError()
 
-			if bmMachine.Status.ErrorReason != nil {
-				t.Error("Did not expect an error reason")
-			}
-			if bmMachine.Status.ErrorMessage != nil {
-				t.Error("Did not expect an error message")
-			}
-		})
-	}
-}
-
-func TestChooseHost(t *testing.T) {
-
-	host1 := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "host1",
-			Namespace: "myns",
+			Expect(bmMachine.Status.ErrorReason).To(BeNil())
+			Expect(bmMachine.Status.ErrorMessage).To(BeNil())
 		},
-		Spec: bmh.BareMetalHostSpec{
-			ConsumerRef: &corev1.ObjectReference{
-				Name:       "someothermachine",
-				Namespace:  "myns",
-				Kind:       "BMMachine",
-				APIVersion: capbm.GroupVersion.String(),
+		Entry("No errors", capbm.BareMetalMachine{}),
+		Entry("Overwrite existing error message", capbm.BareMetalMachine{
+			Status: capbm.BareMetalMachineStatus{
+				ErrorMessage: pointer.StringPtr("cba"),
 			},
-		},
-	}
-	host2 := *newBareMetalHost("myhost", nil, bmh.StateNone, nil, false)
+		}),
+	)
 
-	host3 := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "host3",
-			Namespace: "myns",
-		},
-		Spec: bmh.BareMetalHostSpec{
-			ConsumerRef: &corev1.ObjectReference{
-				Name:       "machine1",
-				Namespace:  "myns",
-				Kind:       "BMMachine",
-				APIVersion: capbm.GroupVersion.String(),
+	Describe("Test ChooseHost", func() {
+
+		//Creating the hosts
+		host1 := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "host1",
+				Namespace: "myns",
 			},
-		},
-	}
-	host4 := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "host4",
-			Namespace: "someotherns",
-		},
-	}
-	discoveredHost := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "discoveredHost",
-			Namespace: "myns",
-		},
-		Status: bmh.BareMetalHostStatus{
-			ErrorMessage: "this host is discovered and not usable",
-		},
-	}
-	hostWithLabel := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "hostWithLabel",
-			Namespace: "myns",
-			Labels:    map[string]string{"key1": "value1"},
-		},
-	}
-
-	bmmconfig, infrastructureRef := newConfig(t, "", map[string]string{},
-		[]capbm.HostSelectorRequirement{})
-	bmmconfig2, infrastructureRef2 := newConfig(t, "", map[string]string{"key1": "value1"},
-		[]capbm.HostSelectorRequirement{})
-	bmmconfig3, infrastructureRef3 := newConfig(t, "", map[string]string{"boguskey": "value"},
-		[]capbm.HostSelectorRequirement{})
-	bmmconfig4, infrastructureRef4 := newConfig(t, "", map[string]string{},
-		[]capbm.HostSelectorRequirement{
-			capbm.HostSelectorRequirement{
-				Key:      "key1",
-				Operator: "in",
-				Values:   []string{"abc", "value1", "123"},
+			Spec: bmh.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       "someothermachine",
+					Namespace:  "myns",
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+				},
 			},
-		})
-	bmmconfig5, infrastructureRef5 := newConfig(t, "", map[string]string{},
-		[]capbm.HostSelectorRequirement{
-			capbm.HostSelectorRequirement{
-				Key:      "key1",
-				Operator: "pancakes",
-				Values:   []string{"abc", "value1", "123"},
+		}
+		host2 := *newBareMetalHost("myhost", nil, bmh.StateNone, nil, false)
+
+		host3 := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "host3",
+				Namespace: "myns",
 			},
-		})
-
-	testCases := map[string]struct {
-		Machine          *capi.Machine
-		Hosts            []runtime.Object
-		BMMachine        *capbm.BareMetalMachine
-		ExpectedHostName string
-	}{
-		"Pick host2 which lacks ConsumerRef": {
-			Machine:          newMachine("machine1", "", infrastructureRef2),
-			Hosts:            []runtime.Object{&host2, &host1},
-			BMMachine:        bmmconfig2,
-			ExpectedHostName: host2.Name,
-		},
-		"Ignore discoveredHost and pick host2, which lacks a ConsumerRef": {
-			Machine:          newMachine("machine1", "", infrastructureRef2),
-			Hosts:            []runtime.Object{&discoveredHost, &host2, &host1},
-			BMMachine:        bmmconfig2,
-			ExpectedHostName: host2.Name,
-		},
-		"Pick host3, which has a matching ConsumerRef": {
-			Machine:          newMachine("machine1", "", infrastructureRef3),
-			Hosts:            []runtime.Object{&host1, &host3, &host2},
-			BMMachine:        bmmconfig3,
-			ExpectedHostName: host3.Name,
-		},
-		"Two hosts already taken, third is in another namespace": {
-			Machine:          newMachine("machine2", "", infrastructureRef),
-			Hosts:            []runtime.Object{&host1, &host3, &host4},
-			BMMachine:        bmmconfig,
-			ExpectedHostName: "",
-		},
-		"Choose hosts with a label, even without a label selector": {
-			Machine:          newMachine("machine1", "", infrastructureRef),
-			Hosts:            []runtime.Object{&hostWithLabel},
-			BMMachine:        bmmconfig,
-			ExpectedHostName: hostWithLabel.Name,
-		},
-		"Choose the host with the right label": {
-			Machine:          newMachine("machine1", "", infrastructureRef2),
-			Hosts:            []runtime.Object{&hostWithLabel, &host2},
-			BMMachine:        bmmconfig2,
-			ExpectedHostName: hostWithLabel.Name,
-		},
-		"No host that matches required label": {
-			Machine:          newMachine("machine1", "", infrastructureRef3),
-			Hosts:            []runtime.Object{&host2, &hostWithLabel},
-			BMMachine:        bmmconfig3,
-			ExpectedHostName: "",
-		},
-		"Host that matches a matchExpression": {
-			Machine:          newMachine("machine1", "", infrastructureRef4),
-			Hosts:            []runtime.Object{&host2, &hostWithLabel},
-			BMMachine:        bmmconfig4,
-			ExpectedHostName: hostWithLabel.Name,
-		},
-		"No Host available that matches a matchExpression": {
-			Machine:          newMachine("machine1", "", infrastructureRef4),
-			Hosts:            []runtime.Object{&host2},
-			BMMachine:        bmmconfig4,
-			ExpectedHostName: "",
-		},
-		"No host chosen, invalid match expression": {
-			Machine:          newMachine("machine1", "", infrastructureRef5),
-			Hosts:            []runtime.Object{&host2, &hostWithLabel, &host1},
-			BMMachine:        bmmconfig5,
-			ExpectedHostName: "",
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Hosts...)
-
-		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Errorf("%v", err)
+			Spec: bmh.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       "machine1",
+					Namespace:  "myns",
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+				},
+			},
+		}
+		host4 := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "host4",
+				Namespace: "someotherns",
+			},
+		}
+		discoveredHost := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "discoveredHost",
+				Namespace: "myns",
+			},
+			Status: bmh.BareMetalHostStatus{
+				ErrorMessage: "this host is discovered but not usable",
+			},
+		}
+		hostWithLabel := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "hostWithLabel",
+				Namespace: "myns",
+				Labels:    map[string]string{"key1": "value1"},
+			},
 		}
 
-		result, err := machineMgr.chooseHost(context.TODO())
+		bmmconfig, infrastructureRef := newConfig("", map[string]string{},
+			[]capbm.HostSelectorRequirement{},
+		)
+		bmmconfig2, infrastructureRef2 := newConfig("", map[string]string{"key1": "value1"},
+			[]capbm.HostSelectorRequirement{},
+		)
+		bmmconfig3, infrastructureRef3 := newConfig("", map[string]string{"boguskey": "value"},
+			[]capbm.HostSelectorRequirement{},
+		)
+		bmmconfig4, infrastructureRef4 := newConfig("", map[string]string{},
+			[]capbm.HostSelectorRequirement{
+				capbm.HostSelectorRequirement{
+					Key:      "key1",
+					Operator: "in",
+					Values:   []string{"abc", "value1", "123"},
+				},
+			},
+		)
+		bmmconfig5, infrastructureRef5 := newConfig("", map[string]string{},
+			[]capbm.HostSelectorRequirement{
+				capbm.HostSelectorRequirement{
+					Key:      "key1",
+					Operator: "pancakes",
+					Values:   []string{"abc", "value1", "123"},
+				},
+			},
+		)
 
-		if tc.ExpectedHostName == "" {
-			if result != nil {
-				t.Error("found host when none should have been available")
-			}
-			continue
+		type testCaseChooseHost struct {
+			Machine          *capi.Machine
+			Hosts            []runtime.Object
+			BMMachine        *capbm.BareMetalMachine
+			ExpectedHostName string
 		}
-		if err != nil {
-			t.Errorf("%v", err)
-			return
-		}
-		if result != nil {
-			if result.Name != tc.ExpectedHostName {
-				t.Errorf("host %s chosen instead of %s", result.Name, tc.ExpectedHostName)
-			}
-		}
-	}
-}
 
-func TestSetHostSpec(t *testing.T) {
-	testCases := map[string]struct {
-		Client                    client.Client
+		DescribeTable("Test ChooseHost",
+			func(tc testCaseChooseHost) {
+				c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Hosts...)
+				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+				Expect(err).To(Succeed())
+
+				result, err := machineMgr.chooseHost(context.TODO())
+
+				if tc.ExpectedHostName == "" {
+					Expect(result).To(BeNil())
+					return
+				}
+				Expect(err).To(Succeed())
+				if result != nil {
+					Expect(result.Name).To(Equal(tc.ExpectedHostName))
+				}
+			},
+			Entry("Pick host2 which lacks ConsumerRef", testCaseChooseHost{
+				Machine:          newMachine("machine1", "", infrastructureRef2),
+				Hosts:            []runtime.Object{&host2, &host1},
+				BMMachine:        bmmconfig2,
+				ExpectedHostName: host2.Name,
+			}),
+			Entry("Ignore discoveredHost and pick host2, which lacks a ConsumerRef",
+				testCaseChooseHost{
+					Machine:          newMachine("machine1", "", infrastructureRef2),
+					Hosts:            []runtime.Object{&discoveredHost, &host2, &host1},
+					BMMachine:        bmmconfig2,
+					ExpectedHostName: host2.Name,
+				},
+			),
+			Entry("Pick host3, which has a matching ConsumerRef", testCaseChooseHost{
+				Machine:          newMachine("machine1", "", infrastructureRef3),
+				Hosts:            []runtime.Object{&host1, &host3, &host2},
+				BMMachine:        bmmconfig3,
+				ExpectedHostName: host3.Name,
+			}),
+			Entry("Two hosts already taken, third is in another namespace",
+				testCaseChooseHost{
+					Machine:          newMachine("machine2", "", infrastructureRef),
+					Hosts:            []runtime.Object{&host1, &host3, &host4},
+					BMMachine:        bmmconfig,
+					ExpectedHostName: "",
+				},
+			),
+			Entry("Choose hosts with a label, even without a label selector",
+				testCaseChooseHost{
+					Machine:          newMachine("machine1", "", infrastructureRef),
+					Hosts:            []runtime.Object{&hostWithLabel},
+					BMMachine:        bmmconfig,
+					ExpectedHostName: hostWithLabel.Name,
+				},
+			),
+			Entry("Choose the host with the right label", testCaseChooseHost{
+				Machine:          newMachine("machine1", "", infrastructureRef2),
+				Hosts:            []runtime.Object{&hostWithLabel, &host2},
+				BMMachine:        bmmconfig2,
+				ExpectedHostName: hostWithLabel.Name,
+			}),
+			Entry("No host that matches required label", testCaseChooseHost{
+				Machine:          newMachine("machine1", "", infrastructureRef3),
+				Hosts:            []runtime.Object{&host2, &hostWithLabel},
+				BMMachine:        bmmconfig3,
+				ExpectedHostName: "",
+			}),
+			Entry("Host that matches a matchExpression", testCaseChooseHost{
+				Machine:          newMachine("machine1", "", infrastructureRef4),
+				Hosts:            []runtime.Object{&host2, &hostWithLabel},
+				BMMachine:        bmmconfig4,
+				ExpectedHostName: hostWithLabel.Name,
+			}),
+			Entry("No Host available that matches a matchExpression",
+				testCaseChooseHost{
+					Machine:          newMachine("machine1", "", infrastructureRef4),
+					Hosts:            []runtime.Object{&host2},
+					BMMachine:        bmmconfig4,
+					ExpectedHostName: "",
+				},
+			),
+			Entry("No host chosen, invalid match expression", testCaseChooseHost{
+				Machine:          newMachine("machine1", "", infrastructureRef5),
+				Hosts:            []runtime.Object{&host2, &hostWithLabel, &host1},
+				BMMachine:        bmmconfig5,
+				ExpectedHostName: "",
+			}),
+		)
+	})
+
+	type testCaseSetHostSpec struct {
 		UserDataNamespace         string
 		ExpectedUserDataNamespace string
 		Host                      *bmh.BareMetalHost
 		ExpectedImage             *bmh.Image
 		ExpectUserData            bool
-	}{
-		"User data has explicit alternate namespace": {
+	}
+
+	DescribeTable("Test SetHostSpec",
+		func(tc testCaseSetHostSpec) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host)
+
+			bmmconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
+				map[string]string{}, []capbm.HostSelectorRequirement{},
+			)
+			machine := newMachine("machine1", "", infrastructureRef)
+
+			machineMgr, err := NewMachineManager(c, nil, nil, machine, bmmconfig, klogr.New())
+			Expect(err).To(Succeed())
+
+			err = machineMgr.setHostSpec(context.TODO(), tc.Host)
+			Expect(err).To(Succeed())
+
+			// get the saved host
+			savedHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(), client.ObjectKey{Name: tc.Host.Name, Namespace: tc.Host.Namespace}, &savedHost)
+			Expect(err).To(Succeed())
+
+			// validate the saved host
+			Expect(savedHost.Spec.ConsumerRef).NotTo(BeNil())
+			Expect(savedHost.Spec.ConsumerRef.Name).To(Equal(bmmconfig.Name))
+			Expect(savedHost.Spec.ConsumerRef.Namespace).
+				To(Equal(bmmconfig.Namespace))
+			Expect(savedHost.Spec.ConsumerRef.Kind).To(Equal("BareMetalMachine"))
+			Expect(savedHost.Spec.Online).To(BeTrue())
+			if tc.ExpectedImage == nil {
+				Expect(savedHost.Spec.Image).To(BeNil())
+			} else {
+				Expect(*savedHost.Spec.Image).To(Equal(*tc.ExpectedImage))
+			}
+			if tc.ExpectUserData {
+				Expect(savedHost.Spec.UserData).NotTo(BeNil())
+				Expect(savedHost.Spec.UserData.Namespace).
+					To(Equal(tc.ExpectedUserDataNamespace))
+				Expect(savedHost.Spec.UserData.Name).To(Equal(testUserDataSecretName))
+			} else {
+				Expect(savedHost.Spec.UserData).To(BeNil())
+			}
+		},
+		Entry("User data has explicit alternate namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "otherns",
 			ExpectedUserDataNamespace: "otherns",
 			Host:                      newBareMetalHost("host2", nil, bmh.StateNone, nil, false),
 			ExpectedImage:             expectedImg,
 			ExpectUserData:            true,
-		},
-		"User data has no namespace": {
+		}),
+		Entry("User data has no namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
 			Host:                      newBareMetalHost("host2", nil, bmh.StateNone, nil, false),
 			ExpectedImage:             expectedImg,
 			ExpectUserData:            true,
-		},
-		"Externally provisioned, same machine": {
+		}),
+		Entry("Externally provisioned, same machine", testCaseSetHostSpec{
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
 			Host:                      newBareMetalHost("host2", nil, bmh.StateNone, nil, false),
 			ExpectedImage:             expectedImg,
 			ExpectUserData:            true,
-		},
-		"Previously provisioned, different image, unchanged": {
-			UserDataNamespace:         "",
-			ExpectedUserDataNamespace: "myns",
-			Host:                      newBareMetalHost("host2", bmhSpecTestImg, bmh.StateNone, nil, false),
-			ExpectedImage:             expectedImgTest,
-			ExpectUserData:            false,
-		},
-	}
+		}),
+		Entry("Previously provisioned, different image",
+			testCaseSetHostSpec{
+				UserDataNamespace:         "",
+				ExpectedUserDataNamespace: "myns",
+				Host: newBareMetalHost("host2", bmhSpecTestImg,
+					bmh.StateNone, nil, false,
+				),
+				ExpectedImage:  expectedImgTest,
+				ExpectUserData: false,
+			},
+		),
+	)
 
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host)
+	Describe("Test Exists function", func() {
+		host := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "somehost",
+				Namespace: "myns",
+			},
+		}
+		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &host)
 
-		bmmconfig, infrastructureRef := newConfig(t, tc.UserDataNamespace, map[string]string{}, []capbm.HostSelectorRequirement{})
-		machine := newMachine("machine1", "", infrastructureRef)
-
-		machineMgr, err := NewMachineManager(c, nil, nil, machine, bmmconfig, klogr.New())
-		if err != nil {
-			t.Error(err)
-			return
+		type testCaseExists struct {
+			Machine   *capi.Machine
+			BMMachine *capbm.BareMetalMachine
+			Expected  bool
 		}
 
-		err = machineMgr.setHostSpec(context.TODO(), tc.Host)
-		if err != nil {
-			t.Error(err)
-			return
+		DescribeTable("Test Exists function",
+			func(tc testCaseExists) {
+				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+					tc.BMMachine, klogr.New(),
+				)
+				Expect(err).To(Succeed())
+
+				result, err := machineMgr.exists(context.TODO())
+				Expect(err).To(Succeed())
+				Expect(result).To(Equal(tc.Expected))
+			},
+			Entry("Failed to find the existing host", testCaseExists{
+				Machine: &capi.Machine{},
+				BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+					bmmObjectMetaWithSomeAnnotations(),
+				),
+				Expected: true,
+			}),
+			Entry("Found host even though annotation value is incorrect",
+				testCaseExists{
+					Machine: &capi.Machine{},
+					BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+						bmmObjectMetaWithInvalidAnnotations(),
+					),
+					Expected: false,
+				},
+			),
+			Entry("Found host even though annotation not present", testCaseExists{
+				Machine: &capi.Machine{},
+				BMMachine: newBareMetalMachine("", nil, nil, nil,
+					bmmObjectMetaEmptyAnnotations(),
+				),
+				Expected: false,
+			}),
+		)
+	})
+
+	Describe("Test GetHost", func() {
+		host := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "myhost",
+				Namespace: "myns",
+			},
+		}
+		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &host)
+
+		type testCaseGetHost struct {
+			Machine       *capi.Machine
+			BMMachine     *capbm.BareMetalMachine
+			ExpectPresent bool
 		}
 
-		// get the saved host
-		savedHost := bmh.BareMetalHost{}
-		err = c.Get(context.TODO(), client.ObjectKey{Name: tc.Host.Name, Namespace: tc.Host.Namespace}, &savedHost)
-		if err != nil {
-			t.Error(err)
-		}
+		DescribeTable("Test GetHost",
+			func(tc testCaseGetHost) {
+				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+					tc.BMMachine, klogr.New(),
+				)
+				Expect(err).To(Succeed())
 
-		// validate the saved host
-		if savedHost.Spec.ConsumerRef == nil {
-			t.Error("ConsumerRef not set")
-			return
-		}
-		if savedHost.Spec.ConsumerRef.Name != bmmconfig.Name {
-			t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
-		}
-		if savedHost.Spec.ConsumerRef.Namespace != bmmconfig.Namespace {
-			t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
-		}
-		if savedHost.Spec.ConsumerRef.Kind != "BareMetalMachine" {
-			t.Errorf("found consumer ref %v", savedHost.Spec.ConsumerRef)
-		}
-		if savedHost.Spec.Online != true {
-			t.Errorf("host not set to Online")
-		}
-		if tc.ExpectedImage == nil {
-			if savedHost.Spec.Image != nil {
-				t.Errorf("Expected image %v but got %v", tc.ExpectedImage, savedHost.Spec.Image)
-				return
-			}
-		} else {
-			if *(savedHost.Spec.Image) != *(tc.ExpectedImage) {
-				t.Errorf("Expected image %v but got %v", tc.ExpectedImage, savedHost.Spec.Image)
-				return
-			}
-		}
-		if tc.ExpectUserData {
-			if savedHost.Spec.UserData == nil {
-				t.Errorf("UserData not set")
-				return
-			}
-			if savedHost.Spec.UserData.Namespace != tc.ExpectedUserDataNamespace {
-				t.Errorf("expected Userdata.Namespace %s, got %s", tc.ExpectedUserDataNamespace, savedHost.Spec.UserData.Namespace)
-			}
-			if savedHost.Spec.UserData.Name != testUserDataSecretName {
-				t.Errorf("expected Userdata.Name %s, got %s", testUserDataSecretName, savedHost.Spec.UserData.Name)
-			}
-		} else {
-			if savedHost.Spec.UserData != nil {
-				t.Errorf("did not expect user data, got %v", savedHost.Spec.UserData)
-			}
-		}
-	}
-}
+				result, err := machineMgr.getHost(context.TODO())
+				Expect(err).To(Succeed())
+				if tc.ExpectPresent {
+					Expect(result).NotTo(BeNil())
+				} else {
+					Expect(result).To(BeNil())
+				}
+			},
+			Entry("Should find the expected host", testCaseGetHost{
+				Machine: &capi.Machine{},
+				BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+					bmmObjectMetaWithValidAnnotations(),
+				),
+				ExpectPresent: true,
+			}),
+			Entry("Should not find the host, annotation value incorrect",
+				testCaseGetHost{
+					Machine: &capi.Machine{},
+					BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+						bmmObjectMetaWithInvalidAnnotations(),
+					),
+					ExpectPresent: false,
+				},
+			),
+			Entry("Should not find the host, annotation not present", testCaseGetHost{
+				Machine: &capi.Machine{},
+				BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+					bmmObjectMetaEmptyAnnotations(),
+				),
+				ExpectPresent: false,
+			}),
+		)
+	})
 
-func TestExists(t *testing.T) {
-
-	host := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "somehost",
-			Namespace: "myns",
-		},
-	}
-	c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &host)
-
-	testCases := map[string]struct {
-		Client      client.Client
-		Machine     capi.Machine
-		BMMachine   *capbm.BareMetalMachine
-		FailMessage string
-		Expected    bool
-	}{
-		"Failed to find the existing host": {
-			Client:      c,
-			Machine:     capi.Machine{},
-			BMMachine:   newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithSomeAnnotations),
-			Expected:    true,
-			FailMessage: "failed to find the existing host",
-		},
-		"Found host even though annotation value incorrect": {
-			Client:      c,
-			Machine:     capi.Machine{},
-			BMMachine:   newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithInvalidAnnotations),
-			Expected:    false,
-			FailMessage: "found host even though annotation value incorrect",
-		},
-		"Found host even though annotation not present": {
-			Client:      c,
-			Machine:     capi.Machine{},
-			BMMachine:   newBareMetalMachine("", nil, nil, nil, bmmObjectMetaEmptyAnnotations),
-			Expected:    false,
-			FailMessage: "found host even though annotation not present",
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		machineMgr, err := NewMachineManager(tc.Client, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
-		}
-
-		result, err := machineMgr.exists(context.TODO())
-		if err != nil {
-			t.Error(err)
-		}
-		if result != tc.Expected {
-			t.Error(tc.FailMessage)
-		}
-	}
-}
-
-func TestGetHost(t *testing.T) {
-
-	host := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "myhost",
-			Namespace: "myns",
-		},
-	}
-	c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &host)
-
-	testCases := map[string]struct {
-		Client        client.Client
-		Machine       capi.Machine
-		BMMachine     *capbm.BareMetalMachine
-		FailMessage   string
-		ExpectPresent bool
-	}{
-		"Did not find expected host": {
-			Client:        c,
-			Machine:       capi.Machine{},
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			ExpectPresent: true,
-			FailMessage:   "did not find expected host",
-		},
-		"Found host even though annotation value incorrect": {
-			Client:        c,
-			Machine:       capi.Machine{},
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithInvalidAnnotations),
-			ExpectPresent: false,
-			FailMessage:   "found host even though annotation value incorrect",
-		},
-		"Found host even though annotation not present": {
-			Client:        c,
-			Machine:       capi.Machine{},
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaEmptyAnnotations),
-			ExpectPresent: false,
-			FailMessage:   "found host even though annotation not present",
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		machineMgr, err := NewMachineManager(tc.Client, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
-		}
-
-		result, err := machineMgr.getHost(context.TODO())
-		if err != nil {
-			t.Error(err)
-		}
-		if (result != nil) != tc.ExpectPresent {
-			t.Error(tc.FailMessage)
-		}
-	}
-}
-
-func TestGetSetProviderID(t *testing.T) {
-	testCases := map[string]struct {
+	type testCaseGetSetProviderID struct {
 		Machine       *capi.Machine
 		BMMachine     *capbm.BareMetalMachine
 		Host          *bmh.BareMetalHost
 		ExpectPresent bool
 		ExpectError   bool
-	}{
-		"Set ProviderID, empty annotations": {
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaEmptyAnnotations),
+	}
+
+	DescribeTable("Test Get and Set Provider ID",
+		func(tc testCaseGetSetProviderID) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host)
+			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+			Expect(err).To(Succeed())
+
+			bmhID, err := machineMgr.GetBaremetalHostID(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).To(Succeed())
+			}
+
+			if tc.ExpectPresent {
+				Expect(bmhID).NotTo(BeNil())
+			} else {
+				Expect(bmhID).To(BeNil())
+				return
+			}
+
+			providerID := fmt.Sprintf("metal3://%s", *bmhID)
+			Expect(*tc.BMMachine.Spec.ProviderID).To(Equal(providerID))
+		},
+		Entry("Set ProviderID, empty annotations", testCaseGetSetProviderID{
+			Machine: newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+				bmmObjectMetaEmptyAnnotations(),
+			),
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -807,10 +759,10 @@ func TestGetSetProviderID(t *testing.T) {
 			},
 			ExpectPresent: false,
 			ExpectError:   true,
-		},
-		"Set ProviderID": {
+		}),
+		Entry("Set ProviderID", testCaseGetSetProviderID{
 			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaWithValidAnnotations),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaWithValidAnnotations()),
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -825,10 +777,12 @@ func TestGetSetProviderID(t *testing.T) {
 			},
 			ExpectPresent: true,
 			ExpectError:   false,
-		},
-		"Set ProviderID, wrong state": {
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaWithValidAnnotations),
+		}),
+		Entry("Set ProviderID, wrong state", testCaseGetSetProviderID{
+			Machine: newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -843,872 +797,810 @@ func TestGetSetProviderID(t *testing.T) {
 			},
 			ExpectPresent: false,
 			ExpectError:   true,
-		},
-	}
+		}),
+	)
 
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host)
-		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
+	Describe("Test utility functions", func() {
+		type testCaseSmallFunctions struct {
+			Machine        *capi.Machine
+			BMMachine      *capbm.BareMetalMachine
+			ExpectCtrlNode bool
 		}
 
-		bmhID, err := machineMgr.GetBaremetalHostID(context.TODO())
-		if err != nil {
-			if !tc.ExpectError {
-				t.Error(err)
-			}
-		} else {
-			if tc.ExpectError {
-				t.Error("Expected an error")
-			}
+		host := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "myhost",
+				Namespace: "myns",
+			},
 		}
+		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &host)
 
-		if bmhID == nil {
-			if tc.ExpectPresent {
-				t.Error("No BaremetalHost UID found")
-			}
-			continue
-		}
+		DescribeTable("Test small functions",
+			func(tc testCaseSmallFunctions) {
+				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+					tc.BMMachine, klogr.New(),
+				)
+				Expect(err).To(Succeed())
 
-		providerID := fmt.Sprintf("metal3://%s", *bmhID)
+				role := machineMgr.role()
+				if tc.ExpectCtrlNode {
+					Expect(role).To(Equal("control-plane"))
+				} else {
+					Expect(role).To(Equal("node"))
+				}
 
-		if providerID != *tc.BMMachine.Spec.ProviderID {
-			t.Errorf("ProviderID not matching!! expected %s, got %s", providerID,
-				*tc.BMMachine.Spec.ProviderID)
-		}
-	}
-}
-
-func TestSmallFunctions(t *testing.T) {
-	host := bmh.BareMetalHost{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "myhost",
-			Namespace: "myns",
-		},
-	}
-	c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &host)
-	testCases := map[string]struct {
-		Client           client.Client
-		Machine          *capi.Machine
-		BMMachine        *capbm.BareMetalMachine
-		ExpectCtrlNode   bool
-		ExpectWorkerNode bool
-	}{
-		"Test small functions, worker node": {
-			Client:           c,
-			Machine:          newMachine("", "", nil),
-			BMMachine:        newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaEmptyAnnotations),
-			ExpectCtrlNode:   false,
-			ExpectWorkerNode: true,
-		},
-		"Test small functions, control plane node": {
-			Client: c,
-			Machine: &capi.Machine{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Machine",
-					APIVersion: capi.GroupVersion.String(),
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mymachine",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.MachineControlPlaneLabelName: "labelHere",
+				isCtrlPlane := machineMgr.isControlPlane()
+				if tc.ExpectCtrlNode {
+					Expect(isCtrlPlane).To(BeTrue())
+				} else {
+					Expect(isCtrlPlane).To(BeFalse())
+				}
+			},
+			Entry("Test small functions, worker node", testCaseSmallFunctions{
+				Machine: newMachine("", "", nil),
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+					bmmObjectMetaEmptyAnnotations(),
+				),
+				ExpectCtrlNode: false,
+			}),
+			Entry("Test small functions, control plane node", testCaseSmallFunctions{
+				Machine: &capi.Machine{
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "Machine",
+						APIVersion: capi.GroupVersion.String(),
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mymachine",
+						Namespace: "myns",
+						Labels: map[string]string{
+							capi.MachineControlPlaneLabelName: "labelHere",
+						},
 					},
 				},
-			},
-			BMMachine:        newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaEmptyAnnotations),
-			ExpectCtrlNode:   true,
-			ExpectWorkerNode: false,
-		},
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+					bmmObjectMetaEmptyAnnotations(),
+				),
+				ExpectCtrlNode: true,
+			}),
+		)
+	})
+
+	type testCaseEnsureAnnotation struct {
+		Machine          capi.Machine
+		Host             *bmh.BareMetalHost
+		BMMachine        *capbm.BareMetalMachine
+		ExpectAnnotation bool
 	}
 
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		machineMgr, err := NewMachineManager(tc.Client, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
-		}
+	DescribeTable("Test EnsureAnnotation",
+		func(tc testCaseEnsureAnnotation) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.BMMachine)
 
-		role := machineMgr.role()
-		if role != "control-plane" && role != "node" {
-			t.Errorf("Invalid machine role %s", role)
-		}
+			machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine,
+				tc.BMMachine, klogr.New(),
+			)
+			Expect(err).To(Succeed())
 
-		isCtrlPlane := machineMgr.isControlPlane()
-		if tc.ExpectCtrlNode {
-			if !isCtrlPlane {
-				t.Error("Control plane node expected")
+			err = machineMgr.ensureAnnotation(context.TODO(), tc.Host)
+			Expect(err).To(Succeed())
+
+			key := client.ObjectKey{
+				Name:      tc.BMMachine.ObjectMeta.Name,
+				Namespace: tc.BMMachine.ObjectMeta.Namespace,
 			}
-		}
-		if tc.ExpectWorkerNode {
-			if isCtrlPlane {
-				t.Error("Worker node expected")
-			}
-		}
-	}
-}
+			bmmachine := capbm.BareMetalMachine{}
+			err = c.Get(context.TODO(), key, &bmmachine)
+			Expect(err).To(Succeed())
 
-func TestEnsureAnnotation(t *testing.T) {
-	testCases := map[string]struct {
-		Machine                 capi.Machine
-		Host                    *bmh.BareMetalHost
-		BMMachine               *capbm.BareMetalMachine
-		ExpectAnnotation        bool
-		ExpectInvalidAnnotation bool
-	}{
-		"Annotation exists and is correct": {
-			Machine:                 capi.Machine{},
-			BMMachine:               newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			Host:                    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
-			ExpectAnnotation:        true,
-			ExpectInvalidAnnotation: false,
-		},
-		"Annotation exists but is wrong": {
-			Machine:                 capi.Machine{},
-			BMMachine:               newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithInvalidAnnotations),
-			Host:                    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
-			ExpectAnnotation:        true,
-			ExpectInvalidAnnotation: true,
-		},
-		"Annotations are empty": {
-			Machine:                 capi.Machine{},
-			BMMachine:               newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaEmptyAnnotations),
-			Host:                    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
-			ExpectAnnotation:        false,
-			ExpectInvalidAnnotation: false,
-		},
-		"Annotations are nil": {
-			Machine:                 capi.Machine{},
-			BMMachine:               newBareMetalMachine("", nil, nil, nil, bmmObjectMetaNoAnnotations),
-			Host:                    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
-			ExpectAnnotation:        false,
-			ExpectInvalidAnnotation: false,
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.BMMachine)
-
-		machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
-		}
-
-		err = machineMgr.ensureAnnotation(context.TODO(), tc.Host)
-		if err != nil {
-			t.Error(err)
-		}
-
-		key := client.ObjectKey{
-			Name:      tc.BMMachine.ObjectMeta.Name,
-			Namespace: tc.BMMachine.ObjectMeta.Namespace,
-		}
-
-		bmmachine := capbm.BareMetalMachine{}
-		err = c.Get(context.TODO(), key, &bmmachine)
-		if err != nil {
-			t.Error(err)
-		}
-
-		annotations := bmmachine.ObjectMeta.GetAnnotations()
-		if annotations == nil {
-			if tc.ExpectAnnotation {
-				t.Error("No annotations found")
-			}
-		} else {
-			if tc.ExpectAnnotation {
-				if annotations[HostAnnotation] != tc.BMMachine.Annotations[HostAnnotation] {
-					if !tc.ExpectInvalidAnnotation {
-						t.Error("Annotation mismatch")
-					}
-				}
-			}
+			annotations := bmmachine.ObjectMeta.GetAnnotations()
+			// annotations := tc.BMMachine.ObjectMeta.GetAnnotations()
+			fmt.Println(annotations)
 			if !tc.ExpectAnnotation {
-				t.Error("Annotation not should not exist")
+				Expect(annotations).To(BeNil())
+			} else {
+				Expect(annotations).NotTo(BeNil())
+				Expect(annotations[HostAnnotation]).
+					To(Equal(tc.BMMachine.Annotations[HostAnnotation]))
 			}
-		}
 
-		ok := machineMgr.HasAnnotation()
-		result := annotations[HostAnnotation]
-		if !ok {
+			ok := machineMgr.HasAnnotation()
 			if tc.ExpectAnnotation {
-				t.Error("Host annotation not found")
+				Expect(ok).To(BeTrue())
+			} else {
+				Expect(ok).To(BeFalse())
 			}
-		}
+		},
+		Entry("Annotation exists and is correct", testCaseEnsureAnnotation{
+			Machine: capi.Machine{},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			Host:             newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			ExpectAnnotation: true,
+		}),
+		Entry("Annotation exists but is wrong", testCaseEnsureAnnotation{
+			Machine: capi.Machine{},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithInvalidAnnotations(),
+			),
+			Host: newBareMetalHost("myhost", nil, bmh.StateNone,
+				nil, false,
+			),
+			ExpectAnnotation: true,
+		}),
+		Entry("Annotations are empty", testCaseEnsureAnnotation{
+			Machine: capi.Machine{},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaEmptyAnnotations(),
+			),
+			Host: newBareMetalHost("myhost", nil, bmh.StateNone,
+				nil, false,
+			),
+			ExpectAnnotation: true,
+		}),
+		Entry("Annotations are nil", testCaseEnsureAnnotation{
+			Machine: capi.Machine{},
+			BMMachine: newBareMetalMachine("", nil, nil, nil,
+				bmmObjectMetaNoAnnotations(),
+			),
+			Host: newBareMetalHost("myhost", nil, bmh.StateNone,
+				nil, false,
+			),
+			ExpectAnnotation: true,
+		}),
+	)
 
-		if strings.Contains(name, "Annotation exists and is correct") {
-			if result != tc.BMMachine.Annotations[HostAnnotation] {
-				t.Errorf("host annotation has value %s, expected \"%s\"",
-					result, tc.BMMachine.Annotations[HostAnnotation])
-			}
-		} else {
-			if result == tc.BMMachine.Annotations[HostAnnotation] {
-				t.Error("host annotation value should not match")
-			}
-		}
-	}
-}
-
-func TestDelete(t *testing.T) {
-	testCases := map[string]struct {
+	type testCaseDelete struct {
 		Host                *bmh.BareMetalHost
 		Machine             *capi.Machine
 		BMMachine           *capbm.BareMetalMachine
 		ExpectedConsumerRef *corev1.ObjectReference
 		ExpectedResult      error
-	}{
-		"Deprovisioning required": {
-			Host:                newBareMetalHost("myhost", bmhSpec, bmh.StateProvisioned, bmhStatus, false),
-			Machine:             newMachine("mymachine", "", nil),
-			BMMachine:           newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			ExpectedConsumerRef: consumerRef,
-			ExpectedResult:      &RequeueAfterError{},
-		},
-		"No Host status, deprovisioning needed": {
-			Host:                newBareMetalHost("myhost", bmhSpec, bmh.StateNone, nil, false),
-			Machine:             newMachine("mymachine", "", nil),
-			BMMachine:           newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			ExpectedConsumerRef: consumerRef,
-			ExpectedResult:      &RequeueAfterError{},
-		},
-		"No Host status, no deprovisioning needed": {
-			Host:      newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateNone, nil, false),
-			Machine:   newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-		},
-		"Deprovisioning in progress": {
-			Host:                newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateDeprovisioning, bmhStatus, false),
-			Machine:             newMachine("mymachine", "", nil),
-			BMMachine:           newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			ExpectedConsumerRef: consumerRef,
-			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
-		},
-		"Externally provisioned host should be powered down": {
-			Host:                newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateExternallyProvisioned, bmhPowerStatus, true),
-			Machine:             newMachine("mymachine", "", nil),
-			BMMachine:           newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			ExpectedConsumerRef: consumerRef,
-			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
-		},
-		"Consumer ref should be removed from externally provisioned host": {
-			Host:      newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateExternallyProvisioned, bmhPowerStatus, false),
-			Machine:   newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret, nil, bmmObjectMetaWithValidAnnotations),
-		},
-		"Consumer ref should be removed": {
-			Host:      newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateReady, bmhStatus, false),
-			Machine:   newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret, nil, bmmObjectMetaWithValidAnnotations),
-		},
-		"Consumer ref does not match, so it should not be removed": {
-			Host:                newBareMetalHost("myhost", bmhSpecSomeImg, bmh.StateProvisioned, bmhStatus, false),
-			Machine:             newMachine("", "", nil),
-			BMMachine:           newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			ExpectedConsumerRef: consumerRefSome,
-		},
-		"No consumer ref, so this is a no-op": {
-			Host:      newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-		},
-		"No host at all, so this is a no-op": {
-			Host:      nil,
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-		},
 	}
 
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-
-		objects := []runtime.Object{
-			tc.BMMachine,
-		}
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
-
-		if tc.Host != nil {
-			err := c.Create(context.TODO(), tc.Host)
-			if err != nil {
-				t.Errorf("Create failed, %v", err)
-			}
-		}
-
-		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
-
-		if err != nil {
-			t.Error(err)
-		}
-
-		err = machineMgr.Delete(context.TODO())
-
-		var expectedResult bool
-		switch e := tc.ExpectedResult.(type) {
-		case nil:
-			expectedResult = (err == nil)
-		case *RequeueAfterError:
-			var perr *RequeueAfterError
-			if perr, expectedResult = err.(*RequeueAfterError); expectedResult {
-				expectedResult = (*e == *perr)
-			}
-		}
-		if !expectedResult {
-			t.Errorf("unexpected error \"%v\" (expected \"%v\")",
-				err, tc.ExpectedResult)
-		}
-		if tc.Host != nil {
-			key := client.ObjectKey{
-				Name:      tc.Host.Name,
-				Namespace: tc.Host.Namespace,
-			}
-			host := bmh.BareMetalHost{}
+	DescribeTable("Test Delete function",
+		func(tc testCaseDelete) {
+			objects := []runtime.Object{tc.BMMachine}
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 
 			if tc.Host != nil {
-				err := c.Get(context.TODO(), key, &host)
-				if err != nil {
-					t.Errorf("Get failed, %v", err)
+				err := c.Create(context.TODO(), tc.Host)
+				Expect(err).To(Succeed())
+			}
+
+			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+			Expect(err).To(Succeed())
+
+			err = machineMgr.Delete(context.TODO())
+
+			if tc.ExpectedResult == nil {
+				Expect(err).To(Succeed())
+			} else {
+				perr, ok := err.(*RequeueAfterError)
+				Expect(ok).To(BeTrue())
+				Expect(perr.Error()).To(Equal(tc.ExpectedResult.Error()))
+			}
+
+			if tc.Host != nil {
+				key := client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
 				}
-			}
+				host := bmh.BareMetalHost{}
 
-			name := ""
-			expectedName := ""
-			if host.Spec.ConsumerRef != nil {
-				name = host.Spec.ConsumerRef.Name
-			}
-			if tc.ExpectedConsumerRef != nil {
-				expectedName = tc.ExpectedConsumerRef.Name
-			}
-			if name != expectedName {
-				t.Errorf("expected ConsumerRef %v, found %v",
-					tc.ExpectedConsumerRef, host.Spec.ConsumerRef)
-			}
-		}
-	}
-}
-
-func TestUpdateMachineStatus(t *testing.T) {
-	nic1 := bmh.NIC{
-		IP: "192.168.1.1",
-	}
-
-	nic2 := bmh.NIC{
-		IP: "172.0.20.2",
-	}
-
-	testCases := map[string]struct {
-		Host            *bmh.BareMetalHost
-		Machine         *capi.Machine
-		ExpectedMachine capi.Machine
-		BMMachine       capbm.BareMetalMachine
-	}{
-		"Machine status updated": {
-			Host: &bmh.BareMetalHost{
-				Status: bmh.BareMetalHostStatus{
-					HardwareDetails: &bmh.HardwareDetails{
-						NIC: []bmh.NIC{nic1, nic2},
-					},
-				},
-			},
-			Machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mymachine",
-					Namespace: "myns",
-				},
-				Status: capi.MachineStatus{
-					Addresses: []capi.MachineAddress{
-						capi.MachineAddress{
-							Address: "192.168.1.255",
-							Type:    "InternalIP",
-						},
-						capi.MachineAddress{
-							Address: "172.0.20.255",
-							Type:    "InternalIP",
-						},
-					},
-				},
-			},
-			BMMachine: capbm.BareMetalMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mybmmachine",
-					Namespace: "myns",
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "BMMachine",
-					APIVersion: capi.GroupVersion.String(),
-				},
-				Status: capbm.BareMetalMachineStatus{
-					Addresses: []capi.MachineAddress{
-						capi.MachineAddress{
-							Address: "192.168.1.1",
-							Type:    "InternalIP",
-						},
-						capi.MachineAddress{
-							Address: "172.0.20.2",
-							Type:    "InternalIP",
-						},
-					},
-					Ready: true,
-				},
-			},
-			ExpectedMachine: capi.Machine{
-				Status: capi.MachineStatus{
-					Addresses: []capi.MachineAddress{
-						capi.MachineAddress{
-							Address: "192.168.1.1",
-							Type:    "InternalIP",
-						},
-						capi.MachineAddress{
-							Address: "172.0.20.2",
-							Type:    "InternalIP",
-						},
-					},
-				},
-			},
-		},
-		"Machine status unchanged": {
-			Host: &bmh.BareMetalHost{
-				Status: bmh.BareMetalHostStatus{
-					HardwareDetails: &bmh.HardwareDetails{
-						NIC: []bmh.NIC{nic1, nic2},
-					},
-				},
-			},
-			Machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mymachine",
-					Namespace: "myns",
-				},
-				Status: capi.MachineStatus{
-					Addresses: []capi.MachineAddress{
-						capi.MachineAddress{
-							Address: "192.168.1.1",
-							Type:    "InternalIP",
-						},
-						capi.MachineAddress{
-							Address: "172.0.20.2",
-							Type:    "InternalIP",
-						},
-					},
-				},
-			},
-			BMMachine: capbm.BareMetalMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mybmmachine",
-					Namespace: "myns",
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "BMMachine",
-					APIVersion: capi.GroupVersion.String(),
-				},
-				Status: capbm.BareMetalMachineStatus{
-					Addresses: []capi.MachineAddress{
-						capi.MachineAddress{
-							Address: "192.168.1.1",
-							Type:    "InternalIP",
-						},
-						capi.MachineAddress{
-							Address: "172.0.20.2",
-							Type:    "InternalIP",
-						},
-					},
-					Ready: true,
-				},
-			},
-			ExpectedMachine: capi.Machine{
-				Status: capi.MachineStatus{
-					Addresses: []capi.MachineAddress{
-						capi.MachineAddress{
-							Address: "192.168.1.1",
-							Type:    "InternalIP",
-						},
-						capi.MachineAddress{
-							Address: "172.0.20.2",
-							Type:    "InternalIP",
-						},
-					},
-				},
-			},
-		},
-		"Machine status unchanged, status set empty": {
-			Host: &bmh.BareMetalHost{},
-			Machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mymachine",
-					Namespace: "myns",
-				},
-				Status: capi.MachineStatus{},
-			},
-			BMMachine: capbm.BareMetalMachine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "mybmmachine",
-					Namespace: "myns",
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "BMMachine",
-					APIVersion: capi.GroupVersion.String(),
-				},
-				Status: capbm.BareMetalMachineStatus{
-					Addresses: []capi.MachineAddress{},
-					Ready:     true,
-				},
-			},
-			ExpectedMachine: capi.Machine{
-				Status: capi.MachineStatus{},
-			},
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &tc.BMMachine)
-
-		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, &tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
-		}
-
-		err = machineMgr.updateMachineStatus(context.TODO(), tc.Host)
-		if err != nil {
-			t.Errorf("unexpected error %v", err)
-		}
-
-		key := client.ObjectKey{
-			Name:      tc.BMMachine.ObjectMeta.Name,
-			Namespace: tc.BMMachine.ObjectMeta.Namespace,
-		}
-
-		bmmachine := capbm.BareMetalMachine{}
-		err = c.Get(context.TODO(), key, &bmmachine)
-		if err != nil {
-			t.Error(err)
-		}
-
-		if tc.BMMachine.Status.Addresses != nil {
-			for i, address := range tc.ExpectedMachine.Status.Addresses {
-				if address != bmmachine.Status.Addresses[i] {
-					t.Errorf("expected Address %v, found %v", address, bmmachine.Status.Addresses[i])
+				if tc.Host != nil {
+					err := c.Get(context.TODO(), key, &host)
+					Expect(err).To(Succeed())
 				}
+
+				name := ""
+				expectedName := ""
+				if host.Spec.ConsumerRef != nil {
+					name = host.Spec.ConsumerRef.Name
+				}
+				if tc.ExpectedConsumerRef != nil {
+					expectedName = tc.ExpectedConsumerRef.Name
+				}
+				Expect(name).To(Equal(expectedName))
 			}
-		}
-	}
-}
-
-func TestNodeAddresses(t *testing.T) {
-	nic1 := bmh.NIC{
-		IP: "192.168.1.1",
-	}
-
-	nic2 := bmh.NIC{
-		IP: "172.0.20.2",
-	}
-
-	addr1 := capi.MachineAddress{
-		Type:    capi.MachineInternalIP,
-		Address: "192.168.1.1",
-	}
-
-	addr2 := capi.MachineAddress{
-		Type:    capi.MachineInternalIP,
-		Address: "172.0.20.2",
-	}
-
-	addr3 := capi.MachineAddress{
-		Type:    capi.MachineHostName,
-		Address: "mygreathost",
-	}
-
-	testCases := map[string]struct {
-		Machine               capi.Machine
-		BMMachine             capbm.BareMetalMachine
-		Host                  *bmh.BareMetalHost
-		ExpectedNodeAddresses []capi.MachineAddress
-	}{
-		"One NIC": {
-			Host: &bmh.BareMetalHost{
-				Status: bmh.BareMetalHostStatus{
-					HardwareDetails: &bmh.HardwareDetails{
-						NIC: []bmh.NIC{nic1},
-					},
-				},
-			},
-			ExpectedNodeAddresses: []capi.MachineAddress{addr1},
 		},
-		"Two NICs": {
-			Host: &bmh.BareMetalHost{
-				Status: bmh.BareMetalHostStatus{
-					HardwareDetails: &bmh.HardwareDetails{
-						NIC: []bmh.NIC{nic1, nic2},
-					},
-				},
-			},
-			ExpectedNodeAddresses: []capi.MachineAddress{addr1, addr2},
-		},
-		"Hostname is set": {
-			Host: &bmh.BareMetalHost{
-				Status: bmh.BareMetalHostStatus{
-					HardwareDetails: &bmh.HardwareDetails{
-						Hostname: "mygreathost",
-					},
-				},
-			},
-			ExpectedNodeAddresses: []capi.MachineAddress{addr3},
-		},
-		"Empty Hostname": {
-			Host: &bmh.BareMetalHost{
-				Status: bmh.BareMetalHostStatus{
-					HardwareDetails: &bmh.HardwareDetails{
-						Hostname: "",
-					},
-				},
-			},
-			ExpectedNodeAddresses: []capi.MachineAddress{},
-		},
-		"No host at all, so this is a no-op": {
-			Host:                  nil,
-			ExpectedNodeAddresses: nil,
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-		var nodeAddresses []capi.MachineAddress
-
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm())
-		machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine, &tc.BMMachine, klogr.New())
-
-		if err != nil {
-			t.Error(err)
-		}
-
-		if tc.Host != nil {
-			nodeAddresses = machineMgr.nodeAddresses(tc.Host)
-			if err != nil {
-				t.Errorf("unexpected error %v", err)
-			}
-		}
-		for i, address := range tc.ExpectedNodeAddresses {
-			if address != nodeAddresses[i] {
-				t.Errorf("expected Address %v, found %v", address, nodeAddresses[i])
-			}
-		}
-	}
-}
-
-func TestSetNodeProviderID(t *testing.T) {
-	scheme := runtime.NewScheme()
-	err := capi.AddToScheme(scheme)
-	if err != nil {
-		log.Printf("AddToScheme failed: %v", err)
-	}
-	err = bmoapis.AddToScheme(scheme)
-	if err != nil {
-		log.Printf("AddToScheme failed: %v", err)
-	}
-
-	testCases := map[string]struct {
-		Node               v1.Node
-		HostID             string
-		ExpectedError      bool
-		ExpectedProviderID string
-	}{
-		"Set target ProviderID, No matching node": {
-			Node:               v1.Node{},
-			HostID:             "abcd",
-			ExpectedError:      true,
-			ExpectedProviderID: "metal3://abcd",
-		},
-		"Set target ProviderID, matching node": {
-			Node: v1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"metal3.io/uuid": "abcd",
-					},
-				},
-			},
-			HostID:             "abcd",
-			ExpectedError:      false,
-			ExpectedProviderID: "metal3://abcd",
-		},
-		"Set target ProviderID, providerID set": {
-			Node: v1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"metal3.io/uuid": "abcd",
-					},
-				},
-				Spec: v1.NodeSpec{
-					ProviderID: "metal3://abcd",
-				},
-			},
-			HostID:             "abcd",
-			ExpectedError:      false,
-			ExpectedProviderID: "metal3://abcd",
-		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-
-		c := fakeclient.NewFakeClientWithScheme(scheme)
-		corev1Client := clientfake.NewSimpleClientset(&tc.Node).CoreV1()
-		mockCapiClientGetter := func(c client.Client, cluster *capi.Cluster) (
-			clientcorev1.CoreV1Interface, error,
-		) {
-			return corev1Client, nil
-		}
-		machineMgr, err := NewMachineManager(c, newCluster(clusterName),
-			newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
-				&capbm.BareMetalClusterSpec{NoCloudProvider: true}, nil,
+		Entry("Deprovisioning needed", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpec,
+				bmh.StateProvisioned, bmhStatus, false,
 			),
-			&capi.Machine{}, &capbm.BareMetalMachine{}, klogr.New(),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			ExpectedConsumerRef: consumerRef,
+			ExpectedResult:      &RequeueAfterError{},
+		}),
+		Entry("No Host status, deprovisioning needed", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpec, bmh.StateNone,
+				nil, false,
+			),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			ExpectedConsumerRef: consumerRef,
+			ExpectedResult:      &RequeueAfterError{},
+		}),
+		Entry("No Host status, no deprovisioning needed", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateNone, nil,
+				false,
+			),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+		}),
+		Entry("Deprovisioning in progress", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg,
+				bmh.StateDeprovisioning, bmhStatus, false,
+			),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			ExpectedConsumerRef: consumerRef,
+			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
+		}),
+		Entry("Externally provisioned host should be powered down", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg,
+				bmh.StateExternallyProvisioned, bmhPowerStatus, true,
+			),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			ExpectedConsumerRef: consumerRef,
+			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
+		}),
+		Entry("Consumer ref should be removed from externally provisioned host",
+			testCaseDelete{
+				Host: newBareMetalHost("myhost", bmhSpecNoImg,
+					bmh.StateExternallyProvisioned, bmhPowerStatus, false,
+				),
+				Machine: newMachine("mymachine", "", nil),
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret, nil,
+					bmmObjectMetaWithValidAnnotations(),
+				),
+			},
+		),
+		Entry("Consumer ref should be removed", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateReady,
+				bmhStatus, false,
+			),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+		}),
+		Entry("Consumer ref does not match, so it should not be removed",
+			testCaseDelete{
+				Host: newBareMetalHost("myhost", bmhSpecSomeImg,
+					bmh.StateProvisioned, bmhStatus, false,
+				),
+				Machine: newMachine("", "", nil),
+				BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+					bmmObjectMetaWithValidAnnotations(),
+				),
+				ExpectedConsumerRef: consumerRefSome,
+			},
+		),
+		Entry("No consumer ref, so this is a no-op", testCaseDelete{
+			Host:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			Machine: newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+		}),
+		Entry("No host at all, so this is a no-op", testCaseDelete{
+			Host:    nil,
+			Machine: newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+		}),
+	)
+
+	Describe("Test UpdateMachineStatus", func() {
+		nic1 := bmh.NIC{
+			IP: "192.168.1.1",
+		}
+
+		nic2 := bmh.NIC{
+			IP: "172.0.20.2",
+		}
+
+		type testCaseUpdateMachineStatus struct {
+			Host            *bmh.BareMetalHost
+			Machine         *capi.Machine
+			ExpectedMachine capi.Machine
+			BMMachine       capbm.BareMetalMachine
+		}
+
+		DescribeTable("Test UpdateMachineStatus",
+			func(tc testCaseUpdateMachineStatus) {
+				c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), &tc.BMMachine)
+
+				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+					&tc.BMMachine, klogr.New(),
+				)
+				Expect(err).To(Succeed())
+
+				err = machineMgr.updateMachineStatus(context.TODO(), tc.Host)
+				Expect(err).To(Succeed())
+
+				key := client.ObjectKey{
+					Name:      tc.BMMachine.ObjectMeta.Name,
+					Namespace: tc.BMMachine.ObjectMeta.Namespace,
+				}
+				bmmachine := capbm.BareMetalMachine{}
+				err = c.Get(context.TODO(), key, &bmmachine)
+				Expect(err).To(Succeed())
+
+				if tc.BMMachine.Status.Addresses != nil {
+					for i, address := range tc.ExpectedMachine.Status.Addresses {
+						Expect(bmmachine.Status.Addresses[i]).To(Equal(address))
+					}
+				}
+			},
+			Entry("Machine status updated", testCaseUpdateMachineStatus{
+				Host: &bmh.BareMetalHost{
+					Status: bmh.BareMetalHostStatus{
+						HardwareDetails: &bmh.HardwareDetails{
+							NIC: []bmh.NIC{nic1, nic2},
+						},
+					},
+				},
+				Machine: &capi.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mymachine",
+						Namespace: "myns",
+					},
+					Status: capi.MachineStatus{
+						Addresses: []capi.MachineAddress{
+							capi.MachineAddress{
+								Address: "192.168.1.255",
+								Type:    "InternalIP",
+							},
+							capi.MachineAddress{
+								Address: "172.0.20.255",
+								Type:    "InternalIP",
+							},
+						},
+					},
+				},
+				BMMachine: capbm.BareMetalMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mybmmachine",
+						Namespace: "myns",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "BMMachine",
+						APIVersion: capi.GroupVersion.String(),
+					},
+					Status: capbm.BareMetalMachineStatus{
+						Addresses: []capi.MachineAddress{
+							capi.MachineAddress{
+								Address: "192.168.1.1",
+								Type:    "InternalIP",
+							},
+							capi.MachineAddress{
+								Address: "172.0.20.2",
+								Type:    "InternalIP",
+							},
+						},
+						Ready: true,
+					},
+				},
+				ExpectedMachine: capi.Machine{
+					Status: capi.MachineStatus{
+						Addresses: []capi.MachineAddress{
+							capi.MachineAddress{
+								Address: "192.168.1.1",
+								Type:    "InternalIP",
+							},
+							capi.MachineAddress{
+								Address: "172.0.20.2",
+								Type:    "InternalIP",
+							},
+						},
+					},
+				},
+			}),
+			Entry("Machine status unchanged", testCaseUpdateMachineStatus{
+				Host: &bmh.BareMetalHost{
+					Status: bmh.BareMetalHostStatus{
+						HardwareDetails: &bmh.HardwareDetails{
+							NIC: []bmh.NIC{nic1, nic2},
+						},
+					},
+				},
+				Machine: &capi.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mymachine",
+						Namespace: "myns",
+					},
+					Status: capi.MachineStatus{
+						Addresses: []capi.MachineAddress{
+							capi.MachineAddress{
+								Address: "192.168.1.1",
+								Type:    "InternalIP",
+							},
+							capi.MachineAddress{
+								Address: "172.0.20.2",
+								Type:    "InternalIP",
+							},
+						},
+					},
+				},
+				BMMachine: capbm.BareMetalMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mybmmachine",
+						Namespace: "myns",
+					},
+					TypeMeta: metav1.TypeMeta{
+						Kind:       "BMMachine",
+						APIVersion: capi.GroupVersion.String(),
+					},
+					Status: capbm.BareMetalMachineStatus{
+						Addresses: []capi.MachineAddress{
+							capi.MachineAddress{
+								Address: "192.168.1.1",
+								Type:    "InternalIP",
+							},
+							capi.MachineAddress{
+								Address: "172.0.20.2",
+								Type:    "InternalIP",
+							},
+						},
+						Ready: true,
+					},
+				},
+				ExpectedMachine: capi.Machine{
+					Status: capi.MachineStatus{
+						Addresses: []capi.MachineAddress{
+							capi.MachineAddress{
+								Address: "192.168.1.1",
+								Type:    "InternalIP",
+							},
+							capi.MachineAddress{
+								Address: "172.0.20.2",
+								Type:    "InternalIP",
+							},
+						},
+					},
+				},
+			}),
+			Entry("Machine status unchanged, status set empty",
+				testCaseUpdateMachineStatus{
+					Host: &bmh.BareMetalHost{},
+					Machine: &capi.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mymachine",
+							Namespace: "myns",
+						},
+						Status: capi.MachineStatus{},
+					},
+					BMMachine: capbm.BareMetalMachine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mybmmachine",
+							Namespace: "myns",
+						},
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "BMMachine",
+							APIVersion: capi.GroupVersion.String(),
+						},
+						Status: capbm.BareMetalMachineStatus{
+							Addresses: []capi.MachineAddress{},
+							Ready:     true,
+						},
+					},
+					ExpectedMachine: capi.Machine{
+						Status: capi.MachineStatus{},
+					},
+				},
+			),
 		)
+	})
 
-		if err != nil {
-			t.Error(err)
-			continue
+	Describe("Test NodeAddresses", func() {
+		nic1 := bmh.NIC{
+			IP: "192.168.1.1",
 		}
 
-		err = machineMgr.SetNodeProviderID(tc.HostID,
-			tc.ExpectedProviderID, mockCapiClientGetter,
+		nic2 := bmh.NIC{
+			IP: "172.0.20.2",
+		}
+
+		addr1 := capi.MachineAddress{
+			Type:    capi.MachineInternalIP,
+			Address: "192.168.1.1",
+		}
+
+		addr2 := capi.MachineAddress{
+			Type:    capi.MachineInternalIP,
+			Address: "172.0.20.2",
+		}
+
+		addr3 := capi.MachineAddress{
+			Type:    capi.MachineHostName,
+			Address: "mygreathost",
+		}
+
+		type testCaseNodeAddress struct {
+			Machine               capi.Machine
+			BMMachine             capbm.BareMetalMachine
+			Host                  *bmh.BareMetalHost
+			ExpectedNodeAddresses []capi.MachineAddress
+		}
+
+		DescribeTable("Test NodeAddress",
+			func(tc testCaseNodeAddress) {
+				var nodeAddresses []capi.MachineAddress
+
+				c := fakeclient.NewFakeClientWithScheme(setupSchemeMm())
+				machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine,
+					&tc.BMMachine, klogr.New(),
+				)
+				Expect(err).To(Succeed())
+
+				if tc.Host != nil {
+					nodeAddresses = machineMgr.nodeAddresses(tc.Host)
+					Expect(err).To(Succeed())
+				}
+				for i, address := range tc.ExpectedNodeAddresses {
+					Expect(nodeAddresses[i]).To(Equal(address))
+				}
+			},
+			Entry("One NIC", testCaseNodeAddress{
+				Host: &bmh.BareMetalHost{
+					Status: bmh.BareMetalHostStatus{
+						HardwareDetails: &bmh.HardwareDetails{
+							NIC: []bmh.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []capi.MachineAddress{addr1},
+			}),
+			Entry("Two NICs", testCaseNodeAddress{
+				Host: &bmh.BareMetalHost{
+					Status: bmh.BareMetalHostStatus{
+						HardwareDetails: &bmh.HardwareDetails{
+							NIC: []bmh.NIC{nic1, nic2},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []capi.MachineAddress{addr1, addr2},
+			}),
+			Entry("Hostname is set", testCaseNodeAddress{
+				Host: &bmh.BareMetalHost{
+					Status: bmh.BareMetalHostStatus{
+						HardwareDetails: &bmh.HardwareDetails{
+							Hostname: "mygreathost",
+						},
+					},
+				},
+				ExpectedNodeAddresses: []capi.MachineAddress{addr3},
+			}),
+			Entry("Empty Hostname", testCaseNodeAddress{
+				Host: &bmh.BareMetalHost{
+					Status: bmh.BareMetalHostStatus{
+						HardwareDetails: &bmh.HardwareDetails{
+							Hostname: "",
+						},
+					},
+				},
+				ExpectedNodeAddresses: []capi.MachineAddress{},
+			}),
+			Entry("No host at all, so this is a no-op", testCaseNodeAddress{
+				Host:                  nil,
+				ExpectedNodeAddresses: nil,
+			}),
 		)
+	})
 
-		if tc.ExpectedError {
-			if err == nil {
-				t.Errorf("Expected error when trying to set node provider ID")
-			}
-			continue
-		} else {
-			if err != nil {
-				t.Errorf("Did not expect error when setting node providerID : %v", err)
-				continue
-			}
-		}
-
-		// get the result
-		node, err := corev1Client.Nodes().Get(tc.Node.Name, metav1.GetOptions{})
+	Describe("Test SetNodeProviderID", func() {
+		scheme := runtime.NewScheme()
+		err := capi.AddToScheme(scheme)
 		if err != nil {
-			t.Errorf("Get failed, %v", err)
-			return
+			log.Printf("AddToScheme failed: %v", err)
+		}
+		err = bmoapis.AddToScheme(scheme)
+		if err != nil {
+			log.Printf("AddToScheme failed: %v", err)
 		}
 
-		if node.Spec.ProviderID != tc.ExpectedProviderID {
-			t.Errorf("Wrong providerID, expected %v, got %v", tc.ExpectedProviderID,
-				node.Spec.ProviderID,
-			)
+		type testCaseSetNodePoviderID struct {
+			Node               v1.Node
+			HostID             string
+			ExpectedError      bool
+			ExpectedProviderID string
 		}
-	}
-}
 
-func TestAssociate(t *testing.T) {
-	testCases := map[string]struct {
+		DescribeTable("Test SetNodeProviderID",
+			func(tc testCaseSetNodePoviderID) {
+				c := fakeclient.NewFakeClientWithScheme(scheme)
+				corev1Client := clientfake.NewSimpleClientset(&tc.Node).CoreV1()
+				mockCapiClientGetter := func(c client.Client, cluster *capi.Cluster) (
+					clientcorev1.CoreV1Interface, error,
+				) {
+					return corev1Client, nil
+				}
+
+				machineMgr, err := NewMachineManager(c, newCluster(clusterName),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+						&capbm.BareMetalClusterSpec{NoCloudProvider: true}, nil,
+					),
+					&capi.Machine{}, &capbm.BareMetalMachine{}, klogr.New(),
+				)
+				Expect(err).To(Succeed())
+
+				err = machineMgr.SetNodeProviderID(tc.HostID,
+					tc.ExpectedProviderID, mockCapiClientGetter,
+				)
+
+				if tc.ExpectedError {
+					Expect(err).To(HaveOccurred())
+					return
+				} else {
+					Expect(err).To(Succeed())
+				}
+
+				// get the node
+				node, err := corev1Client.Nodes().Get(tc.Node.Name, metav1.GetOptions{})
+				Expect(err).To(Succeed())
+
+				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
+			},
+			Entry("Set target ProviderID, No matching node", testCaseSetNodePoviderID{
+				Node:               v1.Node{},
+				HostID:             "abcd",
+				ExpectedError:      true,
+				ExpectedProviderID: "metal3://abcd",
+			}),
+			Entry("Set target ProviderID, matching node", testCaseSetNodePoviderID{
+				Node: v1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"metal3.io/uuid": "abcd",
+						},
+					},
+				},
+				HostID:             "abcd",
+				ExpectedError:      false,
+				ExpectedProviderID: "metal3://abcd",
+			}),
+			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
+				Node: v1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Labels: map[string]string{
+							"metal3.io/uuid": "abcd",
+						},
+					},
+					Spec: v1.NodeSpec{
+						ProviderID: "metal3://abcd",
+					},
+				},
+				HostID:             "abcd",
+				ExpectedError:      false,
+				ExpectedProviderID: "metal3://abcd",
+			}),
+		)
+	})
+
+	type testCaseAssociate struct {
 		Machine       *capi.Machine
 		Host          *bmh.BareMetalHost
 		BMMachine     *capbm.BareMetalMachine
 		ExpectRequeue bool
-	}{
-		"Associate empty machine, baremetal machine spec nil": {
-			Machine:       newMachine("", "", nil),
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			Host:          newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
-			ExpectRequeue: false,
-		},
-		"Associate empty machine, baremetal machine spec set": {
-			Machine:       newMachine("", "", nil),
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
-			Host:          newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
-			ExpectRequeue: false,
-		},
-		"Associate empty machine, host empty, baremetal machine spec set": {
-			Machine:       newMachine("", "", nil),
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
-			Host:          newBareMetalHost("", nil, bmh.StateNone, nil, false),
-			ExpectRequeue: false,
-		},
-		"Associate machine, host nil, baremetal machine spec set, requeue": {
-			Machine:       newMachine("myUniqueMachine", "", nil),
-			BMMachine:     newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil, bmmObjectMetaWithValidAnnotations),
-			Host:          nil,
-			ExpectRequeue: true,
-		},
 	}
 
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-
-		var objects []runtime.Object
-		if tc.Host == nil {
-			objects = []runtime.Object{
+	DescribeTable("Test Associate function",
+		func(tc testCaseAssociate) {
+			objects := []runtime.Object{
 				tc.BMMachine,
 				tc.Machine,
 			}
-		} else {
-			objects = []runtime.Object{
+			if tc.Host != nil {
+				objects = append(objects, tc.Host)
+			}
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+
+			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+				tc.BMMachine, klogr.New(),
+			)
+			Expect(err).To(Succeed())
+
+			err = machineMgr.Associate(context.TODO())
+			if !tc.ExpectRequeue {
+				Expect(err).To(Succeed())
+			} else {
+				_, ok := errors.Cause(err).(HasRequeueAfterError)
+				Expect(ok).To(BeTrue())
+			}
+		},
+		Entry("Associate empty machine, baremetal machine spec nil",
+			testCaseAssociate{
+				Machine: newMachine("", "", nil),
+				BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+					bmmObjectMetaWithValidAnnotations(),
+				),
+				Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
+					false,
+				),
+				ExpectRequeue: false,
+			},
+		),
+		Entry("Associate empty machine, baremetal machine spec set",
+			testCaseAssociate{
+				Machine: newMachine("", "", nil),
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil,
+					bmmObjectMetaWithValidAnnotations(),
+				),
+				Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
+					false,
+				),
+				ExpectRequeue: false,
+			},
+		),
+		Entry("Associate empty machine, host empty, baremetal machine spec set",
+			testCaseAssociate{
+				Machine: newMachine("", "", nil),
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil,
+					bmmObjectMetaWithValidAnnotations(),
+				),
+				Host:          newBareMetalHost("", nil, bmh.StateNone, nil, false),
+				ExpectRequeue: false,
+			},
+		),
+		Entry("Associate machine, host nil, baremetal machine spec set, requeue",
+			testCaseAssociate{
+				Machine: newMachine("myUniqueMachine", "", nil),
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil,
+					bmmObjectMetaWithValidAnnotations(),
+				),
+				Host:          nil,
+				ExpectRequeue: true,
+			},
+		),
+	)
+
+	type testCaseUpdate struct {
+		Machine   *capi.Machine
+		Host      *bmh.BareMetalHost
+		BMMachine *capbm.BareMetalMachine
+	}
+
+	DescribeTable("Test Update function",
+		func(tc testCaseUpdate) {
+			objects := []runtime.Object{
 				tc.Host,
 				tc.BMMachine,
 				tc.Machine,
 			}
-		}
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 
-		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
-		}
+			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+				tc.BMMachine, klogr.New(),
+			)
+			Expect(err).To(Succeed())
 
-		err = machineMgr.Associate(context.TODO())
-		if err != nil {
-			if !tc.ExpectRequeue {
-				t.Error(err)
-			} else {
-				requeueErr, ok := errors.Cause(err).(HasRequeueAfterError)
-				if !ok {
-					t.Error(requeueErr)
-				}
-			}
-		} else {
-			if tc.ExpectRequeue {
-				t.Error(err)
-			}
-		}
-	}
-}
-
-func TestUpdate(t *testing.T) {
-	testCases := map[string]struct {
-		Machine   *capi.Machine
-		Host      *bmh.BareMetalHost
-		BMMachine *capbm.BareMetalMachine
-	}{
-		"Update machine": {
-			Machine:   newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, bmmObjectMetaWithValidAnnotations),
-			Host:      newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			err = machineMgr.Update(context.TODO())
+			Expect(err).To(Succeed())
 		},
-	}
-
-	for name, tc := range testCases {
-		t.Logf("## TC-%s ##", name)
-
-		objects := []runtime.Object{
-			tc.Host,
-			tc.BMMachine,
-			tc.Machine,
-		}
-		c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
-
-		machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
-		if err != nil {
-			t.Error(err)
-		}
-
-		err = machineMgr.Update(context.TODO())
-		if err != nil {
-			t.Error(err)
-		}
-	}
-}
+		Entry("Update machine", testCaseUpdate{
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+		}),
+	)
+})
 
 //-----------------
 // Helper functions
@@ -1730,8 +1622,7 @@ func setupSchemeMm() *runtime.Scheme {
 	return s
 }
 
-func newConfig(t *testing.T,
-	UserDataNamespace string,
+func newConfig(UserDataNamespace string,
 	labels map[string]string,
 	reqs []capbm.HostSelectorRequirement) (*capbm.BareMetalMachine, *corev1.ObjectReference) {
 	config := capbm.BareMetalMachine{
