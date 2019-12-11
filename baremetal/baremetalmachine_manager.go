@@ -613,7 +613,7 @@ func (m *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareMet
 	annotations[HostAnnotation] = hostKey
 	m.BareMetalMachine.ObjectMeta.SetAnnotations(annotations)
 
-	return nil
+	return m.client.Update(ctx, m.BareMetalMachine)
 }
 
 // HasAnnotation makes sure the machine has an annotation that references a host
