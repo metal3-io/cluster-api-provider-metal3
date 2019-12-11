@@ -310,7 +310,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	// Legacy tests
 	It("TestBareMetalMachineReconciler_BareMetalClusterToBareMetalMachines", func() {
 		baremetalCluster := newBareMetalCluster("my-baremetal-cluster",
-			bmcOwnerRef, bmcSpec, nil,
+			bmcOwnerRef(), bmcSpec(), nil,
 		)
 		objects := []runtime.Object{
 			newCluster(clusterName, nil, nil),
@@ -342,7 +342,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 	It("TestBareMetalMachineReconciler_BareMetalClusterToBareMetalMachines_with_no_cluster", func() {
 		baremetalCluster := newBareMetalCluster("my-baremetal-cluster",
-			bmcOwnerRef, bmcSpec, nil,
+			bmcOwnerRef(), bmcSpec(), nil,
 		)
 		objects := []runtime.Object{
 			baremetalCluster,
