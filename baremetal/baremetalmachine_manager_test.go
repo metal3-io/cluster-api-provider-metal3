@@ -54,75 +54,97 @@ const (
 var ProviderID = "metal3://12345ID6789"
 var CloudInitData = []byte("metal3:cloudInitData1010101test__hello")
 
-var bmmSpec = &capbm.BareMetalMachineSpec{
-	ProviderID: &ProviderID,
+func bmmSpec() *capbm.BareMetalMachineSpec {
+	return &capbm.BareMetalMachineSpec{
+		ProviderID: &ProviderID,
+	}
 }
 
-var bmmSpecAll = &capbm.BareMetalMachineSpec{
-	ProviderID: &ProviderID,
-	UserData: &corev1.SecretReference{
-		Name:      "mybmmachine",
-		Namespace: "myns",
-	},
-	Image: capbm.Image{
+func bmmSpecAll() *capbm.BareMetalMachineSpec {
+	return &capbm.BareMetalMachineSpec{
+		ProviderID: &ProviderID,
+		UserData: &corev1.SecretReference{
+			Name:      "mybmmachine",
+			Namespace: "myns",
+		},
+		Image: capbm.Image{
+			URL:      testImageURL,
+			Checksum: testImageChecksumURL,
+		},
+		HostSelector: capbm.HostSelector{},
+	}
+}
+
+func bmmSecret() *capbm.BareMetalMachineSpec {
+	return &capbm.BareMetalMachineSpec{
+		UserData: &corev1.SecretReference{
+			Name:      "mybmmachine",
+			Namespace: "myns",
+		},
+	}
+}
+
+func consumerRef() *corev1.ObjectReference {
+	return &corev1.ObjectReference{
+		Name:       "mybmmachine",
+		Namespace:  "myns",
+		Kind:       "BMMachine",
+		APIVersion: capbm.GroupVersion.String(),
+	}
+}
+
+func consumerRefSome() *corev1.ObjectReference {
+	return &corev1.ObjectReference{
+		Name:       "someoneelsesmachine",
+		Namespace:  "myns",
+		Kind:       "BMMachine",
+		APIVersion: capi.GroupVersion.String(),
+	}
+}
+
+func expectedImg() *bmh.Image {
+	return &bmh.Image{
 		URL:      testImageURL,
 		Checksum: testImageChecksumURL,
-	},
-	HostSelector: capbm.HostSelector{},
+	}
 }
 
-var bmmSecret = &capbm.BareMetalMachineSpec{
-	UserData: &corev1.SecretReference{
-		Name:      "mybmmachine",
-		Namespace: "myns",
-	},
+func expectedImgTest() *bmh.Image {
+	return &bmh.Image{
+		URL:      testImageURL + "test",
+		Checksum: testImageChecksumURL + "test",
+	}
 }
 
-var consumerRef = &corev1.ObjectReference{
-	Name:       "mybmmachine",
-	Namespace:  "myns",
-	Kind:       "BMMachine",
-	APIVersion: capbm.GroupVersion.String(),
+func bmhSpec() *bmh.BareMetalHostSpec {
+	return &bmh.BareMetalHostSpec{
+		ConsumerRef: consumerRef(),
+		Image: &bmh.Image{
+			URL: "myimage",
+		},
+	}
 }
 
-var consumerRefSome = &corev1.ObjectReference{
-	Name:       "someoneelsesmachine",
-	Namespace:  "myns",
-	Kind:       "BMMachine",
-	APIVersion: capi.GroupVersion.String(),
+func bmhSpecTestImg() *bmh.BareMetalHostSpec {
+	return &bmh.BareMetalHostSpec{
+		ConsumerRef: consumerRef(),
+		Image:       expectedImgTest(),
+	}
 }
 
-var expectedImg = &bmh.Image{
-	URL:      testImageURL,
-	Checksum: testImageChecksumURL,
+func bmhSpecSomeImg() *bmh.BareMetalHostSpec {
+	return &bmh.BareMetalHostSpec{
+		ConsumerRef: consumerRefSome(),
+		Image: &bmh.Image{
+			URL: "someoneelsesimage",
+		},
+	}
 }
 
-var expectedImgTest = &bmh.Image{
-	URL:      testImageURL + "test",
-	Checksum: testImageChecksumURL + "test",
-}
-
-var bmhSpec = &bmh.BareMetalHostSpec{
-	ConsumerRef: consumerRef,
-	Image: &bmh.Image{
-		URL: "myimage",
-	},
-}
-
-var bmhSpecTestImg = &bmh.BareMetalHostSpec{
-	ConsumerRef: consumerRef,
-	Image:       expectedImgTest,
-}
-
-var bmhSpecSomeImg = &bmh.BareMetalHostSpec{
-	ConsumerRef: consumerRefSome,
-	Image: &bmh.Image{
-		URL: "someoneelsesimage",
-	},
-}
-
-var bmhSpecNoImg = &bmh.BareMetalHostSpec{
-	ConsumerRef: consumerRef,
+func bmhSpecNoImg() *bmh.BareMetalHostSpec {
+	return &bmh.BareMetalHostSpec{
+		ConsumerRef: consumerRef(),
+	}
 }
 
 func bmmObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
@@ -175,17 +197,21 @@ func bmmObjectMetaNoAnnotations() *metav1.ObjectMeta {
 	}
 }
 
-var bmhPowerStatus = &bmh.BareMetalHostStatus{
-	Provisioning: bmh.ProvisionStatus{
-		State: bmh.StateNone,
-	},
-	PoweredOn: true,
+func bmhPowerStatus() *bmh.BareMetalHostStatus {
+	return &bmh.BareMetalHostStatus{
+		Provisioning: bmh.ProvisionStatus{
+			State: bmh.StateNone,
+		},
+		PoweredOn: true,
+	}
 }
 
-var bmhStatus = &bmh.BareMetalHostStatus{
-	Provisioning: bmh.ProvisionStatus{
-		State: bmh.StateNone,
-	},
+func bmhStatus() *bmh.BareMetalHostStatus {
+	return &bmh.BareMetalHostStatus{
+		Provisioning: bmh.ProvisionStatus{
+			State: bmh.StateNone,
+		},
+	}
 }
 
 var _ = Describe("BareMetalMachine manager", func() {
@@ -404,11 +430,11 @@ var _ = Describe("BareMetalMachine manager", func() {
 		bmmconfig, infrastructureRef := newConfig("", map[string]string{},
 			[]capbm.HostSelectorRequirement{},
 		)
-		bmmconfig2, infrastructureRef2 := newConfig("", map[string]string{"key1": "value1"},
-			[]capbm.HostSelectorRequirement{},
+		bmmconfig2, infrastructureRef2 := newConfig("",
+			map[string]string{"key1": "value1"}, []capbm.HostSelectorRequirement{},
 		)
-		bmmconfig3, infrastructureRef3 := newConfig("", map[string]string{"boguskey": "value"},
-			[]capbm.HostSelectorRequirement{},
+		bmmconfig3, infrastructureRef3 := newConfig("",
+			map[string]string{"boguskey": "value"}, []capbm.HostSelectorRequirement{},
 		)
 		bmmconfig4, infrastructureRef4 := newConfig("", map[string]string{},
 			[]capbm.HostSelectorRequirement{
@@ -439,7 +465,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 		DescribeTable("Test ChooseHost",
 			func(tc testCaseChooseHost) {
 				c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Hosts...)
-				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+					tc.BMMachine, klogr.New(),
+				)
 				Expect(err).To(Succeed())
 
 				result, err := machineMgr.chooseHost(context.TODO())
@@ -541,7 +569,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 			)
 			machine := newMachine("machine1", "", infrastructureRef)
 
-			machineMgr, err := NewMachineManager(c, nil, nil, machine, bmmconfig, klogr.New())
+			machineMgr, err := NewMachineManager(c, nil, nil, machine, bmmconfig,
+				klogr.New(),
+			)
 			Expect(err).To(Succeed())
 
 			err = machineMgr.setHostSpec(context.TODO(), tc.Host)
@@ -549,7 +579,13 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 			// get the saved host
 			savedHost := bmh.BareMetalHost{}
-			err = c.Get(context.TODO(), client.ObjectKey{Name: tc.Host.Name, Namespace: tc.Host.Namespace}, &savedHost)
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
+				},
+				&savedHost,
+			)
 			Expect(err).To(Succeed())
 
 			// validate the saved host
@@ -576,32 +612,38 @@ var _ = Describe("BareMetalMachine manager", func() {
 		Entry("User data has explicit alternate namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "otherns",
 			ExpectedUserDataNamespace: "otherns",
-			Host:                      newBareMetalHost("host2", nil, bmh.StateNone, nil, false),
-			ExpectedImage:             expectedImg,
-			ExpectUserData:            true,
+			Host: newBareMetalHost("host2", nil, bmh.StateNone,
+				nil, false,
+			),
+			ExpectedImage:  expectedImg(),
+			ExpectUserData: true,
 		}),
 		Entry("User data has no namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
-			Host:                      newBareMetalHost("host2", nil, bmh.StateNone, nil, false),
-			ExpectedImage:             expectedImg,
-			ExpectUserData:            true,
+			Host: newBareMetalHost("host2", nil, bmh.StateNone,
+				nil, false,
+			),
+			ExpectedImage:  expectedImg(),
+			ExpectUserData: true,
 		}),
 		Entry("Externally provisioned, same machine", testCaseSetHostSpec{
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
-			Host:                      newBareMetalHost("host2", nil, bmh.StateNone, nil, false),
-			ExpectedImage:             expectedImg,
-			ExpectUserData:            true,
+			Host: newBareMetalHost("host2", nil, bmh.StateNone,
+				nil, false,
+			),
+			ExpectedImage:  expectedImg(),
+			ExpectUserData: true,
 		}),
 		Entry("Previously provisioned, different image",
 			testCaseSetHostSpec{
 				UserDataNamespace:         "",
 				ExpectedUserDataNamespace: "myns",
-				Host: newBareMetalHost("host2", bmhSpecTestImg,
+				Host: newBareMetalHost("host2", bmhSpecTestImg(),
 					bmh.StateNone, nil, false,
 				),
-				ExpectedImage:  expectedImgTest,
+				ExpectedImage:  expectedImgTest(),
 				ExpectUserData: false,
 			},
 		),
@@ -726,7 +768,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 	DescribeTable("Test Get and Set Provider ID",
 		func(tc testCaseGetSetProviderID) {
 			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host)
-			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+				tc.BMMachine, klogr.New(),
+			)
 			Expect(err).To(Succeed())
 
 			bmhID, err := machineMgr.GetBaremetalHostID(context.TODO())
@@ -748,7 +792,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		},
 		Entry("Set ProviderID, empty annotations", testCaseGetSetProviderID{
 			Machine: newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec(), nil,
 				bmmObjectMetaEmptyAnnotations(),
 			),
 			Host: &bmh.BareMetalHost{
@@ -761,8 +805,10 @@ var _ = Describe("BareMetalMachine manager", func() {
 			ExpectError:   true,
 		}),
 		Entry("Set ProviderID", testCaseGetSetProviderID{
-			Machine:   newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil, bmmObjectMetaWithValidAnnotations()),
+			Machine: newMachine("", "", nil),
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
@@ -780,7 +826,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		}),
 		Entry("Set ProviderID, wrong state", testCaseGetSetProviderID{
 			Machine: newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Host: &bmh.BareMetalHost{
@@ -838,7 +884,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			},
 			Entry("Test small functions, worker node", testCaseSmallFunctions{
 				Machine: newMachine("", "", nil),
-				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec(), nil,
 					bmmObjectMetaEmptyAnnotations(),
 				),
 				ExpectCtrlNode: false,
@@ -857,7 +903,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 						},
 					},
 				},
-				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec, nil,
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpec(), nil,
 					bmmObjectMetaEmptyAnnotations(),
 				),
 				ExpectCtrlNode: true,
@@ -915,7 +961,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
-			Host:             newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
+				false,
+			),
 			ExpectAnnotation: true,
 		}),
 		Entry("Annotation exists but is wrong", testCaseEnsureAnnotation{
@@ -968,7 +1016,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 				Expect(err).To(Succeed())
 			}
 
-			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.BMMachine, klogr.New())
+			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+				tc.BMMachine, klogr.New(),
+			)
 			Expect(err).To(Succeed())
 
 			err = machineMgr.Delete(context.TODO())
@@ -1005,29 +1055,29 @@ var _ = Describe("BareMetalMachine manager", func() {
 			}
 		},
 		Entry("Deprovisioning needed", testCaseDelete{
-			Host: newBareMetalHost("myhost", bmhSpec,
-				bmh.StateProvisioned, bmhStatus, false,
+			Host: newBareMetalHost("myhost", bmhSpec(),
+				bmh.StateProvisioned, bmhStatus(), false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
-			ExpectedConsumerRef: consumerRef,
+			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{},
 		}),
 		Entry("No Host status, deprovisioning needed", testCaseDelete{
-			Host: newBareMetalHost("myhost", bmhSpec, bmh.StateNone,
+			Host: newBareMetalHost("myhost", bmhSpec(), bmh.StateNone,
 				nil, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
-			ExpectedConsumerRef: consumerRef,
+			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{},
 		}),
 		Entry("No Host status, no deprovisioning needed", testCaseDelete{
-			Host: newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateNone, nil,
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
 				false,
 			),
 			Machine: newMachine("mymachine", "", nil),
@@ -1036,57 +1086,57 @@ var _ = Describe("BareMetalMachine manager", func() {
 			),
 		}),
 		Entry("Deprovisioning in progress", testCaseDelete{
-			Host: newBareMetalHost("myhost", bmhSpecNoImg,
-				bmh.StateDeprovisioning, bmhStatus, false,
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
+				bmh.StateDeprovisioning, bmhStatus(), false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
-			ExpectedConsumerRef: consumerRef,
+			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
 		}),
 		Entry("Externally provisioned host should be powered down", testCaseDelete{
-			Host: newBareMetalHost("myhost", bmhSpecNoImg,
-				bmh.StateExternallyProvisioned, bmhPowerStatus, true,
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
+				bmh.StateExternallyProvisioned, bmhPowerStatus(), true,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
-			ExpectedConsumerRef: consumerRef,
+			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
 		}),
 		Entry("Consumer ref should be removed from externally provisioned host",
 			testCaseDelete{
-				Host: newBareMetalHost("myhost", bmhSpecNoImg,
-					bmh.StateExternallyProvisioned, bmhPowerStatus, false,
+				Host: newBareMetalHost("myhost", bmhSpecNoImg(),
+					bmh.StateExternallyProvisioned, bmhPowerStatus(), false,
 				),
 				Machine: newMachine("mymachine", "", nil),
-				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret, nil,
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
 			},
 		),
 		Entry("Consumer ref should be removed", testCaseDelete{
-			Host: newBareMetalHost("myhost", bmhSpecNoImg, bmh.StateReady,
-				bmhStatus, false,
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateReady,
+				bmhStatus(), false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
 		}),
 		Entry("Consumer ref does not match, so it should not be removed",
 			testCaseDelete{
-				Host: newBareMetalHost("myhost", bmhSpecSomeImg,
-					bmh.StateProvisioned, bmhStatus, false,
+				Host: newBareMetalHost("myhost", bmhSpecSomeImg(),
+					bmh.StateProvisioned, bmhStatus(), false,
 				),
 				Machine: newMachine("", "", nil),
 				BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
-				ExpectedConsumerRef: consumerRefSome,
+				ExpectedConsumerRef: consumerRefSome(),
 			},
 		),
 		Entry("No consumer ref, so this is a no-op", testCaseDelete{
@@ -1538,7 +1588,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		Entry("Associate empty machine, baremetal machine spec set",
 			testCaseAssociate{
 				Machine: newMachine("", "", nil),
-				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil,
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
@@ -1550,7 +1600,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		Entry("Associate empty machine, host empty, baremetal machine spec set",
 			testCaseAssociate{
 				Machine: newMachine("", "", nil),
-				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil,
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				Host:          newBareMetalHost("", nil, bmh.StateNone, nil, false),
@@ -1560,7 +1610,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		Entry("Associate machine, host nil, baremetal machine spec set, requeue",
 			testCaseAssociate{
 				Machine: newMachine("myUniqueMachine", "", nil),
-				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll, nil,
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				Host:          nil,
@@ -1623,8 +1673,8 @@ func setupSchemeMm() *runtime.Scheme {
 }
 
 func newConfig(UserDataNamespace string,
-	labels map[string]string,
-	reqs []capbm.HostSelectorRequirement) (*capbm.BareMetalMachine, *corev1.ObjectReference) {
+	labels map[string]string, reqs []capbm.HostSelectorRequirement,
+) (*capbm.BareMetalMachine, *corev1.ObjectReference) {
 	config := capbm.BareMetalMachine{
 		Spec: capbm.BareMetalMachineSpec{
 			Image: capbm.Image{
@@ -1651,7 +1701,9 @@ func newConfig(UserDataNamespace string,
 	return &config, infrastructureRef
 }
 
-func newMachine(machineName string, bareMetalMachineName string, infraRef *corev1.ObjectReference) *capi.Machine {
+func newMachine(machineName string, bareMetalMachineName string,
+	infraRef *corev1.ObjectReference,
+) *capi.Machine {
 	if machineName == "" {
 		return &capi.Machine{}
 	}
