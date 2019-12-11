@@ -220,7 +220,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
 				klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			machineMgr.SetFinalizer()
 
@@ -247,7 +247,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
 				klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			machineMgr.SetProviderID("correct")
 
@@ -275,7 +275,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.BMMachine,
 				klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			provisioningState := machineMgr.IsProvisioned()
 
@@ -324,7 +324,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(nil, nil, nil, &tc.Machine, nil,
 				klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			bootstrapState := machineMgr.IsBootstrapReady()
 
@@ -349,7 +349,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
 				klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			machineMgr.setError("abc", capierrors.InvalidConfigurationMachineError)
 
@@ -468,7 +468,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 					tc.BMMachine, klogr.New(),
 				)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				result, err := machineMgr.chooseHost(context.TODO())
 
@@ -476,7 +476,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					Expect(result).To(BeNil())
 					return
 				}
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 				if result != nil {
 					Expect(result.Name).To(Equal(tc.ExpectedHostName))
 				}
@@ -572,10 +572,10 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(c, nil, nil, machine, bmmconfig,
 				klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.setHostSpec(context.TODO(), tc.Host)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			// get the saved host
 			savedHost := bmh.BareMetalHost{}
@@ -586,7 +586,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 				&savedHost,
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			// validate the saved host
 			Expect(savedHost.Spec.ConsumerRef).NotTo(BeNil())
@@ -669,10 +669,10 @@ var _ = Describe("BareMetalMachine manager", func() {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 					tc.BMMachine, klogr.New(),
 				)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				result, err := machineMgr.exists(context.TODO())
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 				Expect(result).To(Equal(tc.Expected))
 			},
 			Entry("Failed to find the existing host", testCaseExists{
@@ -721,10 +721,10 @@ var _ = Describe("BareMetalMachine manager", func() {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 					tc.BMMachine, klogr.New(),
 				)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				result, err := machineMgr.getHost(context.TODO())
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 				if tc.ExpectPresent {
 					Expect(result).NotTo(BeNil())
 				} else {
@@ -771,13 +771,13 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 				tc.BMMachine, klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			bmhID, err := machineMgr.GetBaremetalHostID(context.TODO())
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
 			} else {
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			}
 
 			if tc.ExpectPresent {
@@ -866,7 +866,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 					tc.BMMachine, klogr.New(),
 				)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				role := machineMgr.role()
 				if tc.ExpectCtrlNode {
@@ -925,10 +925,10 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine,
 				tc.BMMachine, klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.ensureAnnotation(context.TODO(), tc.Host)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			key := client.ObjectKey{
 				Name:      tc.BMMachine.ObjectMeta.Name,
@@ -936,7 +936,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			}
 			bmmachine := capbm.BareMetalMachine{}
 			err = c.Get(context.TODO(), key, &bmmachine)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			annotations := bmmachine.ObjectMeta.GetAnnotations()
 			// annotations := tc.BMMachine.ObjectMeta.GetAnnotations()
@@ -1013,18 +1013,18 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 			if tc.Host != nil {
 				err := c.Create(context.TODO(), tc.Host)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			}
 
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 				tc.BMMachine, klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.Delete(context.TODO())
 
 			if tc.ExpectedResult == nil {
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			} else {
 				perr, ok := err.(*RequeueAfterError)
 				Expect(ok).To(BeTrue())
@@ -1040,7 +1040,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 				if tc.Host != nil {
 					err := c.Get(context.TODO(), key, &host)
-					Expect(err).To(Succeed())
+					Expect(err).NotTo(HaveOccurred())
 				}
 
 				name := ""
@@ -1178,10 +1178,10 @@ var _ = Describe("BareMetalMachine manager", func() {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 					&tc.BMMachine, klogr.New(),
 				)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = machineMgr.updateMachineStatus(context.TODO(), tc.Host)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				key := client.ObjectKey{
 					Name:      tc.BMMachine.ObjectMeta.Name,
@@ -1189,7 +1189,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				}
 				bmmachine := capbm.BareMetalMachine{}
 				err = c.Get(context.TODO(), key, &bmmachine)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				if tc.BMMachine.Status.Addresses != nil {
 					for i, address := range tc.ExpectedMachine.Status.Addresses {
@@ -1396,11 +1396,11 @@ var _ = Describe("BareMetalMachine manager", func() {
 				machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine,
 					&tc.BMMachine, klogr.New(),
 				)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				if tc.Host != nil {
 					nodeAddresses = machineMgr.nodeAddresses(tc.Host)
-					Expect(err).To(Succeed())
+					Expect(err).NotTo(HaveOccurred())
 				}
 				for i, address := range tc.ExpectedNodeAddresses {
 					Expect(nodeAddresses[i]).To(Equal(address))
@@ -1487,7 +1487,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					),
 					&capi.Machine{}, &capbm.BareMetalMachine{}, klogr.New(),
 				)
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				err = machineMgr.SetNodeProviderID(tc.HostID,
 					tc.ExpectedProviderID, mockCapiClientGetter,
@@ -1497,12 +1497,12 @@ var _ = Describe("BareMetalMachine manager", func() {
 					Expect(err).To(HaveOccurred())
 					return
 				} else {
-					Expect(err).To(Succeed())
+					Expect(err).NotTo(HaveOccurred())
 				}
 
 				// get the node
 				node, err := corev1Client.Nodes().Get(tc.Node.Name, metav1.GetOptions{})
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 
 				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
 			},
@@ -1563,11 +1563,11 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 				tc.BMMachine, klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.Associate(context.TODO())
 			if !tc.ExpectRequeue {
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			} else {
 				_, ok := errors.Cause(err).(HasRequeueAfterError)
 				Expect(ok).To(BeTrue())
@@ -1637,10 +1637,10 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 				tc.BMMachine, klogr.New(),
 			)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.Update(context.TODO())
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 		},
 		Entry("Update machine", testCaseUpdate{
 			Machine: newMachine("mymachine", "", nil),

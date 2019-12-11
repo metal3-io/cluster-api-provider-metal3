@@ -102,7 +102,7 @@ var _ = Describe("BareMetalCluster manager", func() {
 	DescribeTable("Test Finalizers",
 		func(tc testCaseBMClusterManager) {
 			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			clusterMgr.SetFinalizer()
 
@@ -143,7 +143,7 @@ var _ = Describe("BareMetalCluster manager", func() {
 	DescribeTable("Test setting and clearing errors",
 		func(tc testCaseBMClusterManager) {
 			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			clusterMgr.setError("abc", capierrors.InvalidConfigurationClusterError)
 
@@ -176,11 +176,11 @@ var _ = Describe("BareMetalCluster manager", func() {
 	DescribeTable("Test BM cluster Delete",
 		func(tc testCaseBMClusterManager) {
 			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 			err = clusterMgr.Delete()
 
 			if tc.ExpectSuccess {
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			} else {
 				Expect(err).To(HaveOccurred())
 			}
@@ -195,13 +195,13 @@ var _ = Describe("BareMetalCluster manager", func() {
 	DescribeTable("Test BMCluster Create",
 		func(tc testCaseBMClusterManager) {
 			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterMgr).NotTo(BeNil())
 
 			err = clusterMgr.Create(context.TODO())
 
 			if tc.ExpectSuccess {
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			} else {
 				Expect(err).To(HaveOccurred())
 			}
@@ -248,11 +248,11 @@ var _ = Describe("BareMetalCluster manager", func() {
 	DescribeTable("Test BMCluster Update",
 		func(tc testCaseBMClusterManager) {
 			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 			Expect(clusterMgr).NotTo(BeNil())
 
 			err = clusterMgr.UpdateClusterStatus()
-			Expect(err).To(Succeed())
+			Expect(err).NotTo(HaveOccurred())
 
 			apiEndPoints := tc.BMCluster.Status.APIEndpoints
 			if tc.ExpectSuccess {
@@ -331,7 +331,7 @@ var _ = Describe("BareMetalCluster manager", func() {
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
 			} else {
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			}
 
 			Expect(len(descendants.Items)).To(Equal(tc.ExpectedDescendants))
@@ -347,7 +347,7 @@ var _ = Describe("BareMetalCluster manager", func() {
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
 			} else {
-				Expect(err).To(Succeed())
+				Expect(err).NotTo(HaveOccurred())
 			}
 
 			Expect(nbDescendants).To(Equal(tc.ExpectedDescendants))
