@@ -12,4 +12,6 @@
 *.out
 
 bin/*
-provider-components.yaml
+hack/tools/bin/*
+examples/_out/*
+examples/provider-components/provider-components-*
