@@ -120,14 +120,19 @@ var _ = AfterSuite(func() {
 
 var deletionTimestamp = metav1.Now()
 
-var bmcSpec = &infrav1.BareMetalClusterSpec{
-	APIEndpoint: "http://192.168.111.249:6443",
+func bmcSpec() *infrav1.BareMetalClusterSpec {
+	return &infrav1.BareMetalClusterSpec{
+		APIEndpoint:     "http://192.168.111.249:6443",
+		NoCloudProvider: true,
+	}
 }
 
-var bmcOwnerRef = &metav1.OwnerReference{
-	APIVersion: clusterv1.GroupVersion.String(),
-	Kind:       "Cluster",
-	Name:       clusterName,
+func bmcOwnerRef() *metav1.OwnerReference {
+	return &metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       clusterName,
+	}
 }
 
 func contains(haystack []string, needle string) bool {

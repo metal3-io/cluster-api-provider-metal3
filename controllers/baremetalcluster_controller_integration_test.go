@@ -99,7 +99,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Entry("Should return en error when cluster is not found",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil),
 				},
 				ErrorExpected:       true,
 				ErrorReasonExpected: true,
@@ -122,7 +122,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Entry("Should return an error if APIEndpoint is not set",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, nil, nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), nil, nil),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:       true,
@@ -136,7 +136,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Entry("Should not return an error when mandatory fields are provided",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
@@ -155,9 +155,9 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 							Name:              baremetalClusterName,
 							Namespace:         namespaceName,
 							DeletionTimestamp: &deletionTimestamp,
-							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef},
+							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef()},
 						},
-						Spec: *bmcSpec,
+						Spec: *bmcSpec(),
 					},
 					newCluster(clusterName, nil, nil),
 				},
@@ -177,9 +177,9 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 							Name:              baremetalClusterName,
 							Namespace:         namespaceName,
 							DeletionTimestamp: &deletionTimestamp,
-							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef},
+							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef()},
 						},
-						Spec: *bmcSpec,
+						Spec: *bmcSpec(),
 					},
 					newCluster(clusterName, nil, nil),
 					newMachine(clusterName, machineName, ""),
