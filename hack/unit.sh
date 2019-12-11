@@ -3,18 +3,21 @@
 set -eux
 
 IS_CONTAINER=${IS_CONTAINER:-false}
-ARTIFACTS=${ARTIFACTS:-/tmp}
+CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
-  eval "$(go env)"
-  cd "${GOPATH}"/src/github.com/metal3-io/cluster-api-provider-baremetal
-  go test ./pkg/... ./cmd/... -coverprofile "${ARTIFACTS}"/cover.out
+  export XDG_CACHE_HOME=/tmp/.cache
+  mkdir /tmp/unit
+  cp -r ./* /tmp/unit
+  cp -r /usr/local/kubebuilder/bin /tmp/unit/hack/tools
+  cd /tmp/unit
+  make test
 else
-  podman run --rm \
+  "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
-    --volume "${PWD}:/root/go/src/github.com/metal3-io/cluster-api-provider-baremetal:ro,z" \
+    --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-baremetal:ro,z" \
     --entrypoint sh \
-    --workdir /root/go/src/github.com/metal3-io/cluster-api-provider-baremetal \
-    quay.io/metal3-io/capbm-unit \
-    /root/go/src/github.com/metal3-io/cluster-api-provider-baremetal/hack/unit.sh "${@}"
+    --workdir /go/src/github.com/metal3-io/cluster-api-provider-baremetal \
+    quay.io/metal3-io/capbm-unit:v1alpha2 \
+    /go/src/github.com/metal3-io/cluster-api-provider-baremetal/hack/unit.sh "${@}"
 fi;

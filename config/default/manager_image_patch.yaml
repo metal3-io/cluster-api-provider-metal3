@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: controller-manager
   namespace: system
@@ -7,5 +7,6 @@ spec:
   template:
     spec:
       containers:
-      - image: quay.io/metal3-io/cluster-api-provider-baremetal:master
+      # Change the value of image field below to your controller image URL
+      - image: quay.io/metal3-io/cluster-api-provider-baremetal:v1alpha2
         name: manager
