@@ -36,12 +36,16 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var bmcSpec = &infrav1.BareMetalClusterSpec{
-	APIEndpoint: "http://192.168.111.249:6443",
+func bmcSpec() *infrav1.BareMetalClusterSpec {
+	return &infrav1.BareMetalClusterSpec{
+		APIEndpoint: "http://192.168.111.249:6443",
+	}
 }
 
-var bmcSpecApiEmpty = &infrav1.BareMetalClusterSpec{
-	APIEndpoint: "",
+func bmcSpecApiEmpty() *infrav1.BareMetalClusterSpec {
+	return &infrav1.BareMetalClusterSpec{
+		APIEndpoint: "",
+	}
 }
 
 type testCaseBMClusterManager struct {
@@ -203,8 +207,10 @@ var _ = Describe("BareMetalCluster manager", func() {
 			}
 		},
 		Entry("Cluster and BMCluster exist", testCaseBMClusterManager{
-			Cluster:       newCluster(clusterName),
-			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			Cluster: newCluster(clusterName),
+			BMCluster: newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+				bmcSpec(), nil,
+			),
 			ExpectSuccess: true,
 		}),
 		Entry("Cluster exists, BMCluster empty", testCaseBMClusterManager{
@@ -213,20 +219,30 @@ var _ = Describe("BareMetalCluster manager", func() {
 			ExpectSuccess: false,
 		}),
 		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{
-			Cluster:       &clusterv1.Cluster{},
-			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			Cluster: &clusterv1.Cluster{},
+			BMCluster: newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+				bmcSpec(), nil,
+			),
 			ExpectSuccess: true,
 		}),
-		Entry("Cluster empty, BMCluster exists without owner", testCaseBMClusterManager{
-			Cluster:       &clusterv1.Cluster{},
-			BMCluster:     newBareMetalCluster(baremetalClusterName, nil, bmcSpec, nil),
-			ExpectSuccess: true,
-		}),
-		Entry("Cluster and BMCluster exist, BMC spec API empty", testCaseBMClusterManager{
-			Cluster:       newCluster(clusterName),
-			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpecApiEmpty, nil),
-			ExpectSuccess: false,
-		}),
+		Entry("Cluster empty, BMCluster exists without owner",
+			testCaseBMClusterManager{
+				Cluster: &clusterv1.Cluster{},
+				BMCluster: newBareMetalCluster(baremetalClusterName, nil,
+					bmcSpec(), nil,
+				),
+				ExpectSuccess: true,
+			},
+		),
+		Entry("Cluster and BMCluster exist, BMC spec API empty",
+			testCaseBMClusterManager{
+				Cluster: newCluster(clusterName),
+				BMCluster: newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+					bmcSpecApiEmpty(), nil,
+				),
+				ExpectSuccess: false,
+			},
+		),
 	)
 
 	DescribeTable("Test BMCluster Update",
@@ -247,8 +263,10 @@ var _ = Describe("BareMetalCluster manager", func() {
 			}
 		},
 		Entry("Cluster and BMCluster exist", testCaseBMClusterManager{
-			Cluster:       newCluster(clusterName),
-			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			Cluster: newCluster(clusterName),
+			BMCluster: newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+				bmcSpec(), nil,
+			),
 			ExpectSuccess: true,
 		}),
 		Entry("Cluster exists, BMCluster empty", testCaseBMClusterManager{
@@ -257,20 +275,30 @@ var _ = Describe("BareMetalCluster manager", func() {
 			ExpectSuccess: false,
 		}),
 		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{
-			Cluster:       &clusterv1.Cluster{},
-			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpec, nil),
+			Cluster: &clusterv1.Cluster{},
+			BMCluster: newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+				bmcSpec(), nil,
+			),
 			ExpectSuccess: true,
 		}),
-		Entry("Cluster empty, BMCluster exists without owner", testCaseBMClusterManager{
-			Cluster:       &clusterv1.Cluster{},
-			BMCluster:     newBareMetalCluster(baremetalClusterName, nil, bmcSpec, nil),
-			ExpectSuccess: true,
-		}),
-		Entry("Cluster and BMCluster exist, BMC spec API empty", testCaseBMClusterManager{
-			Cluster:       newCluster(clusterName),
-			BMCluster:     newBareMetalCluster(baremetalClusterName, bmcOwnerRef, bmcSpecApiEmpty, nil),
-			ExpectSuccess: false,
-		}),
+		Entry("Cluster empty, BMCluster exists without owner",
+			testCaseBMClusterManager{
+				Cluster: &clusterv1.Cluster{},
+				BMCluster: newBareMetalCluster(baremetalClusterName, nil, bmcSpec(),
+					nil,
+				),
+				ExpectSuccess: true,
+			},
+		),
+		Entry("Cluster and BMCluster exist, BMC spec API empty",
+			testCaseBMClusterManager{
+				Cluster: newCluster(clusterName),
+				BMCluster: newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
+					bmcSpecApiEmpty(), nil,
+				),
+				ExpectSuccess: false,
+			},
+		),
 	)
 
 	var descendantsTestCases = []TableEntry{
