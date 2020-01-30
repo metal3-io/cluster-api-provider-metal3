@@ -297,7 +297,7 @@ spec:
 
 ## MachineDeployment
 
-BaremetalMachineDeployment is a core Cluster API object that is similar to
+MachineDeployment is a core Cluster API object that is similar to
 deployment for pods. It refers to a KubeadmConfigTemplate and to a
 BareMetalMachineTemplate.
 
