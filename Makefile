@@ -260,28 +260,12 @@ set-manifest-pull-policy:
 ## Deploying
 ## --------------------------------------
 
-manifests: generate-manifests $(KUSTOMIZE)
-	$(KUSTOMIZE) build config/default \
-		-o examples/provider-components/provider-components-baremetal.yaml
-	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/default/?ref=master" \
-		-o examples/provider-components/provider-components-kubeadm.yaml
-	# JEB: Be sure to override the image in in the provider-components/kustomization.yaml
-	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=master" \
-		-o examples/provider-components/provider-components-cluster-api.yaml
-
-
-unit: manifests
-	go test ./api/... ./controllers/... ./baremetal/... -coverprofile cover.out
-
-unit-cover-html: unit
-	go tool cover -html=cover.out
-
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet install
 	go run ./main.go
 
 # Install CRDs into a cluster
-install: manifests
+install:
 	kubectl apply -k config/crd
 
 #Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
@@ -290,7 +274,7 @@ deploy-bmo-cr: generate-examples
 	kubectl apply -f ./examples/_out/metal3plane.yaml
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests generate-examples
+deploy: generate-examples
 	kubectl apply -f examples/_out/provider-components.yaml
 
 deploy-examples: generate-examples
