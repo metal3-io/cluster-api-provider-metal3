@@ -36,11 +36,11 @@ metadata:
   name: ${CLUSTER_NAME}-md-0
 spec:
   template:
-    clusterName: ${CLUSTER_NAME}
     spec:
       image:
         url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
         checksum: "97830b21ed272a3d854615beb54cf004"
+      clusterName: ${CLUSTER_NAME} 
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate

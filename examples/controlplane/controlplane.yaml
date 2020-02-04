@@ -23,6 +23,7 @@ kind: BareMetalMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
 spec:
+  clusterName: ${CLUSTER_NAME}
   image:
     url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
     checksum: "97830b21ed272a3d854615beb54cf004"
@@ -70,6 +71,7 @@ kind: BareMetalMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-1
 spec:
+  clusterName: ${CLUSTER_NAME}
   image:
     url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
     checksum: "97830b21ed272a3d854615beb54cf004"
@@ -111,6 +113,7 @@ kind: BareMetalMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-2
 spec:
+  clusterName: ${CLUSTER_NAME}
   image:
     url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
     checksum: "97830b21ed272a3d854615beb54cf004"
