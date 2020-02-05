@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	// MachineFinalizer allows ReconcileBareMetalMachine to clean up resources associated with AWSMachine before
+	// MachineFinalizer allows ReconcileBareMetalMachine to clean up resources associated with BareMetalMachine before
 	// removing it from the apiserver.
 	MachineFinalizer = "baremetalmachine.infrastructure.cluster.x-k8s.io"
 )
@@ -91,9 +91,9 @@ type BareMetalMachineStatus struct {
 	// spec, values that are unsupported by the controller, or the
 	// responsible controller itself being critically misconfigured.
 	//
-	// Any transient errors that occur during the reconciliation of Machines
-	// can be added as events to the BaremetalMachine object and/or logged in the
-	// controller's output.
+	// Any transient errors that occur during the reconciliation of
+	// BaremetalMachines can be added as events to the BaremetalMachine object
+	// and/or logged in the controller's output.
 	// +optional
 	FailureReason *capierrors.MachineStatusError `json:"failureReason,omitempty"`
 
@@ -110,9 +110,9 @@ type BareMetalMachineStatus struct {
 	// spec, values that are unsupported by the controller, or the
 	// responsible controller itself being critically misconfigured.
 	//
-	// Any transient errors that occur during the reconciliation of Machines
-	// can be added as events to the BaremetalMachine object and/or logged in the
-	// controller's output.
+	// Any transient errors that occur during the reconciliation of
+	// BaremetalMachines can be added as events to the BaremetalMachine object
+	// and/or logged in the controller's output.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
@@ -142,6 +142,7 @@ type BareMetalMachineStatus struct {
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="BaremetalMachine is Ready"
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this BMMachine belongs"
+// +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="BaremetalMachine current phase"
 
 // BareMetalMachine is the Schema for the baremetalmachines API
 type BareMetalMachine struct {

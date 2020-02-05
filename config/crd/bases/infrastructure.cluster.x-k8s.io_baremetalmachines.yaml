@@ -211,6 +211,10 @@ spec:
       description: Cluster to which this BMMachine belongs
       name: Cluster
       type: string
+    - JSONPath: .status.phase
+      description: BaremetalMachine current phase
+      name: Phase
+      type: string
     name: v1alpha3
     schema:
       openAPIV3Schema:
@@ -339,9 +343,9 @@ spec:
                   terminal errors would be invalid combinations of settings in the
                   spec, values that are unsupported by the controller, or the responsible
                   controller itself being critically misconfigured. \n Any transient
-                  errors that occur during the reconciliation of Machines can be added
-                  as events to the BaremetalMachine object and/or logged in the controller's
-                  output."
+                  errors that occur during the reconciliation of BaremetalMachines
+                  can be added as events to the BaremetalMachine object and/or logged
+                  in the controller's output."
                 type: string
               failureReason:
                 description: "FailureReason will be set in the event that there is
@@ -355,8 +359,8 @@ spec:
                   would be invalid combinations of settings in the spec, values that
                   are unsupported by the controller, or the responsible controller
                   itself being critically misconfigured. \n Any transient errors that
-                  occur during the reconciliation of Machines can be added as events
-                  to the BaremetalMachine object and/or logged in the controller's
+                  occur during the reconciliation of BaremetalMachines can be added
+                  as events to the BaremetalMachine object and/or logged in the controller's
                   output."
                 type: string
               lastUpdated:

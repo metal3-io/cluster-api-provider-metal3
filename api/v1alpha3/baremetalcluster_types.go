@@ -90,6 +90,7 @@ type BareMetalClusterStatus struct {
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="BaremetalCluster is Ready"
 // +kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.failureReason",description="Most recent error"
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this BMCluster belongs"
+// +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint",description="Control plane endpoint"
 
 // BareMetalCluster is the Schema for the baremetalclusters API
 type BareMetalCluster struct {

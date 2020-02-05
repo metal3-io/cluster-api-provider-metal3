@@ -142,6 +142,10 @@ spec:
       description: Cluster to which this BMCluster belongs
       name: Cluster
       type: string
+    - JSONPath: .spec.controlPlaneEndpoint
+      description: Control plane endpoint
+      name: Endpoint
+      type: string
     name: v1alpha3
     schema:
       openAPIV3Schema:
