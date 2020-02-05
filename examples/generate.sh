@@ -34,7 +34,7 @@ export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
 
 # Outputs.
-COMPONENTS_CERT_MANAGER_GENERATED_FILE=${SOURCE_DIR}/provider-components/cert-manager.yaml
+COMPONENTS_CERT_MANAGER_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-cert-manager.yaml
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-cluster-api.yaml
 COMPONENTS_KUBEADM_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-kubeadm.yaml
 COMPONENTS_CTRLPLANE_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-ctlplane.yaml
