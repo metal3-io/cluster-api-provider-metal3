@@ -12,6 +12,9 @@ spec:
     - cluster-api
     kind: BareMetalMachine
     plural: baremetalmachines
+    shortNames:
+    - bmm
+    - bmmachine
   scope: Namespaced
   subresources:
     status: {}
@@ -203,6 +206,10 @@ spec:
     - JSONPath: .status.ready
       description: BaremetalMachine is Ready
       name: Ready
+      type: string
+    - JSONPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      description: Cluster to which this BMMachine belongs
+      name: Cluster
       type: string
     name: v1alpha3
     schema:

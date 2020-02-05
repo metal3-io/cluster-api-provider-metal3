@@ -135,12 +135,13 @@ type BareMetalMachineStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:path=baremetalmachines,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=baremetalmachines,scope=Namespaced,categories=cluster-api,shortName=bmm;bmmachine
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="BaremetalMachine is Ready"
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this BMMachine belongs"
 
 // BareMetalMachine is the Schema for the baremetalmachines API
 type BareMetalMachine struct {

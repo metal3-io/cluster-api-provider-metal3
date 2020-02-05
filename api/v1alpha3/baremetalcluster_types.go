@@ -37,7 +37,7 @@ type BareMetalClusterSpec struct {
 
 	// ClusterName is the name of the Cluster this object belongs to.
 	// +kubebuilder:validation:MinLength=1
-	ClusterName     string `json:"clusterName"`
+	ClusterName string `json:"clusterName"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
@@ -83,12 +83,13 @@ type BareMetalClusterStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:path=baremetalclusters,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=baremetalclusters,scope=Namespaced,categories=cluster-api,shortName=bmc;bmcluster
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="BaremetalCluster is Ready"
 // +kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.failureReason",description="Most recent error"
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this BMCluster belongs"
 
 // BareMetalCluster is the Schema for the baremetalclusters API
 type BareMetalCluster struct {

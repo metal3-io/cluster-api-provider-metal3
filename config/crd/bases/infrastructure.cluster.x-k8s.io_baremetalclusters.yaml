@@ -12,6 +12,9 @@ spec:
     - cluster-api
     kind: BareMetalCluster
     plural: baremetalclusters
+    shortNames:
+    - bmc
+    - bmcluster
   scope: Namespaced
   subresources:
     status: {}
@@ -134,6 +137,10 @@ spec:
     - JSONPath: .status.failureReason
       description: Most recent error
       name: Error
+      type: string
+    - JSONPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
+      description: Cluster to which this BMCluster belongs
+      name: Cluster
       type: string
     name: v1alpha3
     schema:
