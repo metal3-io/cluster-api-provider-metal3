@@ -275,6 +275,10 @@ deploy-bmo-cr: generate-examples
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: generate-examples
+	kubectl apply -f examples/_out/cert-manager.yaml
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-cainjector
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-webhook
 	kubectl apply -f examples/_out/provider-components.yaml
 
 deploy-examples: generate-examples

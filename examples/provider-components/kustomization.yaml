@@ -1,7 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- provider-components-cert-manager.yaml
 - provider-components-ctlplane.yaml
 - provider-components-kubeadm.yaml
 - provider-components-cluster-api.yaml
