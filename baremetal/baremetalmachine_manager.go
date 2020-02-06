@@ -216,6 +216,8 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		m.Log.Info("Machine already associated with host", "host", host.Name)
 	}
 
+	// A machine bootstrap not ready case is caught in the controller
+	// ReconcileNormal function
 	err = m.mergeUserData(ctx)
 	if err != nil {
 		m.setError("Failed to set the UserData for the BareMetalMachine",
@@ -246,6 +248,17 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 // Merge the UserData from the machine and the user
 func (m *MachineManager) mergeUserData(ctx context.Context) error {
+
+	// if datasecretname is set pass it to userdata
+	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
+		m.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
+			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
+			Namespace: m.Machine.Namespace,
+		}
+		return nil
+	}
+
+	// if datasecretname is not set
 	if m.Machine.Spec.Bootstrap.Data != nil {
 		decodedUserDataBytes, err := base64.StdEncoding.DecodeString(*m.Machine.Spec.Bootstrap.Data)
 		decodedUserData := string(decodedUserDataBytes)
@@ -334,7 +347,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		waiting := true
 		switch host.Status.Provisioning.State {
-		// TODO? remove empty string that is the status without BMO running
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
 			bmh.StateReady, bmh.StateValidationError, bmh.StateNone:
@@ -360,26 +372,28 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 	}
 
-	m.Log.Info("Deleting User data secret for machine")
-	tmpBootstrapSecret := corev1.Secret{}
-	key := client.ObjectKey{
-		Name:      m.BareMetalMachine.Name + "-user-data",
-		Namespace: m.BareMetalMachine.Namespace,
-	}
-	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-	if err != nil && !apierrors.IsNotFound(err) {
-		m.setError("Failed to delete BareMetalMachine",
-			capierrors.DeleteMachineError,
-		)
-		return err
-	} else if err == nil {
-		// Delete the secret with use data
-		err = m.client.Delete(ctx, &tmpBootstrapSecret)
-		if err != nil {
+	if m.Machine.Spec.Bootstrap.DataSecretName == nil {
+		m.Log.Info("Deleting User data secret for machine")
+		tmpBootstrapSecret := corev1.Secret{}
+		key := client.ObjectKey{
+			Name:      m.BareMetalMachine.Name + "-user-data",
+			Namespace: m.BareMetalMachine.Namespace,
+		}
+		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
+		if err != nil && !apierrors.IsNotFound(err) {
 			m.setError("Failed to delete BareMetalMachine",
 				capierrors.DeleteMachineError,
 			)
 			return err
+		} else if err == nil {
+			// Delete the secret with use data
+			err = m.client.Delete(ctx, &tmpBootstrapSecret)
+			if err != nil {
+				m.setError("Failed to delete BareMetalMachine",
+					capierrors.DeleteMachineError,
+				)
+				return err
+			}
 		}
 	}
 	m.Log.Info("finished deleting bare metal machine")

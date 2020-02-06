@@ -166,7 +166,8 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, err
 	}
 
-	// Make sure bootstrap data is available and populated.
+	// Make sure bootstrap data is available and populated. If not, return, we
+	// will get an event from the machine update when the flag is set to true.
 	if !machineMgr.IsBootstrapReady() {
 		return ctrl.Result{}, nil
 	}
