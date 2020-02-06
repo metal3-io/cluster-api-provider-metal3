@@ -218,7 +218,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// A machine bootstrap not ready case is caught in the controller
 	// ReconcileNormal function
-	err = m.mergeUserData(ctx)
+	err = m.GetUserData(ctx)
 	if err != nil {
 		m.setError("Failed to set the UserData for the BareMetalMachine",
 			capierrors.CreateMachineError,
@@ -247,7 +247,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 }
 
 // Merge the UserData from the machine and the user
-func (m *MachineManager) mergeUserData(ctx context.Context) error {
+func (m *MachineManager) GetUserData(ctx context.Context) error {
 
 	// if datasecretname is set pass it to userdata
 	if m.Machine.Spec.Bootstrap.DataSecretName != nil {

@@ -32,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientfake "k8s.io/client-go/kubernetes/fake"
@@ -64,7 +65,7 @@ func bmmSpecAll() *capbm.BareMetalMachineSpec {
 	return &capbm.BareMetalMachineSpec{
 		ProviderID: &ProviderID,
 		UserData: &corev1.SecretReference{
-			Name:      "mybmmachine",
+			Name:      "mybmmachine-user-data",
 			Namespace: "myns",
 		},
 		Image: capbm.Image{
@@ -78,7 +79,7 @@ func bmmSpecAll() *capbm.BareMetalMachineSpec {
 func bmmSecret() *capbm.BareMetalMachineSpec {
 	return &capbm.BareMetalMachineSpec{
 		UserData: &corev1.SecretReference{
-			Name:      "mybmmachine",
+			Name:      "mybmmachine-user-data",
 			Namespace: "myns",
 		},
 	}
@@ -939,8 +940,6 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			annotations := bmmachine.ObjectMeta.GetAnnotations()
-			// annotations := tc.BMMachine.ObjectMeta.GetAnnotations()
-			fmt.Println(annotations)
 			if !tc.ExpectAnnotation {
 				Expect(annotations).To(BeNil())
 			} else {
@@ -1000,21 +999,24 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 	type testCaseDelete struct {
 		Host                *bmh.BareMetalHost
+		Secret              *corev1.Secret
 		Machine             *capi.Machine
 		BMMachine           *capbm.BareMetalMachine
 		ExpectedConsumerRef *corev1.ObjectReference
 		ExpectedResult      error
+		ExpectSecretDeleted bool
 	}
 
 	DescribeTable("Test Delete function",
 		func(tc testCaseDelete) {
 			objects := []runtime.Object{tc.BMMachine}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
-
 			if tc.Host != nil {
-				err := c.Create(context.TODO(), tc.Host)
-				Expect(err).NotTo(HaveOccurred())
+				objects = append(objects, tc.Host)
 			}
+			if tc.Secret != nil {
+				objects = append(objects, tc.Secret)
+			}
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
 				tc.BMMachine, klogr.New(),
@@ -1053,59 +1055,80 @@ var _ = Describe("BareMetalMachine manager", func() {
 				}
 				Expect(name).To(Equal(expectedName))
 			}
+
+			tmpBootstrapSecret := corev1.Secret{}
+			key := client.ObjectKey{
+				Name:      tc.BMMachine.Spec.UserData.Name,
+				Namespace: tc.BMMachine.Spec.UserData.Namespace,
+			}
+			err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
+			// Just giving a secret with correct name should trigger the deletion
+			// since DataSecretName is empty by default
+			if tc.ExpectSecretDeleted {
+				Expect(err).To(HaveOccurred())
+				Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 		},
 		Entry("Deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmh.StateProvisioned, bmhStatus(), false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{},
+			Secret:              newSecret(),
 		}),
 		Entry("No Host status, deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(), bmh.StateNone,
 				nil, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{},
+			Secret:              newSecret(),
 		}),
 		Entry("No Host status, no deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
 				false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: true,
 		}),
 		Entry("Deprovisioning in progress", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
 				bmh.StateDeprovisioning, bmhStatus(), false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
+			Secret:              newSecret(),
 		}),
 		Entry("Externally provisioned host should be powered down", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
 				bmh.StateExternallyProvisioned, bmhPowerStatus(), true,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
+			Secret:              newSecret(),
 		}),
 		Entry("Consumer ref should be removed from externally provisioned host",
 			testCaseDelete{
@@ -1116,6 +1139,8 @@ var _ = Describe("BareMetalMachine manager", func() {
 				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
+				Secret:              newSecret(),
+				ExpectSecretDeleted: true,
 			},
 		),
 		Entry("Consumer ref should be removed", testCaseDelete{
@@ -1126,6 +1151,8 @@ var _ = Describe("BareMetalMachine manager", func() {
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: true,
 		}),
 		Entry("Consumer ref does not match, so it should not be removed",
 			testCaseDelete{
@@ -1133,25 +1160,50 @@ var _ = Describe("BareMetalMachine manager", func() {
 					bmh.StateProvisioned, bmhStatus(), false,
 				),
 				Machine: newMachine("", "", nil),
-				BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				ExpectedConsumerRef: consumerRefSome(),
+				Secret:              newSecret(),
 			},
 		),
 		Entry("No consumer ref, so this is a no-op", testCaseDelete{
 			Host:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
 			Machine: newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: true,
 		}),
 		Entry("No host at all, so this is a no-op", testCaseDelete{
 			Host:    nil,
 			Machine: newMachine("", "", nil),
-			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: true,
+		}),
+		Entry("dataSecretName set, not deleting secret", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
+				false,
+			),
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						DataSecretName: pointer.StringPtr("mybmmachine-user-data"),
+					},
+				},
+			},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: false,
 		}),
 	)
 
@@ -1542,6 +1594,123 @@ var _ = Describe("BareMetalMachine manager", func() {
 		)
 	})
 
+	type testCaseGetUserData struct {
+		Machine     *capi.Machine
+		BMMachine   *capbm.BareMetalMachine
+		Secret      *corev1.Secret
+		ExpectError bool
+	}
+
+	DescribeTable("Test GetUserData function",
+		func(tc testCaseGetUserData) {
+			objects := []runtime.Object{
+				tc.BMMachine,
+				tc.Machine,
+			}
+			if tc.Secret != nil {
+				objects = append(objects, tc.Secret)
+			}
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+
+			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
+				tc.BMMachine, klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.GetUserData(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			if tc.Machine.Spec.Bootstrap.DataSecretName != nil {
+				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
+					*tc.Machine.Spec.Bootstrap.DataSecretName,
+				))
+				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
+					tc.Machine.Namespace,
+				))
+				return
+			}
+			if tc.Machine.Spec.Bootstrap.DataSecretName == nil {
+				return
+			}
+			Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
+				tc.BMMachine.Name + "-user-data",
+			))
+			Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
+				tc.BMMachine.Namespace,
+			))
+			tmpBootstrapSecret := corev1.Secret{}
+			key := client.ObjectKey{
+				Name:      tc.BMMachine.Spec.UserData.Name,
+				Namespace: tc.BMMachine.Namespace,
+			}
+			err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tmpBootstrapSecret.Data["userData"]).To(Equal([]byte("FooBar")))
+		},
+		Entry("Secret set in Machine", testCaseGetUserData{
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						DataSecretName: pointer.StringPtr("Foobar"),
+					},
+				},
+			},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+		}),
+		Entry("Userdata set in Machine, secret exists", testCaseGetUserData{
+			Secret: newSecret(),
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						Data: pointer.StringPtr("Rm9vQmFyCg=="),
+					},
+				},
+			},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+		}),
+		Entry("Userdata set in Machine, no secret", testCaseGetUserData{
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						Data: pointer.StringPtr("Rm9vQmFyCg=="),
+					},
+				},
+			},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+		}),
+		Entry("Userdata set in Machine, invalid", testCaseGetUserData{
+			ExpectError: true,
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						Data: pointer.StringPtr("Rm9vQmFyCg="),
+					},
+				},
+			},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+		}),
+		Entry("No userData in Machine", testCaseGetUserData{
+			Machine:   &capi.Machine{},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+		}),
+	)
+
 	type testCaseAssociate struct {
 		Machine       *capi.Machine
 		Host          *bmh.BareMetalHost
@@ -1744,6 +1913,13 @@ func newBareMetalMachine(name string,
 		return &capbm.BareMetalMachine{}
 	}
 
+	if objMeta == nil {
+		objMeta = &metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "myns",
+		}
+	}
+
 	typeMeta := &metav1.TypeMeta{
 		Kind:       "BMMachine",
 		APIVersion: capbm.GroupVersion.String(),
@@ -1796,5 +1972,22 @@ func newBareMetalHost(name string,
 		ObjectMeta: *objMeta,
 		Spec:       *spec,
 		Status:     *status,
+	}
+}
+
+func newSecret() *corev1.Secret {
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "mybmmachine-user-data",
+			Namespace: "myns",
+		},
+		Data: map[string][]byte{
+			"userData": []byte("QmFyRm9vCg=="),
+		},
+		Type: "Opaque",
 	}
 }
