@@ -226,6 +226,19 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
+	err = m.setHostLabel(ctx, host)
+	if err != nil {
+		m.setError("Failed to set the Cluster label in the BareMetalHost",
+			capierrors.CreateMachineError,
+		)
+		return err
+	}
+
+	err = m.setBMCSecretLabel(ctx, host)
+	if err != nil {
+		m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
+	}
+
 	err = m.setHostSpec(ctx, host)
 	if err != nil {
 		m.setError("Failed to associate the BaremetalHost to the BareMetalMachine",
@@ -282,6 +295,9 @@ func (m *MachineManager) GetUserData(ctx context.Context) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.BareMetalMachine.Name + "-user-data",
 			Namespace: m.BareMetalMachine.Namespace,
+			Labels: map[string]string{
+				capi.ClusterLabelName: m.Machine.Spec.ClusterName,
+			},
 		},
 		Data: map[string][]byte{
 			"userData": decodedUserDataBytes,
@@ -370,12 +386,32 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		host.Spec.ConsumerRef = nil
+		host.Labels = nil
+
 		err = m.client.Update(ctx, host)
 		if err != nil && !apierrors.IsNotFound(err) {
 			m.setError("Failed to delete BareMetalMachine",
 				capierrors.DeleteMachineError,
 			)
 			return err
+		}
+
+		//Remove clusterLabel from BMC secret also
+		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
+		if errBMC != nil && apierrors.IsNotFound(errBMC) {
+			m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
+			return nil
+		}
+
+		if tmpBMCSecret != nil {
+			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
+			if tmpBMCSecret.Labels != nil {
+				tmpBMCSecret.Labels = nil
+			}
+			errBMC = m.client.Update(ctx, tmpBMCSecret)
+			if errBMC != nil {
+				return errBMC
+			}
 		}
 	}
 
@@ -572,6 +608,50 @@ func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capbm.BareM
 		return false
 	}
 	return true
+}
+
+// getBMCSecret will return the BMCSecret associated with BMH
+func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmh.BareMetalHost) (*corev1.Secret, error) {
+
+	tmpBMCSecret := corev1.Secret{}
+	key := host.CredentialsKey()
+	err := m.client.Get(ctx, key, &tmpBMCSecret)
+	if apierrors.IsNotFound(err) {
+		return nil, err
+	} else if err != nil {
+		m.Log.Info("Cannot retrieve BMC credential for BareMetalhost ", host.Name, err)
+		return nil, nil
+	}
+	return &tmpBMCSecret, nil
+}
+
+// setBMCSecretLabel will set the set cluster.x-k8s.io/cluster-name to BMCSecret
+func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmh.BareMetalHost) error {
+
+	tmpBMCSecret, err := m.getBMCSecret(ctx, host)
+	if err != nil {
+		return err
+	}
+
+	if tmpBMCSecret != nil {
+		if tmpBMCSecret.Labels == nil {
+			tmpBMCSecret.Labels = make(map[string]string)
+		}
+		tmpBMCSecret.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+	}
+
+	return m.client.Update(ctx, tmpBMCSecret)
+}
+
+// setHostLabel will set the set cluster.x-k8s.io/cluster-name to bmh
+func (m *MachineManager) setHostLabel(ctx context.Context, host *bmh.BareMetalHost) error {
+
+	if host.Labels == nil {
+		host.Labels = make(map[string]string)
+	}
+	host.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+
+	return m.client.Update(ctx, host)
 }
 
 // setHostSpec will ensure the host's Spec is set according to the machine's

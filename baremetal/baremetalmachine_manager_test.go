@@ -126,6 +126,16 @@ func bmhSpec() *bmh.BareMetalHostSpec {
 	}
 }
 
+func bmhSpecBMC() *bmh.BareMetalHostSpec {
+	return &bmh.BareMetalHostSpec{
+		ConsumerRef: consumerRef(),
+		BMC: bmh.BMCDetails{
+			Address:         "myAddress",
+			CredentialsName: "mycredentials",
+		},
+	}
+}
+
 func bmhSpecTestImg() *bmh.BareMetalHostSpec {
 	return &bmh.BareMetalHostSpec{
 		ConsumerRef: consumerRef(),
@@ -389,7 +399,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 			},
 		}
-		host2 := *newBareMetalHost("myhost", nil, bmh.StateNone, nil, false)
+		host2 := *newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false)
 
 		host3 := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
@@ -614,7 +624,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			UserDataNamespace:         "otherns",
 			ExpectedUserDataNamespace: "otherns",
 			Host: newBareMetalHost("host2", nil, bmh.StateNone,
-				nil, false,
+				nil, false, false,
 			),
 			ExpectedImage:  expectedImg(),
 			ExpectUserData: true,
@@ -623,7 +633,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
 			Host: newBareMetalHost("host2", nil, bmh.StateNone,
-				nil, false,
+				nil, false, false,
 			),
 			ExpectedImage:  expectedImg(),
 			ExpectUserData: true,
@@ -632,7 +642,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			UserDataNamespace:         "",
 			ExpectedUserDataNamespace: "myns",
 			Host: newBareMetalHost("host2", nil, bmh.StateNone,
-				nil, false,
+				nil, false, false,
 			),
 			ExpectedImage:  expectedImg(),
 			ExpectUserData: true,
@@ -642,7 +652,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				UserDataNamespace:         "",
 				ExpectedUserDataNamespace: "myns",
 				Host: newBareMetalHost("host2", bmhSpecTestImg(),
-					bmh.StateNone, nil, false,
+					bmh.StateNone, nil, false, false,
 				),
 				ExpectedImage:  expectedImgTest(),
 				ExpectUserData: false,
@@ -961,7 +971,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
-				false,
+				false, false,
 			),
 			ExpectAnnotation: true,
 		}),
@@ -971,7 +981,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithInvalidAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmh.StateNone,
-				nil, false,
+				nil, false, false,
 			),
 			ExpectAnnotation: true,
 		}),
@@ -981,7 +991,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaEmptyAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmh.StateNone,
-				nil, false,
+				nil, false, false,
 			),
 			ExpectAnnotation: true,
 		}),
@@ -991,20 +1001,22 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaNoAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmh.StateNone,
-				nil, false,
+				nil, false, false,
 			),
 			ExpectAnnotation: true,
 		}),
 	)
 
 	type testCaseDelete struct {
-		Host                *bmh.BareMetalHost
-		Secret              *corev1.Secret
-		Machine             *capi.Machine
-		BMMachine           *capbm.BareMetalMachine
-		ExpectedConsumerRef *corev1.ObjectReference
-		ExpectedResult      error
-		ExpectSecretDeleted bool
+		Host                      *bmh.BareMetalHost
+		Secret                    *corev1.Secret
+		Machine                   *capi.Machine
+		BMMachine                 *capbm.BareMetalMachine
+		BMCSecret                 *corev1.Secret
+		ExpectedConsumerRef       *corev1.ObjectReference
+		ExpectedResult            error
+		ExpectSecretDeleted       bool
+		ExpectClusterLabelDeleted bool
 	}
 
 	DescribeTable("Test Delete function",
@@ -1015,6 +1027,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 			}
 			if tc.Secret != nil {
 				objects = append(objects, tc.Secret)
+			}
+			if tc.BMCSecret != nil {
+				objects = append(objects, tc.BMCSecret)
 			}
 			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 
@@ -1068,10 +1083,35 @@ var _ = Describe("BareMetalMachine manager", func() {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
+
+			if tc.ExpectClusterLabelDeleted {
+				// get the saved host
+				savedHost := bmh.BareMetalHost{}
+				err = c.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      tc.Host.Name,
+						Namespace: tc.Host.Namespace,
+					},
+					&savedHost,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				// get the BMC credential
+				savedCred := corev1.Secret{}
+				err = c.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      savedHost.Spec.BMC.CredentialsName,
+						Namespace: savedHost.Namespace,
+					},
+					&savedCred,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedHost.Labels[capi.ClusterLabelName]).To(Equal(""))
+				Expect(savedCred.Labels[capi.ClusterLabelName]).To(Equal(""))
+			}
 		},
 		Entry("Deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
-				bmh.StateProvisioned, bmhStatus(), false,
+				bmh.StateProvisioned, bmhStatus(), false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1083,7 +1123,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		}),
 		Entry("No Host status, deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(), bmh.StateNone,
-				nil, false,
+				nil, false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1095,7 +1135,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		}),
 		Entry("No Host status, no deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
-				false,
+				false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1106,7 +1146,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		}),
 		Entry("Deprovisioning in progress", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
-				bmh.StateDeprovisioning, bmhStatus(), false,
+				bmh.StateDeprovisioning, bmhStatus(), false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1118,7 +1158,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		}),
 		Entry("Externally provisioned host should be powered down", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
-				bmh.StateExternallyProvisioned, bmhPowerStatus(), true,
+				bmh.StateExternallyProvisioned, bmhPowerStatus(), true, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1131,7 +1171,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		Entry("Consumer ref should be removed from externally provisioned host",
 			testCaseDelete{
 				Host: newBareMetalHost("myhost", bmhSpecNoImg(),
-					bmh.StateExternallyProvisioned, bmhPowerStatus(), false,
+					bmh.StateExternallyProvisioned, bmhPowerStatus(), false, false,
 				),
 				Machine: newMachine("mymachine", "", nil),
 				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1143,7 +1183,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		),
 		Entry("Consumer ref should be removed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateReady,
-				bmhStatus(), false,
+				bmhStatus(), false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1155,7 +1195,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		Entry("Consumer ref does not match, so it should not be removed",
 			testCaseDelete{
 				Host: newBareMetalHost("myhost", bmhSpecSomeImg(),
-					bmh.StateProvisioned, bmhStatus(), false,
+					bmh.StateProvisioned, bmhStatus(), false, false,
 				),
 				Machine: newMachine("", "", nil),
 				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
@@ -1166,7 +1206,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			},
 		),
 		Entry("No consumer ref, so this is a no-op", testCaseDelete{
-			Host:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			Host:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 			Machine: newMachine("", "", nil),
 			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
@@ -1185,7 +1225,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		}),
 		Entry("dataSecretName set, deleting secret", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
-				false,
+				false, false,
 			),
 			Machine: &capi.Machine{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1202,6 +1242,14 @@ var _ = Describe("BareMetalMachine manager", func() {
 			),
 			Secret:              newSecret(),
 			ExpectSecretDeleted: true,
+		}),
+		Entry("Clusterlabel should be removed", testCaseDelete{
+			Machine:                   newMachine("mymachine", "mybmmachine", nil),
+			BMMachine:                 newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil, bmmObjectMetaWithValidAnnotations()),
+			Host:                      newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, true),
+			BMCSecret:                 newBMCSecret("mycredentials", true),
+			ExpectSecretDeleted:       true,
+			ExpectClusterLabelDeleted: true,
 		}),
 	)
 
@@ -1717,10 +1765,12 @@ var _ = Describe("BareMetalMachine manager", func() {
 	)
 
 	type testCaseAssociate struct {
-		Machine       *capi.Machine
-		Host          *bmh.BareMetalHost
-		BMMachine     *capbm.BareMetalMachine
-		ExpectRequeue bool
+		Machine            *capi.Machine
+		Host               *bmh.BareMetalHost
+		BMMachine          *capbm.BareMetalMachine
+		BMCSecret          *corev1.Secret
+		ExpectRequeue      bool
+		ExpectClusterLabel bool
 	}
 
 	DescribeTable("Test Associate function",
@@ -1731,6 +1781,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 			}
 			if tc.Host != nil {
 				objects = append(objects, tc.Host)
+			}
+			if tc.BMCSecret != nil {
+				objects = append(objects, tc.BMCSecret)
 			}
 			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 
@@ -1746,6 +1799,30 @@ var _ = Describe("BareMetalMachine manager", func() {
 				_, ok := errors.Cause(err).(HasRequeueAfterError)
 				Expect(ok).To(BeTrue())
 			}
+			if tc.ExpectClusterLabel {
+				// get the saved host
+				savedHost := bmh.BareMetalHost{}
+				err = c.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      tc.Host.Name,
+						Namespace: tc.Host.Namespace,
+					},
+					&savedHost,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				// get the BMC credential
+				savedCred := corev1.Secret{}
+				err = c.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      savedHost.Spec.BMC.CredentialsName,
+						Namespace: savedHost.Namespace,
+					},
+					&savedCred,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedHost.Labels[capi.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
+				Expect(savedCred.Labels[capi.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
+			}
 		},
 		Entry("Associate empty machine, baremetal machine spec nil",
 			testCaseAssociate{
@@ -1754,7 +1831,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
-					false,
+					false, false,
 				),
 				ExpectRequeue: false,
 			},
@@ -1766,7 +1843,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
-					false,
+					false, false,
 				),
 				ExpectRequeue: false,
 			},
@@ -1777,7 +1854,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
-				Host:          newBareMetalHost("", nil, bmh.StateNone, nil, false),
+				Host:          newBareMetalHost("", nil, bmh.StateNone, nil, false, false),
 				ExpectRequeue: false,
 			},
 		),
@@ -1789,6 +1866,16 @@ var _ = Describe("BareMetalMachine manager", func() {
 				),
 				Host:          nil,
 				ExpectRequeue: true,
+			},
+		),
+		Entry("Associate machine, host set, baremetal machine spec set, set clusterLabel",
+			testCaseAssociate{
+				Machine:            newMachine("mymachine", "mybmmachine", nil),
+				BMMachine:          newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil, nil),
+				Host:               newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, false),
+				BMCSecret:          newBMCSecret("mycredentials", false),
+				ExpectClusterLabel: true,
+				ExpectRequeue:      false,
 			},
 		),
 	)
@@ -1821,7 +1908,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
-			Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil, false),
+			Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
 	)
 })
@@ -1898,6 +1985,7 @@ func newMachine(machineName string, bareMetalMachineName string,
 			Namespace: "myns",
 		},
 		Spec: capi.MachineSpec{
+			ClusterName:       clusterName,
 			InfrastructureRef: *infraRef,
 			Bootstrap: capi.Bootstrap{
 				ConfigRef: &corev1.ObjectReference{},
@@ -1949,7 +2037,8 @@ func newBareMetalHost(name string,
 	spec *bmh.BareMetalHostSpec,
 	state bmh.ProvisioningState,
 	status *bmh.BareMetalHostStatus,
-	powerOn bool) *bmh.BareMetalHost {
+	powerOn bool,
+	clusterlabel bool) *bmh.BareMetalHost {
 
 	if name == "" {
 		return &bmh.BareMetalHost{}
@@ -1958,6 +2047,16 @@ func newBareMetalHost(name string,
 	objMeta := &metav1.ObjectMeta{
 		Name:      name,
 		Namespace: "myns",
+	}
+
+	if clusterlabel == true {
+		objMeta = &metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "myns",
+			Labels: map[string]string{
+				capi.ClusterLabelName: clusterName,
+			},
+		}
 	}
 
 	if spec == nil {
@@ -1977,6 +2076,30 @@ func newBareMetalHost(name string,
 		ObjectMeta: *objMeta,
 		Spec:       *spec,
 		Status:     *status,
+	}
+}
+func newBMCSecret(name string, clusterlabel bool) *corev1.Secret {
+	//objMeta := &metav1.ObjectMeta{}
+	objMeta := &metav1.ObjectMeta{
+		Name:      name,
+		Namespace: "myns",
+	}
+	if clusterlabel == true {
+		objMeta = &metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "myns",
+			Labels: map[string]string{
+				capi.ClusterLabelName: clusterName,
+			},
+		}
+	}
+	return &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: *objMeta,
+		Type:       "Opaque",
 	}
 }
 
