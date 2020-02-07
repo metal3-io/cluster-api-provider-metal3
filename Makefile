@@ -269,7 +269,7 @@ install:
 	kubectl apply -k config/crd
 
 #Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
-deploy-bmo-cr: generate-examples
+deploy-bmo-cr:
 	kubectl apply -f ./examples/_out/metal3crds.yaml
 	kubectl apply -f ./examples/_out/metal3plane.yaml
 
@@ -281,12 +281,12 @@ deploy: generate-examples
 	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-webhook
 	kubectl apply -f examples/_out/provider-components.yaml
 
-deploy-examples: generate-examples
+deploy-examples:
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml
 
-delete-examples: generate-examples
+delete-examples:
 	kubectl delete -f ./examples/_out/controlplane.yaml
 	kubectl delete -f ./examples/_out/machinedeployment.yaml
 	kubectl delete -f ./examples/_out/cluster.yaml
