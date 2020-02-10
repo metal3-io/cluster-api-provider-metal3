@@ -1653,7 +1653,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					Namespace: "myns",
 				},
 				Data: map[string][]byte{
-					"value": []byte("Rm9vQmFyCg=="),
+					"value": []byte("FooBar\n"),
 				},
 				Type: "Opaque",
 			},

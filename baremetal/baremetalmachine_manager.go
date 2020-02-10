@@ -249,7 +249,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 // Merge the UserData from the machine and the user
 func (m *MachineManager) GetUserData(ctx context.Context) error {
 	var err error
-	var decodedUserData string
+	var decodedUserDataBytes []byte
 	// if datasecretname is set get userdata from secret
 	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
 		capiBootstrapSecret := corev1.Secret{}
@@ -261,19 +261,17 @@ func (m *MachineManager) GetUserData(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		decodedUserData = string(capiBootstrapSecret.Data["value"])
-
+		decodedUserDataBytes = capiBootstrapSecret.Data["value"]
 	} else if m.Machine.Spec.Bootstrap.Data != nil {
 		// if datasecretname is not set
-		decodedUserData = *m.Machine.Spec.Bootstrap.Data
+		decodedUserData := *m.Machine.Spec.Bootstrap.Data
+		// decode the base64 cloud-config
+		decodedUserDataBytes, err = base64.StdEncoding.DecodeString(decodedUserData)
+		if err != nil {
+			return err
+		}
 	} else {
 		return nil
-	}
-
-	// decode the base64 cloud-config
-	decodedUserDataBytes, err := base64.StdEncoding.DecodeString(decodedUserData)
-	if err != nil {
-		return err
 	}
 
 	bootstrapSecret := &corev1.Secret{
