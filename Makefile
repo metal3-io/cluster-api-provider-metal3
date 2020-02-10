@@ -34,6 +34,7 @@ export GO111MODULE=on
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -43,6 +44,7 @@ MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+RELEASE_NOTES_BIN := bin/release-notes
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -127,6 +129,9 @@ $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kustomize.sh
+
+$(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
 
 ## --------------------------------------
 ## Linting
@@ -353,6 +358,10 @@ release-staging: ## Builds and push container images to the staging bucket.
 release-tag-latest: ## Adds the latest tag to the last build tag.
 	## TODO(vincepri): Only do this when we're on master.
 	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):latest
+
+.PHONY: release-notes
+release-notes: $(RELEASE_NOTES)  ## Generates a release notes template to be used with a release.
+	$(RELEASE_NOTES)
 
 ## --------------------------------------
 ## Development
