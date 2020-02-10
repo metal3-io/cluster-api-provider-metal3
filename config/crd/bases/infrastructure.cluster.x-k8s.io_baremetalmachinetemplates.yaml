@@ -155,11 +155,6 @@ spec:
                     description: Spec is the specification of the desired behavior
                       of the machine.
                     properties:
-                      clusterName:
-                        description: ClusterName is the name of the Cluster this object
-                          belongs to.
-                        minLength: 1
-                        type: string
                       hostSelector:
                         description: HostSelector specifies matching criteria for
                           labels on BareMetalHosts. This is used to limit the set
@@ -228,7 +223,6 @@ spec:
                             type: string
                         type: object
                     required:
-                    - clusterName
                     - image
                     type: object
                 required:
