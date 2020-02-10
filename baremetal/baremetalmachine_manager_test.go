@@ -1062,8 +1062,6 @@ var _ = Describe("BareMetalMachine manager", func() {
 				Namespace: tc.BMMachine.Spec.UserData.Namespace,
 			}
 			err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
-			// Just giving a secret with correct name should trigger the deletion
-			// since DataSecretName is empty by default
 			if tc.ExpectSecretDeleted {
 				Expect(err).To(HaveOccurred())
 				Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -1185,7 +1183,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Secret:              newSecret(),
 			ExpectSecretDeleted: true,
 		}),
-		Entry("dataSecretName set, not deleting secret", testCaseDelete{
+		Entry("dataSecretName set, deleting secret", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
 				false,
 			),
@@ -1203,7 +1201,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
-			ExpectSecretDeleted: false,
+			ExpectSecretDeleted: true,
 		}),
 	)
 
@@ -1620,38 +1618,45 @@ var _ = Describe("BareMetalMachine manager", func() {
 			err = machineMgr.GetUserData(context.TODO())
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
+				return
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			if tc.Machine.Spec.Bootstrap.DataSecretName != nil {
+			if tc.Machine.Spec.Bootstrap.DataSecretName != nil ||
+				tc.Machine.Spec.Bootstrap.Data != nil {
+
 				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
-					*tc.Machine.Spec.Bootstrap.DataSecretName,
+					tc.BMMachine.Name + "-user-data",
 				))
 				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
-					tc.Machine.Namespace,
+					tc.BMMachine.Namespace,
 				))
-				return
+				tmpBootstrapSecret := corev1.Secret{}
+				key := client.ObjectKey{
+					Name:      tc.BMMachine.Spec.UserData.Name,
+					Namespace: tc.BMMachine.Namespace,
+				}
+				err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(string(tmpBootstrapSecret.Data["userData"])).To(Equal("FooBar\n"))
 			}
-			if tc.Machine.Spec.Bootstrap.DataSecretName == nil {
-				return
-			}
-			Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
-				tc.BMMachine.Name + "-user-data",
-			))
-			Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
-				tc.BMMachine.Namespace,
-			))
-			tmpBootstrapSecret := corev1.Secret{}
-			key := client.ObjectKey{
-				Name:      tc.BMMachine.Spec.UserData.Name,
-				Namespace: tc.BMMachine.Namespace,
-			}
-			err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(tmpBootstrapSecret.Data["userData"]).To(Equal([]byte("FooBar")))
 		},
 		Entry("Secret set in Machine", testCaseGetUserData{
+			Secret: &corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "Foobar",
+					Namespace: "myns",
+				},
+				Data: map[string][]byte{
+					"value": []byte("Rm9vQmFyCg=="),
+				},
+				Type: "Opaque",
+			},
 			Machine: &capi.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns",
