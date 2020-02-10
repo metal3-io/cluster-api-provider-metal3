@@ -19,12 +19,7 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: BareMetalCluster
 metadata:
   name: ${CLUSTER_NAME}
-# spec:
-#   cloudName: ${CLUSTER_NAME}
-#   cloudsSecret:
-#     name: cloud-config
 spec:
-  clusterName: ${CLUSTER_NAME}
   controlPlaneEndpoint:
     host: 192.168.111.249
     port: 6443

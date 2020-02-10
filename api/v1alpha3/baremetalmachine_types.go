@@ -49,10 +49,6 @@ type BareMetalMachineSpec struct {
 	// This is used to limit the set of BareMetalHost objects considered for
 	// claiming for a BaremetalMachine.
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
-
-	// ClusterName is the name of the Cluster this object belongs to.
-	// +kubebuilder:validation:MinLength=1
-	ClusterName string `json:"clusterName"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The

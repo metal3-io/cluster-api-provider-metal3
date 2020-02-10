@@ -166,11 +166,6 @@ spec:
           spec:
             description: BareMetalClusterSpec defines the desired state of BareMetalCluster.
             properties:
-              clusterName:
-                description: ClusterName is the name of the Cluster this object belongs
-                  to.
-                minLength: 1
-                type: string
               controlPlaneEndpoint:
                 description: ControlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
@@ -188,7 +183,6 @@ spec:
               noCloudProvider:
                 type: boolean
             required:
-            - clusterName
             - controlPlaneEndpoint
             type: object
           status:
