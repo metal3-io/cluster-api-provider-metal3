@@ -131,7 +131,7 @@ func bmmSpecWithSecret() *infrav1.BareMetalMachineSpec {
 
 func bareMetalMachineWithOwnerRefs() *infrav1.BareMetalMachine {
 	return newBareMetalMachine(
-		bareMetalMachineName, bmmMetaWithOwnerRef(), nil, nil,
+		bareMetalMachineName, bmmMetaWithOwnerRef(), nil, nil, false,
 	)
 }
 
@@ -276,7 +276,7 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 		Entry("Should not return an error if OwnerRef is not set on BareMetalCluster",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newBareMetalMachine(bareMetalMachineName, nil, nil, nil),
+					newBareMetalMachine(bareMetalMachineName, nil, nil, nil, false),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
@@ -346,12 +346,46 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 					bareMetalMachineWithOwnerRefs(),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 				},
 				ErrorExpected:     false,
 				RequeueExpected:   false,
 				ClusterInfraReady: true,
 				CheckBMFinalizer:  true,
+			},
+		),
+		//Given: Machine, BareMetalMachine (No Spec/Status), Cluster, BareMetalCluster.
+		//Cluster.Spec.Paused=true
+		//Expected: Requeue Expected
+		Entry("Should requeue when owner Cluster is paused",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					bareMetalMachineWithOwnerRefs(),
+					machineWithInfra(),
+					newCluster(clusterName, clusterPauseSpec(), nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+			},
+		),
+		//Given: Machine, BareMetalMachine (No Spec/Status), Cluster, BareMetalCluster.
+		//BareMetalMachine has cluster.x-k8s.io/paused annotation
+		//Expected: Requeue Expected
+		Entry("Should requeue when BareMetalMachine has paused annotation",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newBareMetalMachine(bareMetalMachineName, nil, nil, nil, true),
+					machineWithInfra(),
+					newCluster(clusterName, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
 			},
 		),
 		//Given: BMMachine (Spec: Provider ID, Status: Ready), BMHost(Provisioned).
@@ -366,10 +400,11 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 						&infrav1.BareMetalMachineStatus{
 							Ready: true,
 						},
+						false,
 					),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 					newBareMetalHost(nil, nil),
 				},
 				ErrorExpected:       false,
@@ -396,11 +431,11 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 								Checksum: "abcd",
 								URL:      "abcd",
 							},
-						}, nil,
+						}, nil, false,
 					),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
 						Provisioning: bmh.ProvisionStatus{
 							State: bmh.StateReady,
@@ -428,11 +463,11 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 								Checksum: "abcd",
 								URL:      "abcd",
 							},
-						}, nil,
+						}, nil, false,
 					),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 					newBareMetalHost(nil, nil),
 				},
 				ErrorExpected:       false,
@@ -454,10 +489,10 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 							Checksum: "abcd",
 							URL:      "abcd",
 						},
-					}, nil),
+					}, nil, false),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
 						Provisioning: bmh.ProvisionStatus{
 							State: bmh.StateProvisioning,
@@ -478,10 +513,10 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 		Entry("Should requeue when patching an unavailable node",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newBareMetalMachine(bareMetalMachineName, bmmMetaWithAnnotation(), nil, nil),
+					newBareMetalMachine(bareMetalMachineName, bmmMetaWithAnnotation(), nil, nil, false),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 					newBareMetalHost(nil, nil),
 				},
 				ErrorExpected:           false,
@@ -499,10 +534,10 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 		Entry("Should not requeue when patching an available node",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newBareMetalMachine(bareMetalMachineName, bmmMetaWithAnnotation(), nil, nil),
+					newBareMetalMachine(bareMetalMachineName, bmmMetaWithAnnotation(), nil, nil, false),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 					newBareMetalHost(nil, nil),
 				},
 				TargetObjects: []runtime.Object{
@@ -531,11 +566,11 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 				Objects: []runtime.Object{
 					userDataSecret(),
 					newBareMetalMachine(bareMetalMachineName, bmmMetaWithDeletion(),
-						bmmSpecWithSecret(), nil,
+						bmmSpecWithSecret(), nil, false,
 					),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 				},
 				ErrorExpected:     false,
 				RequeueExpected:   false,
@@ -551,11 +586,11 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 				Objects: []runtime.Object{
 					userDataSecret(),
 					newBareMetalMachine(bareMetalMachineName,
-						bmmMetaWithAnnotationDeletion(), bmmSpecWithSecret(), nil,
+						bmmMetaWithAnnotationDeletion(), bmmSpecWithSecret(), nil, false,
 					),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 					newBareMetalHost(&bmh.BareMetalHostSpec{
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       bareMetalMachineName,

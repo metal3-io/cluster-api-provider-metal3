@@ -99,7 +99,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Entry("Should return en error when cluster is not found",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 				},
 				ErrorExpected:       true,
 				ErrorReasonExpected: true,
@@ -111,7 +111,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Entry("Should not return an error if OwnerRef is not set on BareMetalCluster",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, nil, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
@@ -122,7 +122,7 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 		Entry("Should return an error if APIEndpoint is not set",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), nil, nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected: true,
@@ -132,15 +132,44 @@ var _ = Describe("Reconcile Baremetalcluster", func() {
 				ErrorReason:         capierrors.InvalidConfigurationClusterError,
 			},
 		),
+
 		// Given cluster and BareMetalCluster with mandatory fields
 		Entry("Should not return an error when mandatory fields are provided",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
+			},
+		),
+
+		//Given: Cluster, BareMetalCluster.
+		//Cluster.Spec.Paused=true
+		//Expected: Requeue Expected
+		Entry("Should requeue when owner Cluster is paused",
+			TestCaseReconcileBMC{
+				Objects: []runtime.Object{
+					newCluster(clusterName, clusterPauseSpec(), nil),
+					newBareMetalCluster(baremetalClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
+				},
+				ErrorExpected:   false,
+				RequeueExpected: true,
+			},
+		),
+
+		//Given: Cluster, BareMetalCluster.
+		//BareMetalCluster has cluster.x-k8s.io/paused annotation
+		//Expected: Requeue Expected
+		Entry("Should requeue when BareMetalCluster has paused annotation",
+			TestCaseReconcileBMC{
+				Objects: []runtime.Object{
+					newCluster(clusterName, nil, nil),
+					newBareMetalCluster(baremetalClusterName, nil, nil, nil, true),
+				},
+				ErrorExpected:   false,
+				RequeueExpected: true,
 			},
 		),
 		// Reconcile Deletion

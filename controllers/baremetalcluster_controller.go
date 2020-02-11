@@ -97,6 +97,12 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 		return ctrl.Result{}, nil
 	}
 
+	// Return early if BMCluster or Cluster is paused.
+	if util.IsPaused(cluster, baremetalCluster) {
+		clusterLog.Info("reconciliation is paused for this object")
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	}
+
 	clusterLog = clusterLog.WithValues("cluster", cluster.Name)
 	clusterLog.Info("Reconciling BaremetalCluster")
 
