@@ -236,7 +236,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	err = m.setBMCSecretLabel(ctx, host)
 	if err != nil {
-		m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
+		m.Log.Info("Failed to set the Cluster label in the BMC Credentials for BareMetalHost", host.Name)
 	}
 
 	err = m.setHostSpec(ctx, host)
@@ -353,6 +353,22 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return nil
 		}
 
+		//Remove clusterLabel from BMC secret
+		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
+		if errBMC != nil && apierrors.IsNotFound(errBMC) {
+			m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
+		} else if errBMC == nil && tmpBMCSecret != nil {
+			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
+			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
+				delete(tmpBMCSecret.Labels, capi.ClusterLabelName)
+			}
+			errBMC = m.client.Update(ctx, tmpBMCSecret)
+			if errBMC != nil {
+				m.Log.Info("Failed to delete the clusterLabel from BMC Secret")
+				return errBMC
+			}
+		}
+
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
 			host.Spec.Image = nil
 			host.Spec.Online = false
@@ -386,7 +402,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		host.Spec.ConsumerRef = nil
-		host.Labels = nil
+		if host.Labels != nil && host.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
+			delete(host.Labels, capi.ClusterLabelName)
+		}
 
 		err = m.client.Update(ctx, host)
 		if err != nil && !apierrors.IsNotFound(err) {
@@ -394,24 +412,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				capierrors.DeleteMachineError,
 			)
 			return err
-		}
-
-		//Remove clusterLabel from BMC secret also
-		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
-		if errBMC != nil && apierrors.IsNotFound(errBMC) {
-			m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
-			return nil
-		}
-
-		if tmpBMCSecret != nil {
-			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
-			if tmpBMCSecret.Labels != nil {
-				tmpBMCSecret.Labels = nil
-			}
-			errBMC = m.client.Update(ctx, tmpBMCSecret)
-			if errBMC != nil {
-				return errBMC
-			}
 		}
 	}
 
