@@ -1107,6 +1107,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedHost.Labels[capi.ClusterLabelName]).To(Equal(""))
 				Expect(savedCred.Labels[capi.ClusterLabelName]).To(Equal(""))
+				// Other labels are not removed
+				Expect(savedHost.Labels["foo"]).To(Equal("bar"))
+				Expect(savedCred.Labels["foo"]).To(Equal("bar"))
 			}
 		},
 		Entry("Deprovisioning needed", testCaseDelete{
@@ -1250,6 +1253,14 @@ var _ = Describe("BareMetalMachine manager", func() {
 			BMCSecret:                 newBMCSecret("mycredentials", true),
 			ExpectSecretDeleted:       true,
 			ExpectClusterLabelDeleted: true,
+		}),
+		Entry("No clusterLabel in BMH or BMC Secret so this is a no-op ", testCaseDelete{
+			Machine:                   newMachine("mymachine", "mybmmachine", nil),
+			BMMachine:                 newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil, bmmObjectMetaWithValidAnnotations()),
+			Host:                      newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, false),
+			BMCSecret:                 newBMCSecret("mycredentials", false),
+			ExpectSecretDeleted:       true,
+			ExpectClusterLabelDeleted: false,
 		}),
 	)
 
@@ -2055,6 +2066,7 @@ func newBareMetalHost(name string,
 			Namespace: "myns",
 			Labels: map[string]string{
 				capi.ClusterLabelName: clusterName,
+				"foo":                 "bar",
 			},
 		}
 	}
@@ -2090,6 +2102,7 @@ func newBMCSecret(name string, clusterlabel bool) *corev1.Secret {
 			Namespace: "myns",
 			Labels: map[string]string{
 				capi.ClusterLabelName: clusterName,
+				"foo":                 "bar",
 			},
 		}
 	}
