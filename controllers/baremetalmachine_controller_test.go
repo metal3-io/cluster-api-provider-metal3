@@ -32,9 +32,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
-	infrav1 "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
-	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
-	baremetal_mocks "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mocks"
+	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
+	baremetal_mocks "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/mocks"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )

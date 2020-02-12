@@ -39,7 +39,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
+	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"

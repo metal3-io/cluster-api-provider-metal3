@@ -21,7 +21,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
-	baremetal_mocks "sigs.k8s.io/cluster-api-provider-baremetal/baremetal/mocks"
+	baremetal_mocks "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/mocks"
 )
 
 var _ = Describe("BareMetalCluster controller", func() {
