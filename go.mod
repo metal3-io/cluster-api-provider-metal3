@@ -1,4 +1,4 @@
-module sigs.k8s.io/cluster-api-provider-baremetal
+module github.com/metal3-io/cluster-api-provider-baremetal
 
 go 1.13
 
