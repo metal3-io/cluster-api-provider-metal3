@@ -119,6 +119,18 @@ var _ = AfterSuite(func() {
 
 var deletionTimestamp = metav1.Now()
 
+func clusterPauseSpec() *clusterv1.ClusterSpec {
+	return &clusterv1.ClusterSpec{
+		Paused: true,
+		InfrastructureRef: &v1.ObjectReference{
+			Name:       baremetalClusterName,
+			Namespace:  namespaceName,
+			Kind:       "BareMetalCluster",
+			APIVersion: infrav1.GroupVersion.String(),
+		},
+	}
+}
+
 func bmcSpec() *infrav1.BareMetalClusterSpec {
 	return &infrav1.BareMetalClusterSpec{
 		ControlPlaneEndpoint: infrav1.APIEndpoint{
@@ -183,7 +195,7 @@ func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *cluster
 	}
 }
 
-func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1.BareMetalClusterSpec, status *infrav1.BareMetalClusterStatus) *infrav1.BareMetalCluster {
+func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1.BareMetalClusterSpec, status *infrav1.BareMetalClusterStatus, pausedAnnotation bool) *infrav1.BareMetalCluster {
 	if spec == nil {
 		spec = &infrav1.BareMetalClusterSpec{}
 	}
@@ -194,19 +206,36 @@ func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, 
 	if ownerRef != nil {
 		ownerRefs = []metav1.OwnerReference{*ownerRef}
 	}
+	objMeta := &metav1.ObjectMeta{
+		Name:            baremetalClusterName,
+		Namespace:       namespaceName,
+		OwnerReferences: ownerRefs,
+	}
+	if pausedAnnotation == true {
+		objMeta = &metav1.ObjectMeta{
+			Name:      baremetalClusterName,
+			Namespace: namespaceName,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Cluster",
+					Name:       clusterName,
+				},
+			},
+			Annotations: map[string]string{
+				clusterv1.PausedAnnotation: "true",
+			},
+		}
+	}
 
 	return &infrav1.BareMetalCluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalCluster",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            baremetalClusterName,
-			Namespace:       namespaceName,
-			OwnerReferences: ownerRefs,
-		},
-		Spec:   *spec,
-		Status: *status,
+		ObjectMeta: *objMeta,
+		Spec:       *spec,
+		Status:     *status,
 	}
 }
 
@@ -237,6 +266,7 @@ func newMachine(clusterName, machineName string, bareMetalMachineName string) *c
 
 func newBareMetalMachine(name string, meta *metav1.ObjectMeta,
 	spec *infrav1.BareMetalMachineSpec, status *infrav1.BareMetalMachineStatus,
+	pausedAnnotation bool,
 ) *infrav1.BareMetalMachine {
 
 	if meta == nil {
@@ -247,6 +277,24 @@ func newBareMetalMachine(name string, meta *metav1.ObjectMeta,
 			Annotations:     map[string]string{},
 		}
 	}
+
+	if pausedAnnotation == true {
+		meta = &metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespaceName,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "Machine",
+					Name:       machineName,
+				},
+			},
+			Annotations: map[string]string{
+				clusterv1.PausedAnnotation: "true",
+			},
+		}
+	}
+
 	meta.Name = name
 	if spec == nil {
 		spec = &infrav1.BareMetalMachineSpec{}
