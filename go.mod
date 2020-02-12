@@ -6,10 +6,15 @@ require (
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/golang/mock v1.3.1
+	github.com/google/gofuzz v1.0.0
+	github.com/gophercloud/gophercloud v0.3.0 // indirect
+	github.com/mdempsky/maligned v0.0.0-20180708014732-6e39bd26a8c8 // indirect
 	github.com/metal3-io/baremetal-operator v0.0.0-20191004200613-f048f3bc5f05
-	github.com/onsi/ginkgo v1.11.0
-	github.com/onsi/gomega v1.8.1
+	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/gomega v1.9.0
 	github.com/pkg/errors v0.8.1
+	github.com/securego/gosec v0.0.0-20200203094520-d13bb6d2420c // indirect
+	github.com/sergi/go-diff v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.0.0-20191004110552-13f9640d40b9
 	google.golang.org/appengine v1.6.1 // indirect
@@ -19,7 +24,7 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d
-	sigs.k8s.io/cluster-api v0.2.7
+	sigs.k8s.io/cluster-api v0.2.6-0.20200213005235-78c565b11999
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 
@@ -45,5 +50,4 @@ replace (
 	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.0.0-20191003003732-7d49cdad1c12
 	k8s.io/metrics => k8s.io/metrics v0.0.0-20191003002233-837aead57baf
 	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.0.0-20191003001538-80f33ca02582
-	sigs.k8s.io/cluster-api => github.com/Nordix/cluster-api v0.3.0
 )

@@ -14,11 +14,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha2 contains API Schema definitions for the baremetal v1alpha2 API group
-// +k8s:openapi-gen=true
-// +k8s:deepcopy-gen=package,register
-// +k8s:defaulter-gen=TypeMeta
-// +k8s:conversion-gen=github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3
-// +kubebuilder:object:generate=true
-// +groupName=infrastructure.cluster.x-k8s.io
-package v1alpha2
+package v1alpha3
+
+func (*BareMetalCluster) Hub()     {}
+func (*BareMetalClusterList) Hub() {}
+func (*BareMetalMachine) Hub()     {}
+func (*BareMetalMachineList) Hub() {}

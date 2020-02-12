@@ -22,12 +22,12 @@ import (
 
 	"github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
-	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -194,7 +194,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 	if bmhID != nil {
 		providerID := fmt.Sprintf("metal3://%s", *bmhID)
 		// Set the providerID on the node if no Cloud provider
-		err = machineMgr.SetNodeProviderID(*bmhID, providerID, r.CapiClientGetter)
+		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
 		if err != nil {
 			return checkError(err, "failed to get the providerID for the BaremetalMachine")
 		}

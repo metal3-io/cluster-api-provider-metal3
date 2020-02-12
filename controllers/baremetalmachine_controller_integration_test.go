@@ -33,14 +33,14 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
+	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
-	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
-	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -181,7 +181,7 @@ var _ = Describe("Reconcile BaremetalMachine", func() {
 			testBMHost := &bmh.BareMetalHost{}
 
 			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
-			mockCapiClientGetter := func(c client.Client, cluster *clusterv1.Cluster) (
+			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {
 				return clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1(), nil
