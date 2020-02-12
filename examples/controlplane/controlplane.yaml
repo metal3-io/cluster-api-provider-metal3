@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
@@ -6,18 +6,19 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
 spec:
+  clusterName: ${CLUSTER_NAME}
   version: ${KUBERNETES_VERSION}
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: ${CLUSTER_NAME}-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: BareMetalMachine
     name: ${CLUSTER_NAME}-controlplane-0
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: BareMetalMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
@@ -26,7 +27,7 @@ spec:
     url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
     checksum: "97830b21ed272a3d854615beb54cf004"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-controlplane-0
@@ -44,7 +45,7 @@ spec:
       extraArgs:
         cloud-provider: baremetal
 ---
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-1
@@ -52,18 +53,19 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
 spec:
+  clusterName: ${CLUSTER_NAME}
   version: ${KUBERNETES_VERSION}
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: ${CLUSTER_NAME}-controlplane-1
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: BareMetalMachine
     name: ${CLUSTER_NAME}-controlplane-1
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: BareMetalMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-1
@@ -72,7 +74,7 @@ spec:
     url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
     checksum: "97830b21ed272a3d854615beb54cf004"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-controlplane-1
@@ -84,7 +86,7 @@ spec:
       kubeletExtraArgs:
         cloud-provider: baremetal
 ---
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-2
@@ -92,18 +94,19 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
 spec:
+  clusterName: ${CLUSTER_NAME}
   version: ${KUBERNETES_VERSION}
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: ${CLUSTER_NAME}-controlplane-2
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: BareMetalMachine
     name: ${CLUSTER_NAME}-controlplane-2
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: BareMetalMachine
 metadata:
   name: ${CLUSTER_NAME}-controlplane-2
@@ -112,7 +115,7 @@ spec:
     url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
     checksum: "97830b21ed272a3d854615beb54cf004"
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: ${CLUSTER_NAME}-controlplane-2

@@ -26,8 +26,6 @@ import (
 
 	// comment for go-lint
 	"github.com/go-logr/logr"
-	_ "github.com/go-logr/logr"
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -41,8 +39,8 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,7 +57,7 @@ const (
 	bmRoleNode         = "node"
 )
 
-// ClusterManagerInterface is an interface for a ClusterManager
+// MachineManagerInterface is an interface for a ClusterManager
 type MachineManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
@@ -218,12 +216,27 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		m.Log.Info("Machine already associated with host", "host", host.Name)
 	}
 
-	err = m.mergeUserData(ctx)
+	// A machine bootstrap not ready case is caught in the controller
+	// ReconcileNormal function
+	err = m.GetUserData(ctx)
 	if err != nil {
 		m.setError("Failed to set the UserData for the BareMetalMachine",
 			capierrors.CreateMachineError,
 		)
 		return err
+	}
+
+	err = m.setHostLabel(ctx, host)
+	if err != nil {
+		m.setError("Failed to set the Cluster label in the BareMetalHost",
+			capierrors.CreateMachineError,
+		)
+		return err
+	}
+
+	err = m.setBMCSecretLabel(ctx, host)
+	if err != nil {
+		m.Log.Info("Failed to set the Cluster label in the BMC Credentials for BareMetalHost", host.Name)
 	}
 
 	err = m.setHostSpec(ctx, host)
@@ -247,55 +260,76 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 }
 
 // Merge the UserData from the machine and the user
-func (m *MachineManager) mergeUserData(ctx context.Context) error {
-	if m.Machine.Spec.Bootstrap.Data != nil {
-		decodedUserDataBytes, err := base64.StdEncoding.DecodeString(*m.Machine.Spec.Bootstrap.Data)
-		decodedUserData := string(decodedUserDataBytes)
+func (m *MachineManager) GetUserData(ctx context.Context) error {
+	var err error
+	var decodedUserDataBytes []byte
+	// if datasecretname is set get userdata from secret
+	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
+		capiBootstrapSecret := corev1.Secret{}
+		capikey := client.ObjectKey{
+			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
+			Namespace: m.Machine.Namespace,
+		}
+		err := m.client.Get(ctx, capikey, &capiBootstrapSecret)
 		if err != nil {
 			return err
 		}
-
-		bootstrapSecret := &corev1.Secret{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Secret",
-				APIVersion: "v1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      m.BareMetalMachine.Name + "-user-data",
-				Namespace: m.BareMetalMachine.Namespace,
-			},
-			Data: map[string][]byte{
-				"userData": []byte(decodedUserData),
-			},
-			Type: "Opaque",
-		}
-
-		tmpBootstrapSecret := corev1.Secret{}
-		key := client.ObjectKey{
-			Name:      m.BareMetalMachine.Name + "-user-data",
-			Namespace: m.BareMetalMachine.Namespace,
-		}
-		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-		if apierrors.IsNotFound(err) {
-			// Create the secret with user data
-			err = m.client.Create(ctx, bootstrapSecret)
-		} else if err != nil {
-			return err
-		} else {
-			// Update the secret with user data
-			err = m.client.Update(ctx, bootstrapSecret)
-		}
-
+		decodedUserDataBytes = capiBootstrapSecret.Data["value"]
+	} else if m.Machine.Spec.Bootstrap.Data != nil {
+		// if datasecretname is not set
+		decodedUserData := *m.Machine.Spec.Bootstrap.Data
+		// decode the base64 cloud-config
+		decodedUserDataBytes, err = base64.StdEncoding.DecodeString(decodedUserData)
 		if err != nil {
-			m.Log.Info("Unable to create secret for bootstrap")
 			return err
 		}
-		m.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
-			Name:      m.BareMetalMachine.Name + "-user-data",
-			Namespace: m.BareMetalMachine.Namespace,
-		}
-
+	} else {
+		return nil
 	}
+
+	bootstrapSecret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.BareMetalMachine.Name + "-user-data",
+			Namespace: m.BareMetalMachine.Namespace,
+			Labels: map[string]string{
+				capi.ClusterLabelName: m.Machine.Spec.ClusterName,
+			},
+		},
+		Data: map[string][]byte{
+			"userData": decodedUserDataBytes,
+		},
+		Type: "Opaque",
+	}
+
+	tmpBootstrapSecret := corev1.Secret{}
+	key := client.ObjectKey{
+		Name:      m.BareMetalMachine.Name + "-user-data",
+		Namespace: m.BareMetalMachine.Namespace,
+	}
+	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
+	if apierrors.IsNotFound(err) {
+		// Create the secret with user data
+		err = m.client.Create(ctx, bootstrapSecret)
+	} else if err != nil {
+		return err
+	} else {
+		// Update the secret with user data
+		err = m.client.Update(ctx, bootstrapSecret)
+	}
+
+	if err != nil {
+		m.Log.Info("Unable to create secret for bootstrap")
+		return err
+	}
+	m.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
+		Name:      m.BareMetalMachine.Name + "-user-data",
+		Namespace: m.BareMetalMachine.Namespace,
+	}
+
 	return nil
 }
 
@@ -319,6 +353,22 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return nil
 		}
 
+		//Remove clusterLabel from BMC secret
+		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
+		if errBMC != nil && apierrors.IsNotFound(errBMC) {
+			m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
+		} else if errBMC == nil && tmpBMCSecret != nil {
+			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
+			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
+				delete(tmpBMCSecret.Labels, capi.ClusterLabelName)
+			}
+			errBMC = m.client.Update(ctx, tmpBMCSecret)
+			if errBMC != nil {
+				m.Log.Info("Failed to delete the clusterLabel from BMC Secret")
+				return errBMC
+			}
+		}
+
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
 			host.Spec.Image = nil
 			host.Spec.Online = false
@@ -336,7 +386,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		waiting := true
 		switch host.Status.Provisioning.State {
-		// TODO? remove empty string that is the status without BMO running
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
 			bmh.StateReady, bmh.StateValidationError, bmh.StateNone:
@@ -353,6 +402,10 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		host.Spec.ConsumerRef = nil
+		if host.Labels != nil && host.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
+			delete(host.Labels, capi.ClusterLabelName)
+		}
+
 		err = m.client.Update(ctx, host)
 		if err != nil && !apierrors.IsNotFound(err) {
 			m.setError("Failed to delete BareMetalMachine",
@@ -557,6 +610,50 @@ func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capbm.BareM
 	return true
 }
 
+// getBMCSecret will return the BMCSecret associated with BMH
+func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmh.BareMetalHost) (*corev1.Secret, error) {
+
+	tmpBMCSecret := corev1.Secret{}
+	key := host.CredentialsKey()
+	err := m.client.Get(ctx, key, &tmpBMCSecret)
+	if apierrors.IsNotFound(err) {
+		return nil, err
+	} else if err != nil {
+		m.Log.Info("Cannot retrieve BMC credential for BareMetalhost ", host.Name, err)
+		return nil, nil
+	}
+	return &tmpBMCSecret, nil
+}
+
+// setBMCSecretLabel will set the set cluster.x-k8s.io/cluster-name to BMCSecret
+func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmh.BareMetalHost) error {
+
+	tmpBMCSecret, err := m.getBMCSecret(ctx, host)
+	if err != nil {
+		return err
+	}
+
+	if tmpBMCSecret != nil {
+		if tmpBMCSecret.Labels == nil {
+			tmpBMCSecret.Labels = make(map[string]string)
+		}
+		tmpBMCSecret.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+	}
+
+	return m.client.Update(ctx, tmpBMCSecret)
+}
+
+// setHostLabel will set the set cluster.x-k8s.io/cluster-name to bmh
+func (m *MachineManager) setHostLabel(ctx context.Context, host *bmh.BareMetalHost) error {
+
+	if host.Labels == nil {
+		host.Labels = make(map[string]string)
+	}
+	host.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+
+	return m.client.Update(ctx, host)
+}
+
 // setHostSpec will ensure the host's Spec is set according to the machine's
 // details. It will then update the host via the kube API. If UserData does not
 // include a Namespace, it will default to the Machine's namespace.
@@ -630,17 +727,17 @@ func (m *MachineManager) HasAnnotation() bool {
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
 func (m *MachineManager) setError(message string, reason capierrors.MachineStatusError) {
-	m.BareMetalMachine.Status.ErrorMessage = &message
-	m.BareMetalMachine.Status.ErrorReason = &reason
+	m.BareMetalMachine.Status.FailureMessage = &message
+	m.BareMetalMachine.Status.FailureReason = &reason
 }
 
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
 // nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
 // machine was updated.
 func (m *MachineManager) clearError() {
-	if m.BareMetalMachine.Status.ErrorMessage != nil || m.BareMetalMachine.Status.ErrorReason != nil {
-		m.BareMetalMachine.Status.ErrorMessage = nil
-		m.BareMetalMachine.Status.ErrorReason = nil
+	if m.BareMetalMachine.Status.FailureMessage != nil || m.BareMetalMachine.Status.FailureReason != nil {
+		m.BareMetalMachine.Status.FailureMessage = nil
+		m.BareMetalMachine.Status.FailureReason = nil
 	}
 }
 

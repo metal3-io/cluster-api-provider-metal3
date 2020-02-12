@@ -26,16 +26,12 @@ import (
 	// TODO Why blank import ?
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"net/url"
-	"strconv"
 )
 
 //Constant variables
@@ -118,35 +114,21 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 	return nil
 }
 
-// apiEndpoints returns the cluster manager IP address
-func (s *ClusterManager) apiEndpoints() ([]capbm.APIEndpoint, error) {
+// ControlPlaneEndpoint returns cluster controlplane endpoint
+func (s *ClusterManager) ControlPlaneEndpoint() ([]capbm.APIEndpoint, error) {
 	//Get IP address from spec, which gets it from posted cr yaml
-	// Once IP is handled, consider setting the port
+	endPoint := s.BareMetalCluster.Spec.ControlPlaneEndpoint
+	var err error
 
-	endPoint := s.BareMetalCluster.Spec.APIEndpoint
-
-	// Parse
-	u, err := url.Parse(endPoint)
-	if err != nil {
-		s.Log.Error(err, "Unable to parse IP and PORT from the given url")
-	}
-
-	ip := u.Hostname()
-	p := u.Port()
-
-	if p == "" {
-		p = APIEndpointPort
-	}
-	port, err := strconv.Atoi(p)
-	if err != nil {
-		s.Log.Error(err, "Invalid Port")
+	if endPoint.Host == "" || endPoint.Port == 0 {
+		s.Log.Error(err, "Host IP or PORT not set")
 		return nil, err
 	}
 
 	return []capbm.APIEndpoint{
 		{
-			Host: ip,
-			Port: port,
+			Host: endPoint.Host,
+			Port: endPoint.Port,
 		},
 	}, nil
 }
@@ -160,41 +142,36 @@ func (s *ClusterManager) Delete() error {
 func (s *ClusterManager) UpdateClusterStatus() error {
 
 	// Get APIEndpoints from  BaremetalCluster Spec
-	endpoints, err := s.apiEndpoints()
+	_, err := s.ControlPlaneEndpoint()
+
 	if err != nil {
-		s.setError("Invalid APIEndpoints values", capierrors.InvalidConfigurationClusterError)
+		s.BareMetalCluster.Status.Ready = false
+		s.setError("Invalid ControlPlaneEndpoint values", capierrors.InvalidConfigurationClusterError)
 		return err
 	}
 
-	if equality.Semantic.DeepEqual(s.BareMetalCluster.Status.APIEndpoints, endpoints) {
-		// Endpoints did not change
-		return nil
-	}
-
-	s.BareMetalCluster.Status.APIEndpoints = endpoints
 	// Mark the baremetalCluster ready
 	s.BareMetalCluster.Status.Ready = true
 	now := metav1.Now()
 	s.BareMetalCluster.Status.LastUpdated = &now
-
 	return nil
 }
 
-// setError sets the ErrorMessage and ErrorReason fields on the machine and logs
+// setError sets the FailureMessage and FailureReason fields on the machine and logs
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
 func (s *ClusterManager) setError(message string, reason capierrors.ClusterStatusError) {
-	s.BareMetalCluster.Status.ErrorMessage = &message
-	s.BareMetalCluster.Status.ErrorReason = &reason
+	s.BareMetalCluster.Status.FailureMessage = &message
+	s.BareMetalCluster.Status.FailureReason = &reason
 }
 
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
 // nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
 // machine was updated.
 func (s *ClusterManager) clearError() {
-	if s.BareMetalCluster.Status.ErrorMessage != nil || s.BareMetalCluster.Status.ErrorReason != nil {
-		s.BareMetalCluster.Status.ErrorMessage = nil
-		s.BareMetalCluster.Status.ErrorReason = nil
+	if s.BareMetalCluster.Status.FailureMessage != nil || s.BareMetalCluster.Status.FailureReason != nil {
+		s.BareMetalCluster.Status.FailureMessage = nil
+		s.BareMetalCluster.Status.FailureReason = nil
 	}
 }
 
@@ -235,7 +212,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (capi.MachineList,
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels(map[string]string{
-			capi.MachineClusterLabelName: cluster.Name,
+			capi.ClusterLabelName: cluster.Name,
 		}),
 	}
 

@@ -26,10 +26,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-
-	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha2"
+	capbm "sigs.k8s.io/cluster-api-provider-baremetal/api/v1alpha3"
 	"sigs.k8s.io/cluster-api-provider-baremetal/baremetal"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha2"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -113,9 +112,9 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	if cluster == nil {
 		setErrorBMMachine(capbmMachine, fmt.Sprintf(
 			"The machine is NOT associated with a cluster using the label %s: <name of cluster>",
-			capi.MachineClusterLabelName,
+			capi.ClusterLabelName,
 		), capierrors.InvalidConfigurationMachineError)
-		machineLog.Info(fmt.Sprintf("The machine is NOT associated with a cluster using the label %s: <name of cluster>", capi.MachineClusterLabelName))
+		machineLog.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", capi.ClusterLabelName))
 		return ctrl.Result{}, nil
 	}
 
@@ -167,7 +166,8 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		return ctrl.Result{}, err
 	}
 
-	// Make sure bootstrap data is available and populated.
+	// Make sure bootstrap data is available and populated. If not, return, we
+	// will get an event from the machine update when the flag is set to true.
 	if !machineMgr.IsBootstrapReady() {
 		return ctrl.Result{}, nil
 	}
@@ -261,7 +261,7 @@ func (r *BareMetalMachineReconciler) BareMetalClusterToBareMetalMachines(o handl
 		return result
 	}
 
-	labels := map[string]string{capi.MachineClusterLabelName: cluster.Name}
+	labels := map[string]string{capi.ClusterLabelName: cluster.Name}
 	capiMachineList := &capi.MachineList{}
 	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list BareMetalMachines")
@@ -301,17 +301,17 @@ func (r *BareMetalMachineReconciler) BareMetalHostToBareMetalMachines(obj handle
 // setError sets the ErrorMessage and ErrorReason fields on the baremetalmachine
 func setErrorBMMachine(bmm *capbm.BareMetalMachine, message string, reason capierrors.MachineStatusError) {
 
-	bmm.Status.ErrorMessage = pointer.StringPtr(message)
-	bmm.Status.ErrorReason = &reason
+	bmm.Status.FailureMessage = pointer.StringPtr(message)
+	bmm.Status.FailureReason = &reason
 
 }
 
 // clearError removes the ErrorMessage from the baremetalmachine's Status if set.
 func clearErrorBMMachine(bmm *capbm.BareMetalMachine) {
 
-	if bmm.Status.ErrorMessage != nil || bmm.Status.ErrorReason != nil {
-		bmm.Status.ErrorMessage = nil
-		bmm.Status.ErrorReason = nil
+	if bmm.Status.FailureMessage != nil || bmm.Status.FailureReason != nil {
+		bmm.Status.FailureMessage = nil
+		bmm.Status.FailureReason = nil
 	}
 
 }

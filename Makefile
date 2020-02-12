@@ -175,19 +175,21 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
 
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha2 \
+		--input-dirs=./api/v1alpha3 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 	$(MOCKGEN) \
-	  -destination=./baremetal/mock_baremetal/zz_generated.baremetalcluster_manager.go \
+	  -destination=./baremetal/mocks/zz_generated.baremetalcluster_manager.go \
 	  -source=./baremetal/baremetalcluster_manager.go \
+		-package=baremetal_mocks \
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
 		ClusterManagerInterface
 
 	$(MOCKGEN) \
-	  -destination=./baremetal/mock_baremetal/zz_generated.baremetalmachine_manager.go \
+	  -destination=./baremetal/mocks/zz_generated.baremetalmachine_manager.go \
 	  -source=./baremetal/baremetalmachine_manager.go \
+		-package=baremetal_mocks \
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
 		MachineManagerInterface
 
@@ -195,7 +197,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
-		crd:trivialVersions=true \
+		crd \
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
@@ -205,7 +207,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		rbac:roleName=manager-role
 
 .PHONY: generate-examples
-generate-examples: manifests clean-examples ## Generate examples configurations to run a cluster.
+generate-examples: clean-examples ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
 
 ## --------------------------------------
@@ -263,43 +265,33 @@ set-manifest-pull-policy:
 ## Deploying
 ## --------------------------------------
 
-manifests: generate-manifests $(KUSTOMIZE)
-	$(KUSTOMIZE) build config/default \
-		-o examples/provider-components/provider-components-baremetal.yaml
-	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api-bootstrap-provider-kubeadm/config/default/?ref=master" \
-		-o examples/provider-components/provider-components-kubeadm.yaml
-	$(KUSTOMIZE) build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=release-0.2" \
-		-o examples/provider-components/provider-components-cluster-api.yaml
-
-unit: manifests
-	go test ./api/... ./controllers/... ./baremetal/... -coverprofile cover.out
-
-unit-cover-html: unit
-	go tool cover -html=cover.out
-
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet install
 	go run ./main.go
 
 # Install CRDs into a cluster
-install: manifests
+install:
 	kubectl apply -k config/crd
 
 #Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
-deploy-bmo-cr: generate-examples
+deploy-bmo-cr:
 	kubectl apply -f ./examples/_out/metal3crds.yaml
 	kubectl apply -f ./examples/_out/metal3plane.yaml
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests generate-examples
+deploy: generate-examples
+	kubectl apply -f examples/_out/cert-manager.yaml
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-cainjector
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-webhook
 	kubectl apply -f examples/_out/provider-components.yaml
 
-deploy-examples: generate-examples
+deploy-examples:
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml
 
-delete-examples: generate-examples
+delete-examples:
 	kubectl delete -f ./examples/_out/controlplane.yaml
 	kubectl delete -f ./examples/_out/machinedeployment.yaml
 	kubectl delete -f ./examples/_out/cluster.yaml
