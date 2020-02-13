@@ -24,7 +24,7 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/klog v1.0.0
 	k8s.io/utils v0.0.0-20191030222137-2b95a09bc58d
-	sigs.k8s.io/cluster-api v0.2.6-0.20200213005235-78c565b11999
+	sigs.k8s.io/cluster-api v0.2.6-0.20200213155436-e0d1223d6630
 	sigs.k8s.io/controller-runtime v0.4.0
 )
 

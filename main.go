@@ -23,6 +23,7 @@ import (
 	"time"
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
+	infrav1alpha2 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha2"
 	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
 	capbmremote "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/remote"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -51,6 +53,7 @@ func init() {
 	_ = infrav1.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = bmoapis.AddToScheme(myscheme)
+	_ = infrav1alpha2.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -61,6 +64,7 @@ func main() {
 		enableLeaderElection bool
 		syncPeriod           time.Duration
 		webhookPort          int
+		healthAddr           string
 	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -69,17 +73,20 @@ func main() {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 	flag.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port (set to 0 to disable)")
+	flag.StringVar(&healthAddr, "health-addr", ":9440",
+		"The address the health endpoint binds to.")
 	flag.Parse()
 
 	ctrl.SetLogger(klogr.New())
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             myscheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "controller-leader-election-capbm",
-		SyncPeriod:         &syncPeriod,
-		Port:               webhookPort,
+		Scheme:                 myscheme,
+		MetricsBindAddress:     metricsAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "controller-leader-election-capbm",
+		SyncPeriod:             &syncPeriod,
+		Port:                   webhookPort,
+		HealthProbeBindAddress: healthAddr,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -114,30 +121,30 @@ func main() {
 	}
 
 	if webhookPort != 0 {
-		if err = (&clusterv1alpha2.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&infrav1alpha2.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
 			os.Exit(1)
 		}
-		//if err = (&clusterv1alpha3.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		//	setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
-		//	os.Exit(1)
-		//}
+		if err = (&infrav1.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
+			os.Exit(1)
+		}
 
-		if err = (&clusterv1alpha2.BareMetalClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&infrav1alpha2.BareMetalClusterList{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalClusterList")
 			os.Exit(1)
 		}
 
-		if err = (&clusterv1alpha2.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&infrav1alpha2.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
 			os.Exit(1)
 		}
-		//if err = (&clusterv1alpha3.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		//	setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
-		//	os.Exit(1)
-		//}
+		if err = (&infrav1.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
+			os.Exit(1)
+		}
 
-		if err = (&clusterv1alpha2.BareMetalMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+		if err = (&infrav1alpha2.BareMetalMachineList{}).SetupWebhookWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineList")
 			os.Exit(1)
 		}

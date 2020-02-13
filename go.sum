@@ -634,6 +634,8 @@ modernc.org/strutil v1.0.0/go.mod h1:lstksw84oURvj9y3tn8lGvRxyRC1S2+g5uuIzNfIOBs
 modernc.org/xc v1.0.0/go.mod h1:mRNCo0bvLjGhHO9WsyuKVU4q0ceiDDDoEeWDJHrNx8I=
 sigs.k8s.io/cluster-api v0.2.6-0.20200213005235-78c565b11999 h1:wzI9iQ/Fkur00DBPKf/W6XD2v58W05qVl7oyR/e5uyY=
 sigs.k8s.io/cluster-api v0.2.6-0.20200213005235-78c565b11999/go.mod h1:OCxI4X95BA8R+NL71nRDKYm6Uu87iT9KrCi+OZVb+kE=
+sigs.k8s.io/cluster-api v0.2.6-0.20200213155436-e0d1223d6630 h1:QWGkM2snha8sv97N9yQrJ+LEOf4nbSM2jQzeE0I8uZ4=
+sigs.k8s.io/cluster-api v0.2.6-0.20200213155436-e0d1223d6630/go.mod h1:OCxI4X95BA8R+NL71nRDKYm6Uu87iT9KrCi+OZVb+kE=
 sigs.k8s.io/cluster-api v0.2.7/go.mod h1:Agc72Ra5LMOkQQ2v/Ywv1KUemaYAwvkQ+G59Ym5H8e4=
 sigs.k8s.io/cluster-api v0.2.9 h1:PZSuz8hE1u5Y5lZcxi3pDDOc9xxY68uzxVoNGerEXy8=
 sigs.k8s.io/cluster-api v0.2.9/go.mod h1:BCw+Pqy1sc8mQ/3d2NZM/f5BApKFCMPsnGvKolvDcA0=

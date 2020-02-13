@@ -20,17 +20,11 @@ import (
 
 	fuzz "github.com/google/gofuzz"
 	"github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
-	metafuzzer "k8s.io/apimachinery/pkg/apis/meta/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/utils/diff"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 const charset = "abcdefghijklmnopqrstuvwxyz" +
@@ -52,52 +46,14 @@ func apiEndpointFuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{}
 	}
 }
 
-// GetFuzzer returns a new fuzzer to be used for testing.
-func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer {
-	funcs = append([]fuzzer.FuzzerFuncs{metafuzzer.Funcs}, funcs...)
-	return fuzzer.FuzzerFor(
-		fuzzer.MergeFuzzerFuncs(funcs...),
-		rand.NewSource(rand.Int63()),
-		serializer.NewCodecFactory(scheme),
-	)
-}
-
-// FuzzTestFunc returns a new testing function to be used in tests to make sure conversions between
-// the Hub version of an object and an older version aren't lossy.
-func FuzzTestFunc(scheme *runtime.Scheme, hub conversion.Hub, dst conversion.Convertible, funcs ...fuzzer.FuzzerFuncs) func(*testing.T) {
-	return func(t *testing.T) {
-		g := gomega.NewWithT(t)
-		fuzzer := GetFuzzer(scheme, funcs...)
-
-		for i := 0; i < 10000; i++ {
-			// Make copies of both objects, to avoid changing or re-using the ones passed in.
-			hubCopy := hub.DeepCopyObject().(conversion.Hub)
-			dstCopy := dst.DeepCopyObject().(conversion.Convertible)
-
-			// Run the fuzzer on the Hub version copy.
-			fuzzer.Fuzz(hubCopy)
-
-			// Use the hub to convert into the convertible object.
-			g.Expect(dstCopy.ConvertFrom(hubCopy)).To(gomega.Succeed())
-
-			// Make another copy of hub and convert the convertible object back to the hub version.
-			after := hub.DeepCopyObject().(conversion.Hub)
-			g.Expect(dstCopy.ConvertTo(after)).To(gomega.Succeed())
-
-			// Make sure that the hub before the conversions and after are the same, include a diff if not.
-			g.Expect(apiequality.Semantic.DeepEqual(hubCopy, after)).To(gomega.BeTrue(), diff.ObjectDiff(hubCopy, after))
-		}
-	}
-}
-
 func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1alpha3.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for BareMetalCluster", FuzzTestFunc(scheme, &v1alpha3.BareMetalCluster{}, &BareMetalCluster{}, apiEndpointFuzzerFuncs))
-	t.Run("for BareMetalMachine", FuzzTestFunc(scheme, &v1alpha3.BareMetalMachine{}, &BareMetalMachine{}))
+	t.Run("for BareMetalCluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.BareMetalCluster{}, &BareMetalCluster{}, apiEndpointFuzzerFuncs))
+	t.Run("for BareMetalMachine", utilconversion.FuzzTestFunc(scheme, &v1alpha3.BareMetalMachine{}, &BareMetalMachine{}))
 }
 
 func TestConvertBareMetalCluster(t *testing.T) {
