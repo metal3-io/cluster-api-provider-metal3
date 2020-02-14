@@ -148,6 +148,20 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineList")
 			os.Exit(1)
 		}
+
+		if err = (&infrav1alpha2.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
+			os.Exit(1)
+		}
+		if err = (&infrav1.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
+			os.Exit(1)
+		}
+
+		if err = (&infrav1alpha2.BareMetalMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplateList")
+			os.Exit(1)
+		}
 	}
 
 	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {

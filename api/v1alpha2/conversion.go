@@ -85,6 +85,28 @@ func (dst *BareMetalMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	return Convert_v1alpha3_BareMetalMachineList_To_v1alpha2_BareMetalMachineList(src, dst, nil)
 }
 
+func (src *BareMetalMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1alpha3.BareMetalMachineTemplate)
+	return Convert_v1alpha2_BareMetalMachineTemplate_To_v1alpha3_BareMetalMachineTemplate(src, dst, nil)
+}
+
+func (dst *BareMetalMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1alpha3.BareMetalMachineTemplate)
+	return Convert_v1alpha3_BareMetalMachineTemplate_To_v1alpha2_BareMetalMachineTemplate(src, dst, nil)
+}
+
+func (src *BareMetalMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1alpha3.BareMetalMachineTemplateList)
+
+	return Convert_v1alpha2_BareMetalMachineTemplateList_To_v1alpha3_BareMetalMachineTemplateList(src, dst, nil)
+}
+
+func (dst *BareMetalMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1alpha3.BareMetalMachineTemplateList)
+
+	return Convert_v1alpha3_BareMetalMachineTemplateList_To_v1alpha2_BareMetalMachineTemplateList(src, dst, nil)
+}
+
 func Convert_v1alpha2_BareMetalClusterStatus_To_v1alpha3_BareMetalClusterStatus(in *BareMetalClusterStatus, out *v1alpha3.BareMetalClusterStatus, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha2_BareMetalClusterStatus_To_v1alpha3_BareMetalClusterStatus(in, out, s); err != nil {
 		return err
