@@ -46,6 +46,11 @@ var (
 	myscheme                = runtime.NewScheme()
 	setupLog                = ctrl.Log.WithName("setup")
 	waitForMetal3Controller = false
+	metricsAddr             string
+	enableLeaderElection    bool
+	syncPeriod              time.Duration
+	webhookPort             int
+	healthAddr              string
 )
 
 func init() {
@@ -59,19 +64,12 @@ func init() {
 
 func main() {
 	klog.InitFlags(nil)
-	var (
-		metricsAddr          string
-		enableLeaderElection bool
-		syncPeriod           time.Duration
-		webhookPort          int
-		healthAddr           string
-	)
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
-	flag.IntVar(&webhookPort, "webhook-port", 9443,
+	flag.IntVar(&webhookPort, "webhook-port", 0,
 		"Webhook Server port (set to 0 to disable)")
 	flag.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
@@ -101,78 +99,9 @@ func main() {
 		}
 	}
 
-	if err := (&controllers.BareMetalMachineReconciler{
-		Client:           mgr.GetClient(),
-		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
-		Log:              ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
-		CapiClientGetter: capbmremote.NewClusterClient,
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachineReconciler")
-		os.Exit(1)
-	}
-
-	if err = (&controllers.BareMetalClusterReconciler{
-		Client:         mgr.GetClient(),
-		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
-		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalCluster"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BareMetalClusterReconciler")
-		os.Exit(1)
-	}
-
-	if webhookPort != 0 {
-		if err = (&infrav1alpha2.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
-			os.Exit(1)
-		}
-		if err = (&infrav1.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
-			os.Exit(1)
-		}
-
-		if err = (&infrav1alpha2.BareMetalClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalClusterList")
-			os.Exit(1)
-		}
-
-		if err = (&infrav1alpha2.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
-			os.Exit(1)
-		}
-		if err = (&infrav1.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
-			os.Exit(1)
-		}
-
-		if err = (&infrav1alpha2.BareMetalMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineList")
-			os.Exit(1)
-		}
-
-		if err = (&infrav1alpha2.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
-			os.Exit(1)
-		}
-		if err = (&infrav1.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
-			os.Exit(1)
-		}
-
-		if err = (&infrav1alpha2.BareMetalMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplateList")
-			os.Exit(1)
-		}
-	}
-
-	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to create ready check")
-		os.Exit(1)
-	}
-
-	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to create health check")
-		os.Exit(1)
-	}
+	setupChecks(mgr)
+	setupReconcilers(mgr)
+	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
 	setupLog.Info("starting manager")
@@ -205,4 +134,87 @@ func waitForAPIs(cfg *rest.Config) error {
 	}
 
 	return nil
+}
+
+func setupChecks(mgr ctrl.Manager) {
+	if err := mgr.AddReadyzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create ready check")
+		os.Exit(1)
+	}
+
+	if err := mgr.AddHealthzCheck("ping", healthz.Ping); err != nil {
+		setupLog.Error(err, "unable to create health check")
+		os.Exit(1)
+	}
+}
+
+func setupReconcilers(mgr ctrl.Manager) {
+	if webhookPort != 0 {
+		return
+	}
+	if err := (&controllers.BareMetalMachineReconciler{
+		Client:           mgr.GetClient(),
+		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:              ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
+		CapiClientGetter: capbmremote.NewClusterClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachineReconciler")
+		os.Exit(1)
+	}
+
+	if err := (&controllers.BareMetalClusterReconciler{
+		Client:         mgr.GetClient(),
+		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalCluster"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "BareMetalClusterReconciler")
+		os.Exit(1)
+	}
+}
+
+func setupWebhooks(mgr ctrl.Manager) {
+	if webhookPort == 0 {
+		return
+	}
+	if err := (&infrav1alpha2.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
+		os.Exit(1)
+	}
+	if err := (&infrav1.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1alpha2.BareMetalClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalClusterList")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1alpha2.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
+		os.Exit(1)
+	}
+	if err := (&infrav1.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1alpha2.BareMetalMachineList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineList")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1alpha2.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
+		os.Exit(1)
+	}
+	if err := (&infrav1.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1alpha2.BareMetalMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplateList")
+		os.Exit(1)
+	}
 }

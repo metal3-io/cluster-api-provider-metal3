@@ -29,12 +29,15 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	// +kubebuilder:scaffold:imports
@@ -57,7 +60,16 @@ const (
 
 func init() {
 	klog.InitFlags(nil)
+	logf.SetLogger(klogr.New())
+
+	// Register required object kinds with global scheme.
+	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
+	_ = clusterv1.AddToScheme(scheme.Scheme)
+	_ = infrav1.AddToScheme(scheme.Scheme)
+	_ = corev1.AddToScheme(scheme.Scheme)
+	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
 }
+
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
 	if err := clusterv1.AddToScheme(s); err != nil {
@@ -80,7 +92,7 @@ func TestAPIs(t *testing.T) {
 
 	RunSpecsWithDefaultAndCustomReporters(t,
 		"Controller Suite",
-		[]Reporter{envtest.NewlineReporter{}})
+		[]Reporter{printer.NewlineReporter{}})
 }
 
 var _ = BeforeSuite(func(done Done) {
@@ -99,7 +111,7 @@ var _ = BeforeSuite(func(done Done) {
 	err = infrav1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = infrav1.AddToScheme(scheme.Scheme)
+	err = apiextensionsv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
