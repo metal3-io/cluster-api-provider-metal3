@@ -83,11 +83,11 @@ testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
 
 .PHONY: test
 test: testprereqs generate fmt lint ## Run tests
-	go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile ./cover.out
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile ./cover.out
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
-	go test -v -tags=integration ./test/integration/...
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests

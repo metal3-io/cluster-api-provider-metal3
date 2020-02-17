@@ -2,7 +2,7 @@
 
 [[ -f bin/kubebuilder ]] && exit 0
 
-version=2.0.1
+version=2.2.0
 arch=amd64
 
 mkdir -p ./bin
