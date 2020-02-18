@@ -120,6 +120,12 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 
 	machineLog = machineLog.WithValues("cluster", cluster.Name)
 
+	// Return early if the BMMachine or Cluster is paused.
+	if util.IsPaused(cluster, capbmMachine) {
+		machineLog.Info("reconciliation is paused for this object")
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	}
+
 	// Make sure infrastructure is ready
 	if !cluster.Status.InfrastructureReady {
 		machineLog.Info("Waiting for BareMetalCluster Controller to create cluster infrastructure")
@@ -138,12 +144,6 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	}
 
 	machineLog = machineLog.WithValues("baremetal-cluster", baremetalCluster.Name)
-
-	// Return early if the BMMachine or Cluster is paused.
-	if util.IsPaused(cluster, capbmMachine) {
-		machineLog.Info("reconciliation is paused for this object")
-		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
-	}
 
 	// Create a helper for managing the baremetal container hosting the machine.
 	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, baremetalCluster, capiMachine, capbmMachine, machineLog)
