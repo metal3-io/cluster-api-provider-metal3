@@ -36,10 +36,10 @@ import (
 	"k8s.io/utils/pointer"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -68,7 +68,7 @@ type MachineManagerInterface interface {
 	Delete(context.Context) error
 	Update(context.Context) error
 	HasAnnotation() bool
-	SetNodeProviderID(string, string, ClientGetter) error
+	SetNodeProviderID(context.Context, string, string, ClientGetter) error
 	SetProviderID(string)
 }
 
@@ -388,7 +388,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		switch host.Status.Provisioning.State {
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
-			bmh.StateReady, bmh.StateValidationError, bmh.StateNone:
+			bmh.StateReady, bmh.StateNone:
 			// Host is not provisioned
 			waiting = false
 		case bmh.StateExternallyProvisioned:
@@ -792,14 +792,14 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 	return addrs
 }
 
-type ClientGetter func(c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
+type ClientGetter func(ctx context.Context, c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
 
 // SetNodeProviderID sets the bare metal provider ID on the kubernetes node
-func (m *MachineManager) SetNodeProviderID(bmhID, providerID string, clientFactory ClientGetter) error {
+func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
 	if !m.BareMetalCluster.Spec.NoCloudProvider {
 		return nil
 	}
-	corev1Remote, err := clientFactory(m.client, m.Cluster)
+	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
 	}

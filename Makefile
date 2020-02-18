@@ -83,11 +83,11 @@ testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
 
 .PHONY: test
 test: testprereqs generate fmt lint ## Run tests
-	go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile ./cover.out
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile ./cover.out
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
-	go test -v -tags=integration ./test/integration/...
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests
@@ -175,7 +175,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
 
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha3 \
+		--input-dirs=./api/v1alpha2 \
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
@@ -197,7 +197,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
-		crd \
+		crd:crdVersions=v1 \
 		output:crd:dir=$(CRD_ROOT) \
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
@@ -253,13 +253,13 @@ docker-push-manifest: ## Push the fat manifest docker image.
 .PHONY: set-manifest-image
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
-	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/default/manager_image_patch.yaml
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/manager/manager_image_patch.yaml
 
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
 	$(info Updating kustomize pull policy file for manager resource)
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/default/manager_pull_policy.yaml
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/manager/manager_pull_policy.yaml
 
 ## --------------------------------------
 ## Deploying
@@ -323,7 +323,7 @@ release: clean-release  ## Builds and push container images using the latest git
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
-	kustomize build config/default > $(RELEASE_DIR)/infrastructure-components.yaml
+	kustomize build config > $(RELEASE_DIR)/infrastructure-components.yaml
 
 .PHONY: release-binaries
 release-binaries: ## Builds the binaries to publish with a release

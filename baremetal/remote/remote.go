@@ -14,6 +14,8 @@ limitations under the License.
 package remote
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -23,8 +25,8 @@ import (
 )
 
 // NewClusterClient creates a new ClusterClient.
-func NewClusterClient(c client.Client, cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
-	kubeconfig, err := kcfg.FromSecret(c, cluster)
+func NewClusterClient(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
+	kubeconfig, err := kcfg.FromSecret(ctx, c, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)

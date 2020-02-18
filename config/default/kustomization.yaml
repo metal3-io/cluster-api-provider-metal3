@@ -4,18 +4,9 @@ kind: Kustomization
 # Adds namespace to all resources.
 namespace: capbm-system
 
-namePrefix: capbm-
-
-# Labels to add to all resources and selectors.
-commonLabels:
-  control-plane: capbm-controller-manager
-
 resources:
-- ../crd
+- namespace.yaml
+
+bases:
 - ../rbac
 - ../manager
-
-patchesStrategicMerge:
-- manager_image_patch.yaml
-- manager_auth_proxy_patch.yaml
-# - manager_prometheus_metrics_patch.yaml

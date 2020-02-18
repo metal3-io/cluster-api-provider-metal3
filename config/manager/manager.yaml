@@ -1,12 +1,4 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    control-plane: controller-manager
-    controller-tools.k8s.io: "1.0"
-  name: system
----
-apiVersion: v1
 kind: Service
 metadata:
   name: controller-manager-service
@@ -51,8 +43,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
-          - name: SECRET_NAME
-            value: $(WEBHOOK_SECRET_NAME)
         resources:
           limits:
             cpu: 100m
@@ -61,9 +51,17 @@ spec:
             cpu: 100m
             memory: 20Mi
         ports:
-        - containerPort: 9876
-          name: webhook-server
+        - containerPort: 9440
+          name: healthz
           protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: healthz
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: healthz
         volumeMounts:
         - mountPath: /tmp/cert
           name: cert

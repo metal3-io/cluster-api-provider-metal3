@@ -29,6 +29,7 @@ import (
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -39,7 +40,6 @@ import (
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -1584,7 +1584,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			func(tc testCaseSetNodePoviderID) {
 				c := fakeclient.NewFakeClientWithScheme(scheme)
 				corev1Client := clientfake.NewSimpleClientset(&tc.Node).CoreV1()
-				mockCapiClientGetter := func(c client.Client, cluster *capi.Cluster) (
+				mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
 					clientcorev1.CoreV1Interface, error,
 				) {
 					return corev1Client, nil
@@ -1598,7 +1598,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = machineMgr.SetNodeProviderID(tc.HostID,
+				err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
 					tc.ExpectedProviderID, mockCapiClientGetter,
 				)
 

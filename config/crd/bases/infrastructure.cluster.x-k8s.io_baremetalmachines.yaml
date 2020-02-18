@@ -1,8 +1,10 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: baremetalmachines.infrastructure.cluster.x-k8s.io
 spec:
@@ -11,30 +13,29 @@ spec:
     categories:
     - cluster-api
     kind: BareMetalMachine
+    listKind: BareMetalMachineList
     plural: baremetalmachines
     shortNames:
     - bmm
     - bmmachine
+    singular: baremetalmachine
   scope: Namespaced
-  subresources:
-    status: {}
-  version: v1alpha2
   versions:
   - additionalPrinterColumns:
-    - JSONPath: .spec.providerID
-      description: Provider ID
+    - description: Provider ID
+      jsonPath: .spec.providerID
       name: ProviderID
       type: string
-    - JSONPath: .status.phase
-      description: Machines current phase
+    - description: Machines current phase
+      jsonPath: .status.phase
       name: Phase
       type: string
-    - JSONPath: .status.ready
-      description: BaremetalMachine is Ready
+    - description: BaremetalMachine is Ready
+      jsonPath: .status.ready
       name: Ready
       type: string
-    - JSONPath: .status.errorReason
-      description: Most recent error
+    - description: Most recent error
+      jsonPath: .status.errorReason
       name: Error
       type: string
     name: v1alpha2
@@ -198,21 +199,23 @@ spec:
         type: object
     served: true
     storage: false
+    subresources:
+      status: {}
   - additionalPrinterColumns:
-    - JSONPath: .spec.providerID
-      description: Provider ID
+    - description: Provider ID
+      jsonPath: .spec.providerID
       name: ProviderID
       type: string
-    - JSONPath: .status.ready
-      description: BaremetalMachine is Ready
+    - description: BaremetalMachine is Ready
+      jsonPath: .status.ready
       name: Ready
       type: string
-    - JSONPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
-      description: Cluster to which this BMMachine belongs
+    - description: Cluster to which this BMMachine belongs
+      jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
-    - JSONPath: .status.phase
-      description: BaremetalMachine current phase
+    - description: BaremetalMachine current phase
+      jsonPath: .status.phase
       name: Phase
       type: string
     name: v1alpha3
@@ -375,6 +378,8 @@ spec:
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

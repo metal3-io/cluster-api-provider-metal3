@@ -14,6 +14,7 @@ limitations under the License.
 package remote
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -88,7 +89,7 @@ users:
 func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClient(validSecret)
-		c, err := NewClusterClient(client, clusterWithValidKubeConfig)
+		c, err := NewClusterClient(context.TODO(), client, clusterWithValidKubeConfig)
 		if err != nil {
 			t.Fatalf("Expected no errors, got %v", err)
 		}
@@ -100,7 +101,7 @@ func TestNewClusterClient(t *testing.T) {
 
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClient()
-		_, err := NewClusterClient(client, clusterWithNoKubeConfig)
+		_, err := NewClusterClient(context.TODO(), client, clusterWithNoKubeConfig)
 		if !strings.Contains(err.Error(), "not found") {
 			t.Fatalf("Expected not found error, got %v", err)
 		}
@@ -108,7 +109,7 @@ func TestNewClusterClient(t *testing.T) {
 
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
 		client := fake.NewFakeClient(invalidSecret)
-		_, err := NewClusterClient(client, clusterWithInvalidKubeConfig)
+		_, err := NewClusterClient(context.TODO(), client, clusterWithInvalidKubeConfig)
 		if err == nil || apierrors.IsNotFound(err) {
 			t.Fatalf("Expected error other than not found, got %v", err)
 		}

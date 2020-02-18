@@ -1,10 +1,10 @@
-# This configuration is for teaching kustomize how to update name ref and var substitution 
+# This configuration is for teaching kustomize how to update name ref and var substitution
 nameReference:
 - kind: Issuer
-  group: cert-manager.io 
+  group: cert-manager.io
   fieldSpecs:
   - kind: Certificate
-    group: certmanager.k8s.io
+    group: cert-manager.io
     path: spec/issuerRef/name
 
 varReference:
@@ -12,5 +12,8 @@ varReference:
   group: cert-manager.io
   path: spec/commonName
 - kind: Certificate
-  group: certmanager.k8s.io
+  group: cert-manager.io
   path: spec/dnsNames
+- kind: Certificate
+  group: cert-manager.io
+  path: spec/secretName

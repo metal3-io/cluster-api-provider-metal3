@@ -1,8 +1,10 @@
 
 ---
-apiVersion: apiextensions.k8s.io/v1beta1
+apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
   name: baremetalmachinetemplates.infrastructure.cluster.x-k8s.io
 spec:
@@ -11,9 +13,10 @@ spec:
     categories:
     - cluster-api
     kind: BareMetalMachineTemplate
+    listKind: BareMetalMachineTemplateList
     plural: baremetalmachinetemplates
+    singular: baremetalmachinetemplate
   scope: Namespaced
-  version: v1alpha2
   versions:
   - name: v1alpha2
     schema:

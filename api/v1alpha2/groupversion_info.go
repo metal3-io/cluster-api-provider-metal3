@@ -38,7 +38,7 @@ var (
 	AddToScheme = SchemeBuilder.AddToScheme
 
 	// localSchemeBuilder is for automatically generated conversions
-	// localSchemeBuilder = SchemeBuilder.SchemeBuilder
+	localSchemeBuilder = SchemeBuilder.SchemeBuilder
 )
 
 // Resource is required by pkg/client/listers/...

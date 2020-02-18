@@ -26,15 +26,15 @@ import (
 
 	"github.com/golang/mock/gomock"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
+	baremetal_mocks "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/mocks"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
-	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
-	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
-	baremetal_mocks "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/mocks"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
@@ -111,7 +111,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if we fail to set it on the node, we do not go further
 		if tc.SetNodeProviderIDFails {
 			m.EXPECT().
-				SetNodeProviderID("abc", "metal3://abc", nil).
+				SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID("abc").MaxTimes(0)
 			m.EXPECT().Update(context.TODO()).MaxTimes(0)
@@ -120,7 +120,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 		// we successfully set it on the node
 		m.EXPECT().
-			SetNodeProviderID("abc", "metal3://abc", nil).
+			SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
 			Return(nil)
 		m.EXPECT().SetProviderID("metal3://abc")
 
@@ -129,7 +129,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
 
 		m.EXPECT().
-			SetNodeProviderID("abc", "metal3://abc", nil).
+			SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
 			MaxTimes(0)
 	}
 

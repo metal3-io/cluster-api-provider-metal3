@@ -20,8 +20,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
-	"github.com/pkg/errors"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/mocks"
+	"github.com/pkg/errors"
 )
 
 var _ = Describe("BareMetalCluster controller", func() {
