@@ -1699,6 +1699,17 @@ var _ = Describe("BareMetalMachine manager", func() {
 				err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(tmpBootstrapSecret.Data["userData"])).To(Equal("FooBar\n"))
+				Expect(len(tmpBootstrapSecret.OwnerReferences)).To(Equal(1))
+				Expect(tmpBootstrapSecret.OwnerReferences[0].APIVersion).
+					To(Equal(tc.BMMachine.APIVersion))
+				Expect(tmpBootstrapSecret.OwnerReferences[0].Kind).
+					To(Equal(tc.BMMachine.Kind))
+				Expect(tmpBootstrapSecret.OwnerReferences[0].Name).
+					To(Equal(tc.BMMachine.Name))
+				Expect(tmpBootstrapSecret.OwnerReferences[0].UID).
+					To(Equal(tc.BMMachine.UID))
+				Expect(*tmpBootstrapSecret.OwnerReferences[0].Controller).
+					To(BeTrue())
 			}
 		},
 		Entry("Secret set in Machine", testCaseGetUserData{

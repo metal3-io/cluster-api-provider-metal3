@@ -298,6 +298,15 @@ func (m *MachineManager) GetUserData(ctx context.Context) error {
 			Labels: map[string]string{
 				capi.ClusterLabelName: m.Machine.Spec.ClusterName,
 			},
+			OwnerReferences: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					Controller: pointer.BoolPtr(true),
+					APIVersion: m.BareMetalMachine.APIVersion,
+					Kind: m.BareMetalMachine.Kind,
+					Name: m.BareMetalMachine.Name,
+					UID: m.BareMetalMachine.UID,
+				},
+			},
 		},
 		Data: map[string][]byte{
 			"userData": decodedUserDataBytes,
