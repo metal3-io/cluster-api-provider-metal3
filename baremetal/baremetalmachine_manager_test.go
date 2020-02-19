@@ -1699,7 +1699,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(string(tmpBootstrapSecret.Data["userData"])).To(Equal("FooBar\n"))
-				Expect(len(tmpBootstrapSecret.OwnerReferences)).To(Equal(1))
+				Expect(len(tmpBootstrapSecret.OwnerReferences)).To(BeEquivalentTo(1))
 				Expect(tmpBootstrapSecret.OwnerReferences[0].APIVersion).
 					To(Equal(tc.BMMachine.APIVersion))
 				Expect(tmpBootstrapSecret.OwnerReferences[0].Kind).
@@ -1710,6 +1710,8 @@ var _ = Describe("BareMetalMachine manager", func() {
 					To(Equal(tc.BMMachine.UID))
 				Expect(*tmpBootstrapSecret.OwnerReferences[0].Controller).
 					To(BeTrue())
+				Expect(len(tmpBootstrapSecret.Finalizers)).To(Equal(1))
+				Expect(tmpBootstrapSecret.Finalizers).To(ContainElement(userDataFinalizer))
 			}
 		},
 		Entry("Secret set in Machine", testCaseGetUserData{
@@ -2134,8 +2136,9 @@ func newSecret() *corev1.Secret {
 			APIVersion: "v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mybmmachine-user-data",
-			Namespace: "myns",
+			Name:       "mybmmachine-user-data",
+			Namespace:  "myns",
+			Finalizers: []string{"abcd"},
 		},
 		Data: map[string][]byte{
 			"userData": []byte("QmFyRm9vCg=="),

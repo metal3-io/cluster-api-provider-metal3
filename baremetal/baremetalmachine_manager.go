@@ -55,6 +55,7 @@ const (
 	requeueAfter       = time.Second * 30
 	bmRoleControlPlane = "control-plane"
 	bmRoleNode         = "node"
+	userDataFinalizer  = "baremetalmachine.infrastructure.cluster.x-k8s.io/userData"
 )
 
 // MachineManagerInterface is an interface for a ClusterManager
@@ -302,11 +303,12 @@ func (m *MachineManager) GetUserData(ctx context.Context) error {
 				metav1.OwnerReference{
 					Controller: pointer.BoolPtr(true),
 					APIVersion: m.BareMetalMachine.APIVersion,
-					Kind: m.BareMetalMachine.Kind,
-					Name: m.BareMetalMachine.Name,
-					UID: m.BareMetalMachine.UID,
+					Kind:       m.BareMetalMachine.Kind,
+					Name:       m.BareMetalMachine.Name,
+					UID:        m.BareMetalMachine.UID,
 				},
 			},
+			Finalizers: []string{userDataFinalizer},
 		},
 		Data: map[string][]byte{
 			"userData": decodedUserDataBytes,
@@ -437,6 +439,16 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		)
 		return err
 	} else if err == nil {
+		//unset the finalizers (remove all since we do not expect anything else
+		// to control that object)
+		tmpBootstrapSecret.Finalizers = []string{}
+		err = m.client.Update(ctx, &tmpBootstrapSecret)
+		if err != nil {
+			m.setError("Failed to delete BareMetalMachine",
+				capierrors.DeleteMachineError,
+			)
+			return err
+		}
 		// Delete the secret with use data
 		err = m.client.Delete(ctx, &tmpBootstrapSecret)
 		if err != nil {
