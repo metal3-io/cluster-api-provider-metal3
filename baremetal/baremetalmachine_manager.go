@@ -262,30 +262,22 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 // Merge the UserData from the machine and the user
 func (m *MachineManager) GetUserData(ctx context.Context) error {
-	var err error
-	var decodedUserDataBytes []byte
 	// if datasecretname is set get userdata from secret
 	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
-		capiBootstrapSecret := corev1.Secret{}
-		capikey := client.ObjectKey{
+		m.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
 			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
 			Namespace: m.Machine.Namespace,
 		}
-		err := m.client.Get(ctx, capikey, &capiBootstrapSecret)
-		if err != nil {
-			return err
-		}
-		decodedUserDataBytes = capiBootstrapSecret.Data["value"]
-	} else if m.Machine.Spec.Bootstrap.Data != nil {
-		// if datasecretname is not set
-		decodedUserData := *m.Machine.Spec.Bootstrap.Data
-		// decode the base64 cloud-config
-		decodedUserDataBytes, err = base64.StdEncoding.DecodeString(decodedUserData)
-		if err != nil {
-			return err
-		}
-	} else {
 		return nil
+	} else if m.Machine.Spec.Bootstrap.Data == nil {
+		return nil
+	}
+	// if datasecretname is not set
+	decodedUserData := *m.Machine.Spec.Bootstrap.Data
+	// decode the base64 cloud-config
+	decodedUserDataBytes, err := base64.StdEncoding.DecodeString(decodedUserData)
+	if err != nil {
+		return err
 	}
 
 	bootstrapSecret := &corev1.Secret{
@@ -425,37 +417,41 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return err
 		}
 	}
-
-	m.Log.Info("Deleting User data secret for machine")
-	tmpBootstrapSecret := corev1.Secret{}
-	key := client.ObjectKey{
-		Name:      m.BareMetalMachine.Name + "-user-data",
-		Namespace: m.BareMetalMachine.Namespace,
-	}
-	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-	if err != nil && !apierrors.IsNotFound(err) {
-		m.setError("Failed to delete BareMetalMachine",
-			capierrors.DeleteMachineError,
-		)
-		return err
-	} else if err == nil {
-		//unset the finalizers (remove all since we do not expect anything else
-		// to control that object)
-		tmpBootstrapSecret.Finalizers = []string{}
-		err = m.client.Update(ctx, &tmpBootstrapSecret)
-		if err != nil {
-			m.setError("Failed to delete BareMetalMachine",
-				capierrors.DeleteMachineError,
-			)
-			return err
+	fmt.Println("Hello")
+	if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
+		m.Machine.Spec.Bootstrap.Data != nil {
+		fmt.Println("Hello2")
+		m.Log.Info("Deleting User data secret for machine")
+		tmpBootstrapSecret := corev1.Secret{}
+		key := client.ObjectKey{
+			Name:      m.BareMetalMachine.Name + "-user-data",
+			Namespace: m.BareMetalMachine.Namespace,
 		}
-		// Delete the secret with use data
-		err = m.client.Delete(ctx, &tmpBootstrapSecret)
-		if err != nil {
+		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
+		if err != nil && !apierrors.IsNotFound(err) {
 			m.setError("Failed to delete BareMetalMachine",
 				capierrors.DeleteMachineError,
 			)
 			return err
+		} else if err == nil {
+			//unset the finalizers (remove all since we do not expect anything else
+			// to control that object)
+			tmpBootstrapSecret.Finalizers = []string{}
+			err = m.client.Update(ctx, &tmpBootstrapSecret)
+			if err != nil {
+				m.setError("Failed to delete BareMetalMachine",
+					capierrors.DeleteMachineError,
+				)
+				return err
+			}
+			// Delete the secret with use data
+			err = m.client.Delete(ctx, &tmpBootstrapSecret)
+			if err != nil {
+				m.setError("Failed to delete BareMetalMachine",
+					capierrors.DeleteMachineError,
+				)
+				return err
+			}
 		}
 	}
 	m.Log.Info("finished deleting bare metal machine")

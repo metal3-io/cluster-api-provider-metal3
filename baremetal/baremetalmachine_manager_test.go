@@ -1215,7 +1215,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
-			ExpectSecretDeleted: true,
+			ExpectSecretDeleted: false,
 		}),
 		Entry("No host at all, so this is a no-op", testCaseDelete{
 			Host:    nil,
@@ -1224,7 +1224,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
-			ExpectSecretDeleted: true,
+			ExpectSecretDeleted: false,
 		}),
 		Entry("dataSecretName set, deleting secret", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
@@ -1244,7 +1244,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
-			ExpectSecretDeleted: true,
+			ExpectSecretDeleted: false,
 		}),
 		Entry("Clusterlabel should be removed", testCaseDelete{
 			Machine:                   newMachine("mymachine", "mybmmachine", nil),
@@ -1682,7 +1682,16 @@ var _ = Describe("BareMetalMachine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			if tc.Machine.Spec.Bootstrap.DataSecretName != nil ||
+			if tc.Machine.Spec.Bootstrap.DataSecretName != nil {
+				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
+					*tc.Machine.Spec.Bootstrap.DataSecretName,
+				))
+				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
+					tc.Machine.Namespace,
+				))
+			}
+
+			if tc.Machine.Spec.Bootstrap.DataSecretName == nil &&
 				tc.Machine.Spec.Bootstrap.Data != nil {
 
 				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
@@ -2012,8 +2021,9 @@ func newMachine(machineName string, bareMetalMachineName string,
 			ClusterName:       clusterName,
 			InfrastructureRef: *infraRef,
 			Bootstrap: capi.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{},
-				Data:      &data,
+				ConfigRef:      &corev1.ObjectReference{},
+				Data:           &data,
+				DataSecretName: nil,
 			},
 		},
 	}
