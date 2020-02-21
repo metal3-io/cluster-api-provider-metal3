@@ -35,10 +35,10 @@ export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
 
 # Outputs.
 COMPONENTS_CERT_MANAGER_GENERATED_FILE=${OUTPUT_DIR}/cert-manager.yaml
-COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-cluster-api.yaml
-COMPONENTS_KUBEADM_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-kubeadm.yaml
-COMPONENTS_CTRLPLANE_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-ctlplane.yaml
-COMPONENTS_BAREMETAL_GENERATED_FILE=${SOURCE_DIR}/provider-components/provider-components-baremetal.yaml
+COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/core-components.yaml
+COMPONENTS_KUBEADM_GENERATED_FILE=${SOURCE_DIR}/provider-components/bootstrap-components.yaml
+COMPONENTS_CTRLPLANE_GENERATED_FILE=${SOURCE_DIR}/provider-components/ctlplane-components.yaml
+COMPONENTS_BAREMETAL_GENERATED_FILE=${SOURCE_DIR}/provider-components/infrastructure-components.yaml
 
 PROVIDER_COMPONENTS_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
