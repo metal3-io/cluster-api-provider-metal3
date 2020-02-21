@@ -219,7 +219,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// A machine bootstrap not ready case is caught in the controller
 	// ReconcileNormal function
-	err = m.GetUserData(ctx)
+	err = m.GetUserData(ctx, host)
 	if err != nil {
 		m.setError("Failed to set the UserData for the BareMetalMachine",
 			capierrors.CreateMachineError,
@@ -260,24 +260,50 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	return nil
 }
 
-// Merge the UserData from the machine and the user
-func (m *MachineManager) GetUserData(ctx context.Context) error {
-	// if datasecretname is set get userdata from secret
-	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
+// GetUserData gets the UserData from the machine and exposes it as a secret
+// for the BareMetalHost. The UserData might already be in a secret with
+// CABPK v0.3.0+, but if it is in a different namespace than the BareMetalHost,
+// then we need to create the secret. Same as if the UserData is in the data
+// field.
+func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHost) error {
+	var err error
+	var decodedUserDataBytes []byte
+	// if datasecretname is set and BaremetalHost and Machine are in the same
+	// namespace, just pass the reference
+	if m.Machine.Spec.Bootstrap.DataSecretName != nil &&
+		host.Namespace == m.Machine.Namespace {
 		m.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
 			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
 			Namespace: m.Machine.Namespace,
 		}
 		return nil
+
+	} else if m.Machine.Spec.Bootstrap.DataSecretName != nil &&
+		host.Namespace != m.Machine.Namespace {
+		// If they are in different namespaces, create a new secret in BMH namespace
+		capiBootstrapSecret := corev1.Secret{}
+		capikey := client.ObjectKey{
+			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
+			Namespace: m.Machine.Namespace,
+		}
+		err := m.client.Get(ctx, capikey, &capiBootstrapSecret)
+		if err != nil {
+			return err
+		}
+		decodedUserDataBytes = capiBootstrapSecret.Data["value"]
+
 	} else if m.Machine.Spec.Bootstrap.Data == nil {
+		// If we do not have DataSecretName or Data then exit
 		return nil
-	}
-	// if datasecretname is not set
-	decodedUserData := *m.Machine.Spec.Bootstrap.Data
-	// decode the base64 cloud-config
-	decodedUserDataBytes, err := base64.StdEncoding.DecodeString(decodedUserData)
-	if err != nil {
-		return err
+
+	} else if m.Machine.Spec.Bootstrap.Data != nil {
+		// If we have Data, use it
+		decodedUserData := *m.Machine.Spec.Bootstrap.Data
+		// decode the base64 cloud-config
+		decodedUserDataBytes, err = base64.StdEncoding.DecodeString(decodedUserData)
+		if err != nil {
+			return err
+		}
 	}
 
 	bootstrapSecret := &corev1.Secret{
@@ -287,7 +313,7 @@ func (m *MachineManager) GetUserData(ctx context.Context) error {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.BareMetalMachine.Name + "-user-data",
-			Namespace: m.BareMetalMachine.Namespace,
+			Namespace: host.Namespace,
 			Labels: map[string]string{
 				capi.ClusterLabelName: m.Machine.Spec.ClusterName,
 			},
@@ -311,7 +337,7 @@ func (m *MachineManager) GetUserData(ctx context.Context) error {
 	tmpBootstrapSecret := corev1.Secret{}
 	key := client.ObjectKey{
 		Name:      m.BareMetalMachine.Name + "-user-data",
-		Namespace: m.BareMetalMachine.Namespace,
+		Namespace: host.Namespace,
 	}
 	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
 	if apierrors.IsNotFound(err) {
@@ -330,7 +356,7 @@ func (m *MachineManager) GetUserData(ctx context.Context) error {
 	}
 	m.BareMetalMachine.Spec.UserData = &corev1.SecretReference{
 		Name:      m.BareMetalMachine.Name + "-user-data",
-		Namespace: m.BareMetalMachine.Namespace,
+		Namespace: host.Namespace,
 	}
 
 	return nil
@@ -417,19 +443,22 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return err
 		}
 	}
-	fmt.Println("Hello")
-	if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
-		m.Machine.Spec.Bootstrap.Data != nil {
-		fmt.Println("Hello2")
+
+	// Delete created secret, if data was set without DataSecretName or if
+	// BareMetalHost and Machine are in different namespaces.
+	if (m.Machine.Spec.Bootstrap.DataSecretName == nil &&
+		m.Machine.Spec.Bootstrap.Data != nil) ||
+		(m.Machine.Spec.Bootstrap.DataSecretName != nil &&
+			m.Machine.Namespace != host.Namespace) {
 		m.Log.Info("Deleting User data secret for machine")
 		tmpBootstrapSecret := corev1.Secret{}
 		key := client.ObjectKey{
 			Name:      m.BareMetalMachine.Name + "-user-data",
-			Namespace: m.BareMetalMachine.Namespace,
+			Namespace: host.Namespace,
 		}
 		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
 		if err != nil && !apierrors.IsNotFound(err) {
-			m.setError("Failed to delete BareMetalMachine",
+			m.setError("Failed to delete userdata secret",
 				capierrors.DeleteMachineError,
 			)
 			return err
@@ -439,7 +468,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			tmpBootstrapSecret.Finalizers = []string{}
 			err = m.client.Update(ctx, &tmpBootstrapSecret)
 			if err != nil {
-				m.setError("Failed to delete BareMetalMachine",
+				m.setError("Failed to delete userdata secret",
 					capierrors.DeleteMachineError,
 				)
 				return err
@@ -447,7 +476,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			// Delete the secret with use data
 			err = m.client.Delete(ctx, &tmpBootstrapSecret)
 			if err != nil {
-				m.setError("Failed to delete BareMetalMachine",
+				m.setError("Failed to delete userdata secret",
 					capierrors.DeleteMachineError,
 				)
 				return err
