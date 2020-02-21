@@ -51,6 +51,7 @@ var (
 	syncPeriod              time.Duration
 	webhookPort             int
 	healthAddr              string
+	watchNamespace          string
 )
 
 func init() {
@@ -67,6 +68,8 @@ func main() {
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&watchNamespace, "namespace", "",
+		"Namespace that the controller watches to reconcile CAPBM objects. If unspecified, the controller watches for CAPBM objects across all namespaces.")
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 	flag.IntVar(&webhookPort, "webhook-port", 0,
@@ -85,6 +88,7 @@ func main() {
 		SyncPeriod:             &syncPeriod,
 		Port:                   webhookPort,
 		HealthProbeBindAddress: healthAddr,
+		Namespace:              watchNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
