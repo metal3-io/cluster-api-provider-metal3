@@ -357,6 +357,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	}
 
 	if host != nil && host.Spec.ConsumerRef != nil {
+		host.OwnerReferences = m.DeleteOwnerRef(host.OwnerReferences)
 		// don't remove the ConsumerRef if it references some other bare metal machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.BareMetalMachine) {
 			m.Log.Info("host already associated with another bare metal machine",
@@ -476,6 +477,15 @@ func (m *MachineManager) Update(ctx context.Context) error {
 	}
 	if host == nil {
 		return fmt.Errorf("host not found for machine %s", m.Machine.Name)
+	}
+
+	// ensure that the BMH specs are correctly set
+	err = m.setHostSpec(ctx, host)
+	if err != nil {
+		m.setError("Failed to associate the BaremetalHost to the BareMetalMachine",
+			capierrors.CreateMachineError,
+		)
+		return err
 	}
 
 	err = m.ensureAnnotation(ctx, host)
@@ -706,6 +716,8 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 	}
 
 	host.Spec.Online = true
+	// Set OwnerReferences
+	host.OwnerReferences = m.SetOwnerRef(host.OwnerReferences, true)
 	return m.client.Update(ctx, host)
 }
 
@@ -857,4 +869,53 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 func (m *MachineManager) SetProviderID(providerID string) {
 	m.BareMetalMachine.Spec.ProviderID = &providerID
 	m.BareMetalMachine.Status.Ready = true
+}
+
+// SetOwnerRef adds an ownerreference to this baremetal machine
+func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller bool) []metav1.OwnerReference {
+	index, err := m.FindOwnerRef(refList)
+	if err != nil {
+		refList = append(refList, metav1.OwnerReference{
+			APIVersion: m.BareMetalMachine.APIVersion,
+			Kind:       m.BareMetalMachine.Kind,
+			Name:       m.BareMetalMachine.Name,
+			UID:        m.BareMetalMachine.UID,
+			Controller: pointer.BoolPtr(controller),
+		})
+	} else {
+		refList[index].UID = m.BareMetalMachine.UID
+		refList[index].Controller = pointer.BoolPtr(controller)
+	}
+	return refList
+}
+
+// DeleteOwnerRef removes the ownerreference to this baremetal machine
+func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) []metav1.OwnerReference {
+	if len(refList) == 0 {
+		return refList
+	}
+	index, err := m.FindOwnerRef(refList)
+	if err != nil {
+		return refList
+	}
+	if len(refList) == 1 {
+		return []metav1.OwnerReference{}
+	}
+	refListLen := len(refList) - 1
+	refList[index] = refList[refListLen]
+	return (m.DeleteOwnerRef(refList[:refListLen-1]))
+}
+
+// FindOwnerRef checks if an ownerreference to this baremetal machine exists
+// and returns the index
+func (m *MachineManager) FindOwnerRef(refList []metav1.OwnerReference) (int, error) {
+	for i, curOwnerRef := range refList {
+		// not matching on UID since when pivoting it might change
+		if curOwnerRef.Name == m.BareMetalMachine.Name &&
+			curOwnerRef.APIVersion == m.BareMetalMachine.APIVersion &&
+			curOwnerRef.Kind == m.BareMetalMachine.Kind {
+			return i, nil
+		}
+	}
+	return 0, errors.New("OwnerRef not found")
 }

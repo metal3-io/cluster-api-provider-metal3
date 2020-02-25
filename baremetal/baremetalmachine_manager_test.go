@@ -619,6 +619,8 @@ var _ = Describe("BareMetalMachine manager", func() {
 			} else {
 				Expect(savedHost.Spec.UserData).To(BeNil())
 			}
+			_, err = machineMgr.FindOwnerRef(savedHost.OwnerReferences)
+			Expect(err).NotTo(HaveOccurred())
 		},
 		Entry("User data has explicit alternate namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "otherns",
@@ -1795,6 +1797,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		BMCSecret          *corev1.Secret
 		ExpectRequeue      bool
 		ExpectClusterLabel bool
+		ExpectOwnerRef     bool
 	}
 
 	DescribeTable("Test Associate function",
@@ -1817,23 +1820,33 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.Associate(context.TODO())
-			if !tc.ExpectRequeue {
-				Expect(err).NotTo(HaveOccurred())
-			} else {
+			if tc.ExpectRequeue {
 				_, ok := errors.Cause(err).(HasRequeueAfterError)
 				Expect(ok).To(BeTrue())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			if tc.Host == nil {
+				return
+			}
+			// get the saved host
+			savedHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
+				},
+				&savedHost,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = machineMgr.FindOwnerRef(savedHost.OwnerReferences)
+			if tc.ExpectOwnerRef {
+				Expect(err).NotTo(HaveOccurred())
+			} else {
+				Expect(err).To(HaveOccurred())
 			}
 			if tc.ExpectClusterLabel {
-				// get the saved host
-				savedHost := bmh.BareMetalHost{}
-				err = c.Get(context.TODO(),
-					client.ObjectKey{
-						Name:      tc.Host.Name,
-						Namespace: tc.Host.Namespace,
-					},
-					&savedHost,
-				)
-				Expect(err).NotTo(HaveOccurred())
 				// get the BMC credential
 				savedCred := corev1.Secret{}
 				err = c.Get(context.TODO(),
@@ -1869,7 +1882,8 @@ var _ = Describe("BareMetalMachine manager", func() {
 				Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil,
 					false, false,
 				),
-				ExpectRequeue: false,
+				ExpectRequeue:  false,
+				ExpectOwnerRef: true,
 			},
 		),
 		Entry("Associate empty machine, host empty, baremetal machine spec set",
@@ -1878,8 +1892,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 				BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSpecAll(), nil,
 					bmmObjectMetaWithValidAnnotations(),
 				),
-				Host:          newBareMetalHost("", nil, bmh.StateNone, nil, false, false),
-				ExpectRequeue: false,
+				Host:           newBareMetalHost("", nil, bmh.StateNone, nil, false, false),
+				ExpectRequeue:  false,
+				ExpectOwnerRef: true,
 			},
 		),
 		Entry("Associate machine, host nil, baremetal machine spec set, requeue",
@@ -1900,6 +1915,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
+				ExpectOwnerRef:     true,
 			},
 		),
 	)
@@ -1933,6 +1949,216 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
+		}),
+	)
+
+	type testCaseFindOwnerRef struct {
+		BMMachine     capbm.BareMetalMachine
+		OwnerRefs     []metav1.OwnerReference
+		ExpectError   bool
+		ExpectedIndex int
+	}
+
+	DescribeTable("Test FindOwnerRef",
+		func(tc testCaseFindOwnerRef) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.BMMachine,
+				klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			index, err := machineMgr.FindOwnerRef(tc.OwnerRefs)
+			if tc.ExpectError {
+				Expect(err).NotTo(BeNil())
+			} else {
+				Expect(err).To(BeNil())
+				Expect(index).To(BeEquivalentTo(tc.ExpectedIndex))
+			}
+		},
+		Entry("Empty list", testCaseFindOwnerRef{
+			BMMachine:   *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs:   []metav1.OwnerReference{},
+			ExpectError: true,
+		}),
+		Entry("Absent", testCaseFindOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+			},
+			ExpectError: true,
+		}),
+		Entry("Present 0", testCaseFindOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+			},
+			ExpectError:   false,
+			ExpectedIndex: 0,
+		}),
+		Entry("Present 1", testCaseFindOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+			},
+			ExpectError:   false,
+			ExpectedIndex: 1,
+		}),
+	)
+
+	type testCaseOwnerRef struct {
+		BMMachine  capbm.BareMetalMachine
+		OwnerRefs  []metav1.OwnerReference
+		Controller bool
+	}
+
+	DescribeTable("Test DeleteOwnerRef",
+		func(tc testCaseOwnerRef) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.BMMachine,
+				klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			refList := machineMgr.DeleteOwnerRef(tc.OwnerRefs)
+			_, err = machineMgr.FindOwnerRef(refList)
+			Expect(err).NotTo(BeNil())
+		},
+		Entry("Empty list", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{},
+		}),
+		Entry("Absent", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+			},
+		}),
+		Entry("Present 0", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+			},
+		}),
+		Entry("Present 1", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+			},
+		}),
+	)
+
+	DescribeTable("Test SetOwnerRef",
+		func(tc testCaseOwnerRef) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.BMMachine,
+				klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			refList := machineMgr.SetOwnerRef(tc.OwnerRefs, tc.Controller)
+			index, err := machineMgr.FindOwnerRef(refList)
+			Expect(err).To(BeNil())
+			Expect(*refList[index].Controller).To(BeEquivalentTo(tc.Controller))
+		},
+		Entry("Empty list", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{},
+		}),
+		Entry("Absent", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+			},
+		}),
+		Entry("Present 0", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+			},
+		}),
+		Entry("Present 1", testCaseOwnerRef{
+			BMMachine: *newBareMetalMachine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: capbm.GroupVersion.String(),
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+			},
 		}),
 	)
 })
