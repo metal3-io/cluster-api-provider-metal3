@@ -15,3 +15,4 @@ bin/*
 hack/tools/bin/*
 examples/_out/*
 examples/provider-components/*-components.yaml
+out/*
