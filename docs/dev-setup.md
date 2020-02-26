@@ -26,7 +26,7 @@ instructions on launching a Minikube cluster.
 
 ### Add CRDs and CRs from baremetal-operator
 
-The actuator also uses the `BareMetalHost` custom resource that’s defined by
+The provider also uses the `BareMetalHost` custom resource that’s defined by
 the `baremetal-operator`. The following command deploys the CRD and creates
 dummy BareMetalHosts.
 
@@ -34,11 +34,12 @@ dummy BareMetalHosts.
     make deploy-bmo-cr
 ```
 
-When a `Machine` gets created, the actuator looks for an available
+When a `BareMetalMachine` gets created, the provider looks for an available
 `BareMetalHost` to claim and then sets it to be provisioned to fulfill the
-request expressed by the `Machine`. Before creating a `Machine`, we can create
-a dummy `BareMetalHost` object. There’s no requirement to actually run the
-`baremetal-operator` to test the reconciliation logic of the actuator.
+request expressed by the `BareMetalMachine`. Before creating a
+`BareMetalMachine`, we can create a dummy `BareMetalHost` object. There’s no
+requirement to actually run the
+`baremetal-operator` to test the reconciliation logic of the provider.
 
 Refer to the [baremetal-operator developer
 documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
@@ -70,5 +71,5 @@ make run
 ```
 
 You can follow the output on the console to see information about what the
-controller is doing. You can also proceed to create/update/delete `Machines`
-and `BareMetalHosts` to test the controller logic.
+controller is doing. You can also proceed to create/update/delete
+`BareMetalMachines` and `BareMetalHosts` to test the controller logic.

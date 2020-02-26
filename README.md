@@ -19,9 +19,9 @@ For more information about this actuator and related repositories, see
 
 ## API
 
-See the [API Documentation](docs/api.md) for details about the `providerSpec`
-API used with this `cluster-api` provider. You can also see the [cluster
-deployment workflow](docs/deployment_workflow.md) for the outline of the
+See the [API Documentation](docs/api.md) for details about the objects used with
+this `cluster-api` provider. You can also see the [cluster deployment
+workflow](docs/deployment_workflow.md) for the outline of the
 deployment process.
 
 ## Deployment and examples
@@ -34,37 +34,32 @@ for testing purposes only, when Baremetal Operator is not deployed
     make deploy-bmo-cr
 ```
 
-### Deploy CAPM3 CRDs
+### Deploy CAPM3
 
-Deploys CAPM3 CRDs
+Deploys CAPM3 CRDs and deploys CAPI, CABPK, CACPK and CAPM3 controllers
 
 ```sh
-    make install
+    make deploy
 ```
 
 ### Run locally
 
-Deploys CAPI, CABPK and CAPM3 CRDs, runs CAPI and CABPK controllers in cluster
-and runs CAPM3 controller locally
+Runs CAPM3 controller locally
 
 ```sh
-    make deploy
     kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager \
       --replicas 0
     make run
 ```
 
-### Run in cluster
-
-Deploys CAPM3 CRDs and controllers in cluster
+### Deploy an example cluster
 
 ```sh
-    make deploy
+    make deploy-examples
 ```
 
-### Deploy an example
+### Delete the example cluster
 
 ```sh
-    make deploy
-    make deploy-examples
+    make delete-examples
 ```
