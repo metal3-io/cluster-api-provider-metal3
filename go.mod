@@ -14,16 +14,18 @@ require (
 	github.com/googleapis/gnostic v0.4.1 // indirect
 	github.com/gophercloud/gophercloud v0.3.0 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
+	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mdempsky/maligned v0.0.0-20180708014732-6e39bd26a8c8 // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20200207092945-ce276d44ddec
+	github.com/metal3-io/baremetal-operator v0.0.0-20200220133300-43fab21f7d0a
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.4.1 // indirect
-	github.com/prometheus/procfs v0.0.9 // indirect
+	github.com/prometheus/procfs v0.0.10 // indirect
 	github.com/securego/gosec v0.0.0-20200203094520-d13bb6d2420c // indirect
-	golang.org/x/crypto v0.0.0-20200214034016-1d94cc7ab1c6 // indirect
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
+	golang.org/x/crypto v0.0.0-20200219234226-1ad67e1f0ef4 // indirect
+	golang.org/x/net v0.0.0-20200219183655-46282727080f
+	golang.org/x/sys v0.0.0-20200219091948-cb0a6d8edb6c // indirect
 	k8s.io/api v0.17.3
 	k8s.io/apiextensions-apiserver v0.17.3
 	k8s.io/apimachinery v0.17.3

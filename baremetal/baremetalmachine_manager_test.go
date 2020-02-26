@@ -1197,6 +1197,26 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Secret:              newSecret(),
 			ExpectSecretDeleted: true,
 		}),
+		Entry("Consumer ref should be removed", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateReady,
+				bmhStatus(), false, false,
+			),
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns2",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						DataSecretName: pointer.StringPtr("Foobar"),
+					},
+				},
+			},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, bmmSecret(), nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: true,
+		}),
 		Entry("Consumer ref does not match, so it should not be removed",
 			testCaseDelete{
 				Host: newBareMetalHost("myhost", bmhSpecSomeImg(),
@@ -1217,7 +1237,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
-			ExpectSecretDeleted: true,
+			ExpectSecretDeleted: false,
 		}),
 		Entry("No host at all, so this is a no-op", testCaseDelete{
 			Host:    nil,
@@ -1226,7 +1246,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
-			ExpectSecretDeleted: true,
+			ExpectSecretDeleted: false,
 		}),
 		Entry("dataSecretName set, deleting secret", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
@@ -1246,7 +1266,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
-			ExpectSecretDeleted: true,
+			ExpectSecretDeleted: false,
 		}),
 		Entry("Clusterlabel should be removed", testCaseDelete{
 			Machine:                   newMachine("mymachine", "mybmmachine", nil),
@@ -1656,6 +1676,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	type testCaseGetUserData struct {
 		Machine     *capi.Machine
 		BMMachine   *capbm.BareMetalMachine
+		BMHost      *bmh.BareMetalHost
 		Secret      *corev1.Secret
 		ExpectError bool
 	}
@@ -1676,7 +1697,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = machineMgr.GetUserData(context.TODO())
+			err = machineMgr.GetUserData(context.TODO(), tc.BMHost)
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -1684,19 +1705,34 @@ var _ = Describe("BareMetalMachine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			if tc.Machine.Spec.Bootstrap.DataSecretName != nil ||
-				tc.Machine.Spec.Bootstrap.Data != nil {
+			// Expect the reference to the secret to be passed through
+			if tc.Machine.Spec.Bootstrap.DataSecretName != nil &&
+				tc.Machine.Namespace == tc.BMHost.Namespace {
+				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
+					*tc.Machine.Spec.Bootstrap.DataSecretName,
+				))
+				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
+					tc.BMHost.Namespace,
+				))
+			}
+
+			// if we had to create an additional secret (BMH and BMM in different
+			// namespaces or dataSecretName not set and Data sets)
+			if (tc.Machine.Spec.Bootstrap.DataSecretName == nil &&
+				tc.Machine.Spec.Bootstrap.Data != nil) ||
+				(tc.Machine.Spec.Bootstrap.DataSecretName != nil &&
+					tc.Machine.Namespace != tc.BMHost.Namespace) {
 
 				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
 					tc.BMMachine.Name + "-user-data",
 				))
 				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
-					tc.BMMachine.Namespace,
+					tc.BMHost.Namespace,
 				))
 				tmpBootstrapSecret := corev1.Secret{}
 				key := client.ObjectKey{
 					Name:      tc.BMMachine.Spec.UserData.Name,
-					Namespace: tc.BMMachine.Namespace,
+					Namespace: tc.BMHost.Namespace,
 				}
 				err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
 				Expect(err).NotTo(HaveOccurred())
@@ -1742,6 +1778,35 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 			},
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
+		}),
+		Entry("Secret set in Machine, different namespace", testCaseGetUserData{
+			Secret: &corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "Foobar",
+					Namespace: "myns2",
+				},
+				Data: map[string][]byte{
+					"value": []byte("FooBar\n"),
+				},
+				Type: "Opaque",
+			},
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns2",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						DataSecretName: pointer.StringPtr("Foobar"),
+					},
+				},
+			},
+			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
 		Entry("Userdata set in Machine, secret exists", testCaseGetUserData{
 			Secret: newSecret(),
@@ -1756,6 +1821,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 			},
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
 		Entry("Userdata set in Machine, no secret", testCaseGetUserData{
 			Machine: &capi.Machine{
@@ -1769,6 +1835,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 			},
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
 		Entry("Userdata set in Machine, invalid", testCaseGetUserData{
 			ExpectError: true,
@@ -1783,10 +1850,12 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 			},
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
 		Entry("No userData in Machine", testCaseGetUserData{
 			Machine:   &capi.Machine{},
 			BMMachine: newBareMetalMachine("mybmmachine", nil, nil, nil, nil),
+			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
 	)
 
@@ -2238,8 +2307,9 @@ func newMachine(machineName string, bareMetalMachineName string,
 			ClusterName:       clusterName,
 			InfrastructureRef: *infraRef,
 			Bootstrap: capi.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{},
-				Data:      &data,
+				ConfigRef:      &corev1.ObjectReference{},
+				Data:           &data,
+				DataSecretName: nil,
 			},
 		},
 	}
