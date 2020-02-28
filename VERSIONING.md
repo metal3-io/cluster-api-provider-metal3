@@ -37,7 +37,7 @@ but essentially, for any given release X.Y.Z:
 changes.
 
 These guarantees extend to all code exposed in public APIs of
-Cluster API Provider Baremetal. This includes code both in Cluster API Provider
+Cluster API Provider Metal3. This includes code both in Cluster API Provider
 Baremetal itself, *plus types from dependencies in public APIs*.  Types and
 functions not in public APIs are not considered part of the guarantee.
 
@@ -46,7 +46,7 @@ that we follow.
 
 ## Branches
 
-Cluster API Provider Baremetal contains two types of branches: the *master*
+Cluster API Provider Metal3 contains two types of branches: the *master*
 branch and *release-X* branches.
 
 The *master* branch is where development happens.  All the latest and
@@ -84,7 +84,7 @@ separately.
 
 ### Commands and Workflow
 
-Cluster API Provider Baremetal follows the standard Kubernetes workflow: any PR
+Cluster API Provider Metal3 follows the standard Kubernetes workflow: any PR
 needs `lgtm` and `approved` labels, PRs authors must have signed the CNCF CLA,
 and PRs must pass the tests before being merged.  See [the contributor
 docs](https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#the-testing-and-merge-workflow)
@@ -94,7 +94,7 @@ We use the same priority and kind labels as Kubernetes.  See the labels
 tab in GitHub for the full list.
 
 The standard Kubernetes comment commands should work in
-Cluster API Provider Baremetal.  See [Prow](https://prow.k8s.io/command-help)
+Cluster API Provider Metal3.  See [Prow](https://prow.k8s.io/command-help)
 for a command reference.
 
 ## Release Process
