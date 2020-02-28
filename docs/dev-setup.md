@@ -58,7 +58,7 @@ the requested CRDs.
 You will first need to scale down the controller deployment :
 
 ```sh
-    kubectl scale -n capbm-system deployment.v1.apps/capbm-controller-manager \
+    kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager \
       --replicas 0
 ```
 

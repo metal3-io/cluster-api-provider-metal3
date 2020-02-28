@@ -2,8 +2,8 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: capbm-controller-manager
-  namespace: capbm-system
+  name: capm3-controller-manager
+  namespace: capm3-system
 spec:
   template:
     spec:

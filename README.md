@@ -34,9 +34,9 @@ for testing purposes only, when Baremetal Operator is not deployed
     make deploy-bmo-cr
 ```
 
-### Deploy CAPBM CRDs
+### Deploy CAPM3 CRDs
 
-Deploys CAPBM CRDs
+Deploys CAPM3 CRDs
 
 ```sh
     make install
@@ -44,19 +44,19 @@ Deploys CAPBM CRDs
 
 ### Run locally
 
-Deploys CAPI, CABPK and CAPBM CRDs, runs CAPI and CABPK controllers in cluster
-and runs CAPBM controller locally
+Deploys CAPI, CABPK and CAPM3 CRDs, runs CAPI and CABPK controllers in cluster
+and runs CAPM3 controller locally
 
 ```sh
     make deploy
-    kubectl scale -n capbm-system deployment.v1.apps/capbm-controller-manager \
+    kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager \
       --replicas 0
     make run
 ```
 
 ### Run in cluster
 
-Deploys CAPBM CRDs and controllers in cluster
+Deploys CAPM3 CRDs and controllers in cluster
 
 ```sh
     make deploy
