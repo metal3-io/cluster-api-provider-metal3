@@ -26,7 +26,7 @@ import (
 	// TODO Why blank import ?
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -49,14 +49,14 @@ type ClusterManager struct {
 	client client.Client
 
 	Cluster          *capi.Cluster
-	BareMetalCluster *capbm.BareMetalCluster
+	BareMetalCluster *capm3.BareMetalCluster
 	Log              logr.Logger
 	// name string
 }
 
 // NewClusterManager returns a new helper for managing a cluster with a given name.
 func NewClusterManager(client client.Client, cluster *capi.Cluster,
-	bareMetalCluster *capbm.BareMetalCluster,
+	bareMetalCluster *capm3.BareMetalCluster,
 	clusterLog logr.Logger) (ClusterManagerInterface, error) {
 
 	if bareMetalCluster == nil {
@@ -77,9 +77,9 @@ func NewClusterManager(client client.Client, cluster *capi.Cluster,
 // SetFinalizer sets finalizer
 func (s *ClusterManager) SetFinalizer() {
 	// If the BareMetalCluster doesn't have finalizer, add it.
-	if !util.Contains(s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer) {
+	if !util.Contains(s.BareMetalCluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer) {
 		s.BareMetalCluster.ObjectMeta.Finalizers = append(
-			s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer,
+			s.BareMetalCluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer,
 		)
 	}
 }
@@ -88,7 +88,7 @@ func (s *ClusterManager) SetFinalizer() {
 func (s *ClusterManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	s.BareMetalCluster.ObjectMeta.Finalizers = util.Filter(
-		s.BareMetalCluster.ObjectMeta.Finalizers, capbm.ClusterFinalizer,
+		s.BareMetalCluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer,
 	)
 }
 
@@ -110,7 +110,7 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 }
 
 // ControlPlaneEndpoint returns cluster controlplane endpoint
-func (s *ClusterManager) ControlPlaneEndpoint() ([]capbm.APIEndpoint, error) {
+func (s *ClusterManager) ControlPlaneEndpoint() ([]capm3.APIEndpoint, error) {
 	//Get IP address from spec, which gets it from posted cr yaml
 	endPoint := s.BareMetalCluster.Spec.ControlPlaneEndpoint
 	var err error
@@ -120,7 +120,7 @@ func (s *ClusterManager) ControlPlaneEndpoint() ([]capbm.APIEndpoint, error) {
 		return nil, err
 	}
 
-	return []capbm.APIEndpoint{
+	return []capm3.APIEndpoint{
 		{
 			Host: endPoint.Host,
 			Port: endPoint.Port,

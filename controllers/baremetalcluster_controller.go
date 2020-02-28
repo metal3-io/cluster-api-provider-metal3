@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
@@ -62,7 +62,7 @@ func (r *BareMetalClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	clusterLog := log.Log.WithName(clusterControllerName).WithValues("baremetal-cluster", req.NamespacedName)
 
 	// Fetch the BareMetalCluster instance
-	baremetalCluster := &capbm.BareMetalCluster{}
+	baremetalCluster := &capm3.BareMetalCluster{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, baremetalCluster); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -169,12 +169,12 @@ func reconcileDelete(ctx context.Context,
 // SetupWithManager will add watches for this controller
 func (r *BareMetalClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capbm.BareMetalCluster{}).
+		For(&capm3.BareMetalCluster{}).
 		Watches(
 			&source.Kind{Type: &capi.Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: util.ClusterToInfrastructureMapFunc(
-					capbm.GroupVersion.WithKind("BareMetalCluster"),
+					capm3.GroupVersion.WithKind("BareMetalCluster"),
 				),
 			},
 		).

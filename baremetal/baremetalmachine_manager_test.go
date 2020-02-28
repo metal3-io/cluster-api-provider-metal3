@@ -29,7 +29,7 @@ import (
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -55,29 +55,29 @@ const (
 var ProviderID = "metal3://12345ID6789"
 var CloudInitData = []byte("metal3:cloudInitData1010101test__hello")
 
-func bmmSpec() *capbm.BareMetalMachineSpec {
-	return &capbm.BareMetalMachineSpec{
+func bmmSpec() *capm3.BareMetalMachineSpec {
+	return &capm3.BareMetalMachineSpec{
 		ProviderID: &ProviderID,
 	}
 }
 
-func bmmSpecAll() *capbm.BareMetalMachineSpec {
-	return &capbm.BareMetalMachineSpec{
+func bmmSpecAll() *capm3.BareMetalMachineSpec {
+	return &capm3.BareMetalMachineSpec{
 		ProviderID: &ProviderID,
 		UserData: &corev1.SecretReference{
 			Name:      "mybmmachine-user-data",
 			Namespace: "myns",
 		},
-		Image: capbm.Image{
+		Image: capm3.Image{
 			URL:      testImageURL,
 			Checksum: testImageChecksumURL,
 		},
-		HostSelector: capbm.HostSelector{},
+		HostSelector: capm3.HostSelector{},
 	}
 }
 
-func bmmSecret() *capbm.BareMetalMachineSpec {
-	return &capbm.BareMetalMachineSpec{
+func bmmSecret() *capm3.BareMetalMachineSpec {
+	return &capm3.BareMetalMachineSpec{
 		UserData: &corev1.SecretReference{
 			Name:      "mybmmachine-user-data",
 			Namespace: "myns",
@@ -90,7 +90,7 @@ func consumerRef() *corev1.ObjectReference {
 		Name:       "mybmmachine",
 		Namespace:  "myns",
 		Kind:       "BMMachine",
-		APIVersion: capbm.GroupVersion.String(),
+		APIVersion: capm3.GroupVersion.String(),
 	}
 }
 
@@ -227,7 +227,7 @@ func bmhStatus() *bmh.BareMetalHostStatus {
 
 var _ = Describe("BareMetalMachine manager", func() {
 	DescribeTable("Test Finalizers",
-		func(bmMachine capbm.BareMetalMachine) {
+		func(bmMachine capm3.BareMetalMachine) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
 				klogr.New(),
 			)
@@ -236,17 +236,17 @@ var _ = Describe("BareMetalMachine manager", func() {
 			machineMgr.SetFinalizer()
 
 			Expect(bmMachine.ObjectMeta.Finalizers).To(ContainElement(
-				capbm.MachineFinalizer,
+				capm3.MachineFinalizer,
 			))
 
 			machineMgr.UnsetFinalizer()
 
 			Expect(bmMachine.ObjectMeta.Finalizers).NotTo(ContainElement(
-				capbm.MachineFinalizer,
+				capm3.MachineFinalizer,
 			))
 		},
-		Entry("No finalizers", capbm.BareMetalMachine{}),
-		Entry("Additional Finalizers", capbm.BareMetalMachine{
+		Entry("No finalizers", capm3.BareMetalMachine{}),
+		Entry("Additional Finalizers", capm3.BareMetalMachine{
 			ObjectMeta: metav1.ObjectMeta{
 				Finalizers: []string{"foo"},
 			},
@@ -254,7 +254,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	)
 
 	DescribeTable("Test SetProviderID",
-		func(bmMachine capbm.BareMetalMachine) {
+		func(bmMachine capm3.BareMetalMachine) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
 				klogr.New(),
 			)
@@ -265,19 +265,19 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Expect(*bmMachine.Spec.ProviderID).To(Equal("correct"))
 			Expect(bmMachine.Status.Ready).To(BeTrue())
 		},
-		Entry("no ProviderID", capbm.BareMetalMachine{}),
-		Entry("existing ProviderID", capbm.BareMetalMachine{
-			Spec: capbm.BareMetalMachineSpec{
+		Entry("no ProviderID", capm3.BareMetalMachine{}),
+		Entry("existing ProviderID", capm3.BareMetalMachine{
+			Spec: capm3.BareMetalMachineSpec{
 				ProviderID: pointer.StringPtr("wrong"),
 			},
-			Status: capbm.BareMetalMachineStatus{
+			Status: capm3.BareMetalMachineStatus{
 				Ready: true,
 			},
 		}),
 	)
 
 	type testCaseProvisioned struct {
-		BMMachine  capbm.BareMetalMachine
+		BMMachine  capm3.BareMetalMachine
 		ExpectTrue bool
 	}
 
@@ -293,34 +293,34 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Expect(provisioningState).To(Equal(tc.ExpectTrue))
 		},
 		Entry("provisioned", testCaseProvisioned{
-			BMMachine: capbm.BareMetalMachine{
-				Spec: capbm.BareMetalMachineSpec{
+			BMMachine: capm3.BareMetalMachine{
+				Spec: capm3.BareMetalMachineSpec{
 					ProviderID: pointer.StringPtr("abc"),
 				},
-				Status: capbm.BareMetalMachineStatus{
+				Status: capm3.BareMetalMachineStatus{
 					Ready: true,
 				},
 			},
 			ExpectTrue: true,
 		}),
 		Entry("missing ready", testCaseProvisioned{
-			BMMachine: capbm.BareMetalMachine{
-				Spec: capbm.BareMetalMachineSpec{
+			BMMachine: capm3.BareMetalMachine{
+				Spec: capm3.BareMetalMachineSpec{
 					ProviderID: pointer.StringPtr("abc"),
 				},
 			},
 			ExpectTrue: false,
 		}),
 		Entry("missing providerID", testCaseProvisioned{
-			BMMachine: capbm.BareMetalMachine{
-				Status: capbm.BareMetalMachineStatus{
+			BMMachine: capm3.BareMetalMachine{
+				Status: capm3.BareMetalMachineStatus{
 					Ready: true,
 				},
 			},
 			ExpectTrue: false,
 		}),
 		Entry("missing ProviderID and ready", testCaseProvisioned{
-			BMMachine:  capbm.BareMetalMachine{},
+			BMMachine:  capm3.BareMetalMachine{},
 			ExpectTrue: false,
 		}),
 	)
@@ -356,7 +356,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	)
 
 	DescribeTable("Test setting and clearing errors",
-		func(bmMachine capbm.BareMetalMachine) {
+		func(bmMachine capm3.BareMetalMachine) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
 				klogr.New(),
 			)
@@ -374,9 +374,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Expect(bmMachine.Status.FailureReason).To(BeNil())
 			Expect(bmMachine.Status.FailureMessage).To(BeNil())
 		},
-		Entry("No errors", capbm.BareMetalMachine{}),
-		Entry("Overwrite existing error message", capbm.BareMetalMachine{
-			Status: capbm.BareMetalMachineStatus{
+		Entry("No errors", capm3.BareMetalMachine{}),
+		Entry("Overwrite existing error message", capm3.BareMetalMachine{
+			Status: capm3.BareMetalMachineStatus{
 				FailureMessage: pointer.StringPtr("cba"),
 			},
 		}),
@@ -395,7 +395,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					Name:       "someothermachine",
 					Namespace:  "myns",
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 				},
 			},
 		}
@@ -411,7 +411,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					Name:       "machine1",
 					Namespace:  "myns",
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 				},
 			},
 		}
@@ -439,17 +439,17 @@ var _ = Describe("BareMetalMachine manager", func() {
 		}
 
 		bmmconfig, infrastructureRef := newConfig("", map[string]string{},
-			[]capbm.HostSelectorRequirement{},
+			[]capm3.HostSelectorRequirement{},
 		)
 		bmmconfig2, infrastructureRef2 := newConfig("",
-			map[string]string{"key1": "value1"}, []capbm.HostSelectorRequirement{},
+			map[string]string{"key1": "value1"}, []capm3.HostSelectorRequirement{},
 		)
 		bmmconfig3, infrastructureRef3 := newConfig("",
-			map[string]string{"boguskey": "value"}, []capbm.HostSelectorRequirement{},
+			map[string]string{"boguskey": "value"}, []capm3.HostSelectorRequirement{},
 		)
 		bmmconfig4, infrastructureRef4 := newConfig("", map[string]string{},
-			[]capbm.HostSelectorRequirement{
-				capbm.HostSelectorRequirement{
+			[]capm3.HostSelectorRequirement{
+				capm3.HostSelectorRequirement{
 					Key:      "key1",
 					Operator: "in",
 					Values:   []string{"abc", "value1", "123"},
@@ -457,8 +457,8 @@ var _ = Describe("BareMetalMachine manager", func() {
 			},
 		)
 		bmmconfig5, infrastructureRef5 := newConfig("", map[string]string{},
-			[]capbm.HostSelectorRequirement{
-				capbm.HostSelectorRequirement{
+			[]capm3.HostSelectorRequirement{
+				capm3.HostSelectorRequirement{
 					Key:      "key1",
 					Operator: "pancakes",
 					Values:   []string{"abc", "value1", "123"},
@@ -469,7 +469,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		type testCaseChooseHost struct {
 			Machine          *capi.Machine
 			Hosts            []runtime.Object
-			BMMachine        *capbm.BareMetalMachine
+			BMMachine        *capm3.BareMetalMachine
 			ExpectedHostName string
 		}
 
@@ -576,7 +576,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host)
 
 			bmmconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
-				map[string]string{}, []capbm.HostSelectorRequirement{},
+				map[string]string{}, []capm3.HostSelectorRequirement{},
 			)
 			machine := newMachine("machine1", "", infrastructureRef)
 
@@ -673,7 +673,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 		type testCaseExists struct {
 			Machine   *capi.Machine
-			BMMachine *capbm.BareMetalMachine
+			BMMachine *capm3.BareMetalMachine
 			Expected  bool
 		}
 
@@ -725,7 +725,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 		type testCaseGetHost struct {
 			Machine       *capi.Machine
-			BMMachine     *capbm.BareMetalMachine
+			BMMachine     *capm3.BareMetalMachine
 			ExpectPresent bool
 		}
 
@@ -772,7 +772,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 	type testCaseGetSetProviderID struct {
 		Machine       *capi.Machine
-		BMMachine     *capbm.BareMetalMachine
+		BMMachine     *capm3.BareMetalMachine
 		Host          *bmh.BareMetalHost
 		ExpectPresent bool
 		ExpectError   bool
@@ -862,7 +862,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	Describe("Test utility functions", func() {
 		type testCaseSmallFunctions struct {
 			Machine        *capi.Machine
-			BMMachine      *capbm.BareMetalMachine
+			BMMachine      *capm3.BareMetalMachine
 			ExpectCtrlNode bool
 		}
 
@@ -927,7 +927,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	type testCaseEnsureAnnotation struct {
 		Machine          capi.Machine
 		Host             *bmh.BareMetalHost
-		BMMachine        *capbm.BareMetalMachine
+		BMMachine        *capm3.BareMetalMachine
 		ExpectAnnotation bool
 	}
 
@@ -947,7 +947,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				Name:      tc.BMMachine.ObjectMeta.Name,
 				Namespace: tc.BMMachine.ObjectMeta.Namespace,
 			}
-			bmmachine := capbm.BareMetalMachine{}
+			bmmachine := capm3.BareMetalMachine{}
 			err = c.Get(context.TODO(), key, &bmmachine)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1013,7 +1013,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 		Host                      *bmh.BareMetalHost
 		Secret                    *corev1.Secret
 		Machine                   *capi.Machine
-		BMMachine                 *capbm.BareMetalMachine
+		BMMachine                 *capm3.BareMetalMachine
 		BMCSecret                 *corev1.Secret
 		ExpectedConsumerRef       *corev1.ObjectReference
 		ExpectedResult            error
@@ -1299,7 +1299,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			Host            *bmh.BareMetalHost
 			Machine         *capi.Machine
 			ExpectedMachine capi.Machine
-			BMMachine       capbm.BareMetalMachine
+			BMMachine       capm3.BareMetalMachine
 		}
 
 		DescribeTable("Test UpdateMachineStatus",
@@ -1318,7 +1318,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 					Name:      tc.BMMachine.ObjectMeta.Name,
 					Namespace: tc.BMMachine.ObjectMeta.Namespace,
 				}
-				bmmachine := capbm.BareMetalMachine{}
+				bmmachine := capm3.BareMetalMachine{}
 				err = c.Get(context.TODO(), key, &bmmachine)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1354,7 +1354,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 						},
 					},
 				},
-				BMMachine: capbm.BareMetalMachine{
+				BMMachine: capm3.BareMetalMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mybmmachine",
 						Namespace: "myns",
@@ -1363,7 +1363,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 						Kind:       "BMMachine",
 						APIVersion: capi.GroupVersion.String(),
 					},
-					Status: capbm.BareMetalMachineStatus{
+					Status: capm3.BareMetalMachineStatus{
 						Addresses: []capi.MachineAddress{
 							capi.MachineAddress{
 								Address: "192.168.1.1",
@@ -1418,7 +1418,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 						},
 					},
 				},
-				BMMachine: capbm.BareMetalMachine{
+				BMMachine: capm3.BareMetalMachine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mybmmachine",
 						Namespace: "myns",
@@ -1427,7 +1427,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 						Kind:       "BMMachine",
 						APIVersion: capi.GroupVersion.String(),
 					},
-					Status: capbm.BareMetalMachineStatus{
+					Status: capm3.BareMetalMachineStatus{
 						Addresses: []capi.MachineAddress{
 							capi.MachineAddress{
 								Address: "192.168.1.1",
@@ -1466,7 +1466,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 						},
 						Status: capi.MachineStatus{},
 					},
-					BMMachine: capbm.BareMetalMachine{
+					BMMachine: capm3.BareMetalMachine{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mybmmachine",
 							Namespace: "myns",
@@ -1475,7 +1475,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 							Kind:       "BMMachine",
 							APIVersion: capi.GroupVersion.String(),
 						},
-						Status: capbm.BareMetalMachineStatus{
+						Status: capm3.BareMetalMachineStatus{
 							Addresses: []capi.MachineAddress{},
 							Ready:     true,
 						},
@@ -1514,7 +1514,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 		type testCaseNodeAddress struct {
 			Machine               capi.Machine
-			BMMachine             capbm.BareMetalMachine
+			BMMachine             capm3.BareMetalMachine
 			Host                  *bmh.BareMetalHost
 			ExpectedNodeAddresses []capi.MachineAddress
 		}
@@ -1614,9 +1614,9 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 				machineMgr, err := NewMachineManager(c, newCluster(clusterName),
 					newBareMetalCluster(baremetalClusterName, bmcOwnerRef,
-						&capbm.BareMetalClusterSpec{NoCloudProvider: true}, nil,
+						&capm3.BareMetalClusterSpec{NoCloudProvider: true}, nil,
 					),
-					&capi.Machine{}, &capbm.BareMetalMachine{}, klogr.New(),
+					&capi.Machine{}, &capm3.BareMetalMachine{}, klogr.New(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1675,7 +1675,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 
 	type testCaseGetUserData struct {
 		Machine     *capi.Machine
-		BMMachine   *capbm.BareMetalMachine
+		BMMachine   *capm3.BareMetalMachine
 		BMHost      *bmh.BareMetalHost
 		Secret      *corev1.Secret
 		ExpectError bool
@@ -1862,7 +1862,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	type testCaseAssociate struct {
 		Machine            *capi.Machine
 		Host               *bmh.BareMetalHost
-		BMMachine          *capbm.BareMetalMachine
+		BMMachine          *capm3.BareMetalMachine
 		BMCSecret          *corev1.Secret
 		ExpectRequeue      bool
 		ExpectClusterLabel bool
@@ -1992,7 +1992,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	type testCaseUpdate struct {
 		Machine   *capi.Machine
 		Host      *bmh.BareMetalHost
-		BMMachine *capbm.BareMetalMachine
+		BMMachine *capm3.BareMetalMachine
 	}
 
 	DescribeTable("Test Update function",
@@ -2022,7 +2022,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	)
 
 	type testCaseFindOwnerRef struct {
-		BMMachine     capbm.BareMetalMachine
+		BMMachine     capm3.BareMetalMachine
 		OwnerRefs     []metav1.OwnerReference
 		ExpectError   bool
 		ExpectedIndex int
@@ -2065,7 +2065,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			OwnerRefs: []metav1.OwnerReference{
 				metav1.OwnerReference{
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
@@ -2090,7 +2090,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 				metav1.OwnerReference{
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
@@ -2101,7 +2101,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 	)
 
 	type testCaseOwnerRef struct {
-		BMMachine  capbm.BareMetalMachine
+		BMMachine  capm3.BareMetalMachine
 		OwnerRefs  []metav1.OwnerReference
 		Controller bool
 	}
@@ -2137,7 +2137,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			OwnerRefs: []metav1.OwnerReference{
 				metav1.OwnerReference{
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
@@ -2160,7 +2160,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 				metav1.OwnerReference{
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
@@ -2200,7 +2200,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 			OwnerRefs: []metav1.OwnerReference{
 				metav1.OwnerReference{
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
@@ -2223,7 +2223,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 				},
 				metav1.OwnerReference{
 					Kind:       "BMMachine",
-					APIVersion: capbm.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
@@ -2237,7 +2237,7 @@ var _ = Describe("BareMetalMachine manager", func() {
 //-----------------
 func setupSchemeMm() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := capbm.AddToScheme(s); err != nil {
+	if err := capm3.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := bmoapis.AddToScheme(s); err != nil {
@@ -2253,11 +2253,11 @@ func setupSchemeMm() *runtime.Scheme {
 }
 
 func newConfig(UserDataNamespace string,
-	labels map[string]string, reqs []capbm.HostSelectorRequirement,
-) (*capbm.BareMetalMachine, *corev1.ObjectReference) {
-	config := capbm.BareMetalMachine{
-		Spec: capbm.BareMetalMachineSpec{
-			Image: capbm.Image{
+	labels map[string]string, reqs []capm3.HostSelectorRequirement,
+) (*capm3.BareMetalMachine, *corev1.ObjectReference) {
+	config := capm3.BareMetalMachine{
+		Spec: capm3.BareMetalMachineSpec{
+			Image: capm3.Image{
 				URL:      testImageURL,
 				Checksum: testImageChecksumURL,
 			},
@@ -2265,7 +2265,7 @@ func newConfig(UserDataNamespace string,
 				Name:      testUserDataSecretName,
 				Namespace: UserDataNamespace,
 			},
-			HostSelector: capbm.HostSelector{
+			HostSelector: capm3.HostSelector{
 				MatchLabels:      labels,
 				MatchExpressions: reqs,
 			},
@@ -2276,7 +2276,7 @@ func newConfig(UserDataNamespace string,
 		Name:       "someothermachine",
 		Namespace:  "myns",
 		Kind:       "BMMachine",
-		APIVersion: capbm.GroupVersion.String(),
+		APIVersion: capm3.GroupVersion.String(),
 	}
 	return &config, infrastructureRef
 }
@@ -2318,12 +2318,12 @@ func newMachine(machineName string, bareMetalMachineName string,
 
 func newBareMetalMachine(name string,
 	ownerRef *metav1.OwnerReference,
-	spec *capbm.BareMetalMachineSpec,
-	status *capbm.BareMetalMachineStatus,
-	objMeta *metav1.ObjectMeta) *capbm.BareMetalMachine {
+	spec *capm3.BareMetalMachineSpec,
+	status *capm3.BareMetalMachineStatus,
+	objMeta *metav1.ObjectMeta) *capm3.BareMetalMachine {
 
 	if name == "" {
-		return &capbm.BareMetalMachine{}
+		return &capm3.BareMetalMachine{}
 	}
 
 	if objMeta == nil {
@@ -2335,17 +2335,17 @@ func newBareMetalMachine(name string,
 
 	typeMeta := &metav1.TypeMeta{
 		Kind:       "BMMachine",
-		APIVersion: capbm.GroupVersion.String(),
+		APIVersion: capm3.GroupVersion.String(),
 	}
 
 	if spec == nil {
-		spec = &capbm.BareMetalMachineSpec{}
+		spec = &capm3.BareMetalMachineSpec{}
 	}
 	if status == nil {
-		status = &capbm.BareMetalMachineStatus{}
+		status = &capm3.BareMetalMachineStatus{}
 	}
 
-	return &capbm.BareMetalMachine{
+	return &capm3.BareMetalMachine{
 		TypeMeta:   *typeMeta,
 		ObjectMeta: *objMeta,
 		Spec:       *spec,

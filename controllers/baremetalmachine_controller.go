@@ -22,7 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -66,30 +66,30 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	machineLog := r.Log.WithName(machineControllerName).WithValues("baremetal-machine", req.NamespacedName)
 
 	// Fetch the BareMetalMachine instance.
-	capbmMachine := &capbm.BareMetalMachine{}
+	capm3Machine := &capm3.BareMetalMachine{}
 
-	if err := r.Client.Get(ctx, req.NamespacedName, capbmMachine); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, capm3Machine); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
-	helper, err := patch.NewHelper(capbmMachine, r.Client)
+	helper, err := patch.NewHelper(capm3Machine, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
-	// Always patch capbMachine exiting this function so we can persist any BareMetalMachine changes.
+	// Always patch capm3Machine exiting this function so we can persist any BareMetalMachine changes.
 	defer func() {
-		err := helper.Patch(ctx, capbmMachine)
+		err := helper.Patch(ctx, capm3Machine)
 		if err != nil {
-			machineLog.Info("failed to Patch capbmMachine")
+			machineLog.Info("failed to Patch capm3Machine")
 		}
 	}()
 	//clear an error if one was previously set
-	clearErrorBMMachine(capbmMachine)
+	clearErrorBMMachine(capm3Machine)
 
 	// Fetch the Machine.
-	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capbmMachine.ObjectMeta)
+	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine could not be retrieved")
@@ -105,12 +105,12 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		machineLog.Info("BareMetalMachine's owner Machine is missing cluster label or cluster does not exist")
-		setErrorBMMachine(capbmMachine, "BareMetalMachine's owner Machine is missing cluster label or cluster does not exist", capierrors.InvalidConfigurationMachineError)
+		setErrorBMMachine(capm3Machine, "BareMetalMachine's owner Machine is missing cluster label or cluster does not exist", capierrors.InvalidConfigurationMachineError)
 
 		return ctrl.Result{}, errors.Wrapf(err, "BareMetalMachine's owner Machine is missing label or the cluster does not exist")
 	}
 	if cluster == nil {
-		setErrorBMMachine(capbmMachine, fmt.Sprintf(
+		setErrorBMMachine(capm3Machine, fmt.Sprintf(
 			"The machine is NOT associated with a cluster using the label %s: <name of cluster>",
 			capi.ClusterLabelName,
 		), capierrors.InvalidConfigurationMachineError)
@@ -121,7 +121,7 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	machineLog = machineLog.WithValues("cluster", cluster.Name)
 
 	// Return early if the BMMachine or Cluster is paused.
-	if util.IsPaused(cluster, capbmMachine) {
+	if util.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
@@ -133,9 +133,9 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	}
 
 	// Fetch the BareMetal Cluster.
-	baremetalCluster := &capbm.BareMetalCluster{}
+	baremetalCluster := &capm3.BareMetalCluster{}
 	baremetalClusterName := types.NamespacedName{
-		Namespace: capbmMachine.Namespace,
+		Namespace: capm3Machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err := r.Client.Get(ctx, baremetalClusterName, baremetalCluster); err != nil {
@@ -146,13 +146,13 @@ func (r *BareMetalMachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result,
 	machineLog = machineLog.WithValues("baremetal-cluster", baremetalCluster.Name)
 
 	// Create a helper for managing the baremetal container hosting the machine.
-	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, baremetalCluster, capiMachine, capbmMachine, machineLog)
+	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, baremetalCluster, capiMachine, capm3Machine, machineLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the machineMgr")
 	}
 
 	// Handle deleted machines
-	if !capbmMachine.ObjectMeta.DeletionTimestamp.IsZero() {
+	if !capm3Machine.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, machineMgr)
 	}
 
@@ -198,7 +198,7 @@ func (r *BareMetalMachineReconciler) reconcileNormal(ctx context.Context,
 		if err != nil {
 			return checkError(err, "failed to get the providerID for the BaremetalMachine")
 		}
-		// Make sure Spec.ProviderID is set and mark the capbmMachine ready
+		// Make sure Spec.ProviderID is set and mark the capm3Machine ready
 		machineMgr.SetProviderID(providerID)
 	}
 
@@ -225,15 +225,15 @@ func (r *BareMetalMachineReconciler) reconcileDelete(ctx context.Context,
 // SetupWithManager will add watches for this controller
 func (r *BareMetalMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capbm.BareMetalMachine{}).
+		For(&capm3.BareMetalMachine{}).
 		Watches(
 			&source.Kind{Type: &capi.Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: util.MachineToInfrastructureMapFunc(capbm.GroupVersion.WithKind("BareMetalMachine")),
+				ToRequests: util.MachineToInfrastructureMapFunc(capm3.GroupVersion.WithKind("BareMetalMachine")),
 			},
 		).
 		Watches(
-			&source.Kind{Type: &capbm.BareMetalCluster{}},
+			&source.Kind{Type: &capm3.BareMetalCluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.BareMetalClusterToBareMetalMachines),
 			},
@@ -251,7 +251,7 @@ func (r *BareMetalMachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // requests for reconciliation of BareMetalMachines.
 func (r *BareMetalMachineReconciler) BareMetalClusterToBareMetalMachines(o handler.MapObject) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.Object.(*capbm.BareMetalCluster)
+	c, ok := o.Object.(*capm3.BareMetalCluster)
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a BareMetalCluster but got a %T", o.Object), "failed to get BareMetalMachine for BareMetalCluster")
 		return nil
@@ -290,7 +290,7 @@ func (r *BareMetalMachineReconciler) BareMetalHostToBareMetalMachines(obj handle
 	if host, ok := obj.Object.(*bmh.BareMetalHost); ok {
 		if host.Spec.ConsumerRef != nil &&
 			host.Spec.ConsumerRef.Kind == "BareMetalMachine" &&
-			host.Spec.ConsumerRef.APIVersion == capbm.GroupVersion.String() {
+			host.Spec.ConsumerRef.APIVersion == capm3.GroupVersion.String() {
 			return []ctrl.Request{
 				ctrl.Request{
 					NamespacedName: types.NamespacedName{
@@ -305,7 +305,7 @@ func (r *BareMetalMachineReconciler) BareMetalHostToBareMetalMachines(obj handle
 }
 
 // setError sets the ErrorMessage and ErrorReason fields on the baremetalmachine
-func setErrorBMMachine(bmm *capbm.BareMetalMachine, message string, reason capierrors.MachineStatusError) {
+func setErrorBMMachine(bmm *capm3.BareMetalMachine, message string, reason capierrors.MachineStatusError) {
 
 	bmm.Status.FailureMessage = pointer.StringPtr(message)
 	bmm.Status.FailureReason = &reason
@@ -313,7 +313,7 @@ func setErrorBMMachine(bmm *capbm.BareMetalMachine, message string, reason capie
 }
 
 // clearError removes the ErrorMessage from the baremetalmachine's Status if set.
-func clearErrorBMMachine(bmm *capbm.BareMetalMachine) {
+func clearErrorBMMachine(bmm *capm3.BareMetalMachine) {
 
 	if bmm.Status.FailureMessage != nil || bmm.Status.FailureReason != nil {
 		bmm.Status.FailureMessage = nil

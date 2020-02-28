@@ -26,7 +26,7 @@ import (
 	infrav1alpha2 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha2"
 	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
-	capbmremote "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/remote"
+	capm3remote "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-baremetal/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -160,7 +160,7 @@ func setupReconcilers(mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
-		CapiClientGetter: capbmremote.NewClusterClient,
+		CapiClientGetter: capm3remote.NewClusterClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachineReconciler")
 		os.Exit(1)

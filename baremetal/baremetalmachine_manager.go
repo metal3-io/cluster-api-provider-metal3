@@ -36,7 +36,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -78,16 +78,16 @@ type MachineManager struct {
 	client client.Client
 
 	Cluster          *capi.Cluster
-	BareMetalCluster *capbm.BareMetalCluster
+	BareMetalCluster *capm3.BareMetalCluster
 	Machine          *capi.Machine
-	BareMetalMachine *capbm.BareMetalMachine
+	BareMetalMachine *capm3.BareMetalMachine
 	Log              logr.Logger
 }
 
 // NewMachineManager returns a new helper for managing a machine
 func NewMachineManager(client client.Client,
-	cluster *capi.Cluster, baremetalCluster *capbm.BareMetalCluster,
-	machine *capi.Machine, baremetalMachine *capbm.BareMetalMachine,
+	cluster *capi.Cluster, baremetalCluster *capm3.BareMetalCluster,
+	machine *capi.Machine, baremetalMachine *capm3.BareMetalMachine,
 	machineLog logr.Logger) (*MachineManager, error) {
 
 	return &MachineManager{
@@ -104,9 +104,9 @@ func NewMachineManager(client client.Client,
 // SetFinalizer sets finalizer
 func (m *MachineManager) SetFinalizer() {
 	// If the BareMetalMachine doesn't have finalizer, add it.
-	if !util.Contains(m.BareMetalMachine.Finalizers, capbm.MachineFinalizer) {
+	if !util.Contains(m.BareMetalMachine.Finalizers, capm3.MachineFinalizer) {
 		m.BareMetalMachine.Finalizers = append(m.BareMetalMachine.Finalizers,
-			capbm.MachineFinalizer,
+			capm3.MachineFinalizer,
 		)
 	}
 }
@@ -115,7 +115,7 @@ func (m *MachineManager) SetFinalizer() {
 func (m *MachineManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	m.BareMetalMachine.Finalizers = util.Filter(m.BareMetalMachine.Finalizers,
-		capbm.MachineFinalizer,
+		capm3.MachineFinalizer,
 	)
 }
 
@@ -650,7 +650,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 
 // consumerRefMatches returns a boolean based on whether the consumer
 // reference and bare metal machine metadata match
-func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capbm.BareMetalMachine) bool {
+func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capm3.BareMetalMachine) bool {
 	if consumer.Name != bmmachine.Name {
 		return false
 	}
