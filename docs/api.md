@@ -6,7 +6,7 @@ Metal3-io components are deployed :
 * Cluster API manager
 * Cluster API Bootstrap Provider Kubeadm (CABPK) manager
 * Baremetal Operator (including the Ironic setup)
-* Cluster API Provider Baremetal (CAPBM)
+* Cluster API Provider Metal3 (CAPM3)
 
 ## BareMetalHost
 
@@ -46,7 +46,7 @@ the cluster on Baremetal. It currently has two specification fields :
 * **apiEndpoint**: contains the target cluster API server address and port in
   URL format
 * **noCloudProvider**: (true/false) Whether the cluster will not be deployed
-  with an external cloud provider. If set to true, CAPBM will patch the target
+  with an external cloud provider. If set to true, CAPM3 will patch the target
   cluster node objects to add a providerID. This will allow the CAPI process to
   continue even if the cluster is deployed without cloud provider.
 
@@ -187,7 +187,7 @@ The fields are :
 * **userData** -- This includes two sub-fields, `name` and `namespace`, which
   reference a `Secret` that contains base64 encoded user-data to be written to
   a config drive on the provisioned `BareMetalHost`. This field is optional and
-  is automatically set by CAPBM with the userData from the machine object. If
+  is automatically set by CAPM3 with the userData from the machine object. If
   you want to overwrite the userData, this should be done in the CAPI machine.
 
 * **hostSelector** -- Specify criteria for matching labels on `BareMetalHost`

@@ -1,6 +1,6 @@
-# CAPBM testing
+# CAPM3 testing
 
-This document outlines the testing strategy applied in CAPBM. All developers
+This document outlines the testing strategy applied in CAPM3. All developers
 should follow those guidelines to ensure uniformity and quality in the tests.
 
 ## Code coverage
