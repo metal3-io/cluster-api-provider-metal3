@@ -1,128 +1,41 @@
-apiVersion: cluster.x-k8s.io/v1alpha3
-kind: Machine
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 metadata:
-  name: ${CLUSTER_NAME}-controlplane-0
-  labels:
-    cluster.x-k8s.io/control-plane: "true"
-    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
+  name: ${CLUSTER_NAME}-controlplane
 spec:
-  clusterName: ${CLUSTER_NAME}
-  version: ${KUBERNETES_VERSION}
-  bootstrap:
-    configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-      kind: KubeadmConfig
-      name: ${CLUSTER_NAME}-controlplane-0
-  infrastructureRef:
+  replicas: 3
+  version: v1.17.0
+  infrastructureTemplate:
+    kind: BareMetalMachineTemplate
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: BareMetalMachine
-    name: ${CLUSTER_NAME}-controlplane-0
+    name: ${CLUSTER_NAME}-controlplane
+  kubeadmConfigSpec:
+    initConfiguration:
+      nodeRegistration:
+        name: '{{ ds.meta_data.local_hostname }}'
+        kubeletExtraArgs:
+          cloud-provider: baremetal
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: baremetal
+      controllerManager:
+        extraArgs:
+          cloud-provider: baremetal
+    joinConfiguration:
+      controlPlane: {}
+      nodeRegistration:
+        name: '{{ ds.meta_data.local_hostname }}'
+        kubeletExtraArgs:
+          cloud-provider: baremetal
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: BareMetalMachine
+kind: BareMetalMachineTemplate
 metadata:
-  name: ${CLUSTER_NAME}-controlplane-0
+  name: ${CLUSTER_NAME}-controlplane
 spec:
-  image:
-    url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
-    checksum: "97830b21ed272a3d854615beb54cf004"
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-kind: KubeadmConfig
-metadata:
-  name: ${CLUSTER_NAME}-controlplane-0
-spec:
-  initConfiguration:
-    nodeRegistration:
-      name: '{{ ds.meta_data.hostname }}'
-      kubeletExtraArgs:
-        cloud-provider: baremetal
-  clusterConfiguration:
-    apiServer:
-      extraArgs:
-        cloud-provider: baremetal
-    controllerManager:
-      extraArgs:
-        cloud-provider: baremetal
----
-apiVersion: cluster.x-k8s.io/v1alpha3
-kind: Machine
-metadata:
-  name: ${CLUSTER_NAME}-controlplane-1
-  labels:
-    cluster.x-k8s.io/control-plane: "true"
-    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
-spec:
-  clusterName: ${CLUSTER_NAME}
-  version: ${KUBERNETES_VERSION}
-  bootstrap:
-    configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-      kind: KubeadmConfig
-      name: ${CLUSTER_NAME}-controlplane-1
-  infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: BareMetalMachine
-    name: ${CLUSTER_NAME}-controlplane-1
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: BareMetalMachine
-metadata:
-  name: ${CLUSTER_NAME}-controlplane-1
-spec:
-  image:
-    url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
-    checksum: "97830b21ed272a3d854615beb54cf004"
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-kind: KubeadmConfig
-metadata:
-  name: ${CLUSTER_NAME}-controlplane-1
-spec:
-  joinConfiguration:
-    controlPlane: {}
-    nodeRegistration:
-      name: '{{ ds.meta_data.hostname }}'
-      kubeletExtraArgs:
-        cloud-provider: baremetal
----
-apiVersion: cluster.x-k8s.io/v1alpha3
-kind: Machine
-metadata:
-  name: ${CLUSTER_NAME}-controlplane-2
-  labels:
-    cluster.x-k8s.io/control-plane: "true"
-    cluster.x-k8s.io/cluster-name: "${CLUSTER_NAME}"
-spec:
-  clusterName: ${CLUSTER_NAME}
-  version: ${KUBERNETES_VERSION}
-  bootstrap:
-    configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-      kind: KubeadmConfig
-      name: ${CLUSTER_NAME}-controlplane-2
-  infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: BareMetalMachine
-    name: ${CLUSTER_NAME}-controlplane-2
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: BareMetalMachine
-metadata:
-  name: ${CLUSTER_NAME}-controlplane-2
-spec:
-  image:
-    url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
-    checksum: "97830b21ed272a3d854615beb54cf004"
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
-kind: KubeadmConfig
-metadata:
-  name: ${CLUSTER_NAME}-controlplane-2
-spec:
-  joinConfiguration:
-    controlPlane: {}
-    nodeRegistration:
-      name: '{{ ds.meta_data.hostname }}'
-      kubeletExtraArgs:
-        cloud-provider: baremetal
+  template:
+    spec:
+      image:
+        url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
+        checksum: "97830b21ed272a3d854615beb54cf004"

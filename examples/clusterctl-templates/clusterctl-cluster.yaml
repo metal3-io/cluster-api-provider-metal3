@@ -1,0 +1,128 @@
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  name: ${ CLUSTER_NAME }
+  namespace: ${ NAMESPACE }
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: [${ SERVICE_CIDR }]
+    pods:
+      cidrBlocks: [${ POD_CIDR }]
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    kind: BareMetalCluster
+    name: ${ CLUSTER_NAME }
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    name: ${ CLUSTER_NAME }
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: BareMetalCluster
+metadata:
+  name: ${ CLUSTER_NAME }
+  namespace: ${ NAMESPACE }
+spec:
+  controlPlaneEndpoint:
+    host: ${ API_ENDPOINT_HOST }
+    port: ${ API_ENDPOINT_PORT }
+  noCloudProvider: true
+---
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+metadata:
+  name: ${ CLUSTER_NAME }
+  namespace: ${ NAMESPACE }
+spec:
+  replicas: ${ CONTROL_PLANE_MACHINE_COUNT }
+  version: ${ KUBERNETES_VERSION }
+  infrastructureTemplate:
+    kind: BareMetalMachineTemplate
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    name: ${ CLUSTER_NAME }-controlplane
+  kubeadmConfigSpec:
+    joinConfiguration:
+      controlPlane: {}
+      nodeRegistration:
+        name: '{{ ds.meta_data.name }}'
+        kubeletExtraArgs:
+          node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+    initConfiguration:
+      nodeRegistration:
+        name: '{{ ds.meta_data.name }}'
+        kubeletExtraArgs:
+          node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+${ CTLPLANE_KUBEADM_EXTRA_CONFIG }
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: BareMetalMachineTemplate
+metadata:
+  name: ${ CLUSTER_NAME }-controlplane
+  namespace: ${ NAMESPACE }
+spec:
+  template:
+    spec:
+      image:
+        url: ${ IMAGE_URL }
+        checksum: ${ IMAGE_CHECKSUM }
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineDeployment
+metadata:
+  name: ${ CLUSTER_NAME }
+  namespace: ${ NAMESPACE }
+  labels:
+    cluster.x-k8s.io/cluster-name: ${ CLUSTER_NAME }
+    nodepool: nodepool-0
+spec:
+  clusterName: ${ CLUSTER_NAME }
+  replicas: ${ WORKER_MACHINE_COUNT }
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${ CLUSTER_NAME }
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: ${ CLUSTER_NAME }
+        nodepool: nodepool-0
+    spec:
+      clusterName: ${ CLUSTER_NAME }
+      version: ${ KUBERNETES_VERSION }
+      bootstrap:
+        configRef:
+          name: ${ CLUSTER_NAME }-workers
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: KubeadmConfigTemplate
+      infrastructureRef:
+        name: ${ CLUSTER_NAME }-workers
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        kind: BareMetalMachineTemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+kind: BareMetalMachineTemplate
+metadata:
+  name: ${ CLUSTER_NAME }-workers
+  namespace: ${ NAMESPACE }
+spec:
+  template:
+    spec:
+      image:
+        url: ${ IMAGE_URL }
+        checksum: ${ IMAGE_CHECKSUM }
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${ CLUSTER_NAME }-workers
+  namespace: ${ NAMESPACE }
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          name: '{{ ds.meta_data.name }}'
+          kubeletExtraArgs:
+            node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+${ WORKERS_KUBEADM_EXTRA_CONFIG }

@@ -1,89 +1,10 @@
-# Cluster API provider Bare Metal
-
-This provider integrates with the
-[Cluster API project](https://github.com/kubernetes-sigs/cluster-api).
-
-## Setup
-
-### Pre-requisites
-
-The pre-requisite for the deployment of CAPBM are the following:
-
-- [Baremetal-Operator](https://github.com/metal3-io/baremetal-operator) deployed
-- Ironic up and running (inside or outside of the cluster)
-- BareMetalHost resources created for all hardware nodes and in "ready" or
-  "available" state
-- If deploying CAPI in a multi-tenancy scenario, all cluster-related CRs (inc.
-  BareMetalHosts and related) must be in the same namespace. This is due to the
-  fact that the controllers are restricted to their own namespace with RBAC.
-
-### Using clusterctl
-
-Please refer to
-[Clusterctl documentation](https://master.cluster-api.sigs.k8s.io/clusterctl/overview.html).
-Once the Pre-requisites are fulfilled, you can follow the normal clusterctl
-flow.
-
-### Cluster templates variables
-
-You can find an example file containing the environment variables
-`example_variables.rc`in the release or
-[here](https://github.com/metal3-io/cluster-api-provider-baremetal/tree/master/examples/clusterctl-templates/example_variables.rc)
-
-#### POD_CIDR
-
-This is the CIDR for the pod. It can be given as a comma separated list of
-quoted elements. For example:
-
-`POD_CIDR='"192.168.0.0/24", "192.168.1.0/24"'`
-
-#### SERVICE_CIDR
-
-This is the CIDR for the services. It can be given as a comma separated list of
-quoted elements. For example:
-
-`SERVICE_CIDR='"192.168.2.0/24", "192.168.3.0/24"'`
-
-#### API_ENDPOINT_HOST
-
-This is the API endpoint name or IP address. For example:
-
-`API_ENDPOINT_HOST="192.168.111.249"`
-
-#### API_ENDPOINT_PORT
-
-This is the API endpoint port. For example:
-
-`API_ENDPOINT_PORT="6443"`
-
-#### IMAGE_URL
-
-This is the URL of the image to deploy. It should be a qcow2 image. For example:
-
-`IMAGE_URL="http://192.168.0.1/ubuntu.qcow2"`
-
-#### IMAGE_CHECKSUM
-
-This is the URL of the md5sum of the image to deploy. For example:
-
-`IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"`
-
-#### CTLPLANE_KUBEADM_EXTRA_CONFIG
-
-This contains the extra configuration to pass in KubeadmControlPlane. It is
-critical to maintain the indentation. The allowed keys are :
-
-- preKubeadmCommands
-- postKubeadmCommands
-- files
-- users
-- ntp
-- format
-
-Here is an example for Ubuntu:
-
-```bash
-CTLPLANE_KUBEADM_EXTRA_CONFIG="
+export POD_CIDR='"192.168.0.0/24"'
+export SERVICE_CIDR='"10.96.0.0/12"'
+export API_ENDPOINT_HOST="192.168.111.249"
+export API_ENDPOINT_PORT="6443"
+export IMAGE_URL="http://192.168.0.1/ubuntu.qcow2"
+export IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"
+export CTLPLANE_KUBEADM_EXTRA_CONFIG="
     preKubeadmCommands:
       - ip link set dev enp2s0 up
       - dhclient enp2s0
@@ -152,24 +73,7 @@ CTLPLANE_KUBEADM_EXTRA_CONFIG="
                   interfaces: [enp1s0]
                   dhcp4: yes
 "
-```
-
-#### WORKERS_KUBEADM_EXTRA_CONFIG
-
-This contains the extra configuration to pass in KubeadmConfig for workers. It
-is critical to maintain the indentation. The allowed keys are :
-
-- preKubeadmCommands
-- postKubeadmCommands
-- files
-- users
-- ntp
-- format
-
-Here is an example for Ubuntu:
-
-```bash
-WORKERS_KUBEADM_EXTRA_CONFIG="
+export WORKERS_KUBEADM_EXTRA_CONFIG="
       preKubeadmCommands:
         - ip link set dev enp2s0 up
         - dhclient enp2s0
@@ -199,13 +103,3 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
                         dhcp4: true
                 version: 2
 "
-```
-
-## Pivoting Ironic
-
-Before running the move command of Clusterctl. Elements such as Baremetal
-Operator, Ironic if applicable, and the BareMetalHost CRs need to be moved to
-the target cluster. During the move, the BareMetalHost object must be annotated
-with `baremetalhost.metal3.io/paused` key. The value does not matter. The
-presence of this annotation will stop the reconciliation loop for that object.
-More information TBA.

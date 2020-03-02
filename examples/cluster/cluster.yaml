@@ -14,6 +14,10 @@ spec:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: BareMetalCluster
     name: ${CLUSTER_NAME}
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    name: ${CLUSTER_NAME}-controlplane
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: BareMetalCluster
