@@ -20,7 +20,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"k8s.io/klog/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,13 +43,13 @@ var _ = Describe("Manager factory testing", func() {
 
 	It("returns a cluster manager", func() {
 		_, err := managerFactory.NewClusterManager(&capi.Cluster{},
-			&capbm.BareMetalCluster{}, clusterLog,
+			&capm3.BareMetalCluster{}, clusterLog,
 		)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("fails to return a cluster manager with nil cluster", func() {
-		_, err := managerFactory.NewClusterManager(nil, &capbm.BareMetalCluster{},
+		_, err := managerFactory.NewClusterManager(nil, &capm3.BareMetalCluster{},
 			clusterLog,
 		)
 		Expect(err).To(HaveOccurred())
@@ -64,7 +64,7 @@ var _ = Describe("Manager factory testing", func() {
 
 	It("returns a machine manager", func() {
 		_, err := managerFactory.NewMachineManager(&capi.Cluster{},
-			&capbm.BareMetalCluster{}, &capi.Machine{}, &capbm.BareMetalMachine{},
+			&capm3.BareMetalCluster{}, &capi.Machine{}, &capm3.BareMetalMachine{},
 			clusterLog,
 		)
 		Expect(err).NotTo(HaveOccurred())

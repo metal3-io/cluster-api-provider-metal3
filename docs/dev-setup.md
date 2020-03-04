@@ -2,7 +2,7 @@
 
 ## Pre-requisites
 
-CAPBM requires two external tools for running the tests
+CAPM3 requires two external tools for running the tests
 during development.
 
 ### Install kustomize
@@ -44,9 +44,9 @@ Refer to the [baremetal-operator developer
 documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
 for instructions and tools for creating BareMetalHost objects.
 
-### Deploy CAPI and CAPBM
+### Deploy CAPI and CAPM3
 
-The following command will deploy the controllers from CAPI, CABPK and CAPBM and
+The following command will deploy the controllers from CAPI, CABPK and CAPM3 and
 the requested CRDs.
 
 ```sh
@@ -58,7 +58,7 @@ the requested CRDs.
 You will first need to scale down the controller deployment :
 
 ```sh
-    kubectl scale -n capbm-system deployment.v1.apps/capbm-controller-manager \
+    kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager \
       --replicas 0
 ```
 

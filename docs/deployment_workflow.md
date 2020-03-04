@@ -6,7 +6,7 @@ The following controllers need to be deployed :
 
 * CAPI
 * CAPBK or alternative
-* CAPBM
+* CAPM3
 * Baremetal Operator, with Ironic setup
 
 ## Requirements
@@ -35,7 +35,7 @@ An outline of the workflow is below.
 
 1. The CAPI controller will set the OwnerRef on the BaremetalCluster referenced
    by the Cluster
-1. The CAPBM controller will verify the apiEndpoint field and populate the
+1. The CAPM3 controller will verify the apiEndpoint field and populate the
    status with ready field set to true and apiEndpoint to the content of
    apiEndpoint.
 1. The CAPI controller will set infrastructureReady field to true on the Cluster
@@ -48,13 +48,13 @@ An outline of the workflow is below.
 1. The CAPI controller will copy the userData output into the userData field of
    the machine object and set the bootstrapReady field to true.
 1. Once the machine has userdata, OwnerRef and bootstrapReady properly set, the
-   CAPBM controller will select, if possible, a BareMetalHost that matches the
-   criteria, or wait until one is available. If matched, the CAPBM controller
+   CAPM3 controller will select, if possible, a BareMetalHost that matches the
+   criteria, or wait until one is available. If matched, the CAPM3 controller
    will create a secret with the userData. and set the BareMetalHost spec
    accordingly to the BareMetalMachine specs.
 1. The BareMetal Operator will then start the deployment.
 1. After deployment, the BaremetalHost will be in provisioned state. However,
-   initialization is not complete. If deploying without cloud provider, CAPBM
+   initialization is not complete. If deploying without cloud provider, CAPM3
    will wait until the target cluster is up and the node appears. It will fetch
    the node by matching the label `metal3.io/uuid=<bmh-uuid>`. It will set the
    providerID to `metal3://<bmh-uuid>`. The BareMetalMachine ready status will

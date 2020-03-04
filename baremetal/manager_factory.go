@@ -18,17 +18,17 @@ package baremetal
 
 import (
 	"github.com/go-logr/logr"
-	capbm "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type ManagerFactoryInterface interface {
 	NewClusterManager(cluster *capi.Cluster,
-		bareMetalCluster *capbm.BareMetalCluster,
+		bareMetalCluster *capm3.BareMetalCluster,
 		clusterLog logr.Logger) (ClusterManagerInterface, error)
-	NewMachineManager(*capi.Cluster, *capbm.BareMetalCluster, *capi.Machine,
-		*capbm.BareMetalMachine, logr.Logger) (MachineManagerInterface, error)
+	NewMachineManager(*capi.Cluster, *capm3.BareMetalCluster, *capi.Machine,
+		*capm3.BareMetalMachine, logr.Logger) (MachineManagerInterface, error)
 }
 
 // ManagerFactory only contains a client
@@ -42,15 +42,15 @@ func NewManagerFactory(client client.Client) ManagerFactory {
 }
 
 // NewClusterManager creates a new ClusterManager
-func (f ManagerFactory) NewClusterManager(cluster *capi.Cluster, capbmCluster *capbm.BareMetalCluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
-	return NewClusterManager(f.client, cluster, capbmCluster, clusterLog)
+func (f ManagerFactory) NewClusterManager(cluster *capi.Cluster, capm3Cluster *capm3.BareMetalCluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
+	return NewClusterManager(f.client, cluster, capm3Cluster, clusterLog)
 }
 
 // NewMachineManager creates a new MachineManager
 func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
-	capbmCluster *capbm.BareMetalCluster,
-	capiMachine *capi.Machine, capbmMachine *capbm.BareMetalMachine,
+	capm3Cluster *capm3.BareMetalCluster,
+	capiMachine *capi.Machine, capm3Machine *capm3.BareMetalMachine,
 	machineLog logr.Logger) (MachineManagerInterface, error) {
-	return NewMachineManager(f.client, capiCluster, capbmCluster, capiMachine,
-		capbmMachine, machineLog)
+	return NewMachineManager(f.client, capiCluster, capm3Cluster, capiMachine,
+		capm3Machine, machineLog)
 }

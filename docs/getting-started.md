@@ -7,7 +7,7 @@ This provider integrates with the
 
 ### Pre-requisites
 
-The pre-requisite for the deployment of CAPBM are the following:
+The pre-requisite for the deployment of CAPM3 are the following:
 
 - [Baremetal-Operator](https://github.com/metal3-io/baremetal-operator) deployed
 - Ironic up and running (inside or outside of the cluster)

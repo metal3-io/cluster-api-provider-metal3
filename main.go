@@ -26,7 +26,7 @@ import (
 	infrav1alpha2 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha2"
 	infrav1 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
 	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
-	capbmremote "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/remote"
+	capm3remote "github.com/metal3-io/cluster-api-provider-baremetal/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-baremetal/controllers"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -69,7 +69,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&watchNamespace, "namespace", "",
-		"Namespace that the controller watches to reconcile CAPBM objects. If unspecified, the controller watches for CAPBM objects across all namespaces.")
+		"Namespace that the controller watches to reconcile CAPM3 objects. If unspecified, the controller watches for CAPM3 objects across all namespaces.")
 	flag.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
 	flag.IntVar(&webhookPort, "webhook-port", 0,
@@ -84,7 +84,7 @@ func main() {
 		Scheme:                 myscheme,
 		MetricsBindAddress:     metricsAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "controller-leader-election-capbm",
+		LeaderElectionID:       "controller-leader-election-CAPM3",
 		SyncPeriod:             &syncPeriod,
 		Port:                   webhookPort,
 		HealthProbeBindAddress: healthAddr,
@@ -160,7 +160,7 @@ func setupReconcilers(mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
-		CapiClientGetter: capbmremote.NewClusterClient,
+		CapiClientGetter: capm3remote.NewClusterClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachineReconciler")
 		os.Exit(1)
