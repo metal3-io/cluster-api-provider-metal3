@@ -35,7 +35,8 @@ You can deploy the CRs all at the same time, the controllers will take care of
 following the correct flow.
 An outline of the workflow is below.
 
-1. The CAPI controller will set the OwnerRef on the BaremetalCluster referenced
+
+1. The CAPI controller will set the OwnerRef on the Metal3Cluster referenced
    by the Cluster, on the KubeadmControlPlane, and all machines, KubeadmConfig
    and BareMetalMachines created by the user or by a MachineDeployment.
 1. The CAPM3 controller will verify the controlPlaneEndpoint field and populate
@@ -52,18 +53,18 @@ An outline of the workflow is below.
 1. Once the machine has userdataSecretName, OwnerRef and bootstrapReady properly
    set, the CAPM3 controller will select, if possible, a BareMetalHost that
    matches the criteria, or wait until one is available. If matched, the CAPM3
-   controller will create a secret with the userData. and set the BareMetalHost
+   controller will create a secret with the userData and set the BareMetalHost
    spec accordingly to the BareMetalMachine specs.
 1. The BareMetal Operator will then start the deployment.
 1. After deployment, the BaremetalHost will be in provisioned state. However,
    initialization is not complete. If deploying without cloud provider, CAPM3
    will wait until the target cluster is up and the node appears. It will fetch
    the node by matching the label `metal3.io/uuid=<bmh-uuid>`. It will set the
-   providerID to `metal3://<bmh-uuid>`. The BareMetalMachine ready status will
+   providerID to `metal3://<bmh-uuid>`. The Metal3Machine ready status will
    be set to true and the providerID will be set to `metal3://<bmh-uuid>` on the
-   BareMetalMachine.
+   Metal3Machine.
 1. CAPI will access the target cluster and compare the providerID on the node to
-   the providerID of the Machine, copied from the BaremetalMachine. If matching,
+   the providerID of the Machine, copied from the metal3machine. If matching,
    the control plane initialized status will be set to true and the machine
    state to running.
 1. CACPK will then do the same for each further controller node until reaching
@@ -74,5 +75,5 @@ An outline of the workflow is below.
 ## Deletion
 
 Deleting the cluster object will trigger the deletion of all related objects
-except for KubeadmConfigTemplates, BareMetalMachineTemplates and BareMetalHost,
+except for KubeadmConfigTemplates, Metal3MachineTemplates and BareMetalHost,
 and the related secrets.

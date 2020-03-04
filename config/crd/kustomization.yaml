@@ -9,24 +9,24 @@ commonLabels:
   cluster.x-k8s.io/v1alpha3: v1alpha3
 
 resources:
-- bases/infrastructure.cluster.x-k8s.io_baremetalclusters.yaml
-- bases/infrastructure.cluster.x-k8s.io_baremetalmachines.yaml
-- bases/infrastructure.cluster.x-k8s.io_baremetalmachinetemplates.yaml
+- bases/infrastructure.cluster.x-k8s.io_metal3clusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_metal3machines.yaml
+- bases/infrastructure.cluster.x-k8s.io_metal3machinetemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
-- patches/webhook_in_baremetalmachines.yaml
-- patches/webhook_in_baremetalclusters.yaml
-- patches/webhook_in_baremetalmachinetemplates.yaml
+- patches/webhook_in_metal3machines.yaml
+- patches/webhook_in_metal3clusters.yaml
+- patches/webhook_in_metal3machinetemplates.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable webhook, uncomment all the sections with [CERTMANAGER] prefix.
 # patches here are for enabling the CA injection for each CRD
-- patches/cainjection_in_baremetalmachines.yaml
-- patches/cainjection_in_baremetalclusters.yaml
-- patches/cainjection_in_baremetalmachinetemplates.yaml
+- patches/cainjection_in_metal3machines.yaml
+- patches/cainjection_in_metal3clusters.yaml
+- patches/cainjection_in_metal3machinetemplates.yaml
 # +kubebuilder:scaffold:crdkustomizecainjectionpatch
 
 # the following config is for teaching kustomize how to do kustomization for CRDs.

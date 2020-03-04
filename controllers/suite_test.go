@@ -51,11 +51,11 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 
 const (
-	clusterName          = "testCluster"
-	baremetalClusterName = "testBaremetalCluster"
-	machineName          = "testMachine"
-	bareMetalMachineName = "testBaremetalMachine"
-	namespaceName        = "testNameSpace"
+	clusterName       = "testCluster"
+	metal3ClusterName = "testmetal3Cluster"
+	machineName       = "testMachine"
+	metal3machineName = "testmetal3machine"
+	namespaceName     = "testNameSpace"
 )
 
 func init() {
@@ -135,16 +135,16 @@ func clusterPauseSpec() *clusterv1.ClusterSpec {
 	return &clusterv1.ClusterSpec{
 		Paused: true,
 		InfrastructureRef: &v1.ObjectReference{
-			Name:       baremetalClusterName,
+			Name:       metal3ClusterName,
 			Namespace:  namespaceName,
-			Kind:       "BareMetalCluster",
+			Kind:       "Metal3Cluster",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 	}
 }
 
-func bmcSpec() *infrav1.BareMetalClusterSpec {
-	return &infrav1.BareMetalClusterSpec{
+func bmcSpec() *infrav1.Metal3ClusterSpec {
+	return &infrav1.Metal3ClusterSpec{
 		ControlPlaneEndpoint: infrav1.APIEndpoint{
 			Host: "192.168.111.249",
 			Port: 6443,
@@ -181,9 +181,9 @@ func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *cluster
 	if spec == nil {
 		spec = &clusterv1.ClusterSpec{
 			InfrastructureRef: &v1.ObjectReference{
-				Name:       baremetalClusterName,
+				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
-				Kind:       "BareMetalCluster",
+				Kind:       "Metal3Cluster",
 				APIVersion: infrav1.GroupVersion.String(),
 			},
 		}
@@ -207,25 +207,25 @@ func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *cluster
 	}
 }
 
-func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1.BareMetalClusterSpec, status *infrav1.BareMetalClusterStatus, pausedAnnotation bool) *infrav1.BareMetalCluster {
+func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1.Metal3ClusterSpec, status *infrav1.Metal3ClusterStatus, pausedAnnotation bool) *infrav1.Metal3Cluster {
 	if spec == nil {
-		spec = &infrav1.BareMetalClusterSpec{}
+		spec = &infrav1.Metal3ClusterSpec{}
 	}
 	if status == nil {
-		status = &infrav1.BareMetalClusterStatus{}
+		status = &infrav1.Metal3ClusterStatus{}
 	}
 	ownerRefs := []metav1.OwnerReference{}
 	if ownerRef != nil {
 		ownerRefs = []metav1.OwnerReference{*ownerRef}
 	}
 	objMeta := &metav1.ObjectMeta{
-		Name:            baremetalClusterName,
+		Name:            metal3ClusterName,
 		Namespace:       namespaceName,
 		OwnerReferences: ownerRefs,
 	}
 	if pausedAnnotation == true {
 		objMeta = &metav1.ObjectMeta{
-			Name:      baremetalClusterName,
+			Name:      metal3ClusterName,
 			Namespace: namespaceName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -240,9 +240,9 @@ func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, 
 		}
 	}
 
-	return &infrav1.BareMetalCluster{
+	return &infrav1.Metal3Cluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "BareMetalCluster",
+			Kind:       "Metal3Cluster",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 		ObjectMeta: *objMeta,
@@ -251,7 +251,7 @@ func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference, 
 	}
 }
 
-func newMachine(clusterName, machineName string, bareMetalMachineName string) *clusterv1.Machine {
+func newMachine(clusterName, machineName string, metal3machineName string) *clusterv1.Machine {
 	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
@@ -265,21 +265,21 @@ func newMachine(clusterName, machineName string, bareMetalMachineName string) *c
 			},
 		},
 	}
-	if bareMetalMachineName != "" {
+	if metal3machineName != "" {
 		machine.Spec.InfrastructureRef = v1.ObjectReference{
-			Name:       bareMetalMachineName,
+			Name:       metal3machineName,
 			Namespace:  namespaceName,
-			Kind:       "BareMetalMachine",
+			Kind:       "Metal3Machine",
 			APIVersion: infrav1.GroupVersion.String(),
 		}
 	}
 	return machine
 }
 
-func newBareMetalMachine(name string, meta *metav1.ObjectMeta,
-	spec *infrav1.BareMetalMachineSpec, status *infrav1.BareMetalMachineStatus,
+func newMetal3Machine(name string, meta *metav1.ObjectMeta,
+	spec *infrav1.Metal3MachineSpec, status *infrav1.Metal3MachineStatus,
 	pausedAnnotation bool,
-) *infrav1.BareMetalMachine {
+) *infrav1.Metal3Machine {
 
 	if meta == nil {
 		meta = &metav1.ObjectMeta{
@@ -309,15 +309,15 @@ func newBareMetalMachine(name string, meta *metav1.ObjectMeta,
 
 	meta.Name = name
 	if spec == nil {
-		spec = &infrav1.BareMetalMachineSpec{}
+		spec = &infrav1.Metal3MachineSpec{}
 	}
 	if status == nil {
-		status = &infrav1.BareMetalMachineStatus{}
+		status = &infrav1.Metal3MachineStatus{}
 	}
 
-	return &infrav1.BareMetalMachine{
+	return &infrav1.Metal3Machine{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "BareMetalMachine",
+			Kind:       "Metal3Machine",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 		ObjectMeta: *meta,

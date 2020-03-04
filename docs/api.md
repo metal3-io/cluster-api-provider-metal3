@@ -35,7 +35,7 @@ spec:
     serviceDomain: "cluster.local"
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-    kind: BareMetalCluster
+    kind: Metal3Cluster
     name: bmcluster
   controlPlaneRef:
     kind: KubeadmControlPlane
@@ -43,9 +43,9 @@ spec:
     name: bmcluster-controlplane
 ```
 
-## BareMetalCluster
+## Metal3Cluster
 
-The BaremetalCluster object contains information related to the deployment of
+The metal3Cluster object contains information related to the deployment of
 the cluster on Baremetal. It currently has two specification fields :
 
 * **controlPlaneEndpoint**: contains the target cluster API server address and
@@ -55,11 +55,11 @@ the cluster on Baremetal. It currently has two specification fields :
   cluster node objects to add a providerID. This will allow the CAPI process to
   continue even if the cluster is deployed without cloud provider.
 
-Example baremetalcluster :
+Example metal3cluster :
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-kind: BareMetalCluster
+kind: Metal3Cluster
 metadata:
   name: bmcluster
 spec:
@@ -194,7 +194,7 @@ spec:
 ## Machine
 
 A Machine is a Cluster API core object representing a Kubernetes node. A machine
-has a reference to a KubeadmConfig and a reference to a BaremetalMachine.
+has a reference to a KubeadmConfig and a reference to a metal3machine.
 
 Example Machine:
 
@@ -215,15 +215,15 @@ spec:
       name: controlplane-0
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-    kind: BareMetalMachine
+    kind: Metal3Machine
     name: controlplane-0
 ```
 
-## BareMetalMachine
+## Metal3Machine
 
-The BareMetalMachine contains information related to the deployment of the
+The Metal3Machine contains information related to the deployment of the
 BareMetalHost such as the image and the host selector. For each machine, there
-must be a BareMetalMachine.
+must be a Metal3Machine.
 
 The fields are :
 
@@ -323,11 +323,11 @@ spec:
             values: [‘a’, ‘b’, ‘c’]
 ```
 
-### BareMetalMachine example
+### Metal3Machine example
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-kind: BareMetalMachine
+kind: Metal3Machine
 metadata:
   name: controlplane-0
 spec:
@@ -347,7 +347,7 @@ spec:
 
 MachineDeployment is a core Cluster API object that is similar to
 deployment for pods. It refers to a KubeadmConfigTemplate and to a
-BareMetalMachineTemplate.
+Metal3MachineTemplate.
 
 Example MachineDeployment:
 
@@ -380,7 +380,7 @@ spec:
       infrastructureRef:
         name: md-0
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-        kind: BareMetalMachineTemplate
+        kind: Metal3MachineTemplate
 ```
 
 ## KubeadmConfigTemplate
@@ -425,15 +425,15 @@ spec:
         - systemctl enable --now kubelet
 ```
 
-## BareMetalMachineTemplate
+## Metal3MachineTemplate
 
-The BareMetalMachineTemplate contains the template to create BareMetalMachine.
+The Metal3MachineTemplate contains the template to create Metal3Machine.
 
-Example BareMetalMachineTemplate :
+Example Metal3MachineTemplate :
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-kind: BareMetalMachineTemplate
+kind: Metal3MachineTemplate
 metadata:
   name: md-0
 spec:

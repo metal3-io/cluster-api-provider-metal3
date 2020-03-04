@@ -34,9 +34,9 @@ import (
 )
 
 const (
-	clusterName          = "testCluster"
-	baremetalClusterName = "testBaremetalCluster"
-	namespaceName        = "testNameSpace"
+	clusterName       = "testCluster"
+	metal3ClusterName = "testmetal3Cluster"
+	namespaceName     = "testNameSpace"
 )
 
 func TestManagers(t *testing.T) {
@@ -82,7 +82,7 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 		},
 		Spec: clusterv1.ClusterSpec{
 			InfrastructureRef: &v1.ObjectReference{
-				Name:       baremetalClusterName,
+				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
 				Kind:       "InfrastructureConfig",
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
@@ -94,25 +94,25 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 	}
 }
 
-func newBareMetalCluster(baremetalName string, ownerRef *metav1.OwnerReference,
-	spec *infrav1.BareMetalClusterSpec, status *infrav1.BareMetalClusterStatus) *infrav1.BareMetalCluster {
+func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference,
+	spec *infrav1.Metal3ClusterSpec, status *infrav1.Metal3ClusterStatus) *infrav1.Metal3Cluster {
 	if spec == nil {
-		spec = &infrav1.BareMetalClusterSpec{}
+		spec = &infrav1.Metal3ClusterSpec{}
 	}
 	if status == nil {
-		status = &infrav1.BareMetalClusterStatus{}
+		status = &infrav1.Metal3ClusterStatus{}
 	}
 	ownerRefs := []metav1.OwnerReference{}
 	if ownerRef != nil {
 		ownerRefs = []metav1.OwnerReference{*ownerRef}
 	}
 
-	return &infrav1.BareMetalCluster{
+	return &infrav1.Metal3Cluster{
 		TypeMeta: metav1.TypeMeta{
-			Kind: "BareMetalCluster",
+			Kind: "Metal3Cluster",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            baremetalClusterName,
+			Name:            metal3ClusterName,
 			Namespace:       namespaceName,
 			OwnerReferences: ownerRefs,
 		},

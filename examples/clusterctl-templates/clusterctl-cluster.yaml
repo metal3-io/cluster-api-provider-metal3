@@ -11,7 +11,7 @@ spec:
       cidrBlocks: [${ POD_CIDR }]
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-    kind: BareMetalCluster
+    kind: Metal3Cluster
     name: ${ CLUSTER_NAME }
   controlPlaneRef:
     kind: KubeadmControlPlane
@@ -19,7 +19,7 @@ spec:
     name: ${ CLUSTER_NAME }
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: BareMetalCluster
+kind: Metal3Cluster
 metadata:
   name: ${ CLUSTER_NAME }
   namespace: ${ NAMESPACE }
@@ -38,7 +38,7 @@ spec:
   replicas: ${ CONTROL_PLANE_MACHINE_COUNT }
   version: ${ KUBERNETES_VERSION }
   infrastructureTemplate:
-    kind: BareMetalMachineTemplate
+    kind: Metal3MachineTemplate
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     name: ${ CLUSTER_NAME }-controlplane
   kubeadmConfigSpec:
@@ -56,7 +56,7 @@ spec:
 ${ CTLPLANE_KUBEADM_EXTRA_CONFIG }
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: BareMetalMachineTemplate
+kind: Metal3MachineTemplate
 metadata:
   name: ${ CLUSTER_NAME }-controlplane
   namespace: ${ NAMESPACE }
@@ -98,10 +98,10 @@ spec:
       infrastructureRef:
         name: ${ CLUSTER_NAME }-workers
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-        kind: BareMetalMachineTemplate
+        kind: Metal3MachineTemplate
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
-kind: BareMetalMachineTemplate
+kind: Metal3MachineTemplate
 metadata:
   name: ${ CLUSTER_NAME }-workers
   namespace: ${ NAMESPACE }

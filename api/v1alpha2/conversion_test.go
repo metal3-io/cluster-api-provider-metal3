@@ -52,20 +52,20 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1alpha3.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for BareMetalCluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.BareMetalCluster{}, &BareMetalCluster{}, apiEndpointFuzzerFuncs))
-	t.Run("for BareMetalMachine", utilconversion.FuzzTestFunc(scheme, &v1alpha3.BareMetalMachine{}, &BareMetalMachine{}))
+	t.Run("for Metal3Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Metal3Cluster{}, &Metal3Cluster{}, apiEndpointFuzzerFuncs))
+	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Metal3Machine{}, &Metal3Machine{}))
 }
 
-func TestConvertBareMetalCluster(t *testing.T) {
+func TestConvertMetal3Cluster(t *testing.T) {
 	g := NewWithT(t)
 
 	t.Run("to hub", func(t *testing.T) {
 		t.Run("should convert the first value in Status.APIEndpoints to Spec.ControlPlaneEndpoint", func(t *testing.T) {
-			src := &BareMetalCluster{
-				Spec: BareMetalClusterSpec{
+			src := &Metal3Cluster{
+				Spec: Metal3ClusterSpec{
 					APIEndpoint: "https://example.com:6443",
 				},
-				Status: BareMetalClusterStatus{
+				Status: Metal3ClusterStatus{
 					APIEndpoints: []APIEndpoint{
 						{
 							Host: "example.com",
@@ -74,7 +74,7 @@ func TestConvertBareMetalCluster(t *testing.T) {
 					},
 				},
 			}
-			dst := &v1alpha3.BareMetalCluster{}
+			dst := &v1alpha3.Metal3Cluster{}
 
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.ControlPlaneEndpoint.Host).To(Equal("example.com"))
@@ -84,22 +84,22 @@ func TestConvertBareMetalCluster(t *testing.T) {
 
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves fields from hub version", func(t *testing.T) {
-			src := &v1alpha3.BareMetalCluster{
+			src := &v1alpha3.Metal3Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
 				},
-				Spec: v1alpha3.BareMetalClusterSpec{
+				Spec: v1alpha3.Metal3ClusterSpec{
 					ControlPlaneEndpoint: v1alpha3.APIEndpoint{
 						Host: "example.com",
 						Port: 6443,
 					},
 				},
-				Status: v1alpha3.BareMetalClusterStatus{},
+				Status: v1alpha3.Metal3ClusterStatus{},
 			}
-			dst := &BareMetalCluster{}
+			dst := &Metal3Cluster{}
 
 			g.Expect(dst.ConvertFrom(src)).To(Succeed())
-			restored := &v1alpha3.BareMetalCluster{}
+			restored := &v1alpha3.Metal3Cluster{}
 			g.Expect(dst.ConvertTo(restored)).To(Succeed())
 
 			// Test field restored fields.
@@ -109,15 +109,15 @@ func TestConvertBareMetalCluster(t *testing.T) {
 		})
 
 		t.Run("should convert Spec.ControlPlaneEndpoint to Status.APIEndpoints[0]", func(t *testing.T) {
-			src := &v1alpha3.BareMetalCluster{
-				Spec: v1alpha3.BareMetalClusterSpec{
+			src := &v1alpha3.Metal3Cluster{
+				Spec: v1alpha3.Metal3ClusterSpec{
 					ControlPlaneEndpoint: v1alpha3.APIEndpoint{
 						Host: "example.com",
 						Port: 6443,
 					},
 				},
 			}
-			dst := &BareMetalCluster{}
+			dst := &Metal3Cluster{}
 
 			g.Expect(dst.ConvertFrom(src)).To(Succeed())
 			g.Expect(dst.Status.APIEndpoints[0].Host).To(Equal("example.com"))
@@ -126,6 +126,6 @@ func TestConvertBareMetalCluster(t *testing.T) {
 	})
 }
 
-// BareMetalMachine does not need specific testing aside of fuzzing for now,
+// Metal3Machine does not need specific testing aside of fuzzing for now,
 // since no changes other than ErrorReason and ErrorMessage renaming were done.
 // The fuzzing verifies those.

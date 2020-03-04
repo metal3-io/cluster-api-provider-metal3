@@ -156,22 +156,22 @@ func setupReconcilers(mgr ctrl.Manager) {
 	if webhookPort != 0 {
 		return
 	}
-	if err := (&controllers.BareMetalMachineReconciler{
+	if err := (&controllers.Metal3MachineReconciler{
 		Client:           mgr.GetClient(),
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
-		Log:              ctrl.Log.WithName("controllers").WithName("BareMetalMachine"),
+		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Machine"),
 		CapiClientGetter: capm3remote.NewClusterClient,
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BareMetalMachineReconciler")
+		setupLog.Error(err, "unable to create controller", "controller", "Metal3MachineReconciler")
 		os.Exit(1)
 	}
 
-	if err := (&controllers.BareMetalClusterReconciler{
+	if err := (&controllers.Metal3ClusterReconciler{
 		Client:         mgr.GetClient(),
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
-		Log:            ctrl.Log.WithName("controllers").WithName("BareMetalCluster"),
+		Log:            ctrl.Log.WithName("controllers").WithName("Metal3Cluster"),
 	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "BareMetalClusterReconciler")
+		setupLog.Error(err, "unable to create controller", "controller", "Metal3ClusterReconciler")
 		os.Exit(1)
 	}
 }
@@ -180,45 +180,45 @@ func setupWebhooks(mgr ctrl.Manager) {
 	if webhookPort == 0 {
 		return
 	}
-	if err := (&infrav1alpha2.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
+	if err := (&infrav1alpha2.Metal3Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Cluster")
 		os.Exit(1)
 	}
-	if err := (&infrav1.BareMetalCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalCluster")
-		os.Exit(1)
-	}
-
-	if err := (&infrav1alpha2.BareMetalClusterList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalClusterList")
+	if err := (&infrav1.Metal3Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Cluster")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha2.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
-		os.Exit(1)
-	}
-	if err := (&infrav1.BareMetalMachine{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachine")
+	if err := (&infrav1alpha2.Metal3ClusterList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3ClusterList")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha2.BareMetalMachineList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineList")
+	if err := (&infrav1alpha2.Metal3Machine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Machine")
+		os.Exit(1)
+	}
+	if err := (&infrav1.Metal3Machine{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Machine")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha2.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
-		os.Exit(1)
-	}
-	if err := (&infrav1.BareMetalMachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplate")
+	if err := (&infrav1alpha2.Metal3MachineList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3MachineList")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha2.BareMetalMachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "BareMetalMachineTemplateList")
+	if err := (&infrav1alpha2.Metal3MachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3MachineTemplate")
+		os.Exit(1)
+	}
+	if err := (&infrav1.Metal3MachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3MachineTemplate")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1alpha2.Metal3MachineTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3MachineTemplateList")
 		os.Exit(1)
 	}
 }

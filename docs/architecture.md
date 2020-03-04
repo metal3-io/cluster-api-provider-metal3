@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The ```cluster-api-provider-metal3 (CAPBM)``` is one of the controllers
+The ```cluster-api-provider-metal3 (CAPM3)``` is one of the controllers
 involved in managing the life cycle of kubernetes clusters on Bare Metal
 Machines. This document describes the components involved and their roles. It
 also discusses the flow of information from one CR to another with the help of
@@ -12,7 +12,7 @@ resources (CRs) representing them as Bare Metal Machines (BMM).
 
 ## Components
 
-The ```cluster-api-provider-metal3 (CAPBM)``` operator is responsible for
+The ```cluster-api-provider-metal3 (CAPM3)``` operator is responsible for
 watching and reconciling multiple resources. However, it is important to see
 other controllers and custom resources (CRs) involved in the process. The
 ultimate goal of the interaction between the controllers and CRs is to provision
@@ -20,17 +20,17 @@ a kubernetes cluster on Bare Metal Servers. To that end, the controllers
 perform different actions on one or more relevant CRs.
 
 The following diagram shows the different controllers and CRs involved. The
-CAPI, CABPK and CAPBM controllers are beyond the scope of this document.
-With respect to CAPBM, we focus on what CRS it `watches` and `reconciles`. The
+CAPI, CABPK and CAPM3 controllers are beyond the scope of this document.
+With respect to CAPM3, we focus on what CRS it `watches` and `reconciles`. The
 arrows in black show which CRs the controller `reconciles` while the one in red
 show that a related controller is `watching` another CR.
 
 ![components](images/components.png)
 
-As shown in the above Components' diagram, CAPBM is watching for changes in
-`Machine` CR and upon change, it makes changes on the `BareMetalMachine` CR.
+As shown in the above Components' diagram, CAPM3 is watching for changes in
+`Machine` CR and upon change, it makes changes on the `Metal3Machine` CR.
 Similarly, it watches `Cluster` CR and makes changes on a related
-`BareMetalCluster` CR.
+`Metal3Cluster` CR.
 
 The left most components, BMO controller and BareMetalHost(BMH) CR, are the
 closest to the Bare Metal Server. If one wants to changes the state of a Bare
@@ -71,7 +71,7 @@ spec:
     serviceDomain: "cluster.local"
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-    kind: BareMetalCluster
+    kind: Metal3Cluster
     name: test1
 ```
 
@@ -93,10 +93,10 @@ spec:
       cidrBlocks:
       - 10.96.0.0/12
   |----------------------------------------------------------------------------|
-  |# infrastructureRef comes from 'BareMetalCluster' and is added by 'CAPBM'   |
+  |# infrastructureRef comes from 'Metal3Cluster' and is added by 'CAPM3'   |
   | infrastructureRef:                                                         |
   |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2                      |
-  |  kind: BareMetalCluster                                                    |
+  |  kind: Metal3Cluster                                                    |
   |  name: test1                                                               |
   |-----------------------------------------------------------------------------
 status:
@@ -110,13 +110,13 @@ status:
 
 ---
 
-### BareMetalCluster
+### Metal3Cluster
 
-BareMetalCluster, User provided Configuration for
+Metal3Cluster, User provided Configuration for
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-kind: BareMetalCluster
+kind: Metal3Cluster
 metadata:
   name: test1
 spec:
@@ -124,16 +124,16 @@ spec:
   noCloudProvider: true
 ```
 
-BareMetalCluster, after reconciliation
+Metal3Cluster, after reconciliation
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-kind: BareMetalCluster
+kind: Metal3Cluster
 metadata:
   name: test1
   namespace: metal3
   |----------------------------------------------------------------------------|
-  |# ownerReferences refers to the linked Cluster and is added by 'CAPBM'      |
+  |# ownerReferences refers to the linked Cluster and is added by 'CAPM3'      |
   |ownerReferences:                                                            |
   |- apiVersion: cluster.x-k8s.io/v1alpha2                                     |
   |  kind: Cluster                                                             |
@@ -173,7 +173,7 @@ spec:
       name: test1-controlplane-0
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-    kind: BareMetalMachine
+    kind: Metal3Machine
     name: test1-controlplane-0
 ```
 
@@ -205,7 +205,7 @@ spec:
   |----------------------------------------------------------------------------|
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-    kind: BareMetalMachine
+    kind: Metal3Machine
     name: test1-controlplane-0
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
   version: v1.17.0
@@ -227,13 +227,13 @@ status:
 ```
 
 ---
-### BareMetalMachine
+### Metal3Machine
 
-BareMetalMachine, User provided Configuration
+Metal3Machine, User provided Configuration
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-kind: BareMetalMachine
+kind: Metal3Machine
 metadata:
   name: test1-controlplane-0
 spec:
@@ -242,15 +242,15 @@ spec:
     checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.md5sum
 ```
 
-BareMetalMachine, after reconciliation
+Metal3Machine, after reconciliation
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
-kind: BareMetalMachine
+kind: Metal3Machine
 metadata:
   name: test1-controlplane-0
   namespace: metal3
-  # ownerReferences refers to the linked Machine and is added by 'CAPBM'
+  # ownerReferences refers to the linked Machine and is added by 'CAPM3'
   ownerReferences:
   - apiVersion: cluster.x-k8s.io/v1alpha2
     kind: Machine
@@ -262,7 +262,7 @@ spec:
     url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
   |----------------------------------------------------------------------------|
-  |# userData comes from 'Machine' and is added by 'CAPBM'                     |
+  |# userData comes from 'Machine' and is added by 'CAPM3'                     |
   |userData:                                                                   |
   |  name: test1-controlplane-0-user-data                                      |
   | namespace: metal3                                                          |
@@ -313,18 +313,18 @@ spec:
     credentialsName: node-1-bmc-secret
   bootMACAddress: 00:b2:8c:ee:22:98
   |----------------------------------------------------------------------------|
-  |# consumerRef refers to the linked BareMetalMachine is added by 'CAPBM'     |
+  |# consumerRef refers to the linked Metal3Machine is added by 'CAPM3'     |
   |consumerRef:                                                                |
   |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2                      |
-  |  kind: BareMetalMachine                                                    |
+  |  kind: Metal3Machine                                                    |
   |  name: test1-controlplane-0                                                |
   |  namespace: metal3                                                         |
-  |# Image comes from 'BareMetalMachine' and is added by 'CAPBM'               |
+  |# Image comes from 'Metal3Machine' and is added by 'CAPM3'               |
   |image:                                                                      |
   |  checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.md5sum|
   |  url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img            |
   |online: true                                                                |
-  |# UserData comes from 'BareMetalMachine' and is added by 'CAPBK'            |
+  |# UserData comes from 'Metal3Machine' and is added by 'CAPBK'            |
   |userData:                                                                   |
   |  name: test1-controlplane-0-user-data                                      |
   |  namespace: metal3                                                         |

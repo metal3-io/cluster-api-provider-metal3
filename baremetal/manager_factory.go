@@ -25,10 +25,10 @@ import (
 
 type ManagerFactoryInterface interface {
 	NewClusterManager(cluster *capi.Cluster,
-		bareMetalCluster *capm3.BareMetalCluster,
+		metal3Cluster *capm3.Metal3Cluster,
 		clusterLog logr.Logger) (ClusterManagerInterface, error)
-	NewMachineManager(*capi.Cluster, *capm3.BareMetalCluster, *capi.Machine,
-		*capm3.BareMetalMachine, logr.Logger) (MachineManagerInterface, error)
+	NewMachineManager(*capi.Cluster, *capm3.Metal3Cluster, *capi.Machine,
+		*capm3.Metal3Machine, logr.Logger) (MachineManagerInterface, error)
 }
 
 // ManagerFactory only contains a client
@@ -42,14 +42,14 @@ func NewManagerFactory(client client.Client) ManagerFactory {
 }
 
 // NewClusterManager creates a new ClusterManager
-func (f ManagerFactory) NewClusterManager(cluster *capi.Cluster, capm3Cluster *capm3.BareMetalCluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
+func (f ManagerFactory) NewClusterManager(cluster *capi.Cluster, capm3Cluster *capm3.Metal3Cluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	return NewClusterManager(f.client, cluster, capm3Cluster, clusterLog)
 }
 
 // NewMachineManager creates a new MachineManager
 func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
-	capm3Cluster *capm3.BareMetalCluster,
-	capiMachine *capi.Machine, capm3Machine *capm3.BareMetalMachine,
+	capm3Cluster *capm3.Metal3Cluster,
+	capiMachine *capi.Machine, capm3Machine *capm3.Metal3Machine,
 	machineLog logr.Logger) (MachineManagerInterface, error) {
 	return NewMachineManager(f.client, capiCluster, capm3Cluster, capiMachine,
 		capm3Machine, machineLog)

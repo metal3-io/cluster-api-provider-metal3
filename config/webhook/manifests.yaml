@@ -11,9 +11,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-baremetalcluster
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3cluster
   failurePolicy: Fail
-  name: default.baremetalcluster.infrastructure.cluster.x-k8s.io
+  name: default.metal3cluster.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -23,15 +23,15 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - baremetalclusters
+    - metal3clusters
 - clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-baremetalmachinetemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3machinetemplate
   failurePolicy: Fail
-  name: default.baremetalmachinetemplate.infrastructure.cluster.x-k8s.io
+  name: default.metal3machinetemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -41,15 +41,15 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - baremetalmachinetemplates
+    - metal3machinetemplates
 - clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-baremetalmachine
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3machine
   failurePolicy: Fail
-  name: default.baremetalmachine.infrastructure.cluster.x-k8s.io
+  name: default.metal3machine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -59,7 +59,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - baremetalmachines
+    - metal3machines
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -73,9 +73,9 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-baremetalcluster
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3cluster
   failurePolicy: Fail
-  name: validation.baremetalcluster.infrastructure.cluster.x-k8s.io
+  name: validation.metal3cluster.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -85,15 +85,15 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - baremetalclusters
+    - metal3clusters
 - clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-baremetalmachinetemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3machinetemplate
   failurePolicy: Fail
-  name: validation.baremetalmachinetemplate.infrastructure.cluster.x-k8s.io
+  name: validation.metal3machinetemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -103,15 +103,15 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - baremetalmachinetemplates
+    - metal3machinetemplates
 - clientConfig:
     caBundle: Cg==
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-baremetalmachine
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3machine
   failurePolicy: Fail
-  name: validation.baremetalmachine.infrastructure.cluster.x-k8s.io
+  name: validation.metal3machine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
@@ -121,4 +121,4 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - baremetalmachines
+    - metal3machines

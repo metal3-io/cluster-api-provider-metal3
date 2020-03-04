@@ -13,17 +13,17 @@ patchesJson6902:
     group: apiextensions.k8s.io
     version: v1
     kind: CustomResourceDefinition
-    name: baremetalclusters.infrastructure.cluster.x-k8s.io
+    name: metal3clusters.infrastructure.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml
 - target:
     group: apiextensions.k8s.io
     version: v1
     kind: CustomResourceDefinition
-    name: baremetalmachines.infrastructure.cluster.x-k8s.io
+    name: metal3machines.infrastructure.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml
 - target:
     group: apiextensions.k8s.io
     version: v1
     kind: CustomResourceDefinition
-    name: baremetalmachinetemplates.infrastructure.cluster.x-k8s.io
+    name: metal3machinetemplates.infrastructure.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml

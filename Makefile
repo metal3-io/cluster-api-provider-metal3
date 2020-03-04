@@ -180,15 +180,15 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.baremetalcluster_manager.go \
-	  -source=./baremetal/baremetalcluster_manager.go \
+	  -destination=./baremetal/mocks/zz_generated.metal3cluster_manager.go \
+	  -source=./baremetal/metal3cluster_manager.go \
 		-package=baremetal_mocks \
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
 		ClusterManagerInterface
 
 	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.baremetalmachine_manager.go \
-	  -source=./baremetal/baremetalmachine_manager.go \
+	  -destination=./baremetal/mocks/zz_generated.metal3machine_manager.go \
+	  -source=./baremetal/metal3machine_manager.go \
 		-package=baremetal_mocks \
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
 		MachineManagerInterface

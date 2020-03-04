@@ -50,7 +50,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - baremetalclusters
+  - metal3clusters
   verbs:
   - create
   - delete
@@ -62,7 +62,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - baremetalclusters/status
+  - metal3clusters/status
   verbs:
   - get
   - patch
@@ -70,7 +70,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - baremetalmachines
+  - metal3machines
   verbs:
   - create
   - delete
@@ -82,7 +82,7 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - baremetalmachines/status
+  - metal3machines/status
   verbs:
   - get
   - patch
