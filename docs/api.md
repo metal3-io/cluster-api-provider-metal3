@@ -5,6 +5,7 @@ Metal3-io components are deployed :
 
 * Cluster API manager
 * Cluster API Bootstrap Provider Kubeadm (CABPK) manager
+* Cluster API Kubeadm Control Plane manager
 * Baremetal Operator (including the Ironic setup)
 * Cluster API Provider Metal3 (CAPM3)
 
@@ -36,6 +37,10 @@ spec:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
     kind: BareMetalCluster
     name: bmcluster
+  controlPlaneRef:
+    kind: KubeadmControlPlane
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    name: bmcluster-controlplane
 ```
 
 ## BareMetalCluster
@@ -43,8 +48,8 @@ spec:
 The BaremetalCluster object contains information related to the deployment of
 the cluster on Baremetal. It currently has two specification fields :
 
-* **apiEndpoint**: contains the target cluster API server address and port in
-  URL format
+* **controlPlaneEndpoint**: contains the target cluster API server address and
+  port
 * **noCloudProvider**: (true/false) Whether the cluster will not be deployed
   with an external cloud provider. If set to true, CAPM3 will patch the target
   cluster node objects to add a providerID. This will allow the CAPI process to
@@ -58,8 +63,51 @@ kind: BareMetalCluster
 metadata:
   name: bmcluster
 spec:
- apiEndpoint: http://192.168.111.249:6443
+ controlPlaneEndpoint:
+   host: 192.168.111.249
+   port: 6443
  noCloudProvider: true
+```
+
+## KubeadmControlPlane
+
+This object contains all information related to the control plane configuration.
+It references an **infrastructureTemplate** that must be a
+*BareMetalMachineTemplate* in this case.
+
+For example:
+
+```yaml
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+metadata:
+  name: bmcluster-controlplane
+spec:
+  replicas: 3
+  version: v1.17.0
+  infrastructureTemplate:
+    kind: BareMetalMachineTemplate
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    name: bmcluster-controlplane
+  kubeadmConfigSpec:
+    initConfiguration:
+      nodeRegistration:
+        name: 'host0'
+        kubeletExtraArgs:
+          cloud-provider: baremetal
+    clusterConfiguration:
+      apiServer:
+        extraArgs:
+          cloud-provider: baremetal
+      controllerManager:
+        extraArgs:
+          cloud-provider: baremetal
+    joinConfiguration:
+      controlPlane: {}
+      nodeRegistration:
+        name: 'host0'
+        kubeletExtraArgs:
+          cloud-provider: baremetal
 ```
 
 ## KubeadmConfig
@@ -407,5 +455,5 @@ spec:
 
 You can find CR examples in the
 [Metal3-io dev env project](https://github.com/metal3-io/metal3-dev-env),
-in the crs/v1alpha2
-[folder](https://github.com/metal3-io/metal3-dev-env/tree/master/crs/v1alpha2).
+in the [template
+folder](https://github.com/metal3-io/metal3-dev-env/tree/master/vm-setup/roles/v1aX_integration_test/templates).

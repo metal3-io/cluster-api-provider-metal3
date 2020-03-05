@@ -34,7 +34,6 @@ export GO111MODULE=on
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
-RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -45,6 +44,7 @@ CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 RELEASE_NOTES_BIN := bin/release-notes
+RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
