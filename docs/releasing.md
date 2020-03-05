@@ -36,7 +36,9 @@ You must have docker installed.
    name of `cluster-api-provider-metal3` and a tag that matches the release
    version. The image is automatically built once the release has been created.
 
-## Process
+## Creating a release for CAPM3
+
+### Process
 
 For version v0.x.y:
 
@@ -51,6 +53,7 @@ For version v0.x.y:
 1. [Create a release in GitHub](https://help.github.com/en/github/administering-a-repository/creating-releases)
    that contains the elements listed above that have been created in the `out`
    folder
+1. Create a branch `release-0.x` for a minor release for backports and bug fixes.
 
 ### Permissions
 
@@ -58,3 +61,27 @@ Releasing requires a particular set of permissions.
 
 - Tag push access to the GitHub repository
 - GitHub Release creation access
+
+## Impact on Metal3
+
+Multiple additional actions are required in the Metal3 project
+
+### Update the Jenkins jobs
+
+For each minor or major release, two jobs need to be created :
+
+* a master job that runs on a regular basis
+* a PR verification job that is triggered by a keyword on a PR targeted for that
+  release branch.
+
+### Update Metal3-dev-env
+
+Metal3-dev-env variables need to be modified. After a major or minor release,
+the new minor version (that follows CAPI versioning) should point to master for
+CAPM3 and the released version should point to the release branch.
+
+### Update the image of CAPM3 in the release branch
+
+If you just created a release branch (i.e. minor version release), you should
+modify the image for CAPM3 deployment in this branch to be tagged with the
+branch name. The image will then follow the branch.
