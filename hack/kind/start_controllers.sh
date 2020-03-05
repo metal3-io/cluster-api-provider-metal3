@@ -26,7 +26,7 @@ kind load docker-image gcr.io/arvinders-1st-project/cluster-api-kubeadm-controll
 make deploy
 
 # CAPM3
-cd ~/go/src/github.com/metal3-io/cluster-api-provider-baremetal
+cd ~/go/src/github.com/metal3-io/cluster-api-provider-metal3
 if [ -n "${BUILD_CAPM3}" ]; then
 	make docker-build
 fi

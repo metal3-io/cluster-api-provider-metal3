@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The ```cluster-api-provider-baremetal (CAPBM)``` is one of the controllers
+The ```cluster-api-provider-metal3 (CAPBM)``` is one of the controllers
 involved in managing the life cycle of kubernetes clusters on Bare Metal
 Machines. This document describes the components involved and their roles. It
 also discusses the flow of information from one CR to another with the help of
@@ -12,7 +12,7 @@ resources (CRs) representing them as Bare Metal Machines (BMM).
 
 ## Components
 
-The ```cluster-api-provider-baremetal (CAPBM)``` operator is responsible for
+The ```cluster-api-provider-metal3 (CAPBM)``` operator is responsible for
 watching and reconciling multiple resources. However, it is important to see
 other controllers and custom resources (CRs) involved in the process. The
 ultimate goal of the interaction between the controllers and CRs is to provision

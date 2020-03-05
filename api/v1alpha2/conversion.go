@@ -18,7 +18,7 @@ package v1alpha2
 
 import (
 	"fmt"
-	"github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"net/url"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"

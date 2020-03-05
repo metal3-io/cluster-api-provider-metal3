@@ -14,9 +14,9 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
-    --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-baremetal:ro,z" \
+    --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-metal3:ro,z" \
     --entrypoint sh \
-    --workdir /go/src/github.com/metal3-io/cluster-api-provider-baremetal \
+    --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
     registry.hub.docker.com/library/golang:1.13 \
-    /go/src/github.com/metal3-io/cluster-api-provider-baremetal/hack/govet.sh
+    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/govet.sh
 fi;

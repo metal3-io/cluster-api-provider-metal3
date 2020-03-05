@@ -28,7 +28,7 @@ flow.
 
 You can find an example file containing the environment variables
 `example_variables.rc`in the release or
-[here](https://github.com/metal3-io/cluster-api-provider-baremetal/tree/master/examples/clusterctl-templates/example_variables.rc)
+[here](https://github.com/metal3-io/cluster-api-provider-metal3/tree/master/examples/clusterctl-templates/example_variables.rc)
 
 #### POD_CIDR
 

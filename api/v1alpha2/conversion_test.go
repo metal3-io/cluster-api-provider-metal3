@@ -19,7 +19,7 @@ import (
 	"time"
 
 	fuzz "github.com/google/gofuzz"
-	"github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

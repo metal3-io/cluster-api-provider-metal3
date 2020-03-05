@@ -25,7 +25,7 @@ package baremetal_mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	baremetal "github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
+	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	reflect "reflect"
 )
 

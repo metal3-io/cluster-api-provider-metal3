@@ -1,4 +1,4 @@
-module github.com/metal3-io/cluster-api-provider-baremetal
+module github.com/metal3-io/cluster-api-provider-metal3
 
 go 1.13
 

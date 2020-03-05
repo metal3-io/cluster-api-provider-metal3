@@ -13,7 +13,7 @@ For more information about this actuator and related repositories, see
 
 * See [metal3-dev-env](https://github.com/metal3-io/metal3-dev-env) for an
   end-to-end development and test environment for
-  `cluster-api-provider-baremetal` and
+  `cluster-api-provider-metal3` and
   [baremetal-operator](https://github.com/metal3-io/baremetal-operator).
 * [Setting up for tests](docs/dev-setup.md)
 

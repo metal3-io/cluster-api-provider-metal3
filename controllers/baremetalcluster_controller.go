@@ -23,8 +23,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-baremetal/api/v1alpha3"
-	"github.com/metal3-io/cluster-api-provider-baremetal/baremetal"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
