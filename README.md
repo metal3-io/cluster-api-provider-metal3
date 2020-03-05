@@ -24,6 +24,10 @@ API used with this `cluster-api` provider. You can also see the [cluster
 deployment workflow](docs/deployment_workflow.md) for the outline of the
 deployment process.
 
+## Architecture
+
+The architecture with the components involved is documented [here](docs/architecture.md)
+
 ## Deployment and examples
 
 ### Deploy Baremetal Operator CRDs and CRs
