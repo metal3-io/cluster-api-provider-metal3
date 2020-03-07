@@ -35,7 +35,6 @@ You can deploy the CRs all at the same time, the controllers will take care of
 following the correct flow.
 An outline of the workflow is below.
 
-
 1. The CAPI controller will set the OwnerRef on the Metal3Cluster referenced
    by the Cluster, on the KubeadmControlPlane, and all machines, KubeadmConfig
    and BareMetalMachines created by the user or by a MachineDeployment.

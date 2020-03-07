@@ -70,8 +70,8 @@ Multiple additional actions are required in the Metal3 project
 
 For each minor or major release, two jobs need to be created :
 
-* a master job that runs on a regular basis
-* a PR verification job that is triggered by a keyword on a PR targeted for that
+- a master job that runs on a regular basis
+- a PR verification job that is triggered by a keyword on a PR targeted for that
   release branch.
 
 ### Update Metal3-dev-env
