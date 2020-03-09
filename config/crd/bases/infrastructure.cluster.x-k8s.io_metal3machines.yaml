@@ -16,8 +16,8 @@ spec:
     listKind: Metal3MachineList
     plural: metal3machines
     shortNames:
-    - bmm
-    - bmmachine
+    - m3m
+    - m3machine
     singular: metal3machine
   scope: Namespaced
   versions:

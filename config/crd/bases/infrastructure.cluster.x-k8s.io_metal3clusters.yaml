@@ -16,8 +16,8 @@ spec:
     listKind: Metal3ClusterList
     plural: metal3clusters
     shortNames:
-    - bmc
-    - bmcluster
+    - m3c
+    - m3cluster
     singular: metal3cluster
   scope: Namespaced
   versions:
