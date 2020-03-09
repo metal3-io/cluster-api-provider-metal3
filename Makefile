@@ -179,6 +179,11 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		--output-file-base=zz_generated.conversion \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
+	$(CONVERSION_GEN) \
+		--input-dirs=./api/v1alpha3 \
+		--output-file-base=zz_generated.conversion \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+
 	$(MOCKGEN) \
 	  -destination=./baremetal/mocks/zz_generated.metal3cluster_manager.go \
 	  -source=./baremetal/metal3cluster_manager.go \

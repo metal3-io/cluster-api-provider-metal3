@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +28,7 @@ type Metal3MachineTemplateSpec struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=metal3machinetemplates,scope=Namespaced,categories=cluster-api
+// +kubebuilder:storageversion
 
 // Metal3MachineTemplate is the Schema for the metal3machinetemplates API
 type Metal3MachineTemplate struct {

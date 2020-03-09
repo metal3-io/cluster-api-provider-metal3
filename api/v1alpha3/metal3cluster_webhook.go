@@ -14,62 +14,15 @@ limitations under the License.
 package v1alpha3
 
 import (
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-func (c *Metal3Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+// log is for logging in this package.
+var _ = logf.Log.WithName("metal3cluster-resource")
+
+func (r *Metal3Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(r).
 		Complete()
-}
-
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3cluster,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clusters,versions=v1alpha3,name=validation.metal3cluster.infrastructure.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha3-metal3cluster,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clusters,versions=v1alpha3,name=default.metal3cluster.infrastructure.cluster.x-k8s.io
-
-var _ webhook.Defaulter = &Metal3Cluster{}
-var _ webhook.Validator = &Metal3Cluster{}
-
-func (c *Metal3Cluster) Default() {
-	if c.Spec.ControlPlaneEndpoint.Port == 0 {
-		c.Spec.ControlPlaneEndpoint.Port = 6443
-	}
-}
-
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (c *Metal3Cluster) ValidateCreate() error {
-	return c.validate()
-}
-
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (c *Metal3Cluster) ValidateUpdate(old runtime.Object) error {
-	return c.validate()
-}
-
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (c *Metal3Cluster) ValidateDelete() error {
-	return nil
-}
-
-func (c *Metal3Cluster) validate() error {
-	var allErrs field.ErrorList
-	if len(c.Spec.ControlPlaneEndpoint.Host) == 0 {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "controlPlaneEndpoint"),
-				c.Spec.ControlPlaneEndpoint.Host,
-				"is required",
-			),
-		)
-
-	}
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Cluster").GroupKind(), c.Name, allErrs)
 }

@@ -14,11 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha3 contains API Schema definitions for the baremetal v1alpha3 API group
+// Package v1alpha4 contains API Schema definitions for the baremetal v1alpha4 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:defaulter-gen=TypeMeta
-// +k8s:conversion-gen=github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4
 // +kubebuilder:object:generate=true
 // +groupName=infrastructure.cluster.x-k8s.io
-package v1alpha3
+package v1alpha4
