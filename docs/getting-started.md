@@ -22,7 +22,10 @@ The pre-requisite for the deployment of CAPM3 are the following:
 Please refer to
 [Clusterctl documentation](https://master.cluster-api.sigs.k8s.io/clusterctl/overview.html).
 Once the Pre-requisites are fulfilled, you can follow the normal clusterctl
-flow.
+flow for the `init`, `config`, `upgrade` and `delete` workflow. The `move`
+command is supported only if the baremetalhosts are moved independently first,
+and their status is preserved during the move. Please refer to the *Pivoting
+Ironic* section.
 
 ### Cluster templates variables
 
@@ -203,9 +206,14 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
 
 ## Pivoting Ironic
 
-Before running the move command of Clusterctl. Elements such as Baremetal
+Before running the move command of Clusterctl, elements such as Baremetal
 Operator, Ironic if applicable, and the BareMetalHost CRs need to be moved to
 the target cluster. During the move, the BareMetalHost object must be annotated
 with `baremetalhost.metal3.io/paused` key. The value does not matter. The
 presence of this annotation will stop the reconciliation loop for that object.
-More information TBA.
+
+In addition, it is critical that the move of the BMHs does not lead to a lost
+status for those objects. If the status is lost, BMO will register the nodes
+as available, and introspect them again.
+
+More information TBA on move commands.
