@@ -174,8 +174,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
+	// Requeue to make sure we do not hit a race condition and are not triggered.
 	if !machineMgr.IsBootstrapReady() {
-		return ctrl.Result{}, nil
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	// Check if the metal3machine was associated with a baremetalhost

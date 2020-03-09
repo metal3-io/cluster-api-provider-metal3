@@ -214,7 +214,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 			Entry("Bootstrap not ready", reconcileNormalTestCase{
 				ExpectError:       false,
-				ExpectRequeue:     false,
+				ExpectRequeue:     true,
 				BootstrapNotReady: true,
 			}),
 			Entry("Not Annotated", reconcileNormalTestCase{
