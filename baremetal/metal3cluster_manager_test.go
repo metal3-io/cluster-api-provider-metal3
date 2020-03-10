@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	_ "github.com/go-logr/logr"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"

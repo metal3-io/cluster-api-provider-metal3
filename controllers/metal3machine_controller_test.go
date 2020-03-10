@@ -26,7 +26,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	"github.com/pkg/errors"
@@ -214,7 +214,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 			Entry("Bootstrap not ready", reconcileNormalTestCase{
 				ExpectError:       false,
-				ExpectRequeue:     false,
+				ExpectRequeue:     true,
 				BootstrapNotReady: true,
 			}),
 			Entry("Not Annotated", reconcileNormalTestCase{

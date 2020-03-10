@@ -19,7 +19,7 @@ import (
 	"time"
 
 	fuzz "github.com/google/gofuzz"
-	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,7 +35,7 @@ var seededRand *rand.Rand = rand.New(
 
 func apiEndpointFuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(i *v1alpha3.APIEndpoint, c fuzz.Continue) {
+		func(i *v1alpha4.APIEndpoint, c fuzz.Continue) {
 			b := make([]byte, seededRand.Intn(264))
 			for i := range b {
 				b[i] = charset[seededRand.Intn(len(charset))]
@@ -50,10 +50,11 @@ func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(AddToScheme(scheme)).To(Succeed())
-	g.Expect(v1alpha3.AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for Metal3Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Metal3Cluster{}, &Metal3Cluster{}, apiEndpointFuzzerFuncs))
-	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha3.Metal3Machine{}, &Metal3Machine{}))
+	t.Run("for Metal3Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Metal3Cluster{}, &Metal3Cluster{}, apiEndpointFuzzerFuncs))
+	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Metal3Machine{}, &Metal3Machine{}))
+	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Metal3MachineTemplate{}, &Metal3MachineTemplate{}))
 }
 
 func TestConvertMetal3Cluster(t *testing.T) {
@@ -74,7 +75,7 @@ func TestConvertMetal3Cluster(t *testing.T) {
 					},
 				},
 			}
-			dst := &v1alpha3.Metal3Cluster{}
+			dst := &v1alpha4.Metal3Cluster{}
 
 			g.Expect(src.ConvertTo(dst)).To(Succeed())
 			g.Expect(dst.Spec.ControlPlaneEndpoint.Host).To(Equal("example.com"))
@@ -84,22 +85,22 @@ func TestConvertMetal3Cluster(t *testing.T) {
 
 	t.Run("from hub", func(t *testing.T) {
 		t.Run("preserves fields from hub version", func(t *testing.T) {
-			src := &v1alpha3.Metal3Cluster{
+			src := &v1alpha4.Metal3Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "hub",
 				},
-				Spec: v1alpha3.Metal3ClusterSpec{
-					ControlPlaneEndpoint: v1alpha3.APIEndpoint{
+				Spec: v1alpha4.Metal3ClusterSpec{
+					ControlPlaneEndpoint: v1alpha4.APIEndpoint{
 						Host: "example.com",
 						Port: 6443,
 					},
 				},
-				Status: v1alpha3.Metal3ClusterStatus{},
+				Status: v1alpha4.Metal3ClusterStatus{},
 			}
 			dst := &Metal3Cluster{}
 
 			g.Expect(dst.ConvertFrom(src)).To(Succeed())
-			restored := &v1alpha3.Metal3Cluster{}
+			restored := &v1alpha4.Metal3Cluster{}
 			g.Expect(dst.ConvertTo(restored)).To(Succeed())
 
 			// Test field restored fields.
@@ -109,9 +110,9 @@ func TestConvertMetal3Cluster(t *testing.T) {
 		})
 
 		t.Run("should convert Spec.ControlPlaneEndpoint to Status.APIEndpoints[0]", func(t *testing.T) {
-			src := &v1alpha3.Metal3Cluster{
-				Spec: v1alpha3.Metal3ClusterSpec{
-					ControlPlaneEndpoint: v1alpha3.APIEndpoint{
+			src := &v1alpha4.Metal3Cluster{
+				Spec: v1alpha4.Metal3ClusterSpec{
+					ControlPlaneEndpoint: v1alpha4.APIEndpoint{
 						Host: "example.com",
 						Port: 6443,
 					},

@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha3
+package v1alpha4
 
 import (
 	"testing"
@@ -20,49 +20,52 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMetal3ClusterDefault(t *testing.T) {
-	g := NewWithT(t)
-
-	c := &Metal3Cluster{
+func TestMetal3MachineDefault(t *testing.T) {
+	// No-op because we do not default anything in BMM yet
+	c := &Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "fooboo",
 		},
-		Spec: Metal3ClusterSpec{
-			ControlPlaneEndpoint: APIEndpoint{},
-		},
+		Spec: Metal3MachineSpec{},
 	}
 	c.Default()
-
-	g.Expect(c.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
 }
 
-func TestMetal3ClusterValidation(t *testing.T) {
-	valid := &Metal3Cluster{
+func TestMetal3MachineValidation(t *testing.T) {
+	valid := &Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: Metal3ClusterSpec{
-			ControlPlaneEndpoint: APIEndpoint{
-				Host: "abc.com",
-				Port: 443,
+		Spec: Metal3MachineSpec{
+			Image: Image{
+				URL:      "http://abc.com/image",
+				Checksum: "http://abc.com/image.md5sum",
 			},
 		},
 	}
-	invalidHost := valid.DeepCopy()
-	invalidHost.Spec.ControlPlaneEndpoint.Host = ""
+	invalidURL := valid.DeepCopy()
+	invalidURL.Spec.Image.URL = ""
+
+	invalidChecksum := valid.DeepCopy()
+	invalidChecksum.Spec.Image.Checksum = ""
 
 	tests := []struct {
 		name      string
 		expectErr bool
-		c         *Metal3Cluster
+		c         *Metal3Machine
 	}{
 		{
-			name:      "should return error when endpoint empty",
+			name:      "should return error when url empty",
 			expectErr: true,
-			c:         invalidHost,
+			c:         invalidURL,
 		},
 		{
-			name:      "should succeed when endpoint correct",
+			name:      "should return error when checksum empty",
+			expectErr: true,
+			c:         invalidChecksum,
+		},
+		{
+			name:      "should succeed when image correct",
 			expectErr: false,
 			c:         valid,
 		},

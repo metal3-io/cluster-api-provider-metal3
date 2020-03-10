@@ -22,7 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -174,8 +174,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
+	// Requeue to make sure we do not hit a race condition and are not triggered.
 	if !machineMgr.IsBootstrapReady() {
-		return ctrl.Result{}, nil
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	// Check if the metal3machine was associated with a baremetalhost

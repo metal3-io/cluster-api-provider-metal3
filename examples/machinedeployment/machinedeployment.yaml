@@ -27,10 +27,10 @@ spec:
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: ${CLUSTER_NAME}-md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
         kind: Metal3MachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-0

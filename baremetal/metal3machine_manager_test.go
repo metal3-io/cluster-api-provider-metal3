@@ -29,7 +29,7 @@ import (
 
 	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"

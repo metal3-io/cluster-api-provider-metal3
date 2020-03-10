@@ -33,7 +33,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -348,10 +348,11 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, false),
 				},
-				ErrorExpected:     false,
-				RequeueExpected:   false,
-				ClusterInfraReady: true,
-				CheckBMFinalizer:  true,
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+				CheckBMFinalizer:        true,
 			},
 		),
 		//Given: Machine, Metal3Machine (No Spec/Status), Cluster, Metal3Cluster.

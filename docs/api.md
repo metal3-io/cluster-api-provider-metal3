@@ -87,7 +87,7 @@ spec:
   version: v1.17.0
   infrastructureTemplate:
     kind: BareMetalMachineTemplate
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     name: bmcluster-controlplane
   kubeadmConfigSpec:
     initConfiguration:
