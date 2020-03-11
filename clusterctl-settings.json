@@ -1,7 +1,7 @@
 {
-  "name": "infrastructure-baremetal",
+  "name": "infrastructure-metal3",
   "config": {
     "componentsFile": "infrastructure-components.yaml",
-    "nextVersion": "v0.4.0"
+    "nextVersion": "v0.3.0"
   }
 }
