@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
@@ -439,4 +440,65 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 	)
 
+	type TestCaseClusterToBMM struct {
+		Cluster       *capi.Cluster
+		Machine       *capi.Machine
+		Machine1      *capi.Machine
+		Machine2      *capi.Machine
+		BMM           *infrav1.Metal3Machine
+		ExpectRequest bool
+	}
+
+	DescribeTable("Cluster To Metal3Machines tests",
+		func(tc TestCaseClusterToBMM) {
+			objects := []runtime.Object{
+				tc.Cluster,
+				tc.Machine,
+				tc.Machine1,
+				tc.BMM,
+			}
+			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+			r := Metal3MachineReconciler{
+				Client: c,
+			}
+			obj := handler.MapObject{
+				Object: tc.Cluster,
+			}
+			reqs := r.ClusterToMetal3Machines(obj)
+
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+				req := infrav1.Metal3Machine{}
+				err := c.Get(context.TODO(), reqs[0].NamespacedName, &req)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(req.Labels[capi.ClusterLabelName]).To(Equal(tc.Cluster.Name),
+					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[capi.ClusterLabelName])
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+
+			}
+		},
+		//Given Cluster, Machine with metal3machine resource, metal3Machine reconcile
+		Entry("Cluster To Metal3Machines, associated Machine Reconciles",
+			TestCaseClusterToBMM{
+				Cluster:       newCluster(clusterName, nil, nil),
+				BMM:           newMetal3Machine(metal3machineName, bmmObjectMetaWithOwnerRef(), nil, nil, false),
+				Machine:       newMachine(clusterName, machineName, metal3machineName),
+				Machine1:      newMachine(clusterName, "my-machine-1", ""),
+				ExpectRequest: true,
+			},
+		),
+
+		//Given Cluster, Machine without metal3Machine resource, no reconciliation
+		Entry("Cluster To Metal3Machines, no metal3Machine, no Reconciliation",
+			TestCaseClusterToBMM{
+				Cluster:       newCluster(clusterName, nil, nil),
+				BMM:           newMetal3Machine("my-metal3-machine-0", nil, nil, nil, false),
+				Machine:       newMachine(clusterName, "my-machine-0", ""),
+				Machine1:      newMachine(clusterName, "my-machine-1", ""),
+				ExpectRequest: false,
+			},
+		),
+	)
 })
