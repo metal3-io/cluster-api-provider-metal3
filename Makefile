@@ -280,8 +280,8 @@ install:
 
 #Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
 deploy-bmo-cr:
-	kubectl apply -f ./examples/_out/metal3crds.yaml
-	kubectl apply -f ./examples/_out/metal3plane.yaml
+	kubectl apply -f ./examples/metal3crds/metal3.io_baremetalhosts.yaml
+	kubectl apply -f ./examples/metal3plane/hosts.yaml
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: generate-examples
