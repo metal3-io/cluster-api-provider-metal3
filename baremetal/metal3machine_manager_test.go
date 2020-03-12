@@ -1186,6 +1186,17 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectSecretDeleted: true,
 			},
 		),
+		Entry("Consumer ref should be removed, BMH state is available", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateAvailable,
+				bmhStatus(), false, false,
+			),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: true,
+		}),
 		Entry("Consumer ref should be removed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateReady,
 				bmhStatus(), false, false,

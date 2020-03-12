@@ -417,6 +417,42 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine has Bootstrap data available while BMMachine has no Host Annotation
+		// BMH is in available state
+		//Expected: Requeue Expected
+		//			BMHost.Spec.Image = BMmachine.Spec.Image,
+		// 			BMHost.Spec.UserData is populated
+		// 			Expect BMHost.Spec.ConsumerRef.Name = BMmachine.Name
+		Entry("Should set BMH Spec in correct state and requeue when all objects are available but no annotation, BMH state is available",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+
+					newMetal3Machine(
+						metal3machineName, bmmMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
+							Image: infrav1.Image{
+								Checksum: "abcd",
+								URL:      "abcd",
+							},
+						}, nil, false,
+					),
+					machineWithBootstrap(),
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, nil, nil, nil, false),
+					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
+						Provisioning: bmh.ProvisionStatus{
+							State: bmh.StateAvailable,
+						},
+					}),
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+				CheckBMFinalizer:        true,
+				CheckBootStrapReady:     true,
+				CheckBMHostProvisioned:  true,
+			},
+		),
+		//Given: Machine has Bootstrap data available while BMMachine has no Host Annotation
 		// BMH is in ready state
 		//Expected: Requeue Expected
 		//			BMHost.Spec.Image = BMmachine.Spec.Image,
