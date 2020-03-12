@@ -39,3 +39,26 @@ spec:
       image:
         url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
         checksum: "97830b21ed272a3d854615beb54cf004"
+      metaData:
+        configRef:
+          name: ${CLUSTER_NAME}-cp-metadata
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3Metadata
+metadata:
+  name: ${CLUSTER_NAME}-cp-metadata
+spec:
+  metaData:
+    "ghi": jkl
+    "index": '{{ index }}'
+    "index_offset": "{{ indexWithOffset 1 }}"
+    "index_step": "{{ indexWithStep 2 }}"
+    "index_offset_step": "{{ indexWithOffsetAndStep 1 2 }}"
+    "index_step_offset": "{{ indexWithStepAndOffset 2 1 }}"
+    "index_hex": '{{ indexHex }}'
+    "index_hex_offset": "{{ indexWithOffsetHex 11 }}"
+    "index_hex_step": "{{ indexWithStepHex 2 }}"
+    "index_hex_offset_step": "{{ indexWithOffsetAndStepHex 11 2 }}"
+    "index_hex_step_offset": "{{ indexWithStepAndOffsetHex 2 11 }}"
+    "machine_name": "{{ machineName }}"
+    "m3machine_name": "{{ metal3MachineName }}"

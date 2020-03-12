@@ -407,7 +407,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			machineMgr.setError("abc", capierrors.InvalidConfigurationMachineError)
+			machineMgr.SetError("abc", capierrors.InvalidConfigurationMachineError)
 
 			Expect(*bmMachine.Status.FailureReason).To(Equal(
 				capierrors.InvalidConfigurationMachineError,
@@ -1931,7 +1931,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		ExpectError bool
 	}
 
-	DescribeTable("Test GetUserData function",
+	DescribeTable("Test getUserData function",
 		func(tc testCaseGetUserData) {
 			objects := []runtime.Object{
 				tc.BMMachine,
@@ -1947,7 +1947,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = machineMgr.GetUserData(context.TODO(), tc.BMHost)
+			err = machineMgr.getUserData(context.TODO(), tc.BMHost)
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
 				return

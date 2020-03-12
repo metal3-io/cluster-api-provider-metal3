@@ -26,9 +26,14 @@ import (
 type ManagerFactoryInterface interface {
 	NewClusterManager(cluster *capi.Cluster,
 		metal3Cluster *capm3.Metal3Cluster,
-		clusterLog logr.Logger) (ClusterManagerInterface, error)
+		clusterLog logr.Logger,
+	) (ClusterManagerInterface, error)
 	NewMachineManager(*capi.Cluster, *capm3.Metal3Cluster, *capi.Machine,
-		*capm3.Metal3Machine, logr.Logger) (MachineManagerInterface, error)
+		*capm3.Metal3Machine, logr.Logger,
+	) (MachineManagerInterface, error)
+	NewMetadataManager(*capm3.Metal3Metadata, logr.Logger) (
+		MetadataManagerInterface, error,
+	)
 }
 
 // ManagerFactory only contains a client
@@ -53,4 +58,9 @@ func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
 	machineLog logr.Logger) (MachineManagerInterface, error) {
 	return NewMachineManager(f.client, capiCluster, capm3Cluster, capiMachine,
 		capm3Machine, machineLog)
+}
+
+// NewMetadataManager creates a new MetadataManager
+func (f ManagerFactory) NewMetadataManager(metadata *capm3.Metal3Metadata, metadataLog logr.Logger) (MetadataManagerInterface, error) {
+	return NewMetadataManager(f.client, metadata, metadataLog)
 }

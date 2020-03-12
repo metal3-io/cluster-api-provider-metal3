@@ -1,0 +1,211 @@
+/*
+Copyright 2019 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package controllers
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/go-logr/logr"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+)
+
+const (
+	metadataControllerName = "Metal3Metadata-controller"
+)
+
+// Metal3MachineReconciler reconciles a Metal3Machine object
+type Metal3MetadataReconciler struct {
+	Client         client.Client
+	ManagerFactory baremetal.ManagerFactoryInterface
+	Log            logr.Logger
+}
+
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3metadatas,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3metadatas/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+
+// Reconcile handles Metal3Machine events
+func (r *Metal3MetadataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
+	ctx := context.Background()
+	metadataLog := r.Log.WithName(metadataControllerName).WithValues("metal3-metadata", req.NamespacedName)
+
+	// Fetch the Metal3Metadata instance.
+	capm3Metadata := &capm3.Metal3Metadata{}
+
+	if err := r.Client.Get(ctx, req.NamespacedName, capm3Metadata); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	helper, err := patch.NewHelper(capm3Metadata, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+	}
+	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
+	defer func() {
+		err := helper.Patch(ctx, capm3Metadata)
+		if err != nil {
+			metadataLog.Info("failed to Patch capm3Metadata")
+		}
+	}()
+
+	// Fetch the Cluster.
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capm3Metadata.ObjectMeta)
+	if capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
+		if err != nil {
+			metadataLog.Info("Metal3Metadata is missing cluster label or cluster does not exist")
+			return ctrl.Result{}, errors.Wrapf(err, "Metal3Metadata is missing cluster label or cluster does not exist")
+		}
+		if cluster == nil {
+			metadataLog.Info(fmt.Sprintf("This metadata is not yet associated with a cluster using the label %s: <name of cluster>", capi.ClusterLabelName))
+			return ctrl.Result{}, nil
+		}
+	}
+
+	if cluster != nil {
+		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
+
+		// Return early if the Metadata or Cluster is paused.
+		if util.IsPaused(cluster, capm3Metadata) {
+			metadataLog.Info("reconciliation is paused for this object")
+			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+		}
+	}
+
+	// Create a helper for managing the metadata object.
+	metadataMgr, err := r.ManagerFactory.NewMetadataManager(capm3Metadata, metadataLog)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the metadata")
+	}
+
+	// Handle deleted metadata
+	if !capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, metadataMgr)
+	}
+
+	// Handle non-deleted machines
+	return r.reconcileNormal(ctx, metadataMgr)
+}
+
+func (r *Metal3MetadataReconciler) reconcileNormal(ctx context.Context,
+	metadataMgr baremetal.MetadataManagerInterface,
+) (ctrl.Result, error) {
+	// If the Metal3Metadata doesn't have finalizer, add it.
+	metadataMgr.SetFinalizer()
+
+	err := metadataMgr.RecreateStatus(ctx)
+	if err != nil {
+		return checkMetadataError(err, "Failed to recreate the status")
+	}
+
+	err = metadataMgr.DeleteSecrets(ctx)
+	if err != nil {
+		return checkMetadataError(err, "Failed to delete the old secrets")
+	}
+
+	err = metadataMgr.CreateSecrets(ctx)
+	if err != nil {
+		return checkMetadataError(err, "Failed to create the missing secrets")
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *Metal3MetadataReconciler) reconcileDelete(ctx context.Context,
+	metadataMgr baremetal.MetadataManagerInterface,
+) (ctrl.Result, error) {
+
+	err := metadataMgr.DeleteSecrets(ctx)
+	if err != nil {
+		return checkMetadataError(err, "Failed to delete the old secrets")
+	}
+
+	readyForDeletion, err := metadataMgr.DeleteReady()
+	if err != nil {
+		return checkMetadataError(err, "Failed to prepare deletion")
+	}
+	if readyForDeletion {
+		// metal3metadata is marked for deletion and ready to be deleted,
+		// so remove the finalizer.
+		metadataMgr.UnsetFinalizer()
+	}
+
+	return ctrl.Result{}, nil
+}
+
+// SetupWithManager will add watches for this controller
+func (r *Metal3MetadataReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&capm3.Metal3Metadata{}).
+		Watches(
+			&source.Kind{Type: &capm3.Metal3Machine{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.Metal3MachineToMetal3Metadata),
+			},
+		).
+		Complete(r)
+}
+
+// Metal3MachineToMetal3Metadata is a handler.ToRequestsFunc to be used to enqeue
+// requests for reconciliation of Metal3Metadata.
+func (r *Metal3MetadataReconciler) Metal3MachineToMetal3Metadata(o handler.MapObject) []ctrl.Request {
+	result := []ctrl.Request{}
+	m, ok := o.Object.(*capm3.Metal3Machine)
+	if !ok {
+		r.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o.Object), "failed to get Metal3Metadata for Metal3Machine")
+		return nil
+	}
+
+	if m.Spec.MetaData.ConfigRef == nil {
+		return result
+	}
+	if m.Spec.MetaData.ConfigRef.Name == "" {
+		return result
+	}
+	namespace := m.Spec.MetaData.ConfigRef.Namespace
+	if namespace == "" {
+		namespace = m.Namespace
+	}
+
+	name := client.ObjectKey{Namespace: namespace, Name: m.Spec.MetaData.ConfigRef.Name}
+	result = append(result, ctrl.Request{NamespacedName: name})
+
+	return result
+}
+
+func checkMetadataError(err error, errMessage string) (ctrl.Result, error) {
+	if err == nil {
+		return ctrl.Result{}, nil
+	}
+	if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	}
+	return ctrl.Result{}, errors.Wrap(err, errMessage)
+}

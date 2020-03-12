@@ -198,6 +198,13 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
 		MachineManagerInterface
 
+	$(MOCKGEN) \
+	  -destination=./baremetal/mocks/zz_generated.metal3metadata_manager.go \
+	  -source=./baremetal/metal3metadata_manager.go \
+		-package=baremetal_mocks \
+		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
+		MetadataManagerInterface
+
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	$(CONTROLLER_GEN) \
@@ -271,7 +278,7 @@ set-manifest-pull-policy:
 ## --------------------------------------
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet 
+run: generate fmt vet
 	go run ./main.go
 
 #Deploy the BaremetalHost CRDs and CRs (for testing purposes only)

@@ -40,6 +40,18 @@ spec:
       image:
         url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
         checksum: "97830b21ed272a3d854615beb54cf004"
+      metaData:
+        configRef:
+          name: ${CLUSTER_NAME}-md-metadata
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3Metadata
+metadata:
+  name: ${CLUSTER_NAME}-md-metadata
+spec:
+  metaData:
+    "ghi": abc
+    "local-hostname": 'md-{{ index }}'
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate

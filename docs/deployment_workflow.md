@@ -37,23 +37,31 @@ An outline of the workflow is below.
 
 1. The CAPI controller will set the OwnerRef on the Metal3Cluster referenced
    by the Cluster, on the KubeadmControlPlane, and all machines, KubeadmConfig
-   and BareMetalMachines created by the user or by a MachineDeployment.
+   and Metal3Machines created by the user or by a MachineDeployment.
 1. The CAPM3 controller will verify the controlPlaneEndpoint field and populate
    the status with ready field set to true.
 1. The CAPI controller will set infrastructureReady field to true on the Cluster
 1. The CAPI controller will set the OwnerRef
 1. The KubeadmControlPlane controller will wait until the cluster has
    infrastructureReady set to true, and generate the first machine,
-   BareMetalMachine and KubeadmConfig.
+   Metal3Machine and KubeadmConfig.
 1. CABPK will generate the cloud-init output for this machine and create a
    secret containing it.
 1. The CAPI controller will copy the userData secret name into the machine
    object and set the bootstrapReady field to true.
 1. Once the machine has userdataSecretName, OwnerRef and bootstrapReady properly
-   set, the CAPM3 controller will select, if possible, a BareMetalHost that
-   matches the criteria, or wait until one is available. If matched, the CAPM3
-   controller will create a secret with the userData and set the BareMetalHost
-   spec accordingly to the BareMetalMachine specs.
+   set, the CAPM3 controller will check if the Metal3Machine references a
+   Metal3Metadata object. In that case, it will set an OwnerReference on the
+   Metal3Metadata object referencing the Metal3Machine and wait for the
+   metadata secret to be created.
+1. The CAPM3 controller reconciling the Metal3Metadata object will select the
+   lowest available index for the new machine and render the metadata template.
+   It will then create the secret containing the rendered metadata.
+1. Once the metadata secret exists, the CAPM3 controller will select, if
+   possible, a BareMetalHost that matches the criteria, or wait until one is
+   available. If matched, the CAPM3 controller will create a secret with the
+   userData if needed, and set the BareMetalHost spec accordingly to the
+   Metal3Machine specs.
 1. The BareMetal Operator will then start the deployment.
 1. After deployment, the BaremetalHost will be in provisioned state. However,
    initialization is not complete. If deploying without cloud provider, CAPM3

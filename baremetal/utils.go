@@ -16,6 +16,22 @@ limitations under the License.
 
 package baremetal
 
+import (
+	"context"
+
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	// metal3SecretType defines the type of secret created by metal3
+	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
+)
+
 // Filter filters a list for a string.
 func Filter(list []string, strToFilter string) (newList []string) {
 	for _, item := range list {
@@ -43,4 +59,88 @@ type NotFoundError struct {
 // Error implements the error interface
 func (e *NotFoundError) Error() string {
 	return "Object not found"
+}
+
+func updateObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+	err := cl.Update(ctx, obj.DeepCopyObject(), opts...)
+	if apierrors.IsConflict(err) {
+		return &RequeueAfterError{}
+	}
+	return err
+}
+
+func createObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+	err := cl.Create(ctx, obj.DeepCopyObject(), opts...)
+	if apierrors.IsAlreadyExists(err) {
+		return &RequeueAfterError{}
+	}
+	return err
+}
+
+func createSecret(cl client.Client, ctx context.Context, name string,
+	namespace string, clusterName string, finalizer string,
+	ownerRef metav1.OwnerReference, content map[string][]byte,
+) error {
+	bootstrapSecret := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels: map[string]string{
+				capi.ClusterLabelName: clusterName,
+			},
+			OwnerReferences: []metav1.OwnerReference{
+				ownerRef,
+			},
+			Finalizers: []string{finalizer},
+		},
+		Data: content,
+		Type: metal3SecretType,
+	}
+
+	tmpBootstrapSecret := corev1.Secret{}
+	key := client.ObjectKey{
+		Name:      name,
+		Namespace: namespace,
+	}
+	err := cl.Get(ctx, key, &tmpBootstrapSecret)
+	if err == nil {
+		// Update the secret with user data
+		return updateObject(cl, ctx, bootstrapSecret)
+	} else if apierrors.IsNotFound(err) {
+		// Create the secret with user data
+		return createObject(cl, ctx, bootstrapSecret)
+	}
+	return err
+}
+
+func deleteSecret(cl client.Client, ctx context.Context, name string,
+	namespace string,
+) error {
+	tmpBootstrapSecret := corev1.Secret{}
+	key := client.ObjectKey{
+		Name:      name,
+		Namespace: namespace,
+	}
+	err := cl.Get(ctx, key, &tmpBootstrapSecret)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	} else if err == nil {
+		//unset the finalizers (remove all since we do not expect anything else
+		// to control that object)
+		tmpBootstrapSecret.Finalizers = []string{}
+		err = updateObject(cl, ctx, &tmpBootstrapSecret)
+		if err != nil {
+			return err
+		}
+		// Delete the secret with metadata
+		err = cl.Delete(ctx, &tmpBootstrapSecret)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	return nil
 }

@@ -348,7 +348,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, false),
 				},
 				ErrorExpected:           false,
-				RequeueExpected:         true,
+				RequeueExpected:         false,
 				ExpectedRequeueDuration: requeueAfter,
 				ClusterInfraReady:       true,
 				CheckBMFinalizer:        true,

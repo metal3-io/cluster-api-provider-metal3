@@ -22,7 +22,7 @@ A Cluster is a Cluster API core object representing a Kubernetes cluster.
 Example cluster:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: cluster
@@ -34,13 +34,13 @@ spec:
       cidrBlocks: ["192.168.0.0/18"]
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: Metal3Cluster
-    name: bmcluster
+    name: m3cluster
   controlPlaneRef:
     kind: KubeadmControlPlane
     apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
-    name: bmcluster-controlplane
+    name: m3cluster-controlplane
 ```
 
 ## Metal3Cluster
@@ -58,10 +58,10 @@ the cluster on Baremetal. It currently has two specification fields :
 Example metal3cluster :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3Cluster
 metadata:
-  name: bmcluster
+  name: m3cluster
 spec:
  controlPlaneEndpoint:
    host: 192.168.111.249
@@ -73,7 +73,7 @@ spec:
 
 This object contains all information related to the control plane configuration.
 It references an **infrastructureTemplate** that must be a
-*BareMetalMachineTemplate* in this case.
+*Metal3MachineTemplate* in this case.
 
 For example:
 
@@ -81,14 +81,14 @@ For example:
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 metadata:
-  name: bmcluster-controlplane
+  name: m3cluster-controlplane
 spec:
   replicas: 3
   version: v1.17.0
   infrastructureTemplate:
-    kind: BareMetalMachineTemplate
+    kind: Metal3MachineTemplate
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-    name: bmcluster-controlplane
+    name: m3cluster-controlplane
   kubeadmConfigSpec:
     initConfiguration:
       nodeRegistration:
@@ -126,7 +126,7 @@ kubeadm.
 Example KubeadmConfig:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: controlplane-0
@@ -199,7 +199,7 @@ has a reference to a KubeadmConfig and a reference to a metal3machine.
 Example Machine:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: controlplane-0
@@ -210,11 +210,11 @@ spec:
   version: 1.16
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: Metal3Machine
     name: controlplane-0
 ```
@@ -237,6 +237,16 @@ The fields are :
   a config drive on the provisioned `BareMetalHost`. This field is optional and
   is automatically set by CAPM3 with the userData from the machine object. If
   you want to overwrite the userData, this should be done in the CAPI machine.
+
+* **metaData** -- This includes two sub-fields, `ConfigRef` and `DataSecret`.
+  `configRef` is a reference to a Metal3Metadata object containing the metadata
+  template, and including two fields, `name` and `namespace`. `DataSecret` is a
+  reference to a secret containing the metadata rendered from the Metal3Metadata
+  template object automatically. In case the `DataSecret` would not be managed
+  by the Metal3Metadata controller, if provided by the user, the finalizer and
+  the ownerreference should be set properly to ensure that the secret belongs to
+  the cluster ownerReference tree (see
+  https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#ownerreferences-chain).
 
 * **hostSelector** -- Specify criteria for matching labels on `BareMetalHost`
   objects. This can be used to limit the set of available `BareMetalHost`
@@ -326,7 +336,7 @@ spec:
 ### Metal3Machine example
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3Machine
 metadata:
   name: controlplane-0
@@ -341,6 +351,9 @@ spec:
       key: key2
       operator: in
       values: {‘abc’, ‘123’, ‘value2’}
+  metaData:
+    ConfigRef:
+      Name: controlplane-metadata
 ```
 
 ## MachineDeployment
@@ -352,7 +365,7 @@ Metal3MachineTemplate.
 Example MachineDeployment:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: md-0
@@ -375,11 +388,11 @@ spec:
       bootstrap:
         configRef:
           name: md-0
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
         kind: Metal3MachineTemplate
 ```
 
@@ -390,7 +403,7 @@ This contains a template to generate KubeadmConfig.
 Example KubeadmConfigTemplate:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: md-0
@@ -432,7 +445,7 @@ The Metal3MachineTemplate contains the template to create Metal3Machine.
 Example Metal3MachineTemplate :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3MachineTemplate
 metadata:
   name: md-0
@@ -449,7 +462,53 @@ spec:
           key: key2
           operator: in
           values: {‘abc’, ‘123’, ‘value2’}
+      metaData:
+        ConfigRef:
+          Name: md-0-metadata
 ```
+
+## Metal3Metadata
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3Metadata
+metadata:
+  name: controlplane-metadata
+spec:
+  metaData:
+    "node_name": "ctrl-{{ indexWithOffset 1 }}"
+    "machine_name": "{{ machineName }}"
+    "pool": "pool1"
+```
+
+The Metal3Metadata object contains a template for the metadata passed to the
+BareMetalHost. `spec.metaData` is a map of key and values, the values can be
+templates that will be rendered. The controller will create a secret containing
+the rendered map for all the metal3machines that are listed as OwnerReference of
+the Metal3Metadata object.
+
+Each Metal3Machine is given an index number. The index is the lowest integer
+that is not given to another Metal3Machine already. When a Metal3Machine is
+deleted, its index is released for re-use.
+
+There are multiple functions that can be used in the templates :
+
+- **machineName** : returns the Machine name
+- **metal3MachineName** : returns the Metal3Machine name
+- **index** : returns the Metal3Machine index for the Metal3Metadata object.
+  The index starts from 0.
+- **indexWithOffset** : takes an integer as parameter and returns the sum of
+  the index and the offset parameter
+- **indexWithStep** : takes an integer as parameter and returns the
+  multiplication of the index and the step parameter
+- **indexWithOffsetAndStep** OR **indexWithStepAndOffset**: takes two
+  integers as parameters, order depending on the function name, and returns the
+  sum of the offset and the multiplication of the index and the step.
+- **index*Hex** : All the `index` function can be suffixed with `Hex` to
+  get the same value in hexadecimal format.
+
+In addition, there will be by default a `uuid` key in the metadata with the
+BareMetalHost UID as value.
 
 ## Metal3 dev env examples
 

@@ -52,6 +52,7 @@ type Metal3MachineReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3metadatas,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -105,7 +106,10 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		machineLog.Info("Metal3Machine's owner Machine is missing cluster label or cluster does not exist")
-		setErrorBMMachine(capm3Machine, "Metal3Machine's owner Machine is missing cluster label or cluster does not exist", capierrors.InvalidConfigurationMachineError)
+		setErrorBMMachine(capm3Machine,
+			"Metal3Machine's owner Machine is missing cluster label or cluster does not exist",
+			capierrors.InvalidConfigurationMachineError,
+		)
 
 		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine is missing label or the cluster does not exist")
 	}
@@ -182,43 +186,62 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// If the Metal3Machine doesn't have finalizer, add it.
 	machineMgr.SetFinalizer()
 
-	// if the machine is already provisioned, return
+	// if the machine is already provisioned, update and return
 	if machineMgr.IsProvisioned() {
-		err := machineMgr.Update(ctx)
-		return ctrl.Result{}, err
+		errType := capierrors.UpdateMachineError
+		return checkMachineError(machineMgr, machineMgr.Update(ctx),
+			"Failed to update the Metal3Machine", errType,
+		)
 	}
+
+	errType := capierrors.CreateMachineError
 
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
-	// Requeue to make sure we do not hit a race condition and are not triggered.
 	if !machineMgr.IsBootstrapReady() {
-		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+		return ctrl.Result{}, nil
+	}
+
+	// Make sure that the metadata is ready if any
+	err := machineMgr.AssociateM3Metadata(ctx)
+	if err != nil {
+		return checkMachineError(machineMgr, err,
+			"Failed to get the Metal3Metadata", errType,
+		)
 	}
 
 	// Check if the metal3machine was associated with a baremetalhost
 	if !machineMgr.HasAnnotation() {
 		//Associate the baremetalhost hosting the machine
-		err := machineMgr.Associate(ctx)
+		err = machineMgr.Associate(ctx)
 		if err != nil {
-			return checkError(err, "failed to associate the Metal3Machine to a BaremetalHost")
+			return checkMachineError(machineMgr, err,
+				"failed to associate the Metal3Machine to a BaremetalHost", errType,
+			)
 		}
 	} else {
 		err := machineMgr.Update(ctx)
 		if err != nil {
-			return checkError(err, "failed to update BaremetalHost")
+			return checkMachineError(machineMgr, err,
+				"failed to update BaremetalHost", errType,
+			)
 		}
 	}
 
 	bmhID, err := machineMgr.GetBaremetalHostID(ctx)
 	if err != nil {
-		return checkError(err, "failed to get the providerID for the metal3machine")
+		return checkMachineError(machineMgr, err,
+			"failed to get the providerID for the metal3machine", errType,
+		)
 	}
 	if bmhID != nil {
 		providerID := fmt.Sprintf("metal3://%s", *bmhID)
 		// Set the providerID on the node if no Cloud provider
 		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
 		if err != nil {
-			return checkError(err, "failed to get the providerID for the metal3machine")
+			return checkMachineError(machineMgr, err,
+				"failed to get the providerID for the metal3machine", errType,
+			)
 		}
 		// Make sure Spec.ProviderID is set and mark the capm3Machine ready
 		machineMgr.SetProviderID(providerID)
@@ -231,9 +254,19 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
 ) (ctrl.Result, error) {
 
+	errType := capierrors.DeleteMachineError
+
 	// delete the machine
 	if err := machineMgr.Delete(ctx); err != nil {
-		return checkError(err, "failed to delete Metal3Machine")
+		return checkMachineError(machineMgr, err,
+			"failed to delete Metal3Machine", errType,
+		)
+	}
+
+	if err := machineMgr.DissociateM3Metadata(ctx); err != nil {
+		return checkMachineError(machineMgr, err,
+			"failed to dissociate Metadata", errType,
+		)
 	}
 
 	// metal3machine is marked for deletion and ready to be deleted,
@@ -341,7 +374,6 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o handler.MapObj
 		}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
-
 	return result
 }
 
@@ -383,9 +415,15 @@ func clearErrorBMMachine(bmm *capm3.Metal3Machine) {
 
 }
 
-func checkError(err error, errMessage string) (ctrl.Result, error) {
+func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,
+	errMessage string, errType capierrors.MachineStatusError,
+) (ctrl.Result, error) {
+	if err == nil {
+		return ctrl.Result{}, nil
+	}
 	if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
 	}
+	machineMgr.SetError(errMessage, errType)
 	return ctrl.Result{}, errors.Wrap(err, errMessage)
 }
