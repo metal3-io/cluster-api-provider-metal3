@@ -39,6 +39,7 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -221,38 +222,48 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// ReconcileNormal function
 	err = m.GetUserData(ctx, host)
 	if err != nil {
-		m.setError("Failed to set the UserData for the Metal3Machine",
-			capierrors.CreateMachineError,
-		)
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.setError("Failed to set the UserData for the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
+		}
 		return err
 	}
-
 	err = m.setHostLabel(ctx, host)
 	if err != nil {
-		m.setError("Failed to set the Cluster label in the BareMetalHost",
-			capierrors.CreateMachineError,
-		)
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.setError("Failed to set the Cluster label in the BareMetalHost",
+				capierrors.CreateMachineError,
+			)
+		}
 		return err
 	}
 
 	err = m.setBMCSecretLabel(ctx, host)
 	if err != nil {
-		m.Log.Info("Failed to set the Cluster label in the BMC Credentials for BareMetalHost", host.Name)
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.Log.Info("Failed to set the Cluster label in the BMC Credentials for BareMetalHost", host.Name)
+		}
+		return err
 	}
 
 	err = m.setHostSpec(ctx, host)
 	if err != nil {
-		m.setError("Failed to associate the BaremetalHost to the Metal3Machine",
-			capierrors.CreateMachineError,
-		)
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.setError("Failed to associate the BaremetalHost to the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
+		}
 		return err
 	}
 
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
-		m.setError("Failed to annotate the Metal3Machine",
-			capierrors.CreateMachineError,
-		)
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.setError("Failed to annotate the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
+		}
 		return err
 	}
 
@@ -340,18 +351,18 @@ func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHos
 		Namespace: host.Namespace,
 	}
 	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-	if apierrors.IsNotFound(err) {
-		// Create the secret with user data
-		err = m.client.Create(ctx, bootstrapSecret)
-	} else if err != nil {
-		return err
-	} else {
+	if err == nil {
 		// Update the secret with user data
-		err = m.client.Update(ctx, bootstrapSecret)
+		err = m.updateObject(ctx, bootstrapSecret)
+	} else if apierrors.IsNotFound(err) {
+		// Create the secret with user data
+		err = m.createObject(ctx, bootstrapSecret)
 	}
 
 	if err != nil {
-		m.Log.Info("Unable to create secret for bootstrap")
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.Log.Info("Unable to create secret for bootstrap")
+		}
 		return err
 	}
 	m.Metal3Machine.Spec.UserData = &corev1.SecretReference{
@@ -375,11 +386,13 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	}
 
 	if host != nil && host.Spec.ConsumerRef != nil {
-		host.OwnerReferences = m.DeleteOwnerRef(host.OwnerReferences)
 		// don't remove the ConsumerRef if it references some other bare metal machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("host already associated with another bare metal machine",
 				"host", host.Name)
+			// Remove the ownerreference to this machine, even if the consumer ref
+			// references another machine.
+			host.OwnerReferences = m.DeleteOwnerRef(host.OwnerReferences)
 			return nil
 		}
 
@@ -388,14 +401,17 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if errBMC != nil && apierrors.IsNotFound(errBMC) {
 			m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
 		} else if errBMC == nil && tmpBMCSecret != nil {
+
 			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
 			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
 				delete(tmpBMCSecret.Labels, capi.ClusterLabelName)
-			}
-			errBMC = m.client.Update(ctx, tmpBMCSecret)
-			if errBMC != nil {
-				m.Log.Info("Failed to delete the clusterLabel from BMC Secret")
-				return errBMC
+				errBMC = m.updateObject(ctx, tmpBMCSecret)
+				if errBMC != nil {
+					if _, ok := errBMC.(HasRequeueAfterError); !ok {
+						m.Log.Info("Failed to delete the clusterLabel from BMC Secret")
+					}
+					return errBMC
+				}
 			}
 		}
 
@@ -403,11 +419,13 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.Image = nil
 			host.Spec.Online = false
 			host.Spec.UserData = nil
-			err = m.client.Update(ctx, host)
+			err = m.updateObject(ctx, host)
 			if err != nil && !apierrors.IsNotFound(err) {
-				m.setError("Failed to delete Metal3Machine",
-					capierrors.DeleteMachineError,
-				)
+				if _, ok := err.(HasRequeueAfterError); !ok {
+					m.setError("Failed to delete Metal3Machine",
+						capierrors.DeleteMachineError,
+					)
+				}
 				return err
 			}
 			m.Log.Info("Deprovisioning BaremetalHost, requeuing")
@@ -432,15 +450,21 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		host.Spec.ConsumerRef = nil
+
+		// Remove the ownerreference to this machine
+		host.OwnerReferences = m.DeleteOwnerRef(host.OwnerReferences)
+
 		if host.Labels != nil && host.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
 			delete(host.Labels, capi.ClusterLabelName)
 		}
 
-		err = m.client.Update(ctx, host)
+		err = m.updateObject(ctx, host)
 		if err != nil && !apierrors.IsNotFound(err) {
-			m.setError("Failed to delete Metal3Machine",
-				capierrors.DeleteMachineError,
-			)
+			if _, ok := err.(HasRequeueAfterError); !ok {
+				m.setError("Failed to delete Metal3Machine",
+					capierrors.DeleteMachineError,
+				)
+			}
 			return err
 		}
 	}
@@ -467,16 +491,18 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			//unset the finalizers (remove all since we do not expect anything else
 			// to control that object)
 			tmpBootstrapSecret.Finalizers = []string{}
-			err = m.client.Update(ctx, &tmpBootstrapSecret)
+			err = m.updateObject(ctx, &tmpBootstrapSecret)
 			if err != nil {
-				m.setError("Failed to delete userdata secret",
-					capierrors.DeleteMachineError,
-				)
+				if _, ok := err.(HasRequeueAfterError); !ok {
+					m.setError("Failed to delete userdata secret",
+						capierrors.DeleteMachineError,
+					)
+				}
 				return err
 			}
 			// Delete the secret with use data
 			err = m.client.Delete(ctx, &tmpBootstrapSecret)
-			if err != nil {
+			if err != nil && !apierrors.IsNotFound(err) {
 				m.setError("Failed to delete userdata secret",
 					capierrors.DeleteMachineError,
 				)
@@ -669,14 +695,15 @@ func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capm3.Metal
 // getBMCSecret will return the BMCSecret associated with BMH
 func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmh.BareMetalHost) (*corev1.Secret, error) {
 
+	if host.Spec.BMC.CredentialsName == "" {
+		return nil, nil
+	}
 	tmpBMCSecret := corev1.Secret{}
 	key := host.CredentialsKey()
 	err := m.client.Get(ctx, key, &tmpBMCSecret)
-	if apierrors.IsNotFound(err) {
-		return nil, err
-	} else if err != nil {
+	if err != nil {
 		m.Log.Info("Cannot retrieve BMC credential for BareMetalhost ", host.Name, err)
-		return nil, nil
+		return nil, err
 	}
 	return &tmpBMCSecret, nil
 }
@@ -694,9 +721,10 @@ func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmh.BareMe
 			tmpBMCSecret.Labels = make(map[string]string)
 		}
 		tmpBMCSecret.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+		return m.updateObject(ctx, tmpBMCSecret)
 	}
 
-	return m.client.Update(ctx, tmpBMCSecret)
+	return nil
 }
 
 // setHostLabel will set the set cluster.x-k8s.io/cluster-name to bmh
@@ -707,7 +735,7 @@ func (m *MachineManager) setHostLabel(ctx context.Context, host *bmh.BareMetalHo
 	}
 	host.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
 
-	return m.client.Update(ctx, host)
+	return nil
 }
 
 // setHostSpec will ensure the host's Spec is set according to the machine's
@@ -743,7 +771,7 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 	host.Spec.Online = true
 	// Set OwnerReferences
 	host.OwnerReferences = m.SetOwnerRef(host.OwnerReferences, true)
-	return m.client.Update(ctx, host)
+	return m.updateObject(ctx, host)
 }
 
 // ensureAnnotation makes sure the machine has an annotation that references the
@@ -768,7 +796,7 @@ func (m *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareMet
 	annotations[HostAnnotation] = hostKey
 	m.Metal3Machine.ObjectMeta.SetAnnotations(annotations)
 
-	return m.client.Update(ctx, m.Metal3Machine)
+	return m.updateObject(ctx, m.Metal3Machine)
 }
 
 // HasAnnotation makes sure the machine has an annotation that references a host
@@ -943,4 +971,20 @@ func (m *MachineManager) FindOwnerRef(refList []metav1.OwnerReference) (int, err
 		}
 	}
 	return 0, errors.New("OwnerRef not found")
+}
+
+func (m *MachineManager) updateObject(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
+	err := m.client.Update(ctx, obj, opts...)
+	if apierrors.IsConflict(err) {
+		return &RequeueAfterError{}
+	}
+	return err
+}
+
+func (m *MachineManager) createObject(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
+	err := m.client.Create(ctx, obj, opts...)
+	if apierrors.IsAlreadyExists(err) {
+		return &RequeueAfterError{}
+	}
+	return err
 }
