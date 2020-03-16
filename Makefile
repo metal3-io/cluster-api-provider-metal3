@@ -271,12 +271,8 @@ set-manifest-pull-policy:
 ## --------------------------------------
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet install
+run: generate fmt vet 
 	go run ./main.go
-
-# Install CRDs into a cluster
-install:
-	kubectl apply -k config/crd
 
 #Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
 deploy-bmo-cr:
