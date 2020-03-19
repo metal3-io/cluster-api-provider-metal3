@@ -229,6 +229,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		}
 		return err
 	}
+
 	err = m.setHostLabel(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
@@ -239,20 +240,20 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
-	err = m.setBMCSecretLabel(ctx, host)
-	if err != nil {
-		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.Log.Info("Failed to set the Cluster label in the BMC Credentials for BareMetalHost", host.Name)
-		}
-		return err
-	}
-
 	err = m.setHostSpec(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
 			m.setError("Failed to associate the BaremetalHost to the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
+		}
+		return err
+	}
+
+	err = m.setBMCSecretLabel(ctx, host)
+	if err != nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.Log.Info("Failed to set the Cluster label in the BMC Credentials for BareMetalHost", host.Name)
 		}
 		return err
 	}
