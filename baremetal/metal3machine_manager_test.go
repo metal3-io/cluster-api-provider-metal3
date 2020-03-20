@@ -2050,6 +2050,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			index, err := machineMgr.FindOwnerRef(tc.OwnerRefs)
 			if tc.ExpectError {
 				Expect(err).NotTo(BeNil())
+				Expect(err).To(BeAssignableToTypeOf(&NotFoundError{}))
 			} else {
 				Expect(err).To(BeNil())
 				Expect(index).To(BeEquivalentTo(tc.ExpectedIndex))
@@ -2110,6 +2111,43 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectError:   false,
 			ExpectedIndex: 1,
 		}),
+		Entry("Present but different versions", testCaseFindOwnerRef{
+			BMMachine: *newMetal3Machine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+			},
+			ExpectError:   false,
+			ExpectedIndex: 1,
+		}),
+		Entry("Wrong group", testCaseFindOwnerRef{
+			BMMachine: *newMetal3Machine("myName", nil, nil, nil, nil),
+			OwnerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: "abc.com/v1",
+					Kind:       "def",
+					Name:       "ghi",
+					UID:        "adfasdf",
+				},
+				metav1.OwnerReference{
+					Kind:       "BMMachine",
+					APIVersion: "nfrastructure.cluster.x-k8s.io/v1alpha1",
+					Name:       "myName",
+					UID:        "adfasdf",
+				},
+			},
+			ExpectError: true,
+		}),
 	)
 
 	type testCaseOwnerRef struct {
@@ -2125,7 +2163,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			refList := machineMgr.DeleteOwnerRef(tc.OwnerRefs)
+			refList, err := machineMgr.DeleteOwnerRef(tc.OwnerRefs)
+			Expect(err).To(BeNil())
 			_, err = machineMgr.FindOwnerRef(refList)
 			Expect(err).NotTo(BeNil())
 		},
@@ -2187,7 +2226,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			refList := machineMgr.SetOwnerRef(tc.OwnerRefs, tc.Controller)
+			refList, err := machineMgr.SetOwnerRef(tc.OwnerRefs, tc.Controller)
+			Expect(err).To(BeNil())
 			index, err := machineMgr.FindOwnerRef(refList)
 			Expect(err).To(BeNil())
 			Expect(*refList[index].Controller).To(BeEquivalentTo(tc.Controller))
