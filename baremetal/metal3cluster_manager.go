@@ -77,7 +77,7 @@ func NewClusterManager(client client.Client, cluster *capi.Cluster,
 // SetFinalizer sets finalizer
 func (s *ClusterManager) SetFinalizer() {
 	// If the Metal3Cluster doesn't have finalizer, add it.
-	if !util.Contains(s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer) {
+	if !Contains(s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer) {
 		s.Metal3Cluster.ObjectMeta.Finalizers = append(
 			s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer,
 		)
@@ -87,7 +87,7 @@ func (s *ClusterManager) SetFinalizer() {
 // UnsetFinalizer unsets finalizer
 func (s *ClusterManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
-	s.Metal3Cluster.ObjectMeta.Finalizers = util.Filter(
+	s.Metal3Cluster.ObjectMeta.Finalizers = Filter(
 		s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer,
 	)
 }
