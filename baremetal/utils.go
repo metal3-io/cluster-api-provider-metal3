@@ -35,3 +35,12 @@ func Contains(list []string, strToSearch string) bool {
 	}
 	return false
 }
+
+// NotFoundError represents that an object was not found
+type NotFoundError struct {
+}
+
+// Error implements the error interface
+func (e *NotFoundError) Error() string {
+	return "Object not found"
+}

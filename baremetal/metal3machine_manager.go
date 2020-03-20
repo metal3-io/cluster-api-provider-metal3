@@ -40,6 +40,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -393,7 +394,10 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				"host", host.Name)
 			// Remove the ownerreference to this machine, even if the consumer ref
 			// references another machine.
-			host.OwnerReferences = m.DeleteOwnerRef(host.OwnerReferences)
+			host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 
@@ -453,7 +457,10 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		host.Spec.ConsumerRef = nil
 
 		// Remove the ownerreference to this machine
-		host.OwnerReferences = m.DeleteOwnerRef(host.OwnerReferences)
+		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
+		if err != nil {
+			return err
+		}
 
 		if host.Labels != nil && host.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
 			delete(host.Labels, capi.ClusterLabelName)
@@ -772,7 +779,11 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 
 	host.Spec.Online = true
 	// Set OwnerReferences
-	host.OwnerReferences = m.SetOwnerRef(host.OwnerReferences, true)
+	hostOwnerReferences, err := m.SetOwnerRef(host.OwnerReferences, true)
+	if err != nil {
+		return err
+	}
+	host.OwnerReferences = hostOwnerReferences
 	return m.updateObject(ctx, host)
 }
 
@@ -927,9 +938,12 @@ func (m *MachineManager) SetProviderID(providerID string) {
 }
 
 // SetOwnerRef adds an ownerreference to this Metal3 machine
-func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller bool) []metav1.OwnerReference {
+func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller bool) ([]metav1.OwnerReference, error) {
 	index, err := m.FindOwnerRef(refList)
 	if err != nil {
+		if _, ok := err.(*NotFoundError); !ok {
+			return nil, err
+		}
 		refList = append(refList, metav1.OwnerReference{
 			APIVersion: m.Metal3Machine.APIVersion,
 			Kind:       m.Metal3Machine.Kind,
@@ -938,41 +952,60 @@ func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller
 			Controller: pointer.BoolPtr(controller),
 		})
 	} else {
+		//The UID and the APIVersion might change due to move or version upgrade
 		refList[index].UID = m.Metal3Machine.UID
+		refList[index].APIVersion = m.Metal3Machine.APIVersion
 		refList[index].Controller = pointer.BoolPtr(controller)
 	}
-	return refList
+	return refList, nil
 }
 
 // DeleteOwnerRef removes the ownerreference to this Metal3 machine
-func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) []metav1.OwnerReference {
+func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
 	if len(refList) == 0 {
-		return refList
+		return refList, nil
 	}
 	index, err := m.FindOwnerRef(refList)
 	if err != nil {
-		return refList
+		if _, ok := err.(*NotFoundError); !ok {
+			return nil, err
+		}
+		return refList, nil
 	}
 	if len(refList) == 1 {
-		return []metav1.OwnerReference{}
+		return []metav1.OwnerReference{}, nil
 	}
 	refListLen := len(refList) - 1
 	refList[index] = refList[refListLen]
-	return (m.DeleteOwnerRef(refList[:refListLen-1]))
+	refList, err = m.DeleteOwnerRef(refList[:refListLen-1])
+	if err != nil {
+		return nil, err
+	}
+	return refList, nil
 }
 
 // FindOwnerRef checks if an ownerreference to this Metal3 machine exists
 // and returns the index
 func (m *MachineManager) FindOwnerRef(refList []metav1.OwnerReference) (int, error) {
 	for i, curOwnerRef := range refList {
+		aGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
+		if err != nil {
+			return 0, err
+		}
+
+		bGV, err := schema.ParseGroupVersion(m.Metal3Machine.APIVersion)
+		if err != nil {
+			return 0, err
+		}
 		// not matching on UID since when pivoting it might change
+		// Not matching on API version as this might change
 		if curOwnerRef.Name == m.Metal3Machine.Name &&
-			curOwnerRef.APIVersion == m.Metal3Machine.APIVersion &&
-			curOwnerRef.Kind == m.Metal3Machine.Kind {
+			curOwnerRef.Kind == m.Metal3Machine.Kind &&
+			aGV.Group == bGV.Group {
 			return i, nil
 		}
 	}
-	return 0, errors.New("OwnerRef not found")
+	return 0, &NotFoundError{}
 }
 
 func (m *MachineManager) updateObject(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
