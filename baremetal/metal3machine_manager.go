@@ -105,7 +105,7 @@ func NewMachineManager(client client.Client,
 // SetFinalizer sets finalizer
 func (m *MachineManager) SetFinalizer() {
 	// If the Metal3Machine doesn't have finalizer, add it.
-	if !util.Contains(m.Metal3Machine.Finalizers, capm3.MachineFinalizer) {
+	if !Contains(m.Metal3Machine.Finalizers, capm3.MachineFinalizer) {
 		m.Metal3Machine.Finalizers = append(m.Metal3Machine.Finalizers,
 			capm3.MachineFinalizer,
 		)
@@ -115,7 +115,7 @@ func (m *MachineManager) SetFinalizer() {
 // UnsetFinalizer unsets finalizer
 func (m *MachineManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
-	m.Metal3Machine.Finalizers = util.Filter(m.Metal3Machine.Finalizers,
+	m.Metal3Machine.Finalizers = Filter(m.Metal3Machine.Finalizers,
 		capm3.MachineFinalizer,
 	)
 }
@@ -459,6 +459,48 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			delete(host.Labels, capi.ClusterLabelName)
 		}
 
+		// Delete created secret, if data was set without DataSecretName or if
+		// BareMetalHost and Machine are in different namespaces.
+		if (m.Machine.Spec.Bootstrap.DataSecretName == nil &&
+			m.Machine.Spec.Bootstrap.Data != nil) ||
+			(m.Machine.Spec.Bootstrap.DataSecretName != nil &&
+				m.Machine.Namespace != host.Namespace) {
+			m.Log.Info("Deleting User data secret for machine")
+			tmpBootstrapSecret := corev1.Secret{}
+			key := client.ObjectKey{
+				Name:      m.Metal3Machine.Name + "-user-data",
+				Namespace: host.Namespace,
+			}
+			err = m.client.Get(ctx, key, &tmpBootstrapSecret)
+			if err != nil && !apierrors.IsNotFound(err) {
+				m.setError("Failed to delete userdata secret",
+					capierrors.DeleteMachineError,
+				)
+				return err
+			} else if err == nil {
+				//unset the finalizers (remove all since we do not expect anything else
+				// to control that object)
+				tmpBootstrapSecret.Finalizers = []string{}
+				err = m.updateObject(ctx, &tmpBootstrapSecret)
+				if err != nil {
+					if _, ok := err.(HasRequeueAfterError); !ok {
+						m.setError("Failed to delete userdata secret",
+							capierrors.DeleteMachineError,
+						)
+					}
+					return err
+				}
+				// Delete the secret with use data
+				err = m.client.Delete(ctx, &tmpBootstrapSecret)
+				if err != nil && !apierrors.IsNotFound(err) {
+					m.setError("Failed to delete userdata secret",
+						capierrors.DeleteMachineError,
+					)
+					return err
+				}
+			}
+		}
+
 		err = m.updateObject(ctx, host)
 		if err != nil && !apierrors.IsNotFound(err) {
 			if _, ok := err.(HasRequeueAfterError); !ok {
@@ -470,47 +512,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 	}
 
-	// Delete created secret, if data was set without DataSecretName or if
-	// BareMetalHost and Machine are in different namespaces.
-	if (m.Machine.Spec.Bootstrap.DataSecretName == nil &&
-		m.Machine.Spec.Bootstrap.Data != nil) ||
-		(m.Machine.Spec.Bootstrap.DataSecretName != nil &&
-			m.Machine.Namespace != host.Namespace) {
-		m.Log.Info("Deleting User data secret for machine")
-		tmpBootstrapSecret := corev1.Secret{}
-		key := client.ObjectKey{
-			Name:      m.Metal3Machine.Name + "-user-data",
-			Namespace: host.Namespace,
-		}
-		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-		if err != nil && !apierrors.IsNotFound(err) {
-			m.setError("Failed to delete userdata secret",
-				capierrors.DeleteMachineError,
-			)
-			return err
-		} else if err == nil {
-			//unset the finalizers (remove all since we do not expect anything else
-			// to control that object)
-			tmpBootstrapSecret.Finalizers = []string{}
-			err = m.updateObject(ctx, &tmpBootstrapSecret)
-			if err != nil {
-				if _, ok := err.(HasRequeueAfterError); !ok {
-					m.setError("Failed to delete userdata secret",
-						capierrors.DeleteMachineError,
-					)
-				}
-				return err
-			}
-			// Delete the secret with use data
-			err = m.client.Delete(ctx, &tmpBootstrapSecret)
-			if err != nil && !apierrors.IsNotFound(err) {
-				m.setError("Failed to delete userdata secret",
-					capierrors.DeleteMachineError,
-				)
-				return err
-			}
-		}
-	}
 	m.Log.Info("finished deleting bare metal machine")
 	return nil
 }
