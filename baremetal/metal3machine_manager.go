@@ -542,9 +542,11 @@ func (m *MachineManager) Update(ctx context.Context) error {
 	// ensure that the BMH specs are correctly set
 	err = m.setHostSpec(ctx, host)
 	if err != nil {
-		m.setError("Failed to associate the BaremetalHost to the Metal3Machine",
-			capierrors.CreateMachineError,
-		)
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.setError("Failed to associate the BaremetalHost to the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
+		}
 		return err
 	}
 
@@ -809,7 +811,7 @@ func (m *MachineManager) ensureAnnotation(ctx context.Context, host *bmh.BareMet
 	annotations[HostAnnotation] = hostKey
 	m.Metal3Machine.ObjectMeta.SetAnnotations(annotations)
 
-	return m.updateObject(ctx, m.Metal3Machine)
+	return nil
 }
 
 // HasAnnotation makes sure the machine has an annotation that references a host

@@ -943,15 +943,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			err = machineMgr.ensureAnnotation(context.TODO(), tc.Host)
 			Expect(err).NotTo(HaveOccurred())
 
-			key := client.ObjectKey{
-				Name:      tc.BMMachine.ObjectMeta.Name,
-				Namespace: tc.BMMachine.ObjectMeta.Namespace,
-			}
-			bmmachine := capm3.Metal3Machine{}
-			err = c.Get(context.TODO(), key, &bmmachine)
-			Expect(err).NotTo(HaveOccurred())
-
-			annotations := bmmachine.ObjectMeta.GetAnnotations()
+			annotations := tc.BMMachine.ObjectMeta.GetAnnotations()
 			if !tc.ExpectAnnotation {
 				Expect(annotations).To(BeNil())
 			} else {
