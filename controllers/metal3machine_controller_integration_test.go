@@ -43,7 +43,6 @@ import (
 	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -229,7 +228,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Expect(objMeta.Labels[clusterv1.ClusterLabelName]).NotTo(BeNil())
 			}
 			if tc.CheckBMFinalizer {
-				Expect(util.Contains(testBMmachine.Finalizers, infrav1.MachineFinalizer)).To(BeTrue())
+				Expect(baremetal.Contains(testBMmachine.Finalizers, infrav1.MachineFinalizer)).To(BeTrue())
 			}
 			if tc.CheckBMState {
 				Expect(testBMmachine.Status.Ready).To(BeTrue())

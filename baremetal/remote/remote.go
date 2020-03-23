@@ -17,6 +17,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -26,7 +27,10 @@ import (
 
 // NewClusterClient creates a new ClusterClient.
 func NewClusterClient(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
-	kubeconfig, err := kcfg.FromSecret(ctx, c, cluster)
+	kubeconfig, err := kcfg.FromSecret(ctx, c, types.NamespacedName{
+		Name:      cluster.Name,
+		Namespace: cluster.Namespace,
+	})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
 			cluster.Name, cluster.Namespace)
