@@ -13,6 +13,7 @@ webhooks:
       namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3cluster
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.metal3cluster.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -31,6 +32,7 @@ webhooks:
       namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machine
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.metal3machine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -49,6 +51,7 @@ webhooks:
       namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machinetemplate
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: default.metal3machinetemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -75,6 +78,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3cluster
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.metal3cluster.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -93,6 +97,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machine
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.metal3machine.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:
@@ -111,6 +116,7 @@ webhooks:
       namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machinetemplate
   failurePolicy: Fail
+  matchPolicy: Equivalent
   name: validation.metal3machinetemplate.infrastructure.cluster.x-k8s.io
   rules:
   - apiGroups:

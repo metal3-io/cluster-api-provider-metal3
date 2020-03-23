@@ -27,8 +27,8 @@ func (c *Metal3MachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error 
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machinetemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,versions=v1alpha4,name=validation.metal3machinetemplate.infrastructure.cluster.x-k8s.io
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machinetemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,versions=v1alpha4,name=default.metal3machinetemplate.infrastructure.cluster.x-k8s.io
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machinetemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,versions=v1alpha4,name=validation.metal3machinetemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machinetemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,versions=v1alpha4,name=default.metal3machinetemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent
 
 var _ webhook.Defaulter = &Metal3MachineTemplate{}
 var _ webhook.Validator = &Metal3MachineTemplate{}
