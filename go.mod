@@ -3,7 +3,12 @@ module github.com/metal3-io/cluster-api-provider-metal3
 go 1.13
 
 require (
+	4d63.com/gochecknoglobals v0.0.0-20190306162314-7c3491d2b6ec // indirect
+	4d63.com/gochecknoinits v0.0.0-20200108094044-eb73b47b9fc4 // indirect
 	cloud.google.com/go v0.55.0 // indirect
+	github.com/alecthomas/gocyclo v0.0.0-20150208221726-aa8f8b160214 // indirect
+	github.com/alexkohler/nakedret v1.0.0 // indirect
+	github.com/cloudflare/cfssl v0.0.0-20180726162950-56268a613adf
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
 	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.7 // indirect
@@ -11,14 +16,22 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/google/gofuzz v1.1.0
 	github.com/googleapis/gnostic v0.4.1 // indirect
+	github.com/gordonklaus/ineffassign v0.0.0-20200309095847-7953dde2c7bf // indirect
+	github.com/jgautheron/goconst v0.0.0-20200227150835-cda7ea3bf591 // indirect
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mdempsky/maligned v0.0.0-20180708014732-6e39bd26a8c8 // indirect
+	github.com/mdempsky/unconvert v0.0.0-20200228143138-95ecdbfc0b5f // indirect
 	github.com/metal3-io/baremetal-operator v0.0.0-20200318114549-c3da1db56f43
+	github.com/mibk/dupl v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
+	github.com/opennota/check v0.0.0-20180911053232-0c771f5545ff // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.1 // indirect
 	github.com/prometheus/procfs v0.0.11 // indirect
+	github.com/stripe/safesql v0.2.0 // indirect
+	github.com/tsenart/deadcode v0.0.0-20160724212837-210d2dc333e9 // indirect
+	github.com/walle/lll v1.0.1 // indirect
 	golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6 // indirect
 	golang.org/x/net v0.0.0-20200319234117-63522dbf7eec
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
@@ -30,6 +43,9 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20200204173128-addea2498afe // indirect
 	k8s.io/utils v0.0.0-20200318093247-d1ab8797c558
+	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
+	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
+	mvdan.cc/unparam v0.0.0-20200314162735-0ac8026f7d06 // indirect
 	sigs.k8s.io/cluster-api v0.3.2
 	sigs.k8s.io/controller-runtime v0.5.1
 )

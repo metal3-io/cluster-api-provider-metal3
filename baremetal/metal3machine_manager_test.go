@@ -163,9 +163,54 @@ func bmmObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
 		Name:            "mybmmachine",
 		Namespace:       "myns",
 		OwnerReferences: []metav1.OwnerReference{},
+		Labels: map[string]string{
+			capi.ClusterLabelName: clusterName,
+		},
 		Annotations: map[string]string{
 			HostAnnotation: "myns/myhost",
 		},
+	}
+}
+
+func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Labels: map[string]string{
+			capi.ClusterLabelName: clusterName,
+		},
+		Annotations: map[string]string{
+			bmh.PausedAnnotation: pausedAnnotationKey,
+		},
+	}
+}
+
+func bmhObjectMetaWithValidEmptyPausedAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations: map[string]string{
+			bmh.PausedAnnotation: "",
+		},
+	}
+}
+
+func bmhObjectMetaEmptyAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations:     map[string]string{},
+	}
+}
+
+func bmhObjectMetaNoAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
 	}
 }
 
@@ -562,6 +607,186 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 		)
 	})
+
+	type testCaseSetPauseAnnotation struct {
+		BMMachine     *capm3.Metal3Machine
+		Host          *bmh.BareMetalHost
+		ExpectPresent bool
+		ExpectError   bool
+	}
+
+	DescribeTable("Test Set BMH Pause Annotation",
+		func(tc testCaseSetPauseAnnotation) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host, tc.BMMachine)
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, tc.BMMachine, klogr.New())
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.SetPauseAnnotation(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			savedHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
+				},
+				&savedHost,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			if tc.ExpectPresent {
+				Expect(savedHost.Annotations[bmh.PausedAnnotation]).NotTo(BeNil())
+			} else {
+				Expect(savedHost.Annotations[bmh.PausedAnnotation]).To(BeNil())
+			}
+		},
+		Entry("Set BMH Pause Annotation, with valid CAPM3 Paused annotations", testCaseSetPauseAnnotation{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mybmmachine",
+						Namespace:  "myns",
+						Kind:       "BMMachine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: true,
+			ExpectError:   false,
+		}),
+		Entry("Set BMH Pause Annotation, with valid Paused annotations, Empty Key", testCaseSetPauseAnnotation{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidEmptyPausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mybmmachine",
+						Namespace:  "myns",
+						Kind:       "BMMachine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: true,
+			ExpectError:   false,
+		}),
+		Entry("Set BMH Pause Annotation, with no Paused annotations", testCaseSetPauseAnnotation{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaEmptyAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mybmmachine",
+						Namespace:  "myns",
+						Kind:       "BMMachine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: true,
+			ExpectError:   false,
+		}),
+	)
+
+	type testCaseRemovePauseAnnotation struct {
+		Cluster       *capi.Cluster
+		BMMachine     *capm3.Metal3Machine
+		Host          *bmh.BareMetalHost
+		ExpectPresent bool
+		ExpectError   bool
+	}
+
+	DescribeTable("Test Remove BMH Pause Annotation",
+		func(tc testCaseRemovePauseAnnotation) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host, tc.BMMachine, tc.Cluster)
+			machineMgr, err := NewMachineManager(c, tc.Cluster, nil, nil, tc.BMMachine, klogr.New())
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.RemovePauseAnnotation(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			savedHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
+				},
+				&savedHost,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			if tc.ExpectPresent {
+				Expect(savedHost.Annotations[bmh.PausedAnnotation]).NotTo(BeNil())
+			} else {
+				Expect(savedHost.Annotations).To(BeNil())
+			}
+		},
+		Entry("Remove BMH Pause Annotation, with valid CAPM3 Paused annotations", testCaseRemovePauseAnnotation{
+			Cluster: newCluster(clusterName),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mybmmachine",
+						Namespace:  "myns",
+						Kind:       "BMMachine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: false,
+			ExpectError:   false,
+		}),
+		Entry("Do not Remove Annotation, with valid Paused annotations, Empty Key", testCaseRemovePauseAnnotation{
+			Cluster: newCluster(clusterName),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidEmptyPausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mybmmachine",
+						Namespace:  "myns",
+						Kind:       "BMMachine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: true,
+			ExpectError:   false,
+		}),
+		Entry("No Annotation, Should Not Error", testCaseRemovePauseAnnotation{
+			Cluster: newCluster(clusterName),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaNoAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mybmmachine",
+						Namespace:  "myns",
+						Kind:       "BMMachine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: false,
+			ExpectError:   false,
+		}),
+	)
 
 	type testCaseSetHostSpec struct {
 		UserDataNamespace         string
@@ -1002,15 +1227,16 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseDelete struct {
-		Host                      *bmh.BareMetalHost
-		Secret                    *corev1.Secret
-		Machine                   *capi.Machine
-		BMMachine                 *capm3.Metal3Machine
-		BMCSecret                 *corev1.Secret
-		ExpectedConsumerRef       *corev1.ObjectReference
-		ExpectedResult            error
-		ExpectSecretDeleted       bool
-		ExpectClusterLabelDeleted bool
+		Host                            *bmh.BareMetalHost
+		Secret                          *corev1.Secret
+		Machine                         *capi.Machine
+		BMMachine                       *capm3.Metal3Machine
+		BMCSecret                       *corev1.Secret
+		ExpectedConsumerRef             *corev1.ObjectReference
+		ExpectedResult                  error
+		ExpectSecretDeleted             bool
+		ExpectClusterLabelDeleted       bool
+		ExpectedPausedAnnotationDeleted bool
 	}
 
 	DescribeTable("Test Delete function",
@@ -1076,6 +1302,20 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(apierrors.IsNotFound(err)).To(BeTrue())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
+			}
+
+			if tc.ExpectedPausedAnnotationDeleted {
+				// get the saved host
+				savedHost := bmh.BareMetalHost{}
+				err = c.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      tc.Host.Name,
+						Namespace: tc.Host.Namespace,
+					},
+					&savedHost,
+				)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(savedHost.Annotations[bmh.PausedAnnotation]).NotTo(Equal(pausedAnnotationKey))
 			}
 
 			if tc.ExpectClusterLabelDeleted {
@@ -1278,6 +1518,23 @@ var _ = Describe("Metal3Machine manager", func() {
 			BMCSecret:                 newBMCSecret("mycredentials", true),
 			ExpectSecretDeleted:       true,
 			ExpectClusterLabelDeleted: true,
+		}),
+		Entry("PausedAnnotation/CAPM3 should be removed", testCaseDelete{
+			Machine:   newMachine("mymachine", "mybmmachine", nil),
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpecAll(), nil, bmmObjectMetaWithValidAnnotations()),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
+				Spec:       *bmhSpecBMC(),
+				Status: bmh.BareMetalHostStatus{
+					Provisioning: bmh.ProvisionStatus{
+						State: bmh.StateNone,
+					},
+					PoweredOn: false,
+				},
+			},
+			BMCSecret:                       newBMCSecret("mycredentials", false),
+			ExpectSecretDeleted:             true,
+			ExpectedPausedAnnotationDeleted: true,
 		}),
 		Entry("No clusterLabel in BMH or BMC Secret so this is a no-op ", testCaseDelete{
 			Machine:                   newMachine("mymachine", "mybmmachine", nil),
