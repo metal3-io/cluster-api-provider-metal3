@@ -331,7 +331,10 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o handler.MapObj
 		if m.Spec.InfrastructureRef.Name == "" {
 			continue
 		}
-		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
+		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		if m.Spec.InfrastructureRef.Namespace != "" {
+			name = client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
 
