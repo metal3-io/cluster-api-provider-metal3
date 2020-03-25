@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -308,75 +307,85 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 	})
 
-	// Legacy tests
-	It("TestMetal3MachineReconciler_Metal3ClusterToMetal3Machines", func() {
-		metal3Cluster := newMetal3Cluster("my-metal3-cluster",
-			bmcOwnerRef(), bmcSpec(), nil, false,
-		)
-		objects := []runtime.Object{
-			newCluster(clusterName, nil, nil),
-			metal3Cluster,
-			newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
-			newMachine(clusterName, "my-machine-1", "my-metal3-machine-1"),
-			// Intentionally omitted
-			newMachine(clusterName, "my-machine-2", ""),
-		}
-		c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-		r := Metal3MachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-		mo := handler.MapObject{
-			Object: metal3Cluster,
-		}
-		out := r.Metal3ClusterToMetal3Machines(mo)
-		machineNames := make([]string, len(out))
-		for i := range out {
-			machineNames[i] = out[i].Name
-		}
-		Expect(len(out)).To(Equal(2), "Expected 2 Metal3 machines to reconcile but got %d", len(out))
+	type TestCaseMetal3ClusterToBMM struct {
+		Cluster       *capi.Cluster
+		M3Cluster     *infrav1.Metal3Cluster
+		Machine0      *capi.Machine
+		Machine1      *capi.Machine
+		Machine2      *capi.Machine
+		ExpectRequest bool
+	}
 
-		for _, expectedName := range []string{"my-machine-0", "my-machine-1"} {
-			Expect(contains(machineNames, expectedName)).To(BeTrue(), "expected %q in slice %v", expectedName, machineNames)
-		}
-	})
+	DescribeTable("Metal3Cluster To Metal3Machines tests",
+		func(tc TestCaseMetal3ClusterToBMM) {
+			objects := []runtime.Object{
+				tc.Cluster,
+				tc.M3Cluster,
+				tc.Machine0,
+				tc.Machine1,
+				tc.Machine2,
+			}
+			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
-	It("TestMetal3MachineReconciler_Metal3ClusterToMetal3Machines_with_no_cluster", func() {
-		metal3Cluster := newMetal3Cluster("my-metal3-cluster",
-			bmcOwnerRef(), bmcSpec(), nil, false,
-		)
-		objects := []runtime.Object{
-			metal3Cluster,
-			newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
-			newMachine(clusterName, "my-machine-1", "my-metal3-machine-1"),
-			// Intentionally omitted
-			newMachine(clusterName, "my-machine-2", ""),
-		}
-		c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-		r := Metal3MachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-		mo := handler.MapObject{
-			Object: metal3Cluster,
-		}
-		out := r.Metal3ClusterToMetal3Machines(mo)
-		fmt.Printf("%v", out)
-		Expect(len(out)).To(Equal(0), "Expected 0 request, found %d", len(out))
-	})
+			r := Metal3MachineReconciler{
+				Client: c,
+				Log:    klogr.New(),
+			}
 
-	It("TestMetal3MachineReconciler_Metal3ClusterToMetal3Machines_with_no_metal3Cluster", func() {
-		objects := []runtime.Object{}
-		c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
-		r := Metal3MachineReconciler{
-			Client: c,
-			Log:    klogr.New(),
-		}
-		mo := handler.MapObject{}
-		out := r.Metal3ClusterToMetal3Machines(mo)
-		fmt.Printf("%v", out)
-		Expect(len(out)).To(Equal(0), "Expected 0 request, found %d", len(out))
-	})
+			obj := handler.MapObject{
+				Object: tc.M3Cluster,
+			}
+
+			reqs := r.Metal3ClusterToMetal3Machines(obj)
+
+			m3machineNames := make([]string, len(reqs))
+			for i := range reqs {
+				m3machineNames[i] = reqs[i].Name
+			}
+
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(2), "Expected 2 Metal3 machines to reconcile but got %d", len(reqs))
+				for _, expectedName := range []string{"my-metal3-machine-0", "my-metal3-machine-1"} {
+					Expect(contains(m3machineNames, expectedName)).To(BeTrue(), "expected %q in slice %v", expectedName, m3machineNames)
+				}
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+			}
+		},
+		//Given correct resources, metal3Machines reconcile
+		Entry("Metal3Cluster To Metal3Machines, associated Metal3Machine Reconcile",
+			TestCaseMetal3ClusterToBMM{
+				Cluster:       newCluster(clusterName, nil, nil),
+				M3Cluster:     newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
+				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
+				Machine1:      newMachine(clusterName, "my-machine-1", "my-metal3-machine-1"),
+				Machine2:      newMachine(clusterName, "my-machine-2", ""),
+				ExpectRequest: true,
+			},
+		),
+		//No owner cluster, no reconciliation
+		Entry("Metal3Cluster To Metal3Machines, No owner Cluster, No reconciliation",
+			TestCaseMetal3ClusterToBMM{
+				Cluster:       newCluster("my-other-cluster", nil, nil),
+				M3Cluster:     newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
+				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
+				Machine1:      newMachine(clusterName, "my-machine-1", "my-metal3-machine-1"),
+				Machine2:      newMachine(clusterName, "my-machine-2", ""),
+				ExpectRequest: false,
+			},
+		),
+		//No metal3 cluster, no reconciliation
+		Entry("Metal3Cluster To Metal3Machines, No metal3Cluster, No reconciliation",
+			TestCaseMetal3ClusterToBMM{
+				Cluster:       newCluster("my-other-cluster", nil, nil),
+				M3Cluster:     &infrav1.Metal3Cluster{},
+				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
+				Machine1:      newMachine(clusterName, "my-machine-1", "my-metal3-machine-1"),
+				Machine2:      newMachine(clusterName, "my-machine-2", ""),
+				ExpectRequest: false,
+			},
+		),
+	)
 
 	type TestCaseBMHToBMM struct {
 		Host          *bmh.BareMetalHost
@@ -445,7 +454,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Machine       *capi.Machine
 		Machine1      *capi.Machine
 		Machine2      *capi.Machine
-		BMM           *infrav1.Metal3Machine
+		M3Machine     *infrav1.Metal3Machine
 		ExpectRequest bool
 	}
 
@@ -455,7 +464,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				tc.Cluster,
 				tc.Machine,
 				tc.Machine1,
-				tc.BMM,
+				tc.M3Machine,
 			}
 			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 			r := Metal3MachineReconciler{
@@ -483,7 +492,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Cluster To Metal3Machines, associated Machine Reconciles",
 			TestCaseClusterToBMM{
 				Cluster:       newCluster(clusterName, nil, nil),
-				BMM:           newMetal3Machine(metal3machineName, bmmObjectMetaWithOwnerRef(), nil, nil, false),
+				M3Machine:     newMetal3Machine(metal3machineName, bmmObjectMetaWithOwnerRef(), nil, nil, false),
 				Machine:       newMachine(clusterName, machineName, metal3machineName),
 				Machine1:      newMachine(clusterName, "my-machine-1", ""),
 				ExpectRequest: true,
@@ -494,7 +503,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Cluster To Metal3Machines, no metal3Machine, no Reconciliation",
 			TestCaseClusterToBMM{
 				Cluster:       newCluster(clusterName, nil, nil),
-				BMM:           newMetal3Machine("my-metal3-machine-0", nil, nil, nil, false),
+				M3Machine:     newMetal3Machine("my-metal3-machine-0", nil, nil, nil, false),
 				Machine:       newMachine(clusterName, "my-machine-0", ""),
 				Machine1:      newMachine(clusterName, "my-machine-1", ""),
 				ExpectRequest: false,
