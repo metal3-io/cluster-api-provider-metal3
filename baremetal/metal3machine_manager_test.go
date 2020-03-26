@@ -1189,7 +1189,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Secret:              newSecret(),
 			ExpectSecretDeleted: true,
 		}),
-		Entry("Consumer ref should be removed", testCaseDelete{
+		Entry("Consumer ref should be removed, secret not deleted", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateReady,
 				bmhStatus(), false, false,
 			),
@@ -1206,8 +1206,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
 				bmmObjectMetaWithValidAnnotations(),
 			),
-			Secret:              newSecret(),
-			ExpectSecretDeleted: true,
+			Secret: newSecret(),
 		}),
 		Entry("Consumer ref does not match, so it should not be removed",
 			testCaseDelete{
@@ -1708,23 +1707,21 @@ var _ = Describe("Metal3Machine manager", func() {
 				))
 			}
 
-			// if we had to create an additional secret (BMH and BMM in different
-			// namespaces or dataSecretName not set and Data sets)
-			if (tc.Machine.Spec.Bootstrap.DataSecretName == nil &&
-				tc.Machine.Spec.Bootstrap.Data != nil) ||
-				(tc.Machine.Spec.Bootstrap.DataSecretName != nil &&
-					tc.Machine.Namespace != tc.BMHost.Namespace) {
+			// if we had to create an additional secret (dataSecretName not set and
+			// Data set)
+			if tc.Machine.Spec.Bootstrap.DataSecretName == nil &&
+				tc.Machine.Spec.Bootstrap.Data != nil {
 
 				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
 					tc.BMMachine.Name + "-user-data",
 				))
 				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
-					tc.BMHost.Namespace,
+					tc.BMMachine.Namespace,
 				))
 				tmpBootstrapSecret := corev1.Secret{}
 				key := client.ObjectKey{
 					Name:      tc.BMMachine.Spec.UserData.Name,
-					Namespace: tc.BMHost.Namespace,
+					Namespace: tc.BMMachine.Namespace,
 				}
 				err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
 				Expect(err).NotTo(HaveOccurred())
@@ -1793,6 +1790,38 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: capi.MachineSpec{
 					Bootstrap: capi.Bootstrap{
+						DataSecretName: pointer.StringPtr("Foobar"),
+					},
+				},
+			},
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, nil, nil),
+			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
+		}),
+		Entry("Secret in other namespace set in Machine", testCaseGetUserData{
+			Secret: &corev1.Secret{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "Foobar",
+					Namespace: "def",
+				},
+				Data: map[string][]byte{
+					"value": []byte("FooBar\n"),
+				},
+				Type: "Opaque",
+			},
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "myns2",
+				},
+				Spec: capi.MachineSpec{
+					Bootstrap: capi.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "def",
+						},
 						DataSecretName: pointer.StringPtr("Foobar"),
 					},
 				},
@@ -2289,6 +2318,9 @@ func newConfig(UserDataNamespace string,
 	labels map[string]string, reqs []capm3.HostSelectorRequirement,
 ) (*capm3.Metal3Machine, *corev1.ObjectReference) {
 	config := capm3.Metal3Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "myns",
+		},
 		Spec: capm3.Metal3MachineSpec{
 			Image: capm3.Image{
 				URL:      testImageURL,
@@ -2394,7 +2426,11 @@ func newBareMetalHost(name string,
 	clusterlabel bool) *bmh.BareMetalHost {
 
 	if name == "" {
-		return &bmh.BareMetalHost{}
+		return &bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "myns",
+			},
+		}
 	}
 
 	objMeta := &metav1.ObjectMeta{
@@ -2432,6 +2468,7 @@ func newBareMetalHost(name string,
 		Status:     *status,
 	}
 }
+
 func newBMCSecret(name string, clusterlabel bool) *corev1.Secret {
 	//objMeta := &metav1.ObjectMeta{}
 	objMeta := &metav1.ObjectMeta{

@@ -58,6 +58,9 @@ const (
 	bmRoleControlPlane = "control-plane"
 	bmRoleNode         = "node"
 	userDataFinalizer  = "metal3machine.infrastructure.cluster.x-k8s.io/userData"
+
+	// metal3SecretType defines the type of secret created by metal3
+	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 )
 
 // MachineManagerInterface is an interface for a ClusterManager
@@ -281,42 +284,27 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHost) error {
 	var err error
 	var decodedUserDataBytes []byte
-	// if datasecretname is set and BaremetalHost and Machine are in the same
-	// namespace, just pass the reference
-	if m.Machine.Spec.Bootstrap.DataSecretName != nil &&
-		host.Namespace == m.Machine.Namespace {
+
+	// if datasecretname is set just pass the reference
+	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
 		m.Metal3Machine.Spec.UserData = &corev1.SecretReference{
 			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
 			Namespace: m.Machine.Namespace,
 		}
 		return nil
 
-	} else if m.Machine.Spec.Bootstrap.DataSecretName != nil &&
-		host.Namespace != m.Machine.Namespace {
-		// If they are in different namespaces, create a new secret in BMH namespace
-		capiBootstrapSecret := corev1.Secret{}
-		capikey := client.ObjectKey{
-			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
-			Namespace: m.Machine.Namespace,
-		}
-		err := m.client.Get(ctx, capikey, &capiBootstrapSecret)
-		if err != nil {
-			return err
-		}
-		decodedUserDataBytes = capiBootstrapSecret.Data["value"]
-
 	} else if m.Machine.Spec.Bootstrap.Data == nil {
 		// If we do not have DataSecretName or Data then exit
 		return nil
 
-	} else if m.Machine.Spec.Bootstrap.Data != nil {
-		// If we have Data, use it
-		decodedUserData := *m.Machine.Spec.Bootstrap.Data
-		// decode the base64 cloud-config
-		decodedUserDataBytes, err = base64.StdEncoding.DecodeString(decodedUserData)
-		if err != nil {
-			return err
-		}
+	}
+
+	// If we have Data, use it
+	decodedUserData := *m.Machine.Spec.Bootstrap.Data
+	// decode the base64 cloud-config
+	decodedUserDataBytes, err = base64.StdEncoding.DecodeString(decodedUserData)
+	if err != nil {
+		return err
 	}
 
 	bootstrapSecret := &corev1.Secret{
@@ -326,7 +314,7 @@ func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHos
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Metal3Machine.Name + "-user-data",
-			Namespace: host.Namespace,
+			Namespace: m.Metal3Machine.Namespace,
 			Labels: map[string]string{
 				capi.ClusterLabelName: m.Machine.Spec.ClusterName,
 			},
@@ -344,13 +332,13 @@ func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHos
 		Data: map[string][]byte{
 			"userData": decodedUserDataBytes,
 		},
-		Type: "Opaque",
+		Type: metal3SecretType,
 	}
 
 	tmpBootstrapSecret := corev1.Secret{}
 	key := client.ObjectKey{
 		Name:      m.Metal3Machine.Name + "-user-data",
-		Namespace: host.Namespace,
+		Namespace: m.Metal3Machine.Namespace,
 	}
 	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
 	if err == nil {
@@ -369,7 +357,7 @@ func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHos
 	}
 	m.Metal3Machine.Spec.UserData = &corev1.SecretReference{
 		Name:      m.Metal3Machine.Name + "-user-data",
-		Namespace: host.Namespace,
+		Namespace: m.Metal3Machine.Namespace,
 	}
 
 	return nil
@@ -466,17 +454,15 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			delete(host.Labels, capi.ClusterLabelName)
 		}
 
-		// Delete created secret, if data was set without DataSecretName or if
-		// BareMetalHost and Machine are in different namespaces.
-		if (m.Machine.Spec.Bootstrap.DataSecretName == nil &&
-			m.Machine.Spec.Bootstrap.Data != nil) ||
-			(m.Machine.Spec.Bootstrap.DataSecretName != nil &&
-				m.Machine.Namespace != host.Namespace) {
+		// Delete created secret, if data was set without DataSecretName but with
+		// Data
+		if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
+			m.Machine.Spec.Bootstrap.Data != nil {
 			m.Log.Info("Deleting User data secret for machine")
 			tmpBootstrapSecret := corev1.Secret{}
 			key := client.ObjectKey{
-				Name:      m.Metal3Machine.Name + "-user-data",
-				Namespace: host.Namespace,
+				Name:      m.Metal3Machine.Spec.UserData.Name,
+				Namespace: m.Metal3Machine.Namespace,
 			}
 			err = m.client.Get(ctx, key, &tmpBootstrapSecret)
 			if err != nil && !apierrors.IsNotFound(err) {
@@ -618,8 +604,9 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
+	// without this ListOption, all namespaces would be including in the listing
 	opts := &client.ListOptions{
-		Namespace: m.Machine.Namespace,
+		Namespace: m.Metal3Machine.Namespace,
 	}
 
 	err := m.client.List(ctx, &hosts, opts)
@@ -751,7 +738,7 @@ func (m *MachineManager) setHostLabel(ctx context.Context, host *bmh.BareMetalHo
 
 // setHostSpec will ensure the host's Spec is set according to the machine's
 // details. It will then update the host via the kube API. If UserData does not
-// include a Namespace, it will default to the Machine's namespace.
+// include a Namespace, it will default to the Metal3Machine's namespace.
 func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHost) error {
 
 	// We only want to update the image setting if the host does not
@@ -768,7 +755,7 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		}
 		host.Spec.UserData = m.Metal3Machine.Spec.UserData
 		if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
-			host.Spec.UserData.Namespace = m.Machine.Namespace
+			host.Spec.UserData.Namespace = host.Namespace
 		}
 	}
 
