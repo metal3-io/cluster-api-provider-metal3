@@ -347,7 +347,7 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 	if host, ok := obj.Object.(*bmh.BareMetalHost); ok {
 		if host.Spec.ConsumerRef != nil &&
 			host.Spec.ConsumerRef.Kind == "Metal3Machine" &&
-			host.Spec.ConsumerRef.APIVersion == capm3.GroupVersion.String() {
+			host.Spec.ConsumerRef.GroupVersionKind().Group == capm3.GroupVersion.Group {
 			return []ctrl.Request{
 				ctrl.Request{
 					NamespacedName: types.NamespacedName{
