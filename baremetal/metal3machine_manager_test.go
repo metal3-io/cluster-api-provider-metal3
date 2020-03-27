@@ -813,38 +813,29 @@ var _ = Describe("Metal3Machine manager", func() {
 			err = machineMgr.setHostSpec(context.TODO(), tc.Host)
 			Expect(err).NotTo(HaveOccurred())
 
-			// get the saved host
-			savedHost := bmh.BareMetalHost{}
-			err = c.Get(context.TODO(),
-				client.ObjectKey{
-					Name:      tc.Host.Name,
-					Namespace: tc.Host.Namespace,
-				},
-				&savedHost,
-			)
 			Expect(err).NotTo(HaveOccurred())
 
 			// validate the saved host
-			Expect(savedHost.Spec.ConsumerRef).NotTo(BeNil())
-			Expect(savedHost.Spec.ConsumerRef.Name).To(Equal(bmmconfig.Name))
-			Expect(savedHost.Spec.ConsumerRef.Namespace).
+			Expect(tc.Host.Spec.ConsumerRef).NotTo(BeNil())
+			Expect(tc.Host.Spec.ConsumerRef.Name).To(Equal(bmmconfig.Name))
+			Expect(tc.Host.Spec.ConsumerRef.Namespace).
 				To(Equal(bmmconfig.Namespace))
-			Expect(savedHost.Spec.ConsumerRef.Kind).To(Equal("Metal3Machine"))
-			Expect(savedHost.Spec.Online).To(BeTrue())
+			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal("Metal3Machine"))
+			Expect(tc.Host.Spec.Online).To(BeTrue())
 			if tc.ExpectedImage == nil {
-				Expect(savedHost.Spec.Image).To(BeNil())
+				Expect(tc.Host.Spec.Image).To(BeNil())
 			} else {
-				Expect(*savedHost.Spec.Image).To(Equal(*tc.ExpectedImage))
+				Expect(*tc.Host.Spec.Image).To(Equal(*tc.ExpectedImage))
 			}
 			if tc.ExpectUserData {
-				Expect(savedHost.Spec.UserData).NotTo(BeNil())
-				Expect(savedHost.Spec.UserData.Namespace).
+				Expect(tc.Host.Spec.UserData).NotTo(BeNil())
+				Expect(tc.Host.Spec.UserData.Namespace).
 					To(Equal(tc.ExpectedUserDataNamespace))
-				Expect(savedHost.Spec.UserData.Name).To(Equal(testUserDataSecretName))
+				Expect(tc.Host.Spec.UserData.Name).To(Equal(testUserDataSecretName))
 			} else {
-				Expect(savedHost.Spec.UserData).To(BeNil())
+				Expect(tc.Host.Spec.UserData).To(BeNil())
 			}
-			_, err = machineMgr.FindOwnerRef(savedHost.OwnerReferences)
+			_, err = machineMgr.FindOwnerRef(tc.Host.OwnerReferences)
 			Expect(err).NotTo(HaveOccurred())
 		},
 		Entry("User data has explicit alternate namespace", testCaseSetHostSpec{
