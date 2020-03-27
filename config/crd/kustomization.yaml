@@ -6,8 +6,7 @@ kind: Kustomization
 
 commonLabels:
   cluster.x-k8s.io/v1alpha2: v1alpha2
-  cluster.x-k8s.io/v1alpha3: v1alpha3
-  cluster.x-k8s.io/v1alpha4: v1alpha4
+  cluster.x-k8s.io/v1alpha3: v1alpha3_v1alpha4
 
 resources:
 - bases/infrastructure.cluster.x-k8s.io_metal3clusters.yaml
