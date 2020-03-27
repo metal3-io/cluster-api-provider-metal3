@@ -880,6 +880,7 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 	return addrs
 }
 
+// ClientGetter prototype
 type ClientGetter func(ctx context.Context, c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
 
 // SetNodeProviderID sets the bare metal provider ID on the kubernetes node
@@ -998,7 +999,7 @@ func (m *MachineManager) FindOwnerRef(refList []metav1.OwnerReference) (int, err
 }
 
 func (m *MachineManager) updateObject(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
-	err := m.client.Update(ctx, obj, opts...)
+	err := m.client.Update(ctx, obj.DeepCopyObject(), opts...)
 	if apierrors.IsConflict(err) {
 		return &RequeueAfterError{}
 	}
@@ -1006,7 +1007,7 @@ func (m *MachineManager) updateObject(ctx context.Context, obj runtime.Object, o
 }
 
 func (m *MachineManager) createObject(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
-	err := m.client.Create(ctx, obj, opts...)
+	err := m.client.Create(ctx, obj.DeepCopyObject(), opts...)
 	if apierrors.IsAlreadyExists(err) {
 		return &RequeueAfterError{}
 	}
