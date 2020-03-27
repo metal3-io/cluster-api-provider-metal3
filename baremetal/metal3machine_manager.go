@@ -259,6 +259,11 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
+	err = m.updateObject(ctx, host)
+	if err != nil {
+		return err
+	}
+
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
@@ -550,6 +555,10 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 
+	err = m.updateObject(ctx, host)
+	if err != nil {
+		return err
+	}
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		return err
@@ -786,7 +795,7 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		return err
 	}
 	host.OwnerReferences = hostOwnerReferences
-	return m.updateObject(ctx, host)
+	return nil
 }
 
 // ensureAnnotation makes sure the machine has an annotation that references the

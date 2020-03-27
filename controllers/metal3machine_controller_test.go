@@ -85,11 +85,13 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
-			m.EXPECT().Update(context.TODO()).MaxTimes(0)
 			return m
 		} else {
 			m.EXPECT().Associate(context.TODO()).Return(nil)
 		}
+		m.EXPECT().Update(context.TODO()).MaxTimes(0)
+	} else {
+		m.EXPECT().Update(context.TODO())
 	}
 
 	// if node is now associated, if getting the ID fails, we do not go further
@@ -97,7 +99,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil,
 			errors.New("Failed"),
 		)
-		m.EXPECT().Update(context.TODO()).MaxTimes(0)
 		m.EXPECT().SetProviderID("abc").MaxTimes(0)
 		return m
 	}
@@ -114,7 +115,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 				SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID("abc").MaxTimes(0)
-			m.EXPECT().Update(context.TODO()).MaxTimes(0)
 			return m
 		}
 
@@ -133,8 +133,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			MaxTimes(0)
 	}
 
-	// last call
-	m.EXPECT().Update(context.TODO())
 	return m
 }
 
