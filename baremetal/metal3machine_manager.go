@@ -327,6 +327,11 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
+	err = m.updateObject(ctx, host)
+	if err != nil {
+		return err
+	}
+
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
@@ -606,6 +611,11 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 
+	err = m.updateObject(ctx, host)
+	if err != nil {
+		return err
+	}
+
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		return err
@@ -745,7 +755,6 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 // consumerRefMatches returns a boolean based on whether the consumer
 // reference and bare metal machine metadata match
 func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capm3.Metal3Machine) bool {
-
 	if consumer.Name != bmmachine.Name {
 		return false
 	}
@@ -844,7 +853,8 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		return err
 	}
 	host.OwnerReferences = hostOwnerReferences
-	return m.updateObject(ctx, host)
+
+	return nil
 }
 
 // ensureAnnotation makes sure the machine has an annotation that references the
