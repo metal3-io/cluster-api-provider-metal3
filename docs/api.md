@@ -238,14 +238,22 @@ The fields are :
   is automatically set by CAPM3 with the userData from the machine object. If
   you want to overwrite the userData, this should be done in the CAPI machine.
 
-* **metaData** -- This includes two sub-fields, `ConfigRef` and `DataSecret`.
-  `configRef` is a reference to a Metal3Metadata object containing the metadata
-  template, and including two fields, `name` and `namespace`. `DataSecret` is a
-  reference to a secret containing the metadata rendered from the Metal3Metadata
-  template object automatically. In case the `DataSecret` would not be managed
-  by the Metal3Metadata controller, if provided by the user, the finalizer and
-  the ownerreference should be set properly to ensure that the secret belongs to
-  the cluster ownerReference tree (see
+* **dataTemplate** -- This includes a reference to a Metal3DataTemplate object
+  containing the metadata and network data templates, and includes two fields,
+  `name` and `namespace`.
+
+* **metaData** is a reference to a secret containing the metadata rendered from
+  the Metal3DataTemplate metadata template object automatically. In case this
+  would not be managed by the Metal3DataTemplate controller, if provided by the
+  user for example, the ownerreference should be set properly to ensure that the
+  secret belongs to the cluster ownerReference tree (see
+  https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#ownerreferences-chain).
+
+* **networkData** is a reference to a secret containing the network data
+  rendered from the Metal3DataTemplate metadata template object automatically.
+  In case this would not be managed by the Metal3DataTemplate controller, if
+  provided by the user for example, the ownerreference should be set properly to
+  ensure that the secret belongs to the cluster ownerReference tree (see
   https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#ownerreferences-chain).
 
 * **hostSelector** -- Specify criteria for matching labels on `BareMetalHost`
@@ -351,9 +359,12 @@ spec:
       key: key2
       operator: in
       values: {‘abc’, ‘123’, ‘value2’}
+  dataTemplate:
+    Name: controlplane-metadata
   metaData:
-    ConfigRef:
-      Name: controlplane-metadata
+    Name: controlplane-0-metadata-0
+  networkData:
+    Name: controlplane-0-networkdata-0
 ```
 
 ## MachineDeployment
@@ -462,30 +473,31 @@ spec:
           key: key2
           operator: in
           values: {‘abc’, ‘123’, ‘value2’}
-      metaData:
-        ConfigRef:
-          Name: md-0-metadata
+      dataTemplate:
+        Name: md-0-metadata
 ```
 
 ## Metal3Metadata
 
 ```yaml
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-kind: Metal3Metadata
+kind: Metal3DataTemplate
 metadata:
   name: controlplane-metadata
 spec:
-  metaData:
-    "node_name": "ctrl-{{ indexWithOffset 1 }}"
-    "machine_name": "{{ machineName }}"
-    "pool": "pool1"
+  metaData: |
+    node_name: "ctrl-{{ indexWithOffset 1 }}"
+    machine_name: "{{ machineName }}"
+    pool: "pool1"
+  networkData: |
+    whatever network data
 ```
 
 The Metal3Metadata object contains a template for the metadata passed to the
-BareMetalHost. `spec.metaData` is a map of key and values, the values can be
-templates that will be rendered. The controller will create a secret containing
-the rendered map for all the metal3machines that are listed as OwnerReference of
-the Metal3Metadata object.
+BareMetalHost. `spec.metaData` and `spec.networkData` are templates that will
+be rendered per node. The controller will create a secret containing the
+rendered value for all the metal3machines that are listed as OwnerReference of
+the Metal3DataTemplate object.
 
 Each Metal3Machine is given an index number. The index is the lowest integer
 that is not given to another Metal3Machine already. When a Metal3Machine is
@@ -508,7 +520,7 @@ There are multiple functions that can be used in the templates :
   get the same value in hexadecimal format.
 
 In addition, there will be by default a `uuid` key in the metadata with the
-BareMetalHost UID as value.
+BareMetalHost UID as value set by Baremetal Operator.
 
 ## Metal3 dev env examples
 
