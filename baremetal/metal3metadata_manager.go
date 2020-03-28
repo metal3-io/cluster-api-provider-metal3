@@ -28,6 +28,7 @@ import (
 	"github.com/go-logr/logr"
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,15 +36,10 @@ import (
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/yaml"
 )
 
-const (
-	metaDataFinalizer = "metal3metadata.infrastructure.cluster.x-k8s.io/metaData"
-)
-
-// MetadataManagerInterface is an interface for a MetadataManager
-type MetadataManagerInterface interface {
+// DataTemplateManagerInterface is an interface for a DataTemplateManager
+type DataTemplateManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
 	RecreateStatus(context.Context) error
@@ -52,57 +48,60 @@ type MetadataManagerInterface interface {
 	DeleteReady() (bool, error)
 }
 
-// MetadataManager is responsible for performing machine reconciliation
-type MetadataManager struct {
-	client   client.Client
-	Metadata *capm3.Metal3Metadata
-	Log      logr.Logger
+// DataTemplateManager is responsible for performing machine reconciliation
+type DataTemplateManager struct {
+	client       client.Client
+	DataTemplate *capm3.Metal3DataTemplate
+	Log          logr.Logger
 }
 
-// NewMetadataManager returns a new helper for managing a metadata object
-func NewMetadataManager(client client.Client,
-	metadata *capm3.Metal3Metadata, metadataLog logr.Logger) (*MetadataManager, error) {
+// NewDataTemplateManager returns a new helper for managing a dataTemplate object
+func NewDataTemplateManager(client client.Client,
+	dataTemplate *capm3.Metal3DataTemplate, dataTemplateLog logr.Logger) (*DataTemplateManager, error) {
 
-	return &MetadataManager{
-		client:   client,
-		Metadata: metadata,
-		Log:      metadataLog,
+	return &DataTemplateManager{
+		client:       client,
+		DataTemplate: dataTemplate,
+		Log:          dataTemplateLog,
 	}, nil
 }
 
 // SetFinalizer sets finalizer
-func (m *MetadataManager) SetFinalizer() {
+func (m *DataTemplateManager) SetFinalizer() {
 	// If the Metal3Machine doesn't have finalizer, add it.
-	if !Contains(m.Metadata.Finalizers, capm3.MetadataFinalizer) {
-		m.Metadata.Finalizers = append(m.Metadata.Finalizers,
-			capm3.MetadataFinalizer,
+	if !Contains(m.DataTemplate.Finalizers, capm3.DataTemplateFinalizer) {
+		m.DataTemplate.Finalizers = append(m.DataTemplate.Finalizers,
+			capm3.DataTemplateFinalizer,
 		)
 	}
 }
 
 // UnsetFinalizer unsets finalizer
-func (m *MetadataManager) UnsetFinalizer() {
+func (m *DataTemplateManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
-	m.Metadata.Finalizers = Filter(m.Metadata.Finalizers,
-		capm3.MetadataFinalizer,
+	m.DataTemplate.Finalizers = Filter(m.DataTemplate.Finalizers,
+		capm3.DataTemplateFinalizer,
 	)
 }
 
 // RecreateStatus recreates the status if empty
-func (m *MetadataManager) RecreateStatus(ctx context.Context) error {
+func (m *DataTemplateManager) RecreateStatus(ctx context.Context) error {
 
-	if m.Metadata.Status.LastUpdated != nil {
+	if m.DataTemplate.Status.LastUpdated != nil {
 		return nil
 	}
 
-	if m.Metadata.Status.Indexes != nil && m.Metadata.Status.Secrets != nil {
+	if m.DataTemplate.Status.Indexes != nil &&
+		(m.DataTemplate.Spec.MetaData == nil || m.DataTemplate.Status.MetaDataSecrets != nil) &&
+		(m.DataTemplate.Spec.NetworkData == nil || m.DataTemplate.Status.NetworkDataSecrets != nil) {
 		return nil
 	}
-	m.Log.Info("Recreating the Metal3Metadata status")
-	m.Metadata.Status.Indexes = make(map[string]string)
-	m.Metadata.Status.Secrets = make(map[string]corev1.SecretReference)
+	m.Log.Info("Recreating the Metal3DataTemplate status")
+	m.DataTemplate.Status.Indexes = make(map[string]string)
+	m.DataTemplate.Status.MetaDataSecrets = make(map[string]corev1.SecretReference)
+	m.DataTemplate.Status.NetworkDataSecrets = make(map[string]corev1.SecretReference)
 
-	for _, curOwnerRef := range m.Metadata.ObjectMeta.OwnerReferences {
+	for _, curOwnerRef := range m.DataTemplate.ObjectMeta.OwnerReferences {
 		curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 		if err != nil {
 			return err
@@ -113,7 +112,7 @@ func (m *MetadataManager) RecreateStatus(ctx context.Context) error {
 		}
 
 		m.Log.Info("Verifying the owner", "Metal3machine", curOwnerRef.Name)
-		// Verify that we have an owner ref machine that points to this Metadata
+		// Verify that we have an owner ref machine that points to this DataTemplate
 		m3Machine, err := m.getM3Machine(m.client, ctx, curOwnerRef)
 		if err != nil {
 			return err
@@ -122,53 +121,94 @@ func (m *MetadataManager) RecreateStatus(ctx context.Context) error {
 			continue
 		}
 
-		if m3Machine.Spec.MetaData.DataSecret == nil {
+		if m3Machine.Spec.MetaData == nil && m3Machine.Spec.NetworkData == nil {
 			continue
 		}
 		re := regexp.MustCompile(`\d+$`)
-		machineIndex := re.FindString(m3Machine.Spec.MetaData.DataSecret.Name)
-		if machineIndex == "" {
+		machineIndexMeta := ""
+		machineIndexNetwork := ""
+		if m.DataTemplate.Spec.MetaData != nil && m3Machine.Spec.MetaData != nil {
+			machineIndexMeta = re.FindString(m3Machine.Spec.MetaData.Name)
+		}
+		if m.DataTemplate.Spec.NetworkData != nil && m3Machine.Spec.NetworkData != nil {
+			machineIndexNetwork = re.FindString(m3Machine.Spec.NetworkData.Name)
+		}
+		if machineIndexMeta == "" && machineIndexNetwork == "" {
 			continue
 		}
-		m.Metadata.Status.Indexes[machineIndex] = curOwnerRef.Name
+		if machineIndexMeta != "" && machineIndexNetwork != "" &&
+			machineIndexMeta != machineIndexNetwork {
+			m.Log.Info("The secrets have different indexes on this machine",
+				"Metal3machine", curOwnerRef.Name,
+			)
+			return errors.New("The secrets have different indexes on this machine")
+		}
+		machineIndex := machineIndexMeta
+		if machineIndex == "" {
+			machineIndex = machineIndexNetwork
+		}
+		m.DataTemplate.Status.Indexes[machineIndex] = curOwnerRef.Name
 		m.Log.Info("Index added", "Metal3machine", curOwnerRef.Name)
 
-		secretNamespace := m.Metadata.Namespace
-		if m3Machine.Spec.MetaData.DataSecret.Namespace != "" {
-			secretNamespace = m3Machine.Spec.MetaData.DataSecret.Namespace
-		}
-		tmpBootstrapSecret := corev1.Secret{}
-		key := client.ObjectKey{
-			Name:      m3Machine.Spec.MetaData.DataSecret.Namespace,
-			Namespace: secretNamespace,
-		}
-		err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				m.Log.Info("No metadata secret found", "Metal3machine", curOwnerRef.Name)
-				continue
-			}
+		if err := m.populateSecretMap(ctx, "MetaData", curOwnerRef.Name, m3Machine.Spec.MetaData); err != nil {
 			return err
 		}
-		m.Metadata.Status.Secrets[curOwnerRef.Name] = *m3Machine.Spec.MetaData.DataSecret
-		m.Log.Info("Secret added", "Metal3machine", curOwnerRef.Name)
+		if err := m.populateSecretMap(ctx, "NetworkData", curOwnerRef.Name, m3Machine.Spec.NetworkData); err != nil {
+			return err
+		}
+		m.Log.Info("Secrets added", "Metal3machine", curOwnerRef.Name)
 	}
 	m.updateStatusTimestamp()
 	return nil
 }
 
-func (m *MetadataManager) updateStatusTimestamp() {
+func (m *DataTemplateManager) populateSecretMap(ctx context.Context,
+	dataType, ownerName string, secretRef *corev1.SecretReference,
+) error {
+	if secretRef == nil {
+		return nil
+	}
+
+	secretNamespace := m.DataTemplate.Namespace
+	if secretRef.Namespace != "" {
+		secretNamespace = secretRef.Namespace
+	}
+	tmpBootstrapSecret := corev1.Secret{}
+	key := client.ObjectKey{
+		Name:      secretRef.Name,
+		Namespace: secretNamespace,
+	}
+	err := m.client.Get(ctx, key, &tmpBootstrapSecret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			m.Log.Info("No secret found", "Metal3machine", ownerName)
+			return nil
+		}
+		return err
+	}
+	switch dataType {
+	case "MetaData":
+		m.DataTemplate.Status.MetaDataSecrets[ownerName] = *secretRef
+	case "NetworkData":
+		m.DataTemplate.Status.NetworkDataSecrets[ownerName] = *secretRef
+	default:
+		return errors.New("Unknown data type")
+	}
+	return nil
+}
+
+func (m *DataTemplateManager) updateStatusTimestamp() {
 	now := metav1.Now()
-	m.Metadata.Status.LastUpdated = &now
+	m.DataTemplate.Status.LastUpdated = &now
 }
 
 // CreateSecrets creates the missing secrets
-func (m *MetadataManager) CreateSecrets(ctx context.Context) error {
+func (m *DataTemplateManager) CreateSecrets(ctx context.Context) error {
 	pendingItems := make(map[string]*capm3.Metal3Machine)
 	needsUpdate := false
 	var err error
 
-	for _, curOwnerRef := range m.Metadata.ObjectMeta.OwnerReferences {
+	for _, curOwnerRef := range m.DataTemplate.ObjectMeta.OwnerReferences {
 		curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 		if err != nil {
 			return err
@@ -177,14 +217,22 @@ func (m *MetadataManager) CreateSecrets(ctx context.Context) error {
 			curOwnerRefGV.Group != capm3.GroupVersion.Group {
 			continue
 		}
-		dataSecret, ok := m.Metadata.Status.Secrets[curOwnerRef.Name]
-		if ok && dataSecret.Name != "" {
+		needsCreate := false
+		secret, ok := m.DataTemplate.Status.MetaDataSecrets[curOwnerRef.Name]
+		if m.DataTemplate.Spec.MetaData != nil && (!ok || secret.Name == "") {
+			needsCreate = true
+		}
+		secret, ok = m.DataTemplate.Status.NetworkDataSecrets[curOwnerRef.Name]
+		if m.DataTemplate.Spec.NetworkData != nil && (!ok || secret.Name == "") {
+			needsCreate = true
+		}
+		if !needsCreate {
 			continue
 		}
 
 		m.Log.Info("Verifying the owner", "Metal3machine", curOwnerRef.Name)
 
-		// Verify that we have an owner ref machine that points to this Metadata
+		// Verify that we have an owner ref machine that points to this DataTemplate
 		m3Machine, err := m.getM3Machine(m.client, ctx, curOwnerRef)
 		if err != nil {
 			return err
@@ -195,7 +243,7 @@ func (m *MetadataManager) CreateSecrets(ctx context.Context) error {
 
 		m.Log.Info("Getting index", "Metal3machine", curOwnerRef.Name)
 		machineIndex := ""
-		for key, value := range m.Metadata.Status.Indexes {
+		for key, value := range m.DataTemplate.Status.Indexes {
 			if value == curOwnerRef.Name {
 				machineIndex = key
 				break
@@ -203,12 +251,12 @@ func (m *MetadataManager) CreateSecrets(ctx context.Context) error {
 		}
 
 		if machineIndex == "" {
-			machineIndexInt := len(m.Metadata.Status.Indexes)
+			machineIndexInt := len(m.DataTemplate.Status.Indexes)
 			// The length of the map might be smaller than the highest index stored,
 			// this means we have a gap to find
-			for index := 0; index < len(m.Metadata.Status.Indexes); index++ {
-				if _, ok := m.Metadata.Status.Indexes[strconv.Itoa(index)]; !ok {
-					if machineIndexInt == len(m.Metadata.Status.Indexes) {
+			for index := 0; index < len(m.DataTemplate.Status.Indexes); index++ {
+				if _, ok := m.DataTemplate.Status.Indexes[strconv.Itoa(index)]; !ok {
+					if machineIndexInt == len(m.DataTemplate.Status.Indexes) {
 						machineIndexInt = index
 						break
 					}
@@ -216,10 +264,10 @@ func (m *MetadataManager) CreateSecrets(ctx context.Context) error {
 			}
 			machineIndex = strconv.Itoa(machineIndexInt)
 
-			if m.Metadata.Status.Indexes == nil {
-				m.Metadata.Status.Indexes = make(map[string]string)
+			if m.DataTemplate.Status.Indexes == nil {
+				m.DataTemplate.Status.Indexes = make(map[string]string)
 			}
-			m.Metadata.Status.Indexes[machineIndex] = curOwnerRef.Name
+			m.DataTemplate.Status.Indexes[machineIndex] = curOwnerRef.Name
 			m.Log.Info("Index", "Metal3machine", curOwnerRef.Name, "index", machineIndex)
 			needsUpdate = true
 		}
@@ -227,14 +275,17 @@ func (m *MetadataManager) CreateSecrets(ctx context.Context) error {
 		pendingItems[machineIndex] = m3Machine
 	}
 	if needsUpdate {
-		err = updateObject(m.client, ctx, m.Metadata)
+		err = updateObject(m.client, ctx, m.DataTemplate)
 		if err != nil {
 			return err
 		}
 	}
 
-	if m.Metadata.Status.Secrets == nil {
-		m.Metadata.Status.Secrets = make(map[string]corev1.SecretReference)
+	if m.DataTemplate.Status.MetaDataSecrets == nil {
+		m.DataTemplate.Status.MetaDataSecrets = make(map[string]corev1.SecretReference)
+	}
+	if m.DataTemplate.Status.NetworkDataSecrets == nil {
+		m.DataTemplate.Status.NetworkDataSecrets = make(map[string]corev1.SecretReference)
 	}
 
 	for machineIndex, m3Machine := range pendingItems {
@@ -243,59 +294,75 @@ func (m *MetadataManager) CreateSecrets(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		metadataMap := make(map[string]string)
 
-		if m.Metadata.Spec.MetaData != nil {
-			for key, value := range m.Metadata.Spec.MetaData {
-				metadataMap[key], err = renderMetadata(value, tmpl)
-				if err != nil {
-					m.Log.Info("Failed to render Metadata", value)
-					return err
-				}
-			}
-		}
-
-		m.Metadata.Status.Secrets[m3Machine.Name] = corev1.SecretReference{
-			Name:      m3Machine.Name + "-metadata-" + machineIndex,
-			Namespace: m.Metadata.Namespace,
-		}
-
-		marshalledMetadata, err := yaml.Marshal(metadataMap)
-		if err != nil {
-			m.Log.Info("Failed to marshal metadata")
+		if err := m.generateSecret(ctx, m3Machine.Name,
+			m3Machine.Name+"-metadata-"+machineIndex,
+			"metaData", m.DataTemplate.Spec.MetaData, tmpl,
+		); err != nil {
 			return err
 		}
-
-		err = createSecret(m.client, ctx, m3Machine.Name+"-metadata-"+machineIndex,
-			m.Metadata.Namespace,
-			m.Metadata.Labels[capi.ClusterLabelName], metaDataFinalizer,
-			metav1.OwnerReference{
-				Controller: pointer.BoolPtr(true),
-				APIVersion: m.Metadata.APIVersion,
-				Kind:       m.Metadata.Kind,
-				Name:       m.Metadata.Name,
-				UID:        m.Metadata.UID,
-			},
-			map[string][]byte{
-				"metaData": marshalledMetadata,
-			},
-		)
-		if err != nil {
+		if err := m.generateSecret(ctx, m3Machine.Name,
+			m3Machine.Name+"-networkdata-"+machineIndex,
+			"networkData", m.DataTemplate.Spec.NetworkData, tmpl,
+		); err != nil {
 			return err
 		}
-		m.Log.Info("Secret created", "Metal3machine", m3Machine.Name)
+		m.Log.Info("Secrets created", "Metal3machine", m3Machine.Name)
 	}
 	m.updateStatusTimestamp()
 	return nil
 }
 
-func (m *MetadataManager) getM3Machine(cl client.Client, ctx context.Context,
+func (m *DataTemplateManager) generateSecret(ctx context.Context, machineName,
+	secretName, secretKey string, valueTemplate *string, tmpl *template.Template,
+) error {
+	if valueTemplate == nil {
+		return nil
+	}
+	renderedValue, err := renderDataTemplate(*valueTemplate, tmpl)
+	if err != nil {
+		m.Log.Info("Failed to render template")
+		return err
+	}
+	err = createSecret(m.client, ctx, secretName,
+		m.DataTemplate.Namespace,
+		m.DataTemplate.Labels[capi.ClusterLabelName],
+		metav1.OwnerReference{
+			Controller: pointer.BoolPtr(true),
+			APIVersion: m.DataTemplate.APIVersion,
+			Kind:       m.DataTemplate.Kind,
+			Name:       m.DataTemplate.Name,
+			UID:        m.DataTemplate.UID,
+		},
+		map[string][]byte{
+			secretKey: []byte(renderedValue),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	secretRef := corev1.SecretReference{
+		Name:      secretName,
+		Namespace: m.DataTemplate.Namespace,
+	}
+	switch secretKey {
+	case "metaData":
+		m.DataTemplate.Status.MetaDataSecrets[machineName] = secretRef
+	case "networkData":
+		m.DataTemplate.Status.NetworkDataSecrets[machineName] = secretRef
+	default:
+		return errors.New("Unknown data type")
+	}
+	return nil
+}
+
+func (m *DataTemplateManager) getM3Machine(cl client.Client, ctx context.Context,
 	curOwnerRef metav1.OwnerReference,
 ) (*capm3.Metal3Machine, error) {
 	tmpM3Machine := &capm3.Metal3Machine{}
 	key := client.ObjectKey{
 		Name:      curOwnerRef.Name,
-		Namespace: m.Metadata.Namespace,
+		Namespace: m.DataTemplate.Namespace,
 	}
 	err := cl.Get(ctx, key, tmpM3Machine)
 	if err != nil {
@@ -305,28 +372,28 @@ func (m *MetadataManager) getM3Machine(cl client.Client, ctx context.Context,
 			return nil, err
 		}
 	}
-	if tmpM3Machine.Spec.MetaData.ConfigRef == nil {
+	if tmpM3Machine.Spec.DataTemplate == nil {
 		return nil, nil
 	}
-	if tmpM3Machine.Spec.MetaData.ConfigRef.Name != m.Metadata.Name {
+	if tmpM3Machine.Spec.DataTemplate.Name != m.DataTemplate.Name {
 		return nil, nil
 	}
-	if tmpM3Machine.Spec.MetaData.ConfigRef.Namespace == "" &&
-		tmpM3Machine.Namespace != m.Metadata.Namespace {
+	if tmpM3Machine.Spec.DataTemplate.Namespace == "" &&
+		tmpM3Machine.Namespace != m.DataTemplate.Namespace {
 		return nil, nil
 	}
-	if tmpM3Machine.Spec.MetaData.ConfigRef.Namespace != "" &&
-		tmpM3Machine.Spec.MetaData.ConfigRef.Namespace != m.Metadata.Namespace {
+	if tmpM3Machine.Spec.DataTemplate.Namespace != "" &&
+		tmpM3Machine.Spec.DataTemplate.Namespace != m.DataTemplate.Namespace {
 		return nil, nil
 	}
 	return tmpM3Machine, nil
 }
 
 // DeleteSecrets deletes old secrets
-func (m *MetadataManager) DeleteSecrets(ctx context.Context) error {
-	for machineIndex, machineName := range m.Metadata.Status.Indexes {
+func (m *DataTemplateManager) DeleteSecrets(ctx context.Context) error {
+	for machineIndex, machineName := range m.DataTemplate.Status.Indexes {
 		present := false
-		for _, curOwnerRef := range m.Metadata.ObjectMeta.OwnerReferences {
+		for _, curOwnerRef := range m.DataTemplate.ObjectMeta.OwnerReferences {
 			curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 			if err != nil {
 				return err
@@ -344,33 +411,57 @@ func (m *MetadataManager) DeleteSecrets(ctx context.Context) error {
 			continue
 		}
 		m.Log.Info("Deleting metadata", "Metal3machine", machineName)
-		dataSecret, ok := m.Metadata.Status.Secrets[machineName]
-		if ok {
-			if dataSecret.Name != "" {
-				namespace := m.Metadata.Namespace
-				if dataSecret.Namespace != "" {
-					namespace = dataSecret.Namespace
-				}
-				m.Log.Info("Deleting Metadata secret for Metal3machine")
-				err := deleteSecret(m.client, ctx, dataSecret.Name, namespace)
-				if err != nil {
-					return err
-				}
-			}
+
+		if err := m.deleteSecret(ctx, "metaData", machineName); err != nil {
+			return err
+		}
+		if err := m.deleteSecret(ctx, "networkData", machineName); err != nil {
+			return err
 		}
 
-		delete(m.Metadata.Status.Secrets, machineName)
-		delete(m.Metadata.Status.Indexes, machineIndex)
-		m.Log.Info("Metadata deleted", "Metal3machine", machineName)
+		delete(m.DataTemplate.Status.Indexes, machineIndex)
+		m.Log.Info("DataTemplate deleted", "Metal3machine", machineName)
 	}
 	m.updateStatusTimestamp()
 	return nil
 }
 
+func (m *DataTemplateManager) deleteSecret(ctx context.Context, dataType,
+	machineName string,
+) error {
+	var secretMap map[string]corev1.SecretReference
+	switch dataType {
+	case "metaData":
+		secretMap = m.DataTemplate.Status.MetaDataSecrets
+	case "networkData":
+		secretMap = m.DataTemplate.Status.NetworkDataSecrets
+	default:
+		return errors.New("Unknwon data type")
+	}
+	if secretMap == nil {
+		return nil
+	}
+	dataSecret, ok := secretMap[machineName]
+	if ok {
+		if dataSecret.Name != "" {
+			namespace := m.DataTemplate.Namespace
+			if dataSecret.Namespace != "" {
+				namespace = dataSecret.Namespace
+			}
+			err := deleteSecret(m.client, ctx, dataSecret.Name, namespace)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	delete(secretMap, machineName)
+	return nil
+}
+
 // DeleteRead returns true if the object is unreferenced (does not have
 // Metal3Machine owner references)
-func (m *MetadataManager) DeleteReady() (bool, error) {
-	for _, curOwnerRef := range m.Metadata.ObjectMeta.OwnerReferences {
+func (m *DataTemplateManager) DeleteReady() (bool, error) {
+	for _, curOwnerRef := range m.DataTemplate.ObjectMeta.OwnerReferences {
 		curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 		if err != nil {
 			return false, err
@@ -380,7 +471,7 @@ func (m *MetadataManager) DeleteReady() (bool, error) {
 			return false, nil
 		}
 	}
-	m.Log.Info("Metal3Metadata ready for deletion")
+	m.Log.Info("Metal3DataTemplate ready for deletion")
 	return true, nil
 }
 
@@ -454,11 +545,11 @@ func createTemplate(m3Machine *capm3.Metal3Machine, machineIndexStr string) (*te
 		"machineName":               getMachineName,
 		"metal3MachineName":         getMetal3MachineName,
 	}
-	return template.New("Metadata").Funcs(funcMap), nil
+	return template.New("DataTemplate").Funcs(funcMap), nil
 }
 
-// renderMetadata renders a template and
-func renderMetadata(value string, tmpl *template.Template) (string, error) {
+// renderDataTemplate renders a template and
+func renderDataTemplate(value string, tmpl *template.Template) (string, error) {
 	tmpl, err := tmpl.Parse(value)
 	if err != nil {
 		return "", err

@@ -82,3 +82,5 @@ replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503
 replace github.com/openshift/api => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad // Required by BMO until https://github.com/operator-framework/operator-lifecycle-manager/pull/1241 is resolved
 
 replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.0 // Issue with go-client version
+
+replace github.com/metal3-io/baremetal-operator => github.com/dukov/baremetal-operator v0.0.0-20200326114222-ea14dc6e2e1d

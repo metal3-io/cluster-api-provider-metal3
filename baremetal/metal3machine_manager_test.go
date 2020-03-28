@@ -1996,8 +1996,6 @@ var _ = Describe("Metal3Machine manager", func() {
 					To(Equal(tc.BMMachine.UID))
 				Expect(*tmpBootstrapSecret.OwnerReferences[0].Controller).
 					To(BeTrue())
-				Expect(len(tmpBootstrapSecret.Finalizers)).To(Equal(1))
-				Expect(tmpBootstrapSecret.Finalizers).To(ContainElement(userDataFinalizer))
 			}
 		},
 		Entry("Secret set in Machine", testCaseGetUserData{

@@ -78,7 +78,7 @@ func createObject(cl client.Client, ctx context.Context, obj runtime.Object, opt
 }
 
 func createSecret(cl client.Client, ctx context.Context, name string,
-	namespace string, clusterName string, finalizer string,
+	namespace string, clusterName string,
 	ownerRef metav1.OwnerReference, content map[string][]byte,
 ) error {
 	bootstrapSecret := &corev1.Secret{
@@ -95,7 +95,6 @@ func createSecret(cl client.Client, ctx context.Context, name string,
 			OwnerReferences: []metav1.OwnerReference{
 				ownerRef,
 			},
-			Finalizers: []string{finalizer},
 		},
 		Data: content,
 		Type: metal3SecretType,

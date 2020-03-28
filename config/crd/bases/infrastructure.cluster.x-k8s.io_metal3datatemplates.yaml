@@ -6,30 +6,31 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.8
   creationTimestamp: null
-  name: metal3metadatas.infrastructure.cluster.x-k8s.io
+  name: metal3datatemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
     categories:
     - cluster-api
-    kind: Metal3Metadata
-    listKind: Metal3MetadataList
-    plural: metal3metadatas
+    kind: Metal3DataTemplate
+    listKind: Metal3DataTemplateList
+    plural: metal3datatemplates
     shortNames:
-    - m3md
-    - m3metadata
-    singular: metal3metadata
+    - m3dt
+    - m3datatemplate
+    singular: metal3datatemplate
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Cluster to which this Metadata belongs
+    - description: Cluster to which this template belongs
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: Metal3Metadata is the Schema for the metal3metadatas API
+        description: Metal3DataTemplate is the Schema for the metal3datatemplates
+          API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -44,15 +45,15 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3MetadataSpec defines the desired state of Metal3Metadata.
+            description: Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
             properties:
               metaData:
-                additionalProperties:
-                  type: string
-                type: object
+                type: string
+              networkData:
+                type: string
             type: object
           status:
-            description: Metal3MetadataStatus defines the observed state of Metal3Metadata
+            description: Metal3DataTemplateStatus defines the observed state of Metal3DataTemplate
             properties:
               indexes:
                 additionalProperties:
@@ -62,7 +63,22 @@ spec:
                 description: LastUpdated identifies when this status was last observed.
                 format: date-time
                 type: string
-              secrets:
+              metaDataSecrets:
+                additionalProperties:
+                  description: SecretReference represents a Secret Reference. It has
+                    enough information to retrieve secret in any namespace
+                  properties:
+                    name:
+                      description: Name is unique within a namespace to reference
+                        a secret resource.
+                      type: string
+                    namespace:
+                      description: Namespace defines the space within which the secret
+                        name must be unique.
+                      type: string
+                  type: object
+                type: object
+              networkDataSecrets:
                 additionalProperties:
                   description: SecretReference represents a Secret Reference. It has
                     enough information to retrieve secret in any namespace

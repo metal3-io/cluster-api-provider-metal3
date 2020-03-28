@@ -28,55 +28,55 @@ import (
 	reflect "reflect"
 )
 
-// MockMetadataManagerInterface is a mock of MetadataManagerInterface interface
-type MockMetadataManagerInterface struct {
+// MockDataTemplateManagerInterface is a mock of DataTemplateManagerInterface interface
+type MockDataTemplateManagerInterface struct {
 	ctrl     *gomock.Controller
-	recorder *MockMetadataManagerInterfaceMockRecorder
+	recorder *MockDataTemplateManagerInterfaceMockRecorder
 }
 
-// MockMetadataManagerInterfaceMockRecorder is the mock recorder for MockMetadataManagerInterface
-type MockMetadataManagerInterfaceMockRecorder struct {
-	mock *MockMetadataManagerInterface
+// MockDataTemplateManagerInterfaceMockRecorder is the mock recorder for MockDataTemplateManagerInterface
+type MockDataTemplateManagerInterfaceMockRecorder struct {
+	mock *MockDataTemplateManagerInterface
 }
 
-// NewMockMetadataManagerInterface creates a new mock instance
-func NewMockMetadataManagerInterface(ctrl *gomock.Controller) *MockMetadataManagerInterface {
-	mock := &MockMetadataManagerInterface{ctrl: ctrl}
-	mock.recorder = &MockMetadataManagerInterfaceMockRecorder{mock}
+// NewMockDataTemplateManagerInterface creates a new mock instance
+func NewMockDataTemplateManagerInterface(ctrl *gomock.Controller) *MockDataTemplateManagerInterface {
+	mock := &MockDataTemplateManagerInterface{ctrl: ctrl}
+	mock.recorder = &MockDataTemplateManagerInterfaceMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockMetadataManagerInterface) EXPECT() *MockMetadataManagerInterfaceMockRecorder {
+func (m *MockDataTemplateManagerInterface) EXPECT() *MockDataTemplateManagerInterfaceMockRecorder {
 	return m.recorder
 }
 
 // SetFinalizer mocks base method
-func (m *MockMetadataManagerInterface) SetFinalizer() {
+func (m *MockDataTemplateManagerInterface) SetFinalizer() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetFinalizer")
 }
 
 // SetFinalizer indicates an expected call of SetFinalizer
-func (mr *MockMetadataManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockMetadataManagerInterface)(nil).SetFinalizer))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).SetFinalizer))
 }
 
 // UnsetFinalizer mocks base method
-func (m *MockMetadataManagerInterface) UnsetFinalizer() {
+func (m *MockDataTemplateManagerInterface) UnsetFinalizer() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "UnsetFinalizer")
 }
 
 // UnsetFinalizer indicates an expected call of UnsetFinalizer
-func (mr *MockMetadataManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockMetadataManagerInterface)(nil).UnsetFinalizer))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).UnsetFinalizer))
 }
 
 // RecreateStatus mocks base method
-func (m *MockMetadataManagerInterface) RecreateStatus(arg0 context.Context) error {
+func (m *MockDataTemplateManagerInterface) RecreateStatus(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RecreateStatus", arg0)
 	ret0, _ := ret[0].(error)
@@ -84,13 +84,13 @@ func (m *MockMetadataManagerInterface) RecreateStatus(arg0 context.Context) erro
 }
 
 // RecreateStatus indicates an expected call of RecreateStatus
-func (mr *MockMetadataManagerInterfaceMockRecorder) RecreateStatus(arg0 interface{}) *gomock.Call {
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) RecreateStatus(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecreateStatus", reflect.TypeOf((*MockMetadataManagerInterface)(nil).RecreateStatus), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecreateStatus", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).RecreateStatus), arg0)
 }
 
 // DeleteSecrets mocks base method
-func (m *MockMetadataManagerInterface) DeleteSecrets(arg0 context.Context) error {
+func (m *MockDataTemplateManagerInterface) DeleteSecrets(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteSecrets", arg0)
 	ret0, _ := ret[0].(error)
@@ -98,13 +98,13 @@ func (m *MockMetadataManagerInterface) DeleteSecrets(arg0 context.Context) error
 }
 
 // DeleteSecrets indicates an expected call of DeleteSecrets
-func (mr *MockMetadataManagerInterfaceMockRecorder) DeleteSecrets(arg0 interface{}) *gomock.Call {
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) DeleteSecrets(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecrets", reflect.TypeOf((*MockMetadataManagerInterface)(nil).DeleteSecrets), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteSecrets", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).DeleteSecrets), arg0)
 }
 
 // CreateSecrets mocks base method
-func (m *MockMetadataManagerInterface) CreateSecrets(arg0 context.Context) error {
+func (m *MockDataTemplateManagerInterface) CreateSecrets(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateSecrets", arg0)
 	ret0, _ := ret[0].(error)
@@ -112,13 +112,13 @@ func (m *MockMetadataManagerInterface) CreateSecrets(arg0 context.Context) error
 }
 
 // CreateSecrets indicates an expected call of CreateSecrets
-func (mr *MockMetadataManagerInterfaceMockRecorder) CreateSecrets(arg0 interface{}) *gomock.Call {
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) CreateSecrets(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecrets", reflect.TypeOf((*MockMetadataManagerInterface)(nil).CreateSecrets), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecrets", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).CreateSecrets), arg0)
 }
 
 // DeleteReady mocks base method
-func (m *MockMetadataManagerInterface) DeleteReady() (bool, error) {
+func (m *MockDataTemplateManagerInterface) DeleteReady() (bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteReady")
 	ret0, _ := ret[0].(bool)
@@ -127,7 +127,7 @@ func (m *MockMetadataManagerInterface) DeleteReady() (bool, error) {
 }
 
 // DeleteReady indicates an expected call of DeleteReady
-func (mr *MockMetadataManagerInterfaceMockRecorder) DeleteReady() *gomock.Call {
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) DeleteReady() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteReady", reflect.TypeOf((*MockMetadataManagerInterface)(nil).DeleteReady))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteReady", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).DeleteReady))
 }

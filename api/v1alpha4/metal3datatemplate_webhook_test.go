@@ -20,37 +20,35 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMetal3MetadataDefault(t *testing.T) {
+func TestMetal3DataTemplateDefault(t *testing.T) {
 	g := NewWithT(t)
 
-	c := &Metal3Metadata{
+	c := &Metal3DataTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "fooboo",
 		},
-		Spec: Metal3MetadataSpec{},
+		Spec: Metal3DataTemplateSpec{},
 	}
 	c.Default()
 
 	g.Expect(c.Spec.MetaData).To(BeNil())
 }
 
-func TestMetal3MetadataValidation(t *testing.T) {
-	valid := &Metal3Metadata{
+func TestMetal3DataTemplateValidation(t *testing.T) {
+	metadata := "abc: def\nname: worker-{{ getIndex }}"
+	valid := &Metal3DataTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: Metal3MetadataSpec{
-			MetaData: map[string]string{
-				"abc":  "def",
-				"name": "worker-{{ getIndex }}",
-			},
+		Spec: Metal3DataTemplateSpec{
+			MetaData: &metadata,
 		},
 	}
 
 	tests := []struct {
 		name      string
 		expectErr bool
-		c         *Metal3Metadata
+		c         *Metal3DataTemplate
 	}{
 		{
 			name:      "should succeed when values and templates correct",

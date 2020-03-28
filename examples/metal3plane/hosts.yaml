@@ -68,6 +68,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -141,6 +142,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -214,6 +216,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -287,6 +290,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -360,6 +364,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -433,6 +438,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -506,6 +512,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -579,6 +586,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -652,6 +660,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -725,6 +734,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:

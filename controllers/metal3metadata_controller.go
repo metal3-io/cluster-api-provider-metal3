@@ -35,28 +35,28 @@ import (
 )
 
 const (
-	metadataControllerName = "Metal3Metadata-controller"
+	dataTemplateControllerName = "Metal3DataTemplate-controller"
 )
 
-// Metal3MachineReconciler reconciles a Metal3Machine object
-type Metal3MetadataReconciler struct {
+// Metal3DataTemplateReconciler reconciles a Metal3DataTemplate object
+type Metal3DataTemplateReconciler struct {
 	Client         client.Client
 	ManagerFactory baremetal.ManagerFactoryInterface
 	Log            logr.Logger
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3metadatas,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3metadatas/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles Metal3Machine events
-func (r *Metal3MetadataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	metadataLog := r.Log.WithName(metadataControllerName).WithValues("metal3-metadata", req.NamespacedName)
+	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-metadata", req.NamespacedName)
 
-	// Fetch the Metal3Metadata instance.
-	capm3Metadata := &capm3.Metal3Metadata{}
+	// Fetch the Metal3DataTemplate instance.
+	capm3Metadata := &capm3.Metal3DataTemplate{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, capm3Metadata); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -80,8 +80,8 @@ func (r *Metal3MetadataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capm3Metadata.ObjectMeta)
 	if capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
-			metadataLog.Info("Metal3Metadata is missing cluster label or cluster does not exist")
-			return ctrl.Result{}, errors.Wrapf(err, "Metal3Metadata is missing cluster label or cluster does not exist")
+			metadataLog.Info("Metal3DataTemplate is missing cluster label or cluster does not exist")
+			return ctrl.Result{}, errors.Wrapf(err, "Metal3DataTemplate is missing cluster label or cluster does not exist")
 		}
 		if cluster == nil {
 			metadataLog.Info(fmt.Sprintf("This metadata is not yet associated with a cluster using the label %s: <name of cluster>", capi.ClusterLabelName))
@@ -100,7 +100,7 @@ func (r *Metal3MetadataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	}
 
 	// Create a helper for managing the metadata object.
-	metadataMgr, err := r.ManagerFactory.NewMetadataManager(capm3Metadata, metadataLog)
+	metadataMgr, err := r.ManagerFactory.NewDataTemplateManager(capm3Metadata, metadataLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the metadata")
 	}
@@ -114,10 +114,10 @@ func (r *Metal3MetadataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, r
 	return r.reconcileNormal(ctx, metadataMgr)
 }
 
-func (r *Metal3MetadataReconciler) reconcileNormal(ctx context.Context,
-	metadataMgr baremetal.MetadataManagerInterface,
+func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
+	metadataMgr baremetal.DataTemplateManagerInterface,
 ) (ctrl.Result, error) {
-	// If the Metal3Metadata doesn't have finalizer, add it.
+	// If the Metal3DataTemplate doesn't have finalizer, add it.
 	metadataMgr.SetFinalizer()
 
 	err := metadataMgr.RecreateStatus(ctx)
@@ -138,8 +138,8 @@ func (r *Metal3MetadataReconciler) reconcileNormal(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-func (r *Metal3MetadataReconciler) reconcileDelete(ctx context.Context,
-	metadataMgr baremetal.MetadataManagerInterface,
+func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
+	metadataMgr baremetal.DataTemplateManagerInterface,
 ) (ctrl.Result, error) {
 
 	err := metadataMgr.DeleteSecrets(ctx)
@@ -152,7 +152,7 @@ func (r *Metal3MetadataReconciler) reconcileDelete(ctx context.Context,
 		return checkMetadataError(err, "Failed to prepare deletion")
 	}
 	if readyForDeletion {
-		// metal3metadata is marked for deletion and ready to be deleted,
+		// metal3datatemplate is marked for deletion and ready to be deleted,
 		// so remove the finalizer.
 		metadataMgr.UnsetFinalizer()
 	}
@@ -161,40 +161,40 @@ func (r *Metal3MetadataReconciler) reconcileDelete(ctx context.Context,
 }
 
 // SetupWithManager will add watches for this controller
-func (r *Metal3MetadataReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Metal3DataTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3Metadata{}).
+		For(&capm3.Metal3DataTemplate{}).
 		Watches(
 			&source.Kind{Type: &capm3.Metal3Machine{}},
 			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.Metal3MachineToMetal3Metadata),
+				ToRequests: handler.ToRequestsFunc(r.Metal3MachineToMetal3DataTemplate),
 			},
 		).
 		Complete(r)
 }
 
-// Metal3MachineToMetal3Metadata is a handler.ToRequestsFunc to be used to enqeue
-// requests for reconciliation of Metal3Metadata.
-func (r *Metal3MetadataReconciler) Metal3MachineToMetal3Metadata(o handler.MapObject) []ctrl.Request {
+// Metal3MachineToMetal3DataTemplate is a handler.ToRequestsFunc to be used to enqeue
+// requests for reconciliation of Metal3DataTemplate.
+func (r *Metal3DataTemplateReconciler) Metal3MachineToMetal3DataTemplate(o handler.MapObject) []ctrl.Request {
 	result := []ctrl.Request{}
 	m, ok := o.Object.(*capm3.Metal3Machine)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o.Object), "failed to get Metal3Metadata for Metal3Machine")
+		r.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o.Object), "failed to get Metal3DataTemplate for Metal3Machine")
 		return nil
 	}
 
-	if m.Spec.MetaData.ConfigRef == nil {
+	if m.Spec.DataTemplate == nil {
 		return result
 	}
-	if m.Spec.MetaData.ConfigRef.Name == "" {
+	if m.Spec.DataTemplate.Name == "" {
 		return result
 	}
-	namespace := m.Spec.MetaData.ConfigRef.Namespace
+	namespace := m.Spec.DataTemplate.Namespace
 	if namespace == "" {
 		namespace = m.Namespace
 	}
 
-	name := client.ObjectKey{Namespace: namespace, Name: m.Spec.MetaData.ConfigRef.Name}
+	name := client.ObjectKey{Namespace: namespace, Name: m.Spec.DataTemplate.Name}
 	result = append(result, ctrl.Request{NamespacedName: name})
 
 	return result

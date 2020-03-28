@@ -31,8 +31,8 @@ type ManagerFactoryInterface interface {
 	NewMachineManager(*capi.Cluster, *capm3.Metal3Cluster, *capi.Machine,
 		*capm3.Metal3Machine, logr.Logger,
 	) (MachineManagerInterface, error)
-	NewMetadataManager(*capm3.Metal3Metadata, logr.Logger) (
-		MetadataManagerInterface, error,
+	NewDataTemplateManager(*capm3.Metal3DataTemplate, logr.Logger) (
+		DataTemplateManagerInterface, error,
 	)
 }
 
@@ -61,6 +61,6 @@ func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
 }
 
 // NewMetadataManager creates a new MetadataManager
-func (f ManagerFactory) NewMetadataManager(metadata *capm3.Metal3Metadata, metadataLog logr.Logger) (MetadataManagerInterface, error) {
-	return NewMetadataManager(f.client, metadata, metadataLog)
+func (f ManagerFactory) NewDataTemplateManager(metadata *capm3.Metal3DataTemplate, metadataLog logr.Logger) (DataTemplateManagerInterface, error) {
+	return NewDataTemplateManager(f.client, metadata, metadataLog)
 }

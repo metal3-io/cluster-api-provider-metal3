@@ -30,19 +30,6 @@ const (
 	MachineFinalizer = "metal3machine.infrastructure.cluster.x-k8s.io"
 )
 
-// MetaData contains the configRef and the secret name of the metadata
-type MetaData struct {
-	// Reference to the Metal3Metadata object to use to render the metadata.
-	// The Namespace is optional; it will default to the metal3machine's
-	// namespace if not specified.
-	ConfigRef *corev1.ObjectReference `json:"configRef,omitempty"`
-
-	// DataSecret references the Secret that holds metadata for the bare metal
-	// operator. The Namespace is optional; it will default to the metal3machine's
-	// namespace if not specified.
-	DataSecret *corev1.SecretReference `json:"dataSecret,omitempty"`
-}
-
 // Metal3MachineSpec defines the desired state of Metal3Machine
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
@@ -63,14 +50,18 @@ type Metal3MachineSpec struct {
 	// claiming for a metal3machine.
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
 
-	// MetadataTemplate is a reference to a Metal3Metadata object containing
+	// MetadataTemplate is a reference to a Metal3DataTemplate object containing
 	// a template of metadata to be rendered. Metadata keys defined in the
 	// metadataTemplate take precendence over keys defined in metadata field.
-	MetadataTemplate *corev1.ObjectReference `json:"metadataTemplate,omitempty"`
+	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
 
-	// Metadata is an object storing the reference to the Metal3Metadata object
-	// and the secret containing the Metadata.
-	MetaData MetaData `json:"metaData,omitempty"`
+	// MetaData is an object storing the reference to the secret containing the
+	// Metadata.
+	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
+
+	// NetworkData is an object storing the reference to the secret containing the
+	// network data.
+	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The

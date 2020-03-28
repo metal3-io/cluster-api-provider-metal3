@@ -77,7 +77,8 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MetaData = restored.Spec.MetaData
-	dst.Spec.MetadataTemplate = restored.Spec.MetadataTemplate
+	dst.Spec.NetworkData = restored.Spec.NetworkData
+	dst.Spec.DataTemplate = restored.Spec.DataTemplate
 
 	return nil
 }
@@ -121,7 +122,8 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.Spec.MetaData = restored.Spec.Template.Spec.MetaData
-	dst.Spec.Template.Spec.MetadataTemplate = restored.Spec.Template.Spec.MetadataTemplate
+	dst.Spec.Template.Spec.NetworkData = restored.Spec.Template.Spec.NetworkData
+	dst.Spec.Template.Spec.DataTemplate = restored.Spec.Template.Spec.DataTemplate
 
 	return nil
 }

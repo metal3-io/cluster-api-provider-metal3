@@ -30,6 +30,25 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3datatemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.metal3datatemplate.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3datatemplates
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machine
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -63,25 +82,6 @@ webhooks:
     - UPDATE
     resources:
     - metal3machinetemplates
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3metadata
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: default.metal3metadata.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha4
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - metal3metadatas
 
 ---
 apiVersion: admissionregistration.k8s.io/v1beta1
@@ -109,6 +109,25 @@ webhooks:
     - UPDATE
     resources:
     - metal3clusters
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3datatemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.metal3datatemplate.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3datatemplates
 - clientConfig:
     caBundle: Cg==
     service:
@@ -147,22 +166,3 @@ webhooks:
     - UPDATE
     resources:
     - metal3machinetemplates
-- clientConfig:
-    caBundle: Cg==
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3metadata
-  failurePolicy: Fail
-  matchPolicy: Equivalent
-  name: validation.metal3metadata.infrastructure.cluster.x-k8s.io
-  rules:
-  - apiGroups:
-    - infrastructure.cluster.x-k8s.io
-    apiVersions:
-    - v1alpha4
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - metal3metadatas

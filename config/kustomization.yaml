@@ -31,11 +31,5 @@ patchesJson6902:
     group: apiextensions.k8s.io
     version: v1
     kind: CustomResourceDefinition
-    name: metal3metadatas.infrastructure.cluster.x-k8s.io
-  path: patch_crd_webhook_namespace.yaml
-- target:
-    group: apiextensions.k8s.io
-    version: v1
-    kind: CustomResourceDefinition
-    name: metal3metadatastatuses.infrastructure.cluster.x-k8s.io
+    name: metal3datatemplates.infrastructure.cluster.x-k8s.io
   path: patch_crd_webhook_namespace.yaml
