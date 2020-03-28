@@ -22,7 +22,7 @@ require (
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mdempsky/maligned v0.0.0-20180708014732-6e39bd26a8c8 // indirect
 	github.com/mdempsky/unconvert v0.0.0-20200228143138-95ecdbfc0b5f // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20200325151250-5ba84fbafea9
+	github.com/metal3-io/baremetal-operator v0.0.0-20200328061249-10eb5aa3e614
 	github.com/mibk/dupl v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
@@ -35,6 +35,7 @@ require (
 	github.com/walle/lll v1.0.1 // indirect
 	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59 // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
 	k8s.io/api v0.18.0
 	k8s.io/apiextensions-apiserver v0.18.0
@@ -47,7 +48,7 @@ require (
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20200314162735-0ac8026f7d06 // indirect
-	sigs.k8s.io/cluster-api v0.3.2
+	sigs.k8s.io/cluster-api v0.3.3
 	sigs.k8s.io/controller-runtime v0.5.2
 	sigs.k8s.io/yaml v1.2.0
 )

@@ -651,6 +651,8 @@ github.com/metal3-io/baremetal-operator v0.0.0-20200323093448-f696b0786c9e h1:6r
 github.com/metal3-io/baremetal-operator v0.0.0-20200323093448-f696b0786c9e/go.mod h1:aJeLHszKLl8uCD7ZZz6KfLKgGXluo4hUBwL7X8YLs7E=
 github.com/metal3-io/baremetal-operator v0.0.0-20200325151250-5ba84fbafea9 h1:D6zWbSP1AdqCP5MJIAm6FkIQD9tiauzhI+HQbbYeCAU=
 github.com/metal3-io/baremetal-operator v0.0.0-20200325151250-5ba84fbafea9/go.mod h1:aJeLHszKLl8uCD7ZZz6KfLKgGXluo4hUBwL7X8YLs7E=
+github.com/metal3-io/baremetal-operator v0.0.0-20200328061249-10eb5aa3e614 h1:JYH8gY6URbR+W7TNqgw3ME7H3U/iTi3Na/MSW1xx0kc=
+github.com/metal3-io/baremetal-operator v0.0.0-20200328061249-10eb5aa3e614/go.mod h1:aJeLHszKLl8uCD7ZZz6KfLKgGXluo4hUBwL7X8YLs7E=
 github.com/mholt/certmagic v0.6.2-0.20190624175158-6a42ef9fe8c2/go.mod h1:g4cOPxcjV0oFq3qwpjSA30LReKD8AoIfwAY9VvG35NY=
 github.com/mibk/dupl v1.0.0 h1:aZc3jqrF9n0tUHwHt/+jsRxA8cRgA0Gdl56M7W7PoqE=
 github.com/mibk/dupl v1.0.0/go.mod h1:pCr4pNxxIbFGvtyCOi0c7LVjmV6duhKWV+ex5vh38ME=
@@ -1158,6 +1160,8 @@ golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d h1:62ap6LNOjDU6uGmKXHJbSfciM
 golang.org/x/sys v0.0.0-20200317113312-5766fd39f98d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd h1:xhmwyvizuTgC2qz7ZlMluP20uW+C3Rm0FD/WLDX8884=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 h1:TC0v2RSO1u2kn1ZugjrFXkRZAEaqMN/RW+OTZkBzmLE=
+golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/text v0.0.0-20160726164857-2910a502d2bf/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.0.0-20170915032832-14c0d48ead0c/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
@@ -1513,6 +1517,8 @@ sigs.k8s.io/cluster-api v0.3.0-rc.0.0.20200216171528-7eead355bcbc h1:1+JQhLCDaFf
 sigs.k8s.io/cluster-api v0.3.0-rc.0.0.20200216171528-7eead355bcbc/go.mod h1:adKR0yDa0/3iadC5Iy2Ig0I9EHAtUsBctBW7e6gVJJg=
 sigs.k8s.io/cluster-api v0.3.2 h1:+oiclIxk1PthGCBbYLEdfZi1u2qFTjK+wwIrtLNlBXA=
 sigs.k8s.io/cluster-api v0.3.2/go.mod h1:PkmtV10dmmSmBSpR28c5UxDvWRszTxj+p9KLrb8JVZ8=
+sigs.k8s.io/cluster-api v0.3.3 h1:pNuvC6cm67SbxOaPriK8ZfLl1RSjmu/KX2GJiNQH3dU=
+sigs.k8s.io/cluster-api v0.3.3/go.mod h1:lgztyeCWCve8YB4DN6QeLR0blNYBvFX9+ATHrxs+zKU=
 sigs.k8s.io/controller-runtime v0.3.0/go.mod h1:Cw6PkEg0Sa7dAYovGT4R0tRkGhHXpYijwNxYhAnAZZk=
 sigs.k8s.io/controller-runtime v0.4.0 h1:wATM6/m+3w8lj8FXNaO6Fs/rq/vqoOjO1Q116Z9NPsg=
 sigs.k8s.io/controller-runtime v0.4.0/go.mod h1:ApC79lpY3PHW9xj/w9pj+lYkLgwAAUZwfXkME1Lajns=
