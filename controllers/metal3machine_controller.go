@@ -185,6 +185,11 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		if err != nil {
 			return checkError(err, "failed to associate the Metal3Machine to a BaremetalHost")
 		}
+	} else {
+		err := machineMgr.Update(ctx)
+		if err != nil {
+			return checkError(err, "failed to update BaremetalHost")
+		}
 	}
 
 	bmhID, err := machineMgr.GetBaremetalHostID(ctx)
@@ -202,7 +207,6 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		machineMgr.SetProviderID(providerID)
 	}
 
-	err = machineMgr.Update(ctx)
 	return ctrl.Result{}, err
 }
 
