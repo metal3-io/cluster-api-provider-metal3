@@ -816,11 +816,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// validate the saved host
-			Expect(tc.Host.Spec.ConsumerRef).NotTo(BeNil())
-			Expect(tc.Host.Spec.ConsumerRef.Name).To(Equal(bmmconfig.Name))
-			Expect(tc.Host.Spec.ConsumerRef.Namespace).
-				To(Equal(bmmconfig.Namespace))
-			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal("Metal3Machine"))
 			Expect(tc.Host.Spec.Online).To(BeTrue())
 			if tc.ExpectedImage == nil {
 				Expect(tc.Host.Spec.Image).To(BeNil())
@@ -835,6 +830,70 @@ var _ = Describe("Metal3Machine manager", func() {
 			} else {
 				Expect(tc.Host.Spec.UserData).To(BeNil())
 			}
+		},
+		Entry("User data has explicit alternate namespace", testCaseSetHostSpec{
+			UserDataNamespace:         "otherns",
+			ExpectedUserDataNamespace: "otherns",
+			Host: newBareMetalHost("host2", nil, bmh.StateNone,
+				nil, false, false,
+			),
+			ExpectedImage:  expectedImg(),
+			ExpectUserData: true,
+		}),
+		Entry("User data has no namespace", testCaseSetHostSpec{
+			UserDataNamespace:         "",
+			ExpectedUserDataNamespace: "myns",
+			Host: newBareMetalHost("host2", nil, bmh.StateNone,
+				nil, false, false,
+			),
+			ExpectedImage:  expectedImg(),
+			ExpectUserData: true,
+		}),
+		Entry("Externally provisioned, same machine", testCaseSetHostSpec{
+			UserDataNamespace:         "",
+			ExpectedUserDataNamespace: "myns",
+			Host: newBareMetalHost("host2", nil, bmh.StateNone,
+				nil, false, false,
+			),
+			ExpectedImage:  expectedImg(),
+			ExpectUserData: true,
+		}),
+		Entry("Previously provisioned, different image",
+			testCaseSetHostSpec{
+				UserDataNamespace:         "",
+				ExpectedUserDataNamespace: "myns",
+				Host: newBareMetalHost("host2", bmhSpecTestImg(),
+					bmh.StateNone, nil, false, false,
+				),
+				ExpectedImage:  expectedImgTest(),
+				ExpectUserData: false,
+			},
+		),
+	)
+
+	DescribeTable("Test SetHostConsumerRef",
+		func(tc testCaseSetHostSpec) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host)
+
+			bmmconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
+				map[string]string{}, []capm3.HostSelectorRequirement{},
+			)
+			machine := newMachine("machine1", "", infrastructureRef)
+
+			machineMgr, err := NewMachineManager(c, nil, nil, machine, bmmconfig,
+				klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.setHostConsumerRef(context.TODO(), tc.Host)
+			Expect(err).NotTo(HaveOccurred())
+
+			// validate the saved host
+			Expect(tc.Host.Spec.ConsumerRef).NotTo(BeNil())
+			Expect(tc.Host.Spec.ConsumerRef.Name).To(Equal(bmmconfig.Name))
+			Expect(tc.Host.Spec.ConsumerRef.Namespace).
+				To(Equal(bmmconfig.Namespace))
+			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal("Metal3Machine"))
 			_, err = machineMgr.FindOwnerRef(tc.Host.OwnerReferences)
 			Expect(err).NotTo(HaveOccurred())
 		},

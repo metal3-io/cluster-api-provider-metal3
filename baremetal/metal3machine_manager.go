@@ -56,7 +56,6 @@ const (
 	requeueAfter        = time.Second * 30
 	bmRoleControlPlane  = "control-plane"
 	bmRoleNode          = "node"
-	userDataFinalizer   = "metal3machine.infrastructure.cluster.x-k8s.io/userData"
 	pausedAnnotationKey = "metal3.io/capm3"
 )
 
@@ -304,7 +303,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
-	err = m.setHostSpec(ctx, host)
+	err = m.setHostConsumerRef(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
 			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
@@ -312,6 +311,17 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 			)
 		}
 		return err
+	}
+
+	if m.Metal3Machine.Spec.DataTemplate == nil {
+		if err = m.setHostSpec(ctx, host); err != nil {
+			if _, ok := err.(HasRequeueAfterError); !ok {
+				m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
+					capierrors.CreateMachineError,
+				)
+			}
+			return err
+		}
 	}
 
 	err = m.setBMCSecretLabel(ctx, host)
@@ -337,6 +347,12 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 			)
 		}
 		return err
+	}
+
+	// Requeue to get the DataTemplate output. We need to requeue to trigger the
+	// wait on the Metal3DataTemplate
+	if m.Metal3Machine.Spec.DataTemplate != nil {
+		return &RequeueAfterError{}
 	}
 
 	m.Log.Info("Finished creating machine")
@@ -575,6 +591,26 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return fmt.Errorf("host not found for machine %s", m.Machine.Name)
 	}
 
+	if err := m.WaitForM3Metadata(ctx); err != nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.SetError("Failed to get the DataTemplate",
+				capierrors.CreateMachineError,
+			)
+		}
+		return err
+	}
+
+	// ensure that the BMH specs are correctly set
+	err = m.setHostConsumerRef(ctx, host)
+	if err != nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
+		}
+		return err
+	}
+
 	// ensure that the BMH specs are correctly set
 	err = m.setHostSpec(ctx, host)
 	if err != nil {
@@ -623,7 +659,13 @@ func (m *MachineManager) exists(ctx context.Context) (bool, error) {
 // that contains a reference to the host. Returns nil if not found. Assumes the
 // host is in the same namespace as the machine.
 func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error) {
-	annotations := m.Metal3Machine.ObjectMeta.GetAnnotations()
+	return getHost(ctx, m.Metal3Machine, m.client, m.Log)
+}
+
+func getHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
+	mLog logr.Logger,
+) (*bmh.BareMetalHost, error) {
+	annotations := m3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		return nil, nil
 	}
@@ -633,7 +675,7 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 	}
 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
 	if err != nil {
-		m.Log.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+		mLog.Error(err, "Error parsing annotation value", "annotation key", hostKey)
 		return nil, err
 	}
 
@@ -642,9 +684,9 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 		Name:      hostName,
 		Namespace: hostNamespace,
 	}
-	err = m.client.Get(ctx, key, &host)
+	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
-		m.Log.Info("Annotated host not found", "host", hostKey)
+		mLog.Info("Annotated host not found", "host", hostKey)
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -828,6 +870,15 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		}
 	}
 
+	host.Spec.Online = true
+
+	return nil
+}
+
+// setHostConsumerRef will ensure the host's Spec is set to link to this
+// Metal3Machine
+func (m *MachineManager) setHostConsumerRef(ctx context.Context, host *bmh.BareMetalHost) error {
+
 	host.Spec.ConsumerRef = &corev1.ObjectReference{
 		Kind:       "Metal3Machine",
 		Name:       m.Metal3Machine.Name,
@@ -835,7 +886,6 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		APIVersion: m.Metal3Machine.APIVersion,
 	}
 
-	host.Spec.Online = true
 	// Set OwnerReferences
 	hostOwnerReferences, err := m.SetOwnerRef(host.OwnerReferences, true)
 	if err != nil {
@@ -1111,6 +1161,19 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// RetrieveMetadata fetches the Metal3DataTemplate object and sets the
+// owner references
+func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
+	metal3DataTemplate, err := m.fetchM3Metadata(ctx)
+	if err != nil {
+		return err
+	}
+	if metal3DataTemplate == nil {
+		return nil
 	}
 
 	if m.Metal3Machine.Spec.MetaData == nil &&

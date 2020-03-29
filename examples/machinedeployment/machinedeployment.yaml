@@ -52,7 +52,38 @@ spec:
     ghi: abc
     local-hostname: 'md-{{ index }}'
   networkData: |
-    defGHI
+    {
+        "links": [
+            {
+                "id": "enp1s0",
+                "type": "phy",
+                "ethernet_mac_address": "{{ '{{ bareMetalHostMACByName "eth0" }}' }}"
+            },
+            {
+                "id": "enp2s0",
+                "type": "phy",
+                "ethernet_mac_address": "{{ '{{ bareMetalHostMACByName "eth1" }}' }}"
+            }
+        ],
+        "networks": [
+            {
+                "id": "Provisioning",
+                "type": "ipv4_dhcp",
+                "link": "enp1s0"
+            },
+            {
+                "id": "Baremetal",
+                "type": "ipv4_dhcp",
+                "link": "enp2s0"
+            }
+        ],
+        "services": [
+            {
+                "type": "dns",
+                "address": "8.8.8.8"
+            }
+        ]
+    }
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate

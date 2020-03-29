@@ -27,6 +27,7 @@ import (
 	// comment for go-lint
 	"github.com/go-logr/logr"
 
+	bmo "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -205,6 +206,7 @@ func (m *DataTemplateManager) updateStatusTimestamp() {
 // CreateSecrets creates the missing secrets
 func (m *DataTemplateManager) CreateSecrets(ctx context.Context) error {
 	pendingItems := make(map[string]*capm3.Metal3Machine)
+	bmhMap := make(map[string]*bmo.BareMetalHost)
 	needsUpdate := false
 	var err error
 
@@ -241,6 +243,15 @@ func (m *DataTemplateManager) CreateSecrets(ctx context.Context) error {
 			continue
 		}
 
+		// Get the BaremetalHost associated
+		bmh, err := getHost(ctx, m3Machine, m.client, m.Log)
+		if err != nil {
+			return err
+		}
+		if bmh == nil {
+			continue
+		}
+
 		m.Log.Info("Getting index", "Metal3machine", curOwnerRef.Name)
 		machineIndex := ""
 		for key, value := range m.DataTemplate.Status.Indexes {
@@ -273,6 +284,7 @@ func (m *DataTemplateManager) CreateSecrets(ctx context.Context) error {
 		}
 
 		pendingItems[machineIndex] = m3Machine
+		bmhMap[machineIndex] = bmh
 	}
 	if needsUpdate {
 		err = updateObject(m.client, ctx, m.DataTemplate)
@@ -289,8 +301,9 @@ func (m *DataTemplateManager) CreateSecrets(ctx context.Context) error {
 	}
 
 	for machineIndex, m3Machine := range pendingItems {
+		bmh := bmhMap[machineIndex]
 		m.Log.Info("Creating secret", "Metal3machine", m3Machine.Name)
-		tmpl, err := createTemplate(m3Machine, machineIndex)
+		tmpl, err := createTemplate(m3Machine, machineIndex, bmh)
 		if err != nil {
 			return err
 		}
@@ -488,7 +501,9 @@ func getHex(value int, err error) (string, error) {
 }
 
 // createTemplate creates a template.Template object with the functions built in
-func createTemplate(m3Machine *capm3.Metal3Machine, machineIndexStr string) (*template.Template, error) {
+func createTemplate(m3Machine *capm3.Metal3Machine, machineIndexStr string,
+	bmh *bmo.BareMetalHost,
+) (*template.Template, error) {
 	machineName := ""
 	machineIndex, err := strconv.Atoi(machineIndexStr)
 	if err != nil {
@@ -502,7 +517,7 @@ func createTemplate(m3Machine *capm3.Metal3Machine, machineIndexStr string) (*te
 	}
 	getIndex := func() string { return machineIndexStr }
 	getIndexWithOffset := func(offset int) (string, error) {
-		return getStr(IndexWithOffsetAndStep(machineIndex, offset, 0))
+		return getStr(IndexWithOffsetAndStep(machineIndex, offset, 1))
 	}
 	getIndexWithStep := func(step int) (string, error) {
 		return getStr(IndexWithOffsetAndStep(machineIndex, 0, step))
@@ -517,7 +532,7 @@ func createTemplate(m3Machine *capm3.Metal3Machine, machineIndexStr string) (*te
 		return getHex(machineIndex, nil)
 	}
 	getIndexWithOffsetHex := func(offset int) (string, error) {
-		return getHex(IndexWithOffsetAndStep(machineIndex, offset, 0))
+		return getHex(IndexWithOffsetAndStep(machineIndex, offset, 1))
 	}
 	getIndexWithStepHex := func(step int) (string, error) {
 		return getHex(IndexWithOffsetAndStep(machineIndex, 0, step))
@@ -530,6 +545,18 @@ func createTemplate(m3Machine *capm3.Metal3Machine, machineIndexStr string) (*te
 	}
 	getMachineName := func() string { return machineName }
 	getMetal3MachineName := func() string { return m3Machine.Name }
+	getBMHName := func() string { return bmh.Name }
+	getBMHMacByName := func(name string) (string, error) {
+		if bmh.Status.HardwareDetails == nil || bmh.Status.HardwareDetails.NIC == nil {
+			return "", errors.New("Nics list not populated")
+		}
+		for _, nics := range bmh.Status.HardwareDetails.NIC {
+			if nics.Name == name {
+				return nics.MAC, nil
+			}
+		}
+		return "", errors.New(fmt.Sprintf("Nic name not found %v", name))
+	}
 
 	funcMap := template.FuncMap{
 		"index":                     getIndex,
@@ -544,6 +571,8 @@ func createTemplate(m3Machine *capm3.Metal3Machine, machineIndexStr string) (*te
 		"indexWithStepAndOffsetHex": getIndexWithStepAndOffsetHex,
 		"machineName":               getMachineName,
 		"metal3MachineName":         getMetal3MachineName,
+		"bareMetalHostName":         getBMHName,
+		"bareMetalHostMACByName":    getBMHMacByName,
 	}
 	return template.New("DataTemplate").Funcs(funcMap), nil
 }

@@ -487,10 +487,41 @@ metadata:
 spec:
   metaData: |
     node_name: "ctrl-{{ indexWithOffset 1 }}"
-    machine_name: "{{ machineName }}"
+    local-hostname: {{ machineName }}
     pool: "pool1"
   networkData: |
-    whatever network data
+    {
+        "links": [
+            {
+                "id": "enp1s0",
+                "type": "phy",
+                "ethernet_mac_address": "{{ '{{ bareMetalHostMACByName "eth0" }}' }}"
+            },
+            {
+                "id": "enp2s0",
+                "type": "phy",
+                "ethernet_mac_address": "{{ '{{ bareMetalHostMACByName "eth1" }}' }}"
+            }
+        ],
+        "networks": [
+            {
+                "id": "Provisioning",
+                "type": "ipv4_dhcp",
+                "link": "enp1s0"
+            },
+            {
+                "id": "Baremetal",
+                "type": "ipv4_dhcp",
+                "link": "enp2s0"
+            }
+        ],
+        "services": [
+            {
+                "type": "dns",
+                "address": "8.8.8.8"
+            }
+        ]
+    }
 ```
 
 The Metal3Metadata object contains a template for the metadata passed to the
@@ -498,6 +529,12 @@ BareMetalHost. `spec.metaData` and `spec.networkData` are templates that will
 be rendered per node. The controller will create a secret containing the
 rendered value for all the metal3machines that are listed as OwnerReference of
 the Metal3DataTemplate object.
+
+The `metaData` field should contain a map of strings in yaml format, while
+`networkData` should contain a json string that fulfills the requirements of
+[Nova network_data.json](https://docs.openstack.org/nova/latest/user/metadata.html#openstack-format-metadata).
+The format definition can be found
+[here](https://docs.openstack.org/nova/latest/_downloads/9119ca7ac90aa2990e762c08baea3a36/network_data.json).
 
 Each Metal3Machine is given an index number. The index is the lowest integer
 that is not given to another Metal3Machine already. When a Metal3Machine is
@@ -507,6 +544,7 @@ There are multiple functions that can be used in the templates :
 
 - **machineName** : returns the Machine name
 - **metal3MachineName** : returns the Metal3Machine name
+- **bareMetalHostName**: returns the BareMetalHost name
 - **index** : returns the Metal3Machine index for the Metal3Metadata object.
   The index starts from 0.
 - **indexWithOffset** : takes an integer as parameter and returns the sum of
@@ -518,6 +556,8 @@ There are multiple functions that can be used in the templates :
   sum of the offset and the multiplication of the index and the step.
 - **index*Hex** : All the `index` function can be suffixed with `Hex` to
   get the same value in hexadecimal format.
+- **bareMetalHostMACByName**: Takes a string as parameter and returns the MAC
+  address of the nic identified by a name matching the parameter.
 
 In addition, there will be by default a `uuid` key in the metadata with the
 BareMetalHost UID as value set by Baremetal Operator.

@@ -49,18 +49,18 @@ An outline of the workflow is below.
    secret containing it.
 1. The CAPI controller will copy the userData secret name into the machine
    object and set the bootstrapReady field to true.
-1. Once the machine has userdataSecretName, OwnerRef and bootstrapReady properly
-   set, the CAPM3 controller will check if the Metal3Machine references a
+1. Once the secrets exists, the CAPM3 controller will select, if
+   possible, a BareMetalHost that matches the criteria, or wait until one is
+   available.
+1. Once the machine has been associated with a BaremetalHost, the CAPM3
+   controller will check if the Metal3Machine references a
    Metal3DataTemplate object. In that case, it will set an OwnerReference on the
    Metal3DataTemplate object referencing the Metal3Machine and wait for the
    metadata and/or network data secrets to be created.
 1. The CAPM3 controller reconciling the Metal3DataTemplate object will select
    the lowest available index for the new machine and render the metadata
    template. It will then create the secrets containing the rendered data.
-1. Once the secrets exists, the CAPM3 controller will select, if
-   possible, a BareMetalHost that matches the criteria, or wait until one is
-   available. If matched, the CAPM3 controller will create a secret with the
-   userData if needed, and set the BareMetalHost spec accordingly to the
+1. The CAPM3 controller will then set the BareMetalHost spec accordingly to the
    Metal3Machine specs.
 1. The BareMetal Operator will then start the deployment.
 1. After deployment, the BaremetalHost will be in provisioned state. However,
