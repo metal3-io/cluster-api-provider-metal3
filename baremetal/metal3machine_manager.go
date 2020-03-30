@@ -684,6 +684,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 // consumerRefMatches returns a boolean based on whether the consumer
 // reference and bare metal machine metadata match
 func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capm3.Metal3Machine) bool {
+
 	if consumer.Name != bmmachine.Name {
 		return false
 	}
@@ -693,7 +694,7 @@ func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capm3.Metal
 	if consumer.Kind != bmmachine.Kind {
 		return false
 	}
-	if consumer.APIVersion != bmmachine.APIVersion {
+	if consumer.GroupVersionKind().Group != bmmachine.GroupVersionKind().Group {
 		return false
 	}
 	return true
