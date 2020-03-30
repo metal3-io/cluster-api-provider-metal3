@@ -727,16 +727,23 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 	availableHosts := []*bmh.BareMetalHost{}
 
 	for i, host := range hosts.Items {
-		if host.Available() {
-			if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
-				m.Log.Info("Host matched hostSelector for Metal3Machine", "host", host.Name)
-				availableHosts = append(availableHosts, &hosts.Items[i])
-			} else {
-				m.Log.Info("Host did not match hostSelector for Metal3Machine", "host", host.Name)
-			}
-		} else if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
+		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
 			return &hosts.Items[i], nil
+		}
+		if !host.Available() {
+			continue
+		}
+		switch host.Status.Provisioning.State {
+		case bmh.StateReady, bmh.StateAvailable:
+		default:
+			continue
+		}
+		if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
+			m.Log.Info("Host matched hostSelector for Metal3Machine", "host", host.Name)
+			availableHosts = append(availableHosts, &hosts.Items[i])
+		} else {
+			m.Log.Info("Host did not match hostSelector for Metal3Machine", "host", host.Name)
 		}
 	}
 	m.Log.Info(fmt.Sprintf("%d hosts available while choosing host for bare metal machine", len(availableHosts)))
