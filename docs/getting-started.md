@@ -33,6 +33,31 @@ You can find an example file containing the environment variables
 `example_variables.rc`in the release or
 [here](https://github.com/metal3-io/cluster-api-provider-metal3/tree/master/examples/clusterctl-templates/example_variables.rc)
 
+#### DEPLOY_KERNEL_URL
+
+This is the URL of the kernel to deploy. For example:
+
+`DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"`
+
+#### DEPLOY_RAMDISK_URL
+
+This is the URL of the ramdisk to deploy. For example:
+
+`DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"`
+
+#### IRONIC_URL
+
+This is the URL of the ironic endpoint. For example:
+
+`IRONIC_URL="http://172.22.0.1:6385/v1/"`
+
+#### IRONIC_INSPECTOR_URL
+
+This is the URL of the ironic inspector endpoint.
+For example:
+
+`IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"`
+
 #### POD_CIDR
 
 This is the CIDR for the pod. It can be given as a comma separated list of

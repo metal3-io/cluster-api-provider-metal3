@@ -5,6 +5,5 @@ resources:
 - bootstrap-components.yaml
 - ctlplane-components.yaml
 - infrastructure-components.yaml
-- bare-metal-operator-components.yaml
 patchesStrategicMerge:
 - manager_tolerations_patch.yaml

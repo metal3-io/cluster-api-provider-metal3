@@ -1,3 +1,7 @@
+export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"
+export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"
+export IRONIC_URL="http://172.22.0.1:6385/v1/"
+export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"
 export POD_CIDR='"192.168.0.0/24"'
 export SERVICE_CIDR='"10.96.0.0/12"'
 export API_ENDPOINT_HOST="192.168.111.249"
