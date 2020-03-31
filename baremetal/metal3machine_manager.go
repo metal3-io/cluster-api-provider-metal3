@@ -368,9 +368,17 @@ func (m *MachineManager) getUserData(ctx context.Context, host *bmh.BareMetalHos
 	var err error
 	var decodedUserDataBytes []byte
 
+	if m.Metal3Machine.Status.UserData != nil {
+		return nil
+	}
+
+	if m.Metal3Machine.Spec.UserData != nil {
+		m.Metal3Machine.Status.UserData = m.Metal3Machine.Spec.UserData
+	}
+
 	// if datasecretname is set just pass the reference
 	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
-		m.Metal3Machine.Spec.UserData = &corev1.SecretReference{
+		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
 			Namespace: m.Machine.Namespace,
 		}
@@ -399,7 +407,7 @@ func (m *MachineManager) getUserData(ctx context.Context, host *bmh.BareMetalHos
 		return err
 	}
 
-	m.Metal3Machine.Spec.UserData = &corev1.SecretReference{
+	m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 		Name:      m.Metal3Machine.Name + "-user-data",
 		Namespace: host.Namespace,
 	}
@@ -535,16 +543,18 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
 			m.Machine.Spec.Bootstrap.Data != nil {
 			m.Log.Info("Deleting User data secret for machine")
-			err = deleteSecret(m.client, ctx, m.Metal3Machine.Spec.UserData.Name,
-				m.Metal3Machine.Namespace,
-			)
-			if err != nil {
-				if _, ok := err.(HasRequeueAfterError); !ok {
-					m.SetError("Failed to delete userdata secret",
-						capierrors.DeleteMachineError,
-					)
+			if m.Metal3Machine.Status.UserData != nil {
+				err = deleteSecret(m.client, ctx, m.Metal3Machine.Status.UserData.Name,
+					m.Metal3Machine.Namespace,
+				)
+				if err != nil {
+					if _, ok := err.(HasRequeueAfterError); !ok {
+						m.SetError("Failed to delete userdata secret",
+							capierrors.DeleteMachineError,
+						)
+					}
+					return err
 				}
-				return err
 			}
 		}
 
@@ -845,12 +855,12 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 	// upgrades are not supported at this time. To re-provision a
 	// host, we must fully deprovision it and then provision it again.
 	// Not provisioning while we do not have the UserData
-	if host.Spec.Image == nil && m.Metal3Machine.Spec.UserData != nil {
+	if host.Spec.Image == nil && m.Metal3Machine.Status.UserData != nil {
 		host.Spec.Image = &bmh.Image{
 			URL:      m.Metal3Machine.Spec.Image.URL,
 			Checksum: m.Metal3Machine.Spec.Image.Checksum,
 		}
-		host.Spec.UserData = m.Metal3Machine.Spec.UserData
+		host.Spec.UserData = m.Metal3Machine.Status.UserData
 		if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
 			host.Spec.UserData.Namespace = host.Namespace
 		}

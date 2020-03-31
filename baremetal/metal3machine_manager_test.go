@@ -76,8 +76,17 @@ func bmmSpecAll() *capm3.Metal3MachineSpec {
 	}
 }
 
-func bmmSecret() *capm3.Metal3MachineSpec {
+func bmmSecretSpec() *capm3.Metal3MachineSpec {
 	return &capm3.Metal3MachineSpec{
+		UserData: &corev1.SecretReference{
+			Name:      "mybmmachine-user-data",
+			Namespace: "myns",
+		},
+	}
+}
+
+func bmmSecretStatus() *capm3.Metal3MachineStatus {
+	return &capm3.Metal3MachineStatus{
 		UserData: &corev1.SecretReference{
 			Name:      "mybmmachine-user-data",
 			Namespace: "myns",
@@ -1343,8 +1352,8 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			tmpBootstrapSecret := corev1.Secret{}
 			key := client.ObjectKey{
-				Name:      tc.BMMachine.Spec.UserData.Name,
-				Namespace: tc.BMMachine.Spec.UserData.Namespace,
+				Name:      tc.BMMachine.Status.UserData.Name,
+				Namespace: tc.BMMachine.Status.UserData.Namespace,
 			}
 			err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
 			if tc.ExpectSecretDeleted {
@@ -1401,7 +1410,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				bmh.StateProvisioned, bmhStatus(), false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
@@ -1413,7 +1422,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				nil, false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
@@ -1425,7 +1434,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1436,7 +1445,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				bmh.StateDeprovisioning, bmhStatus(), false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
@@ -1448,7 +1457,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				bmh.StateExternallyProvisioned, bmhPowerStatus(), true, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
@@ -1461,7 +1470,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					bmh.StateExternallyProvisioned, bmhPowerStatus(), false, false,
 				),
 				Machine: newMachine("mymachine", "", nil),
-				BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+				BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				Secret:              newSecret(),
@@ -1473,7 +1482,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				bmhStatus(), false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1484,7 +1493,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				bmhStatus(), false, false,
 			),
 			Machine: newMachine("mymachine", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1504,7 +1513,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret: newSecret(),
@@ -1515,7 +1524,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					bmh.StateProvisioned, bmhStatus(), false, false,
 				),
 				Machine: newMachine("", "", nil),
-				BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+				BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				ExpectedConsumerRef: consumerRefSome(),
@@ -1525,7 +1534,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("No consumer ref, so this is a no-op", testCaseDelete{
 			Host:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 			Machine: newMachine("", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1534,7 +1543,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("No host at all, so this is a no-op", testCaseDelete{
 			Host:    nil,
 			Machine: newMachine("", "", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1554,7 +1563,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+			BMMachine: newMetal3Machine("mybmmachine", nil, nil, bmmSecretStatus(),
 				bmmObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1562,7 +1571,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Clusterlabel should be removed", testCaseDelete{
 			Machine:                   newMachine("mymachine", "mybmmachine", nil),
-			BMMachine:                 newMetal3Machine("mybmmachine", nil, bmmSpecAll(), nil, bmmObjectMetaWithValidAnnotations()),
+			BMMachine:                 newMetal3Machine("mybmmachine", nil, bmmSpecAll(), bmmSecretStatus(), bmmObjectMetaWithValidAnnotations()),
 			Host:                      newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, true),
 			BMCSecret:                 newBMCSecret("mycredentials", true),
 			ExpectSecretDeleted:       true,
@@ -1570,7 +1579,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("PausedAnnotation/CAPM3 should be removed", testCaseDelete{
 			Machine:   newMachine("mymachine", "mybmmachine", nil),
-			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpecAll(), nil, bmmObjectMetaWithValidAnnotations()),
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSpecAll(), bmmSecretStatus(), bmmObjectMetaWithValidAnnotations()),
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
 				Spec:       *bmhSpecBMC(),
@@ -1587,7 +1596,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("No clusterLabel in BMH or BMC Secret so this is a no-op ", testCaseDelete{
 			Machine:                   newMachine("mymachine", "mybmmachine", nil),
-			BMMachine:                 newMetal3Machine("mybmmachine", nil, bmmSpecAll(), nil, bmmObjectMetaWithValidAnnotations()),
+			BMMachine:                 newMetal3Machine("mybmmachine", nil, bmmSpecAll(), bmmSecretStatus(), bmmObjectMetaWithValidAnnotations()),
 			Host:                      newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, false),
 			BMCSecret:                 newBMCSecret("mycredentials", false),
 			ExpectSecretDeleted:       true,
@@ -2017,10 +2026,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			// Expect the reference to the secret to be passed through
 			if tc.Machine.Spec.Bootstrap.DataSecretName != nil &&
 				tc.Machine.Namespace == tc.BMHost.Namespace {
-				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
+				Expect(tc.BMMachine.Status.UserData.Name).To(Equal(
 					*tc.Machine.Spec.Bootstrap.DataSecretName,
 				))
-				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
+				Expect(tc.BMMachine.Status.UserData.Namespace).To(Equal(
 					tc.BMHost.Namespace,
 				))
 			}
@@ -2030,15 +2039,15 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.Machine.Spec.Bootstrap.DataSecretName == nil &&
 				tc.Machine.Spec.Bootstrap.Data != nil {
 
-				Expect(tc.BMMachine.Spec.UserData.Name).To(Equal(
+				Expect(tc.BMMachine.Status.UserData.Name).To(Equal(
 					tc.BMMachine.Name + "-user-data",
 				))
-				Expect(tc.BMMachine.Spec.UserData.Namespace).To(Equal(
+				Expect(tc.BMMachine.Status.UserData.Namespace).To(Equal(
 					tc.BMMachine.Namespace,
 				))
 				tmpBootstrapSecret := corev1.Secret{}
 				key := client.ObjectKey{
-					Name:      tc.BMMachine.Spec.UserData.Name,
+					Name:      tc.BMMachine.Status.UserData.Name,
 					Namespace: tc.BMMachine.Namespace,
 				}
 				err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
@@ -2649,6 +2658,12 @@ func newConfig(UserDataNamespace string,
 			HostSelector: capm3.HostSelector{
 				MatchLabels:      labels,
 				MatchExpressions: reqs,
+			},
+		},
+		Status: capm3.Metal3MachineStatus{
+			UserData: &corev1.SecretReference{
+				Name:      testUserDataSecretName,
+				Namespace: UserDataNamespace,
 			},
 		},
 	}
