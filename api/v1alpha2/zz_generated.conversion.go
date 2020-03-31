@@ -519,6 +519,10 @@ func autoConvert_v1alpha4_Metal3MachineStatus_To_v1alpha2_Metal3MachineStatus(in
 	out.Addresses = *(*apiv1alpha2.MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
 	out.Ready = in.Ready
+	// WARNING: in.UserData requires manual conversion: does not exist in peer-type
+	// WARNING: in.RenderedData requires manual conversion: does not exist in peer-type
+	// WARNING: in.MetaData requires manual conversion: does not exist in peer-type
+	// WARNING: in.NetworkData requires manual conversion: does not exist in peer-type
 	return nil
 }
 

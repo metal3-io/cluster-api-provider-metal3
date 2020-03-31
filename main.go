@@ -266,4 +266,9 @@ func setupWebhooks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Metadata")
 		os.Exit(1)
 	}
+
+	if err := (&infrav1.Metal3Data{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Metadata")
+		os.Exit(1)
+	}
 }

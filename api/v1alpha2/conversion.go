@@ -79,6 +79,10 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.MetaData = restored.Spec.MetaData
 	dst.Spec.NetworkData = restored.Spec.NetworkData
 	dst.Spec.DataTemplate = restored.Spec.DataTemplate
+	dst.Status.UserData = restored.Status.UserData
+	dst.Status.MetaData = restored.Status.MetaData
+	dst.Status.NetworkData = restored.Status.NetworkData
+	dst.Status.RenderedData = restored.Status.RenderedData
 
 	return nil
 }

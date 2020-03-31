@@ -63,6 +63,10 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.MetaData = restored.Spec.MetaData
 	dst.Spec.NetworkData = restored.Spec.NetworkData
 	dst.Spec.DataTemplate = restored.Spec.DataTemplate
+	dst.Status.UserData = restored.Status.UserData
+	dst.Status.MetaData = restored.Status.MetaData
+	dst.Status.NetworkData = restored.Status.NetworkData
+	dst.Status.RenderedData = restored.Status.RenderedData
 
 	return nil
 }
@@ -140,6 +144,14 @@ func Convert_v1alpha4_Metal3MachineSpec_To_v1alpha3_Metal3MachineSpec(in *v1alph
 	}
 
 	// Discards unused ObjectMeta
+
+	return nil
+}
+
+func Convert_v1alpha4_Metal3MachineStatus_To_v1alpha3_Metal3MachineStatus(in *v1alpha4.Metal3MachineStatus, out *Metal3MachineStatus, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha4_Metal3MachineStatus_To_v1alpha3_Metal3MachineStatus(in, out, s); err != nil {
+		return err
+	}
 
 	return nil
 }
