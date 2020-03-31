@@ -22,7 +22,7 @@ A Cluster is a Cluster API core object representing a Kubernetes cluster.
 Example cluster:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: cluster
@@ -34,7 +34,7 @@ spec:
       cidrBlocks: ["192.168.0.0/18"]
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: Metal3Cluster
     name: bmcluster
   controlPlaneRef:
@@ -58,7 +58,7 @@ the cluster on Baremetal. It currently has two specification fields :
 Example metal3cluster :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: Metal3Cluster
 metadata:
   name: bmcluster
@@ -126,7 +126,7 @@ kubeadm.
 Example KubeadmConfig:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: controlplane-0
@@ -199,7 +199,7 @@ has a reference to a KubeadmConfig and a reference to a metal3machine.
 Example Machine:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: controlplane-0
@@ -210,11 +210,11 @@ spec:
   version: 1.16
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
     kind: Metal3Machine
     name: controlplane-0
 ```
@@ -326,7 +326,7 @@ spec:
 ### Metal3Machine example
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: Metal3Machine
 metadata:
   name: controlplane-0
@@ -352,7 +352,7 @@ Metal3MachineTemplate.
 Example MachineDeployment:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   name: md-0
@@ -375,11 +375,11 @@ spec:
       bootstrap:
         configRef:
           name: md-0
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
         kind: Metal3MachineTemplate
 ```
 
@@ -390,7 +390,7 @@ This contains a template to generate KubeadmConfig.
 Example KubeadmConfigTemplate:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
   name: md-0
@@ -432,7 +432,7 @@ The Metal3MachineTemplate contains the template to create Metal3Machine.
 Example Metal3MachineTemplate :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
 kind: Metal3MachineTemplate
 metadata:
   name: md-0
