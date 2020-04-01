@@ -34,7 +34,7 @@ const (
 // Metal3MachineSpec defines the desired state of Metal3Machine
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
-	// (baremetal:////<machinename>)
+	// (metal3://<bmh-uuid>)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
@@ -137,7 +137,7 @@ type Metal3MachineStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="ProviderID",type="string",JSONPath=".spec.providerID",description="Provider ID"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="metal3machine is Ready"
-// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this BMMachine belongs"
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this M3Machine belongs"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="metal3machine current phase"
 
 // Metal3Machine is the Schema for the metal3machines API

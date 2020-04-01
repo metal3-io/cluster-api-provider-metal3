@@ -73,7 +73,7 @@ spec:
 
 This object contains all information related to the control plane configuration.
 It references an **infrastructureTemplate** that must be a
-*BareMetalMachineTemplate* in this case.
+*Metal3MachineTemplate* in this case.
 
 For example:
 
@@ -81,14 +81,14 @@ For example:
 kind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 metadata:
-  name: bmcluster-controlplane
+  name: m3cluster-controlplane
 spec:
   replicas: 3
   version: v1.17.0
   infrastructureTemplate:
-    kind: BareMetalMachineTemplate
+    kind: Metal3MachineTemplate
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-    name: bmcluster-controlplane
+    name: m3cluster-controlplane
   kubeadmConfigSpec:
     initConfiguration:
       nodeRegistration:

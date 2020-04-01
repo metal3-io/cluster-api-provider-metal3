@@ -34,7 +34,7 @@ const (
 // Metal3MachineSpec defines the desired state of Metal3Machine
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
-	// (baremetal:////<machinename>)
+	// (metal3://<bmh-uuid>)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 

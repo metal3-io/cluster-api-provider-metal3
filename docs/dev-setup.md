@@ -34,10 +34,10 @@ dummy BareMetalHosts.
     make deploy-bmo-cr
 ```
 
-When a `BareMetalMachine` gets created, the provider looks for an available
+When a `Metal3Machine` gets created, the provider looks for an available
 `BareMetalHost` to claim and then sets it to be provisioned to fulfill the
-request expressed by the `BareMetalMachine`. Before creating a
-`BareMetalMachine`, we can create a dummy `BareMetalHost` object. There’s no
+request expressed by the `Metal3Machine`. Before creating a
+`Metal3Machine`, we can create a dummy `BareMetalHost` object. There’s no
 requirement to actually run the
 `baremetal-operator` to test the reconciliation logic of the provider.
 
@@ -72,4 +72,4 @@ make run
 
 You can follow the output on the console to see information about what the
 controller is doing. You can also proceed to create/update/delete
-`BareMetalMachines` and `BareMetalHosts` to test the controller logic.
+`Metal3Machines` and `BareMetalHosts` to test the controller logic.
