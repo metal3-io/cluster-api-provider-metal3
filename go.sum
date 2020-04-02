@@ -650,6 +650,7 @@ github.com/metal3-io/baremetal-operator v0.0.0-20200328061249-10eb5aa3e614 h1:JY
 github.com/metal3-io/baremetal-operator v0.0.0-20200330175051-726d1c09feda h1:4ovUmliaqMhFxdlFt65UVlK6KN072AJ8t5JfizN33z4=
 github.com/metal3-io/baremetal-operator v0.0.0-20200331215056-21b9a390c8ea h1:PC8OKS0wawwG6TXdDCi8bpItpeMWs82PlB2vLeuMJaI=
 github.com/metal3-io/baremetal-operator v0.0.0-20200401073356-be027301ef52 h1:P8sLUlz6ofGRGQ++v6QBuP5tRRQIint8fcGW8SDqLuY=
+github.com/metal3-io/baremetal-operator v0.0.0-20200402090456-e74a12112139 h1:xS5AGBtrcBNjLqiX4Mr/VIzMH+TliLghy7+t0GJkqxY=
 github.com/mholt/certmagic v0.6.2-0.20190624175158-6a42ef9fe8c2/go.mod h1:g4cOPxcjV0oFq3qwpjSA30LReKD8AoIfwAY9VvG35NY=
 github.com/mibk/dupl v1.0.0 h1:aZc3jqrF9n0tUHwHt/+jsRxA8cRgA0Gdl56M7W7PoqE=
 github.com/mibk/dupl v1.0.0/go.mod h1:pCr4pNxxIbFGvtyCOi0c7LVjmV6duhKWV+ex5vh38ME=
