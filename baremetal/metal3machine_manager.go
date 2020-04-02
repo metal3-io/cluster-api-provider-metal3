@@ -739,6 +739,13 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 		default:
 			continue
 		}
+		// continue if BaremetalHost is paused
+		annotations := host.GetAnnotations()
+		if annotations != nil {
+			if _, ok := annotations[bmh.PausedAnnotation]; ok {
+				continue
+			}
+		}
 		if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
 			m.Log.Info("Host matched hostSelector for Metal3Machine", "host", host.Name)
 			availableHosts = append(availableHosts, &hosts.Items[i])
