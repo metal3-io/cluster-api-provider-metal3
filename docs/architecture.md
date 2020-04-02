@@ -3,12 +3,12 @@
 ## Introduction
 
 The ```cluster-api-provider-metal3 (CAPM3)``` is one of the controllers
-involved in managing the life cycle of kubernetes clusters on Bare Metal
+involved in managing the life cycle of kubernetes clusters on Metal3
 Machines. This document describes the components involved and their roles. It
 also discusses the flow of information from one CR to another with the help of
 the controllers. As to avoid ambiguity, we will refer to the physical or virtual
 machines managed by the controllers as Bare Metal Servers. And, the kubernetes
-resources (CRs) representing them as Bare Metal Machines (BMM).
+resources (CRs) representing them as Metal3 Machines (M3M).
 
 ## Components
 
@@ -33,8 +33,8 @@ Similarly, it watches `Cluster` CR and makes changes on a related
 `Metal3Cluster` CR.
 
 The left most components, BMO controller and BareMetalHost(BMH) CR, are the
-closest to the Bare Metal Server. If one wants to changes the state of a Bare
-Metal Machine, they modify the BMH CR. Upon change to the BMH, BMO interacts
+closest to the Bare Metal Server. If one wants to changes the state of a Metal3
+Machine, they modify the BMH CR. Upon change to the BMH, BMO interacts
 with Ironic to make changes on the Bare Metal Server.
 
 During the initial introspection and state changes, the above logic works in the
@@ -438,7 +438,7 @@ multiple CRs with the help of controllers.
 
 ```apiEndpoint:``` IP:Port of a load balancer (keepalived VIP)
 
-```image:``` OS image for the Bare Metal Machine
+```image:``` OS image for the Metal3 Machine
 
 The following fields are used to make a relationship between CRs.
 

@@ -38,7 +38,7 @@ COMPONENTS_CERT_MANAGER_GENERATED_FILE=${OUTPUT_DIR}/cert-manager.yaml
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/core-components.yaml
 COMPONENTS_KUBEADM_GENERATED_FILE=${SOURCE_DIR}/provider-components/bootstrap-components.yaml
 COMPONENTS_CTRLPLANE_GENERATED_FILE=${SOURCE_DIR}/provider-components/ctlplane-components.yaml
-COMPONENTS_BAREMETAL_GENERATED_FILE=${SOURCE_DIR}/provider-components/infrastructure-components.yaml
+COMPONENTS_METAL3_GENERATED_FILE=${SOURCE_DIR}/provider-components/infrastructure-components.yaml
 
 PROVIDER_COMPONENTS_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
@@ -54,7 +54,7 @@ SCRIPT=$(basename "$0")
 while test $# -gt 0; do
         case "$1" in
           -h|--help)
-            echo "$SCRIPT - generates input yaml files for Cluster API on baremetal"
+            echo "$SCRIPT - generates input yaml files for Cluster API on metal3"
             echo " "
             echo "$SCRIPT [options]"
             echo " "
@@ -119,9 +119,9 @@ echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 kustomize build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/?ref=master" > "${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 
-# Generate BAREMETAL Infrastructure Provider components file.
-kustomize build "${SOURCE_DIR}/../config" | envsubst > "${COMPONENTS_BAREMETAL_GENERATED_FILE}"
-echo "Generated ${COMPONENTS_BAREMETAL_GENERATED_FILE}"
+# Generate METAL3 Infrastructure Provider components file.
+kustomize build "${SOURCE_DIR}/../config" | envsubst > "${COMPONENTS_METAL3_GENERATED_FILE}"
+echo "Generated ${COMPONENTS_METAL3_GENERATED_FILE}"
 
 # Generate a single provider components file.
 kustomize build "${SOURCE_DIR}/provider-components" | envsubst > "${PROVIDER_COMPONENTS_GENERATED_FILE}"

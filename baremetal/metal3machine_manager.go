@@ -50,8 +50,8 @@ import (
 
 const (
 	// ProviderName is exported
-	ProviderName = "baremetal"
-	// HostAnnotation is the key for an annotation that should go on a Machine to
+	ProviderName = "metal3"
+	// HostAnnotation is the key for an annotation that should go on a Metal3Machine to
 	// reference what BareMetalHost it corresponds to.
 	HostAnnotation      = "metal3.io/BareMetalHost"
 	requeueAfter        = time.Second * 30
@@ -127,7 +127,7 @@ func (m *MachineManager) UnsetFinalizer() {
 	)
 }
 
-// IsProvisioned checks if the machine is provisioned
+// IsProvisioned checks if the metal3machine is provisioned
 func (m *MachineManager) IsProvisioned() bool {
 	if m.Metal3Machine.Spec.ProviderID != nil && m.Metal3Machine.Status.Ready {
 		return true
@@ -432,9 +432,9 @@ func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHos
 	return nil
 }
 
-// Delete deletes a bare metal machine and is invoked by the Machine Controller
+// Delete deletes a metal3 machine and is invoked by the Machine Controller
 func (m *MachineManager) Delete(ctx context.Context) error {
-	m.Log.Info("Deleting bare metal machine", "metal3machine", m.Metal3Machine.Name)
+	m.Log.Info("Deleting metal3 machine", "metal3machine", m.Metal3Machine.Name)
 
 	// clear an error if one was previously set
 	m.clearError()
@@ -445,9 +445,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	}
 
 	if host != nil && host.Spec.ConsumerRef != nil {
-		// don't remove the ConsumerRef if it references some other bare metal machine
+		// don't remove the ConsumerRef if it references some other  metal3 machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
-			m.Log.Info("host already associated with another bare metal machine",
+			m.Log.Info("host already associated with another metal3 machine",
 				"host", host.Name)
 			// Remove the ownerreference to this machine, even if the consumer ref
 			// references another machine.
@@ -579,7 +579,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 	}
 
-	m.Log.Info("finished deleting bare metal machine")
+	m.Log.Info("finished deleting metal3 machine")
 	return nil
 }
 
@@ -628,18 +628,18 @@ func (m *MachineManager) Update(ctx context.Context) error {
 	return nil
 }
 
-// exists tests for the existence of a bare metal machine and is invoked by the Machine Controller
+// exists tests for the existence of a baremetalHost
 func (m *MachineManager) exists(ctx context.Context) (bool, error) {
-	m.Log.Info("Checking if machine exists.")
+	m.Log.Info("Checking if host exists.")
 	host, err := m.getHost(ctx)
 	if err != nil {
 		return false, err
 	}
 	if host == nil {
-		m.Log.Info("Machine does not exist.")
+		m.Log.Info("Host does not exist.")
 		return false, nil
 	}
-	m.Log.Info("Machine exists.")
+	m.Log.Info("Host exists.")
 	return true, nil
 }
 
@@ -677,8 +677,8 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 }
 
 // chooseHost iterates through known hosts and returns one that can be
-// associated with the bare metal machine. It searches all hosts in case one already has an
-// association with this bare metal machine.
+// associated with the metal3 machine. It searches all hosts in case one already has an
+// association with this metal3 machine.
 func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, error) {
 
 	// get list of BMH
@@ -753,7 +753,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 			m.Log.Info("Host did not match hostSelector for Metal3Machine", "host", host.Name)
 		}
 	}
-	m.Log.Info(fmt.Sprintf("%d hosts available while choosing host for bare metal machine", len(availableHosts)))
+	m.Log.Info(fmt.Sprintf("%d hosts available while choosing host for Metal3 machine", len(availableHosts)))
 	if len(availableHosts) == 0 {
 		return nil, nil
 	}
@@ -977,7 +977,7 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 // ClientGetter prototype
 type ClientGetter func(ctx context.Context, c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
 
-// SetNodeProviderID sets the bare metal provider ID on the kubernetes node
+// SetNodeProviderID sets the metal3 provider ID on the kubernetes node
 func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
 	if !m.Metal3Cluster.Spec.NoCloudProvider {
 		return nil
@@ -1015,7 +1015,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 	return nil
 }
 
-// SetProviderID sets the bare metal provider ID on the metal3machine
+// SetProviderID sets the metal3 provider ID on the metal3machine
 func (m *MachineManager) SetProviderID(providerID string) {
 	m.Metal3Machine.Spec.ProviderID = &providerID
 	m.Metal3Machine.Status.Ready = true

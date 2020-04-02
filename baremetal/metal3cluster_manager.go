@@ -44,7 +44,7 @@ type ClusterManagerInterface interface {
 	CountDescendants(context.Context) (int, error)
 }
 
-// ClusterManager is responsible for performing machine reconciliation
+// ClusterManager is responsible for performing metal3 cluster reconciliation
 type ClusterManager struct {
 	client client.Client
 
@@ -133,7 +133,7 @@ func (s *ClusterManager) Delete() error {
 	return nil
 }
 
-// UpdateClusterStatus updates a machine object's status.
+// UpdateClusterStatus updates a metal3Cluster object's status.
 func (s *ClusterManager) UpdateClusterStatus() error {
 
 	// Get APIEndpoints from  metal3Cluster Spec
@@ -152,17 +152,16 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	return nil
 }
 
-// setError sets the FailureMessage and FailureReason fields on the machine and logs
+// setError sets the FailureMessage and FailureReason fields on the metal3Cluster and logs
 // the message. It assumes the reason is invalid configuration, since that is
-// currently the only relevant MachineStatusError choice.
+// currently the only relevant Metal3ClusterStatusError choice.
 func (s *ClusterManager) setError(message string, reason capierrors.ClusterStatusError) {
 	s.Metal3Cluster.Status.FailureMessage = &message
 	s.Metal3Cluster.Status.FailureReason = &reason
 }
 
-// clearError removes the ErrorMessage from the machine's Status if set. Returns
-// nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
-// machine was updated.
+// clearError removes the ErrorMessage from the metal3Cluster Status if set. Returns
+// nil if ErrorMessage was already nil.
 func (s *ClusterManager) clearError() {
 	if s.Metal3Cluster.Status.FailureMessage != nil || s.Metal3Cluster.Status.FailureReason != nil {
 		s.Metal3Cluster.Status.FailureMessage = nil
