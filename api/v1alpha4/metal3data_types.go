@@ -35,16 +35,25 @@ type Metal3DataSpec struct {
 	Metal3Machine *corev1.ObjectReference `json:"metal3Machine,omitempty"`
 }
 
+// Metal3DataStatus defines the observed state of Metal3Data.
+type Metal3DataStatus struct {
+	Ready        bool    `json:"ready,omitempty"`
+	Error        bool    `json:"error,omitempty"`
+	ErrorMessage *string `json:"errorMessage,omitempty"`
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:path=metal3datas,scope=Namespaced,categories=cluster-api,shortName=m3d;m3data
 // +kubebuilder:storageversion
+// +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 // Metal3Data is the Schema for the metal3datas API
 type Metal3Data struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec Metal3DataSpec `json:"spec,omitempty"`
+	Spec   Metal3DataSpec   `json:"spec,omitempty"`
+	Status Metal3DataStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

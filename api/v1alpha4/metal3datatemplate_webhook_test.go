@@ -35,14 +35,11 @@ func TestMetal3DataTemplateDefault(t *testing.T) {
 }
 
 func TestMetal3DataTemplateValidation(t *testing.T) {
-	metadata := "abc: def\nname: worker-{{ getIndex }}"
 	valid := &Metal3DataTemplate{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "foo",
 		},
-		Spec: Metal3DataTemplateSpec{
-			MetaData: &metadata,
-		},
+		Spec: Metal3DataTemplateSpec{},
 	}
 
 	tests := []struct {
