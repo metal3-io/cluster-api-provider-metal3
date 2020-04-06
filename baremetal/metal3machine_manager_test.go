@@ -76,15 +76,6 @@ func bmmSpecAll() *capm3.Metal3MachineSpec {
 	}
 }
 
-func bmmSecretSpec() *capm3.Metal3MachineSpec {
-	return &capm3.Metal3MachineSpec{
-		UserData: &corev1.SecretReference{
-			Name:      "mybmmachine-user-data",
-			Namespace: "myns",
-		},
-	}
-}
-
 func bmmSecretStatus() *capm3.Metal3MachineStatus {
 	return &capm3.Metal3MachineStatus{
 		UserData: &corev1.SecretReference{

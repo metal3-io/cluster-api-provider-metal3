@@ -52,7 +52,8 @@ type Metal3MachineReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates;metal3datatemplates/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas;metal3datas/status,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -299,6 +300,12 @@ func (r *Metal3MachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).
 		Watches(
+			&source.Kind{Type: &capm3.Metal3Data{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.Metal3DataToMetal3Machines),
+			},
+		).
+		Watches(
 			&source.Kind{Type: &bmh.BareMetalHost{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.BareMetalHostToMetal3Machines),
@@ -389,6 +396,24 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 					NamespacedName: types.NamespacedName{
 						Name:      host.Spec.ConsumerRef.Name,
 						Namespace: host.Spec.ConsumerRef.Namespace,
+					},
+				},
+			}
+		}
+	}
+	return []ctrl.Request{}
+}
+
+// Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
+// Metal3Data and that Metal3Data references a Metal3Machine.
+func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObject) []ctrl.Request {
+	if m3d, ok := obj.Object.(*capm3.Metal3Data); ok {
+		if m3d.Spec.Metal3Machine != nil {
+			return []ctrl.Request{
+				ctrl.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      m3d.Spec.Metal3Machine.Name,
+						Namespace: m3d.Namespace,
 					},
 				},
 			}

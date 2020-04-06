@@ -48,42 +48,77 @@ kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-metadata
 spec:
-  metaData: |
-    ghi: abc
-    local-hostname: 'md-{{ index }}'
-  networkData: |
-    {
-        "links": [
-            {
-                "id": "enp1s0",
-                "type": "phy",
-                "ethernet_mac_address": "{{ '{{ bareMetalHostMACByName "eth0" }}' }}"
-            },
-            {
-                "id": "enp2s0",
-                "type": "phy",
-                "ethernet_mac_address": "{{ '{{ bareMetalHostMACByName "eth1" }}' }}"
-            }
-        ],
-        "networks": [
-            {
-                "id": "Provisioning",
-                "type": "ipv4_dhcp",
-                "link": "enp1s0"
-            },
-            {
-                "id": "Baremetal",
-                "type": "ipv4_dhcp",
-                "link": "enp2s0"
-            }
-        ],
-        "services": [
-            {
-                "type": "dns",
-                "address": "8.8.8.8"
-            }
-        ]
-    }
+  metaData:
+    - key: index_0_1
+      index:
+        offset: 0
+        step: 1
+    - key: index_3
+      index:
+        offset: 3
+    - key: index_5_2
+      index:
+        offset: 5
+        step: 2
+    - key: machine_name
+      objectName: machine
+    - key: metal3machine_name
+      objectName: metal3machine
+    - key: bmh_name
+      objectName: baremetalhost
+    - key: ip_1
+      ipAddress:
+        start: 192.168.0.10
+        end: 192.168.0.100
+        step: 2
+    - key: ip_2
+      ipAddress:
+        subnet: 192.168.1.0/24
+        step: 1
+    - key: ip6_1
+      ipAddress:
+        start: 2001::af:a
+        end: 2001::af:fff0
+        step: 2
+    - key: ip6_2
+      ipAddress:
+        subnet: 2001:AB::0/64
+        step: 1
+    - key: mac
+      fromHostInterface: eth0
+  networkData:
+    links:
+      - ethernet:
+          type: phy
+          id: enp1s0
+          macAddress:
+            fromHostInterface: eth0
+      - ethernet:
+          type: phy
+          id: enp2s0
+          macAddress:
+            fromHostInterface: eth1
+    networks:
+      - ipv4DHCP:
+          id: provisioning
+          link: enp1s0
+      - ipv4:
+          id: baremetal
+          link: enp2s0
+          ipAddress:
+            start: 192.168.111.100
+            end: 192.168.111.200
+            subnet: 192.168.111.0/24
+            step: 2
+          netmask: 24
+          routes:
+            - network: 0.0.0.0
+              netmask: 0
+              gateway: 192.168.111.1
+              services:
+                - dns: 8.8.8.8
+    services:
+      - dns: 8.8.8.8
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate

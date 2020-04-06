@@ -26,11 +26,6 @@ const (
 	DataTemplateFinalizer = "metal3datatemplate.infrastructure.cluster.x-k8s.io"
 )
 
-// MetaDataObjectName contains the object from which to fetch the name
-type MetaDataObjectName struct {
-	Object string `json:"object"`
-}
-
 // MetaDataIndex contains the information to render the index
 type MetaDataIndex struct {
 	Offset int `json:"offset,omitempty"`
@@ -42,34 +37,30 @@ type MetaDataIndex struct {
 // agnostic
 type MetaDataIPAddress struct {
 	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
-	Start string `json:"start,omitempty"`
+	Start *string `json:"start,omitempty"`
 	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
-	End string `json:"end,omitempty"`
+	End *string `json:"end,omitempty"`
 	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$))"
-	Subnet string `json:"subnet,omitempty"`
+	Subnet *string `json:"subnet,omitempty"`
 	// +kubebuilder:default=1
 	Step int `json:"step,omitempty"`
 }
 
-// HostNicToMac contains the nic name to get the MAC address
-type HostNicToMac struct {
-	Name string `json:"name"`
-}
-
 // MetaDataEntry represents a keyand value of the metadata
 type MetaDataEntry struct {
-	Key               string              `json:"key"`
-	String            string              `json:"string,omitempty"`
-	ObjectName        *MetaDataObjectName `json:"objectName,omitempty"`
-	Index             *MetaDataIndex      `json:"index,omitempty"`
-	IPAddress         *MetaDataIPAddress  `json:"ipAddress,omitempty"`
-	FromHostInterface *HostNicToMac       `json:"fromHostInterface,omitempty"`
+	Key    string  `json:"key"`
+	String *string `json:"string,omitempty"`
+	// +kubebuilder:validation.Enum=machine,metal3machine,baremetalhost
+	ObjectName        *string            `json:"objectName,omitempty"`
+	Index             *MetaDataIndex     `json:"index,omitempty"`
+	IPAddress         *MetaDataIPAddress `json:"ipAddress,omitempty"`
+	FromHostInterface *string            `json:"fromHostInterface,omitempty"`
 }
 
 // NetworkLinkEthernetMac represents the Mac address content
 type NetworkLinkEthernetMac struct {
-	String            string        `json:"string,omitempty"`
-	FromHostInterface *HostNicToMac `json:"fromHostInterface,omitempty"`
+	String            *string `json:"string,omitempty"`
+	FromHostInterface *string `json:"fromHostInterface,omitempty"`
 }
 
 // NetworkDataLinkEthernet represents an ethernet link object
@@ -86,8 +77,8 @@ type NetworkDataLinkEthernet struct {
 // NetworkDataLinkBond represents a bond link object
 type NetworkDataLinkBond struct {
 	// +kubebuilder:validation.Enum="802.1ad","balance-rr","active-backup","balance-xor","broadcast","balance-tlb","balance-alb"
-	BondMode *string `json:"bondMode"`
-	Id       string  `json:"id"`
+	BondMode string `json:"bondMode"`
+	Id       string `json:"id"`
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	MTU        int                     `json:"mtu,omitempty"`
@@ -117,40 +108,40 @@ type NetworkDataLink struct {
 // NetworkDataService represents a service object
 type NetworkDataService struct {
 	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
-	DNS string `json:"dns,omitempty"`
+	DNS *string `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev4 represents a service object
 type NetworkDataServicev4 struct {
 	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
-	DNS string `json:"dns,omitempty"`
+	DNS *string `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev6 represents a service object
 type NetworkDataServicev6 struct {
 	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-	DNS string `json:"dns,omitempty"`
+	DNS *string `json:"dns,omitempty"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object
 type NetworkDataRoutev4 struct {
 	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
-	Network string `json:"network,omitempty"`
+	Network string `json:"network"`
 	// +kubebuilder:validation:Maximum=32
 	Netmask int `json:"netmask"`
 	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
-	Gateway  string                 `json:"gateway,omitempty"`
+	Gateway  string                 `json:"gateway"`
 	Services []NetworkDataServicev4 `json:"services,omitempty"`
 }
 
 // NetworkDataRoutev6 represents an ipv6 route object
 type NetworkDataRoutev6 struct {
 	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-	Network string `json:"network,omitempty"`
+	Network string `json:"network"`
 	// +kubebuilder:validation:Maximum=128
 	Netmask int `json:"netmask"`
 	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-	Gateway  string                 `json:"gateway,omitempty"`
+	Gateway  string                 `json:"gateway"`
 	Services []NetworkDataServicev6 `json:"services,omitempty"`
 }
 
@@ -183,6 +174,7 @@ type NetworkDataIPv4 struct {
 	ID   string `json:"id"`
 	Link string `json:"link"`
 	// +kubebuilder:validation:Maximum=32
+	// +kubebuilder:default=24
 	Netmask   int                    `json:"netmask"`
 	IPAddress NetworkDataIPAddressv4 `json:"ipAddress"`
 	Routes    []NetworkDataRoutev4   `json:"routes,omitempty"`
@@ -231,7 +223,7 @@ type NetworkData struct {
 // Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
 type Metal3DataTemplateSpec struct {
 	MetaData    []MetaDataEntry `json:"metaData,omitempty"`
-	NetworkData []NetworkData   `json:"networkData,omitempty"`
+	NetworkData *NetworkData    `json:"networkData,omitempty"`
 }
 
 // Metal3DataTemplateSptatus defines the observed state of Metal3DataTemplate.
@@ -241,7 +233,10 @@ type Metal3DataTemplateStatus struct {
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	//Indexes contains the map of Metal3Machine and index used
-	Indexes map[string]int `json:"indexes,omitempty"`
+	Indexes map[string]string `json:"indexes,omitempty"`
+
+	//DataNames contains the map of Metal3Machine names and Metal3Data names
+	DataNames map[string]string `json:"dataNames,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

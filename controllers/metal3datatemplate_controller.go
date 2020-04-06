@@ -53,7 +53,7 @@ type Metal3DataTemplateReconciler struct {
 // Reconcile handles Metal3Machine events
 func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-metadata", req.NamespacedName)
+	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
 
 	// Fetch the Metal3DataTemplate instance.
 	capm3Metadata := &capm3.Metal3DataTemplate{}
@@ -120,19 +120,19 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 	// If the Metal3DataTemplate doesn't have finalizer, add it.
 	metadataMgr.SetFinalizer()
 
-	err := metadataMgr.RecreateStatus(ctx)
+	err := metadataMgr.RecreateStatusConditionally(ctx)
 	if err != nil {
 		return checkMetadataError(err, "Failed to recreate the status")
 	}
 
-	err = metadataMgr.DeleteSecrets(ctx)
+	err = metadataMgr.DeleteDatas(ctx)
 	if err != nil {
-		return checkMetadataError(err, "Failed to delete the old secrets")
+		return checkMetadataError(err, "Failed to delete the old data")
 	}
 
-	err = metadataMgr.CreateSecrets(ctx)
+	err = metadataMgr.CreateDatas(ctx)
 	if err != nil {
-		return checkMetadataError(err, "Failed to create the missing secrets")
+		return checkMetadataError(err, "Failed to create the missing data")
 	}
 
 	return ctrl.Result{}, nil
@@ -142,7 +142,7 @@ func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 	metadataMgr baremetal.DataTemplateManagerInterface,
 ) (ctrl.Result, error) {
 
-	err := metadataMgr.DeleteSecrets(ctx)
+	err := metadataMgr.DeleteDatas(ctx)
 	if err != nil {
 		return checkMetadataError(err, "Failed to delete the old secrets")
 	}

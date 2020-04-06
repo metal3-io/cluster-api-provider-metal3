@@ -199,11 +199,18 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		MachineManagerInterface
 
 	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.metal3metadata_manager.go \
-	  -source=./baremetal/metal3metadata_manager.go \
+	  -destination=./baremetal/mocks/zz_generated.metal3datatemplate_manager.go \
+	  -source=./baremetal/metal3datatemplate_manager.go \
 		-package=baremetal_mocks \
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
-		MetadataManagerInterface
+		DataTemplateManagerInterface
+
+	$(MOCKGEN) \
+	  -destination=./baremetal/mocks/zz_generated.metal3data_manager.go \
+	  -source=./baremetal/metal3data_manager.go \
+		-package=baremetal_mocks \
+		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
+		DataManagerInterface
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.

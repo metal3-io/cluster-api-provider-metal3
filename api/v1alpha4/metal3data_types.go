@@ -33,6 +33,7 @@ type Metal3DataSpec struct {
 	MetaData      *corev1.SecretReference `json:"metaData,omitempty"`
 	NetworkData   *corev1.SecretReference `json:"networkData,omitempty"`
 	Metal3Machine *corev1.ObjectReference `json:"metal3Machine,omitempty"`
+	DataTemplate  *corev1.ObjectReference `json:"dataTemplate,omitempty"`
 }
 
 // Metal3DataStatus defines the observed state of Metal3Data.

@@ -352,7 +352,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// Requeue to get the DataTemplate output. We need to requeue to trigger the
 	// wait on the Metal3DataTemplate
 	if m.Metal3Machine.Spec.DataTemplate != nil {
-		return &RequeueAfterError{}
+		return m.WaitForM3Metadata(ctx)
 	}
 
 	m.Log.Info("Finished creating machine")
@@ -421,13 +421,13 @@ func (m *MachineManager) createSecret(ctx context.Context, name string,
 
 	err := createSecret(m.client, ctx, name, namespace,
 		m.Machine.Spec.ClusterName,
-		metav1.OwnerReference{
+		[]metav1.OwnerReference{metav1.OwnerReference{
 			Controller: pointer.BoolPtr(true),
 			APIVersion: m.Metal3Machine.APIVersion,
 			Kind:       m.Metal3Machine.Kind,
 			Name:       m.Metal3Machine.Name,
 			UID:        m.Metal3Machine.UID,
-		}, content,
+		}}, content,
 	)
 
 	if err != nil {
@@ -487,9 +487,15 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
 			host.Spec.Image = nil
 			host.Spec.Online = false
-			host.Spec.UserData = nil
-			host.Spec.MetaData = nil
-			host.Spec.NetworkData = nil
+			if m.Metal3Machine.Status.UserData != nil {
+				host.Spec.UserData = nil
+			}
+			if m.Metal3Machine.Status.MetaData != nil {
+				host.Spec.MetaData = nil
+			}
+			if m.Metal3Machine.Status.NetworkData != nil {
+				host.Spec.NetworkData = nil
+			}
 
 			err = updateObject(m.client, ctx, host)
 			if err != nil && !apierrors.IsNotFound(err) {
@@ -1149,7 +1155,7 @@ func findOwnerRefFromList(refList []metav1.OwnerReference, objType metav1.TypeMe
 // RetrieveMetadata fetches the Metal3DataTemplate object and sets the
 // owner references
 func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
-	metal3DataTemplate, err := m.fetchM3Metadata(ctx)
+	metal3DataTemplate, err := m.fetchM3DataTemplate(ctx)
 	if err != nil {
 		return err
 	}
@@ -1178,7 +1184,14 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 // RetrieveMetadata fetches the Metal3DataTemplate object and sets the
 // owner references
 func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
-	metal3DataTemplate, err := m.fetchM3Metadata(ctx)
+	if m.Metal3Machine.Spec.MetaData != nil {
+		m.Metal3Machine.Status.MetaData = m.Metal3Machine.Spec.MetaData
+	}
+	if m.Metal3Machine.Spec.NetworkData != nil {
+		m.Metal3Machine.Status.NetworkData = m.Metal3Machine.Spec.NetworkData
+	}
+
+	metal3DataTemplate, err := m.fetchM3DataTemplate(ctx)
 	if err != nil {
 		return err
 	}
@@ -1186,35 +1199,43 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 		return nil
 	}
 
-	if m.Metal3Machine.Spec.MetaData == nil &&
-		metal3DataTemplate.Spec.MetaData != nil {
-		requeue := true
-		if metal3DataTemplate.Status.MetaDataSecrets != nil {
-			dataSecret, ok := metal3DataTemplate.Status.MetaDataSecrets[m.Metal3Machine.Name]
-			if ok && dataSecret.Name != "" {
-				m.Metal3Machine.Spec.MetaData = &dataSecret
-				requeue = false
+	metal3Data, err := m.fetchM3Data(ctx, metal3DataTemplate)
+	if err != nil {
+		return err
+	}
+	if metal3Data == nil {
+		return errors.New("Unexpected nil rendered data")
+	}
+	if !metal3Data.Status.Ready {
+		// Secret generation not ready
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+
+	if m.Metal3Machine.Status.MetaData == nil &&
+		metal3Data.Spec.MetaData != nil {
+		if metal3Data.Spec.MetaData.Name != "" {
+			namespace := metal3Data.Spec.MetaData.Namespace
+			if namespace == "" {
+				namespace = metal3Data.Namespace
 			}
-		}
-		if requeue {
-			m.Log.Info("Waiting for metadata secret generation")
-			return &RequeueAfterError{RequeueAfter: requeueAfter}
+			m.Metal3Machine.Status.MetaData = &corev1.SecretReference{
+				Name:      metal3Data.Spec.MetaData.Name,
+				Namespace: namespace,
+			}
 		}
 	}
 
-	if m.Metal3Machine.Spec.NetworkData == nil &&
-		metal3DataTemplate.Spec.NetworkData != nil {
-		requeue := true
-		if metal3DataTemplate.Status.NetworkDataSecrets != nil {
-			dataSecret, ok := metal3DataTemplate.Status.NetworkDataSecrets[m.Metal3Machine.Name]
-			if ok && dataSecret.Name != "" {
-				m.Metal3Machine.Spec.NetworkData = &dataSecret
-				requeue = false
+	if m.Metal3Machine.Status.NetworkData == nil &&
+		metal3Data.Spec.NetworkData != nil {
+		if metal3Data.Spec.NetworkData.Name != "" {
+			namespace := metal3Data.Spec.NetworkData.Namespace
+			if namespace == "" {
+				namespace = metal3Data.Namespace
 			}
-		}
-		if requeue {
-			m.Log.Info("Waiting for NetworkData secret generation")
-			return &RequeueAfterError{RequeueAfter: requeueAfter}
+			m.Metal3Machine.Status.NetworkData = &corev1.SecretReference{
+				Name:      metal3Data.Spec.NetworkData.Name,
+				Namespace: namespace,
+			}
 		}
 	}
 
@@ -1223,7 +1244,7 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 
 // remove machine from sORef of metadata, on failure requeue
 func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
-	metal3DataTemplate, err := m.fetchM3Metadata(ctx)
+	metal3DataTemplate, err := m.fetchM3DataTemplate(ctx)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
 			return err
@@ -1256,7 +1277,7 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 }
 
 // fetchMetadata fetches the Metal3DataTemplate object
-func (m *MachineManager) fetchM3Metadata(ctx context.Context) (*capm3.Metal3DataTemplate, error) {
+func (m *MachineManager) fetchM3DataTemplate(ctx context.Context) (*capm3.Metal3DataTemplate, error) {
 
 	if m.Metal3Machine.Spec.DataTemplate == nil {
 		return nil, nil
@@ -1291,6 +1312,45 @@ func (m *MachineManager) fetchM3Metadata(ctx context.Context) (*capm3.Metal3Data
 		}
 	}
 	return metal3DataTemplate, nil
+}
+
+func (m *MachineManager) fetchM3Data(ctx context.Context,
+	m3DataTemplate *capm3.Metal3DataTemplate,
+) (*capm3.Metal3Data, error) {
+	var m3Data *capm3.Metal3Data
+
+	if m.Metal3Machine.Status.RenderedData == nil {
+		if dataName, ok := m3DataTemplate.Status.DataNames[m.Metal3Machine.Name]; ok {
+			m.Metal3Machine.Status.RenderedData = &corev1.ObjectReference{
+				Name:      dataName,
+				Namespace: m3DataTemplate.Namespace,
+			}
+		}
+	}
+
+	if m.Metal3Machine.Status.RenderedData == nil {
+		return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	// Fetch the Metal3Data
+	m3Data = &capm3.Metal3Data{}
+	namespace := m.Metal3Machine.Status.RenderedData.Namespace
+	if namespace == "" {
+		namespace = m.Metal3Machine.Namespace
+	}
+	metal3DataName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      m.Metal3Machine.Status.RenderedData.Name,
+	}
+	if err := m.client.Get(ctx, metal3DataName, m3Data); err != nil {
+		if apierrors.IsNotFound(err) {
+			m.Log.Info("Rendered data not found, requeuing")
+			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+		} else {
+			err := errors.Wrap(err, "Failed to get metadata")
+			return nil, err
+		}
+	}
+	return m3Data, nil
 }
 
 // updateMetadata updates the Metal3DataTemplate object

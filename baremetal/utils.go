@@ -79,7 +79,7 @@ func createObject(cl client.Client, ctx context.Context, obj runtime.Object, opt
 
 func createSecret(cl client.Client, ctx context.Context, name string,
 	namespace string, clusterName string,
-	ownerRef metav1.OwnerReference, content map[string][]byte,
+	ownerRefs []metav1.OwnerReference, content map[string][]byte,
 ) error {
 	bootstrapSecret := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -92,20 +92,13 @@ func createSecret(cl client.Client, ctx context.Context, name string,
 			Labels: map[string]string{
 				capi.ClusterLabelName: clusterName,
 			},
-			OwnerReferences: []metav1.OwnerReference{
-				ownerRef,
-			},
+			OwnerReferences: ownerRefs,
 		},
 		Data: content,
 		Type: metal3SecretType,
 	}
 
-	tmpBootstrapSecret := corev1.Secret{}
-	key := client.ObjectKey{
-		Name:      name,
-		Namespace: namespace,
-	}
-	err := cl.Get(ctx, key, &tmpBootstrapSecret)
+	err := checkSecretExists(cl, ctx, name, namespace)
 	if err == nil {
 		// Update the secret with user data
 		return updateObject(cl, ctx, bootstrapSecret)
@@ -114,6 +107,17 @@ func createSecret(cl client.Client, ctx context.Context, name string,
 		return createObject(cl, ctx, bootstrapSecret)
 	}
 	return err
+}
+
+func checkSecretExists(cl client.Client, ctx context.Context, name string,
+	namespace string,
+) error {
+	tmpBootstrapSecret := corev1.Secret{}
+	key := client.ObjectKey{
+		Name:      name,
+		Namespace: namespace,
+	}
+	return cl.Get(ctx, key, &tmpBootstrapSecret)
 }
 
 func deleteSecret(cl client.Client, ctx context.Context, name string,
