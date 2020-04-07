@@ -48,65 +48,64 @@ metadata:
   name: ${CLUSTER_NAME}-cp-metadata
 spec:
   metaData:
-    - key: index_0_1
-      index:
+    strings:
+      - key: abc
+        value: def
+    indexes:
+      - key: index_0_1
         offset: 0
         step: 1
-    - key: index_3
-      index:
+      - key: index_3
         offset: 3
-    - key: index_5_2
-      index:
+      - key: index_5_2
         offset: 5
         step: 2
-    - key: machine_name
-      objectName: machine
-    - key: metal3machine_name
-      objectName: metal3machine
-    - key: bmh_name
-      objectName: baremetalhost
-    - key: ip_1
-      ipAddress:
+    objectNames:
+      - key: machine_name
+        object: machine
+      - key: metal3machine_name
+        object: metal3machine
+      - key: bmh_name
+        object: baremetalhost
+    ipAddresses:
+      - key: ip_1
         start: 192.168.0.10
         end: 192.168.0.100
         step: 2
-    - key: ip_2
-      ipAddress:
+      - key: ip_2
         subnet: 192.168.1.0/24
         step: 1
-    - key: ip6_1
-      ipAddress:
+      - key: ip6_1
         start: 2001::af:a
         end: 2001::af:fff0
         step: 2
-    - key: ip6_2
-      ipAddress:
+      - key: ip6_2
         subnet: 2001:AB::0/64
         step: 1
-    - key: mac
-      fromHostInterface: eth0
+    fromHostInterfaces:
+      - key: mac
+        interface: eth0
   networkData:
     links:
-      - ethernet:
-          type: phy
+      ethernets:
+        - type: phy
           id: enp1s0
           macAddress:
             fromHostInterface: eth0
-      - ethernet:
-          type: phy
+        - type: phy
           id: enp2s0
           macAddress:
             fromHostInterface: eth1
     networks:
-      - ipv4DHCP:
-          id: provisioning
+      ipv4DHCP:
+        - id: provisioning
           link: enp1s0
-      - ipv4:
-          id: baremetal
+      ipv4:
+        - id: baremetal
           link: enp2s0
           ipAddress:
-            start: 192.168.111.100
-            end: 192.168.111.200
+            start: 192.168.111.10
+            end: 192.168.111.99
             subnet: 192.168.111.0/24
             step: 2
           netmask: 24
@@ -115,6 +114,8 @@ spec:
               netmask: 0
               gateway: 192.168.111.1
               services:
-                - dns: 8.8.8.8
+                dns:
+                  - 8.8.4.4
     services:
-      - dns: 8.8.8.8
+      dns:
+        - 8.8.8.8

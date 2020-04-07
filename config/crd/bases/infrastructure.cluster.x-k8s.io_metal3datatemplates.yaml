@@ -48,27 +48,47 @@ spec:
             description: Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
             properties:
               metaData:
-                items:
-                  description: MetaDataEntry represents a keyand value of the metadata
-                  properties:
-                    fromHostInterface:
-                      type: string
-                    index:
+                description: MetaData represents a keyand value of the metadata
+                properties:
+                  fromHostInterfaces:
+                    items:
+                      description: MetaDataHostInterface contains the information
+                        to render the object name
+                      properties:
+                        interface:
+                          type: string
+                        key:
+                          type: string
+                      required:
+                      - interface
+                      - key
+                      type: object
+                    type: array
+                  indexes:
+                    items:
                       description: MetaDataIndex contains the information to render
                         the index
                       properties:
+                        key:
+                          type: string
                         offset:
                           type: integer
                         step:
                           default: 1
                           type: integer
+                      required:
+                      - key
                       type: object
-                    ipAddress:
+                    type: array
+                  ipAddresses:
+                    items:
                       description: MetaDataIPAddress contains the info to render th
                         ip address. It is IP-version agnostic
                       properties:
                         end:
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))
+                          type: string
+                        key:
                           type: string
                         start:
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))
@@ -79,25 +99,47 @@ spec:
                         subnet:
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$))
                           type: string
+                      required:
+                      - key
                       type: object
-                    key:
-                      type: string
-                    objectName:
-                      type: string
-                    string:
-                      type: string
-                  required:
-                  - key
-                  type: object
-                type: array
+                    type: array
+                  objectNames:
+                    items:
+                      description: MetaDataObjectName contains the information to
+                        render the object name
+                      properties:
+                        key:
+                          type: string
+                        object:
+                          type: string
+                      required:
+                      - key
+                      - object
+                      type: object
+                    type: array
+                  strings:
+                    items:
+                      description: MetaDataString contains the information to render
+                        the string
+                      properties:
+                        key:
+                          type: string
+                        value:
+                          type: string
+                      required:
+                      - key
+                      - value
+                      type: object
+                    type: array
+                type: object
               networkData:
                 description: NetworkData represents a networkData object
                 properties:
                   links:
-                    items:
-                      description: NetworkDataLink represents a link object
-                      properties:
-                        bond:
+                    description: NetworkDataLink represents a link object
+                    properties:
+                      bonds:
+                        items:
                           description: NetworkDataLinkBond represents a bond link
                             object
                           properties:
@@ -128,7 +170,9 @@ spec:
                           - id
                           - macAddress
                           type: object
-                        ethernet:
+                        type: array
+                      ethernets:
+                        items:
                           description: NetworkDataLinkEthernet represents an ethernet
                             link object
                           properties:
@@ -154,7 +198,9 @@ spec:
                           - macAddress
                           - type
                           type: object
-                        vlan:
+                        type: array
+                      vlans:
+                        items:
                           description: NetworkDataLinkVlan represents a vlan link
                             object
                           properties:
@@ -184,13 +230,13 @@ spec:
                           - vlanID
                           - vlanLink
                           type: object
-                      type: object
-                    type: array
+                        type: array
+                    type: object
                   networks:
-                    items:
-                      description: NetworkDataNetwork represents a network object
-                      properties:
-                        ipv4:
+                    description: NetworkDataNetwork represents a network object
+                    properties:
+                      ipv4:
+                        items:
                           description: NetworkDataIPv4 represents an ipv4 static network
                             object
                           properties:
@@ -234,15 +280,15 @@ spec:
                                     pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                     type: string
                                   services:
-                                    items:
-                                      description: NetworkDataServicev4 represents
-                                        a service object
-                                      properties:
-                                        dns:
+                                    description: NetworkDataServicev4 represents a
+                                      service object
+                                    properties:
+                                      dns:
+                                        items:
                                           pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                           type: string
-                                      type: object
-                                    type: array
+                                        type: array
+                                    type: object
                                 required:
                                 - gateway
                                 - netmask
@@ -255,7 +301,9 @@ spec:
                           - link
                           - netmask
                           type: object
-                        ipv4DHCP:
+                        type: array
+                      ipv4DHCP:
+                        items:
                           description: NetworkDataIPv4DHCP represents an ipv4 DHCP
                             network object
                           properties:
@@ -278,15 +326,15 @@ spec:
                                     pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                     type: string
                                   services:
-                                    items:
-                                      description: NetworkDataServicev4 represents
-                                        a service object
-                                      properties:
-                                        dns:
+                                    description: NetworkDataServicev4 represents a
+                                      service object
+                                    properties:
+                                      dns:
+                                        items:
                                           pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                           type: string
-                                      type: object
-                                    type: array
+                                        type: array
+                                    type: object
                                 required:
                                 - gateway
                                 - netmask
@@ -297,7 +345,9 @@ spec:
                           - id
                           - link
                           type: object
-                        ipv6:
+                        type: array
+                      ipv6:
+                        items:
                           description: NetworkDataIPv6 represents an ipv6 static network
                             object
                           properties:
@@ -340,15 +390,15 @@ spec:
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   services:
-                                    items:
-                                      description: NetworkDataServicev6 represents
-                                        a service object
-                                      properties:
-                                        dns:
+                                    description: NetworkDataServicev6 represents a
+                                      service object
+                                    properties:
+                                      dns:
+                                        items:
                                           pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                           type: string
-                                      type: object
-                                    type: array
+                                        type: array
+                                    type: object
                                 required:
                                 - gateway
                                 - netmask
@@ -361,7 +411,9 @@ spec:
                           - link
                           - netmask
                           type: object
-                        ipv6DHCP:
+                        type: array
+                      ipv6DHCP:
+                        items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
                             network object
                           properties:
@@ -384,15 +436,15 @@ spec:
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   services:
-                                    items:
-                                      description: NetworkDataServicev6 represents
-                                        a service object
-                                      properties:
-                                        dns:
+                                    description: NetworkDataServicev6 represents a
+                                      service object
+                                    properties:
+                                      dns:
+                                        items:
                                           pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                           type: string
-                                      type: object
-                                    type: array
+                                        type: array
+                                    type: object
                                 required:
                                 - gateway
                                 - netmask
@@ -403,7 +455,9 @@ spec:
                           - id
                           - link
                           type: object
-                        ipv6SLAAC:
+                        type: array
+                      ipv6SLAAC:
+                        items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
                             network object
                           properties:
@@ -426,15 +480,15 @@ spec:
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   services:
-                                    items:
-                                      description: NetworkDataServicev6 represents
-                                        a service object
-                                      properties:
-                                        dns:
+                                    description: NetworkDataServicev6 represents a
+                                      service object
+                                    properties:
+                                      dns:
+                                        items:
                                           pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                           type: string
-                                      type: object
-                                    type: array
+                                        type: array
+                                    type: object
                                 required:
                                 - gateway
                                 - netmask
@@ -445,17 +499,17 @@ spec:
                           - id
                           - link
                           type: object
-                      type: object
-                    type: array
+                        type: array
+                    type: object
                   services:
-                    items:
-                      description: NetworkDataService represents a service object
-                      properties:
-                        dns:
+                    description: NetworkDataService represents a service object
+                    properties:
+                      dns:
+                        items:
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))
                           type: string
-                      type: object
-                    type: array
+                        type: array
+                    type: object
                 type: object
             type: object
           status:

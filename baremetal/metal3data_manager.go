@@ -235,128 +235,122 @@ func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		"networks": []interface{}{},
 		"services": []interface{}{},
 	}
-	for _, link := range m3dt.Spec.NetworkData.Links {
-		if link.Ethernet != nil {
-			mac_address, err := getLinkMacAddress(link.Ethernet.MACAddress, bmh)
-			if err != nil {
-				return nil, err
-			}
-			networkData["links"] = append(networkData["links"], map[string]interface{}{
-				"type":                 link.Ethernet.Type,
-				"id":                   link.Ethernet.Id,
-				"mtu":                  link.Ethernet.MTU,
-				"ethernet_mac_address": mac_address,
-			})
+	for _, link := range m3dt.Spec.NetworkData.Links.Ethernets {
+		mac_address, err := getLinkMacAddress(link.MACAddress, bmh)
+		if err != nil {
+			return nil, err
 		}
-		if link.Bond != nil {
-			mac_address, err := getLinkMacAddress(link.Bond.MACAddress, bmh)
-			if err != nil {
-				return nil, err
-			}
-			networkData["links"] = append(networkData["links"], map[string]interface{}{
-				"type":                 "bond",
-				"id":                   link.Bond.Id,
-				"mtu":                  link.Bond.MTU,
-				"ethernet_mac_address": mac_address,
-				"bond_mode":            link.Bond.BondMode,
-				"bond_links":           link.Bond.BondLinks,
-			})
-		}
-		if link.Vlan != nil {
-			mac_address, err := getLinkMacAddress(link.Vlan.MACAddress, bmh)
-			if err != nil {
-				return nil, err
-			}
-			networkData["links"] = append(networkData["links"], map[string]interface{}{
-				"type":             "vlan",
-				"id":               link.Vlan.Id,
-				"mtu":              link.Vlan.MTU,
-				"vlan_mac_address": mac_address,
-				"vlan_id":          link.Vlan.VlanID,
-				"vlan_link":        link.Vlan.VlanLink,
-			})
-		}
+		networkData["links"] = append(networkData["links"], map[string]interface{}{
+			"type":                 link.Type,
+			"id":                   link.Id,
+			"mtu":                  link.MTU,
+			"ethernet_mac_address": mac_address,
+		})
 	}
-	for _, network := range m3dt.Spec.NetworkData.Networks {
-		if network.IPv4 != nil {
-			mask := translateMask(network.IPv4.Netmask, true)
-			ip, err := getIPAddress(&capm3.MetaDataIPAddress{
-				Start:  &network.IPv4.IPAddress.Start,
-				End:    &network.IPv4.IPAddress.End,
-				Subnet: &network.IPv4.IPAddress.Subnet,
-				Step:   network.IPv4.IPAddress.Step,
-			}, m3d.Spec.Index,
-			)
-			if err != nil {
-				return nil, err
-			}
-			routes := getRoutesv4(network.IPv4.Routes)
-			networkData["networks"] = append(networkData["networks"], map[string]interface{}{
-				"type":       "ipv4",
-				"id":         network.IPv4.ID,
-				"link":       network.IPv4.Link,
-				"netmask":    mask,
-				"ip_address": ip,
-				"routes":     routes,
-			})
+	for _, link := range m3dt.Spec.NetworkData.Links.Bonds {
+		mac_address, err := getLinkMacAddress(link.MACAddress, bmh)
+		if err != nil {
+			return nil, err
 		}
-		if network.IPv6 != nil {
-			mask := translateMask(network.IPv6.Netmask, false)
-			ip, err := getIPAddress(&capm3.MetaDataIPAddress{
-				Start:  &network.IPv6.IPAddress.Start,
-				End:    &network.IPv6.IPAddress.End,
-				Subnet: &network.IPv6.IPAddress.Subnet,
-				Step:   network.IPv6.IPAddress.Step,
-			}, m3d.Spec.Index,
-			)
-			if err != nil {
-				return nil, err
-			}
-			routes := getRoutesv6(network.IPv6.Routes)
-			networkData["networks"] = append(networkData["networks"], map[string]interface{}{
-				"type":       "ipv6",
-				"id":         network.IPv6.ID,
-				"link":       network.IPv6.Link,
-				"netmask":    mask,
-				"ip_address": ip,
-				"routes":     routes,
-			})
-		}
-		if network.IPv4DHCP != nil {
-			routes := getRoutesv4(network.IPv4DHCP.Routes)
-			networkData["networks"] = append(networkData["networks"], map[string]interface{}{
-				"type":   "ipv4_dhcp",
-				"id":     network.IPv4DHCP.ID,
-				"link":   network.IPv4DHCP.Link,
-				"routes": routes,
-			})
-		}
-		if network.IPv6DHCP != nil {
-			routes := getRoutesv6(network.IPv6DHCP.Routes)
-			networkData["networks"] = append(networkData["networks"], map[string]interface{}{
-				"type":   "ipv6_dhcp",
-				"id":     network.IPv6DHCP.ID,
-				"link":   network.IPv6DHCP.Link,
-				"routes": routes,
-			})
-		}
-		if network.IPv6SLAAC != nil {
-			routes := getRoutesv6(network.IPv6SLAAC.Routes)
-			networkData["networks"] = append(networkData["networks"], map[string]interface{}{
-				"type":   "ipv6_slaac",
-				"id":     network.IPv6SLAAC.ID,
-				"link":   network.IPv6SLAAC.Link,
-				"routes": routes,
-			})
-		}
+		networkData["links"] = append(networkData["links"], map[string]interface{}{
+			"type":                 "bond",
+			"id":                   link.Id,
+			"mtu":                  link.MTU,
+			"ethernet_mac_address": mac_address,
+			"bond_mode":            link.BondMode,
+			"bond_links":           link.BondLinks,
+		})
 	}
-	for _, service := range m3dt.Spec.NetworkData.Services {
-		if service.DNS != nil {
-			networkData["services"] = append(networkData["services"], map[string]string{
-				"type":    "dns",
-				"address": *service.DNS,
-			})
+	for _, link := range m3dt.Spec.NetworkData.Links.Vlans {
+		mac_address, err := getLinkMacAddress(link.MACAddress, bmh)
+		if err != nil {
+			return nil, err
 		}
+		networkData["links"] = append(networkData["links"], map[string]interface{}{
+			"type":             "vlan",
+			"id":               link.Id,
+			"mtu":              link.MTU,
+			"vlan_mac_address": mac_address,
+			"vlan_id":          link.VlanID,
+			"vlan_link":        link.VlanLink,
+		})
+	}
+	for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
+		mask := translateMask(network.Netmask, true)
+		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
+			Start:  &network.IPAddress.Start,
+			End:    &network.IPAddress.End,
+			Subnet: &network.IPAddress.Subnet,
+			Step:   network.IPAddress.Step,
+		}, m3d.Spec.Index,
+		)
+		if err != nil {
+			return nil, err
+		}
+		routes := getRoutesv4(network.Routes)
+		networkData["networks"] = append(networkData["networks"], map[string]interface{}{
+			"type":       "ipv4",
+			"id":         network.ID,
+			"link":       network.Link,
+			"netmask":    mask,
+			"ip_address": ip,
+			"routes":     routes,
+		})
+	}
+	for _, network := range m3dt.Spec.NetworkData.Networks.IPv6 {
+		mask := translateMask(network.Netmask, false)
+		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
+			Start:  &network.IPAddress.Start,
+			End:    &network.IPAddress.End,
+			Subnet: &network.IPAddress.Subnet,
+			Step:   network.IPAddress.Step,
+		}, m3d.Spec.Index,
+		)
+		if err != nil {
+			return nil, err
+		}
+		routes := getRoutesv6(network.Routes)
+		networkData["networks"] = append(networkData["networks"], map[string]interface{}{
+			"type":       "ipv6",
+			"id":         network.ID,
+			"link":       network.Link,
+			"netmask":    mask,
+			"ip_address": ip,
+			"routes":     routes,
+		})
+	}
+	for _, network := range m3dt.Spec.NetworkData.Networks.IPv4DHCP {
+		routes := getRoutesv4(network.Routes)
+		networkData["networks"] = append(networkData["networks"], map[string]interface{}{
+			"type":   "ipv4_dhcp",
+			"id":     network.ID,
+			"link":   network.Link,
+			"routes": routes,
+		})
+	}
+	for _, network := range m3dt.Spec.NetworkData.Networks.IPv6DHCP {
+		routes := getRoutesv6(network.Routes)
+		networkData["networks"] = append(networkData["networks"], map[string]interface{}{
+			"type":   "ipv6_dhcp",
+			"id":     network.ID,
+			"link":   network.Link,
+			"routes": routes,
+		})
+	}
+	for _, network := range m3dt.Spec.NetworkData.Networks.IPv6SLAAC {
+		routes := getRoutesv6(network.Routes)
+		networkData["networks"] = append(networkData["networks"], map[string]interface{}{
+			"type":   "ipv6_slaac",
+			"id":     network.ID,
+			"link":   network.Link,
+			"routes": routes,
+		})
+	}
+	for _, service := range m3dt.Spec.NetworkData.Services.DNS {
+		networkData["services"] = append(networkData["services"], map[string]string{
+			"type":    "dns",
+			"address": string(service),
+		})
 	}
 
 	return yaml.Marshal(networkData)
@@ -366,10 +360,10 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4) []interface{} {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
 		services := []map[string]string{}
-		for _, service := range route.Services {
+		for _, service := range route.Services.DNS {
 			services = append(services, map[string]string{
 				"type":    "dns",
-				"address": *service.DNS,
+				"address": string(service),
 			})
 		}
 		mask := translateMask(route.Netmask, true)
@@ -387,10 +381,10 @@ func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6) []interface{} {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
 		services := []map[string]string{}
-		for _, service := range route.Services {
+		for _, service := range route.Services.DNS {
 			services = append(services, map[string]string{
 				"type":    "dns",
-				"address": *service.DNS,
+				"address": string(service),
 			})
 		}
 		mask := translateMask(route.Netmask, true)
@@ -438,36 +432,37 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	}
 	metadata := make(map[string]string)
 	var err error
-	for _, entry := range m3dt.Spec.MetaData {
-		value := ""
-		if entry.FromHostInterface != nil {
-			value, err = getBMHMacByName(*entry.FromHostInterface, bmh)
-		}
-		if entry.IPAddress != nil {
-			value, err = getIPAddress(entry.IPAddress, m3d.Spec.Index)
-		}
-		if entry.Index != nil {
-			value = strconv.Itoa(entry.Index.Offset + m3d.Spec.Index*entry.Index.Step)
-		}
-		if entry.ObjectName != nil {
-			switch strings.ToLower(*entry.ObjectName) {
-			case "metal3machine":
-				value = m3m.Name
-			case "machine":
-				value = machine.Name
-			case "baremetalhost":
-				value = bmh.Name
-			default:
-				return nil, errors.New("Unknown object type")
-			}
-		}
-		if entry.String != nil {
-			value = *entry.String
-		}
+	for _, entry := range m3dt.Spec.MetaData.FromHostInterfaces {
+		value, err := getBMHMacByName(entry.Interface, bmh)
 		if err != nil {
 			return nil, err
 		}
 		metadata[entry.Key] = value
+	}
+	for _, entry := range m3dt.Spec.MetaData.IPAddresses {
+		value, err := getIPAddress(&entry, m3d.Spec.Index)
+		if err != nil {
+			return nil, err
+		}
+		metadata[entry.Key] = value
+	}
+	for _, entry := range m3dt.Spec.MetaData.Indexes {
+		metadata[entry.Key] = strconv.Itoa(entry.Offset + m3d.Spec.Index*entry.Step)
+	}
+	for _, entry := range m3dt.Spec.MetaData.ObjectNames {
+		switch strings.ToLower(entry.Object) {
+		case "metal3machine":
+			metadata[entry.Key] = m3m.Name
+		case "machine":
+			metadata[entry.Key] = machine.Name
+		case "baremetalhost":
+			metadata[entry.Key] = bmh.Name
+		default:
+			return nil, errors.New("Unknown object type")
+		}
+	}
+	for _, entry := range m3dt.Spec.MetaData.Strings {
+		metadata[entry.Key] = entry.Value
 	}
 	if err != nil {
 		return nil, err
