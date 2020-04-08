@@ -20,10 +20,8 @@ import (
 	"context"
 	"strconv"
 
-	// comment for go-lint
 	"github.com/go-logr/logr"
 
-	//bmo "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -75,7 +73,7 @@ func (m *DataTemplateManager) SetFinalizer() {
 
 // UnsetFinalizer unsets finalizer
 func (m *DataTemplateManager) UnsetFinalizer() {
-	// Cluster is deleted so remove the finalizer.
+	// Remove the finalizer.
 	m.DataTemplate.Finalizers = Filter(m.DataTemplate.Finalizers,
 		capm3.DataTemplateFinalizer,
 	)
@@ -83,6 +81,9 @@ func (m *DataTemplateManager) UnsetFinalizer() {
 
 // RecreateStatusConditionally recreates the status if empty
 func (m *DataTemplateManager) RecreateStatusConditionally(ctx context.Context) error {
+	// If the status is empty (lastUpdated not set), then either the object is new
+	// or has been moved. In both case, Recreating the status will set LastUpdated
+	// so we won't recreate afterwards.
 	if m.DataTemplate.Status.LastUpdated != nil {
 		return nil
 	}
@@ -93,10 +94,12 @@ func (m *DataTemplateManager) RecreateStatusConditionally(ctx context.Context) e
 func (m *DataTemplateManager) RecreateStatus(ctx context.Context) error {
 
 	m.Log.Info("Recreating the Metal3DataTemplate status")
+
+	//start from empty maps
 	m.DataTemplate.Status.Indexes = make(map[string]string)
 	m.DataTemplate.Status.DataNames = make(map[string]string)
 
-	// get list of BMH
+	// get list of Metal3Data objects
 	dataObjects := capm3.Metal3DataList{}
 	// without this ListOption, all namespaces would be including in the listing
 	opts := &client.ListOptions{
@@ -108,13 +111,19 @@ func (m *DataTemplateManager) RecreateStatus(ctx context.Context) error {
 		return err
 	}
 
+	// Iterate over the Metal3Data objects to find all indexes and objects
 	for _, dataObject := range dataObjects.Items {
+
+		// If DataTemplate does not point to this object, discard
 		if dataObject.Spec.DataTemplate == nil {
 			continue
 		}
 		if dataObject.Spec.DataTemplate.Name != m.DataTemplate.Name {
 			continue
 		}
+
+		// Get the machine Name, if unset use empty string, to still record the
+		// index being used, to avoid conflicts
 		machineName := ""
 		if dataObject.Spec.Metal3Machine != nil {
 			machineName = dataObject.Spec.Metal3Machine.Name
@@ -122,6 +131,7 @@ func (m *DataTemplateManager) RecreateStatus(ctx context.Context) error {
 		m.DataTemplate.Status.Indexes[strconv.Itoa(dataObject.Spec.Index)] = machineName
 		m.DataTemplate.Status.DataNames[machineName] = dataObject.Name
 	}
+
 	m.updateStatusTimestamp()
 	return nil
 }
@@ -135,16 +145,21 @@ func (m *DataTemplateManager) updateStatusTimestamp() {
 func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 	requeueNeeded := false
 
+	// Iterate over all ownerReferences
 	for _, curOwnerRef := range m.DataTemplate.ObjectMeta.OwnerReferences {
 		curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 		if err != nil {
 			return err
 		}
+
+		// If the owner is not a Metal3Machine of infrastructure.cluster.x-k8s.io
+		// then discard
 		if curOwnerRef.Kind != "Metal3Machine" ||
 			curOwnerRefGV.Group != capm3.GroupVersion.Group {
 			continue
 		}
 
+		// If the owner already has an entry, discard
 		if _, ok := m.DataTemplate.Status.DataNames[curOwnerRef.Name]; ok {
 			continue
 		}
@@ -152,7 +167,9 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 		m.Log.Info("Verifying the owner", "Metal3machine", curOwnerRef.Name)
 
 		// Verify that we have an owner ref machine that points to this DataTemplate
-		m3Machine, err := m.getM3Machine(m.client, ctx, curOwnerRef)
+		m3Machine, err := getM3Machine(ctx, m.client, m.Log,
+			curOwnerRef.Name, m.DataTemplate.Namespace, m.DataTemplate,
+		)
 		if err != nil {
 			return err
 		}
@@ -160,6 +177,7 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 			continue
 		}
 
+		// Get a new index for this machine
 		m.Log.Info("Getting index", "Metal3machine", curOwnerRef.Name)
 		machineIndexInt := len(m.DataTemplate.Status.Indexes)
 		// The length of the map might be smaller than the highest index stored,
@@ -172,6 +190,8 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 				}
 			}
 		}
+
+		// Set the index and Metal3Data names
 		machineIndex := strconv.Itoa(machineIndexInt)
 		dataName := m.DataTemplate.Name + "-" + machineIndex
 		m.DataTemplate.Status.Indexes[machineIndex] = curOwnerRef.Name
@@ -179,11 +199,14 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 
 		m.Log.Info("Index", "Metal3machine", curOwnerRef.Name, "index", machineIndex)
 
+		// Get the cluster name
 		clusterName, ok := m.DataTemplate.Labels[capi.ClusterLabelName]
 		if !ok {
 			return errors.New("No cluster name found on Metal3DataTemplate object")
 		}
 
+		// Create the Metal3Data object, with an Owner ref to the Metal3Machine
+		// (curOwnerRef) and to the Metal3DataTemplate
 		dataObject := &capm3.Metal3Data{
 			TypeMeta: metav1.TypeMeta{
 				Kind:       "Metal3Data",
@@ -218,6 +241,9 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 			},
 		}
 
+		// Create the Metal3Data object. If we get a conflict (that will set
+		// HasRequeueAfterError), then recreate the status because we are missing
+		// an index, then requeue to retrigger the reconciliation with the new state
 		if err := createObject(m.client, ctx, dataObject); err != nil {
 			if _, ok := errors.Cause(err).(HasRequeueAfterError); ok {
 				if err := m.RecreateStatus(ctx); err != nil {
@@ -237,62 +263,40 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 	return nil
 }
 
-func (m *DataTemplateManager) getM3Machine(cl client.Client, ctx context.Context,
-	curOwnerRef metav1.OwnerReference,
-) (*capm3.Metal3Machine, error) {
-	tmpM3Machine := &capm3.Metal3Machine{}
-	key := client.ObjectKey{
-		Name:      curOwnerRef.Name,
-		Namespace: m.DataTemplate.Namespace,
-	}
-	err := cl.Get(ctx, key, tmpM3Machine)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
-	}
-	if tmpM3Machine.Spec.DataTemplate == nil {
-		return nil, nil
-	}
-	if tmpM3Machine.Spec.DataTemplate.Name != m.DataTemplate.Name {
-		return nil, nil
-	}
-	if tmpM3Machine.Spec.DataTemplate.Namespace == "" &&
-		tmpM3Machine.Namespace != m.DataTemplate.Namespace {
-		return nil, nil
-	}
-	if tmpM3Machine.Spec.DataTemplate.Namespace != "" &&
-		tmpM3Machine.Spec.DataTemplate.Namespace != m.DataTemplate.Namespace {
-		return nil, nil
-	}
-	return tmpM3Machine, nil
-}
-
 // DeleteDatas deletes old secrets
 func (m *DataTemplateManager) DeleteDatas(ctx context.Context) error {
+
+	// Iterate over the Metal3Data objects
 	for machineName, dataName := range m.DataTemplate.Status.DataNames {
 		present := false
+		// Iterate over the owner Refs
 		for _, curOwnerRef := range m.DataTemplate.ObjectMeta.OwnerReferences {
 			curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 			if err != nil {
 				return err
 			}
+
+			// If the owner ref is not a Metal3Machine, discard
 			if curOwnerRef.Kind != "Metal3Machine" ||
 				curOwnerRefGV.Group != capm3.GroupVersion.Group {
 				continue
 			}
+
+			// If the names match, the Metal3Data should be preserved
 			if machineName == curOwnerRef.Name {
 				present = true
 				break
 			}
 		}
+
+		// Do not delete Metal3Data in use.
 		if present {
 			continue
 		}
+
 		m.Log.Info("Deleting Metal3data", "Metal3machine", machineName)
 
+		// Try to get the Metal3Data. if it succeeds, delete it
 		tmpM3Data := &capm3.Metal3Data{}
 		key := client.ObjectKey{
 			Name:      dataName,
@@ -323,6 +327,8 @@ func (m *DataTemplateManager) DeleteReady() (bool, error) {
 		if err != nil {
 			return false, err
 		}
+
+		// If we still have a Metal3Machine owning this, do not delete
 		if curOwnerRef.Kind == "Metal3Machine" ||
 			curOwnerRefGV.Group == capm3.GroupVersion.Group {
 			return false, nil

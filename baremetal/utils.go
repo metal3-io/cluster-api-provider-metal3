@@ -19,10 +19,16 @@ package baremetal
 import (
 	"context"
 
+	// comment for go-lint
+	"github.com/go-logr/logr"
+
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -146,4 +152,102 @@ func deleteSecret(cl client.Client, ctx context.Context, name string,
 		}
 	}
 	return nil
+}
+
+// fetchMetadata fetches the Metal3DataTemplate object
+func fetchM3DataTemplate(ctx context.Context,
+	templateRef *corev1.ObjectReference, cl client.Client, mLog logr.Logger,
+	clusterName string,
+) (*capm3.Metal3DataTemplate, error) {
+
+	// If the user did not specify a DataTemplate, just keep going
+	if templateRef == nil {
+		return nil, nil
+	}
+	if templateRef.Name == "" {
+		return nil, errors.New("Metadata name not set")
+	}
+
+	// Fetch the Metal3 metadata.
+	metal3DataTemplate := &capm3.Metal3DataTemplate{}
+	metal3DataTemplateName := types.NamespacedName{
+		Namespace: templateRef.Namespace,
+		Name:      templateRef.Name,
+	}
+	if err := cl.Get(ctx, metal3DataTemplateName, metal3DataTemplate); err != nil {
+		if apierrors.IsNotFound(err) {
+			mLog.Info("Metadata not found, requeuing")
+			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+		} else {
+			err := errors.Wrap(err, "Failed to get metadata")
+			return nil, err
+		}
+	}
+
+	// Verify that this Metal3Data belongs to the correct cluster
+	if clusterNameTest, ok := metal3DataTemplate.ObjectMeta.Labels[capi.ClusterLabelName]; ok {
+		if clusterNameTest != clusterName {
+			return nil, errors.New("Metal3DataTemplate associated with another cluster")
+		}
+	}
+
+	return metal3DataTemplate, nil
+}
+
+func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
+	name, namespace string,
+) (*capm3.Metal3Data, error) {
+	// Fetch the Metal3Data
+	m3Data := &capm3.Metal3Data{}
+	metal3DataName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	if err := cl.Get(ctx, metal3DataName, m3Data); err != nil {
+		if apierrors.IsNotFound(err) {
+			mLog.Info("Rendered data not found, requeuing")
+			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+		} else {
+			err := errors.Wrap(err, "Failed to get metadata")
+			return nil, err
+		}
+	}
+	return m3Data, nil
+}
+
+func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
+	name, namespace string, dataTemplate *capm3.Metal3DataTemplate,
+) (*capm3.Metal3Machine, error) {
+
+	// Get the Metal3Machine
+	tmpM3Machine := &capm3.Metal3Machine{}
+	key := client.ObjectKey{
+		Name:      name,
+		Namespace: namespace,
+	}
+	err := cl.Get(ctx, key, tmpM3Machine)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	// Verify that the Metal3Machine fulfills the conditions
+	if tmpM3Machine.Spec.DataTemplate == nil {
+		return nil, nil
+	}
+	if tmpM3Machine.Spec.DataTemplate.Name != dataTemplate.Name {
+		return nil, nil
+	}
+	if tmpM3Machine.Spec.DataTemplate.Namespace == "" &&
+		tmpM3Machine.Namespace != dataTemplate.Namespace {
+		return nil, nil
+	}
+	if tmpM3Machine.Spec.DataTemplate.Namespace != "" &&
+		tmpM3Machine.Spec.DataTemplate.Namespace != dataTemplate.Namespace {
+		return nil, nil
+	}
+	return tmpM3Machine, nil
 }
