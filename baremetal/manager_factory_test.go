@@ -55,14 +55,14 @@ var _ = Describe("Manager factory testing", func() {
 		Expect(err).To(HaveOccurred())
 	})
 
-	It("fails to return a cluster manager with nil bmcluster", func() {
+	It("fails to return a cluster manager with nil m3cluster", func() {
 		_, err := managerFactory.NewClusterManager(&capi.Cluster{}, nil,
 			clusterLog,
 		)
 		Expect(err).To(HaveOccurred())
 	})
 
-	It("returns a machine manager", func() {
+	It("returns a metal3 machine manager", func() {
 		_, err := managerFactory.NewMachineManager(&capi.Cluster{},
 			&capm3.Metal3Cluster{}, &capi.Machine{}, &capm3.Metal3Machine{},
 			clusterLog,

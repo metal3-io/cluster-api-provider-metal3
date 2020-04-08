@@ -3,12 +3,12 @@
 ## Introduction
 
 The ```cluster-api-provider-metal3 (CAPM3)``` is one of the controllers
-involved in managing the life cycle of kubernetes clusters on Bare Metal
+involved in managing the life cycle of kubernetes clusters on Metal3
 Machines. This document describes the components involved and their roles. It
 also discusses the flow of information from one CR to another with the help of
 the controllers. As to avoid ambiguity, we will refer to the physical or virtual
 machines managed by the controllers as Bare Metal Servers. And, the kubernetes
-resources (CRs) representing them as Bare Metal Machines (BMM).
+resources (CRs) representing them as Metal3 Machines (M3M).
 
 ## Components
 
@@ -33,8 +33,8 @@ Similarly, it watches `Cluster` CR and makes changes on a related
 `Metal3Cluster` CR.
 
 The left most components, BMO controller and BareMetalHost(BMH) CR, are the
-closest to the Bare Metal Server. If one wants to changes the state of a Bare
-Metal Machine, they modify the BMH CR. Upon change to the BMH, BMO interacts
+closest to the Bare Metal Server. If one wants to changes the state of a Metal3
+Machine, they modify the BMH CR. Upon change to the BMH, BMO interacts
 with Ironic to make changes on the Bare Metal Server.
 
 During the initial introspection and state changes, the above logic works in the
@@ -58,7 +58,7 @@ is performed on a specified number of fields on each CR. i.e. A controller
 Cluster, User provided Configuration
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: test1
@@ -70,7 +70,7 @@ spec:
       cidrBlocks: ["192.168.0.0/18"]
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: Metal3Cluster
     name: test1
 ```
@@ -78,7 +78,7 @@ spec:
 Cluster, after reconciliation
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
   name: test1
@@ -95,7 +95,7 @@ spec:
   |----------------------------------------------------------------------------|
   |# infrastructureRef comes from 'Metal3Cluster' and is added by 'CAPM3'   |
   | infrastructureRef:                                                         |
-  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2                      |
+  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4                      |
   |  kind: Metal3Cluster                                                    |
   |  name: test1                                                               |
   |-----------------------------------------------------------------------------
@@ -115,7 +115,7 @@ status:
 Metal3Cluster, User provided Configuration for
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3Cluster
 metadata:
   name: test1
@@ -127,7 +127,7 @@ spec:
 Metal3Cluster, after reconciliation
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3Cluster
 metadata:
   name: test1
@@ -135,7 +135,7 @@ metadata:
   |----------------------------------------------------------------------------|
   |# ownerReferences refers to the linked Cluster and is added by 'CAPM3'      |
   |ownerReferences:                                                            |
-  |- apiVersion: cluster.x-k8s.io/v1alpha2                                     |
+  |- apiVersion: cluster.x-k8s.io/v1alpha3                                     |
   |  kind: Cluster                                                             |
   |  name: test1                                                               |
   |  uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d                                 |
@@ -157,7 +157,7 @@ status:
 Machine, User provided Configuration
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   name: test1-controlplane-0
@@ -168,11 +168,11 @@ spec:
   version: v1.17.0
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: test1-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: Metal3Machine
     name: test1-controlplane-0
 ```
@@ -180,7 +180,7 @@ spec:
 Machine, after reconciliation
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha2
+apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Machine
 metadata:
   labels:
@@ -189,14 +189,14 @@ metadata:
   name: test1-controlplane-0
   namespace: metal3
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha2
+  - apiVersion: cluster.x-k8s.io/v1alpha3
     kind: Cluster
     name: test1
     uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d
 spec:
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
       kind: KubeadmConfig
       name: test1-controlplane-0
   |----------------------------------------------------------------------------|
@@ -204,7 +204,7 @@ spec:
   | data: <user data in Base64 format>                                         |
   |----------------------------------------------------------------------------|
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: Metal3Machine
     name: test1-controlplane-0
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
@@ -232,7 +232,7 @@ status:
 Metal3Machine, User provided Configuration
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3Machine
 metadata:
   name: test1-controlplane-0
@@ -245,14 +245,14 @@ spec:
 Metal3Machine, after reconciliation
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3Machine
 metadata:
   name: test1-controlplane-0
   namespace: metal3
   # ownerReferences refers to the linked Machine and is added by 'CAPM3'
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha2
+  - apiVersion: cluster.x-k8s.io/v1alpha3
     kind: Machine
     name: test1-controlplane-0
 spec:
@@ -315,7 +315,7 @@ spec:
   |----------------------------------------------------------------------------|
   |# consumerRef refers to the linked Metal3Machine is added by 'CAPM3'     |
   |consumerRef:                                                                |
-  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha2                      |
+  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4                      |
   |  kind: Metal3Machine                                                    |
   |  name: test1-controlplane-0                                                |
   |  namespace: metal3                                                         |
@@ -358,7 +358,7 @@ status:
 KubeadmConfig, user provided Configuration
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: test1-controlplane-0
@@ -376,13 +376,13 @@ spec:
 KubeadmConfig, after reconciliation
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha2
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfig
 metadata:
   name: test1-controlplane-0
   namespace: metal3
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha2
+  - apiVersion: cluster.x-k8s.io/v1alpha3
     kind: Machine
     name: test1-controlplane-0
 spec:
@@ -438,7 +438,7 @@ multiple CRs with the help of controllers.
 
 ```apiEndpoint:``` IP:Port of a load balancer (keepalived VIP)
 
-```image:``` OS image for the Bare Metal Machine
+```image:``` OS image for the Metal3 Machine
 
 The following fields are used to make a relationship between CRs.
 

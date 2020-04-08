@@ -18,6 +18,7 @@ package v1alpha4
 
 import (
 	"fmt"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -33,7 +34,7 @@ const (
 // Metal3MachineSpec defines the desired state of Metal3Machine
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
-	// (baremetal:////<machinename>)
+	// (metal3://<bmh-uuid>)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 

@@ -98,7 +98,7 @@ spec:
                         type: object
                       providerID:
                         description: ProviderID will be the Metal3 machine in ProviderID
-                          format (baremetal:////<machinename>)
+                          format (metal3://<bmh-uuid>)
                         type: string
                       userData:
                         description: UserData references the Secret that holds user
@@ -206,7 +206,7 @@ spec:
                         type: object
                       providerID:
                         description: ProviderID will be the Metal3 machine in ProviderID
-                          format (baremetal:////<machinename>)
+                          format (metal3://<bmh-uuid>)
                         type: string
                       userData:
                         description: UserData references the Secret that holds user
@@ -380,7 +380,7 @@ spec:
                         type: object
                       providerID:
                         description: ProviderID will be the Metal3 machine in ProviderID
-                          format (baremetal:////<machinename>)
+                          format (metal3://<bmh-uuid>)
                         type: string
                       userData:
                         description: UserData references the Secret that holds user

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha3 contains API Schema definitions for the baremetal v1alpha3 API group
+// Package v1alpha3 contains API Schema definitions for the metal3 v1alpha3 API group
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:defaulter-gen=TypeMeta

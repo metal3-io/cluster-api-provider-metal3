@@ -108,7 +108,7 @@ spec:
                 type: object
               providerID:
                 description: ProviderID will be the Metal3 machine in ProviderID format
-                  (baremetal:////<machinename>)
+                  (metal3://<bmh-uuid>)
                 type: string
               userData:
                 description: UserData references the Secret that holds user data needed
@@ -210,7 +210,7 @@ spec:
       jsonPath: .status.ready
       name: Ready
       type: string
-    - description: Cluster to which this BMMachine belongs
+    - description: Cluster to which this M3Machine belongs
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
@@ -287,7 +287,7 @@ spec:
                 type: object
               providerID:
                 description: ProviderID will be the Metal3 machine in ProviderID format
-                  (baremetal:////<machinename>)
+                  (metal3://<bmh-uuid>)
                 type: string
               userData:
                 description: UserData references the Secret that holds user data needed
@@ -531,7 +531,7 @@ spec:
                 type: object
               providerID:
                 description: ProviderID will be the Metal3 machine in ProviderID format
-                  (baremetal:////<machinename>)
+                  (metal3://<bmh-uuid>)
                 type: string
               userData:
                 description: UserData references the Secret that holds user data needed

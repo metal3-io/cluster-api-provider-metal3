@@ -2300,8 +2300,8 @@ var _ = Describe("Metal3Machine manager", func() {
 					bmmObjectMetaWithValidAnnotations(),
 				),
 				Host:           newBareMetalHost("", nil, bmh.StateNone, nil, false, false),
-				ExpectRequeue:  false,
-				ExpectOwnerRef: true,
+				ExpectRequeue:  true,
+				ExpectOwnerRef: false,
 			},
 		),
 		Entry("Associate machine, host nil, Metal3 machine spec set, requeue",
@@ -2357,6 +2357,71 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			Host: newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
+	)
+
+	DescribeTable("Test updateObj function, original object shall remain unchanged",
+		func(Host *bmh.BareMetalHost) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), Host)
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, nil, klogr.New())
+			Expect(err).NotTo(HaveOccurred())
+
+			tcHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      Host.Name,
+					Namespace: Host.Namespace,
+				},
+				&tcHost,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.updateObject(context.TODO(), Host)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      Host.Name,
+					Namespace: Host.Namespace,
+				},
+				Host,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tcHost.Status).To(Equal(Host.Status))
+			Expect(tcHost.ResourceVersion).NotTo(Equal(Host.ResourceVersion))
+		},
+		Entry("updateObj host",
+			newBareMetalHost("myhost-obj", nil, bmh.StateProvisioned, bmhPowerStatus(), true, true),
+		),
+		Entry("updateObj host next",
+			newBareMetalHost("myhost", nil, bmh.StateNone, bmhStatus(), false, false),
+		),
+	)
+
+	DescribeTable("Test createObj function",
+		func(BootstrapSecret *corev1.Secret, label bool) {
+			objects := []runtime.Object{}
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, nil, klogr.New())
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.createObject(context.TODO(), BootstrapSecret)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      BootstrapSecret.Name,
+					Namespace: BootstrapSecret.Namespace,
+				},
+				BootstrapSecret,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			baseSecret := newBMCSecret("mycredentials", label)
+			Expect(baseSecret.TypeMeta).To(Equal(BootstrapSecret.TypeMeta))
+			Expect(baseSecret.ObjectMeta.ResourceVersion).NotTo(Equal(BootstrapSecret.ObjectMeta.ResourceVersion))
+		},
+		Entry("createObj secret", newBMCSecret("mycredentials", true), true),
+		Entry("createObj secret next", newBMCSecret("mycredentials", false), false),
 	)
 
 	type testCaseFindOwnerRef struct {
