@@ -48,16 +48,24 @@ spec:
             description: Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
             properties:
               metaData:
-                description: MetaData represents a keyand value of the metadata
+                description: MetaData contains the information needed to generate
+                  the metadata secret
                 properties:
                   fromHostInterfaces:
+                    description: FromHostInterfaces is the list of metadata items
+                      to be rendered as MAC addresses of the host interfaces.
                     items:
                       description: MetaDataHostInterface contains the information
                         to render the object name
                       properties:
                         interface:
+                          description: Interface is the name of the interface in the
+                            BareMetalHost Status Hardware Details list of interfaces
+                            from which to fetch the MAC address.
                           type: string
                         key:
+                          description: Key is the metadata key when redendering this
+                            metadata element
                           type: string
                       required:
                       - interface
@@ -65,38 +73,58 @@ spec:
                       type: object
                     type: array
                   indexes:
+                    description: Indexes is the list of metadata items to be rendered
+                      from the index of the Metal3Data
                     items:
                       description: MetaDataIndex contains the information to render
                         the index
                       properties:
                         key:
+                          description: Key is the metadata key when redendering this
+                            metadata element
                           type: string
                         offset:
+                          description: Offset is the offset to apply to the index
+                            when rendering it
                           type: integer
                         step:
                           default: 1
+                          description: Step is the multiplier of the index
                           type: integer
                       required:
                       - key
                       type: object
                     type: array
                   ipAddresses:
+                    description: IPAddresses is the list of metadata items to be rendered
+                      as ip addresses.
                     items:
                       description: MetaDataIPAddress contains the info to render th
                         ip address. It is IP-version agnostic
                       properties:
                         end:
+                          description: End is the last IP address that can be rendered.
+                            It is used as a validation that the rendered IP is in
+                            bound.
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))
                           type: string
                         key:
+                          description: Key is the metadata key when redendering this
+                            metadata element
                           type: string
                         start:
+                          description: Start is the first ip address that can be rendered
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))
                           type: string
                         step:
                           default: 1
+                          description: Step is the step between the IP addresses rendered.
                           type: integer
                         subnet:
+                          description: Subnet is used to validate that the rendered
+                            IP is in bounds. In case the Start value is not given,
+                            it is derived from the subnet ip incremented by 1 (`192.168.0.1`
+                            for `192.168.0.0/24`)
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$))
                           type: string
                       required:
@@ -104,13 +132,23 @@ spec:
                       type: object
                     type: array
                   objectNames:
+                    description: ObjectNames is the list of metadata items to be rendered
+                      from the name of objects.
                     items:
                       description: MetaDataObjectName contains the information to
                         render the object name
                       properties:
                         key:
+                          description: Key is the metadata key when redendering this
+                            metadata element
                           type: string
                         object:
+                          description: Object is the type of the object from which
+                            we retrieve the name
+                          enum:
+                          - machine
+                          - metal3machine
+                          - baremetalhost
                           type: string
                       required:
                       - key
@@ -118,13 +156,18 @@ spec:
                       type: object
                     type: array
                   strings:
+                    description: Strings is the list of metadata items to be rendered
+                      from strings
                     items:
                       description: MetaDataString contains the information to render
                         the string
                       properties:
                         key:
+                          description: Key is the metadata key when redendering this
+                            metadata element
                           type: string
                         value:
+                          description: Value is the string to render.
                           type: string
                       required:
                       - key
@@ -133,35 +176,59 @@ spec:
                     type: array
                 type: object
               networkData:
-                description: NetworkData represents a networkData object
+                description: NetworkData contains the information needed to generate
+                  the networkdata secret
                 properties:
                   links:
-                    description: NetworkDataLink represents a link object
+                    description: Links is a structure containing lists of different
+                      types objects
                     properties:
                       bonds:
+                        description: Bonds contains a list of Bond links
                         items:
                           description: NetworkDataLinkBond represents a bond link
                             object
                           properties:
                             bondLinks:
+                              description: BondLinks is the list of links that are
+                                part of the bond.
                               items:
                                 type: string
                               type: array
                             bondMode:
+                              description: BondMode is the mode of bond used. It can
+                                be one of balance-rr, active-backup, balance-xor,
+                                broadcast, balance-tlb, balance-alb, 802.1ad
+                              enum:
+                              - balance-rr
+                              - active-backup
+                              - balance-xor
+                              - broadcast
+                              - balance-tlb
+                              - balance-alb
+                              - 802.1ad
                               type: string
                             id:
+                              description: Id is the ID of the interface (used for
+                                naming)
                               type: string
                             macAddress:
-                              description: NetworkLinkEthernetMac represents the Mac
-                                address content
+                              description: MACAddress is the MAC address of the interface,
+                                containing the object used to render it.
                               properties:
                                 fromHostInterface:
+                                  description: FromHostInterface contains the name
+                                    of the interface in the BareMetalHost Introspection
+                                    details from which to fetch the MAC address
                                   type: string
                                 string:
+                                  description: String contains the MAC address given
+                                    as a string
                                   type: string
                               type: object
                             mtu:
                               default: 1500
+                              description: MTU is the MTU of the interface
                               maximum: 9000
                               type: integer
                           required:
@@ -172,26 +239,48 @@ spec:
                           type: object
                         type: array
                       ethernets:
+                        description: Ethernets contains a list of Ethernet links
                         items:
                           description: NetworkDataLinkEthernet represents an ethernet
                             link object
                           properties:
                             id:
+                              description: Id is the ID of the interface (used for
+                                naming)
                               type: string
                             macAddress:
-                              description: NetworkLinkEthernetMac represents the Mac
-                                address content
+                              description: MACAddress is the MAC address of the interface,
+                                containing the object used to render it.
                               properties:
                                 fromHostInterface:
+                                  description: FromHostInterface contains the name
+                                    of the interface in the BareMetalHost Introspection
+                                    details from which to fetch the MAC address
                                   type: string
                                 string:
+                                  description: String contains the MAC address given
+                                    as a string
                                   type: string
                               type: object
                             mtu:
                               default: 1500
+                              description: MTU is the MTU of the interface
                               maximum: 9000
                               type: integer
                             type:
+                              description: 'Type is the type of the ethernet link.
+                                It can be one of: bridge, dvs, hw_veb, hyperv, ovs,
+                                tap, vhostuser, vif, phy'
+                              enum:
+                              - bridge
+                              - dvs
+                              - hw_veb
+                              - hyperv
+                              - ovs
+                              - tap
+                              - vhostuser
+                              - vif
+                              - phy
                               type: string
                           required:
                           - id
@@ -200,29 +289,41 @@ spec:
                           type: object
                         type: array
                       vlans:
+                        description: Vlans contains a list of Vlan links
                         items:
                           description: NetworkDataLinkVlan represents a vlan link
                             object
                           properties:
                             id:
+                              description: Id is the ID of the interface (used for
+                                naming)
                               type: string
                             macAddress:
-                              description: NetworkLinkEthernetMac represents the Mac
-                                address content
+                              description: MACAddress is the MAC address of the interface,
+                                containing the object used to render it.
                               properties:
                                 fromHostInterface:
+                                  description: FromHostInterface contains the name
+                                    of the interface in the BareMetalHost Introspection
+                                    details from which to fetch the MAC address
                                   type: string
                                 string:
+                                  description: String contains the MAC address given
+                                    as a string
                                   type: string
                               type: object
                             mtu:
                               default: 1500
+                              description: MTU is the MTU of the interface
                               maximum: 9000
                               type: integer
                             vlanID:
+                              description: VlanID is the Vlan ID
                               maximum: 4096
                               type: integer
                             vlanLink:
+                              description: VlanLink is the name of the link on which
+                                the vlan should be added
                               type: string
                           required:
                           - id
@@ -233,58 +334,83 @@ spec:
                         type: array
                     type: object
                   networks:
-                    description: NetworkDataNetwork represents a network object
+                    description: Networks  is a structure containing lists of different
+                      types objects
                     properties:
                       ipv4:
+                        description: IPv4 contains a list of IPv4 static allocations
                         items:
                           description: NetworkDataIPv4 represents an ipv4 static network
                             object
                           properties:
                             id:
+                              description: ID is the network ID (name)
                               type: string
                             ipAddress:
-                              description: NetworkDataIPAddressv4 contains the info
-                                to render the ipv4 address.
+                              description: IPAddress contains the object to generate
+                                the IPv4 address
                               properties:
                                 end:
+                                  description: End is the last IPv4 address that can
+                                    be rendered. It is used as a validation that the
+                                    rendered IP is in bound.
                                   pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                   type: string
                                 start:
+                                  description: Start is the first ipv4 address that
+                                    can be rendered
                                   pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                   type: string
                                 step:
                                   default: 1
+                                  description: Step is the step between the IP addresses
+                                    rendered.
                                   type: integer
                                 subnet:
+                                  description: Subnet is used to validate that the
+                                    rendered IPv4 is in bounds. In case the Start
+                                    value is not given, it is derived from the subnet
+                                    ip incremented by 1 (`192.168.0.1` for `192.168.0.0/24`)
                                   pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$
                                   type: string
                               type: object
                             link:
+                              description: Link is the link on which the network applies
                               type: string
                             netmask:
                               default: 24
+                              description: Netmask is the network mask as integer
+                                (max 32, defaults to 24)
                               maximum: 32
                               type: integer
                             routes:
+                              description: Routes contains a list of IPv4 routes
                               items:
                                 description: NetworkDataRoutev4 represents an ipv4
                                   route object
                                 properties:
                                   gateway:
+                                    description: Gateway is the IPv4 address of the
+                                      gateway
                                     pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                     type: string
                                   netmask:
+                                    description: Netmask is the mask of the network
+                                      as integer (max 32)
                                     maximum: 32
                                     type: integer
                                   network:
+                                    description: Network is the IPv4 network address
                                     pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                     type: string
                                   services:
-                                    description: NetworkDataServicev4 represents a
-                                      service object
+                                    description: Services is a list of IPv4 services
                                     properties:
                                       dns:
+                                        description: DNS is a list of IPv4 DNS services
                                         items:
+                                          description: NetworkDataDNSServicev4 is
+                                            the ip address (IPv4) of a DNS server
                                           pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                           type: string
                                         type: array
@@ -303,34 +429,45 @@ spec:
                           type: object
                         type: array
                       ipv4DHCP:
+                        description: IPv4 contains a list of IPv4 DHCP allocations
                         items:
                           description: NetworkDataIPv4DHCP represents an ipv4 DHCP
                             network object
                           properties:
                             id:
+                              description: ID is the network ID (name)
                               type: string
                             link:
+                              description: Link is the link on which the network applies
                               type: string
                             routes:
+                              description: Routes contains a list of IPv4 routes
                               items:
                                 description: NetworkDataRoutev4 represents an ipv4
                                   route object
                                 properties:
                                   gateway:
+                                    description: Gateway is the IPv4 address of the
+                                      gateway
                                     pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                     type: string
                                   netmask:
+                                    description: Netmask is the mask of the network
+                                      as integer (max 32)
                                     maximum: 32
                                     type: integer
                                   network:
+                                    description: Network is the IPv4 network address
                                     pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                     type: string
                                   services:
-                                    description: NetworkDataServicev4 represents a
-                                      service object
+                                    description: Services is a list of IPv4 services
                                     properties:
                                       dns:
+                                        description: DNS is a list of IPv4 DNS services
                                         items:
+                                          description: NetworkDataDNSServicev4 is
+                                            the ip address (IPv4) of a DNS server
                                           pattern: ^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$
                                           type: string
                                         type: array
@@ -347,54 +484,78 @@ spec:
                           type: object
                         type: array
                       ipv6:
+                        description: IPv4 contains a list of IPv6 static allocations
                         items:
                           description: NetworkDataIPv6 represents an ipv6 static network
                             object
                           properties:
                             id:
+                              description: ID is the network ID (name)
                               type: string
                             ipAddress:
-                              description: NetworkDataIPAddressv6 contains the info
-                                to render the ipv6 address.
+                              description: IPAddress contains the object to generate
+                                the IPv6 address
                               properties:
                                 end:
+                                  description: End is the last IPv6 address that can
+                                    be rendered. It is used as a validation that the
+                                    rendered IP is in bound.
                                   pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                   type: string
                                 start:
+                                  description: Start is the first ipv6 address that
+                                    can be rendered
                                   pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                   type: string
                                 step:
                                   default: 1
+                                  description: Step is the step between the IP addresses
+                                    rendered.
                                   type: integer
                                 subnet:
+                                  description: Subnet is used to validate that the
+                                    rendered IPv6 is in bounds. In case the Start
+                                    value is not given, it is derived from the subnet
+                                    ip incremented by 1 (`2001::1` for `2001::0/64`)
                                   pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$
                                   type: string
                               type: object
                             link:
+                              description: Link is the link on which the network applies
                               type: string
                             netmask:
+                              description: Netmask is the network mask as integer
+                                (max 128)
                               maximum: 128
                               type: integer
                             routes:
+                              description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
                                   route object
                                 properties:
                                   gateway:
+                                    description: Gateway is the IPv6 address of the
+                                      gateway
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   netmask:
+                                    description: Netmask is the mask of the network
+                                      as integer (max 128)
                                     maximum: 128
                                     type: integer
                                   network:
+                                    description: Network is the IPv6 network address
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   services:
-                                    description: NetworkDataServicev6 represents a
-                                      service object
+                                    description: Services is a list of IPv6 services
                                     properties:
                                       dns:
+                                        description: DNS is a list of IPv6 DNS services
                                         items:
+                                          description: NetworkDataDNSServicev6 is
+                                            the ip address (IPv6) of a DNS server
                                           pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                           type: string
                                         type: array
@@ -413,34 +574,45 @@ spec:
                           type: object
                         type: array
                       ipv6DHCP:
+                        description: IPv4 contains a list of IPv6 DHCP allocations
                         items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
                             network object
                           properties:
                             id:
+                              description: ID is the network ID (name)
                               type: string
                             link:
+                              description: Link is the link on which the network applies
                               type: string
                             routes:
+                              description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
                                   route object
                                 properties:
                                   gateway:
+                                    description: Gateway is the IPv6 address of the
+                                      gateway
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   netmask:
+                                    description: Netmask is the mask of the network
+                                      as integer (max 128)
                                     maximum: 128
                                     type: integer
                                   network:
+                                    description: Network is the IPv6 network address
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   services:
-                                    description: NetworkDataServicev6 represents a
-                                      service object
+                                    description: Services is a list of IPv6 services
                                     properties:
                                       dns:
+                                        description: DNS is a list of IPv6 DNS services
                                         items:
+                                          description: NetworkDataDNSServicev6 is
+                                            the ip address (IPv6) of a DNS server
                                           pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                           type: string
                                         type: array
@@ -457,34 +629,45 @@ spec:
                           type: object
                         type: array
                       ipv6SLAAC:
+                        description: IPv4 contains a list of IPv6 SLAAC allocations
                         items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
                             network object
                           properties:
                             id:
+                              description: ID is the network ID (name)
                               type: string
                             link:
+                              description: Link is the link on which the network applies
                               type: string
                             routes:
+                              description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
                                   route object
                                 properties:
                                   gateway:
+                                    description: Gateway is the IPv6 address of the
+                                      gateway
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   netmask:
+                                    description: Netmask is the mask of the network
+                                      as integer (max 128)
                                     maximum: 128
                                     type: integer
                                   network:
+                                    description: Network is the IPv6 network address
                                     pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                     type: string
                                   services:
-                                    description: NetworkDataServicev6 represents a
-                                      service object
+                                    description: Services is a list of IPv6 services
                                     properties:
                                       dns:
+                                        description: DNS is a list of IPv6 DNS services
                                         items:
+                                          description: NetworkDataDNSServicev6 is
+                                            the ip address (IPv6) of a DNS server
                                           pattern: ^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$
                                           type: string
                                         type: array
@@ -502,10 +685,14 @@ spec:
                         type: array
                     type: object
                   services:
-                    description: NetworkDataService represents a service object
+                    description: Services  is a structure containing lists of different
+                      types objects
                     properties:
                       dns:
+                        description: DNS is a list of DNS services
                         items:
+                          description: NetworkDataDNSService is the ip address (version-agnostic)
+                            of a DNS server
                           pattern: ((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))
                           type: string
                         type: array

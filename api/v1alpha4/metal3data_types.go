@@ -29,17 +29,31 @@ const (
 
 // Metal3DataSpec defines the desired state of Metal3Data.
 type Metal3DataSpec struct {
-	Index         int                     `json:"index,omitempty"`
-	MetaData      *corev1.SecretReference `json:"metaData,omitempty"`
-	NetworkData   *corev1.SecretReference `json:"networkData,omitempty"`
+	// Index stores the index value of this instance in the Metal3DataTemplate.
+	Index int `json:"index,omitempty"`
+
+	// MetaData points to the rendered MetaData secret.
+	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
+
+	// NetworkData points to the rendered NetworkData secret.
+	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
+
+	// Metal3Machine points to the Metal3Machine the Metal3Data was created for.
 	Metal3Machine *corev1.ObjectReference `json:"metal3Machine,omitempty"`
-	DataTemplate  *corev1.ObjectReference `json:"dataTemplate,omitempty"`
+
+	// DataTemplate is the Metal3DataTemplate this was generated from.
+	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
 }
 
 // Metal3DataStatus defines the observed state of Metal3Data.
 type Metal3DataStatus struct {
-	Ready        bool    `json:"ready,omitempty"`
-	Error        bool    `json:"error,omitempty"`
+	// Ready is a flag set to True if the secrets were rendered properly
+	Ready bool `json:"ready,omitempty"`
+
+	// Error is a flag set to true if the secret rendering failed
+	Error bool `json:"error,omitempty"`
+
+	// ErrorMessage contains the error message
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 

@@ -505,7 +505,7 @@ spec:
                 type: object
               metaData:
                 description: MetaData is an object storing the reference to the secret
-                  containing the Metadata.
+                  containing the Metadata given by the user.
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a
@@ -518,7 +518,7 @@ spec:
                 type: object
               networkData:
                 description: NetworkData is an object storing the reference to the
-                  secret containing the network data.
+                  secret containing the network data given by the user.
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a
@@ -610,7 +610,7 @@ spec:
                 type: string
               metaData:
                 description: MetaData is an object storing the reference to the secret
-                  containing the Metadata.
+                  containing the Metadata used to deploy the BareMetalHost.
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a
@@ -623,7 +623,7 @@ spec:
                 type: object
               networkData:
                 description: NetworkData is an object storing the reference to the
-                  secret containing the network data.
+                  secret containing the network data used to deploy the BareMetalHost.
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a

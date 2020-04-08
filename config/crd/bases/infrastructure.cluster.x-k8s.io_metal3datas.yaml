@@ -42,8 +42,8 @@ spec:
             description: Metal3DataSpec defines the desired state of Metal3Data.
             properties:
               dataTemplate:
-                description: ObjectReference contains enough information to let you
-                  inspect or modify the referred object.
+                description: DataTemplate is the Metal3DataTemplate this was generated
+                  from.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -79,10 +79,11 @@ spec:
                     type: string
                 type: object
               index:
+                description: Index stores the index value of this instance in the
+                  Metal3DataTemplate.
                 type: integer
               metaData:
-                description: SecretReference represents a Secret Reference. It has
-                  enough information to retrieve secret in any namespace
+                description: MetaData points to the rendered MetaData secret.
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a
@@ -94,8 +95,8 @@ spec:
                     type: string
                 type: object
               metal3Machine:
-                description: ObjectReference contains enough information to let you
-                  inspect or modify the referred object.
+                description: Metal3Machine points to the Metal3Machine the Metal3Data
+                  was created for.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -131,8 +132,7 @@ spec:
                     type: string
                 type: object
               networkData:
-                description: SecretReference represents a Secret Reference. It has
-                  enough information to retrieve secret in any namespace
+                description: NetworkData points to the rendered NetworkData secret.
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a
@@ -148,10 +148,14 @@ spec:
             description: Metal3DataStatus defines the observed state of Metal3Data.
             properties:
               error:
+                description: Error is a flag set to true if the secret rendering failed
                 type: boolean
               errorMessage:
+                description: ErrorMessage contains the error message
                 type: string
               ready:
+                description: Ready is a flag set to True if the secrets were rendered
+                  properly
                 type: boolean
             type: object
         type: object

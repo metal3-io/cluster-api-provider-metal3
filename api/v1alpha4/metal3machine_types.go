@@ -56,11 +56,11 @@ type Metal3MachineSpec struct {
 	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
 
 	// MetaData is an object storing the reference to the secret containing the
-	// Metadata.
+	// Metadata given by the user.
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
 	// NetworkData is an object storing the reference to the secret containing the
-	// network data.
+	// network data given by the user.
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 }
 
@@ -152,11 +152,11 @@ type Metal3MachineStatus struct {
 	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
 
 	// MetaData is an object storing the reference to the secret containing the
-	// Metadata.
+	// Metadata used to deploy the BareMetalHost.
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
 	// NetworkData is an object storing the reference to the secret containing the
-	// network data.
+	// network data used to deploy the BareMetalHost.
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 }
 
