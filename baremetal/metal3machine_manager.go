@@ -872,14 +872,14 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		}
 
 		// Set metadata from gathering from Spec.metadata and from the template.
-		if m.Metal3Machine.Spec.MetaData != nil {
-			host.Spec.MetaData = m.Metal3Machine.Spec.MetaData
+		if m.Metal3Machine.Status.MetaData != nil {
+			host.Spec.MetaData = m.Metal3Machine.Status.MetaData
 		}
 		if host.Spec.MetaData != nil && host.Spec.MetaData.Namespace == "" {
 			host.Spec.MetaData.Namespace = m.Machine.Namespace
 		}
-		if m.Metal3Machine.Spec.NetworkData != nil {
-			host.Spec.NetworkData = m.Metal3Machine.Spec.NetworkData
+		if m.Metal3Machine.Status.NetworkData != nil {
+			host.Spec.NetworkData = m.Metal3Machine.Status.NetworkData
 		}
 		if host.Spec.NetworkData != nil && host.Spec.NetworkData.Namespace == "" {
 			host.Spec.NetworkData.Namespace = m.Machine.Namespace
