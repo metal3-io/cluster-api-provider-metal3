@@ -110,6 +110,9 @@ func (m *DataManager) setError(ctx context.Context, msg string) {
 func (m *DataManager) createSecrets(ctx context.Context) error {
 	var metaDataErr, networkDataErr error
 
+	if m.Data.Spec.DataTemplate == nil {
+		return nil
+	}
 	if m.Data.Spec.DataTemplate.Namespace == "" {
 		m.Data.Spec.DataTemplate.Namespace = m.Data.Namespace
 	}
@@ -121,7 +124,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return err
 	}
 	if m3dt == nil {
-		return errors.New("Metal3DataTemplate unset")
+		return nil
 	}
 	m.Log.Info("Fetched Metal3DataTemplate")
 

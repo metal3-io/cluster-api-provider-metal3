@@ -1203,6 +1203,9 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 		return nil
 	}
 
+	if m.Metal3Machine.Spec.DataTemplate == nil {
+		return nil
+	}
 	if m.Metal3Machine.Spec.DataTemplate.Namespace == "" {
 		m.Metal3Machine.Spec.DataTemplate.Namespace = m.Metal3Machine.Namespace
 	}
