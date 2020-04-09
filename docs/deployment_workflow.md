@@ -58,15 +58,15 @@ An outline of the workflow is below.
    Metal3DataTemplate object referencing the Metal3Machine and wait for the
    metadata and/or network data secrets to be created.
 1. The CAPM3 controller reconciling the Metal3DataTemplate object will select
-   the lowest available index for the new machine and render the metadata
-   template. It will then create the secrets containing the rendered data.
+   the lowest available index for the new machine and create a Metal3Data
+   object that will then create the secrets containing the rendered data.
 1. The CAPM3 controller will then set the BareMetalHost spec accordingly to the
    Metal3Machine specs.
 1. The BareMetal Operator will then start the deployment.
 1. After deployment, the BaremetalHost will be in provisioned state. However,
    initialization is not complete. If deploying without cloud provider, CAPM3
-   will wait until the target cluster is up and the node appears. It will fetch
-   the node by matching the label `metal3.io/uuid=<bmh-uuid>`. It will set the
+   can wait until the target cluster is up and the node appears, then fetch
+   the node by matching the label `metal3.io/uuid=<bmh-uuid>` and set the
    providerID to `metal3://<bmh-uuid>`. The Metal3Machine ready status will
    be set to true and the providerID will be set to `metal3://<bmh-uuid>` on the
    Metal3Machine.
