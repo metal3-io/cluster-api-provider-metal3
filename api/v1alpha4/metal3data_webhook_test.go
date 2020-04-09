@@ -60,10 +60,10 @@ func TestMetal3DataValidation(t *testing.T) {
 
 			if tt.expectErr {
 				g.Expect(tt.c.ValidateCreate()).NotTo(Succeed())
-				g.Expect(tt.c.ValidateUpdate(nil)).NotTo(Succeed())
+				g.Expect(tt.c.ValidateUpdate(&Metal3Data{})).NotTo(Succeed())
 			} else {
 				g.Expect(tt.c.ValidateCreate()).To(Succeed())
-				g.Expect(tt.c.ValidateUpdate(nil)).To(Succeed())
+				g.Expect(tt.c.ValidateUpdate(&Metal3Data{})).To(Succeed())
 			}
 		})
 	}
