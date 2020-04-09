@@ -535,7 +535,6 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		return nil, nil
 	}
 	metadata := make(map[string]string)
-	var err error
 
 	// Mac addresses
 	for _, entry := range m3dt.Spec.MetaData.FromHostInterfaces {
@@ -579,9 +578,6 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		metadata[entry.Key] = entry.Value
 	}
 
-	if err != nil {
-		return nil, err
-	}
 	return yaml.Marshal(metadata)
 }
 
