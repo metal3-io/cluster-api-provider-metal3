@@ -2375,7 +2375,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = machineMgr.updateObject(context.TODO(), Host)
+			err = updateObject(machineMgr.client, context.TODO(), Host)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = c.Get(context.TODO(),
@@ -2404,7 +2404,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			machineMgr, err := NewMachineManager(c, nil, nil, nil, nil, klogr.New())
 			Expect(err).NotTo(HaveOccurred())
 
-			err = machineMgr.createObject(context.TODO(), BootstrapSecret)
+			err = createObject(machineMgr.client, context.TODO(), BootstrapSecret)
 			Expect(err).NotTo(HaveOccurred())
 
 			err = c.Get(context.TODO(),

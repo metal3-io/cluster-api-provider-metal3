@@ -75,16 +75,16 @@ func (mr *MockDataManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockDataManagerInterface)(nil).UnsetFinalizer))
 }
 
-// CreateSecrets mocks base method
-func (m *MockDataManagerInterface) CreateSecrets(ctx context.Context) error {
+// Reconcile mocks base method
+func (m *MockDataManagerInterface) Reconcile(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSecrets", ctx)
+	ret := m.ctrl.Call(m, "Reconcile", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// CreateSecrets indicates an expected call of CreateSecrets
-func (mr *MockDataManagerInterfaceMockRecorder) CreateSecrets(ctx interface{}) *gomock.Call {
+// Reconcile indicates an expected call of Reconcile
+func (mr *MockDataManagerInterfaceMockRecorder) Reconcile(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSecrets", reflect.TypeOf((*MockDataManagerInterface)(nil).CreateSecrets), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reconcile", reflect.TypeOf((*MockDataManagerInterface)(nil).Reconcile), ctx)
 }

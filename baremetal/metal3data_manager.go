@@ -43,7 +43,7 @@ import (
 type DataManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
-	CreateSecrets(ctx context.Context) error
+	Reconcile(ctx context.Context) error
 }
 
 // DataManager is responsible for performing machine reconciliation
@@ -82,8 +82,32 @@ func (m *DataManager) UnsetFinalizer() {
 	)
 }
 
+func (m *DataManager) Reconcile(ctx context.Context) error {
+	m.clearError(ctx)
+
+	if err := m.createSecrets(ctx); err != nil {
+		if _, ok := errors.Cause(err).(HasRequeueAfterError); ok {
+			return err
+		}
+		m.setError(ctx, errors.Cause(err).Error())
+		return err
+	}
+
+	return nil
+}
+
+func (m *DataManager) clearError(ctx context.Context) {
+	m.Data.Status.Error = false
+	m.Data.Status.ErrorMessage = nil
+}
+
+func (m *DataManager) setError(ctx context.Context, msg string) {
+	m.Data.Status.Error = true
+	m.Data.Status.ErrorMessage = &msg
+}
+
 // CreateSecrets creates the secret if they do not exist.
-func (m *DataManager) CreateSecrets(ctx context.Context) error {
+func (m *DataManager) createSecrets(ctx context.Context) error {
 	var metaDataErr, networkDataErr error
 
 	// Fetch the Metal3DataTemplate object to get the templates

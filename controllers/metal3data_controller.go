@@ -119,7 +119,7 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 	// If the Metal3Data doesn't have finalizer, add it.
 	metadataMgr.SetFinalizer()
 
-	err := metadataMgr.CreateSecrets(ctx)
+	err := metadataMgr.Reconcile(ctx)
 	if err != nil {
 		return checkMetadataError(err, "Failed to create secrets")
 	}
