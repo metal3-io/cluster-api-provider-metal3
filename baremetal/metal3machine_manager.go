@@ -1202,6 +1202,9 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 		return nil
 	}
 
+	if m.Metal3Machine.Spec.DataTemplate.Namespace == "" {
+		m.Metal3Machine.Spec.DataTemplate.Namespace = m.Metal3Machine.Namespace
+	}
 	metal3DataTemplate, err := fetchM3DataTemplate(ctx,
 		m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
 		m.Machine.Spec.ClusterName,
@@ -1266,8 +1269,8 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 	}
 
 	// Fetch the Metal3Data
-	metal3Data, err := fetchM3Data(ctx, m.client, m.Log, m.Metal3Machine.Namespace,
-		m.Metal3Machine.Status.RenderedData.Name,
+	metal3Data, err := fetchM3Data(ctx, m.client, m.Log,
+		m.Metal3Machine.Status.RenderedData.Name, m.Metal3Machine.Namespace,
 	)
 	if err != nil {
 		return err

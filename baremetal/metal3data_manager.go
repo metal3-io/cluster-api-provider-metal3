@@ -110,6 +110,9 @@ func (m *DataManager) setError(ctx context.Context, msg string) {
 func (m *DataManager) createSecrets(ctx context.Context) error {
 	var metaDataErr, networkDataErr error
 
+	if m.Data.Spec.DataTemplate.Namespace == "" {
+		m.Data.Spec.DataTemplate.Namespace = m.Data.Namespace
+	}
 	// Fetch the Metal3DataTemplate object to get the templates
 	m3dt, err := fetchM3DataTemplate(ctx, m.Data.Spec.DataTemplate, m.client,
 		m.Log, m.Data.Labels[capi.ClusterLabelName],
