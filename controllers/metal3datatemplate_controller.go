@@ -30,8 +30,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -164,40 +162,7 @@ func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 func (r *Metal3DataTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3DataTemplate{}).
-		Watches(
-			&source.Kind{Type: &capm3.Metal3Machine{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.Metal3MachineToMetal3DataTemplate),
-			},
-		).
 		Complete(r)
-}
-
-// Metal3MachineToMetal3DataTemplate is a handler.ToRequestsFunc to be used to enqeue
-// requests for reconciliation of Metal3DataTemplate.
-func (r *Metal3DataTemplateReconciler) Metal3MachineToMetal3DataTemplate(o handler.MapObject) []ctrl.Request {
-	result := []ctrl.Request{}
-	m, ok := o.Object.(*capm3.Metal3Machine)
-	if !ok {
-		r.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o.Object), "failed to get Metal3DataTemplate for Metal3Machine")
-		return nil
-	}
-
-	if m.Spec.DataTemplate == nil {
-		return result
-	}
-	if m.Spec.DataTemplate.Name == "" {
-		return result
-	}
-	namespace := m.Spec.DataTemplate.Namespace
-	if namespace == "" {
-		namespace = m.Namespace
-	}
-
-	name := client.ObjectKey{Namespace: namespace, Name: m.Spec.DataTemplate.Name}
-	result = append(result, ctrl.Request{NamespacedName: name})
-
-	return result
 }
 
 func checkMetadataError(err error, errMessage string) (ctrl.Result, error) {
