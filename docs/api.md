@@ -17,22 +17,21 @@ CR represents a physical host with BMC credentials, hardware status etc.
 
 BareMetalHost exposes those different fields that are secret references:
 
-- **userData** : for a cloud-init user-data in a secret with the key `userData`
-- **metaData** : for a cloud-init metadata in a secret with the key `metaData`
-- **networkData** : for a cloud-init network data in a secret with the key
+* **userData** : for a cloud-init user-data in a secret with the key `userData`
+* **metaData** : for a cloud-init metadata in a secret with the key `metaData`
+* **networkData** : for a cloud-init network data in a secret with the key
   `networkData`
 
 For the metaData, soome values are set by default to maintain compatibility:
 
-- **uuid**: This is the BareMetalHost UID
-- **metal3-namespace**: the name of the BareMetalHost
-- **metal3-name**: The name of the BareMetalHost
-- **local-hostname**: The name of the BareMetalHost
-- **local_hostname**: The namespace of the BareMetalHost
+* **uuid**: This is the BareMetalHost UID
+* **metal3-namespace**: the name of the BareMetalHost
+* **metal3-name**: The name of the BareMetalHost
+* **local-hostname**: The name of the BareMetalHost
+* **local_hostname**: The namespace of the BareMetalHost
 
 However, setting any of those values in the metaData secret will override those
 default values.
-
 
 ## Cluster
 
@@ -272,14 +271,14 @@ The fields are :
   would not be managed by the Metal3DataTemplate controller, if provided by the
   user for example, the ownerreference should be set properly to ensure that the
   secret belongs to the cluster ownerReference tree (see
-  https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#ownerreferences-chain).
+  [doc](https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#ownerreferences-chain)).
 
 * **networkData** is a reference to a secret containing the network data
   rendered from the Metal3DataTemplate metadata template object automatically.
   In case this would not be managed by the Metal3DataTemplate controller, if
   provided by the user for example, the ownerreference should be set properly to
   ensure that the secret belongs to the cluster ownerReference tree (see
-  https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#ownerreferences-chain).
+  [doc](https://cluster-api.sigs.k8s.io/clusterctl/provider-contract.html#ownerreferences-chain)).
   The content of the secret should be a yaml equivalent of a json object that
   follows the format definition that can be found
   [here](https://docs.openstack.org/nova/latest/_downloads/9119ca7ac90aa2990e762c08baea3a36/network_data.json).
@@ -668,27 +667,24 @@ follows the format definition that can be found
 The `metaData` field contains a list of items that will render data in different
 ways. The following types of objects are available and accept lists:
 
-- **strings**: renders the given string as value in the metadata. It takes a
+* **strings**: renders the given string as value in the metadata. It takes a
   `value` attribute.
-- **objectNames** : renders the name of the object that matches the type given.
+* **objectNames** : renders the name of the object that matches the type given.
   It takes a `name` attribute.
-- **indexes**: renders the index of the current object, with the offset from the
+* **indexes**: renders the index of the current object, with the offset from the
   `offset` field and using the step from the `step` field. The following
-  conditions must be matched :
-
-    - `offset` >= 0
-    - `step` >= 1
+  conditions must be matched : `offset` >= 0 and `step` >= 1
 
   if the step is unspecified (default value being 0), the controller will
   automatically change it for 1.
-- **ipAddresses**: renders an ip address based on the index, based on the `start` value
+* **ipAddresses**: renders an ip address based on the index, based on the `start` value
   if given or using `subnet` to calculate the start value, and checking that
   the rendered value is not over the `end` value. The increment is the `step`
   value. If the computed value goes out of bounds, the error status will be set
   with the error in the error message. In case of using the `subnet` value to
   get the start IP address, it will be the second IP of the subnet (for example
   `192.168.0.1` for a subnet `192.168.0.0/24`).
-- **fromHostInterfaces**: renders the MAC address of the BareMetalHost that
+* **fromHostInterfaces**: renders the MAC address of the BareMetalHost that
   matches the name given as value.
 
 For each object, the attribute **key** is required.
@@ -697,135 +693,135 @@ For each object, the attribute **key** is required.
 
 The `networkData` field will contain three items :
 
-- **links**: a list of layer 2 interface
-- **networks**: a list of layer 3 networks
-- **services** : a list of services (DNS)
+* **links**: a list of layer 2 interface
+* **networks**: a list of layer 3 networks
+* **services** : a list of services (DNS)
 
 #### Links specifications
 
 The object for the **links** section list can be:
 
-- **ethernets**: a list of ethernet interfaces
-- **bonds**: a list of bond interfaces
-- **vlans**: a list of vlan interfaces
+* **ethernets**: a list of ethernet interfaces
+* **bonds**: a list of bond interfaces
+* **vlans**: a list of vlan interfaces
 
 The **links/ethernets** objects contain the following:
 
-- **type**: Type of the ethernet interface
-- **id**: Interface name
-- **mtu**: Interface MTU
-- **macAddress**: an object to render the MAC Address
+* **type**: Type of the ethernet interface
+* **id**: Interface name
+* **mtu**: Interface MTU
+* **macAddress**: an object to render the MAC Address
 
 The **links/ethernets/type** can be one of :
 
-- bridge
-- dvs
-- hw_veb
-- hyperv
-- ovs
-- tap
-- vhostuser
-- vif
-- phy
+* bridge
+* dvs
+* hw_veb
+* hyperv
+* ovs
+* tap
+* vhostuser
+* vif
+* phy
 
 The **links/ethernets/macAddress** object can be one of:
 
-- **string**: with the desired Mac given as a string
-- **fromHostInterface**: with the interface name from BareMetalHost
+* **string**: with the desired Mac given as a string
+* **fromHostInterface**: with the interface name from BareMetalHost
   hardware details.
 
 The **links/bonds** object contains the following:
 
-- **id**: Interface name
-- **mtu**: Interface MTU
-- **macAddress**: an object to render the MAC Address
-- **bondMode**: The bond mode
-- **bondLinks** : a list of links to use for the bond
+* **id**: Interface name
+* **mtu**: Interface MTU
+* **macAddress**: an object to render the MAC Address
+* **bondMode**: The bond mode
+* **bondLinks** : a list of links to use for the bond
 
 The **links/bonds/bondMode** can be one of :
 
-- 802.1ad
-- balance-rr
-- active-backup
-- balance-xor
-- broadcast
-- balance-tlb
-- balance-alb
+* 802.1ad
+* balance-rr
+* active-backup
+* balance-xor
+* broadcast
+* balance-tlb
+* balance-alb
 
 The **links/vlans** object contains the following:
 
-- **id**: Interface name
-- **mtu**: Interface MTU
-- **macAddress**: an object to render the MAC Address
-- **vlanId**: The vlan ID
-- **vlanLink** : The link on which to create the vlan
+* **id**: Interface name
+* **mtu**: Interface MTU
+* **macAddress**: an object to render the MAC Address
+* **vlanId**: The vlan ID
+* **vlanLink** : The link on which to create the vlan
 
 #### The networks specifications
 
 The object for the **networks** section can be:
 
-- **ipv4**: a list of ipv4 static allocations
-- **ipv4DHCP**: a list of ipv4 DHCP based allocations
-- **ipv6**: a list of ipv6 static allocations
-- **ipv6DHCP**: a list of ipv6 DHCP based allocations
-- **ipv6SLAAC**: a list of ipv6 SLAAC based allocations
+* **ipv4**: a list of ipv4 static allocations
+* **ipv4DHCP**: a list of ipv4 DHCP based allocations
+* **ipv6**: a list of ipv6 static allocations
+* **ipv6DHCP**: a list of ipv6 DHCP based allocations
+* **ipv6SLAAC**: a list of ipv6 SLAAC based allocations
 
 The **networks/ipv4** object contains the following:
 
-- **id**: the network name
-- **link**: The name of the link to configure this network for
-- **ipAddress**: the IP address object
-- **netmask**: the netmask, in an integer format
-- **routes**: the list of route objects
+* **id**: the network name
+* **link**: The name of the link to configure this network for
+* **ipAddress**: the IP address object
+* **netmask**: the netmask, in an integer format
+* **routes**: the list of route objects
 
 The **networks/ipv4/ipAddress** is an address object containing:
 
-- **start**: the start IP address
-- **end**: The end IP address
-- **subnet**: The subnet in a CIDR notation "X.X.X.X/X"
-- **step**: the step between IP addresses
+* **start**: the start IP address
+* **end**: The end IP address
+* **subnet**: The subnet in a CIDR notation "X.X.X.X/X"
+* **step**: the step between IP addresses
 
 If the **subnet** is specified, then **start** and **end** are not required and
 reverse, if **start** and **end** are specified, then **subnet** is not required
 
 The **networks/ipv4/routes** is a route object containing:
 
-- **network**: the subnet to reach
-- **netmask**: the mask of the subnet as integer
-- **gateway**: the gateway to use
-- **services**: a list of services object as defined later
+* **network**: the subnet to reach
+* **netmask**: the mask of the subnet as integer
+* **gateway**: the gateway to use
+* **services**: a list of services object as defined later
 
 The **networks/ipv4Dhcp** object contains the following:
 
-- **id**: the network name
-- **link**: The name of the link to configure this network for
-- **routes**: the list of route objects
+* **id**: the network name
+* **link**: The name of the link to configure this network for
+* **routes**: the list of route objects
 
 The **networks/ipv6** object contains the following:
 
-- **id**: the network name
-- **link**: The name of the link to configure this network for
-- **ipAddress**: the IP address object
-- **netmask**: the netmask, in an integer format
-- **routes**: the list of route objects
+* **id**: the network name
+* **link**: The name of the link to configure this network for
+* **ipAddress**: the IP address object
+* **netmask**: the netmask, in an integer format
+* **routes**: the list of route objects
 
 The **networks/ipv6Dhcp** object contains the following:
 
-- **id**: the network name
-- **link**: The name of the link to configure this network for
-- **routes**: the list of route objects
+* **id**: the network name
+* **link**: The name of the link to configure this network for
+* **routes**: the list of route objects
 
 The **networks/ipv6Slaac** object contains the following:
 
-- **id**: the network name
-- **link**: The name of the link to configure this network for
-- **routes**: the list of route objects
+* **id**: the network name
+* **link**: The name of the link to configure this network for
+* **routes**: the list of route objects
 
 #### the services specifications
 
 The object for the **services** section can be:
 
-- **dns**: a list of dns service with the ip address of a dns server
+* **dns**: a list of dns service with the ip address of a dns server
 
 ## The Metal3Data object
 
@@ -875,10 +871,10 @@ changes on Metal3Machines. In the case that a Metal3Machine gets modified, if
 the `dataTemplate` references a Metal3DataTemplate, that object will be reconciled.
 There will be two cases:
 
-- An already generated Metal3Data object exists with an ownerReference to this
+* An already generated Metal3Data object exists with an ownerReference to this
   Metal3Machine. In that case, the reconciler will verify that the required
   secrets exist. If they do not, they will be created.
-- if no Metal3Data exists with an ownerReference to this Metal3Machine, then the
+* if no Metal3Data exists with an ownerReference to this Metal3Machine, then the
   reconciler will create one and fill the respective field with the secret name.
 
 To create a Metal3Data object, the Metal3DataTemplate controller will select an
