@@ -1130,7 +1130,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 			ExpectPresent: false,
-			ExpectError:   true,
+			ExpectError:   false,
 		}),
 	)
 

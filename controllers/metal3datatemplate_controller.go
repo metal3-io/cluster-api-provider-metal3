@@ -80,8 +80,8 @@ func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capm3Metadata.ObjectMeta)
 	if capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
-			metadataLog.Info("Metal3DataTemplate is missing cluster label or cluster does not exist")
-			return ctrl.Result{}, errors.Wrapf(err, "Metal3DataTemplate is missing cluster label or cluster does not exist")
+			metadataLog.Info("Metal3DataTemplate is missing cluster label or cluster does not exist, Requeuing")
+			return ctrl.Result{}, nil
 		}
 		if cluster == nil {
 			metadataLog.Info(fmt.Sprintf("This metadata is not yet associated with a cluster using the label %s: <name of cluster>", capi.ClusterLabelName))

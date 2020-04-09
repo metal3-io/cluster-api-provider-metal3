@@ -229,7 +229,8 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 		return pointer.StringPtr(string(host.ObjectMeta.UID)), nil
 	}
 	m.Log.Info("Provisioning BaremetalHost, requeuing")
-	return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+	// Do not requeue since BMH update will trigger a reconciliation
+	return nil, nil
 }
 
 // Associate associates a machine and is invoked by the Machine Controller
