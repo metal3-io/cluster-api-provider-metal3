@@ -151,7 +151,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		// Try to fetch the secret. If it exists, we do not modify it, to be able
 		// to reprovision a node in the exact same state.
 		m.Log.Info("Checking if secret exists", "secret", m.Data.Spec.MetaData.Name)
-		metaDataErr = checkSecretExists(m.client, ctx, m.Data.Spec.MetaData.Name,
+		_, metaDataErr = checkSecretExists(m.client, ctx, m.Data.Spec.MetaData.Name,
 			m.Data.Namespace,
 		)
 
@@ -176,7 +176,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		// Try to fetch the secret. If it exists, we do not modify it, to be able
 		// to reprovision a node in the exact same state.
 		m.Log.Info("Checking if secret exists", "secret", m.Data.Spec.NetworkData.Name)
-		networkDataErr = checkSecretExists(m.client, ctx, m.Data.Spec.NetworkData.Name,
+		_, networkDataErr = checkSecretExists(m.client, ctx, m.Data.Spec.NetworkData.Name,
 			m.Data.Namespace,
 		)
 		if networkDataErr != nil && !apierrors.IsNotFound(networkDataErr) {

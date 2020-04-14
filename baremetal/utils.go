@@ -104,9 +104,12 @@ func createSecret(cl client.Client, ctx context.Context, name string,
 		Type: metal3SecretType,
 	}
 
-	err := checkSecretExists(cl, ctx, name, namespace)
+	secret, err := checkSecretExists(cl, ctx, name, namespace)
 	if err == nil {
 		// Update the secret with user data
+		secret.ObjectMeta.Labels = bootstrapSecret.ObjectMeta.Labels
+		secret.ObjectMeta.OwnerReferences = bootstrapSecret.ObjectMeta.OwnerReferences
+		bootstrapSecret.ObjectMeta = secret.ObjectMeta
 		return updateObject(cl, ctx, bootstrapSecret)
 	} else if apierrors.IsNotFound(err) {
 		// Create the secret with user data
@@ -117,24 +120,20 @@ func createSecret(cl client.Client, ctx context.Context, name string,
 
 func checkSecretExists(cl client.Client, ctx context.Context, name string,
 	namespace string,
-) error {
-	tmpBootstrapSecret := corev1.Secret{}
-	key := client.ObjectKey{
-		Name:      name,
-		Namespace: namespace,
-	}
-	return cl.Get(ctx, key, &tmpBootstrapSecret)
-}
-
-func deleteSecret(cl client.Client, ctx context.Context, name string,
-	namespace string,
-) error {
+) (corev1.Secret, error) {
 	tmpBootstrapSecret := corev1.Secret{}
 	key := client.ObjectKey{
 		Name:      name,
 		Namespace: namespace,
 	}
 	err := cl.Get(ctx, key, &tmpBootstrapSecret)
+	return tmpBootstrapSecret, err
+}
+
+func deleteSecret(cl client.Client, ctx context.Context, name string,
+	namespace string,
+) error {
+	tmpBootstrapSecret, err := checkSecretExists(cl, ctx, name, namespace)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	} else if err == nil {
@@ -234,15 +233,15 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 		}
 	}
 
+	if dataTemplate == nil {
+		return tmpM3Machine, nil
+	}
+
 	// Verify that the Metal3Machine fulfills the conditions
 	if tmpM3Machine.Spec.DataTemplate == nil {
 		return nil, nil
 	}
 	if tmpM3Machine.Spec.DataTemplate.Name != dataTemplate.Name {
-		return nil, nil
-	}
-	if tmpM3Machine.Spec.DataTemplate.Namespace == "" &&
-		tmpM3Machine.Namespace != dataTemplate.Namespace {
 		return nil, nil
 	}
 	if tmpM3Machine.Spec.DataTemplate.Namespace != "" &&
