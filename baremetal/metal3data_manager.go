@@ -556,7 +556,12 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 
 	// Indexes
 	for _, entry := range m3dt.Spec.MetaData.Indexes {
-		metadata[entry.Key] = strconv.Itoa(entry.Offset + m3d.Spec.Index*entry.Step)
+		metadata[entry.Key] = entry.Prefix + strconv.Itoa(entry.Offset+m3d.Spec.Index*entry.Step) + entry.Suffix
+	}
+
+	// Namespaces
+	for _, entry := range m3dt.Spec.MetaData.Namespaces {
+		metadata[entry.Key] = m3d.Namespace
 	}
 
 	// Object names

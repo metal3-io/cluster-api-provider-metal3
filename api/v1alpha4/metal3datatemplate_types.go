@@ -35,6 +35,10 @@ type MetaDataIndex struct {
 	// +kubebuilder:default=1
 	// Step is the multiplier of the index
 	Step int `json:"step,omitempty"`
+	// Prefix is the prefix string
+	Prefix string `json:"prefix,omitempty"`
+	// Suffix is the suffix string
+	Suffix string `json:"suffix,omitempty"`
 }
 
 // MetaDataString contains the information to render the string
@@ -43,6 +47,12 @@ type MetaDataString struct {
 	Key string `json:"key"`
 	// Value is the string to render.
 	Value string `json:"value"`
+}
+
+// MetaDataNamespace contains the information to render the namespace
+type MetaDataNamespace struct {
+	// Key is the metadata key when redendering this metadata element
+	Key string `json:"key"`
 }
 
 // MetaDataObjectName contains the information to render the object name
@@ -97,6 +107,9 @@ type MetaData struct {
 	// Indexes is the list of metadata items to be rendered from the index of the
 	// Metal3Data
 	Indexes []MetaDataIndex `json:"indexes,omitempty"`
+
+	// Namespaces is the list of metadata items to be rendered from the namespace
+	Namespaces []MetaDataNamespace `json:"namespaces,omitempty"`
 
 	// IPAddresses is the list of metadata items to be rendered as ip addresses.
 	IPAddresses []MetaDataIPAddress `json:"ipAddresses,omitempty"`
