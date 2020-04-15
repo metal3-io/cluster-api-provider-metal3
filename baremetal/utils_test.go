@@ -151,6 +151,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedObject.Spec).To(Equal(tc.TestObject.Spec))
+				Expect(savedObject.ResourceVersion).NotTo(Equal(tc.TestObject.ResourceVersion))
 				err := updateObject(c, context.TODO(), obj)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))

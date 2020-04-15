@@ -549,21 +549,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		host.Spec.ConsumerRef = nil
 
-		// Remove the ownerreference to this machine
-		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
-		if err != nil {
-			return err
-		}
-
-		if host.Labels != nil && host.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
-			delete(host.Labels, capi.ClusterLabelName)
-		}
-
-		m.Log.Info("Removing Paused Annotation (if any)")
-		if host.Annotations != nil && host.Annotations[bmh.PausedAnnotation] == pausedAnnotationKey {
-			delete(host.Annotations, bmh.PausedAnnotation)
-		}
-
 		// Delete created secret, if data was set without DataSecretName but with
 		// Data
 		if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
@@ -594,6 +579,11 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		if host.Labels != nil && host.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
 			delete(host.Labels, capi.ClusterLabelName)
+		}
+
+		m.Log.Info("Removing Paused Annotation (if any)")
+		if host.Annotations != nil && host.Annotations[bmh.PausedAnnotation] == pausedAnnotationKey {
+			delete(host.Annotations, bmh.PausedAnnotation)
 		}
 
 		err = updateObject(m.client, ctx, host)
@@ -1235,7 +1225,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 			metal3DataTemplate.Labels = make(map[string]string)
 		}
 		metal3DataTemplate.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
-		err = m.updateM3Metadata(ctx, metal3DataTemplate)
+		err = updateObject(m.client, ctx, metal3DataTemplate)
 		if err != nil {
 			return err
 		}
@@ -1251,6 +1241,12 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 	// Metal3DataTemplate. If it is not there yet, it means that the reconciliation
 	// of Metal3DataTemplate did not yet complete, requeue.
 	if m.Metal3Machine.Status.RenderedData == nil {
+		if m.Metal3Machine.Spec.DataTemplate == nil {
+			return nil
+		}
+		if m.Metal3Machine.Spec.DataTemplate.Namespace == "" {
+			m.Metal3Machine.Spec.DataTemplate.Namespace = m.Metal3Machine.Namespace
+		}
 		metal3DataTemplate, err := fetchM3DataTemplate(ctx,
 			m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
 			m.Machine.Spec.ClusterName,
@@ -1315,6 +1311,17 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 
 // remove machine from OwnerReferences of meta3DataTemplate, on failure requeue
 func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
+
+	if m.Metal3Machine.Status.MetaData != nil && m.Metal3Machine.Spec.MetaData == nil {
+		m.Metal3Machine.Status.MetaData = nil
+	}
+
+	if m.Metal3Machine.Status.NetworkData != nil && m.Metal3Machine.Spec.NetworkData == nil {
+		m.Metal3Machine.Status.NetworkData = nil
+	}
+
+	m.Metal3Machine.Status.RenderedData = nil
+
 	// Get the Metal3DataTemplate object
 	metal3DataTemplate, err := fetchM3DataTemplate(ctx,
 		m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
@@ -1338,7 +1345,7 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		err = m.updateM3Metadata(ctx, metal3DataTemplate)
+		err = updateObject(m.client, ctx, metal3DataTemplate)
 		if err != nil {
 			return err
 		}
@@ -1348,18 +1355,5 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		}
 	}
 
-	return nil
-}
-
-// updateMetadata updates the Metal3DataTemplate object
-func (m *MachineManager) updateM3Metadata(ctx context.Context, metal3DataTemplate *capm3.Metal3DataTemplate) error {
-	if err := m.client.Update(ctx, metal3DataTemplate); err != nil {
-		if apierrors.IsConflict(err) {
-			m.Log.Info("Conflict on Metadata update, requeuing")
-			return &RequeueAfterError{RequeueAfter: requeueAfter}
-		} else {
-			return errors.Wrap(err, "Failed to update metadata")
-		}
-	}
 	return nil
 }
