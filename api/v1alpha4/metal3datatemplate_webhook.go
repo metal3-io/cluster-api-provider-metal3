@@ -14,6 +14,9 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"reflect"
+
+	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -43,7 +46,36 @@ func (c *Metal3DataTemplate) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (c *Metal3DataTemplate) ValidateUpdate(old runtime.Object) error {
-	return c.validate()
+	allErrs := field.ErrorList{}
+	oldM3dt, ok := old.(*Metal3DataTemplate)
+	if !ok || oldM3dt == nil {
+		return apierrors.NewInternalError(errors.New("unable to convert existing object"))
+	}
+
+	if !reflect.DeepEqual(c.Spec.MetaData, oldM3dt.Spec.MetaData) {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "MetaData"),
+				c.Spec.MetaData,
+				"cannot be modified",
+			),
+		)
+	}
+
+	if !reflect.DeepEqual(c.Spec.NetworkData, oldM3dt.Spec.NetworkData) {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "MetaData"),
+				c.Spec.NetworkData,
+				"cannot be modified",
+			),
+		)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

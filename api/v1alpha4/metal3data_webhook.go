@@ -14,6 +14,8 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"strconv"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,14 +41,37 @@ func (c *Metal3Data) Default() {
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (c *Metal3Data) ValidateCreate() error {
-	return c.validate()
+	allErrs := field.ErrorList{}
+	if c.Spec.DataTemplate == nil {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "dataTemplate"),
+				c.Spec.DataTemplate,
+				"cannot be empty",
+			),
+		)
+	} else {
+		if c.Name != c.Spec.DataTemplate.Name+"-"+strconv.Itoa(c.Spec.Index) {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("name"),
+					c.Name,
+					"should follow the convention <Metal3DataTemplate Name>-<index>",
+				),
+			)
+		}
+	}
+	if len(allErrs) == 0 {
+		return nil
+	}
+	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (c *Metal3Data) ValidateUpdate(old runtime.Object) error {
 	allErrs := field.ErrorList{}
 	oldMetal3Data, ok := old.(*Metal3Data)
-	if !ok {
+	if !ok || oldMetal3Data == nil {
 		return apierrors.NewInternalError(errors.New("unable to convert existing object"))
 	}
 
@@ -145,14 +170,4 @@ func (c *Metal3Data) ValidateUpdate(old runtime.Object) error {
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (c *Metal3Data) ValidateDelete() error {
 	return nil
-}
-
-//No further validation for now
-func (c *Metal3Data) validate() error {
-	var allErrs field.ErrorList
-
-	if len(allErrs) == 0 {
-		return nil
-	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
 }

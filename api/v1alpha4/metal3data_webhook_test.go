@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -25,32 +26,53 @@ func TestMetal3DataDefault(t *testing.T) {
 
 	c := &Metal3Data{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "fooboo",
+			Namespace: "foo",
 		},
 		Spec: Metal3DataSpec{},
 	}
 	c.Default()
 
-	g.Expect(c.Spec.MetaData).To(BeNil())
+	g.Expect(c.Spec).To(Equal(Metal3DataSpec{}))
+	g.Expect(c.Status).To(Equal(Metal3DataStatus{}))
 }
 
-func TestMetal3DataValidation(t *testing.T) {
-	valid := &Metal3Data{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
-		Spec: Metal3DataSpec{},
-	}
+func TestMetal3DataCreateValidation(t *testing.T) {
 
 	tests := []struct {
 		name      string
+		dataName  string
 		expectErr bool
-		c         *Metal3Data
+		template  *corev1.ObjectReference
 	}{
 		{
 			name:      "should succeed when values and templates correct",
 			expectErr: false,
-			c:         valid,
+			dataName:  "abc-1",
+			template: &corev1.ObjectReference{
+				Name: "abc",
+			},
+		},
+		{
+			name:      "should fail without DataTemplate",
+			expectErr: true,
+			dataName:  "abc-1",
+			template:  nil,
+		},
+		{
+			name:      "should fail when Name does not match datatemplate",
+			expectErr: true,
+			dataName:  "abcd-1",
+			template: &corev1.ObjectReference{
+				Name: "abc",
+			},
+		},
+		{
+			name:      "should fail when Name does not match index",
+			expectErr: true,
+			dataName:  "abc-0",
+			template: &corev1.ObjectReference{
+				Name: "abc",
+			},
 		},
 	}
 
@@ -58,12 +80,241 @@ func TestMetal3DataValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			obj := &Metal3Data{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      tt.dataName,
+				},
+				Spec: Metal3DataSpec{
+					DataTemplate: tt.template,
+					Index:        1,
+				},
+			}
+
 			if tt.expectErr {
-				g.Expect(tt.c.ValidateCreate()).NotTo(Succeed())
-				g.Expect(tt.c.ValidateUpdate(&Metal3Data{})).NotTo(Succeed())
+				g.Expect(obj.ValidateCreate()).NotTo(Succeed())
 			} else {
-				g.Expect(tt.c.ValidateCreate()).To(Succeed())
-				g.Expect(tt.c.ValidateUpdate(&Metal3Data{})).To(Succeed())
+				g.Expect(obj.ValidateCreate()).To(Succeed())
+			}
+
+			g.Expect(obj.ValidateDelete()).To(Succeed())
+		})
+	}
+}
+
+func TestMetal3DataUpdateValidation(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		expectErr bool
+		new       *Metal3DataSpec
+		old       *Metal3DataSpec
+	}{
+		{
+			name:      "should succeed when values are the same",
+			expectErr: false,
+			new: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail with nil old",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+			old: nil,
+		},
+		{
+			name:      "should fail when index changes",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 2,
+			},
+		},
+		{
+			name:      "should fail when dataTemplate is set to nil",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				DataTemplate: nil,
+				Index:        1,
+			},
+			old: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail when dataTemplate name changes",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abcd",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail when datatemplate Namespace changes",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name:      "abc",
+					Namespace: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name:      "abc",
+					Namespace: "abcd",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail when datatemplate kind changes",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+					Kind: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name: "abc",
+					Kind: "abcd",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail when metal3Machine is set to nil",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				Metal3Machine: nil,
+				Index:         1,
+			},
+			old: &Metal3DataSpec{
+				Metal3Machine: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail when metal3Machine name changes",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				Metal3Machine: &corev1.ObjectReference{
+					Name: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				Metal3Machine: &corev1.ObjectReference{
+					Name: "abcd",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail when metal3Machine Namespace changes",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				Metal3Machine: &corev1.ObjectReference{
+					Name:      "abc",
+					Namespace: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				Metal3Machine: &corev1.ObjectReference{
+					Name:      "abc",
+					Namespace: "abcd",
+				},
+				Index: 1,
+			},
+		},
+		{
+			name:      "should fail when metal3Machine kind changes",
+			expectErr: true,
+			new: &Metal3DataSpec{
+				Metal3Machine: &corev1.ObjectReference{
+					Name: "abc",
+					Kind: "abc",
+				},
+				Index: 1,
+			},
+			old: &Metal3DataSpec{
+				Metal3Machine: &corev1.ObjectReference{
+					Name: "abc",
+					Kind: "abcd",
+				},
+				Index: 1,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var new, old *Metal3Data
+			g := NewWithT(t)
+			new = &Metal3Data{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "abc-1",
+				},
+				Spec: *tt.new,
+			}
+
+			if tt.old != nil {
+				old = &Metal3Data{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "abc-1",
+					},
+					Spec: *tt.old,
+				}
+			} else {
+				old = nil
+			}
+
+			if tt.expectErr {
+				g.Expect(new.ValidateUpdate(old)).NotTo(Succeed())
+			} else {
+				g.Expect(new.ValidateUpdate(old)).To(Succeed())
 			}
 		})
 	}

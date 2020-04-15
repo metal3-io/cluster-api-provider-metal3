@@ -25,22 +25,17 @@ func TestMetal3DataTemplateDefault(t *testing.T) {
 
 	c := &Metal3DataTemplate{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "fooboo",
+			Namespace: "foo",
 		},
 		Spec: Metal3DataTemplateSpec{},
 	}
 	c.Default()
 
-	g.Expect(c.Spec.MetaData).To(BeNil())
+	g.Expect(c.Spec).To(Equal(Metal3DataTemplateSpec{}))
+	g.Expect(c.Status).To(Equal(Metal3DataTemplateStatus{}))
 }
 
 func TestMetal3DataTemplateValidation(t *testing.T) {
-	valid := &Metal3DataTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
-		Spec: Metal3DataTemplateSpec{},
-	}
 
 	tests := []struct {
 		name      string
@@ -50,7 +45,12 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 		{
 			name:      "should succeed when values and templates correct",
 			expectErr: false,
-			c:         valid,
+			c: &Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: Metal3DataTemplateSpec{},
+			},
 		},
 	}
 
@@ -60,10 +60,150 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 
 			if tt.expectErr {
 				g.Expect(tt.c.ValidateCreate()).NotTo(Succeed())
-				g.Expect(tt.c.ValidateUpdate(nil)).NotTo(Succeed())
 			} else {
 				g.Expect(tt.c.ValidateCreate()).To(Succeed())
-				g.Expect(tt.c.ValidateUpdate(nil)).To(Succeed())
+			}
+
+			g.Expect(tt.c.ValidateDelete()).To(Succeed())
+		})
+	}
+}
+
+func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
+
+	tests := []struct {
+		name      string
+		expectErr bool
+		new       *Metal3DataTemplateSpec
+		old       *Metal3DataTemplateSpec
+	}{
+		{
+			name:      "should succeed when values and templates correct",
+			expectErr: false,
+			new:       &Metal3DataTemplateSpec{},
+			old:       &Metal3DataTemplateSpec{},
+		},
+		{
+			name:      "should fail when old is nil",
+			expectErr: true,
+			new:       &Metal3DataTemplateSpec{},
+			old:       nil,
+		},
+		{
+			name:      "should fail when Metadata value changes",
+			expectErr: true,
+			new: &Metal3DataTemplateSpec{
+				MetaData: &MetaData{
+					Strings: []MetaDataString{MetaDataString{
+						Key:   "abc",
+						Value: "def",
+					}},
+				},
+			},
+			old: &Metal3DataTemplateSpec{
+				MetaData: &MetaData{
+					Strings: []MetaDataString{MetaDataString{
+						Key:   "abc",
+						Value: "defg",
+					}},
+				},
+			},
+		},
+		{
+			name:      "should fail when Metadata types changes",
+			expectErr: true,
+			new: &Metal3DataTemplateSpec{
+				MetaData: &MetaData{
+					Strings: []MetaDataString{MetaDataString{
+						Key:   "abc",
+						Value: "def",
+					}},
+				},
+			},
+			old: &Metal3DataTemplateSpec{
+				MetaData: &MetaData{
+					Namespaces: []MetaDataNamespace{MetaDataNamespace{
+						Key: "abc",
+					}},
+				},
+			},
+		},
+
+		{
+			name:      "should fail when Networkdata value changes",
+			expectErr: true,
+			new: &Metal3DataTemplateSpec{
+				NetworkData: &NetworkData{
+					Services: NetworkDataService{
+						DNS: []NetworkDataDNSService{
+							"abc",
+						},
+					},
+				},
+			},
+			old: &Metal3DataTemplateSpec{
+				NetworkData: &NetworkData{
+					Services: NetworkDataService{
+						DNS: []NetworkDataDNSService{
+							"abcd",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should fail when Networkdata type changes",
+			expectErr: true,
+			new: &Metal3DataTemplateSpec{
+				NetworkData: &NetworkData{
+					Services: NetworkDataService{
+						DNS: []NetworkDataDNSService{
+							"abc",
+						},
+					},
+				},
+			},
+			old: &Metal3DataTemplateSpec{
+				NetworkData: &NetworkData{
+					Networks: NetworkDataNetwork{
+						IPv4DHCP: []NetworkDataIPv4DHCP{
+							NetworkDataIPv4DHCP{
+								ID:   "abc",
+								Link: "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var new, old *Metal3DataTemplate
+			g := NewWithT(t)
+			new = &Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: *tt.new,
+			}
+
+			if tt.old != nil {
+				old = &Metal3DataTemplate{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+					},
+					Spec: *tt.old,
+				}
+			} else {
+				old = nil
+			}
+
+			if tt.expectErr {
+				g.Expect(new.ValidateUpdate(old)).NotTo(Succeed())
+			} else {
+				g.Expect(new.ValidateUpdate(old)).To(Succeed())
 			}
 		})
 	}
