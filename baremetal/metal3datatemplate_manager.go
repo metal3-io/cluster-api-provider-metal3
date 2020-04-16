@@ -84,10 +84,10 @@ func (m *DataTemplateManager) RecreateStatusConditionally(ctx context.Context) e
 	// If the status is empty (lastUpdated not set), then either the object is new
 	// or has been moved. In both case, Recreating the status will set LastUpdated
 	// so we won't recreate afterwards.
-	if m.DataTemplate.Status.LastUpdated != nil {
-		return nil
+	if m.DataTemplate.Status.LastUpdated.IsZero() {
+		return m.RecreateStatus(ctx)
 	}
-	return m.RecreateStatus(ctx)
+	return nil
 }
 
 // RecreateStatus recreates the status if empty
@@ -177,6 +177,18 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 			continue
 		}
 
+		// Get the cluster name
+		clusterName, ok := m.DataTemplate.Labels[capi.ClusterLabelName]
+		if !ok {
+			return errors.New("No cluster name found on Metal3DataTemplate object")
+		}
+
+		if m.DataTemplate.Status.Indexes == nil {
+			m.DataTemplate.Status.Indexes = make(map[string]string)
+		}
+		if m.DataTemplate.Status.DataNames == nil {
+			m.DataTemplate.Status.DataNames = make(map[string]string)
+		}
 		// Get a new index for this machine
 		m.Log.Info("Getting index", "Metal3machine", curOwnerRef.Name)
 		machineIndexInt := len(m.DataTemplate.Status.Indexes)
@@ -198,12 +210,6 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 		m.DataTemplate.Status.DataNames[curOwnerRef.Name] = dataName
 
 		m.Log.Info("Index", "Metal3machine", curOwnerRef.Name, "index", machineIndex)
-
-		// Get the cluster name
-		clusterName, ok := m.DataTemplate.Labels[capi.ClusterLabelName]
-		if !ok {
-			return errors.New("No cluster name found on Metal3DataTemplate object")
-		}
 
 		// Create the Metal3Data object, with an Owner ref to the Metal3Machine
 		// (curOwnerRef) and to the Metal3DataTemplate
@@ -313,6 +319,14 @@ func (m *DataTemplateManager) DeleteDatas(ctx context.Context) error {
 			}
 		}
 
+		deletionIndex := ""
+		for index, name := range m.DataTemplate.Status.Indexes {
+			if name == machineName {
+				deletionIndex = index
+			}
+		}
+		delete(m.DataTemplate.Status.Indexes, deletionIndex)
+		delete(m.DataTemplate.Status.DataNames, machineName)
 		m.Log.Info("DataTemplate deleted", "Metal3machine", machineName)
 	}
 	m.updateStatusTimestamp()
