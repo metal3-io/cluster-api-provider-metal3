@@ -195,13 +195,13 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		)
 	}
 
-	errType := capierrors.CreateMachineError
-
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
 	if !machineMgr.IsBootstrapReady() {
 		return ctrl.Result{}, nil
 	}
+
+	errType := capierrors.CreateMachineError
 
 	// Make sure that the metadata is ready if any
 	err := machineMgr.AssociateM3Metadata(ctx)
@@ -409,11 +409,15 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObject) []ctrl.Request {
 	if m3d, ok := obj.Object.(*capm3.Metal3Data); ok {
 		if m3d.Spec.Metal3Machine != nil {
+			namespace := m3d.Spec.Metal3Machine.Namespace
+			if namespace == "" {
+				namespace = m3d.Namespace
+			}
 			return []ctrl.Request{
 				ctrl.Request{
 					NamespacedName: types.NamespacedName{
 						Name:      m3d.Spec.Metal3Machine.Name,
-						Namespace: m3d.Namespace,
+						Namespace: namespace,
 					},
 				},
 			}

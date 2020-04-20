@@ -74,7 +74,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		}
 	}()
 
-	// Fetch the Cluster.
+	// Fetch the Cluster. Ignore an error if the deletion timestamp is set
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capm3Metadata.ObjectMeta)
 	if capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
@@ -118,6 +118,10 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 	// If the Metal3DataTemplate doesn't have finalizer, add it.
 	metadataMgr.SetFinalizer()
 
+	// If the lastUpdated is zero, then it might mean that the object was moved.
+	// So we need to check if some Metal3Data exist and repopulate the status
+	// based on that. This will happen only once after creation. Afterwards, the
+	// lastUpdated field is set.
 	err := metadataMgr.RecreateStatusConditionally(ctx)
 	if err != nil {
 		return checkMetadataError(err, "Failed to recreate the status")
