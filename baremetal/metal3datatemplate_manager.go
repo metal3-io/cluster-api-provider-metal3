@@ -168,7 +168,7 @@ func (m *DataTemplateManager) CreateDatas(ctx context.Context) error {
 
 		// Verify that we have an owner ref machine that points to this DataTemplate
 		m3Machine, err := getM3Machine(ctx, m.client, m.Log,
-			curOwnerRef.Name, m.DataTemplate.Namespace, m.DataTemplate,
+			curOwnerRef.Name, m.DataTemplate.Namespace, m.DataTemplate, false,
 		)
 		if err != nil {
 			return err

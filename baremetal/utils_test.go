@@ -588,7 +588,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 
 			result, err := getM3Machine(context.TODO(), c, klogr.New(), tc.Name,
-				tc.Namespace, tc.DataTemplate,
+				tc.Namespace, tc.DataTemplate, false,
 			)
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())

@@ -61,6 +61,17 @@ func (c *Metal3Data) ValidateCreate() error {
 			)
 		}
 	}
+
+	if c.Spec.Index < 0 {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "Index"),
+				c.Spec.Index,
+				"must be positive value",
+			),
+		)
+	}
+
 	if len(allErrs) == 0 {
 		return nil
 	}

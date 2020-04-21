@@ -82,6 +82,16 @@ func (m *DataManager) UnsetFinalizer() {
 	)
 }
 
+func (m *DataManager) clearError(ctx context.Context) {
+	m.Data.Status.Error = false
+	m.Data.Status.ErrorMessage = nil
+}
+
+func (m *DataManager) setError(ctx context.Context, msg string) {
+	m.Data.Status.Error = true
+	m.Data.Status.ErrorMessage = &msg
+}
+
 func (m *DataManager) Reconcile(ctx context.Context) error {
 	m.clearError(ctx)
 
@@ -94,16 +104,6 @@ func (m *DataManager) Reconcile(ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func (m *DataManager) clearError(ctx context.Context) {
-	m.Data.Status.Error = false
-	m.Data.Status.ErrorMessage = nil
-}
-
-func (m *DataManager) setError(ctx context.Context, msg string) {
-	m.Data.Status.Error = true
-	m.Data.Status.ErrorMessage = &msg
 }
 
 // CreateSecrets creates the secret if they do not exist.
@@ -134,7 +134,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return err
 	}
 	if m3m == nil {
-		return errors.New("Metal3Machine unset")
+		return errors.New("Unexpected error getching Metal3Machine")
 	}
 	m.Log.Info("Fetched Metal3Machine")
 
@@ -286,16 +286,13 @@ func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		return nil, err
 	}
 
-	networkData["services"], err = renderNetworkServices(m3dt.Spec.NetworkData.Services)
-	if err != nil {
-		return nil, err
-	}
+	networkData["services"] = renderNetworkServices(m3dt.Spec.NetworkData.Services)
 
 	return yaml.Marshal(networkData)
 }
 
 // renderNetworkServices renders the services
-func renderNetworkServices(services capm3.NetworkDataService) ([]interface{}, error) {
+func renderNetworkServices(services capm3.NetworkDataService) []interface{} {
 	data := []interface{}{}
 
 	for _, service := range services.DNS {
@@ -305,7 +302,7 @@ func renderNetworkServices(services capm3.NetworkDataService) ([]interface{}, er
 		})
 	}
 
-	return data, nil
+	return data
 }
 
 // renderNetworkLinks renders the different types of links
@@ -455,7 +452,7 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4) []interface{} {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
-		services := []map[string]string{}
+		services := []interface{}{}
 		for _, service := range route.Services.DNS {
 			services = append(services, map[string]string{
 				"type":    "dns",
@@ -477,14 +474,14 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4) []interface{} {
 func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6) []interface{} {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
-		services := []map[string]string{}
+		services := []interface{}{}
 		for _, service := range route.Services.DNS {
 			services = append(services, map[string]string{
 				"type":    "dns",
 				"address": string(service),
 			})
 		}
-		mask := translateMask(route.Netmask, true)
+		mask := translateMask(route.Netmask, false)
 		routes = append(routes, map[string]interface{}{
 			"network":  route.Network,
 			"netmask":  mask,
@@ -556,6 +553,9 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 
 	// Indexes
 	for _, entry := range m3dt.Spec.MetaData.Indexes {
+		if entry.Step == 0 {
+			entry.Step = 1
+		}
 		metadata[entry.Key] = entry.Prefix + strconv.Itoa(entry.Offset+m3d.Spec.Index*entry.Step) + entry.Suffix
 	}
 
@@ -596,6 +596,9 @@ func getIPAddress(entry *capm3.MetaDataIPAddress, index int) (string, error) {
 	var ip net.IP
 	var err error
 	var ipNet *net.IPNet
+	if entry.Step == 0 {
+		entry.Step = 1
+	}
 	offset := index * entry.Step
 
 	// If start is given, use it to add the offset
@@ -645,7 +648,7 @@ func getIPAddress(entry *capm3.MetaDataIPAddress, index int) (string, error) {
 // Note that if the resulting IP address is in the format ::ffff:xxxx:xxxx then
 // ip.String will fail to select the correct type of ip
 func addOffsetToIP(ip, endIP net.IP, offset int) (net.IP, error) {
-	ip4 := true
+	ip4 := false
 	//ip := net.ParseIP(ipString)
 	if ip.To4() != nil {
 		ip4 = true
@@ -665,11 +668,10 @@ func addOffsetToIP(ip, endIP net.IP, offset int) (net.IP, error) {
 	IPBytes := IPInt.Bytes()
 
 	IPBytesLen := len(IPBytes)
-	fmt.Println(IPBytes)
 
 	// Verify that the IPv4 or IPv6 fulfills theirs constraints
-	if (ip4 && IPBytesLen > 16 && IPBytes[9] == 255 && IPBytes[10] == 255) ||
-		IPBytesLen > 16 {
+	if (ip4 && IPBytesLen > 6 && IPBytes[4] != 255 && IPBytes[5] != 255) ||
+		(!ip4 && IPBytesLen > 16) {
 		return nil, errors.New(fmt.Sprintf("IP address overflow for : %s", ip.String()))
 	}
 
@@ -690,7 +692,7 @@ func addOffsetToIP(ip, endIP net.IP, offset int) (net.IP, error) {
 
 // getBMHMacByName returns the mac address of the interface matching the name
 func getBMHMacByName(name string, bmh *bmo.BareMetalHost) (string, error) {
-	if bmh.Status.HardwareDetails == nil || bmh.Status.HardwareDetails.NIC == nil {
+	if bmh == nil || bmh.Status.HardwareDetails == nil || bmh.Status.HardwareDetails.NIC == nil {
 		return "", errors.New("Nics list not populated")
 	}
 	for _, nics := range bmh.Status.HardwareDetails.NIC {
@@ -710,6 +712,6 @@ func (m *DataManager) getM3Machine(ctx context.Context, m3dt *capm3.Metal3DataTe
 	}
 
 	return getM3Machine(ctx, m.client, m.Log,
-		m.Data.Spec.Metal3Machine.Name, m.Data.Namespace, m3dt,
+		m.Data.Spec.Metal3Machine.Name, m.Data.Namespace, m3dt, true,
 	)
 }

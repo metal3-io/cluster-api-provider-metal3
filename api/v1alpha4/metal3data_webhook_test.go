@@ -97,6 +97,9 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 				g.Expect(obj.ValidateCreate()).To(Succeed())
 			}
 
+			obj.Spec.Index = -1
+			g.Expect(obj.ValidateCreate()).NotTo(Succeed())
+
 			g.Expect(obj.ValidateDelete()).To(Succeed())
 		})
 	}

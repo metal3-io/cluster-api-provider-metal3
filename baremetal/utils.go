@@ -216,6 +216,7 @@ func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 
 func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string, dataTemplate *capm3.Metal3DataTemplate,
+	requeueifNotFound bool,
 ) (*capm3.Metal3Machine, error) {
 
 	// Get the Metal3Machine
@@ -227,6 +228,9 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 	err := cl.Get(ctx, key, tmpM3Machine)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			if requeueifNotFound {
+				return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+			}
 			return nil, nil
 		} else {
 			return nil, err
