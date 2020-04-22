@@ -455,6 +455,85 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 	)
 
+	type TestCaseM3DToBMM struct {
+		Data          *infrav1.Metal3Data
+		ExpectRequest bool
+	}
+
+	DescribeTable("Metal3Data To Metal3Machines tests",
+		func(tc TestCaseM3DToBMM) {
+			r := Metal3MachineReconciler{}
+			obj := handler.MapObject{
+				Object: tc.Data,
+			}
+			reqs := r.Metal3DataToMetal3Machines(obj)
+
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+
+				req := reqs[0]
+				Expect(req.NamespacedName.Name).To(Equal(tc.Data.Spec.Metal3Machine.Name),
+					"Expected name %s, found %s", tc.Data.Spec.Metal3Machine.Name, req.NamespacedName.Name)
+				if tc.Data.Spec.Metal3Machine.Namespace == "" {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Namespace),
+						"Expected namespace %s, found %s", tc.Data.Namespace, req.NamespacedName.Namespace)
+				} else {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Spec.Metal3Machine.Namespace),
+						"Expected namespace %s, found %s", tc.Data.Spec.Metal3Machine.Namespace, req.NamespacedName.Namespace)
+				}
+
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+
+			}
+		},
+		Entry("No Metal3Machine in Spec",
+			TestCaseM3DToBMM{
+				Data: &infrav1.Metal3Data{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "data1",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3DataSpec{},
+				},
+				ExpectRequest: false,
+			},
+		),
+		Entry("Metal3Machine in Spec, with namespace",
+			TestCaseM3DToBMM{
+				Data: &infrav1.Metal3Data{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "data1",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3DataSpec{
+						Metal3Machine: &corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
+		Entry("Metal3Machine in Spec, no namespace",
+			TestCaseM3DToBMM{
+				Data: &infrav1.Metal3Data{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "data1",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3DataSpec{
+						Metal3Machine: &corev1.ObjectReference{
+							Name: "abc",
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
+	)
+
 	type TestCaseClusterToBMM struct {
 		Cluster       *capi.Cluster
 		Machine       *capi.Machine
