@@ -1630,22 +1630,59 @@ var _ = Describe("Metal3Data manager", func() {
 								Interface: "eth1",
 							},
 						},
+						FromLabels: []capm3.MetaDataFromLabel{
+							capm3.MetaDataFromLabel{
+								Key:    "Label-1",
+								Object: "metal3machine",
+								Label:  "Doesnotexist",
+							},
+							capm3.MetaDataFromLabel{
+								Key:    "Label-2",
+								Object: "metal3machine",
+								Label:  "Empty",
+							},
+							capm3.MetaDataFromLabel{
+								Key:    "Label-3",
+								Object: "metal3machine",
+								Label:  "M3M",
+							},
+							capm3.MetaDataFromLabel{
+								Key:    "Label-4",
+								Object: "machine",
+								Label:  "Machine",
+							},
+							capm3.MetaDataFromLabel{
+								Key:    "Label-5",
+								Object: "baremetalhost",
+								Label:  "BMH",
+							},
+						},
 					},
 				},
 			},
 			m3m: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "metal3machine-abc",
+					Labels: map[string]string{
+						"M3M":   "Metal3MachineLabel",
+						"Empty": "",
+					},
 				},
 			},
 			machine: &capi.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "machine-abc",
+					Labels: map[string]string{
+						"Machine": "MachineLabel",
+					},
 				},
 			},
 			bmh: &bmo.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bmh-abc",
+					Labels: map[string]string{
+						"BMH": "BMHLabel",
+					},
 				},
 				Status: bmo.BareMetalHostStatus{
 					HardwareDetails: &bmo.HardwareDetails{
@@ -1674,6 +1711,11 @@ var _ = Describe("Metal3Data manager", func() {
 				"Index-2":      "2",
 				"Address-1":    "192.168.0.14",
 				"Mac-1":        "XX:XX:XX:XX:XX:YY",
+				"Label-1":      "",
+				"Label-2":      "",
+				"Label-3":      "Metal3MachineLabel",
+				"Label-4":      "MachineLabel",
+				"Label-5":      "BMHLabel",
 			},
 		}),
 		Entry("Interface absent", testCaseRenderMetaData{

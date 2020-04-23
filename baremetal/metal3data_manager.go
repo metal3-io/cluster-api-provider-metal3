@@ -578,6 +578,20 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		}
 	}
 
+	// Labels
+	for _, entry := range m3dt.Spec.MetaData.FromLabels {
+		switch strings.ToLower(entry.Object) {
+		case "metal3machine":
+			metadata[entry.Key] = m3m.Labels[entry.Label]
+		case "machine":
+			metadata[entry.Key] = machine.Labels[entry.Label]
+		case "baremetalhost":
+			metadata[entry.Key] = bmh.Labels[entry.Label]
+		default:
+			return nil, errors.New("Unknown object type")
+		}
+	}
+
 	// Strings
 	for _, entry := range m3dt.Spec.MetaData.Strings {
 		metadata[entry.Key] = entry.Value

@@ -41,6 +41,18 @@ type MetaDataIndex struct {
 	Suffix string `json:"suffix,omitempty"`
 }
 
+// MetaDataFromLabel contains the information to fetch a label content, if the
+// label does not exist, it is rendered as empty string
+type MetaDataFromLabel struct {
+	// Key is the metadata key when redendering this metadata element
+	Key string `json:"key"`
+	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
+	// Object is the type of the object from which we retrieve the name
+	Object string `json:"object"`
+	// Label is the key of the label to fetch
+	Label string `json:"label"`
+}
+
 // MetaDataString contains the information to render the string
 type MetaDataString struct {
 	// Key is the metadata key when redendering this metadata element
@@ -117,6 +129,9 @@ type MetaData struct {
 	// FromHostInterfaces is the list of metadata items to be rendered as MAC
 	// addresses of the host interfaces.
 	FromHostInterfaces []MetaDataHostInterface `json:"fromHostInterfaces,omitempty"`
+
+	// FromLabels is the list of metadata items to be fetched from object labels
+	FromLabels []MetaDataFromLabel `json:"fromLabels,omitempty"`
 }
 
 // NetworkLinkEthernetMac represents the Mac address content
