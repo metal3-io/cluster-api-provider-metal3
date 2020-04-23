@@ -1657,6 +1657,33 @@ var _ = Describe("Metal3Data manager", func() {
 								Label:  "BMH",
 							},
 						},
+						FromAnnotations: []capm3.MetaDataFromAnnotation{
+							capm3.MetaDataFromAnnotation{
+								Key:        "Annotation-1",
+								Object:     "metal3machine",
+								Annotation: "Doesnotexist",
+							},
+							capm3.MetaDataFromAnnotation{
+								Key:        "Annotation-2",
+								Object:     "metal3machine",
+								Annotation: "Empty",
+							},
+							capm3.MetaDataFromAnnotation{
+								Key:        "Annotation-3",
+								Object:     "metal3machine",
+								Annotation: "M3M",
+							},
+							capm3.MetaDataFromAnnotation{
+								Key:        "Annotation-4",
+								Object:     "machine",
+								Annotation: "Machine",
+							},
+							capm3.MetaDataFromAnnotation{
+								Key:        "Annotation-5",
+								Object:     "baremetalhost",
+								Annotation: "BMH",
+							},
+						},
 					},
 				},
 			},
@@ -1667,6 +1694,10 @@ var _ = Describe("Metal3Data manager", func() {
 						"M3M":   "Metal3MachineLabel",
 						"Empty": "",
 					},
+					Annotations: map[string]string{
+						"M3M":   "Metal3MachineAnnotation",
+						"Empty": "",
+					},
 				},
 			},
 			machine: &capi.Machine{
@@ -1675,6 +1706,9 @@ var _ = Describe("Metal3Data manager", func() {
 					Labels: map[string]string{
 						"Machine": "MachineLabel",
 					},
+					Annotations: map[string]string{
+						"Machine": "MachineAnnotation",
+					},
 				},
 			},
 			bmh: &bmo.BareMetalHost{
@@ -1682,6 +1716,9 @@ var _ = Describe("Metal3Data manager", func() {
 					Name: "bmh-abc",
 					Labels: map[string]string{
 						"BMH": "BMHLabel",
+					},
+					Annotations: map[string]string{
+						"BMH": "BMHAnnotation",
 					},
 				},
 				Status: bmo.BareMetalHostStatus{
@@ -1716,6 +1753,11 @@ var _ = Describe("Metal3Data manager", func() {
 				"Label-3":      "Metal3MachineLabel",
 				"Label-4":      "MachineLabel",
 				"Label-5":      "BMHLabel",
+				"Annotation-1": "",
+				"Annotation-2": "",
+				"Annotation-3": "Metal3MachineAnnotation",
+				"Annotation-4": "MachineAnnotation",
+				"Annotation-5": "BMHAnnotation",
 			},
 		}),
 		Entry("Interface absent", testCaseRenderMetaData{
@@ -1786,7 +1828,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectError: true,
 		}),
-		Entry("Full example", testCaseRenderMetaData{
+		Entry("Wrong object in name", testCaseRenderMetaData{
 			m3dt: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
@@ -1797,6 +1839,44 @@ var _ = Describe("Metal3Data manager", func() {
 							capm3.MetaDataObjectName{
 								Key:    "ObjectName-3",
 								Object: "baremetalhost2",
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		}),
+		Entry("Wrong object in Label", testCaseRenderMetaData{
+			m3dt: &capm3.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "datatemplate-abc",
+				},
+				Spec: capm3.Metal3DataTemplateSpec{
+					MetaData: &capm3.MetaData{
+						FromLabels: []capm3.MetaDataFromLabel{
+							capm3.MetaDataFromLabel{
+								Key:    "ObjectName-3",
+								Object: "baremetalhost2",
+								Label:  "abc",
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		}),
+		Entry("Wrong object in Annotation", testCaseRenderMetaData{
+			m3dt: &capm3.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "datatemplate-abc",
+				},
+				Spec: capm3.Metal3DataTemplateSpec{
+					MetaData: &capm3.MetaData{
+						FromAnnotations: []capm3.MetaDataFromAnnotation{
+							capm3.MetaDataFromAnnotation{
+								Key:        "ObjectName-3",
+								Object:     "baremetalhost2",
+								Annotation: "abc",
 							},
 						},
 					},

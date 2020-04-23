@@ -53,6 +53,18 @@ type MetaDataFromLabel struct {
 	Label string `json:"label"`
 }
 
+// MetaDataFromAnnotation contains the information to fetch an annotation
+// content, if the label does not exist, it is rendered as empty string
+type MetaDataFromAnnotation struct {
+	// Key is the metadata key when redendering this metadata element
+	Key string `json:"key"`
+	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
+	// Object is the type of the object from which we retrieve the name
+	Object string `json:"object"`
+	// Annotation is the key of the Annotation to fetch
+	Annotation string `json:"annotation"`
+}
+
 // MetaDataString contains the information to render the string
 type MetaDataString struct {
 	// Key is the metadata key when redendering this metadata element
@@ -132,6 +144,10 @@ type MetaData struct {
 
 	// FromLabels is the list of metadata items to be fetched from object labels
 	FromLabels []MetaDataFromLabel `json:"fromLabels,omitempty"`
+
+	// FromAnnotations is the list of metadata items to be fetched from object
+	// Annotations
+	FromAnnotations []MetaDataFromAnnotation `json:"fromAnnotations,omitempty"`
 }
 
 // NetworkLinkEthernetMac represents the Mac address content

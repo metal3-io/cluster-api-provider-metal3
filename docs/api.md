@@ -568,9 +568,13 @@ spec:
       - key: mac
         interface: "eth0"
     fromLabels:
-      - key: label
+      - key: label-1
         object: machine
         label: mylabelkey
+    fromAnnotations:
+      - key: annotation-1
+        object: machine
+        annotation: myannotationkey
   networkData:
     links:
       ethernets:
@@ -694,6 +698,10 @@ ways. The following types of objects are available and accept lists:
   if the label is absent. It takes an `object` attribute to specify the type of
   the object where to fetch the label, and a `label` attribute that contains the
   label key.
+* **fromAnnotations**: renders the content of a annotation on an object or an
+  empty string if the annotation is absent. It takes an `object` attribute to
+  specify the type of the object where to fetch the annotation, and an
+  `annotation` attribute that contains the annotation key.
 
 For each object, the attribute **key** is required.
 
