@@ -79,7 +79,7 @@ func (r *Metal3DataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr 
 	if capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
 			metadataLog.Info("Metal3Data is missing cluster label or cluster does not exist")
-			return ctrl.Result{}, errors.Wrapf(err, "Metal3Data is missing cluster label or cluster does not exist")
+			return ctrl.Result{}, nil
 		}
 		if cluster == nil {
 			metadataLog.Info(fmt.Sprintf("This metadata is not yet associated with a cluster using the label %s: <name of cluster>", capi.ClusterLabelName))

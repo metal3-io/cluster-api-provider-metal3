@@ -197,7 +197,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			gomockCtrl.Finish()
 		})
 
-		DescribeTable("Deletion tests",
+		DescribeTable("ReconcileNormal tests",
 			func(tc reconcileNormalTestCase) {
 				m := setReconcileNormalExpectations(gomockCtrl, tc)
 				res, err := bmReconcile.reconcileNormal(context.TODO(), m)
