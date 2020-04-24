@@ -68,6 +68,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -79,7 +80,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -141,6 +142,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -152,7 +154,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -214,6 +216,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -225,7 +228,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -287,6 +290,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -298,7 +302,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -360,6 +364,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -371,7 +376,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -433,6 +438,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -444,7 +450,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -506,6 +512,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -517,7 +524,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -579,6 +586,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -590,7 +598,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -652,6 +660,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -663,7 +672,7 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready
 ---
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -725,6 +734,7 @@ status:
       vlanId: 0
   hardwareProfile: unknown
   operationalStatus: OK
+  operationHistory: {}
   poweredOn: false
   triedCredentials:
     credentials:
@@ -736,4 +746,4 @@ status:
     image:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
       url: http://172.22.0.1/images/centos-updated.qcow2
-    state: provisioned
+    state: ready

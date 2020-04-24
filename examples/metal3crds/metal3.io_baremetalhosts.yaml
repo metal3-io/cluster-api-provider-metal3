@@ -1,9 +1,6 @@
-
----
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  creationTimestamp: null
   name: baremetalhosts.metal3.io
 spec:
   additionalPrinterColumns:
@@ -31,7 +28,7 @@ spec:
     description: Whether the host is online or not
     name: Online
     type: string
-  - JSONPath: .Status.FailureMessage
+  - JSONPath: .status.errorMessage
     description: Most recent error
     name: Error
     type: string
@@ -52,12 +49,12 @@ spec:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
             of an object. Servers should convert recognized schemas to the latest
-            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
           type: string
         kind:
           description: 'Kind is a string value representing the REST resource this
             object represents. Servers may infer this from the endpoint the client
-            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
           type: object
@@ -75,6 +72,13 @@ spec:
                   description: The name of the secret containing the BMC credentials
                     (requires keys "username" and "password").
                   type: string
+                disableCertificateVerification:
+                  description: DisableCertificateVerification disables verification
+                    of server certificates when using HTTPS to connect to the BMC.
+                    This is required when the server certificate is self-signed, but
+                    is insecure because it allows a man-in-the-middle to intercept
+                    the connection.
+                  type: boolean
               required:
               - address
               - credentialsName
@@ -106,7 +110,7 @@ spec:
                     in the future.'
                   type: string
                 kind:
-                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+                  description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
                   type: string
                 name:
                   description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
@@ -116,7 +120,7 @@ spec:
                   type: string
                 resourceVersion:
                   description: 'Specific resourceVersion to which this reference is
-                    made, if any. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#concurrency-control-and-consistency'
+                    made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
                   type: string
                 uid:
                   description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
@@ -149,6 +153,33 @@ spec:
               required:
               - checksum
               - url
+              type: object
+            metaData:
+              description: MetaData holds the reference to the Secret containing host
+                metadata (e.g. meta_data.json which is passed to Config Drive).
+              properties:
+                name:
+                  description: Name is unique within a namespace to reference a secret
+                    resource.
+                  type: string
+                namespace:
+                  description: Namespace defines the space within which the secret
+                    name must be unique.
+                  type: string
+              type: object
+            networkData:
+              description: NetworkData holds the reference to the Secret containing
+                network configuration (e.g content of network_data.json which is passed
+                to Config Drive).
+              properties:
+                name:
+                  description: Name is unique within a namespace to reference a secret
+                    resource.
+                  type: string
+                namespace:
+                  description: Namespace defines the space within which the secret
+                    name must be unique.
+                  type: string
               type: object
             online:
               description: Should the server be online?
@@ -205,6 +236,15 @@ spec:
             errorMessage:
               description: the last error message reported by the provisioning subsystem
               type: string
+            errorType:
+              description: ErrorType indicates the type of failure encountered when
+                the OperationalStatus is OperationalStatusError
+              enum:
+              - registration error
+              - inspection error
+              - provisioning error
+              - power management error
+              type: string
             goodCredentials:
               description: the last credentials we were able to validate as working
               properties:
@@ -234,10 +274,7 @@ spec:
                       type: string
                     clockMegahertz:
                       description: ClockSpeed is a clock speed in MHz
-                      format: double
-                      type: number
                     count:
-                      format: int64
                       type: integer
                     flags:
                       items:
@@ -303,8 +340,6 @@ spec:
                       vlanId:
                         description: The untagged VLAN ID
                         format: int32
-                        maximum: 4094
-                        minimum: 0
                         type: integer
                       vlans:
                         description: The VLANs available
@@ -314,8 +349,6 @@ spec:
                             id:
                               description: VLANID is a 12-bit 802.1Q VLAN identifier
                               format: int32
-                              maximum: 4094
-                              minimum: 0
                               type: integer
                             name:
                               type: string
@@ -409,8 +442,70 @@ spec:
               description: LastUpdated identifies when this status was last observed.
               format: date-time
               type: string
+            operationHistory:
+              description: OperationHistory holds information about operations performed
+                on this host.
+              properties:
+                deprovision:
+                  description: OperationMetric contains metadata about an operation
+                    (inspection, provisioning, etc.) used for tracking metrics.
+                  properties:
+                    end:
+                      format: date-time
+                      nullable: true
+                      type: string
+                    start:
+                      format: date-time
+                      nullable: true
+                      type: string
+                  type: object
+                inspect:
+                  description: OperationMetric contains metadata about an operation
+                    (inspection, provisioning, etc.) used for tracking metrics.
+                  properties:
+                    end:
+                      format: date-time
+                      nullable: true
+                      type: string
+                    start:
+                      format: date-time
+                      nullable: true
+                      type: string
+                  type: object
+                provision:
+                  description: OperationMetric contains metadata about an operation
+                    (inspection, provisioning, etc.) used for tracking metrics.
+                  properties:
+                    end:
+                      format: date-time
+                      nullable: true
+                      type: string
+                    start:
+                      format: date-time
+                      nullable: true
+                      type: string
+                  type: object
+                register:
+                  description: OperationMetric contains metadata about an operation
+                    (inspection, provisioning, etc.) used for tracking metrics.
+                  properties:
+                    end:
+                      format: date-time
+                      nullable: true
+                      type: string
+                    start:
+                      format: date-time
+                      nullable: true
+                      type: string
+                  type: object
+              type: object
             operationalStatus:
               description: OperationalStatus holds the status of the host
+              enum:
+              - ""
+              - OK
+              - discovered
+              - error
               type: string
             poweredOn:
               description: indicator for whether or not the host is powered on
@@ -465,12 +560,11 @@ spec:
               type: object
           required:
           - errorMessage
-          - goodCredentials
           - hardwareProfile
+          - operationHistory
           - operationalStatus
           - poweredOn
           - provisioning
-          - triedCredentials
           type: object
       type: object
   version: v1alpha1
@@ -478,9 +572,3 @@ spec:
   - name: v1alpha1
     served: true
     storage: true
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

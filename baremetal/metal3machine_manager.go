@@ -27,21 +27,19 @@ import (
 	// comment for go-lint
 	"github.com/go-logr/logr"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/utils/pointer"
-
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
@@ -57,11 +55,7 @@ const (
 	requeueAfter        = time.Second * 30
 	bmRoleControlPlane  = "control-plane"
 	bmRoleNode          = "node"
-	userDataFinalizer   = "metal3machine.infrastructure.cluster.x-k8s.io/userData"
 	pausedAnnotationKey = "metal3.io/capm3"
-
-	// metal3SecretType defines the type of secret created by metal3
-	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 )
 
 // MachineManagerInterface is an interface for a ClusterManager
@@ -79,6 +73,9 @@ type MachineManagerInterface interface {
 	SetProviderID(string)
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
+	DissociateM3Metadata(context.Context) error
+	AssociateM3Metadata(context.Context) error
+	SetError(string, capierrors.MachineStatusError)
 }
 
 // MachineManager is responsible for performing machine reconciliation
@@ -137,9 +134,6 @@ func (m *MachineManager) IsProvisioned() bool {
 
 // IsBootstrapReady checks if the machine is given Bootstrap data
 func (m *MachineManager) IsBootstrapReady() bool {
-	if !m.Machine.Status.BootstrapReady {
-		m.Log.Info("Waiting for the Bootstrap provider controller to set bootstrap data")
-	}
 	return m.Machine.Status.BootstrapReady
 }
 
@@ -161,7 +155,7 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 	// look for associated BMH
 	host, err := m.getHost(ctx)
 	if err != nil {
-		m.setError("Failed to get a BaremetalHost for the Metal3Machine",
+		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
 			capierrors.CreateMachineError,
 		)
 		return err
@@ -184,7 +178,7 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 			}
 		}
 	}
-	return m.updateObject(ctx, host)
+	return updateObject(m.client, ctx, host)
 }
 
 // SetPauseAnnotation sets the pause annotations on associated bmh
@@ -192,7 +186,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	// look for associated BMH
 	host, err := m.getHost(ctx)
 	if err != nil {
-		m.setError("Failed to get a BaremetalHost for the Metal3Machine",
+		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
 			capierrors.CreateMachineError,
 		)
 		return err
@@ -214,7 +208,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		host.Annotations = make(map[string]string)
 		host.Annotations[bmh.PausedAnnotation] = pausedAnnotationKey
 	}
-	return m.updateObject(ctx, host)
+	return updateObject(m.client, ctx, host)
 }
 
 // GetBaremetalHostID return the provider identifier for this machine
@@ -222,7 +216,7 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 	// look for associated BMH
 	host, err := m.getHost(ctx)
 	if err != nil {
-		m.setError("Failed to get a BaremetalHost for the Metal3Machine",
+		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
 			capierrors.CreateMachineError,
 		)
 		return nil, err
@@ -235,7 +229,8 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 		return pointer.StringPtr(string(host.ObjectMeta.UID)), nil
 	}
 	m.Log.Info("Provisioning BaremetalHost, requeuing")
-	return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+	// Do not requeue since BMH update will trigger a reconciliation
+	return nil, nil
 }
 
 // Associate associates a machine and is invoked by the Machine Controller
@@ -252,7 +247,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err := config.IsValid()
 	if err != nil {
 		// Should have been picked earlier. Do not requeue
-		m.setError(err.Error(), capierrors.InvalidConfigurationMachineError)
+		m.SetError(err.Error(), capierrors.InvalidConfigurationMachineError)
 		return nil
 	}
 
@@ -262,7 +257,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// look for associated BMH
 	host, err := m.getHost(ctx)
 	if err != nil {
-		m.setError("Failed to get the BaremetalHost for the Metal3Machine",
+		m.SetError("Failed to get the BaremetalHost for the Metal3Machine",
 			capierrors.CreateMachineError,
 		)
 		return err
@@ -272,7 +267,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	if host == nil {
 		host, err = m.chooseHost(ctx)
 		if err != nil {
-			m.setError("Failed to pick a BaremetalHost for the Metal3Machine",
+			m.SetError("Failed to pick a BaremetalHost for the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
 			return err
@@ -288,10 +283,10 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// A machine bootstrap not ready case is caught in the controller
 	// ReconcileNormal function
-	err = m.GetUserData(ctx, host)
+	err = m.getUserData(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.setError("Failed to set the UserData for the Metal3Machine",
+			m.SetError("Failed to set the UserData for the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
 		}
@@ -301,32 +296,47 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err = m.setHostLabel(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.setError("Failed to set the Cluster label in the BareMetalHost",
+			m.SetError("Failed to set the Cluster label in the BareMetalHost",
 				capierrors.CreateMachineError,
 			)
 		}
 		return err
 	}
 
-	err = m.setHostSpec(ctx, host)
+	err = m.setHostConsumerRef(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.setError("Failed to associate the BaremetalHost to the Metal3Machine",
+			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
 		}
 		return err
+	}
+
+	// If the user did not provide a DataTemplate, we can directly set the host
+	// specs, nothing to wait for.
+	if m.Metal3Machine.Spec.DataTemplate == nil {
+		if err = m.setHostSpec(ctx, host); err != nil {
+			if _, ok := err.(HasRequeueAfterError); !ok {
+				m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
+					capierrors.CreateMachineError,
+				)
+			}
+			return err
+		}
 	}
 
 	err = m.setBMCSecretLabel(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.Log.Info("Failed to set the Cluster label in the BMC Credentials for BareMetalHost", host.Name)
+			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
 		}
 		return err
 	}
 
-	err = m.updateObject(ctx, host)
+	err = updateObject(m.client, ctx, host)
 	if err != nil {
 		return err
 	}
@@ -334,29 +344,61 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.setError("Failed to annotate the Metal3Machine",
+			m.SetError("Failed to annotate the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
 		}
 		return err
 	}
 
+	if m.Metal3Machine.Spec.DataTemplate != nil {
+		// Requeue to get the DataTemplate output. We need to requeue to trigger the
+		// wait on the Metal3DataTemplate
+		if err := m.WaitForM3Metadata(ctx); err != nil {
+			return err
+		}
+
+		// If the requeue is not needed, then set the host specs
+		if err = m.setHostSpec(ctx, host); err != nil {
+			if _, ok := err.(HasRequeueAfterError); !ok {
+				m.SetError("Failed to set the BaremetalHost Specs",
+					capierrors.CreateMachineError,
+				)
+			}
+			return err
+		}
+
+		// Update the BMH object.
+		err = updateObject(m.client, ctx, host)
+		if err != nil {
+			return err
+		}
+	}
+
 	m.Log.Info("Finished creating machine")
 	return nil
 }
 
-// GetUserData gets the UserData from the machine and exposes it as a secret
+// getUserData gets the UserData from the machine and exposes it as a secret
 // for the BareMetalHost. The UserData might already be in a secret with
 // CABPK v0.3.0+, but if it is in a different namespace than the BareMetalHost,
 // then we need to create the secret. Same as if the UserData is in the data
 // field.
-func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHost) error {
+func (m *MachineManager) getUserData(ctx context.Context, host *bmh.BareMetalHost) error {
 	var err error
 	var decodedUserDataBytes []byte
 
+	if m.Metal3Machine.Status.UserData != nil {
+		return nil
+	}
+
+	if m.Metal3Machine.Spec.UserData != nil {
+		m.Metal3Machine.Status.UserData = m.Metal3Machine.Spec.UserData
+	}
+
 	// if datasecretname is set just pass the reference
 	if m.Machine.Spec.Bootstrap.DataSecretName != nil {
-		m.Metal3Machine.Spec.UserData = &corev1.SecretReference{
+		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
 			Namespace: m.Machine.Namespace,
 		}
@@ -376,47 +418,37 @@ func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHos
 		return err
 	}
 
-	bootstrapSecret := &corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.Metal3Machine.Name + "-user-data",
-			Namespace: m.Metal3Machine.Namespace,
-			Labels: map[string]string{
-				capi.ClusterLabelName: m.Machine.Spec.ClusterName,
-			},
-			OwnerReferences: []metav1.OwnerReference{
-				metav1.OwnerReference{
-					Controller: pointer.BoolPtr(true),
-					APIVersion: m.Metal3Machine.APIVersion,
-					Kind:       m.Metal3Machine.Kind,
-					Name:       m.Metal3Machine.Name,
-					UID:        m.Metal3Machine.UID,
-				},
-			},
-			Finalizers: []string{userDataFinalizer},
-		},
-		Data: map[string][]byte{
+	err = m.createSecret(ctx, m.Metal3Machine.Name+"-user-data",
+		m.Metal3Machine.Namespace, map[string][]byte{
 			"userData": decodedUserDataBytes,
 		},
-		Type: metal3SecretType,
+	)
+	if err != nil {
+		return err
 	}
 
-	tmpBootstrapSecret := corev1.Secret{}
-	key := client.ObjectKey{
+	m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 		Name:      m.Metal3Machine.Name + "-user-data",
-		Namespace: m.Metal3Machine.Namespace,
+		Namespace: host.Namespace,
 	}
-	err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-	if err == nil {
-		// Update the secret with user data
-		err = m.updateObject(ctx, bootstrapSecret)
-	} else if apierrors.IsNotFound(err) {
-		// Create the secret with user data
-		err = m.createObject(ctx, bootstrapSecret)
-	}
+
+	return nil
+}
+
+func (m *MachineManager) createSecret(ctx context.Context, name string,
+	namespace string, content map[string][]byte,
+) error {
+
+	err := createSecret(m.client, ctx, name, namespace,
+		m.Machine.Spec.ClusterName,
+		[]metav1.OwnerReference{metav1.OwnerReference{
+			Controller: pointer.BoolPtr(true),
+			APIVersion: m.Metal3Machine.APIVersion,
+			Kind:       m.Metal3Machine.Kind,
+			Name:       m.Metal3Machine.Name,
+			UID:        m.Metal3Machine.UID,
+		}}, content,
+	)
 
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
@@ -424,11 +456,6 @@ func (m *MachineManager) GetUserData(ctx context.Context, host *bmh.BareMetalHos
 		}
 		return err
 	}
-	m.Metal3Machine.Spec.UserData = &corev1.SecretReference{
-		Name:      m.Metal3Machine.Name + "-user-data",
-		Namespace: m.Metal3Machine.Namespace,
-	}
-
 	return nil
 }
 
@@ -467,7 +494,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
 			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
 				delete(tmpBMCSecret.Labels, capi.ClusterLabelName)
-				errBMC = m.updateObject(ctx, tmpBMCSecret)
+				errBMC = updateObject(m.client, ctx, tmpBMCSecret)
 				if errBMC != nil {
 					if _, ok := errBMC.(HasRequeueAfterError); !ok {
 						m.Log.Info("Failed to delete the clusterLabel from BMC Secret")
@@ -480,11 +507,20 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
 			host.Spec.Image = nil
 			host.Spec.Online = false
-			host.Spec.UserData = nil
-			err = m.updateObject(ctx, host)
+			if m.Metal3Machine.Status.UserData != nil {
+				host.Spec.UserData = nil
+			}
+			if m.Metal3Machine.Status.MetaData != nil {
+				host.Spec.MetaData = nil
+			}
+			if m.Metal3Machine.Status.NetworkData != nil {
+				host.Spec.NetworkData = nil
+			}
+
+			err = updateObject(m.client, ctx, host)
 			if err != nil && !apierrors.IsNotFound(err) {
 				if _, ok := err.(HasRequeueAfterError); !ok {
-					m.setError("Failed to delete Metal3Machine",
+					m.SetError("Failed to delete Metal3Machine",
 						capierrors.DeleteMachineError,
 					)
 				}
@@ -513,6 +549,28 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		host.Spec.ConsumerRef = nil
 
+		// Delete created secret, if data was set without DataSecretName but with
+		// Data
+		if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
+			m.Machine.Spec.Bootstrap.Data != nil {
+			m.Log.Info("Deleting User data secret for machine")
+			if m.Metal3Machine.Status.UserData != nil {
+				err = deleteSecret(m.client, ctx, m.Metal3Machine.Status.UserData.Name,
+					m.Metal3Machine.Namespace,
+				)
+				if err != nil {
+					if _, ok := err.(HasRequeueAfterError); !ok {
+						m.SetError("Failed to delete userdata secret",
+							capierrors.DeleteMachineError,
+						)
+					}
+					return err
+				}
+			}
+		}
+
+		host.Spec.ConsumerRef = nil
+
 		// Remove the ownerreference to this machine
 		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
 		if err != nil {
@@ -528,50 +586,10 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			delete(host.Annotations, bmh.PausedAnnotation)
 		}
 
-		// Delete created secret, if data was set without DataSecretName but with
-		// Data
-		if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
-			m.Machine.Spec.Bootstrap.Data != nil {
-			m.Log.Info("Deleting User data secret for machine")
-			tmpBootstrapSecret := corev1.Secret{}
-			key := client.ObjectKey{
-				Name:      m.Metal3Machine.Spec.UserData.Name,
-				Namespace: m.Metal3Machine.Namespace,
-			}
-			err = m.client.Get(ctx, key, &tmpBootstrapSecret)
-			if err != nil && !apierrors.IsNotFound(err) {
-				m.setError("Failed to delete userdata secret",
-					capierrors.DeleteMachineError,
-				)
-				return err
-			} else if err == nil {
-				//unset the finalizers (remove all since we do not expect anything else
-				// to control that object)
-				tmpBootstrapSecret.Finalizers = []string{}
-				err = m.updateObject(ctx, &tmpBootstrapSecret)
-				if err != nil {
-					if _, ok := err.(HasRequeueAfterError); !ok {
-						m.setError("Failed to delete userdata secret",
-							capierrors.DeleteMachineError,
-						)
-					}
-					return err
-				}
-				// Delete the secret with use data
-				err = m.client.Delete(ctx, &tmpBootstrapSecret)
-				if err != nil && !apierrors.IsNotFound(err) {
-					m.setError("Failed to delete userdata secret",
-						capierrors.DeleteMachineError,
-					)
-					return err
-				}
-			}
-		}
-
-		err = m.updateObject(ctx, host)
+		err = updateObject(m.client, ctx, host)
 		if err != nil && !apierrors.IsNotFound(err) {
 			if _, ok := err.(HasRequeueAfterError); !ok {
-				m.setError("Failed to delete Metal3Machine",
+				m.SetError("Failed to delete Metal3Machine",
 					capierrors.DeleteMachineError,
 				)
 			}
@@ -599,18 +617,38 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return fmt.Errorf("host not found for machine %s", m.Machine.Name)
 	}
 
-	// ensure that the BMH specs are correctly set
-	err = m.setHostSpec(ctx, host)
-	if err != nil {
+	if err := m.WaitForM3Metadata(ctx); err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.setError("Failed to associate the BaremetalHost to the Metal3Machine",
+			m.SetError("Failed to get the DataTemplate",
 				capierrors.CreateMachineError,
 			)
 		}
 		return err
 	}
 
-	err = m.updateObject(ctx, host)
+	// ensure that the BMH specs are correctly set
+	err = m.setHostConsumerRef(ctx, host)
+	if err != nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
+		}
+		return err
+	}
+
+	// ensure that the BMH specs are correctly set
+	err = m.setHostSpec(ctx, host)
+	if err != nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
+				capierrors.CreateMachineError,
+			)
+		}
+		return err
+	}
+
+	err = updateObject(m.client, ctx, host)
 	if err != nil {
 		return err
 	}
@@ -647,7 +685,13 @@ func (m *MachineManager) exists(ctx context.Context) (bool, error) {
 // that contains a reference to the host. Returns nil if not found. Assumes the
 // host is in the same namespace as the machine.
 func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error) {
-	annotations := m.Metal3Machine.ObjectMeta.GetAnnotations()
+	return getHost(ctx, m.Metal3Machine, m.client, m.Log)
+}
+
+func getHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
+	mLog logr.Logger,
+) (*bmh.BareMetalHost, error) {
+	annotations := m3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		return nil, nil
 	}
@@ -657,7 +701,7 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 	}
 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
 	if err != nil {
-		m.Log.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+		mLog.Error(err, "Error parsing annotation value", "annotation key", hostKey)
 		return nil, err
 	}
 
@@ -666,9 +710,9 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 		Name:      hostName,
 		Namespace: hostNamespace,
 	}
-	err = m.client.Get(ctx, key, &host)
+	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
-		m.Log.Info("Annotated host not found", "host", hostKey)
+		mLog.Info("Annotated host not found", "host", hostKey)
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -812,7 +856,7 @@ func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmh.BareMe
 			tmpBMCSecret.Labels = make(map[string]string)
 		}
 		tmpBMCSecret.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
-		return m.updateObject(ctx, tmpBMCSecret)
+		return updateObject(m.client, ctx, tmpBMCSecret)
 	}
 
 	return nil
@@ -841,16 +885,39 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 	// upgrades are not supported at this time. To re-provision a
 	// host, we must fully deprovision it and then provision it again.
 	// Not provisioning while we do not have the UserData
-	if host.Spec.Image == nil && m.Metal3Machine.Spec.UserData != nil {
+	if host.Spec.Image == nil && m.Metal3Machine.Status.UserData != nil {
 		host.Spec.Image = &bmh.Image{
 			URL:      m.Metal3Machine.Spec.Image.URL,
 			Checksum: m.Metal3Machine.Spec.Image.Checksum,
 		}
-		host.Spec.UserData = m.Metal3Machine.Spec.UserData
+		host.Spec.UserData = m.Metal3Machine.Status.UserData
 		if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
 			host.Spec.UserData.Namespace = host.Namespace
 		}
+
+		// Set metadata from gathering from Spec.metadata and from the template.
+		if m.Metal3Machine.Status.MetaData != nil {
+			host.Spec.MetaData = m.Metal3Machine.Status.MetaData
+		}
+		if host.Spec.MetaData != nil && host.Spec.MetaData.Namespace == "" {
+			host.Spec.MetaData.Namespace = m.Machine.Namespace
+		}
+		if m.Metal3Machine.Status.NetworkData != nil {
+			host.Spec.NetworkData = m.Metal3Machine.Status.NetworkData
+		}
+		if host.Spec.NetworkData != nil && host.Spec.NetworkData.Namespace == "" {
+			host.Spec.NetworkData.Namespace = m.Machine.Namespace
+		}
 	}
+
+	host.Spec.Online = true
+
+	return nil
+}
+
+// setHostConsumerRef will ensure the host's Spec is set to link to this
+// Metal3Machine
+func (m *MachineManager) setHostConsumerRef(ctx context.Context, host *bmh.BareMetalHost) error {
 
 	host.Spec.ConsumerRef = &corev1.ObjectReference{
 		Kind:       "Metal3Machine",
@@ -859,7 +926,6 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		APIVersion: m.Metal3Machine.APIVersion,
 	}
 
-	host.Spec.Online = true
 	// Set OwnerReferences
 	hostOwnerReferences, err := m.SetOwnerRef(host.OwnerReferences, true)
 	if err != nil {
@@ -905,10 +971,10 @@ func (m *MachineManager) HasAnnotation() bool {
 	return ok
 }
 
-// setError sets the ErrorMessage and ErrorReason fields on the machine and logs
+// SetError sets the ErrorMessage and ErrorReason fields on the machine and logs
 // the message. It assumes the reason is invalid configuration, since that is
 // currently the only relevant MachineStatusError choice.
-func (m *MachineManager) setError(message string, reason capierrors.MachineStatusError) {
+func (m *MachineManager) SetError(message string, reason capierrors.MachineStatusError) {
 	m.Metal3Machine.Status.FailureMessage = &message
 	m.Metal3Machine.Status.FailureReason = &reason
 }
@@ -1023,25 +1089,9 @@ func (m *MachineManager) SetProviderID(providerID string) {
 
 // SetOwnerRef adds an ownerreference to this Metal3 machine
 func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller bool) ([]metav1.OwnerReference, error) {
-	index, err := m.FindOwnerRef(refList)
-	if err != nil {
-		if _, ok := err.(*NotFoundError); !ok {
-			return nil, err
-		}
-		refList = append(refList, metav1.OwnerReference{
-			APIVersion: m.Metal3Machine.APIVersion,
-			Kind:       m.Metal3Machine.Kind,
-			Name:       m.Metal3Machine.Name,
-			UID:        m.Metal3Machine.UID,
-			Controller: pointer.BoolPtr(controller),
-		})
-	} else {
-		//The UID and the APIVersion might change due to move or version upgrade
-		refList[index].UID = m.Metal3Machine.UID
-		refList[index].APIVersion = m.Metal3Machine.APIVersion
-		refList[index].Controller = pointer.BoolPtr(controller)
-	}
-	return refList, nil
+	return setOwnerRefInList(refList, controller, m.Metal3Machine.TypeMeta,
+		m.Metal3Machine.ObjectMeta,
+	)
 }
 
 // DeleteOwnerRef removes the ownerreference to this Metal3 machine
@@ -1071,20 +1121,54 @@ func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]meta
 // FindOwnerRef checks if an ownerreference to this Metal3 machine exists
 // and returns the index
 func (m *MachineManager) FindOwnerRef(refList []metav1.OwnerReference) (int, error) {
+	return findOwnerRefFromList(refList, m.Metal3Machine.TypeMeta,
+		m.Metal3Machine.ObjectMeta,
+	)
+}
+
+// SetOwnerRef adds an ownerreference to this Metal3 machine
+func setOwnerRefInList(refList []metav1.OwnerReference, controller bool,
+	objType metav1.TypeMeta, objMeta metav1.ObjectMeta,
+) ([]metav1.OwnerReference, error) {
+	index, err := findOwnerRefFromList(refList, objType, objMeta)
+	if err != nil {
+		if _, ok := err.(*NotFoundError); !ok {
+			return nil, err
+		}
+		refList = append(refList, metav1.OwnerReference{
+			APIVersion: objType.APIVersion,
+			Kind:       objType.Kind,
+			Name:       objMeta.Name,
+			UID:        objMeta.UID,
+			Controller: pointer.BoolPtr(controller),
+		})
+	} else {
+		//The UID and the APIVersion might change due to move or version upgrade
+		refList[index].APIVersion = objType.APIVersion
+		refList[index].UID = objMeta.UID
+		refList[index].Controller = pointer.BoolPtr(controller)
+	}
+	return refList, nil
+}
+
+func findOwnerRefFromList(refList []metav1.OwnerReference, objType metav1.TypeMeta,
+	objMeta metav1.ObjectMeta,
+) (int, error) {
+
 	for i, curOwnerRef := range refList {
 		aGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 		if err != nil {
 			return 0, err
 		}
 
-		bGV, err := schema.ParseGroupVersion(m.Metal3Machine.APIVersion)
+		bGV, err := schema.ParseGroupVersion(objType.APIVersion)
 		if err != nil {
 			return 0, err
 		}
 		// not matching on UID since when pivoting it might change
 		// Not matching on API version as this might change
-		if curOwnerRef.Name == m.Metal3Machine.Name &&
-			curOwnerRef.Kind == m.Metal3Machine.Kind &&
+		if curOwnerRef.Name == objMeta.Name &&
+			curOwnerRef.Kind == objType.Kind &&
 			aGV.Group == bGV.Group {
 			return i, nil
 		}
@@ -1092,18 +1176,184 @@ func (m *MachineManager) FindOwnerRef(refList []metav1.OwnerReference) (int, err
 	return 0, &NotFoundError{}
 }
 
-func (m *MachineManager) updateObject(ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
-	err := m.client.Update(ctx, obj.DeepCopyObject(), opts...)
-	if apierrors.IsConflict(err) {
-		return &RequeueAfterError{}
+// RetrieveMetadata fetches the Metal3DataTemplate object and sets the
+// owner references
+func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
+	// If the secrets were provided by the user, use them
+	if m.Metal3Machine.Spec.MetaData != nil {
+		m.Metal3Machine.Status.MetaData = m.Metal3Machine.Spec.MetaData
 	}
-	return err
+	if m.Metal3Machine.Spec.NetworkData != nil {
+		m.Metal3Machine.Status.NetworkData = m.Metal3Machine.Spec.NetworkData
+	}
+
+	// If we have RenderedData set already, it means that the owner reference was
+	// already set
+	if m.Metal3Machine.Status.RenderedData != nil {
+		return nil
+	}
+
+	if m.Metal3Machine.Spec.DataTemplate == nil {
+		return nil
+	}
+	if m.Metal3Machine.Spec.DataTemplate.Namespace == "" {
+		m.Metal3Machine.Spec.DataTemplate.Namespace = m.Metal3Machine.Namespace
+	}
+	metal3DataTemplate, err := fetchM3DataTemplate(ctx,
+		m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
+		m.Machine.Spec.ClusterName,
+	)
+	if err != nil {
+		return err
+	}
+	if metal3DataTemplate == nil {
+		return nil
+	}
+
+	if _, err := m.FindOwnerRef(metal3DataTemplate.OwnerReferences); err != nil {
+		// If the error is not NotFound, return the error
+		if _, ok := err.(*NotFoundError); !ok {
+			return err
+		}
+
+		// Set the owner ref and the cluster label.
+		metal3DataTemplate.OwnerReferences, err = m.SetOwnerRef(metal3DataTemplate.OwnerReferences, false)
+		if err != nil {
+			return err
+		}
+		if metal3DataTemplate.Labels == nil {
+			metal3DataTemplate.Labels = make(map[string]string)
+		}
+		metal3DataTemplate.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+		err = updateObject(m.client, ctx, metal3DataTemplate)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-func (m *MachineManager) createObject(ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
-	err := m.client.Create(ctx, obj.DeepCopyObject(), opts...)
-	if apierrors.IsAlreadyExists(err) {
-		return &RequeueAfterError{}
+// WaitForM3Metadata fetches the Metal3DataTemplate object and sets the
+// owner references
+func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
+
+	// If we do not have RenderedData set yet, try to find it in
+	// Metal3DataTemplate. If it is not there yet, it means that the reconciliation
+	// of Metal3DataTemplate did not yet complete, requeue.
+	if m.Metal3Machine.Status.RenderedData == nil {
+		if m.Metal3Machine.Spec.DataTemplate == nil {
+			return nil
+		}
+		if m.Metal3Machine.Spec.DataTemplate.Namespace == "" {
+			m.Metal3Machine.Spec.DataTemplate.Namespace = m.Metal3Machine.Namespace
+		}
+		metal3DataTemplate, err := fetchM3DataTemplate(ctx,
+			m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
+			m.Machine.Spec.ClusterName,
+		)
+		if err != nil {
+			return err
+		}
+		if metal3DataTemplate == nil {
+			return nil
+		}
+
+		if dataName, ok := metal3DataTemplate.Status.DataNames[m.Metal3Machine.Name]; ok {
+			m.Metal3Machine.Status.RenderedData = &corev1.ObjectReference{
+				Name:      dataName,
+				Namespace: metal3DataTemplate.Namespace,
+			}
+		} else {
+			return &RequeueAfterError{RequeueAfter: requeueAfter}
+		}
 	}
-	return err
+
+	// Fetch the Metal3Data
+	metal3Data, err := fetchM3Data(ctx, m.client, m.Log,
+		m.Metal3Machine.Status.RenderedData.Name, m.Metal3Machine.Namespace,
+	)
+	if err != nil {
+		return err
+	}
+	if metal3Data == nil {
+		return errors.New("Unexpected nil rendered data")
+	}
+
+	// If it is not ready yet, wait.
+	if !metal3Data.Status.Ready {
+		// Secret generation not ready
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+
+	// Get the secrets if given in Metal3Data and not already set
+	if m.Metal3Machine.Status.MetaData == nil &&
+		metal3Data.Spec.MetaData != nil {
+		if metal3Data.Spec.MetaData.Name != "" {
+			m.Metal3Machine.Status.MetaData = &corev1.SecretReference{
+				Name:      metal3Data.Spec.MetaData.Name,
+				Namespace: metal3Data.Namespace,
+			}
+		}
+	}
+
+	if m.Metal3Machine.Status.NetworkData == nil &&
+		metal3Data.Spec.NetworkData != nil {
+		if metal3Data.Spec.NetworkData.Name != "" {
+			m.Metal3Machine.Status.NetworkData = &corev1.SecretReference{
+				Name:      metal3Data.Spec.NetworkData.Name,
+				Namespace: metal3Data.Namespace,
+			}
+		}
+	}
+
+	return nil
+}
+
+// remove machine from OwnerReferences of meta3DataTemplate, on failure requeue
+func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
+
+	if m.Metal3Machine.Status.MetaData != nil && m.Metal3Machine.Spec.MetaData == nil {
+		m.Metal3Machine.Status.MetaData = nil
+	}
+
+	if m.Metal3Machine.Status.NetworkData != nil && m.Metal3Machine.Spec.NetworkData == nil {
+		m.Metal3Machine.Status.NetworkData = nil
+	}
+
+	m.Metal3Machine.Status.RenderedData = nil
+
+	// Get the Metal3DataTemplate object
+	metal3DataTemplate, err := fetchM3DataTemplate(ctx,
+		m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
+		m.Machine.Spec.ClusterName,
+	)
+	if err != nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			return err
+		}
+		return nil
+	}
+	if metal3DataTemplate == nil {
+		return nil
+	}
+
+	// Remove the ownerreference if it is set.
+	if _, err := m.FindOwnerRef(metal3DataTemplate.OwnerReferences); err == nil {
+		metal3DataTemplate.OwnerReferences, err = m.DeleteOwnerRef(
+			metal3DataTemplate.OwnerReferences,
+		)
+		if err != nil {
+			return err
+		}
+		err = updateObject(m.client, ctx, metal3DataTemplate)
+		if err != nil {
+			return err
+		}
+	} else {
+		if _, ok := err.(*NotFoundError); !ok {
+			return err
+		}
+	}
+
+	return nil
 }

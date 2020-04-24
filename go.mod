@@ -17,11 +17,12 @@ require (
 	github.com/google/gofuzz v1.1.0
 	github.com/googleapis/gnostic v0.4.1 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20200309095847-7953dde2c7bf // indirect
+	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/jgautheron/goconst v0.0.0-20200227150835-cda7ea3bf591 // indirect
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mdempsky/maligned v0.0.0-20180708014732-6e39bd26a8c8 // indirect
 	github.com/mdempsky/unconvert v0.0.0-20200228143138-95ecdbfc0b5f // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20200318114549-c3da1db56f43
+	github.com/metal3-io/baremetal-operator v0.0.0-20200328061249-10eb5aa3e614
 	github.com/mibk/dupl v1.0.0 // indirect
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
@@ -32,22 +33,25 @@ require (
 	github.com/stripe/safesql v0.2.0 // indirect
 	github.com/tsenart/deadcode v0.0.0-20160724212837-210d2dc333e9 // indirect
 	github.com/walle/lll v1.0.1 // indirect
-	golang.org/x/crypto v0.0.0-20200317142112-1b76d66859c6 // indirect
-	golang.org/x/net v0.0.0-20200319234117-63522dbf7eec
+	golang.org/x/crypto v0.0.0-20200323165209-0ec3e9974c59 // indirect
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/sys v0.0.0-20200327173247-9dae0f8f5775 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
-	k8s.io/api v0.17.4
-	k8s.io/apiextensions-apiserver v0.17.4
-	k8s.io/apimachinery v0.17.4
+	gopkg.in/yaml.v2 v2.2.8
+	k8s.io/api v0.18.0
+	k8s.io/apiextensions-apiserver v0.18.0
+	k8s.io/apimachinery v0.18.0
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/cluster-bootstrap v0.17.4 // indirect
+	k8s.io/cluster-bootstrap v0.18.0 // indirect
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20200204173128-addea2498afe // indirect
-	k8s.io/utils v0.0.0-20200318093247-d1ab8797c558
+	k8s.io/utils v0.0.0-20200327001022-6496210b90e8
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20200314162735-0ac8026f7d06 // indirect
-	sigs.k8s.io/cluster-api v0.3.2
-	sigs.k8s.io/controller-runtime v0.5.1
+	sigs.k8s.io/cluster-api v0.3.3
+	sigs.k8s.io/controller-runtime v0.5.2
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
@@ -79,3 +83,5 @@ replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503
 replace github.com/openshift/api => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad // Required by BMO until https://github.com/operator-framework/operator-lifecycle-manager/pull/1241 is resolved
 
 replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.0 // Issue with go-client version
+
+replace github.com/metal3-io/baremetal-operator => github.com/dukov/baremetal-operator v0.0.0-20200326114222-ea14dc6e2e1d

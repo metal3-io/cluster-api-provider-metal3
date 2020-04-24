@@ -27,6 +27,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	reflect "reflect"
+	errors "sigs.k8s.io/cluster-api/errors"
 )
 
 // MockMachineManagerInterface is a mock of MachineManagerInterface interface
@@ -227,4 +228,44 @@ func (m *MockMachineManagerInterface) RemovePauseAnnotation(arg0 context.Context
 func (mr *MockMachineManagerInterfaceMockRecorder) RemovePauseAnnotation(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePauseAnnotation", reflect.TypeOf((*MockMachineManagerInterface)(nil).RemovePauseAnnotation), arg0)
+}
+
+// DissociateM3Metadata mocks base method
+func (m *MockMachineManagerInterface) DissociateM3Metadata(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DissociateM3Metadata", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DissociateM3Metadata indicates an expected call of DissociateM3Metadata
+func (mr *MockMachineManagerInterfaceMockRecorder) DissociateM3Metadata(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DissociateM3Metadata", reflect.TypeOf((*MockMachineManagerInterface)(nil).DissociateM3Metadata), arg0)
+}
+
+// AssociateM3Metadata mocks base method
+func (m *MockMachineManagerInterface) AssociateM3Metadata(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AssociateM3Metadata", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AssociateM3Metadata indicates an expected call of AssociateM3Metadata
+func (mr *MockMachineManagerInterfaceMockRecorder) AssociateM3Metadata(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateM3Metadata", reflect.TypeOf((*MockMachineManagerInterface)(nil).AssociateM3Metadata), arg0)
+}
+
+// SetError mocks base method
+func (m *MockMachineManagerInterface) SetError(arg0 string, arg1 errors.MachineStatusError) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetError", arg0, arg1)
+}
+
+// SetError indicates an expected call of SetError
+func (mr *MockMachineManagerInterfaceMockRecorder) SetError(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetError", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetError), arg0, arg1)
 }

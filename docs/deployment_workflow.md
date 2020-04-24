@@ -49,16 +49,24 @@ An outline of the workflow is below.
    secret containing it.
 1. The CAPI controller will copy the userData secret name into the machine
    object and set the bootstrapReady field to true.
-1. Once the machine has userdataSecretName, OwnerRef and bootstrapReady properly
-   set, the CAPM3 controller will select, if possible, a BareMetalHost that
-   matches the criteria, or wait until one is available. If matched, the CAPM3
-   controller will create a secret with the userData and set the BareMetalHost
-   spec accordingly to the Metal3Machine specs.
+1. Once the secrets exists, the CAPM3 controller will select, if
+   possible, a BareMetalHost that matches the criteria, or wait until one is
+   available.
+1. Once the machine has been associated with a BaremetalHost, the CAPM3
+   controller will check if the Metal3Machine references a
+   Metal3DataTemplate object. In that case, it will set an OwnerReference on the
+   Metal3DataTemplate object referencing the Metal3Machine and wait for the
+   metadata and/or network data secrets to be created.
+1. The CAPM3 controller reconciling the Metal3DataTemplate object will select
+   the lowest available index for the new machine and create a Metal3Data
+   object that will then create the secrets containing the rendered data.
+1. The CAPM3 controller will then set the BareMetalHost spec accordingly to the
+   Metal3Machine specs.
 1. The BareMetal Operator will then start the deployment.
 1. After deployment, the BaremetalHost will be in provisioned state. However,
    initialization is not complete. If deploying without cloud provider, CAPM3
-   will wait until the target cluster is up and the node appears. It will fetch
-   the node by matching the label `metal3.io/uuid=<bmh-uuid>`. It will set the
+   can wait until the target cluster is up and the node appears, then fetch
+   the node by matching the label `metal3.io/uuid=<bmh-uuid>` and set the
    providerID to `metal3://<bmh-uuid>`. The Metal3Machine ready status will
    be set to true and the providerID will be set to `metal3://<bmh-uuid>` on the
    Metal3Machine.
@@ -74,5 +82,5 @@ An outline of the workflow is below.
 ## Deletion
 
 Deleting the cluster object will trigger the deletion of all related objects
-except for KubeadmConfigTemplates, Metal3MachineTemplates and BareMetalHost,
-and the related secrets.
+except for KubeadmConfigTemplates, Metal3MachineTemplates, Metal3DataTemplates
+and BareMetalHosts, and the secrets related to the BareMetalHosts.

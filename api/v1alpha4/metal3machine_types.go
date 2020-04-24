@@ -50,6 +50,19 @@ type Metal3MachineSpec struct {
 	// This is used to limit the set of BareMetalHost objects considered for
 	// claiming for a metal3machine.
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
+
+	// MetadataTemplate is a reference to a Metal3DataTemplate object containing
+	// a template of metadata to be rendered. Metadata keys defined in the
+	// metadataTemplate take precendence over keys defined in metadata field.
+	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
+
+	// MetaData is an object storing the reference to the secret containing the
+	// Metadata given by the user.
+	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
+
+	// NetworkData is an object storing the reference to the secret containing the
+	// network data given by the user.
+	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
@@ -129,6 +142,23 @@ type Metal3MachineStatus struct {
 	// it, under what circumstances the value changes, etc."
 	// +optional
 	Ready bool `json:"ready"`
+
+	// UserData references the Secret that holds user data needed by the bare metal
+	// operator. The Namespace is optional; it will default to the metal3machine's
+	// namespace if not specified.
+	UserData *corev1.SecretReference `json:"userData,omitempty"`
+
+	// RenderedData is a reference to a rendered Metal3Data object containing
+	// the references to metaData and networkData secrets.
+	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
+
+	// MetaData is an object storing the reference to the secret containing the
+	// Metadata used to deploy the BareMetalHost.
+	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
+
+	// NetworkData is an object storing the reference to the secret containing the
+	// network data used to deploy the BareMetalHost.
+	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

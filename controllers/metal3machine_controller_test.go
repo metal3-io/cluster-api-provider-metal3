@@ -62,8 +62,9 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	// provisioned, we should only call Update, nothing else
 	m.EXPECT().IsProvisioned().Return(tc.Provisioned)
 	if tc.Provisioned {
-		m.EXPECT().Update(context.TODO())
+		m.EXPECT().Update(context.TODO()).Return(nil)
 		m.EXPECT().IsBootstrapReady().MaxTimes(0)
+		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
 		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		return m
@@ -72,12 +73,14 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	// Bootstrap data not ready, we'll requeue, not call anything else
 	m.EXPECT().IsBootstrapReady().Return(!tc.BootstrapNotReady)
 	if tc.BootstrapNotReady {
+		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
 		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		m.EXPECT().Update(context.TODO()).MaxTimes(0)
 		return m
 	}
 
+	m.EXPECT().AssociateM3Metadata(context.TODO()).Return(nil)
 	// Bootstrap data is ready and node is not annotated, i.e. not associated
 	m.EXPECT().HasAnnotation().Return(tc.Annotated)
 	if !tc.Annotated {
@@ -85,6 +88,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
+			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			return m
 		} else {
 			m.EXPECT().Associate(context.TODO()).Return(nil)
@@ -100,6 +104,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			errors.New("Failed"),
 		)
 		m.EXPECT().SetProviderID("abc").MaxTimes(0)
+		m.EXPECT().SetError(gomock.Any(), gomock.Any())
 		return m
 	}
 
@@ -115,6 +120,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 				SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID("abc").MaxTimes(0)
+			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			return m
 		}
 
@@ -152,15 +158,17 @@ func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 	if tc.DeleteFails {
 		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
+		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
+		m.EXPECT().SetError(gomock.Any(), gomock.Any())
 		return m
 	} else if tc.DeleteRequeue {
 		m.EXPECT().Delete(context.TODO()).Return(&baremetal.RequeueAfterError{})
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
+		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
 		return m
-	} else {
-		m.EXPECT().Delete(context.TODO()).Return(nil)
 	}
-
+	m.EXPECT().DissociateM3Metadata(context.TODO())
+	m.EXPECT().Delete(context.TODO()).Return(nil)
 	m.EXPECT().UnsetFinalizer()
 	return m
 }
@@ -189,7 +197,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			gomockCtrl.Finish()
 		})
 
-		DescribeTable("Deletion tests",
+		DescribeTable("ReconcileNormal tests",
 			func(tc reconcileNormalTestCase) {
 				m := setReconcileNormalExpectations(gomockCtrl, tc)
 				res, err := bmReconcile.reconcileNormal(context.TODO(), m)
@@ -212,7 +220,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 			Entry("Bootstrap not ready", reconcileNormalTestCase{
 				ExpectError:       false,
-				ExpectRequeue:     true,
+				ExpectRequeue:     false,
 				BootstrapNotReady: true,
 			}),
 			Entry("Not Annotated", reconcileNormalTestCase{
@@ -443,6 +451,76 @@ var _ = Describe("Metal3Machine manager", func() {
 					Spec: bmh.BareMetalHostSpec{},
 				},
 				ExpectRequest: false,
+			},
+		),
+	)
+
+	type TestCaseM3DToBMM struct {
+		Data          *infrav1.Metal3Data
+		ExpectRequest bool
+	}
+
+	DescribeTable("Metal3Data To Metal3Machines tests",
+		func(tc TestCaseM3DToBMM) {
+			r := Metal3MachineReconciler{}
+			obj := handler.MapObject{
+				Object: tc.Data,
+			}
+			reqs := r.Metal3DataToMetal3Machines(obj)
+
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+
+				req := reqs[0]
+				Expect(req.NamespacedName.Name).To(Equal(tc.Data.Spec.Metal3Machine.Name),
+					"Expected name %s, found %s", tc.Data.Spec.Metal3Machine.Name, req.NamespacedName.Name)
+				if tc.Data.Spec.Metal3Machine.Namespace == "" {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Namespace),
+						"Expected namespace %s, found %s", tc.Data.Namespace, req.NamespacedName.Namespace)
+				} else {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Spec.Metal3Machine.Namespace),
+						"Expected namespace %s, found %s", tc.Data.Spec.Metal3Machine.Namespace, req.NamespacedName.Namespace)
+				}
+
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+
+			}
+		},
+		Entry("No Metal3Machine in Spec",
+			TestCaseM3DToBMM{
+				Data: &infrav1.Metal3Data{
+					ObjectMeta: testObjectMeta,
+					Spec:       infrav1.Metal3DataSpec{},
+				},
+				ExpectRequest: false,
+			},
+		),
+		Entry("Metal3Machine in Spec, with namespace",
+			TestCaseM3DToBMM{
+				Data: &infrav1.Metal3Data{
+					ObjectMeta: testObjectMeta,
+					Spec: infrav1.Metal3DataSpec{
+						Metal3Machine: &corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
+		Entry("Metal3Machine in Spec, no namespace",
+			TestCaseM3DToBMM{
+				Data: &infrav1.Metal3Data{
+					ObjectMeta: testObjectMeta,
+					Spec: infrav1.Metal3DataSpec{
+						Metal3Machine: &corev1.ObjectReference{
+							Name: "abc",
+						},
+					},
+				},
+				ExpectRequest: true,
 			},
 		),
 	)

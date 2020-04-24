@@ -50,6 +50,7 @@ import (
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
+var timestampNow = metav1.Now()
 
 const (
 	clusterName       = "testCluster"
