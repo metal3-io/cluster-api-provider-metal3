@@ -38,6 +38,16 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+var (
+	testObjectMeta = metav1.ObjectMeta{
+		Name:      "abc",
+		Namespace: "myns",
+	}
+	testObjectReference = &corev1.ObjectReference{
+		Name: "abc",
+	}
+)
+
 var _ = Describe("Metal3Data manager", func() {
 	DescribeTable("Test Finalizers",
 		func(data *capm3.Metal3Data) {
@@ -131,44 +141,26 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("requeue error", testCaseReconcile{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			expectRequeue: true,
 		}),
 		Entry("Set error", testCaseReconcile{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			m3m: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			expectError:      true,
 			expectedErrorSet: true,
@@ -238,7 +230,7 @@ var _ = Describe("Metal3Data manager", func() {
 				err = c.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      "abc-metadata",
-						Namespace: "def",
+						Namespace: "myns",
 					},
 					&tmpSecret,
 				)
@@ -250,7 +242,7 @@ var _ = Describe("Metal3Data manager", func() {
 				err = c.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      "abc-networkdata",
-						Namespace: "def",
+						Namespace: "myns",
 					},
 					&tmpSecret,
 				)
@@ -266,124 +258,71 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("No Metal3DataTemplate", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			expectRequeue: true,
 		}),
 		Entry("No Metal3Machine", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			expectRequeue: true,
 		}),
 		Entry("No Secret needed", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			m3m: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			expectReady: true,
 		}),
 		Entry("Machine without datatemplate", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			m3m: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			expectError: true,
 		}),
 		Entry("secrets exist", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataTemplateSpec{
 					MetaData: &capm3.MetaData{
 						Strings: []capm3.MetaDataString{
@@ -410,20 +349,15 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			m3m: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			metadataSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-metadata",
-					Namespace: "def",
+					Namespace: "myns",
 				},
 				Data: map[string][]byte{
 					"metaData": []byte("Hello"),
@@ -432,7 +366,7 @@ var _ = Describe("Metal3Data manager", func() {
 			networkdataSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-networkdata",
-					Namespace: "def",
+					Namespace: "myns",
 				},
 				Data: map[string][]byte{
 					"networkData": []byte("Bye"),
@@ -444,24 +378,14 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("secrets do not exist", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataTemplateSpec{
 					MetaData: &capm3.MetaData{
 						Strings: []capm3.MetaDataString{
@@ -490,7 +414,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3m: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "def",
+					Namespace: "myns",
 					OwnerReferences: []metav1.OwnerReference{
 						metav1.OwnerReference{
 							Name:       "abc",
@@ -499,26 +423,18 @@ var _ = Describe("Metal3Data manager", func() {
 						},
 					},
 					Annotations: map[string]string{
-						"metal3.io/BareMetalHost": "def/abc",
+						"metal3.io/BareMetalHost": "myns/abc",
 					},
 				},
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			bmh: &bmo.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			expectReady:         true,
 			expectedMetadata:    pointer.StringPtr("String-1: String-1\n"),
@@ -526,24 +442,14 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataTemplateSpec{
 					MetaData: &capm3.MetaData{
 						Strings: []capm3.MetaDataString{
@@ -570,38 +476,23 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			m3m: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			expectRequeue: true,
 		}),
 		Entry("secrets do not exist", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
-					Metal3Machine: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate:  testObjectReference,
+					Metal3Machine: testObjectReference,
 				},
 			},
 			m3dt: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataTemplateSpec{
 					MetaData: &capm3.MetaData{
 						Strings: []capm3.MetaDataString{
@@ -630,7 +521,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3m: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "def",
+					Namespace: "myns",
 					OwnerReferences: []metav1.OwnerReference{
 						metav1.OwnerReference{
 							Name:       "abc",
@@ -640,16 +531,11 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			expectRequeue: true,
 		}),
@@ -1566,7 +1452,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &capm3.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
-					Namespace: "def",
+					Namespace: "myns",
 				},
 				Spec: capm3.Metal3DataSpec{
 					Index: 2,
@@ -1743,7 +1629,7 @@ var _ = Describe("Metal3Data manager", func() {
 				"ObjectName-1": "machine-abc",
 				"ObjectName-2": "metal3machine-abc",
 				"ObjectName-3": "bmh-abc",
-				"Namespace-1":  "def",
+				"Namespace-1":  "myns",
 				"Index-1":      "abc14def",
 				"Index-2":      "2",
 				"Address-1":    "192.168.0.14",
@@ -1803,7 +1689,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &capm3.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
-					Namespace: "def",
+					Namespace: "myns",
 				},
 				Spec: capm3.Metal3DataSpec{
 					Index: 2,
@@ -2204,14 +2090,9 @@ var _ = Describe("Metal3Data manager", func() {
 		},
 		Entry("Object does not exist", testCaseGetM3Machine{
 			Data: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					Metal3Machine: &corev1.ObjectReference{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					Metal3Machine: testObjectReference,
 				},
 			},
 			ExpectRequeue: true,
@@ -2230,90 +2111,57 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Object exists", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			Data: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					Metal3Machine: &corev1.ObjectReference{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					Metal3Machine: testObjectReference,
 				},
 			},
 		}),
 		Entry("Object exists, dataTemplate nil", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
 					DataTemplate: nil,
 				},
 			},
 			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			Data: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					Metal3Machine: &corev1.ObjectReference{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					Metal3Machine: testObjectReference,
 				},
 			},
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate name mismatch", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abcd",
-						Namespace: "def",
+						Namespace: "myns",
 					},
 				},
 			},
 			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			Data: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					Metal3Machine: &corev1.ObjectReference{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					Metal3Machine: testObjectReference,
 				},
 			},
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate namespace mismatch", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abc",
@@ -2322,20 +2170,12 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			Data: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "def",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3DataSpec{
-					Metal3Machine: &corev1.ObjectReference{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					Metal3Machine: testObjectReference,
 				},
 			},
 			ExpectEmpty: true,

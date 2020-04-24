@@ -37,6 +37,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+var (
+	testObjectMeta = metav1.ObjectMeta{
+		Name:      "abc",
+		Namespace: "myns",
+	}
+	testObjectMetaWithLabel = metav1.ObjectMeta{
+		Name:      "abc",
+		Namespace: "myns",
+		Labels: map[string]string{
+			capi.ClusterLabelName: "abc",
+		},
+	}
+)
+
 var _ = Describe("Metal3Data manager", func() {
 
 	Describe("Test Data Reconcile functions", func() {
@@ -97,7 +111,7 @@ var _ = Describe("Metal3Data manager", func() {
 				req := reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Name:      "abc",
-						Namespace: "def",
+						Namespace: "myns",
 					},
 				}
 
@@ -118,28 +132,19 @@ var _ = Describe("Metal3Data manager", func() {
 			Entry("Metal3Data not found", testCaseReconcile{}),
 			Entry("Missing cluster label", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					ObjectMeta: testObjectMeta,
 				},
 			}),
 			Entry("Cluster not found", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
-						},
-					},
+					ObjectMeta: testObjectMetaWithLabel,
 				},
 			}),
 			Entry("Deletion, Cluster not found", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "def",
+						Namespace: "myns",
 						Labels: map[string]string{
 							capi.ClusterLabelName: "abc",
 						},
@@ -150,19 +155,10 @@ var _ = Describe("Metal3Data manager", func() {
 			}),
 			Entry("Paused cluster", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
-						},
-					},
+					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					ObjectMeta: testObjectMeta,
 					Spec: capi.ClusterSpec{
 						Paused: true,
 					},
@@ -171,37 +167,19 @@ var _ = Describe("Metal3Data manager", func() {
 			}),
 			Entry("Error in manager", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
-						},
-					},
+					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					ObjectMeta: testObjectMeta,
 				},
 				managerError: true,
 			}),
 			Entry("Reconcile normal error", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
-						},
-					},
+					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					ObjectMeta: testObjectMeta,
 				},
 				reconcileNormal:      true,
 				reconcileNormalError: true,
@@ -209,19 +187,10 @@ var _ = Describe("Metal3Data manager", func() {
 			}),
 			Entry("Reconcile normal no error", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
-						},
-					},
+					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: "def",
-					},
+					ObjectMeta: testObjectMeta,
 				},
 				reconcileNormal: true,
 				expectManager:   true,

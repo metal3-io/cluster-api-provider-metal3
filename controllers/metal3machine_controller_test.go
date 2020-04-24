@@ -490,11 +490,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("No Metal3Machine in Spec",
 			TestCaseM3DToBMM{
 				Data: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "data1",
-						Namespace: "myns",
-					},
-					Spec: infrav1.Metal3DataSpec{},
+					ObjectMeta: testObjectMeta,
+					Spec:       infrav1.Metal3DataSpec{},
 				},
 				ExpectRequest: false,
 			},
@@ -502,10 +499,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Metal3Machine in Spec, with namespace",
 			TestCaseM3DToBMM{
 				Data: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "data1",
-						Namespace: "myns",
-					},
+					ObjectMeta: testObjectMeta,
 					Spec: infrav1.Metal3DataSpec{
 						Metal3Machine: &corev1.ObjectReference{
 							Name:      "abc",
@@ -519,10 +513,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Metal3Machine in Spec, no namespace",
 			TestCaseM3DToBMM{
 				Data: &infrav1.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "data1",
-						Namespace: "myns",
-					},
+					ObjectMeta: testObjectMeta,
 					Spec: infrav1.Metal3DataSpec{
 						Metal3Machine: &corev1.ObjectReference{
 							Name: "abc",

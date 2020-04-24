@@ -90,20 +90,14 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		},
 		Entry("No data", testRecreateStatus{
 			dataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			expectedIndexes:   map[string]string{},
 			expectedDataNames: map[string]string{},
 		}),
 		Entry("data present", testRecreateStatus{
 			dataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
-					Name:      "abc",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 			data: []*capm3.Metal3Data{
 				&capm3.Metal3Data{
@@ -112,15 +106,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: "myns",
 					},
 					Spec: capm3.Metal3DataSpec{
-						Index: 0,
-						DataTemplate: &corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "myns",
-						},
-						Metal3Machine: &corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "myns",
-						},
+						Index:         0,
+						DataTemplate:  testObjectReference,
+						Metal3Machine: testObjectReference,
 					},
 				},
 				&capm3.Metal3Data{
@@ -146,12 +134,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: "myns",
 					},
 					Spec: capm3.Metal3DataSpec{
-						Index:        2,
-						DataTemplate: nil,
-						Metal3Machine: &corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "myns",
-						},
+						Index:         2,
+						DataTemplate:  nil,
+						Metal3Machine: testObjectReference,
 					},
 				},
 				&capm3.Metal3Data{
@@ -177,10 +162,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("No recreation of the status", testRecreateStatus{
 			dataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
-					Name:      "abc",
-				},
+				ObjectMeta: testObjectMeta,
 				Status: capm3.Metal3DataTemplateStatus{
 					LastUpdated: &timeNow,
 					Indexes:     map[string]string{},
@@ -194,15 +176,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: "myns",
 					},
 					Spec: capm3.Metal3DataSpec{
-						Index: 0,
-						DataTemplate: &corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "myns",
-						},
-						Metal3Machine: &corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "myns",
-						},
+						Index:         0,
+						DataTemplate:  testObjectReference,
+						Metal3Machine: testObjectReference,
 					},
 				},
 			},
@@ -317,7 +293,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		Entry("Metal3Machine exists, missing cluster label", testCaseCreateDatas{
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
+					Name:      "abc",
+					Namespace: "myns",
 					OwnerReferences: []metav1.OwnerReference{
 						metav1.OwnerReference{
 							Name:       "abc",
@@ -328,13 +305,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			Metal3Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			ExpectError: true,
@@ -342,7 +315,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		Entry("Metal3Machine exists", testCaseCreateDatas{
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
+					Name:      "abc",
+					Namespace: "myns",
 					Labels: map[string]string{
 						capi.ClusterLabelName: clusterName,
 					},
@@ -356,13 +330,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			Metal3Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			ExpectedData: []string{
@@ -374,7 +344,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		Entry("Metal3Machine exists, conflict", testCaseCreateDatas{
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
+					Name:      "abc",
+					Namespace: "myns",
 					Labels: map[string]string{
 						capi.ClusterLabelName: clusterName,
 					},
@@ -388,13 +359,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			Metal3Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMeta,
 				Spec: capm3.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
-						Name: "abc",
-					},
+					DataTemplate: testObjectReference,
 				},
 			},
 			ExpectedData: []string{
@@ -403,16 +370,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			Data: []*capm3.Metal3Data{
 				&capm3.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "abc-0",
+						Name:      "abc-0",
+						Namespace: "myns",
 					},
 					Spec: capm3.Metal3DataSpec{
-						Index: 0,
-						DataTemplate: &corev1.ObjectReference{
-							Name: "abc",
-						},
-						Metal3Machine: &corev1.ObjectReference{
-							Name: "abc",
-						},
+						Index:         0,
+						DataTemplate:  testObjectReference,
+						Metal3Machine: testObjectReference,
 					},
 				},
 			},
@@ -458,9 +422,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		},
 		Entry("Empty DataTemplate", testCaseDeleteDatas{
 			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMeta,
 			},
 		}),
 		Entry("No Deletion needed", testCaseDeleteDatas{
