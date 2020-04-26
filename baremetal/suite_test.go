@@ -17,6 +17,7 @@ limitations under the License.
 package baremetal
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -81,6 +82,10 @@ var _ = BeforeSuite(func(done Done) {
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).ToNot(BeNil())
+	err = k8sClient.Create(context.TODO(), &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{Name: "myns"},
+	})
+	Expect(err).NotTo(HaveOccurred())
 
 	close(done)
 }, 60)

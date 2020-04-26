@@ -1967,7 +1967,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 
 				// get the node
-				node, err := corev1Client.Nodes().Get(tc.Node.Name, metav1.GetOptions{})
+				node, err := corev1Client.Nodes().Get(context.TODO(), tc.Node.Name,
+					metav1.GetOptions{},
+				)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
@@ -2426,8 +2428,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 				ExpectClusterLabel: true,
-				ExpectRequeue:      false,
-				ExpectOwnerRef:     true,
+				//The object is modified twice, so the second time results in a conflict
+				// TODO: fetch the BMH again after update to prevent conflicts.
+				ExpectRequeue:  true,
+				ExpectOwnerRef: true,
 			},
 		),
 	)
