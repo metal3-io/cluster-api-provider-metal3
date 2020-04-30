@@ -39,7 +39,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// DataManagerInterface is an interface for a DataManager
 type DataManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
