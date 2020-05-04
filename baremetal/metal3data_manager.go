@@ -366,7 +366,7 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 
 	// IPv4 networks static allocation
 	for _, network := range networks.IPv4 {
-		mask := translateMask(network.Netmask, true)
+		mask := translateMask(network.Prefix, true)
 		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
 			Start:  &network.IPAddress.Start,
 			End:    &network.IPAddress.End,
@@ -390,7 +390,7 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 
 	// IPv6 networks static allocation
 	for _, network := range networks.IPv6 {
-		mask := translateMask(network.Netmask, false)
+		mask := translateMask(network.Prefix, false)
 		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
 			Start:  &network.IPAddress.Start,
 			End:    &network.IPAddress.End,
@@ -459,7 +459,7 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4) []interface{} {
 				"address": string(service),
 			})
 		}
-		mask := translateMask(route.Netmask, true)
+		mask := translateMask(route.Prefix, true)
 		routes = append(routes, map[string]interface{}{
 			"network":  route.Network,
 			"netmask":  mask,
@@ -481,7 +481,7 @@ func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6) []interface{} {
 				"address": string(service),
 			})
 		}
-		mask := translateMask(route.Netmask, false)
+		mask := translateMask(route.Prefix, false)
 		routes = append(routes, map[string]interface{}{
 			"network":  route.Network,
 			"netmask":  mask,

@@ -1,4 +1,4 @@
-kind: KubeadmControlPlane
+prefixkind: KubeadmControlPlane
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 metadata:
   name: ${CLUSTER_NAME}-controlplane
@@ -108,7 +108,7 @@ spec:
             end: 192.168.111.99
             subnet: 192.168.111.0/24
             step: 2
-          netmask: 24
+          prefix: 24
           routes:
             - network: 0.0.0.0
               netmask: 0

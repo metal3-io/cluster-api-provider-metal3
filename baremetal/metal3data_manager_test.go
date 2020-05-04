@@ -587,9 +587,9 @@ var _ = Describe("Metal3Data manager", func() {
 						Networks: capm3.NetworkDataNetwork{
 							IPv4: []capm3.NetworkDataIPv4{
 								capm3.NetworkDataIPv4{
-									ID:      "abc",
-									Link:    "def",
-									Netmask: 24,
+									ID:     "abc",
+									Link:   "def",
+									Prefix: 24,
 									IPAddress: capm3.NetworkDataIPAddressv4{
 										Start:  "192.168.0.10",
 										End:    "192.168.0.250",
@@ -599,7 +599,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Routes: []capm3.NetworkDataRoutev4{
 										capm3.NetworkDataRoutev4{
 											Network: "10.0.0.0",
-											Netmask: 16,
+											Prefix:  16,
 											Gateway: "192.168.1.1",
 											Services: capm3.NetworkDataServicev4{
 												DNS: []capm3.NetworkDataDNSServicev4{
@@ -696,9 +696,9 @@ var _ = Describe("Metal3Data manager", func() {
 						Networks: capm3.NetworkDataNetwork{
 							IPv4: []capm3.NetworkDataIPv4{
 								capm3.NetworkDataIPv4{
-									ID:      "abc",
-									Link:    "def",
-									Netmask: 24,
+									ID:     "abc",
+									Link:   "def",
+									Prefix: 24,
 									IPAddress: capm3.NetworkDataIPAddressv4{
 										Start:  "192.168.0.10",
 										End:    "192.168.0.11",
@@ -923,9 +923,9 @@ var _ = Describe("Metal3Data manager", func() {
 			networks: capm3.NetworkDataNetwork{
 				IPv4: []capm3.NetworkDataIPv4{
 					capm3.NetworkDataIPv4{
-						ID:      "abc",
-						Link:    "def",
-						Netmask: 24,
+						ID:     "abc",
+						Link:   "def",
+						Prefix: 24,
 						IPAddress: capm3.NetworkDataIPAddressv4{
 							Start:  "192.168.0.10",
 							End:    "192.168.0.250",
@@ -935,7 +935,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Routes: []capm3.NetworkDataRoutev4{
 							capm3.NetworkDataRoutev4{
 								Network: "10.0.0.0",
-								Netmask: 16,
+								Prefix:  16,
 								Gateway: "192.168.1.1",
 								Services: capm3.NetworkDataServicev4{
 									DNS: []capm3.NetworkDataDNSServicev4{
@@ -999,9 +999,9 @@ var _ = Describe("Metal3Data manager", func() {
 			networks: capm3.NetworkDataNetwork{
 				IPv6: []capm3.NetworkDataIPv6{
 					capm3.NetworkDataIPv6{
-						ID:      "abc",
-						Link:    "def",
-						Netmask: 96,
+						ID:     "abc",
+						Link:   "def",
+						Prefix: 96,
 						IPAddress: capm3.NetworkDataIPAddressv6{
 							Start:  "fe80::2001:10",
 							End:    "fe80::2001:ff00",
@@ -1011,7 +1011,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Routes: []capm3.NetworkDataRoutev6{
 							capm3.NetworkDataRoutev6{
 								Network: "2001::",
-								Netmask: 64,
+								Prefix:  64,
 								Gateway: "fe80::2001:1",
 								Services: capm3.NetworkDataServicev6{
 									DNS: []capm3.NetworkDataDNSServicev6{
@@ -1080,7 +1080,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Routes: []capm3.NetworkDataRoutev4{
 							capm3.NetworkDataRoutev4{
 								Network: "10.0.0.0",
-								Netmask: 16,
+								Prefix:  16,
 								Gateway: "192.168.1.1",
 								Services: capm3.NetworkDataServicev4{
 									DNS: []capm3.NetworkDataDNSServicev4{
@@ -1127,7 +1127,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Routes: []capm3.NetworkDataRoutev6{
 							capm3.NetworkDataRoutev6{
 								Network: "2001::",
-								Netmask: 64,
+								Prefix:  64,
 								Gateway: "fe80::2001:1",
 								Services: capm3.NetworkDataServicev6{
 									DNS: []capm3.NetworkDataDNSServicev6{
@@ -1174,7 +1174,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Routes: []capm3.NetworkDataRoutev6{
 							capm3.NetworkDataRoutev6{
 								Network: "2001::",
-								Netmask: 64,
+								Prefix:  64,
 								Gateway: "fe80::2001:1",
 								Services: capm3.NetworkDataServicev6{
 									DNS: []capm3.NetworkDataDNSServicev6{
@@ -1218,12 +1218,12 @@ var _ = Describe("Metal3Data manager", func() {
 		netRoutes := []capm3.NetworkDataRoutev4{
 			capm3.NetworkDataRoutev4{
 				Network: "192.168.0.0",
-				Netmask: 24,
+				Prefix:  24,
 				Gateway: "192.168.1.1",
 			},
 			capm3.NetworkDataRoutev4{
 				Network: "10.0.0.0",
-				Netmask: 16,
+				Prefix:  16,
 				Gateway: "192.168.1.1",
 				Services: capm3.NetworkDataServicev4{
 					DNS: []capm3.NetworkDataDNSServicev4{
@@ -1263,12 +1263,12 @@ var _ = Describe("Metal3Data manager", func() {
 		netRoutes := []capm3.NetworkDataRoutev6{
 			capm3.NetworkDataRoutev6{
 				Network: "2001::0",
-				Netmask: 96,
+				Prefix:  96,
 				Gateway: "2001::1",
 			},
 			capm3.NetworkDataRoutev6{
 				Network: "fe80::0",
-				Netmask: 64,
+				Prefix:  64,
 				Gateway: "fe80::1",
 				Services: capm3.NetworkDataServicev6{
 					DNS: []capm3.NetworkDataDNSServicev6{

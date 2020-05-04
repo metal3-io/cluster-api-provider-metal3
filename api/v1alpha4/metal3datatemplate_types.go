@@ -275,8 +275,8 @@ type NetworkDataRoutev4 struct {
 	Network string `json:"network"`
 
 	// +kubebuilder:validation:Maximum=32
-	// Netmask is the mask of the network as integer (max 32)
-	Netmask int `json:"netmask"`
+	// Prefix is the mask of the network as integer (max 32)
+	Prefix int `json:"prefix"`
 
 	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 	// Gateway is the IPv4 address of the gateway
@@ -293,8 +293,8 @@ type NetworkDataRoutev6 struct {
 	Network string `json:"network"`
 
 	// +kubebuilder:validation:Maximum=128
-	// Netmask is the mask of the network as integer (max 128)
-	Netmask int `json:"netmask"`
+	// Prefix is the mask of the network as integer (max 128)
+	Prefix int `json:"prefix"`
 
 	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
 	// Gateway is the IPv6 address of the gateway
@@ -359,8 +359,8 @@ type NetworkDataIPv4 struct {
 
 	// +kubebuilder:validation:Maximum=32
 	// +kubebuilder:default=24
-	// Netmask is the network mask as integer (max 32, defaults to 24)
-	Netmask int `json:"netmask"`
+	// Prefix is the network mask as integer (max 32, defaults to 24)
+	Prefix int `json:"prefix"`
 
 	// IPAddress contains the object to generate the IPv4 address
 	IPAddress NetworkDataIPAddressv4 `json:"ipAddress"`
@@ -379,8 +379,8 @@ type NetworkDataIPv6 struct {
 	Link string `json:"link"`
 
 	// +kubebuilder:validation:Maximum=128
-	// Netmask is the network mask as integer (max 128)
-	Netmask int `json:"netmask"`
+	// Prefix is the network mask as integer (max 128)
+	Prefix int `json:"prefix"`
 
 	// IPAddress contains the object to generate the IPv6 address
 	IPAddress NetworkDataIPAddressv6 `json:"ipAddress"`

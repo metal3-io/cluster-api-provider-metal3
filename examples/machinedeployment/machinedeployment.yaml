@@ -109,10 +109,10 @@ spec:
             end: 192.168.111.99
             subnet: 192.168.111.0/24
             step: 2
-          netmask: 24
+          prefix: 24
           routes:
             - network: 0.0.0.0
-              netmask: 0
+              prefix: 0
               gateway: 192.168.111.1
               services:
                 dns:
