@@ -121,7 +121,7 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 
 	err := metadataMgr.Reconcile(ctx)
 	if err != nil {
-		return checkMetadataError(err, "Failed to create secrets")
+		return checkRequeueError(err, "Failed to create secrets")
 	}
 	return ctrl.Result{}, nil
 }

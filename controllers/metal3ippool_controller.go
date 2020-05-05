@@ -33,52 +33,52 @@ import (
 )
 
 const (
-	dataTemplateControllerName = "Metal3DataTemplate-controller"
+	ipPoolControllerName = "Metal3IPPool-controller"
 )
 
-// Metal3DataTemplateReconciler reconciles a Metal3DataTemplate object
-type Metal3DataTemplateReconciler struct {
+// Metal3IPPoolReconciler reconciles a Metal3IPPool object
+type Metal3IPPoolReconciler struct {
 	Client         client.Client
 	ManagerFactory baremetal.ManagerFactoryInterface
 	Log            logr.Logger
 }
 
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ippools,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ippools/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles Metal3Machine events
-func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *Metal3IPPoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
+	metadataLog := r.Log.WithName(ipPoolControllerName).WithValues("metal3-ippool", req.NamespacedName)
 
-	// Fetch the Metal3DataTemplate instance.
-	capm3Metadata := &capm3.Metal3DataTemplate{}
+	// Fetch the Metal3IPPool instance.
+	capm3IPPool := &capm3.Metal3IPPool{}
 
-	if err := r.Client.Get(ctx, req.NamespacedName, capm3Metadata); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, capm3IPPool); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
-	helper, err := patch.NewHelper(capm3Metadata, r.Client)
+	helper, err := patch.NewHelper(capm3IPPool, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
-	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
+	// Always patch capm3IPPool exiting this function so we can persist any Metal3IPPool changes.
 	defer func() {
-		err := helper.Patch(ctx, capm3Metadata)
+		err := helper.Patch(ctx, capm3IPPool)
 		if err != nil {
-			metadataLog.Info("failed to Patch capm3Metadata")
+			metadataLog.Info("failed to Patch capm3IPPool")
 		}
 	}()
 
 	// Fetch the Cluster. Ignore an error if the deletion timestamp is set
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capm3Metadata.ObjectMeta)
-	if capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capm3IPPool.ObjectMeta)
+	if capm3IPPool.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
-			metadataLog.Info("Metal3DataTemplate is missing cluster label or cluster does not exist, Requeuing")
+			metadataLog.Info("Metal3IPPool is missing cluster label or cluster does not exist, Requeuing")
 			return ctrl.Result{}, nil
 		}
 		if cluster == nil {
@@ -91,48 +91,48 @@ func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
 
 		// Return early if the Metadata or Cluster is paused.
-		if util.IsPaused(cluster, capm3Metadata) {
+		if util.IsPaused(cluster, capm3IPPool) {
 			metadataLog.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
 	}
 
 	// Create a helper for managing the metadata object.
-	metadataMgr, err := r.ManagerFactory.NewDataTemplateManager(capm3Metadata, metadataLog)
+	ipPoolMgr, err := r.ManagerFactory.NewIPPoolManager(capm3IPPool, metadataLog)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the metadata")
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the IP pool")
 	}
 
 	// Handle deleted metadata
-	if !capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, metadataMgr)
+	if !capm3IPPool.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, ipPoolMgr)
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, metadataMgr)
+	return r.reconcileNormal(ctx, ipPoolMgr)
 }
 
-func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
-	metadataMgr baremetal.DataTemplateManagerInterface,
+func (r *Metal3IPPoolReconciler) reconcileNormal(ctx context.Context,
+	ipPoolMgr baremetal.IPPoolManagerInterface,
 ) (ctrl.Result, error) {
-	// If the Metal3DataTemplate doesn't have finalizer, add it.
-	metadataMgr.SetFinalizer()
+	// If the Metal3IPPool doesn't have finalizer, add it.
+	ipPoolMgr.SetFinalizer()
 
 	// If the lastUpdated is zero, then it might mean that the object was moved.
 	// So we need to check if some Metal3Data exist and repopulate the status
 	// based on that. This will happen only once after creation. Afterwards, the
 	// lastUpdated field is set.
-	err := metadataMgr.RecreateStatusConditionally(ctx)
+	err := ipPoolMgr.RecreateStatusConditionally(ctx)
 	if err != nil {
 		return checkRequeueError(err, "Failed to recreate the status")
 	}
 
-	err = metadataMgr.DeleteDatas(ctx)
+	err = ipPoolMgr.DeleteAddresses(ctx)
 	if err != nil {
 		return checkRequeueError(err, "Failed to delete the old data")
 	}
 
-	err = metadataMgr.CreateDatas(ctx)
+	err = ipPoolMgr.CreateAddresses(ctx)
 	if err != nil {
 		return checkRequeueError(err, "Failed to create the missing data")
 	}
@@ -140,41 +140,31 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
-	metadataMgr baremetal.DataTemplateManagerInterface,
+func (r *Metal3IPPoolReconciler) reconcileDelete(ctx context.Context,
+	ipPoolMgr baremetal.IPPoolManagerInterface,
 ) (ctrl.Result, error) {
 
-	err := metadataMgr.DeleteDatas(ctx)
+	err := ipPoolMgr.DeleteAddresses(ctx)
 	if err != nil {
 		return checkRequeueError(err, "Failed to delete the old secrets")
 	}
 
-	readyForDeletion, err := metadataMgr.DeleteReady()
+	readyForDeletion, err := ipPoolMgr.DeleteReady()
 	if err != nil {
 		return checkRequeueError(err, "Failed to prepare deletion")
 	}
 	if readyForDeletion {
-		// metal3datatemplate is marked for deletion and ready to be deleted,
+		// metal3ippool is marked for deletion and ready to be deleted,
 		// so remove the finalizer.
-		metadataMgr.UnsetFinalizer()
+		ipPoolMgr.UnsetFinalizer()
 	}
 
 	return ctrl.Result{}, nil
 }
 
 // SetupWithManager will add watches for this controller
-func (r *Metal3DataTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Metal3IPPoolReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3DataTemplate{}).
+		For(&capm3.Metal3IPPool{}).
 		Complete(r)
-}
-
-func checkRequeueError(err error, errMessage string) (ctrl.Result, error) {
-	if err == nil {
-		return ctrl.Result{}, nil
-	}
-	if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-		return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
-	}
-	return ctrl.Result{}, errors.Wrap(err, errMessage)
 }

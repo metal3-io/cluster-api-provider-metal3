@@ -33,18 +33,18 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	ctrl "sigs.k8s.io/controller-runtime"
+	// ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var _ = Describe("Metal3DataTemplate manager", func() {
+var _ = Describe("Metal3IPPool controller", func() {
 
 	type testCaseReconcile struct {
 		expectError          bool
 		expectRequeue        bool
 		expectManager        bool
-		m3dt                 *infrav1.Metal3DataTemplate
+		m3ipp                *infrav1.Metal3IPPool
 		cluster              *capi.Cluster
 		managerError         bool
 		reconcileNormal      bool
@@ -56,11 +56,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		func(tc testCaseReconcile) {
 			gomockCtrl := gomock.NewController(GinkgoT())
 			f := baremetal_mocks.NewMockManagerFactoryInterface(gomockCtrl)
-			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
+			m := baremetal_mocks.NewMockIPPoolManagerInterface(gomockCtrl)
 
 			objects := []runtime.Object{}
-			if tc.m3dt != nil {
-				objects = append(objects, tc.m3dt)
+			if tc.m3ipp != nil {
+				objects = append(objects, tc.m3ipp)
 			}
 			if tc.cluster != nil {
 				objects = append(objects, tc.cluster)
@@ -68,31 +68,31 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
 
 			if tc.managerError {
-				f.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
+				f.EXPECT().NewIPPoolManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
 			} else if tc.expectManager {
-				f.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(m, nil)
+				f.EXPECT().NewIPPoolManager(gomock.Any(), gomock.Any()).Return(m, nil)
 			}
-			if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() && tc.reconcileDeleteError {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(errors.New(""))
-			} else if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
+			if tc.m3ipp != nil && !tc.m3ipp.DeletionTimestamp.IsZero() && tc.reconcileDeleteError {
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(errors.New(""))
+			} else if tc.m3ipp != nil && !tc.m3ipp.DeletionTimestamp.IsZero() {
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
 				m.EXPECT().DeleteReady().Return(true, nil)
 				m.EXPECT().UnsetFinalizer()
 			}
 
-			if tc.m3dt != nil && tc.m3dt.DeletionTimestamp.IsZero() &&
+			if tc.m3ipp != nil && tc.m3ipp.DeletionTimestamp.IsZero() &&
 				tc.reconcileNormal {
 				m.EXPECT().SetFinalizer()
 				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
 				if tc.reconcileNormalError {
-					m.EXPECT().CreateDatas(context.TODO()).Return(errors.New(""))
+					m.EXPECT().CreateAddresses(context.TODO()).Return(errors.New(""))
 				} else {
-					m.EXPECT().CreateDatas(context.TODO()).Return(nil)
+					m.EXPECT().CreateAddresses(context.TODO()).Return(nil)
 				}
 			}
 
-			dataTemplateReconcile := &Metal3DataTemplateReconciler{
+			ipPoolReconcile := &Metal3IPPoolReconciler{
 				Client:         c,
 				ManagerFactory: f,
 				Log:            klogr.New(),
@@ -105,7 +105,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			}
 
-			result, err := dataTemplateReconcile.Reconcile(req)
+			result, err := ipPoolReconcile.Reconcile(req)
 
 			if tc.expectError || tc.managerError || tc.reconcileNormalError {
 				Expect(err).To(HaveOccurred())
@@ -119,19 +119,19 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 			gomockCtrl.Finish()
 		},
-		Entry("Metal3DataTemplate not found", testCaseReconcile{}),
+		Entry("Metal3IPPool not found", testCaseReconcile{}),
 		Entry("Missing cluster label", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: testObjectMeta,
 			},
 		}),
 		Entry("Cluster not found", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: testObjectMetaWithLabel,
 			},
 		}),
 		Entry("Deletion, Cluster not found", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "myns",
@@ -144,7 +144,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectManager: true,
 		}),
 		Entry("Deletion, Cluster not found, error", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "myns",
@@ -159,7 +159,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectError:          true,
 		}),
 		Entry("Paused cluster", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: testObjectMetaWithLabel,
 			},
 			cluster: &capi.Cluster{
@@ -171,7 +171,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("Error in manager", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: testObjectMetaWithLabel,
 			},
 			cluster: &capi.Cluster{
@@ -180,7 +180,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			managerError: true,
 		}),
 		Entry("Reconcile normal error", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: testObjectMetaWithLabel,
 			},
 			cluster: &capi.Cluster{
@@ -191,7 +191,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectManager:        true,
 		}),
 		Entry("Reconcile normal no error", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
+			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: testObjectMetaWithLabel,
 			},
 			cluster: &capi.Cluster{
@@ -216,31 +216,31 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 			c := fake.NewFakeClientWithScheme(setupScheme())
 
-			dataTemplateReconcile := &Metal3DataTemplateReconciler{
+			ipPoolReconcile := &Metal3IPPoolReconciler{
 				Client:         c,
 				ManagerFactory: baremetal.NewManagerFactory(c),
 				Log:            klogr.New(),
 			}
-			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
+			m := baremetal_mocks.NewMockIPPoolManagerInterface(gomockCtrl)
 
 			m.EXPECT().SetFinalizer()
 
 			if !tc.RecreateError && !tc.DeleteError && !tc.CreateError {
 				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().CreateDatas(context.TODO()).Return(nil)
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
+				m.EXPECT().CreateAddresses(context.TODO()).Return(nil)
 			} else if !tc.RecreateError && !tc.DeleteError {
 				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().CreateDatas(context.TODO()).Return(errors.New(""))
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
+				m.EXPECT().CreateAddresses(context.TODO()).Return(errors.New(""))
 			} else if !tc.RecreateError {
 				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(errors.New(""))
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(errors.New(""))
 			} else {
 				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(errors.New(""))
 			}
 
-			res, err := dataTemplateReconcile.reconcileNormal(context.TODO(), m)
+			res, err := ipPoolReconcile.reconcileNormal(context.TODO(), m)
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -289,28 +289,28 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 			c := fake.NewFakeClientWithScheme(setupScheme())
 
-			dataTemplateReconcile := &Metal3DataTemplateReconciler{
+			ipPoolReconcile := &Metal3IPPoolReconciler{
 				Client:         c,
 				ManagerFactory: baremetal.NewManagerFactory(c),
 				Log:            klogr.New(),
 			}
-			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
+			m := baremetal_mocks.NewMockIPPoolManagerInterface(gomockCtrl)
 
 			if !tc.DeleteError && !tc.DeleteReadyError && tc.DeleteReady {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
 				m.EXPECT().DeleteReady().Return(true, nil)
 				m.EXPECT().UnsetFinalizer()
 			} else if !tc.DeleteError && !tc.DeleteReadyError {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
 				m.EXPECT().DeleteReady().Return(false, nil)
 			} else if !tc.DeleteError {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
 				m.EXPECT().DeleteReady().Return(false, errors.New(""))
 			} else {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(errors.New(""))
+				m.EXPECT().DeleteAddresses(context.TODO()).Return(errors.New(""))
 			}
 
-			res, err := dataTemplateReconcile.reconcileDelete(context.TODO(), m)
+			res, err := ipPoolReconcile.reconcileDelete(context.TODO(), m)
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -345,25 +345,5 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			DeleteReady:   true,
 		}),
 	)
-
-	It("Test checkRequeueError", func() {
-		result, err := checkRequeueError(nil, "")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal(ctrl.Result{}))
-
-		result, err = checkRequeueError(errors.New("def"), "abc")
-		Expect(err).To(HaveOccurred())
-		Expect(result).To(Equal(ctrl.Result{}))
-
-		result, err = checkRequeueError(&baremetal.RequeueAfterError{}, "abc")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-
-		result, err = checkRequeueError(
-			&baremetal.RequeueAfterError{RequeueAfter: requeueAfter}, "abc",
-		)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}))
-	})
 
 })
