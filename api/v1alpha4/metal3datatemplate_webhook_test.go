@@ -135,7 +135,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			new: &Metal3DataTemplateSpec{
 				NetworkData: &NetworkData{
 					Services: NetworkDataService{
-						DNS: []NetworkDataDNSService{
+						DNS: []IPAddress{
 							"abc",
 						},
 					},
@@ -144,7 +144,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			old: &Metal3DataTemplateSpec{
 				NetworkData: &NetworkData{
 					Services: NetworkDataService{
-						DNS: []NetworkDataDNSService{
+						DNS: []IPAddress{
 							"abcd",
 						},
 					},
@@ -157,7 +157,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			new: &Metal3DataTemplateSpec{
 				NetworkData: &NetworkData{
 					Services: NetworkDataService{
-						DNS: []NetworkDataDNSService{
+						DNS: []IPAddress{
 							"abc",
 						},
 					},

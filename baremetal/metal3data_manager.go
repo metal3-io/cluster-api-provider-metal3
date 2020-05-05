@@ -368,9 +368,9 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 	for _, network := range networks.IPv4 {
 		mask := translateMask(network.Prefix, true)
 		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
-			Start:  &network.IPAddress.Start,
-			End:    &network.IPAddress.End,
-			Subnet: &network.IPAddress.Subnet,
+			Start:  (*capm3.IPAddress)(network.IPAddress.Start),
+			End:    (*capm3.IPAddress)(network.IPAddress.End),
+			Subnet: (*capm3.IPSubnet)(network.IPAddress.Subnet),
 			Step:   network.IPAddress.Step,
 		}, m3d.Spec.Index,
 		)
@@ -392,9 +392,9 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 	for _, network := range networks.IPv6 {
 		mask := translateMask(network.Prefix, false)
 		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
-			Start:  &network.IPAddress.Start,
-			End:    &network.IPAddress.End,
-			Subnet: &network.IPAddress.Subnet,
+			Start:  (*capm3.IPAddress)(network.IPAddress.Start),
+			End:    (*capm3.IPAddress)(network.IPAddress.End),
+			Subnet: (*capm3.IPSubnet)(network.IPAddress.Subnet),
 			Step:   network.IPAddress.Step,
 		}, m3d.Spec.Index,
 		)
@@ -633,16 +633,16 @@ func getIPAddress(entry *capm3.MetaDataIPAddress, index int) (string, error) {
 	if entry.Start != nil {
 		var endIP net.IP
 		if entry.End != nil {
-			endIP = net.ParseIP(*entry.End)
+			endIP = net.ParseIP(string(*entry.End))
 		}
-		ip, err = addOffsetToIP(net.ParseIP(*entry.Start), endIP, offset)
+		ip, err = addOffsetToIP(net.ParseIP(string(*entry.Start)), endIP, offset)
 		if err != nil {
 			return "", err
 		}
 
 		// Verify that the IP is in the subnet
 		if entry.Subnet != nil {
-			_, ipNet, err = net.ParseCIDR(*entry.Subnet)
+			_, ipNet, err = net.ParseCIDR(string(*entry.Subnet))
 			if err != nil {
 				return "", err
 			}
@@ -653,7 +653,7 @@ func getIPAddress(entry *capm3.MetaDataIPAddress, index int) (string, error) {
 
 		// If it is not given, use the CIDR ip address and increment the offset by 1
 	} else {
-		ip, ipNet, err = net.ParseCIDR(*entry.Subnet)
+		ip, ipNet, err = net.ParseCIDR(string(*entry.Subnet))
 		if err != nil {
 			return "", err
 		}

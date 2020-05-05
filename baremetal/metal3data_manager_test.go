@@ -591,9 +591,9 @@ var _ = Describe("Metal3Data manager", func() {
 									Link:   "def",
 									Prefix: 24,
 									IPAddress: capm3.NetworkDataIPAddressv4{
-										Start:  "192.168.0.10",
-										End:    "192.168.0.250",
-										Subnet: "192.168.0.0/24",
+										Start:  (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.10")),
+										End:    (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.250")),
+										Subnet: (*capm3.IPSubnetv4)(pointer.StringPtr("192.168.0.0/24")),
 										Step:   2,
 									},
 									Routes: []capm3.NetworkDataRoutev4{
@@ -602,8 +602,8 @@ var _ = Describe("Metal3Data manager", func() {
 											Prefix:  16,
 											Gateway: "192.168.1.1",
 											Services: capm3.NetworkDataServicev4{
-												DNS: []capm3.NetworkDataDNSServicev4{
-													capm3.NetworkDataDNSServicev4("8.8.8.8"),
+												DNS: []capm3.IPAddressv4{
+													capm3.IPAddressv4("8.8.8.8"),
 												},
 											},
 										},
@@ -612,9 +612,9 @@ var _ = Describe("Metal3Data manager", func() {
 							},
 						},
 						Services: capm3.NetworkDataService{
-							DNS: []capm3.NetworkDataDNSService{
-								capm3.NetworkDataDNSService("8.8.8.8"),
-								capm3.NetworkDataDNSService("2001::8888"),
+							DNS: []capm3.IPAddress{
+								capm3.IPAddress("8.8.8.8"),
+								capm3.IPAddress("2001::8888"),
 							},
 						},
 					},
@@ -700,9 +700,9 @@ var _ = Describe("Metal3Data manager", func() {
 									Link:   "def",
 									Prefix: 24,
 									IPAddress: capm3.NetworkDataIPAddressv4{
-										Start:  "192.168.0.10",
-										End:    "192.168.0.11",
-										Subnet: "192.168.0.0/24",
+										Start:  (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.10")),
+										End:    (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.11")),
+										Subnet: (*capm3.IPSubnetv4)(pointer.StringPtr("192.168.0.0/24")),
 										Step:   2,
 									},
 								},
@@ -725,9 +725,9 @@ var _ = Describe("Metal3Data manager", func() {
 
 	It("Test renderNetworkServices", func() {
 		services := capm3.NetworkDataService{
-			DNS: []capm3.NetworkDataDNSService{
-				capm3.NetworkDataDNSService("8.8.8.8"),
-				capm3.NetworkDataDNSService("2001::8888"),
+			DNS: []capm3.IPAddress{
+				(capm3.IPAddress)("8.8.8.8"),
+				(capm3.IPAddress)("2001::8888"),
 			},
 		}
 		expectedOutput := []interface{}{
@@ -927,9 +927,9 @@ var _ = Describe("Metal3Data manager", func() {
 						Link:   "def",
 						Prefix: 24,
 						IPAddress: capm3.NetworkDataIPAddressv4{
-							Start:  "192.168.0.10",
-							End:    "192.168.0.250",
-							Subnet: "192.168.0.0/24",
+							Start:  (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.10")),
+							End:    (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.250")),
+							Subnet: (*capm3.IPSubnetv4)(pointer.StringPtr("192.168.0.0/24")),
 							Step:   2,
 						},
 						Routes: []capm3.NetworkDataRoutev4{
@@ -938,8 +938,8 @@ var _ = Describe("Metal3Data manager", func() {
 								Prefix:  16,
 								Gateway: "192.168.1.1",
 								Services: capm3.NetworkDataServicev4{
-									DNS: []capm3.NetworkDataDNSServicev4{
-										capm3.NetworkDataDNSServicev4("8.8.8.8"),
+									DNS: []capm3.IPAddressv4{
+										capm3.IPAddressv4("8.8.8.8"),
 									},
 								},
 							},
@@ -980,9 +980,9 @@ var _ = Describe("Metal3Data manager", func() {
 				IPv4: []capm3.NetworkDataIPv4{
 					capm3.NetworkDataIPv4{
 						IPAddress: capm3.NetworkDataIPAddressv4{
-							Start:  "192.168.0.10",
-							End:    "192.168.0.250",
-							Subnet: "192.168.0.0/24",
+							Start:  (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.10")),
+							End:    (*capm3.IPAddressv4)(pointer.StringPtr("192.168.0.250")),
+							Subnet: (*capm3.IPSubnetv4)(pointer.StringPtr("192.168.0.0/24")),
 							Step:   2,
 						},
 					},
@@ -1003,9 +1003,9 @@ var _ = Describe("Metal3Data manager", func() {
 						Link:   "def",
 						Prefix: 96,
 						IPAddress: capm3.NetworkDataIPAddressv6{
-							Start:  "fe80::2001:10",
-							End:    "fe80::2001:ff00",
-							Subnet: "fe80::2001:0/96",
+							Start:  (*capm3.IPAddressv6)(pointer.StringPtr("fe80::2001:10")),
+							End:    (*capm3.IPAddressv6)(pointer.StringPtr("fe80::2001:ff00")),
+							Subnet: (*capm3.IPSubnetv6)(pointer.StringPtr("fe80::2001:0/96")),
 							Step:   20,
 						},
 						Routes: []capm3.NetworkDataRoutev6{
@@ -1014,8 +1014,8 @@ var _ = Describe("Metal3Data manager", func() {
 								Prefix:  64,
 								Gateway: "fe80::2001:1",
 								Services: capm3.NetworkDataServicev6{
-									DNS: []capm3.NetworkDataDNSServicev6{
-										capm3.NetworkDataDNSServicev6("2001::8888"),
+									DNS: []capm3.IPAddressv6{
+										capm3.IPAddressv6("2001::8888"),
 									},
 								},
 							},
@@ -1056,9 +1056,9 @@ var _ = Describe("Metal3Data manager", func() {
 				IPv6: []capm3.NetworkDataIPv6{
 					capm3.NetworkDataIPv6{
 						IPAddress: capm3.NetworkDataIPAddressv6{
-							Start:  "fe80::2001:10",
-							End:    "fe80::2001:ff00",
-							Subnet: "fe80::2001:0/96",
+							Start:  (*capm3.IPAddressv6)(pointer.StringPtr("fe80::2001:10")),
+							End:    (*capm3.IPAddressv6)(pointer.StringPtr("fe80::2001:ff00")),
+							Subnet: (*capm3.IPSubnetv6)(pointer.StringPtr("fe80::2001:0/96")),
 							Step:   20,
 						},
 					},
@@ -1083,8 +1083,8 @@ var _ = Describe("Metal3Data manager", func() {
 								Prefix:  16,
 								Gateway: "192.168.1.1",
 								Services: capm3.NetworkDataServicev4{
-									DNS: []capm3.NetworkDataDNSServicev4{
-										capm3.NetworkDataDNSServicev4("8.8.8.8"),
+									DNS: []capm3.IPAddressv4{
+										capm3.IPAddressv4("8.8.8.8"),
 									},
 								},
 							},
@@ -1130,8 +1130,8 @@ var _ = Describe("Metal3Data manager", func() {
 								Prefix:  64,
 								Gateway: "fe80::2001:1",
 								Services: capm3.NetworkDataServicev6{
-									DNS: []capm3.NetworkDataDNSServicev6{
-										capm3.NetworkDataDNSServicev6("2001::8888"),
+									DNS: []capm3.IPAddressv6{
+										capm3.IPAddressv6("2001::8888"),
 									},
 								},
 							},
@@ -1177,8 +1177,8 @@ var _ = Describe("Metal3Data manager", func() {
 								Prefix:  64,
 								Gateway: "fe80::2001:1",
 								Services: capm3.NetworkDataServicev6{
-									DNS: []capm3.NetworkDataDNSServicev6{
-										capm3.NetworkDataDNSServicev6("2001::8888"),
+									DNS: []capm3.IPAddressv6{
+										capm3.IPAddressv6("2001::8888"),
 									},
 								},
 							},
@@ -1226,9 +1226,9 @@ var _ = Describe("Metal3Data manager", func() {
 				Prefix:  16,
 				Gateway: "192.168.1.1",
 				Services: capm3.NetworkDataServicev4{
-					DNS: []capm3.NetworkDataDNSServicev4{
-						capm3.NetworkDataDNSServicev4("8.8.8.8"),
-						capm3.NetworkDataDNSServicev4("8.8.4.4"),
+					DNS: []capm3.IPAddressv4{
+						capm3.IPAddressv4("8.8.8.8"),
+						capm3.IPAddressv4("8.8.4.4"),
 					},
 				},
 			},
@@ -1271,9 +1271,9 @@ var _ = Describe("Metal3Data manager", func() {
 				Prefix:  64,
 				Gateway: "fe80::1",
 				Services: capm3.NetworkDataServicev6{
-					DNS: []capm3.NetworkDataDNSServicev6{
-						capm3.NetworkDataDNSServicev6("fe80:2001::8888"),
-						capm3.NetworkDataDNSServicev6("fe80:2001::8844"),
+					DNS: []capm3.IPAddressv6{
+						capm3.IPAddressv6("fe80:2001::8888"),
+						capm3.IPAddressv6("fe80:2001::8844"),
 					},
 				},
 			},
@@ -1504,9 +1504,9 @@ var _ = Describe("Metal3Data manager", func() {
 						IPAddresses: []capm3.MetaDataIPAddress{
 							capm3.MetaDataIPAddress{
 								Key:    "Address-1",
-								Start:  pointer.StringPtr("192.168.0.10"),
-								End:    pointer.StringPtr("192.168.0.250"),
-								Subnet: pointer.StringPtr("192.168.0.0/24"),
+								Start:  (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+								End:    (*capm3.IPAddress)(pointer.StringPtr("192.168.0.250")),
+								Subnet: (*capm3.IPSubnet)(pointer.StringPtr("192.168.0.0/24")),
 								Step:   2,
 							},
 						},
@@ -1704,8 +1704,8 @@ var _ = Describe("Metal3Data manager", func() {
 						IPAddresses: []capm3.MetaDataIPAddress{
 							capm3.MetaDataIPAddress{
 								Key:   "Address-1",
-								Start: pointer.StringPtr("192.168.1.10"),
-								End:   pointer.StringPtr("192.168.0.250"),
+								Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.1.10")),
+								End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.250")),
 								Step:  2,
 							},
 						},
@@ -1796,15 +1796,15 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Start set, no end or subnet", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Start: pointer.StringPtr("192.168.0.10"),
+				Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
 			},
 			index:      1,
 			expectedIP: "192.168.0.11",
 		}),
 		Entry("Start set, end set, subnet unset", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Start: pointer.StringPtr("192.168.0.10"),
-				End:   pointer.StringPtr("192.168.0.100"),
+				Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+				End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.100")),
 				Step:  1,
 			},
 			index:      1,
@@ -1812,8 +1812,8 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Start set, end set, subnet unset, out of bound", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Start: pointer.StringPtr("192.168.0.10"),
-				End:   pointer.StringPtr("192.168.0.100"),
+				Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+				End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.100")),
 				Step:  1,
 			},
 			index:       100,
@@ -1821,8 +1821,8 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Start set, end unset, subnet set", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Start:  pointer.StringPtr("192.168.0.10"),
-				Subnet: pointer.StringPtr("192.168.0.0/24"),
+				Start:  (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+				Subnet: (*capm3.IPSubnet)(pointer.StringPtr("192.168.0.0/24")),
 				Step:   1,
 			},
 			index:      1,
@@ -1830,8 +1830,8 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Start set, end unset, subnet set, out of bound", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Start:  pointer.StringPtr("192.168.0.10"),
-				Subnet: pointer.StringPtr("192.168.0.0/24"),
+				Start:  (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+				Subnet: (*capm3.IPSubnet)(pointer.StringPtr("192.168.0.0/24")),
 				Step:   1,
 			},
 			index:       250,
@@ -1839,8 +1839,8 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Start set, end unset, subnet empty", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Start:  pointer.StringPtr("192.168.0.10"),
-				Subnet: pointer.StringPtr(""),
+				Start:  (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+				Subnet: (*capm3.IPSubnet)(pointer.StringPtr("")),
 				Step:   1,
 			},
 			index:       1,
@@ -1848,7 +1848,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("subnet empty", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Subnet: pointer.StringPtr(""),
+				Subnet: (*capm3.IPSubnet)(pointer.StringPtr("")),
 				Step:   1,
 			},
 			index:       1,
@@ -1856,7 +1856,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Start unset, end unset, subnet set", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Subnet: pointer.StringPtr("192.168.0.10/24"),
+				Subnet: (*capm3.IPSubnet)(pointer.StringPtr("192.168.0.10/24")),
 				Step:   1,
 			},
 			index:      1,
@@ -1864,7 +1864,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("Start unset, end unset, subnet set, out of bound", testCaseGetIPAddress{
 			ipAddress: &capm3.MetaDataIPAddress{
-				Subnet: pointer.StringPtr("192.168.0.10/24"),
+				Subnet: (*capm3.IPSubnet)(pointer.StringPtr("192.168.0.10/24")),
 				Step:   1,
 			},
 			index:       250,

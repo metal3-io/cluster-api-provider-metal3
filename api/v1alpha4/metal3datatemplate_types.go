@@ -102,18 +102,15 @@ type MetaDataHostInterface struct {
 type MetaDataIPAddress struct {
 	// Key is the metadata key when redendering this metadata element
 	Key string `json:"key"`
-	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
 	// Start is the first ip address that can be rendered
-	Start *string `json:"start,omitempty"`
-	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
+	Start *IPAddress `json:"start,omitempty"`
 	// End is the last IP address that can be rendered. It is used as a validation
 	// that the rendered IP is in bound.
-	End *string `json:"end,omitempty"`
-	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$))"
+	End *IPAddress `json:"end,omitempty"`
 	// Subnet is used to validate that the rendered IP is in bounds. In case the
 	// Start value is not given, it is derived from the subnet ip incremented by 1
 	// (`192.168.0.1` for `192.168.0.0/24`)
-	Subnet *string `json:"subnet,omitempty"`
+	Subnet *IPSubnet `json:"subnet,omitempty"`
 	// +kubebuilder:default=1
 	// Step is the step between the IP addresses rendered.
 	Step int `json:"step,omitempty"`
@@ -238,49 +235,35 @@ type NetworkDataLink struct {
 	Vlans []NetworkDataLinkVlan `json:"vlans,omitempty"`
 }
 
-// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
-// NetworkDataDNSService is the ip address (version-agnostic) of a DNS server
-type NetworkDataDNSService string
-
-// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
-// NetworkDataDNSServicev4 is the ip address (IPv4) of a DNS server
-type NetworkDataDNSServicev4 string
-
-// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-// NetworkDataDNSServicev6 is the ip address (IPv6) of a DNS server
-type NetworkDataDNSServicev6 string
-
 // NetworkDataService represents a service object
 type NetworkDataService struct {
 	// DNS is a list of DNS services
-	DNS []NetworkDataDNSService `json:"dns,omitempty"`
+	DNS []IPAddress `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev4 represents a service object
 type NetworkDataServicev4 struct {
 	// DNS is a list of IPv4 DNS services
-	DNS []NetworkDataDNSServicev4 `json:"dns,omitempty"`
+	DNS []IPAddressv4 `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev6 represents a service object
 type NetworkDataServicev6 struct {
 	// DNS is a list of IPv6 DNS services
-	DNS []NetworkDataDNSServicev6 `json:"dns,omitempty"`
+	DNS []IPAddressv6 `json:"dns,omitempty"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object
 type NetworkDataRoutev4 struct {
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 	// Network is the IPv4 network address
-	Network string `json:"network"`
+	Network IPAddressv4 `json:"network"`
 
 	// +kubebuilder:validation:Maximum=32
 	// Prefix is the mask of the network as integer (max 32)
-	Prefix int `json:"prefix"`
+	Prefix int `json:"prefix,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 	// Gateway is the IPv4 address of the gateway
-	Gateway string `json:"gateway"`
+	Gateway IPAddressv4 `json:"gateway"`
 
 	//Services is a list of IPv4 services
 	Services NetworkDataServicev4 `json:"services,omitempty"`
@@ -288,17 +271,15 @@ type NetworkDataRoutev4 struct {
 
 // NetworkDataRoutev6 represents an ipv6 route object
 type NetworkDataRoutev6 struct {
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
 	// Network is the IPv6 network address
-	Network string `json:"network"`
+	Network IPAddressv6 `json:"network"`
 
 	// +kubebuilder:validation:Maximum=128
 	// Prefix is the mask of the network as integer (max 128)
-	Prefix int `json:"prefix"`
+	Prefix int `json:"prefix,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
 	// Gateway is the IPv6 address of the gateway
-	Gateway string `json:"gateway"`
+	Gateway IPAddressv6 `json:"gateway"`
 
 	//Services is a list of IPv6 services
 	Services NetworkDataServicev6 `json:"services,omitempty"`
@@ -306,20 +287,17 @@ type NetworkDataRoutev6 struct {
 
 // NetworkDataIPAddressv4 contains the info to render the ipv4 address.
 type NetworkDataIPAddressv4 struct {
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 	// Start is the first ipv4 address that can be rendered
-	Start string `json:"start,omitempty"`
+	Start *IPAddressv4 `json:"start,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 	// End is the last IPv4 address that can be rendered. It is used as a validation
 	// that the rendered IP is in bound.
-	End string `json:"end,omitempty"`
+	End *IPAddressv4 `json:"end,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$"
 	// Subnet is used to validate that the rendered IPv4 is in bounds. In case the
 	// Start value is not given, it is derived from the subnet ip incremented by 1
 	// (`192.168.0.1` for `192.168.0.0/24`)
-	Subnet string `json:"subnet,omitempty"`
+	Subnet *IPSubnetv4 `json:"subnet,omitempty"`
 
 	// +kubebuilder:default=1
 	// Step is the step between the IP addresses rendered.
@@ -328,20 +306,17 @@ type NetworkDataIPAddressv4 struct {
 
 // NetworkDataIPAddressv6 contains the info to render the ipv6 address.
 type NetworkDataIPAddressv6 struct {
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
 	// Start is the first ipv6 address that can be rendered
-	Start string `json:"start,omitempty"`
+	Start *IPAddressv6 `json:"start,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
 	// End is the last IPv6 address that can be rendered. It is used as a validation
 	// that the rendered IP is in bound.
-	End string `json:"end,omitempty"`
+	End *IPAddressv6 `json:"end,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$"
 	// Subnet is used to validate that the rendered IPv6 is in bounds. In case the
 	// Start value is not given, it is derived from the subnet ip incremented by 1
 	// (`2001::1` for `2001::0/64`)
-	Subnet string `json:"subnet,omitempty"`
+	Subnet *IPSubnetv6 `json:"subnet,omitempty"`
 
 	// +kubebuilder:default=1
 	// Step is the step between the IP addresses rendered.
