@@ -68,6 +68,44 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3ipaddress
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.metal3ipaddress.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3ipaddresses
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3ippool
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.metal3ippool.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3ippools
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3machine
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -166,6 +204,44 @@ webhooks:
     - UPDATE
     resources:
     - metal3datatemplates
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3ipaddress
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.metal3ipaddress.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3ipaddresses
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3ippool
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.metal3ippool.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3ippools
 - clientConfig:
     caBundle: Cg==
     service:

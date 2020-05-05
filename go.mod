@@ -52,6 +52,7 @@ require (
 	mvdan.cc/unparam v0.0.0-20200314162735-0ac8026f7d06 // indirect
 	sigs.k8s.io/cluster-api v0.3.3
 	sigs.k8s.io/controller-runtime v0.6.0
+	sigs.k8s.io/kind v0.8.0 // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
 
