@@ -203,6 +203,13 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		DataManagerInterface
 
 	$(MOCKGEN) \
+	  -destination=./baremetal/mocks/zz_generated.metal3ippool_manager.go \
+	  -source=./baremetal/metal3ippool_manager.go \
+		-package=baremetal_mocks \
+		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
+		IPPoolManagerInterface
+
+	$(MOCKGEN) \
 	  -destination=./baremetal/mocks/zz_generated.manager_factory.go \
 	  -source=./baremetal/manager_factory.go \
 		-package=baremetal_mocks \

@@ -18,7 +18,6 @@ package baremetal
 
 import (
 	"context"
-	"fmt"
 	"gopkg.in/yaml.v2"
 	"net"
 
@@ -247,7 +246,6 @@ var _ = Describe("Metal3Data manager", func() {
 					&tmpSecret,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				fmt.Println(string(tmpSecret.Data["networkData"]))
 				Expect(string(tmpSecret.Data["networkData"])).To(Equal(*tc.expectedNetworkData))
 			}
 		},

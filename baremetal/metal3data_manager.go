@@ -234,7 +234,6 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(metadata)
 		if err := createSecret(m.client, ctx, m.Data.Spec.MetaData.Name,
 			m.Data.Namespace, m3dt.Labels[capi.ClusterLabelName],
 			ownerRefs, map[string][]byte{"metaData": metadata},
@@ -250,7 +249,6 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(networkData)
 		if err := createSecret(m.client, ctx, m.Data.Spec.NetworkData.Name,
 			m.Data.Namespace, m3dt.Labels[capi.ClusterLabelName],
 			ownerRefs, map[string][]byte{"networkData": networkData},
@@ -461,9 +459,9 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4) []interface{} {
 		}
 		mask := translateMask(route.Prefix, true)
 		routes = append(routes, map[string]interface{}{
-			"network":  route.Network,
+			"network":  string(route.Network),
 			"netmask":  mask,
-			"gateway":  route.Gateway,
+			"gateway":  string(route.Gateway),
 			"services": services,
 		})
 	}
@@ -483,9 +481,9 @@ func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6) []interface{} {
 		}
 		mask := translateMask(route.Prefix, false)
 		routes = append(routes, map[string]interface{}{
-			"network":  route.Network,
+			"network":  string(route.Network),
 			"netmask":  mask,
-			"gateway":  route.Gateway,
+			"gateway":  string(route.Gateway),
 			"services": services,
 		})
 	}

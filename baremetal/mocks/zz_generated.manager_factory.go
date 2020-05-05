@@ -113,3 +113,18 @@ func (mr *MockManagerFactoryInterfaceMockRecorder) NewDataManager(arg0, arg1 int
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDataManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewDataManager), arg0, arg1)
 }
+
+// NewIPPoolManager mocks base method
+func (m *MockManagerFactoryInterface) NewIPPoolManager(arg0 *v1alpha4.Metal3IPPool, arg1 logr.Logger) (baremetal.IPPoolManagerInterface, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewIPPoolManager", arg0, arg1)
+	ret0, _ := ret[0].(baremetal.IPPoolManagerInterface)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewIPPoolManager indicates an expected call of NewIPPoolManager
+func (mr *MockManagerFactoryInterfaceMockRecorder) NewIPPoolManager(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewIPPoolManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewIPPoolManager), arg0, arg1)
+}
