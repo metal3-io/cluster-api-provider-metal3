@@ -187,6 +187,7 @@ func (m *IPPoolManager) CreateAddresses(ctx context.Context) error {
 		// Get a new IP for this owner
 		allocatedAddress, prefix, gateway, err := m.allocateAddress(curOwnerRef)
 		if err != nil {
+			m.IPPool.Status.Allocations[curOwnerRef.Name] = ""
 			return err
 		}
 
@@ -283,11 +284,7 @@ func (m *IPPoolManager) allocateAddress(curOwnerRef metav1.OwnerReference) (stri
 		index := 0
 		err = nil
 		for err == nil && !ipAllocated {
-			allocatedAddress, err = getIPAddress(&capm3.MetaDataIPAddress{
-				Start:  (*capm3.IPAddress)(pool.Start),
-				End:    (*capm3.IPAddress)(pool.End),
-				Subnet: (*capm3.IPSubnet)(pool.Subnet),
-			}, index)
+			allocatedAddress, err = getIPAddress(pool, index)
 			if err != nil {
 				break
 			}

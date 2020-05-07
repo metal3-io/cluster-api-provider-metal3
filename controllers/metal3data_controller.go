@@ -130,6 +130,11 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 	metadataMgr baremetal.DataManagerInterface,
 ) (ctrl.Result, error) {
 
+	err := metadataMgr.ReleaseLeases(ctx)
+	if err != nil {
+		return checkRequeueError(err, "Failed to release IP address leases")
+	}
+
 	metadataMgr.UnsetFinalizer()
 
 	return ctrl.Result{}, nil

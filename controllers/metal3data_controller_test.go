@@ -64,6 +64,8 @@ var _ = Describe("Metal3Data manager", func() {
 			managerError         bool
 			reconcileNormal      bool
 			reconcileNormalError bool
+			releaseLeasesRequeue bool
+			releaseLeasesError   bool
 		}
 
 		DescribeTable("Test Reconcile",
@@ -89,7 +91,14 @@ var _ = Describe("Metal3Data manager", func() {
 					f.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).MaxTimes(0)
 				}
 				if tc.m3d != nil && !tc.m3d.DeletionTimestamp.IsZero() {
-					m.EXPECT().UnsetFinalizer()
+					if tc.releaseLeasesRequeue {
+						m.EXPECT().ReleaseLeases(context.TODO()).Return(&baremetal.RequeueAfterError{})
+					} else if tc.releaseLeasesError {
+						m.EXPECT().ReleaseLeases(context.TODO()).Return(errors.New(""))
+					} else {
+						m.EXPECT().ReleaseLeases(context.TODO()).Return(nil)
+						m.EXPECT().UnsetFinalizer()
+					}
 				}
 
 				if tc.m3d != nil && tc.m3d.DeletionTimestamp.IsZero() &&
@@ -153,6 +162,36 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 				expectManager: true,
 			}),
+			Entry("Deletion, release requeue", testCaseReconcile{
+				m3d: &infrav1.Metal3Data{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc",
+						Namespace: "myns",
+						Labels: map[string]string{
+							capi.ClusterLabelName: "abc",
+						},
+						DeletionTimestamp: &timestampNow,
+					},
+				},
+				expectManager:        true,
+				expectRequeue:        true,
+				releaseLeasesRequeue: true,
+			}),
+			Entry("Deletion, release error", testCaseReconcile{
+				m3d: &infrav1.Metal3Data{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc",
+						Namespace: "myns",
+						Labels: map[string]string{
+							capi.ClusterLabelName: "abc",
+						},
+						DeletionTimestamp: &timestampNow,
+					},
+				},
+				expectManager:      true,
+				expectError:        true,
+				releaseLeasesError: true,
+			}),
 			Entry("Paused cluster", testCaseReconcile{
 				m3d: &infrav1.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
@@ -197,15 +236,15 @@ var _ = Describe("Metal3Data manager", func() {
 			}),
 		)
 
-		type reconcileFunctionsTestCase struct {
+		type reconcileNormalTestCase struct {
 			ExpectError          bool
 			ExpectRequeue        bool
 			createSecretsRequeue bool
 			createSecretsError   bool
 		}
 
-		DescribeTable("Reconcile functions tests",
-			func(tc reconcileFunctionsTestCase) {
+		DescribeTable("ReconcileNormal tests",
+			func(tc reconcileNormalTestCase) {
 				gomockCtrl := gomock.NewController(GinkgoT())
 
 				c := fake.NewFakeClientWithScheme(setupScheme())
@@ -240,31 +279,81 @@ var _ = Describe("Metal3Data manager", func() {
 				} else {
 					Expect(res.Requeue).To(BeFalse())
 				}
-
-				gomockCtrl = gomock.NewController(GinkgoT())
-				m = baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
-				m.EXPECT().UnsetFinalizer()
-				res, err = dataReconcile.reconcileDelete(context.TODO(), m)
-				gomockCtrl.Finish()
-
-				Expect(err).NotTo(HaveOccurred())
-				Expect(res.Requeue).To(BeFalse())
 			},
-			Entry("Reconcile Succeeds", reconcileFunctionsTestCase{
+			Entry("Reconcile Succeeds", reconcileNormalTestCase{
 				ExpectError:   false,
 				ExpectRequeue: false,
 			}),
-			Entry("Reconcile requeues", reconcileFunctionsTestCase{
+			Entry("Reconcile requeues", reconcileNormalTestCase{
 				ExpectError:        true,
 				ExpectRequeue:      false,
 				createSecretsError: true,
 			}),
-			Entry("Reconcile fails", reconcileFunctionsTestCase{
+			Entry("Reconcile fails", reconcileNormalTestCase{
 				ExpectError:          false,
 				ExpectRequeue:        true,
 				createSecretsRequeue: true,
 			}),
 		)
 	})
+
+	type reconcileDeleteTestCase struct {
+		ExpectError          bool
+		ExpectRequeue        bool
+		ReleaseLeasesRequeue bool
+		ReleaseLeasesError   bool
+	}
+
+	DescribeTable("ReconcileDelete tests",
+		func(tc reconcileDeleteTestCase) {
+			gomockCtrl := gomock.NewController(GinkgoT())
+
+			c := fake.NewFakeClientWithScheme(setupScheme())
+
+			dataReconcile := &Metal3DataReconciler{
+				Client:         c,
+				ManagerFactory: baremetal.NewManagerFactory(c),
+				Log:            klogr.New(),
+			}
+			m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
+
+			if tc.ReleaseLeasesRequeue {
+				m.EXPECT().ReleaseLeases(context.TODO()).Return(&baremetal.RequeueAfterError{})
+			} else if tc.ReleaseLeasesError {
+				m.EXPECT().ReleaseLeases(context.TODO()).Return(errors.New(""))
+			} else {
+				m.EXPECT().ReleaseLeases(context.TODO()).Return(nil)
+				m.EXPECT().UnsetFinalizer()
+			}
+
+			res, err := dataReconcile.reconcileDelete(context.TODO(), m)
+			gomockCtrl.Finish()
+
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			if tc.ExpectRequeue {
+				Expect(res.Requeue).To(BeTrue())
+			} else {
+				Expect(res.Requeue).To(BeFalse())
+			}
+		},
+		Entry("Reconcile Succeeds", reconcileDeleteTestCase{
+			ExpectError:   false,
+			ExpectRequeue: false,
+		}),
+		Entry("Reconcile requeues", reconcileDeleteTestCase{
+			ExpectError:        true,
+			ExpectRequeue:      false,
+			ReleaseLeasesError: true,
+		}),
+		Entry("Reconcile fails", reconcileDeleteTestCase{
+			ExpectError:          false,
+			ExpectRequeue:        true,
+			ReleaseLeasesRequeue: true,
+		}),
+	)
 
 })

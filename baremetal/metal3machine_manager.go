@@ -1096,10 +1096,19 @@ func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller
 
 // DeleteOwnerRef removes the ownerreference to this Metal3 machine
 func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
+	return deleteOwnerRefFromList(refList, m.Metal3Machine.TypeMeta,
+		m.Metal3Machine.ObjectMeta,
+	)
+}
+
+// DeleteOwnerRefFromList removes the ownerreference to this Metal3 machine
+func deleteOwnerRefFromList(refList []metav1.OwnerReference,
+	objType metav1.TypeMeta, objMeta metav1.ObjectMeta,
+) ([]metav1.OwnerReference, error) {
 	if len(refList) == 0 {
 		return refList, nil
 	}
-	index, err := m.FindOwnerRef(refList)
+	index, err := findOwnerRefFromList(refList, objType, objMeta)
 	if err != nil {
 		if _, ok := err.(*NotFoundError); !ok {
 			return nil, err
@@ -1111,7 +1120,7 @@ func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]meta
 	}
 	refListLen := len(refList) - 1
 	refList[index] = refList[refListLen]
-	refList, err = m.DeleteOwnerRef(refList[:refListLen-1])
+	refList, err = deleteOwnerRefFromList(refList[:refListLen-1], objType, objMeta)
 	if err != nil {
 		return nil, err
 	}

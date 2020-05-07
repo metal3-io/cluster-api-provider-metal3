@@ -88,3 +88,17 @@ func (mr *MockDataManagerInterfaceMockRecorder) Reconcile(ctx interface{}) *gomo
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reconcile", reflect.TypeOf((*MockDataManagerInterface)(nil).Reconcile), ctx)
 }
+
+// ReleaseLeases mocks base method
+func (m *MockDataManagerInterface) ReleaseLeases(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReleaseLeases", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReleaseLeases indicates an expected call of ReleaseLeases
+func (mr *MockDataManagerInterfaceMockRecorder) ReleaseLeases(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseLeases", reflect.TypeOf((*MockDataManagerInterface)(nil).ReleaseLeases), ctx)
+}

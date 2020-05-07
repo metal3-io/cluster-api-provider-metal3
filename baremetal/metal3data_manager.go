@@ -32,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
@@ -44,6 +45,7 @@ type DataManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
 	Reconcile(ctx context.Context) error
+	ReleaseLeases(ctx context.Context) error
 }
 
 // DataManager is responsible for performing machine reconciliation
@@ -194,6 +196,13 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return nil
 	}
 
+	// Fetch all the Metal3IPPools and set the OwnerReference. Check if the
+	// IP address has been allocated, if so, fetch the address, gateway and prefix.
+	poolAddresses, err := m.getAddressesFromPool(ctx, *m3dt)
+	if err != nil {
+		return err
+	}
+
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, m.client, m3m.ObjectMeta)
 
@@ -230,7 +239,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// The MetaData secret must be created
 	if apierrors.IsNotFound(metaDataErr) {
 		m.Log.Info("Creating Metadata secret")
-		metadata, err := renderMetaData(m.Data, m3dt, m3m, capiMachine, bmh)
+		metadata, err := renderMetaData(m.Data, m3dt, m3m, capiMachine, bmh, poolAddresses)
 		if err != nil {
 			return err
 		}
@@ -245,7 +254,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// The NetworkData secret must be created
 	if apierrors.IsNotFound(networkDataErr) {
 		m.Log.Info("Creating Networkdata secret")
-		networkData, err := renderNetworkData(m.Data, m3dt, bmh)
+		networkData, err := renderNetworkData(m.Data, m3dt, bmh, poolAddresses)
 		if err != nil {
 			return err
 		}
@@ -262,10 +271,412 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	return nil
 }
 
+// CreateSecrets creates the secret if they do not exist.
+func (m *DataManager) ReleaseLeases(ctx context.Context) error {
+	if m.Data.Spec.DataTemplate == nil {
+		return nil
+	}
+	if m.Data.Spec.DataTemplate.Namespace == "" {
+		m.Data.Spec.DataTemplate.Namespace = m.Data.Namespace
+	}
+	// Fetch the Metal3DataTemplate object to get the templates
+	m3dt, err := fetchM3DataTemplate(ctx, m.Data.Spec.DataTemplate, m.client,
+		m.Log, m.Data.Labels[capi.ClusterLabelName],
+	)
+	if err != nil {
+		return err
+	}
+	if m3dt == nil {
+		return nil
+	}
+	m.Log.Info("Fetched Metal3DataTemplate")
+
+	return m.releaseAddressesFromPool(ctx, *m3dt)
+}
+
+// addressFromPool contains the address, prefix and gateway coming from a pool
+type addressFromPool struct {
+	address capm3.IPAddress
+	prefix  int
+	gateway capm3.IPAddress
+}
+
+// getAddressesFromPool will fetch each Metal3IPPool referenced at least once,
+// set the Ownerreference if not set, and check if the Metal3IPAddress has been
+// allocated. If not, it will requeue once all pools were fetched. If all have
+// been allocated it will return a map containing the pool name and the address,
+// prefix and gateway from that pool
+func (m *DataManager) getAddressesFromPool(ctx context.Context,
+	m3dt capm3.Metal3DataTemplate,
+) (map[string]addressFromPool, error) {
+	var err error
+	requeue := false
+	itemRequeue := false
+	addresses := make(map[string]addressFromPool)
+	if m3dt.Spec.MetaData != nil {
+		for _, pool := range m3dt.Spec.MetaData.IPAddressesFromPool {
+			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return addresses, err
+			}
+		}
+		for _, pool := range m3dt.Spec.MetaData.PrefixesFromPool {
+			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return addresses, err
+			}
+		}
+		for _, pool := range m3dt.Spec.MetaData.GatewaysFromPool {
+			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return addresses, err
+			}
+		}
+	}
+	if m3dt.Spec.NetworkData != nil {
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
+			addresses, itemRequeue, err = m.getAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return addresses, err
+			}
+			// network.IPAddressFromIPPool
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6 {
+			addresses, itemRequeue, err = m.getAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return addresses, err
+			}
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4DHCP {
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6DHCP {
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6SLAAC {
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+			}
+		}
+	}
+	if requeue {
+		return addresses, &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	return addresses, nil
+}
+
+// releaseAddressesFromPool removes the OwnerReference on the IPPool objects
+func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
+	m3dt capm3.Metal3DataTemplate,
+) error {
+	var err error
+	requeue := false
+	itemRequeue := false
+	addresses := make(map[string]bool)
+	if m3dt.Spec.MetaData != nil {
+		for _, pool := range m3dt.Spec.MetaData.IPAddressesFromPool {
+			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			fmt.Println(requeue)
+			if err != nil {
+				return err
+			}
+		}
+		for _, pool := range m3dt.Spec.MetaData.PrefixesFromPool {
+			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return err
+			}
+		}
+		for _, pool := range m3dt.Spec.MetaData.GatewaysFromPool {
+			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if m3dt.Spec.NetworkData != nil {
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
+			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return err
+			}
+			// network.IPAddressFromIPPool
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6 {
+			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return err
+			}
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4DHCP {
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6DHCP {
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6SLAAC {
+			for _, route := range network.Routes {
+				if route.Gateway.FromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+	if requeue {
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	return nil
+}
+
+// getAddressFromPool adds an ownerReference on the referenced Metal3IPPool
+// objects. It then tries to fetch the Metal3IPAddress if it exists, and asks
+// for requeue if not ready.
+func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
+	addresses map[string]addressFromPool,
+) (map[string]addressFromPool, bool, error) {
+
+	if addresses == nil {
+		addresses = make(map[string]addressFromPool)
+	}
+	if entry, ok := addresses[poolName]; ok {
+		if entry.address != "" {
+			return addresses, false, nil
+		}
+	}
+	addresses[poolName] = addressFromPool{}
+	// Get the IPPool object
+	// Fetch the Metal3IPPool instance.
+	capm3IPPool := &capm3.Metal3IPPool{}
+	poolNamespacedName := types.NamespacedName{
+		Name:      poolName,
+		Namespace: m.Data.Namespace,
+	}
+
+	if err := m.client.Get(ctx, poolNamespacedName, capm3IPPool); err != nil {
+		if apierrors.IsNotFound(err) {
+			return addresses, true, nil
+		}
+		return addresses, false, err
+	}
+
+	// Verify that the owner reference is there, if not add it and update object,
+	// if error requeue.
+	_, err := findOwnerRefFromList(capm3IPPool.OwnerReferences,
+		m.Data.TypeMeta, m.Data.ObjectMeta)
+	if err != nil {
+		if _, ok := err.(*NotFoundError); !ok {
+			return addresses, false, err
+		}
+		capm3IPPool.OwnerReferences, err = setOwnerRefInList(
+			capm3IPPool.OwnerReferences, false, m.Data.TypeMeta, m.Data.ObjectMeta,
+		)
+		if err != nil {
+			return addresses, false, err
+		}
+		err = updateObject(m.client, ctx, capm3IPPool)
+		if err != nil {
+			if _, ok := err.(*RequeueAfterError); !ok {
+				return addresses, false, err
+			}
+			return addresses, true, nil
+		}
+	}
+
+	// verify if allocation is there, if not requeue
+	addressName, ok := capm3IPPool.Status.Allocations[m.Data.Name]
+	if !ok {
+		return addresses, true, nil
+	}
+	if addressName == "" {
+		errorStr := fmt.Sprintf(
+			"%s Unable to allocate IP address, pool exhausted ?", poolName,
+		)
+		m.setError(ctx, errorStr)
+		return addresses, false, errors.New(errorStr)
+	}
+
+	// get Metal3IPAddress object
+	capm3IPAddress := &capm3.Metal3IPAddress{}
+	addressNamespacedName := types.NamespacedName{
+		Name:      addressName,
+		Namespace: m.Data.Namespace,
+	}
+
+	if err := m.client.Get(ctx, addressNamespacedName, capm3IPAddress); err != nil {
+		if apierrors.IsNotFound(err) {
+			return addresses, true, nil
+		}
+		return addresses, false, err
+	}
+
+	// get address, gateway and prefixes
+	addresses[poolName] = addressFromPool{
+		address: capm3IPAddress.Spec.Address,
+		prefix:  capm3IPAddress.Spec.Prefix,
+		gateway: *capm3IPAddress.Spec.Gateway,
+	}
+
+	return addresses, false, nil
+}
+
+// releaseAddressFromPool removes the owner reference on existing referenced
+// Metal3IPPool objects
+func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName string,
+	addresses map[string]bool,
+) (map[string]bool, bool, error) {
+
+	if addresses == nil {
+		addresses = make(map[string]bool)
+	}
+	if succeeded, ok := addresses[poolName]; ok {
+		if succeeded {
+			return addresses, false, nil
+		}
+	}
+	addresses[poolName] = false
+	// Get the IPPool object
+	// Fetch the Metal3IPPool instance.
+	capm3IPPool := &capm3.Metal3IPPool{}
+	poolNamespacedName := types.NamespacedName{
+		Name:      poolName,
+		Namespace: m.Data.Namespace,
+	}
+
+	if err := m.client.Get(ctx, poolNamespacedName, capm3IPPool); err != nil {
+		if apierrors.IsNotFound(err) {
+			addresses[poolName] = true
+			return addresses, false, nil
+		}
+		return addresses, false, err
+	}
+
+	// Verify that the owner reference is there, if not add it and update object,
+	// if error requeue.
+	_, err := findOwnerRefFromList(capm3IPPool.OwnerReferences,
+		m.Data.TypeMeta, m.Data.ObjectMeta)
+	if err != nil {
+		if _, ok := err.(*NotFoundError); !ok {
+			return addresses, false, err
+		}
+	} else {
+		capm3IPPool.OwnerReferences, err = deleteOwnerRefFromList(
+			capm3IPPool.OwnerReferences, m.Data.TypeMeta, m.Data.ObjectMeta,
+		)
+		if err != nil {
+			return addresses, false, err
+		}
+		err = updateObject(m.client, ctx, capm3IPPool)
+		if err != nil {
+			if _, ok := err.(*RequeueAfterError); !ok {
+				return addresses, false, err
+			}
+			return addresses, true, nil
+		}
+	}
+	addresses[poolName] = true
+	return addresses, false, nil
+}
+
 // renderNetworkData renders the networkData into an object that will be
 // marshalled into the secret
 func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
-	bmh *bmo.BareMetalHost,
+	bmh *bmo.BareMetalHost, poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.NetworkData == nil {
 		return nil, nil
@@ -279,7 +690,9 @@ func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		return nil, err
 	}
 
-	networkData["networks"], err = renderNetworkNetworks(m3dt.Spec.NetworkData.Networks, m3d)
+	networkData["networks"], err = renderNetworkNetworks(
+		m3dt.Spec.NetworkData.Networks, m3d, poolAddresses,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -294,9 +707,9 @@ func renderNetworkServices(services capm3.NetworkDataService) []interface{} {
 	data := []interface{}{}
 
 	for _, service := range services.DNS {
-		data = append(data, map[string]string{
+		data = append(data, map[string]interface{}{
 			"type":    "dns",
-			"address": string(service),
+			"address": service,
 		})
 	}
 
@@ -358,24 +771,22 @@ func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHo
 
 // renderNetworkNetworks renders the different types of network
 func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
-	m3d *capm3.Metal3Data,
+	m3d *capm3.Metal3Data, poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
 	data := []interface{}{}
 
 	// IPv4 networks static allocation
 	for _, network := range networks.IPv4 {
-		mask := translateMask(network.Prefix, true)
-		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
-			Start:  (*capm3.IPAddress)(network.IPAddress.Start),
-			End:    (*capm3.IPAddress)(network.IPAddress.End),
-			Subnet: (*capm3.IPSubnet)(network.IPAddress.Subnet),
-			Step:   network.IPAddress.Step,
-		}, m3d.Spec.Index,
-		)
+		poolAddress, ok := poolAddresses[network.IPAddressFromIPPool]
+		if !ok {
+			return nil, errors.New("Pool not found in cache")
+		}
+		ip := capm3.IPAddressv4(poolAddress.address)
+		mask := translateMask(poolAddress.prefix, true)
+		routes, err := getRoutesv4(network.Routes, poolAddresses)
 		if err != nil {
 			return nil, err
 		}
-		routes := getRoutesv4(network.Routes)
 		data = append(data, map[string]interface{}{
 			"type":       "ipv4",
 			"id":         network.ID,
@@ -388,18 +799,16 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 
 	// IPv6 networks static allocation
 	for _, network := range networks.IPv6 {
-		mask := translateMask(network.Prefix, false)
-		ip, err := getIPAddress(&capm3.MetaDataIPAddress{
-			Start:  (*capm3.IPAddress)(network.IPAddress.Start),
-			End:    (*capm3.IPAddress)(network.IPAddress.End),
-			Subnet: (*capm3.IPSubnet)(network.IPAddress.Subnet),
-			Step:   network.IPAddress.Step,
-		}, m3d.Spec.Index,
-		)
+		poolAddress, ok := poolAddresses[network.IPAddressFromIPPool]
+		if !ok {
+			return nil, errors.New("Pool not found in cache")
+		}
+		ip := capm3.IPAddressv6(poolAddress.address)
+		mask := translateMask(poolAddress.prefix, false)
+		routes, err := getRoutesv6(network.Routes, poolAddresses)
 		if err != nil {
 			return nil, err
 		}
-		routes := getRoutesv6(network.Routes)
 		data = append(data, map[string]interface{}{
 			"type":       "ipv6",
 			"id":         network.ID,
@@ -412,7 +821,10 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 
 	// IPv4 networks DHCP allocation
 	for _, network := range networks.IPv4DHCP {
-		routes := getRoutesv4(network.Routes)
+		routes, err := getRoutesv4(network.Routes, poolAddresses)
+		if err != nil {
+			return nil, err
+		}
 		data = append(data, map[string]interface{}{
 			"type":   "ipv4_dhcp",
 			"id":     network.ID,
@@ -423,7 +835,10 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 
 	// IPv6 networks DHCP allocation
 	for _, network := range networks.IPv6DHCP {
-		routes := getRoutesv6(network.Routes)
+		routes, err := getRoutesv6(network.Routes, poolAddresses)
+		if err != nil {
+			return nil, err
+		}
 		data = append(data, map[string]interface{}{
 			"type":   "ipv6_dhcp",
 			"id":     network.ID,
@@ -434,7 +849,10 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 
 	// IPv6 networks SLAAC allocation
 	for _, network := range networks.IPv6SLAAC {
-		routes := getRoutesv6(network.Routes)
+		routes, err := getRoutesv6(network.Routes, poolAddresses)
+		if err != nil {
+			return nil, err
+		}
 		data = append(data, map[string]interface{}{
 			"type":   "ipv6_slaac",
 			"id":     network.ID,
@@ -447,59 +865,85 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 }
 
 // getRoutesv4 returns the IPv4 routes
-func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4) []interface{} {
+func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
+	poolAddresses map[string]addressFromPool,
+) ([]interface{}, error) {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
+		gateway := capm3.IPAddressv4("")
+		if route.Gateway.String != nil {
+			gateway = *route.Gateway.String
+		} else if route.Gateway.FromIPPool != nil {
+			poolAddress, ok := poolAddresses[*route.Gateway.FromIPPool]
+			if !ok {
+				return []interface{}{}, errors.New("Failed to fetch pool from cache")
+			}
+			gateway = capm3.IPAddressv4(poolAddress.gateway)
+		}
 		services := []interface{}{}
 		for _, service := range route.Services.DNS {
-			services = append(services, map[string]string{
+			services = append(services, map[string]interface{}{
 				"type":    "dns",
-				"address": string(service),
+				"address": service,
 			})
 		}
 		mask := translateMask(route.Prefix, true)
 		routes = append(routes, map[string]interface{}{
-			"network":  string(route.Network),
+			"network":  route.Network,
 			"netmask":  mask,
-			"gateway":  string(route.Gateway),
+			"gateway":  gateway,
 			"services": services,
 		})
 	}
-	return routes
+	return routes, nil
 }
 
 // getRoutesv6 returns the IPv6 routes
-func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6) []interface{} {
+func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6,
+	poolAddresses map[string]addressFromPool,
+) ([]interface{}, error) {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
+		gateway := capm3.IPAddressv6("")
+		if route.Gateway.String != nil {
+			gateway = *route.Gateway.String
+		} else if route.Gateway.FromIPPool != nil {
+			poolAddress, ok := poolAddresses[*route.Gateway.FromIPPool]
+			if !ok {
+				return []interface{}{}, errors.New("Failed to fetch pool from cache")
+			}
+			gateway = capm3.IPAddressv6(poolAddress.gateway)
+		}
 		services := []interface{}{}
 		for _, service := range route.Services.DNS {
-			services = append(services, map[string]string{
+			services = append(services, map[string]interface{}{
 				"type":    "dns",
-				"address": string(service),
+				"address": service,
 			})
 		}
 		mask := translateMask(route.Prefix, false)
 		routes = append(routes, map[string]interface{}{
-			"network":  string(route.Network),
+			"network":  route.Network,
 			"netmask":  mask,
-			"gateway":  string(route.Gateway),
+			"gateway":  gateway,
 			"services": services,
 		})
 	}
-	return routes
+	return routes, nil
 }
 
 // translateMask transforms a mask given as integer into a dotted-notation string
-func translateMask(maskInt int, ipv4 bool) string {
+func translateMask(maskInt int, ipv4 bool) interface{} {
 	if ipv4 {
 		// Get the mask by concatenating the IPv4 prefix of net package and the mask
-		return net.IP(append([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255},
+		address := net.IP(append([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255},
 			[]byte(net.CIDRMask(maskInt, 32))...,
 		)).String()
+		return capm3.IPAddressv4(address)
 	} else {
 		// get the mask
-		return net.IP(net.CIDRMask(maskInt, 128)).String()
+		address := net.IP(net.CIDRMask(maskInt, 128)).String()
+		return capm3.IPAddressv6(address)
 	}
 }
 
@@ -525,6 +969,7 @@ func getLinkMacAddress(mac *capm3.NetworkLinkEthernetMac, bmh *bmo.BareMetalHost
 // renderMetaData renders the MetaData items
 func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	m3m *capm3.Metal3Machine, machine *capi.Machine, bmh *bmo.BareMetalHost,
+	poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.MetaData == nil {
 		return nil, nil
@@ -541,12 +986,30 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	}
 
 	// IP addresses
-	for _, entry := range m3dt.Spec.MetaData.IPAddresses {
-		value, err := getIPAddress(&entry, m3d.Spec.Index)
-		if err != nil {
-			return nil, err
+	for _, entry := range m3dt.Spec.MetaData.IPAddressesFromPool {
+		poolAddress, ok := poolAddresses[entry.Name]
+		if !ok {
+			return nil, errors.New("Pool not found in cache")
 		}
-		metadata[entry.Key] = value
+		metadata[entry.Key] = string(poolAddress.address)
+	}
+
+	// Prefixes
+	for _, entry := range m3dt.Spec.MetaData.PrefixesFromPool {
+		poolAddress, ok := poolAddresses[entry.Name]
+		if !ok {
+			return nil, errors.New("Pool not found in cache")
+		}
+		metadata[entry.Key] = strconv.Itoa(poolAddress.prefix)
+	}
+
+	// Gateways
+	for _, entry := range m3dt.Spec.MetaData.GatewaysFromPool {
+		poolAddress, ok := poolAddresses[entry.Name]
+		if !ok {
+			return nil, errors.New("Pool not found in cache")
+		}
+		metadata[entry.Key] = string(poolAddress.gateway)
 	}
 
 	// Indexes
@@ -614,7 +1077,7 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 
 // getIPAddress renders the IP address, taking the index, offset and step into
 // account, it is IP version agnostic
-func getIPAddress(entry *capm3.MetaDataIPAddress, index int) (string, error) {
+func getIPAddress(entry capm3.IPPool, index int) (string, error) {
 
 	if entry.Start == nil && entry.Subnet == nil {
 		return "", errors.New("Either Start or Subnet is required for ipAddress")
@@ -622,10 +1085,7 @@ func getIPAddress(entry *capm3.MetaDataIPAddress, index int) (string, error) {
 	var ip net.IP
 	var err error
 	var ipNet *net.IPNet
-	if entry.Step == 0 {
-		entry.Step = 1
-	}
-	offset := index * entry.Step
+	offset := index
 
 	// If start is given, use it to add the offset
 	if entry.Start != nil {

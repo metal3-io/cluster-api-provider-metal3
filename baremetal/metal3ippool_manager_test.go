@@ -406,7 +406,7 @@ var _ = Describe("Metal3IPPool manager", func() {
 					Addresses: map[string]string{"192.168.0.11": "bcde"},
 				},
 			},
-			expectedAllocations: map[string]string{},
+			expectedAllocations: map[string]string{"abc": ""},
 			expectedAddresses:   map[string]string{"192.168.0.11": "bcde"},
 			expectError:         true,
 		}),
