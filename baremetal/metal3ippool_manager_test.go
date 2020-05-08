@@ -354,6 +354,34 @@ var _ = Describe("Metal3IPPool manager", func() {
 			},
 			expectedIPAddresses: []string{"abcpref-192-168-0-12"},
 		}),
+		Entry("Not allocated yet, after error", testCaseCreateAddresses{
+			ipPool: &capm3.Metal3IPPool{
+				ObjectMeta: ipPoolMeta,
+				Spec: capm3.Metal3IPPoolSpec{
+					Pools: []capm3.IPPool{
+						capm3.IPPool{
+							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.20")),
+						},
+					},
+					NamePrefix: "abcpref",
+				},
+				Status: capm3.Metal3IPPoolStatus{
+					Addresses: map[string]string{
+						"192.168.0.11": "bcd",
+					},
+					Allocations: map[string]string{
+						"abc": "",
+					},
+				},
+			},
+			expectedAllocations: map[string]string{"abc": "abcpref-192-168-0-12"},
+			expectedAddresses: map[string]string{
+				"192.168.0.12": "abc",
+				"192.168.0.11": "bcd",
+			},
+			expectedIPAddresses: []string{"abcpref-192-168-0-12"},
+		}),
 		Entry("Not allocated yet, conflict", testCaseCreateAddresses{
 			ipPool: &capm3.Metal3IPPool{
 				ObjectMeta: ipPoolMeta,

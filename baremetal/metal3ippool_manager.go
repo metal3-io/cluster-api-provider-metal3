@@ -173,8 +173,10 @@ func (m *IPPoolManager) CreateAddresses(ctx context.Context) error {
 		}
 
 		// If the owner already has an entry, discard
-		if _, ok := m.IPPool.Status.Allocations[curOwnerRef.Name]; ok {
-			continue
+		if entry, ok := m.IPPool.Status.Allocations[curOwnerRef.Name]; ok {
+			if entry != "" {
+				continue
+			}
 		}
 
 		if m.IPPool.Status.Addresses == nil {
