@@ -33,7 +33,6 @@ func TestMetal3IPAddressDefault(t *testing.T) {
 	c.Default()
 
 	g.Expect(c.Spec).To(Equal(Metal3IPAddressSpec{}))
-	g.Expect(c.Status).To(Equal(Metal3IPAddressStatus{}))
 }
 
 func TestMetal3IPAddressCreateValidation(t *testing.T) {
@@ -42,32 +41,56 @@ func TestMetal3IPAddressCreateValidation(t *testing.T) {
 		name        string
 		addressName string
 		expectErr   bool
-		ipPool      *corev1.ObjectReference
+		ipPool      corev1.ObjectReference
 		address     IPAddress
+		claim       corev1.ObjectReference
 	}{
 		{
 			name:        "should succeed when values and ipPools correct",
 			expectErr:   false,
 			addressName: "abc-1",
-			ipPool: &corev1.ObjectReference{
+			ipPool: corev1.ObjectReference{
+				Name: "abc",
+			},
+			claim: corev1.ObjectReference{
 				Name: "abc",
 			},
 			address: "abcd",
 		},
 		{
-			name:        "should fail without ipPool",
-			expectErr:   true,
-			addressName: "abc-1",
-			ipPool:      nil,
-			address:     "abcd",
-		},
-		{
 			name:        "should fail without address",
 			expectErr:   true,
 			addressName: "abc-1",
-			ipPool: &corev1.ObjectReference{
+			ipPool: corev1.ObjectReference{
 				Name: "abc",
 			},
+			claim: corev1.ObjectReference{
+				Name: "abc",
+			},
+		},
+		{
+			name:        "should fail without ipPool name",
+			expectErr:   true,
+			addressName: "abc-1",
+			ipPool: corev1.ObjectReference{
+				Namespace: "abc",
+			},
+			claim: corev1.ObjectReference{
+				Name: "abc",
+			},
+			address: "abcd",
+		},
+		{
+			name:        "should fail without claim name",
+			expectErr:   true,
+			addressName: "abc-1",
+			ipPool: corev1.ObjectReference{
+				Name: "abc",
+			},
+			claim: corev1.ObjectReference{
+				Namespace: "abc",
+			},
+			address: "abcd",
 		},
 	}
 
@@ -81,8 +104,9 @@ func TestMetal3IPAddressCreateValidation(t *testing.T) {
 					Name:      tt.addressName,
 				},
 				Spec: Metal3IPAddressSpec{
-					IPPool:  tt.ipPool,
+					Pool:    tt.ipPool,
 					Address: tt.address,
+					Claim:   tt.claim,
 				},
 			}
 
@@ -109,13 +133,19 @@ func TestMetal3IPAddressUpdateValidation(t *testing.T) {
 			name:      "should succeed when values are the same",
 			expectErr: false,
 			new: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
+					Name: "abc",
+				},
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
+					Name: "abc",
+				},
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Address: "abcd",
@@ -125,7 +155,7 @@ func TestMetal3IPAddressUpdateValidation(t *testing.T) {
 			name:      "should fail with nil old",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Address: "abcd",
@@ -136,60 +166,46 @@ func TestMetal3IPAddressUpdateValidation(t *testing.T) {
 			name:      "should fail when index changes",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Address: "abcde",
 			},
 		},
 		{
-			name:      "should fail when dataTemplate is set to nil",
+			name:      "should fail when pool name changes",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				IPPool:  nil,
-				Address: "abcd",
-			},
-			old: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
-					Name: "abc",
-				},
-				Address: "abcd",
-			},
-		},
-		{
-			name:      "should fail when dataTemplate name changes",
-			expectErr: true,
-			new: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name: "abcd",
 				},
 				Address: "abcd",
 			},
 		},
 		{
-			name:      "should fail when IPPool Namespace changes",
+			name:      "should fail when Pool Namespace changes",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abcd",
 				},
@@ -197,17 +213,17 @@ func TestMetal3IPAddressUpdateValidation(t *testing.T) {
 			},
 		},
 		{
-			name:      "should fail when IPPool kind changes",
+			name:      "should fail when Pool kind changes",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
+				Pool: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abcd",
 				},
@@ -215,47 +231,33 @@ func TestMetal3IPAddressUpdateValidation(t *testing.T) {
 			},
 		},
 		{
-			name:      "should fail when Owner is set to nil",
+			name:      "should fail when Claim name changes",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				Owner:   nil,
-				Address: "abcd",
-			},
-			old: &Metal3IPAddressSpec{
-				Owner: &corev1.ObjectReference{
-					Name: "abc",
-				},
-				Address: "abcd",
-			},
-		},
-		{
-			name:      "should fail when Owner name changes",
-			expectErr: true,
-			new: &Metal3IPAddressSpec{
-				Owner: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				Owner: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abcd",
 				},
 				Address: "abcd",
 			},
 		},
 		{
-			name:      "should fail when Owner Namespace changes",
+			name:      "should fail when Claim Namespace changes",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				Owner: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				Owner: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abcd",
 				},
@@ -263,17 +265,17 @@ func TestMetal3IPAddressUpdateValidation(t *testing.T) {
 			},
 		},
 		{
-			name:      "should fail when Owner kind changes",
+			name:      "should fail when Claim kind changes",
 			expectErr: true,
 			new: &Metal3IPAddressSpec{
-				Owner: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abc",
 				},
 				Address: "abcd",
 			},
 			old: &Metal3IPAddressSpec{
-				Owner: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abcd",
 				},

@@ -40,11 +40,21 @@ func (c *Metal3IPAddress) Default() {
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (c *Metal3IPAddress) ValidateCreate() error {
 	allErrs := field.ErrorList{}
-	if c.Spec.IPPool == nil {
+	if c.Spec.Pool.Name == "" {
 		allErrs = append(allErrs,
 			field.Invalid(
-				field.NewPath("spec", "ipPool"),
-				c.Spec.IPPool,
+				field.NewPath("spec", "pool", "name"),
+				c.Spec.Pool.Name,
+				"cannot be empty",
+			),
+		)
+	}
+
+	if c.Spec.Claim.Name == "" {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "claim", "name"),
+				c.Spec.Claim.Name,
 				"cannot be empty",
 			),
 		)
@@ -84,80 +94,56 @@ func (c *Metal3IPAddress) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	if oldMetal3IPAddress.Spec.IPPool != nil {
-		if c.Spec.IPPool == nil {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "ipPool"),
-					c.Spec.IPPool,
-					"cannot be modified",
-				),
-			)
-		} else {
-			if c.Spec.IPPool.Name != oldMetal3IPAddress.Spec.IPPool.Name {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "ipPool"),
-						c.Spec.IPPool,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.IPPool.Namespace != oldMetal3IPAddress.Spec.IPPool.Namespace {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "ipPool"),
-						c.Spec.IPPool,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.IPPool.Kind != oldMetal3IPAddress.Spec.IPPool.Kind {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "ipPool"),
-						c.Spec.IPPool,
-						"cannot be modified",
-					),
-				)
-			}
-		}
+	if c.Spec.Pool.Name != oldMetal3IPAddress.Spec.Pool.Name {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "pool"),
+				c.Spec.Pool,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Pool.Namespace != oldMetal3IPAddress.Spec.Pool.Namespace {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "pool"),
+				c.Spec.Pool,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Pool.Kind != oldMetal3IPAddress.Spec.Pool.Kind {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "pool"),
+				c.Spec.Pool,
+				"cannot be modified",
+			),
+		)
 	}
 
-	if oldMetal3IPAddress.Spec.Owner != nil {
-		if c.Spec.Owner == nil {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "owner"),
-					c.Spec.Owner,
-					"cannot be modified",
-				),
-			)
-		} else {
-			if c.Spec.Owner.Name != oldMetal3IPAddress.Spec.Owner.Name {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "owner"),
-						c.Spec.Owner,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.Owner.Namespace != oldMetal3IPAddress.Spec.Owner.Namespace {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "owner"),
-						c.Spec.Owner,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.Owner.Kind != oldMetal3IPAddress.Spec.Owner.Kind {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "owner"),
-						c.Spec.Owner,
-						"cannot be modified",
-					),
-				)
-			}
-		}
+	if c.Spec.Claim.Name != oldMetal3IPAddress.Spec.Claim.Name {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "claim"),
+				c.Spec.Claim,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Claim.Namespace != oldMetal3IPAddress.Spec.Claim.Namespace {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "claim"),
+				c.Spec.Claim,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Claim.Kind != oldMetal3IPAddress.Spec.Claim.Kind {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "claim"),
+				c.Spec.Claim,
+				"cannot be modified",
+			),
+		)
 	}
 
 	if len(allErrs) == 0 {

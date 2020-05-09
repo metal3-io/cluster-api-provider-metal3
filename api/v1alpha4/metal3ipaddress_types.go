@@ -30,11 +30,11 @@ const (
 // Metal3IPAddressSpec defines the desired state of Metal3IPAddress.
 type Metal3IPAddressSpec struct {
 
-	// Owner points to the object the Metal3IPAddress was created for.
-	Owner *corev1.ObjectReference `json:"owner,omitempty"`
+	// Claim points to the object the Metal3IPClaim was created for.
+	Claim corev1.ObjectReference `json:"claim"`
 
-	// IPPool is the Metal3IPPool this was generated from.
-	IPPool *corev1.ObjectReference `json:"ipPool,omitempty"`
+	// Pool is the Metal3IPPool this was generated from.
+	Pool corev1.ObjectReference `json:"pool"`
 
 	// +kubebuilder:validation:Maximum=128
 	// Prefix is the mask of the network as integer (max 128)
@@ -47,24 +47,16 @@ type Metal3IPAddressSpec struct {
 	Address IPAddress `json:"address"`
 }
 
-// Metal3IPAddressStatus defines the observed state of Metal3IPAddress.
-type Metal3IPAddressStatus struct {
-	// Ready is a flag set to True if the resource is ready for use
-	Ready bool `json:"ready,omitempty"`
-}
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:path=metal3ipaddresses,scope=Namespaced,categories=cluster-api,shortName=m3ipa;m3ipaddress;metal3ipaddress
 // +kubebuilder:storageversion
-// +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 // Metal3IPAddress is the Schema for the metal3ipaddresses API
 type Metal3IPAddress struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   Metal3IPAddressSpec   `json:"spec,omitempty"`
-	Status Metal3IPAddressStatus `json:"status,omitempty"`
+	Spec Metal3IPAddressSpec `json:"spec,omitempty"`
 }
 
 // +kubebuilder:object:root=true

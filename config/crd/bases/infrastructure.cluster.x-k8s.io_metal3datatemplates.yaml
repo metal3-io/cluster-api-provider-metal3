@@ -47,6 +47,11 @@ spec:
           spec:
             description: Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
             properties:
+              clusterName:
+                description: ClusterName is the name of the Cluster this object belongs
+                  to.
+                minLength: 1
+                type: string
               metaData:
                 description: MetaData contains the information needed to generate
                   the metadata secret
@@ -771,19 +776,15 @@ spec:
                         type: array
                     type: object
                 type: object
+            required:
+            - clusterName
             type: object
           status:
             description: Metal3DataTemplateSptatus defines the observed state of Metal3DataTemplate.
             properties:
-              dataNames:
-                additionalProperties:
-                  type: string
-                description: DataNames contains the map of Metal3Machine names and
-                  Metal3Data names
-                type: object
               indexes:
                 additionalProperties:
-                  type: string
+                  type: integer
                 description: Indexes contains the map of Metal3Machine and index used
                 type: object
               lastUpdated:

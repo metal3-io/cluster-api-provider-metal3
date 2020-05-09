@@ -53,10 +53,15 @@ type IPPool struct {
 // Metal3IPPoolSpec defines the desired state of Metal3IPPool.
 type Metal3IPPoolSpec struct {
 
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
+
 	//Pools contains the list of IP addresses pools
 	Pools []IPPool `json:"pools,omitempty"`
 
-	Allocations map[string]IPAddress `json:"allocations:omitempty"`
+	// PreAllocations contains the preallocated IP addresses
+	PreAllocations map[string]IPAddress `json:"preAllocations:omitempty"`
 
 	// +kubebuilder:validation:Maximum=128
 	// Prefix is the mask of the network as integer (max 128)
@@ -65,6 +70,7 @@ type Metal3IPPoolSpec struct {
 	// Gateway is the gateway ip address
 	Gateway *IPAddress `json:"gateway,omitempty"`
 
+	// +kubebuilder:validation:MinLength=1
 	// namePrefix is the prefix used to generate the Metal3IPAddress object names
 	NamePrefix string `json:"namePrefix"`
 }
@@ -75,11 +81,8 @@ type Metal3IPPoolStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	//Allocations contains the map of objects and Metal3IPAddress they use
-	Allocations map[string]string `json:"indexes,omitempty"`
-
-	//Addresses contains the map of IP addresses and the object using them
-	Addresses map[string]string `json:"dataNames,omitempty"`
+	//Allocations contains the map of objects and IP addresses they have
+	Allocations map[string]IPAddress `json:"indexes,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

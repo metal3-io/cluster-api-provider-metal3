@@ -49,6 +49,25 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3dataclaim
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.metal3dataclaim.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3dataclaims
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3datatemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -82,6 +101,25 @@ webhooks:
     - UPDATE
     resources:
     - metal3ipaddresses
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3ipclaim
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.metal3ipclaim.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3ipclaims
 - clientConfig:
     caBundle: Cg==
     service:
@@ -190,6 +228,25 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3dataclaim
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.metal3dataclaim.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3dataclaims
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
       path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3datatemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -223,6 +280,25 @@ webhooks:
     - UPDATE
     resources:
     - metal3ipaddresses
+- clientConfig:
+    caBundle: Cg==
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha4-metal3ipclaim
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.metal3ipclaim.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha4
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3ipclaims
 - clientConfig:
     caBundle: Cg==
     service:

@@ -413,6 +413,10 @@ type NetworkData struct {
 // Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
 type Metal3DataTemplateSpec struct {
 
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
+
 	//MetaData contains the information needed to generate the metadata secret
 	MetaData *MetaData `json:"metaData,omitempty"`
 
@@ -428,10 +432,7 @@ type Metal3DataTemplateStatus struct {
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	//Indexes contains the map of Metal3Machine and index used
-	Indexes map[string]string `json:"indexes,omitempty"`
-
-	//DataNames contains the map of Metal3Machine names and Metal3Data names
-	DataNames map[string]string `json:"dataNames,omitempty"`
+	Indexes map[string]int `json:"indexes,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
