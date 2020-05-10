@@ -22,15 +22,14 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,10 +37,8 @@ import (
 type IPPoolManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
-	RecreateStatusConditionally(context.Context) error
-	DeleteAddresses(context.Context) error
-	CreateAddresses(context.Context) error
-	DeleteReady() (bool, error)
+	SetClusterOwnerRef(*capi.Cluster) error
+	UpdateAddresses(context.Context) (int, error)
 }
 
 // IPPoolManager is responsible for performing machine reconciliation
@@ -51,14 +48,14 @@ type IPPoolManager struct {
 	Log    logr.Logger
 }
 
-// NewIPPoolManager returns a new helper for managing a dataTemplate object
+// NewIPPoolManager returns a new helper for managing a ipPool object
 func NewIPPoolManager(client client.Client,
-	ipPool *capm3.Metal3IPPool, dataTemplateLog logr.Logger) (*IPPoolManager, error) {
+	ipPool *capm3.Metal3IPPool, ipPoolLog logr.Logger) (*IPPoolManager, error) {
 
 	return &IPPoolManager{
 		client: client,
 		IPPool: ipPool,
-		Log:    dataTemplateLog,
+		Log:    ipPoolLog,
 	}, nil
 }
 
@@ -80,66 +77,77 @@ func (m *IPPoolManager) UnsetFinalizer() {
 	)
 }
 
-// RecreateStatusConditionally recreates the status if empty
-func (m *IPPoolManager) RecreateStatusConditionally(ctx context.Context) error {
-	// If the status is empty (lastUpdated not set), then either the object is new
-	// or has been moved. In both case, Recreating the status will set LastUpdated
-	// so we won't recreate afterwards.
-	if m.IPPool.Status.LastUpdated.IsZero() {
-		return m.RecreateStatus(ctx)
+func (m *IPPoolManager) SetClusterOwnerRef(cluster *capi.Cluster) error {
+	if cluster == nil {
+		return errors.New("Missing cluster")
+	}
+	// Verify that the owner reference is there, if not add it and update object,
+	// if error requeue.
+	_, err := findOwnerRefFromList(m.IPPool.OwnerReferences,
+		cluster.TypeMeta, cluster.ObjectMeta)
+	if err != nil {
+		if _, ok := err.(*NotFoundError); !ok {
+			return err
+		}
+		m.IPPool.OwnerReferences, err = setOwnerRefInList(
+			m.IPPool.OwnerReferences, false, cluster.TypeMeta,
+			cluster.ObjectMeta,
+		)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
 // RecreateStatus recreates the status if empty
-func (m *IPPoolManager) RecreateStatus(ctx context.Context) error {
+func (m *IPPoolManager) getIndexes(ctx context.Context) (map[capm3.IPAddress]string, error) {
 
-	m.Log.Info("Recreating the Metal3IPPool status")
+	m.Log.Info("Fetching Metal3IPAddress objects")
 
 	//start from empty maps
-	m.IPPool.Status.Addresses = make(map[string]string)
-	m.IPPool.Status.Allocations = make(map[string]string)
+	m.IPPool.Status.Allocations = make(map[string]capm3.IPAddress)
 
-	// Include pre-allocated leases
-	for ownerName, address := range m.IPPool.Spec.Allocations {
-		m.IPPool.Status.Addresses[string(address)] = ownerName
+	addresses := make(map[capm3.IPAddress]string)
+
+	for _, address := range m.IPPool.Spec.PreAllocations {
+		addresses[address] = ""
 	}
 
-	// get list of Metal3Data objects
-	ipObjects := capm3.Metal3IPAddressList{}
+	// get list of Metal3IPAddress objects
+	addressObjects := capm3.Metal3IPAddressList{}
 	// without this ListOption, all namespaces would be including in the listing
 	opts := &client.ListOptions{
 		Namespace: m.IPPool.Namespace,
 	}
 
-	err := m.client.List(ctx, &ipObjects, opts)
+	err := m.client.List(ctx, &addressObjects, opts)
 	if err != nil {
-		return err
+		return addresses, err
 	}
 
-	// Iterate over the Metal3Data objects to find all indexes and objects
-	for _, ipObject := range ipObjects.Items {
+	// Iterate over the Metal3IPAddress objects to find all addresses and objects
+	for _, addressObject := range addressObjects.Items {
 
 		// If IPPool does not point to this object, discard
-		if ipObject.Spec.IPPool == nil {
+		if addressObject.Spec.Pool.Name == "" {
 			continue
 		}
-		if ipObject.Spec.IPPool.Name != m.IPPool.Name {
+		if addressObject.Spec.Pool.Name != m.IPPool.Name {
 			continue
 		}
 
-		// Get the machine Name, if unset use empty string, to still record the
+		// Get the claim Name, if unset use empty string, to still record the
 		// index being used, to avoid conflicts
-		ownerName := ""
-		if ipObject.Spec.Owner != nil {
-			ownerName = ipObject.Spec.Owner.Name
+		claimName := ""
+		if addressObject.Spec.Claim.Name != "" {
+			claimName = addressObject.Spec.Claim.Name
 		}
-		m.IPPool.Status.Addresses[string(ipObject.Spec.Address)] = ownerName
-		m.IPPool.Status.Allocations[ownerName] = ipObject.Name
+		m.IPPool.Status.Allocations[claimName] = addressObject.Spec.Address
+		addresses[addressObject.Spec.Address] = claimName
 	}
-
 	m.updateStatusTimestamp()
-	return nil
+	return addresses, nil
 }
 
 func (m *IPPoolManager) updateStatusTimestamp() {
@@ -147,129 +155,86 @@ func (m *IPPoolManager) updateStatusTimestamp() {
 	m.IPPool.Status.LastUpdated = &now
 }
 
-// CreateAddresses creates the missing secrets
-func (m *IPPoolManager) CreateAddresses(ctx context.Context) error {
+// UpdateAddresses manages the claims and creates or deletes Metal3IPAddress accordingly.
+// It returns the number of current allocations
+func (m *IPPoolManager) UpdateAddresses(ctx context.Context) (int, error) {
 
-	requeueNeeded := false
-
-	// Get the cluster name
-	clusterName, ok := m.IPPool.Labels[capi.ClusterLabelName]
-	if !ok {
-		return errors.New("No cluster name found on Metal3IPPool object")
+	addresses, err := m.getIndexes(ctx)
+	if err != nil {
+		return 0, err
 	}
 
-	// Iterate over all ownerReferences
-	for _, curOwnerRef := range m.IPPool.ObjectMeta.OwnerReferences {
-		curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
-		if err != nil {
-			return err
-		}
+	// get list of Metal3IPClaim objects
+	addressClaimObjects := capm3.Metal3IPClaimList{}
+	// without this ListOption, all namespaces would be including in the listing
+	opts := &client.ListOptions{
+		Namespace: m.IPPool.Namespace,
+	}
 
-		// If the owner is not a Metal3Machine of infrastructure.cluster.x-k8s.io
-		// then discard
-		if curOwnerRef.Kind == "Cluster" ||
-			curOwnerRefGV.Group != capm3.GroupVersion.Group {
+	err = m.client.List(ctx, &addressClaimObjects, opts)
+	if err != nil {
+		return 0, err
+	}
+
+	// Iterate over the Metal3IPClaim objects to find all addresses and objects
+	for _, addressClaim := range addressClaimObjects.Items {
+		// If IPPool does not point to this object, discard
+		if addressClaim.Spec.Pool.Name != m.IPPool.Name {
 			continue
 		}
 
-		// If the owner already has an entry, discard
-		if entry, ok := m.IPPool.Status.Allocations[curOwnerRef.Name]; ok {
-			if entry != "" {
-				continue
-			}
+		if addressClaim.Status.Address != nil && addressClaim.DeletionTimestamp.IsZero() {
+			continue
 		}
-
-		if m.IPPool.Status.Addresses == nil {
-			m.IPPool.Status.Addresses = make(map[string]string)
-		}
-		if m.IPPool.Status.Allocations == nil {
-			m.IPPool.Status.Allocations = make(map[string]string)
-		}
-
-		// Get a new IP for this owner
-		allocatedAddress, prefix, gateway, err := m.allocateAddress(curOwnerRef)
+		addresses, err = m.updateAddress(ctx, &addressClaim, addresses)
 		if err != nil {
-			m.IPPool.Status.Allocations[curOwnerRef.Name] = ""
-			return err
-		}
-
-		// Set the index and Metal3Data names
-		formatedIP := strings.Replace(strings.Replace(allocatedAddress, ":", "-", -1), ".", "-", -1)
-		addressName := m.IPPool.Spec.NamePrefix + "-" + formatedIP
-		m.IPPool.Status.Addresses[allocatedAddress] = curOwnerRef.Name
-		m.IPPool.Status.Allocations[curOwnerRef.Name] = addressName
-
-		m.Log.Info("IP Address allocated", "Owner", curOwnerRef.Name, "address", allocatedAddress)
-
-		// Create the Metal3IPAddress object, with an Owner ref to the Owner
-		// (curOwnerRef) and to the Metal3IPPool
-		ipObject := &capm3.Metal3IPAddress{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Metal3IPAddress",
-				APIVersion: capm3.GroupVersion.String(),
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      addressName,
-				Namespace: m.IPPool.Namespace,
-				Labels: map[string]string{
-					capi.ClusterLabelName: clusterName,
-				},
-				OwnerReferences: []metav1.OwnerReference{
-					curOwnerRef, metav1.OwnerReference{
-						Controller: pointer.BoolPtr(true),
-						APIVersion: m.IPPool.APIVersion,
-						Kind:       m.IPPool.Kind,
-						Name:       m.IPPool.Name,
-						UID:        m.IPPool.UID,
-					},
-				},
-			},
-			Spec: capm3.Metal3IPAddressSpec{
-				IPPool: &corev1.ObjectReference{
-					Name:      m.IPPool.Name,
-					Namespace: m.IPPool.Namespace,
-				},
-				Owner: &corev1.ObjectReference{
-					Name:      curOwnerRef.Name,
-					Namespace: m.IPPool.Namespace,
-				},
-				Address: capm3.IPAddress(allocatedAddress),
-				Prefix:  prefix,
-				Gateway: gateway,
-			},
-		}
-
-		// Create the Metal3IPAddress object. If we get a conflict (that will set
-		// HasRequeueAfterError), then recreate the status because we are missing
-		// an ip, then requeue to retrigger the reconciliation with the new state
-		if err := createObject(m.client, ctx, ipObject); err != nil {
-			if _, ok := errors.Cause(err).(HasRequeueAfterError); ok {
-				if err := m.RecreateStatus(ctx); err != nil {
-					return err
-				}
-				requeueNeeded = true
-				continue
-			} else {
-				return err
-			}
+			return 0, err
 		}
 	}
 	m.updateStatusTimestamp()
-	if requeueNeeded {
-		return &RequeueAfterError{}
-	}
-	return nil
+	return len(addresses), nil
 }
 
-func (m *IPPoolManager) allocateAddress(curOwnerRef metav1.OwnerReference) (string, int, *capm3.IPAddress, error) {
-	var err error
-	ipAllocated := false
-	allocatedAddress := ""
-	tmpAllocatedAddress, ipAllocated := m.IPPool.Spec.Allocations[curOwnerRef.Name]
-	// If the IP is pre-allocated, the default prefix and gateway are used
-	if ipAllocated {
-		allocatedAddress = string(tmpAllocatedAddress)
+func (m *IPPoolManager) updateAddress(ctx context.Context,
+	addressClaim *capm3.Metal3IPClaim, addresses map[capm3.IPAddress]string,
+) (map[capm3.IPAddress]string, error) {
+	helper, err := patch.NewHelper(addressClaim, m.client)
+	if err != nil {
+		return addresses, errors.Wrap(err, "failed to init patch helper")
 	}
+	// Always patch addressClaim exiting this function so we can persist any changes.
+	defer func() {
+		fmt.Printf("\nPatching %v", addressClaim.Name)
+		err := helper.Patch(ctx, addressClaim)
+		if err != nil {
+			m.Log.Info("failed to Patch capm3DataClaim")
+		}
+	}()
+
+	addressClaim.Status.ErrorMessage = nil
+
+	if addressClaim.DeletionTimestamp.IsZero() {
+		addresses, err = m.createAddress(ctx, addressClaim, addresses)
+		if err != nil {
+			return addresses, err
+		}
+	} else {
+		addresses, err = m.deleteAddress(ctx, addressClaim, addresses)
+		if err != nil {
+			return addresses, err
+		}
+	}
+	return addresses, nil
+}
+
+func (m *IPPoolManager) allocateAddress(addressClaim *capm3.Metal3IPClaim,
+	addresses map[capm3.IPAddress]string,
+) (capm3.IPAddress, int, *capm3.IPAddress, error) {
+	var err error
+
+	// Get pre-allocated addresses
+	allocatedAddress, ipAllocated := m.IPPool.Spec.PreAllocations[addressClaim.Name]
+	// If the IP is pre-allocated, the default prefix and gateway are used
 	prefix := m.IPPool.Spec.Prefix
 	gateway := m.IPPool.Spec.Gateway
 
@@ -284,105 +249,168 @@ func (m *IPPoolManager) allocateAddress(curOwnerRef metav1.OwnerReference) (stri
 			gateway = pool.Gateway
 		}
 		index := 0
-		err = nil
-		for err == nil && !ipAllocated {
+		for !ipAllocated {
 			allocatedAddress, err = getIPAddress(pool, index)
+			fmt.Println(allocatedAddress)
 			if err != nil {
 				break
 			}
 			index++
-			if _, ok := m.IPPool.Status.Addresses[allocatedAddress]; !ok && allocatedAddress != "" {
+			if _, ok := addresses[allocatedAddress]; !ok && allocatedAddress != "" {
 				ipAllocated = true
 			}
 		}
 	}
 	if !ipAllocated {
+		addressClaim.Status.ErrorMessage = pointer.StringPtr("Exhausted IP Pools")
 		return "", 0, nil, errors.New("Exhausted IP Pools")
 	}
-
-	fmt.Println(allocatedAddress, prefix, gateway, err)
 	return allocatedAddress, prefix, gateway, nil
 }
 
-// DeleteAddresses deletes old secrets
-func (m *IPPoolManager) DeleteAddresses(ctx context.Context) error {
+func (m *IPPoolManager) createAddress(ctx context.Context,
+	addressClaim *capm3.Metal3IPClaim, addresses map[capm3.IPAddress]string,
+) (map[capm3.IPAddress]string, error) {
+	if !Contains(addressClaim.Finalizers, capm3.IPClaimFinalizer) {
+		addressClaim.Finalizers = append(addressClaim.Finalizers,
+			capm3.IPClaimFinalizer,
+		)
+	}
 
-	// Iterate over the Metal3Data objects
-	for ownerName, addressName := range m.IPPool.Status.Allocations {
-		present := false
-		// Iterate over the owner Refs
-		for _, curOwnerRef := range m.IPPool.ObjectMeta.OwnerReferences {
-			curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
-			if err != nil {
-				return err
-			}
-
-			// If the owner ref is not a Metal3Machine, discard
-			if curOwnerRef.Kind == "Cluster" ||
-				curOwnerRefGV.Group != capm3.GroupVersion.Group {
-				continue
-			}
-
-			// If the names match, the Metal3Data should be preserved
-			if ownerName == curOwnerRef.Name {
-				present = true
-				break
-			}
-		}
-
-		// Do not delete Metal3Data in use.
-		if present {
-			continue
-		}
-
-		m.Log.Info("Deleting Metal3IPAddress", "Owner", ownerName)
-
-		// Try to get the Metal3Data. if it succeeds, delete it
-		tmpM3IP := &capm3.Metal3IPAddress{}
-		key := client.ObjectKey{
-			Name:      addressName,
+	if allocatedAddress, ok := m.IPPool.Status.Allocations[addressClaim.Name]; ok {
+		formatedAddress := strings.Replace(
+			strings.Replace(string(allocatedAddress), ":", "-", -1), ".", "-", -1,
+		)
+		addressClaim.Status.Address = &corev1.ObjectReference{
+			Name:      m.IPPool.Spec.NamePrefix + "-" + formatedAddress,
 			Namespace: m.IPPool.Namespace,
 		}
-		err := m.client.Get(ctx, key, tmpM3IP)
-		if err != nil && !apierrors.IsNotFound(err) {
-			return err
-		} else if err == nil {
-			// Delete the secret with metadata
-			err = m.client.Delete(ctx, tmpM3IP)
-			if err != nil && !apierrors.IsNotFound(err) {
-				return err
-			}
-		}
-
-		deletionAddress := ""
-		for address, name := range m.IPPool.Status.Addresses {
-			if name == ownerName {
-				deletionAddress = address
-			}
-		}
-		delete(m.IPPool.Status.Addresses, deletionAddress)
-		delete(m.IPPool.Status.Allocations, ownerName)
-		m.Log.Info("IPAddress deleted", "Owner", ownerName)
+		return addresses, nil
 	}
-	m.updateStatusTimestamp()
-	return nil
+
+	// Get a new index for this machine
+	m.Log.Info("Getting address", "Claim", addressClaim.Name)
+	// Get a new IP for this owner
+	allocatedAddress, prefix, gateway, err := m.allocateAddress(addressClaim, addresses)
+	if err != nil {
+		return addresses, err
+	}
+	formatedAddress := strings.Replace(
+		strings.Replace(string(allocatedAddress), ":", "-", -1), ".", "-", -1,
+	)
+
+	// Set the index and Metal3IPAddress names
+	addressName := m.IPPool.Spec.NamePrefix + "-" + formatedAddress
+
+	m.Log.Info("Address allocated", "Claim", addressClaim.Name, "address", allocatedAddress)
+
+	// Create the Metal3IPAddress object, with an Owner ref to the Metal3Machine
+	// (curOwnerRef) and to the Metal3IPPool
+	addressObject := &capm3.Metal3IPAddress{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Metal3IPAddress",
+			APIVersion: capm3.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      addressName,
+			Namespace: m.IPPool.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					Controller: pointer.BoolPtr(true),
+					APIVersion: m.IPPool.APIVersion,
+					Kind:       m.IPPool.Kind,
+					Name:       m.IPPool.Name,
+					UID:        m.IPPool.UID,
+				},
+				metav1.OwnerReference{
+					APIVersion: addressClaim.APIVersion,
+					Kind:       addressClaim.Kind,
+					Name:       addressClaim.Name,
+					UID:        addressClaim.UID,
+				},
+			},
+		},
+		Spec: capm3.Metal3IPAddressSpec{
+			Address: allocatedAddress,
+			Pool: corev1.ObjectReference{
+				Name:      m.IPPool.Name,
+				Namespace: m.IPPool.Namespace,
+			},
+			Claim: corev1.ObjectReference{
+				Name:      addressClaim.Name,
+				Namespace: m.IPPool.Namespace,
+			},
+			Prefix:  prefix,
+			Gateway: gateway,
+		},
+	}
+
+	// Create the Metal3IPAddress object. If we get a conflict (that will set
+	// HasRequeueAfterError), then requeue to retrigger the reconciliation with
+	// the new state
+	if err := createObject(m.client, ctx, addressObject); err != nil {
+		if _, ok := err.(*RequeueAfterError); !ok {
+			addressClaim.Status.ErrorMessage = pointer.StringPtr("Failed to create associated Metal3IPAddress object")
+		}
+		return addresses, err
+	}
+
+	m.IPPool.Status.Allocations[addressClaim.Name] = allocatedAddress
+	addresses[allocatedAddress] = addressClaim.Name
+
+	addressClaim.Status.Address = &corev1.ObjectReference{
+		Name:      addressName,
+		Namespace: m.IPPool.Namespace,
+	}
+
+	return addresses, nil
 }
 
-// DeleteRead returns true if the object is unreferenced (does not have
-// Metal3Machine owner references)
-func (m *IPPoolManager) DeleteReady() (bool, error) {
-	for _, curOwnerRef := range m.IPPool.ObjectMeta.OwnerReferences {
-		curOwnerRefGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
-		if err != nil {
-			return false, err
+// DeleteDatas deletes old secrets
+func (m *IPPoolManager) deleteAddress(ctx context.Context,
+	addressClaim *capm3.Metal3IPClaim, addresses map[capm3.IPAddress]string,
+) (map[capm3.IPAddress]string, error) {
+
+	m.Log.Info("Deleting Claim", "Metal3IPClaim", addressClaim.Name)
+
+	allocatedAddress, ok := m.IPPool.Status.Allocations[addressClaim.Name]
+	if ok {
+		// Try to get the Metal3IPAddress. if it succeeds, delete it
+		tmpM3Data := &capm3.Metal3IPAddress{}
+		formatedAddress := strings.Replace(
+			strings.Replace(string(allocatedAddress), ":", "-", -1), ".", "-", -1,
+		)
+		key := client.ObjectKey{
+			Name:      m.IPPool.Spec.NamePrefix + "-" + formatedAddress,
+			Namespace: m.IPPool.Namespace,
+		}
+		err := m.client.Get(ctx, key, tmpM3Data)
+		if err != nil && !apierrors.IsNotFound(err) {
+			addressClaim.Status.ErrorMessage = pointer.StringPtr("Failed to get associated Metal3IPAddress object")
+			return addresses, err
+		} else if err == nil {
+			// Delete the secret with metadata
+			err = m.client.Delete(ctx, tmpM3Data)
+			if err != nil && !apierrors.IsNotFound(err) {
+				addressClaim.Status.ErrorMessage = pointer.StringPtr("Failed to delete associated Metal3IPAddress object")
+				return addresses, err
+			}
 		}
 
-		// If we still have a Metal3Machine owning this, do not delete
-		if curOwnerRef.Kind != "Cluster" &&
-			curOwnerRefGV.Group == capm3.GroupVersion.Group {
-			return false, nil
-		}
 	}
-	m.Log.Info("Metal3IPPool ready for deletion")
-	return true, nil
+	addressClaim.Status.Address = nil
+	addressClaim.Finalizers = Filter(addressClaim.Finalizers,
+		capm3.IPClaimFinalizer,
+	)
+
+	m.Log.Info("Deleted Claim", "Metal3IPClaim", addressClaim.Name)
+
+	if ok {
+		if _, ok := m.IPPool.Spec.PreAllocations[addressClaim.Name]; !ok {
+			delete(addresses, allocatedAddress)
+		}
+		delete(m.IPPool.Status.Allocations, addressClaim.Name)
+	}
+	m.updateStatusTimestamp()
+	return addresses, nil
 }

@@ -465,26 +465,14 @@ var _ = Describe("Metal3 manager utils", func() {
 			},
 			ExpectError: true,
 		}),
-		Entry("Object without label", testCaseFetchM3DataTemplate{
+		Entry("Object with wrong cluster", testCaseFetchM3DataTemplate{
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "myns",
 				},
-			},
-			TemplateRef: &corev1.ObjectReference{
-				Name:      "abc",
-				Namespace: "myns",
-			},
-		}),
-		Entry("Object with wrong label", testCaseFetchM3DataTemplate{
-			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: "abc",
-					},
+				Spec: capm3.Metal3DataTemplateSpec{
+					ClusterName: "abc",
 				},
 			},
 			ClusterName: "def",
@@ -494,14 +482,14 @@ var _ = Describe("Metal3 manager utils", func() {
 			},
 			ExpectError: true,
 		}),
-		Entry("Object with correct label", testCaseFetchM3DataTemplate{
+		Entry("Object with correct cluster", testCaseFetchM3DataTemplate{
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: "abc",
-					},
+				},
+				Spec: capm3.Metal3DataTemplateSpec{
+					ClusterName: "abc",
 				},
 			},
 			ClusterName: "abc",

@@ -85,12 +85,10 @@ func (m *DataManager) UnsetFinalizer() {
 }
 
 func (m *DataManager) clearError(ctx context.Context) {
-	m.Data.Status.Error = false
 	m.Data.Status.ErrorMessage = nil
 }
 
 func (m *DataManager) setError(ctx context.Context, msg string) {
-	m.Data.Status.Error = true
 	m.Data.Status.ErrorMessage = &msg
 }
 
@@ -112,14 +110,14 @@ func (m *DataManager) Reconcile(ctx context.Context) error {
 func (m *DataManager) createSecrets(ctx context.Context) error {
 	var metaDataErr, networkDataErr error
 
-	if m.Data.Spec.DataTemplate == nil {
+	if m.Data.Spec.Template.Name == "" {
 		return nil
 	}
-	if m.Data.Spec.DataTemplate.Namespace == "" {
-		m.Data.Spec.DataTemplate.Namespace = m.Data.Namespace
+	if m.Data.Spec.Template.Namespace == "" {
+		m.Data.Spec.Template.Namespace = m.Data.Namespace
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
-	m3dt, err := fetchM3DataTemplate(ctx, m.Data.Spec.DataTemplate, m.client,
+	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
 		m.Log, m.Data.Labels[capi.ClusterLabelName],
 	)
 	if err != nil {
@@ -273,14 +271,14 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 
 // CreateSecrets creates the secret if they do not exist.
 func (m *DataManager) ReleaseLeases(ctx context.Context) error {
-	if m.Data.Spec.DataTemplate == nil {
+	if m.Data.Spec.Template.Name == "" {
 		return nil
 	}
-	if m.Data.Spec.DataTemplate.Namespace == "" {
-		m.Data.Spec.DataTemplate.Namespace = m.Data.Namespace
+	if m.Data.Spec.Template.Namespace == "" {
+		m.Data.Spec.Template.Namespace = m.Data.Namespace
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
-	m3dt, err := fetchM3DataTemplate(ctx, m.Data.Spec.DataTemplate, m.client,
+	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
 		m.Log, m.Data.Labels[capi.ClusterLabelName],
 	)
 	if err != nil {
@@ -540,61 +538,61 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		}
 	}
 	addresses[poolName] = addressFromPool{}
-	// Get the IPPool object
-	// Fetch the Metal3IPPool instance.
-	capm3IPPool := &capm3.Metal3IPPool{}
-	poolNamespacedName := types.NamespacedName{
-		Name:      poolName,
-		Namespace: m.Data.Namespace,
-	}
 
-	if err := m.client.Get(ctx, poolNamespacedName, capm3IPPool); err != nil {
-		if apierrors.IsNotFound(err) {
-			return addresses, true, nil
-		}
-		return addresses, false, err
-	}
-
-	// Verify that the owner reference is there, if not add it and update object,
-	// if error requeue.
-	_, err := findOwnerRefFromList(capm3IPPool.OwnerReferences,
-		m.Data.TypeMeta, m.Data.ObjectMeta)
+	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolName,
+		m.Data.Namespace,
+	)
 	if err != nil {
-		if _, ok := err.(*NotFoundError); !ok {
+		if _, ok := err.(HasRequeueAfterError); !ok {
 			return addresses, false, err
 		}
-		capm3IPPool.OwnerReferences, err = setOwnerRefInList(
-			capm3IPPool.OwnerReferences, false, m.Data.TypeMeta, m.Data.ObjectMeta,
-		)
-		if err != nil {
-			return addresses, false, err
+		// Create the claim
+		ipClaim = &capm3.Metal3IPClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      m.Data.Name + "-" + poolName,
+				Namespace: m.Data.Namespace,
+				OwnerReferences: []metav1.OwnerReference{
+					metav1.OwnerReference{
+						APIVersion: m.Data.APIVersion,
+						Kind:       m.Data.Kind,
+						Name:       m.Data.Name,
+						UID:        m.Data.UID,
+						Controller: pointer.BoolPtr(true),
+					},
+				},
+			},
+			Spec: capm3.Metal3IPClaimSpec{
+				Pool: corev1.ObjectReference{
+					Name:      poolName,
+					Namespace: m.Data.Namespace,
+				},
+			},
 		}
-		err = updateObject(m.client, ctx, capm3IPPool)
+
+		err = createObject(m.client, ctx, ipClaim)
 		if err != nil {
-			if _, ok := err.(*RequeueAfterError); !ok {
+			if _, ok := err.(HasRequeueAfterError); !ok {
 				return addresses, false, err
 			}
-			return addresses, true, nil
 		}
+	}
+
+	if ipClaim.Status.ErrorMessage != nil {
+		m.Data.Status.ErrorMessage = pointer.StringPtr(fmt.Sprintf(
+			"IP Allocation for %v failed : %v", poolName, ipClaim.Status.ErrorMessage,
+		))
+		return addresses, false, errors.New(*m.Data.Status.ErrorMessage)
 	}
 
 	// verify if allocation is there, if not requeue
-	addressName, ok := capm3IPPool.Status.Allocations[m.Data.Name]
-	if !ok {
+	if ipClaim.Status.Address == nil {
 		return addresses, true, nil
-	}
-	if addressName == "" {
-		errorStr := fmt.Sprintf(
-			"%s Unable to allocate IP address, pool exhausted ?", poolName,
-		)
-		m.setError(ctx, errorStr)
-		return addresses, false, errors.New(errorStr)
 	}
 
 	// get Metal3IPAddress object
 	capm3IPAddress := &capm3.Metal3IPAddress{}
 	addressNamespacedName := types.NamespacedName{
-		Name:      addressName,
+		Name:      ipClaim.Status.Address.Name,
 		Namespace: m.Data.Namespace,
 	}
 
@@ -624,51 +622,27 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName strin
 	if addresses == nil {
 		addresses = make(map[string]bool)
 	}
-	if succeeded, ok := addresses[poolName]; ok {
-		if succeeded {
-			return addresses, false, nil
-		}
+	if _, ok := addresses[poolName]; ok {
+		return addresses, false, nil
 	}
 	addresses[poolName] = false
-	// Get the IPPool object
-	// Fetch the Metal3IPPool instance.
-	capm3IPPool := &capm3.Metal3IPPool{}
-	poolNamespacedName := types.NamespacedName{
-		Name:      poolName,
-		Namespace: m.Data.Namespace,
+
+	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolName,
+		m.Data.Namespace,
+	)
+	if err != nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			return addresses, false, err
+		}
+		addresses[poolName] = true
+		return addresses, false, nil
 	}
 
-	if err := m.client.Get(ctx, poolNamespacedName, capm3IPPool); err != nil {
-		if apierrors.IsNotFound(err) {
-			addresses[poolName] = true
-			return addresses, false, nil
-		}
+	err = deleteObject(m.client, ctx, ipClaim)
+	if err != nil {
 		return addresses, false, err
 	}
 
-	// Verify that the owner reference is there, if not add it and update object,
-	// if error requeue.
-	_, err := findOwnerRefFromList(capm3IPPool.OwnerReferences,
-		m.Data.TypeMeta, m.Data.ObjectMeta)
-	if err != nil {
-		if _, ok := err.(*NotFoundError); !ok {
-			return addresses, false, err
-		}
-	} else {
-		capm3IPPool.OwnerReferences, err = deleteOwnerRefFromList(
-			capm3IPPool.OwnerReferences, m.Data.TypeMeta, m.Data.ObjectMeta,
-		)
-		if err != nil {
-			return addresses, false, err
-		}
-		err = updateObject(m.client, ctx, capm3IPPool)
-		if err != nil {
-			if _, ok := err.(*RequeueAfterError); !ok {
-				return addresses, false, err
-			}
-			return addresses, true, nil
-		}
-	}
 	addresses[poolName] = true
 	return addresses, false, nil
 }
@@ -1077,7 +1051,7 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 
 // getIPAddress renders the IP address, taking the index, offset and step into
 // account, it is IP version agnostic
-func getIPAddress(entry capm3.IPPool, index int) (string, error) {
+func getIPAddress(entry capm3.IPPool, index int) (capm3.IPAddress, error) {
 
 	if entry.Start == nil && entry.Subnet == nil {
 		return "", errors.New("Either Start or Subnet is required for ipAddress")
@@ -1126,7 +1100,7 @@ func getIPAddress(entry capm3.IPPool, index int) (string, error) {
 			return "", errors.New("IP address out of bonds")
 		}
 	}
-	return ip.String(), nil
+	return capm3.IPAddress(ip.String()), nil
 }
 
 // addOffsetToIP computes the value of the IP address with the offset. It is
@@ -1190,14 +1164,52 @@ func getBMHMacByName(name string, bmh *bmo.BareMetalHost) (string, error) {
 }
 
 func (m *DataManager) getM3Machine(ctx context.Context, m3dt *capm3.Metal3DataTemplate) (*capm3.Metal3Machine, error) {
-	if m.Data.Spec.Metal3Machine == nil {
-		return nil, nil
+	if m.Data.Spec.Claim.Name == "" {
+		return nil, errors.New("Claim not set")
 	}
-	if m.Data.Spec.Metal3Machine.Name == "" {
-		return nil, errors.New("Metal3Machine name not set")
+	if m.Data.Spec.Claim.Name == "" {
+		return nil, errors.New("Claim name not set")
+	}
+
+	capm3DataClaim := &capm3.Metal3DataClaim{}
+	claimNamespacedName := types.NamespacedName{
+		Name:      m.Data.Spec.Claim.Name,
+		Namespace: m.Data.Namespace,
+	}
+
+	if err := m.client.Get(ctx, claimNamespacedName, capm3DataClaim); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+		}
+		return nil, err
+	}
+
+	if capm3DataClaim.Spec.Metal3Machine.Name == "" {
+		return nil, errors.New("Metal3Machine name not set in claim")
 	}
 
 	return getM3Machine(ctx, m.client, m.Log,
-		m.Data.Spec.Metal3Machine.Name, m.Data.Namespace, m3dt, true,
+		capm3DataClaim.Spec.Metal3Machine.Name, m.Data.Namespace, m3dt, true,
 	)
+}
+
+func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
+	name, namespace string,
+) (*capm3.Metal3IPClaim, error) {
+	// Fetch the Metal3Data
+	metal3IPClaim := &capm3.Metal3IPClaim{}
+	metal3ClaimName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	if err := cl.Get(ctx, metal3ClaimName, metal3IPClaim); err != nil {
+		if apierrors.IsNotFound(err) {
+			mLog.Info("Address claim not found, requeuing")
+			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+		} else {
+			err := errors.Wrap(err, "Failed to get address claim")
+			return nil, err
+		}
+	}
+	return metal3IPClaim, nil
 }

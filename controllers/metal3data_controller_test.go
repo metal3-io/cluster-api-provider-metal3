@@ -33,7 +33,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -353,6 +355,61 @@ var _ = Describe("Metal3Data manager", func() {
 			ExpectError:          false,
 			ExpectRequeue:        true,
 			ReleaseLeasesRequeue: true,
+		}),
+	)
+
+	type testCaseMetal3IPClaimToMetal3Data struct {
+		ownerRefs        []metav1.OwnerReference
+		expectedRequests []ctrl.Request
+	}
+
+	DescribeTable("test Metal3IPClaimToMetal3Data",
+		func(tc testCaseMetal3IPClaimToMetal3Data) {
+			ipClaim := &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:       "myns",
+					OwnerReferences: tc.ownerRefs,
+				},
+			}
+			c := fake.NewFakeClientWithScheme(setupScheme(), ipClaim)
+			r := Metal3DataReconciler{
+				Client: c,
+			}
+			obj := handler.MapObject{
+				Object: ipClaim,
+			}
+			reqs := r.Metal3IPClaimToMetal3Data(obj)
+			Expect(reqs).To(Equal(tc.expectedRequests))
+		},
+		Entry("No OwnerRefs", testCaseMetal3IPClaimToMetal3Data{
+			expectedRequests: []ctrl.Request{},
+		}),
+		Entry("OwnerRefs", testCaseMetal3IPClaimToMetal3Data{
+			ownerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3Data",
+					Name:       "abc",
+				},
+				metav1.OwnerReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3DataClaim",
+					Name:       "bcd",
+				},
+				metav1.OwnerReference{
+					APIVersion: "foo.bar/v1",
+					Kind:       "Metal3Data",
+					Name:       "cde",
+				},
+			},
+			expectedRequests: []ctrl.Request{
+				ctrl.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      "abc",
+						Namespace: "myns",
+					},
+				},
+			},
 		}),
 	)
 

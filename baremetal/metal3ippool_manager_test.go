@@ -18,12 +18,13 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +37,7 @@ import (
 
 var _ = Describe("Metal3IPPool manager", func() {
 	DescribeTable("Test Finalizers",
-		func(ipPool *capm3.Metal3IPPool) {
+		func(ipPool *infrav1.Metal3IPPool) {
 			ipPoolMgr, err := NewIPPoolManager(nil, ipPool,
 				klogr.New(),
 			)
@@ -45,32 +46,109 @@ var _ = Describe("Metal3IPPool manager", func() {
 			ipPoolMgr.SetFinalizer()
 
 			Expect(ipPool.ObjectMeta.Finalizers).To(ContainElement(
-				capm3.IPPoolFinalizer,
+				infrav1.IPPoolFinalizer,
 			))
 
 			ipPoolMgr.UnsetFinalizer()
 
 			Expect(ipPool.ObjectMeta.Finalizers).NotTo(ContainElement(
-				capm3.IPPoolFinalizer,
+				infrav1.IPPoolFinalizer,
 			))
 		},
-		Entry("No finalizers", &capm3.Metal3IPPool{}),
-		Entry("Additional Finalizers", &capm3.Metal3IPPool{
+		Entry("No finalizers", &infrav1.Metal3IPPool{}),
+		Entry("Additional Finalizers", &infrav1.Metal3IPPool{
 			ObjectMeta: metav1.ObjectMeta{
 				Finalizers: []string{"foo"},
 			},
 		}),
 	)
 
-	type testRecreateIPPoolStatus struct {
-		ipPool              *capm3.Metal3IPPool
-		addresses           []*capm3.Metal3IPAddress
-		expectedAddresses   map[string]string
-		expectedAllocations map[string]string
+	type testCaseSetClusterOwnerRef struct {
+		cluster     *capi.Cluster
+		ipPool      *infrav1.Metal3IPPool
+		expectError bool
 	}
 
-	DescribeTable("Test RecreateStatus",
-		func(tc testRecreateIPPoolStatus) {
+	DescribeTable("Test SetClusterOwnerRef",
+		func(tc testCaseSetClusterOwnerRef) {
+			ipPoolMgr, err := NewIPPoolManager(nil, tc.ipPool,
+				klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			err = ipPoolMgr.SetClusterOwnerRef(tc.cluster)
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				_, err := findOwnerRefFromList(tc.ipPool.OwnerReferences,
+					tc.cluster.TypeMeta, tc.cluster.ObjectMeta)
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("Cluster missing", testCaseSetClusterOwnerRef{
+			expectError: true,
+		}),
+		Entry("no previous ownerref", testCaseSetClusterOwnerRef{
+			ipPool: &infrav1.Metal3IPPool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+			},
+			cluster: &capi.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc-cluster",
+				},
+			},
+		}),
+		Entry("previous ownerref", testCaseSetClusterOwnerRef{
+			ipPool: &infrav1.Metal3IPPool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+					OwnerReferences: []metav1.OwnerReference{
+						metav1.OwnerReference{
+							Name: "def",
+						},
+					},
+				},
+			},
+			cluster: &capi.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc-cluster",
+				},
+			},
+		}),
+		Entry("ownerref present", testCaseSetClusterOwnerRef{
+			ipPool: &infrav1.Metal3IPPool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+					OwnerReferences: []metav1.OwnerReference{
+						metav1.OwnerReference{
+							Name: "def",
+						},
+						metav1.OwnerReference{
+							Name: "abc-cluster",
+						},
+					},
+				},
+			},
+			cluster: &capi.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc-cluster",
+				},
+			},
+		}),
+	)
+
+	type testGetIndexes struct {
+		ipPool              *infrav1.Metal3IPPool
+		addresses           []*infrav1.Metal3IPAddress
+		expectError         bool
+		expectedAddresses   map[infrav1.IPAddress]string
+		expectedAllocations map[string]infrav1.IPAddress
+	}
+
+	DescribeTable("Test getIndexes",
+		func(tc testGetIndexes) {
 			objects := []runtime.Object{}
 			for _, address := range tc.addresses {
 				objects = append(objects, address)
@@ -81,140 +159,309 @@ var _ = Describe("Metal3IPPool manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ipPoolMgr.RecreateStatusConditionally(context.TODO())
-			Expect(err).NotTo(HaveOccurred())
-			Expect(tc.ipPool.Status.Addresses).To(Equal(tc.expectedAddresses))
+			addressMap, err := ipPoolMgr.getIndexes(context.TODO())
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(addressMap).To(Equal(tc.expectedAddresses))
 			Expect(tc.ipPool.Status.Allocations).To(Equal(tc.expectedAllocations))
 			Expect(tc.ipPool.Status.LastUpdated.IsZero()).To(BeFalse())
 		},
-		Entry("No data", testRecreateIPPoolStatus{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: testObjectMeta,
-			},
-			expectedAddresses:   map[string]string{},
-			expectedAllocations: map[string]string{},
+		Entry("No addresses", testGetIndexes{
+			ipPool:              &infrav1.Metal3IPPool{},
+			expectedAddresses:   map[infrav1.IPAddress]string{},
+			expectedAllocations: map[string]infrav1.IPAddress{},
 		}),
-		Entry("data present", testRecreateIPPoolStatus{
-			ipPool: &capm3.Metal3IPPool{
+		Entry("addresses", testGetIndexes{
+			ipPool: &infrav1.Metal3IPPool{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3IPPoolSpec{
-					Allocations: map[string]capm3.IPAddress{
-						"bcd": capm3.IPAddress("bcde"),
+				Spec: infrav1.Metal3IPPoolSpec{
+					PreAllocations: map[string]infrav1.IPAddress{
+						"bcd": infrav1.IPAddress("bcde"),
 					},
 				},
 			},
-			addresses: []*capm3.Metal3IPAddress{
-				&capm3.Metal3IPAddress{
+			addresses: []*infrav1.Metal3IPAddress{
+				&infrav1.Metal3IPAddress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-0",
 						Namespace: "myns",
 					},
-					Spec: capm3.Metal3IPAddressSpec{
+					Spec: infrav1.Metal3IPAddressSpec{
 						Address: "abcd1",
-						IPPool:  testObjectReference,
-						Owner:   testObjectReference,
+						Pool:    *testObjectReference,
+						Claim:   *testObjectReference,
 					},
 				},
-				&capm3.Metal3IPAddress{
+				&infrav1.Metal3IPAddress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "bbc-1",
 						Namespace: "myns",
 					},
-					Spec: capm3.Metal3IPAddressSpec{
+					Spec: infrav1.Metal3IPAddressSpec{
 						Address: "abcd2",
-						IPPool: &corev1.ObjectReference{
+						Pool: corev1.ObjectReference{
 							Name:      "bbc",
 							Namespace: "myns",
 						},
-						Owner: &corev1.ObjectReference{
+						Claim: corev1.ObjectReference{
 							Name:      "bbc",
 							Namespace: "myns",
 						},
 					},
 				},
-				&capm3.Metal3IPAddress{
+				&infrav1.Metal3IPAddress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-2",
 						Namespace: "myns",
 					},
-					Spec: capm3.Metal3IPAddressSpec{
+					Spec: infrav1.Metal3IPAddressSpec{
 						Address: "abcd3",
-						IPPool:  nil,
-						Owner:   testObjectReference,
+						Pool:    corev1.ObjectReference{},
+						Claim:   *testObjectReference,
 					},
 				},
-				&capm3.Metal3IPAddress{
+				&infrav1.Metal3IPAddress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-3",
 						Namespace: "myns",
 					},
-					Spec: capm3.Metal3IPAddressSpec{
+					Spec: infrav1.Metal3IPAddressSpec{
 						Address: "abcd4",
-						IPPool: &corev1.ObjectReference{
+						Pool: corev1.ObjectReference{
 							Namespace: "myns",
 						},
-						Owner: nil,
+						Claim: corev1.ObjectReference{},
 					},
 				},
 			},
-			expectedAddresses: map[string]string{
-				"abcd1": "abc",
-				"bcde":  "bcd",
+			expectedAddresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("abcd1"): "abc",
+				infrav1.IPAddress("bcde"):  "",
 			},
-			expectedAllocations: map[string]string{
-				"abc": "abc-0",
+			expectedAllocations: map[string]infrav1.IPAddress{
+				"abc": infrav1.IPAddress("abcd1"),
 			},
-		}),
-		Entry("No recreation of the status", testRecreateIPPoolStatus{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: testObjectMeta,
-				Status: capm3.Metal3IPPoolStatus{
-					LastUpdated: &timeNow,
-					Addresses:   map[string]string{},
-					Allocations: map[string]string{},
-				},
-			},
-			addresses: []*capm3.Metal3IPAddress{
-				&capm3.Metal3IPAddress{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc-0",
-						Namespace: "myns",
-					},
-					Spec: capm3.Metal3IPAddressSpec{
-						Address: "abcd",
-						IPPool:  testObjectReference,
-						Owner:   testObjectReference,
-					},
-				},
-			},
-			expectedAddresses:   map[string]string{},
-			expectedAllocations: map[string]string{},
 		}),
 	)
-
-	type testCaseCreateAddresses struct {
-		ipPool              *capm3.Metal3IPPool
-		ipAddresses         []*capm3.Metal3IPAddress
-		expectRequeue       bool
-		expectError         bool
-		expectedIPAddresses []string
-		expectedAddresses   map[string]string
-		expectedAllocations map[string]string
-	}
 
 	var ipPoolMeta = metav1.ObjectMeta{
 		Name:      "abc",
 		Namespace: "myns",
-		Labels: map[string]string{
-			capi.ClusterLabelName: clusterName,
+	}
+
+	type testCaseUpdateAddresses struct {
+		ipPool                *infrav1.Metal3IPPool
+		ipClaims              []*infrav1.Metal3IPClaim
+		ipAddresses           []*infrav1.Metal3IPAddress
+		expectRequeue         bool
+		expectError           bool
+		expectedNbAllocations int
+		expectedAllocations   map[string]infrav1.IPAddress
+	}
+
+	DescribeTable("Test UpdateAddresses",
+		func(tc testCaseUpdateAddresses) {
+			objects := []runtime.Object{}
+			for _, address := range tc.ipAddresses {
+				objects = append(objects, address)
+			}
+			for _, claim := range tc.ipClaims {
+				objects = append(objects, claim)
+			}
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			ipPoolMgr, err := NewIPPoolManager(c, tc.ipPool,
+				klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			nbAllocations, err := ipPoolMgr.UpdateAddresses(context.TODO())
+			if tc.expectRequeue || tc.expectError {
+				Expect(err).To(HaveOccurred())
+				if tc.expectRequeue {
+					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+				} else {
+					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+				}
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			Expect(nbAllocations).To(Equal(tc.expectedNbAllocations))
+			Expect(tc.ipPool.Status.LastUpdated.IsZero()).To(BeFalse())
+			Expect(tc.ipPool.Status.Allocations).To(Equal(tc.expectedAllocations))
+
+			// get list of Metal3IPAddress objects
+			addressObjects := infrav1.Metal3IPClaimList{}
+			opts := &client.ListOptions{}
+			err = c.List(context.TODO(), &addressObjects, opts)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Iterate over the Metal3IPAddress objects to find all indexes and objects
+			for _, claim := range addressObjects.Items {
+				if claim.DeletionTimestamp.IsZero() {
+					fmt.Printf("%#v", claim)
+					Expect(claim.Status.Address).NotTo(BeNil())
+				}
+			}
+
 		},
-		OwnerReferences: []metav1.OwnerReference{
-			metav1.OwnerReference{
-				Name:       "abc",
-				Kind:       "Metal3Data",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+		Entry("No Claims", testCaseUpdateAddresses{
+			ipPool: &infrav1.Metal3IPPool{
+				ObjectMeta: ipPoolMeta,
 			},
-		},
+			expectedAllocations: map[string]infrav1.IPAddress{},
+		}),
+		Entry("Claim and IP exist", testCaseUpdateAddresses{
+			ipPool: &infrav1.Metal3IPPool{
+				ObjectMeta: ipPoolMeta,
+				Spec: infrav1.Metal3IPPoolSpec{
+					NamePrefix: "abcpref",
+				},
+			},
+			ipClaims: []*infrav1.Metal3IPClaim{
+				&infrav1.Metal3IPClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3IPClaimSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+					},
+				},
+				&infrav1.Metal3IPClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abcd",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3IPClaimSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abcd",
+							Namespace: "myns",
+						},
+					},
+					Status: infrav1.Metal3IPClaimStatus{
+						Address: &corev1.ObjectReference{
+							Name:      "abcpref-192-168-1-12",
+							Namespace: "myns",
+						},
+					},
+				},
+				&infrav1.Metal3IPClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abce",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3IPClaimSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+					},
+					Status: infrav1.Metal3IPClaimStatus{
+						Address: &corev1.ObjectReference{
+							Name:      "abcpref-192-168-1-12",
+							Namespace: "myns",
+						},
+					},
+				},
+				&infrav1.Metal3IPClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "abcf",
+						Namespace:         "myns",
+						DeletionTimestamp: &timeNow,
+					},
+					Spec: infrav1.Metal3IPClaimSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+					},
+					Status: infrav1.Metal3IPClaimStatus{
+						Address: &corev1.ObjectReference{
+							Name:      "abcpref-192-168-1-13",
+							Namespace: "myns",
+						},
+					},
+				},
+			},
+			ipAddresses: []*infrav1.Metal3IPAddress{
+				&infrav1.Metal3IPAddress{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abcpref-192-168-1-11",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3IPAddressSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+						Claim: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+						Address: infrav1.IPAddress("192.168.1.11"),
+						Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
+						Prefix:  24,
+					},
+				},
+				&infrav1.Metal3IPAddress{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abcpref-192-168-1-12",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3IPAddressSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+						Claim: corev1.ObjectReference{
+							Name:      "abce",
+							Namespace: "myns",
+						},
+						Address: infrav1.IPAddress("192.168.1.12"),
+					},
+				},
+				&infrav1.Metal3IPAddress{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abcpref-192-168-1-13",
+						Namespace: "myns",
+					},
+					Spec: infrav1.Metal3IPAddressSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+						Claim: corev1.ObjectReference{
+							Name:      "abcf",
+							Namespace: "myns",
+						},
+						Address: infrav1.IPAddress("192.168.1.13"),
+					},
+				},
+			},
+			expectedAllocations: map[string]infrav1.IPAddress{
+				"abc":  infrav1.IPAddress("192.168.1.11"),
+				"abce": infrav1.IPAddress("192.168.1.12"),
+			},
+			expectedNbAllocations: 2,
+		}),
+	)
+
+	type testCaseCreateAddresses struct {
+		ipPool              *infrav1.Metal3IPPool
+		ipClaim             *infrav1.Metal3IPClaim
+		ipAddresses         []*infrav1.Metal3IPAddress
+		addresses           map[infrav1.IPAddress]string
+		expectRequeue       bool
+		expectError         bool
+		expectedIPAddresses []string
+		expectedAddresses   map[infrav1.IPAddress]string
+		expectedAllocations map[string]infrav1.IPAddress
 	}
 
 	DescribeTable("Test CreateAddresses",
@@ -229,7 +476,9 @@ var _ = Describe("Metal3IPPool manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ipPoolMgr.CreateAddresses(context.TODO())
+			allocatedMap, err := ipPoolMgr.createAddress(context.TODO(), tc.ipClaim,
+				tc.addresses,
+			)
 			if tc.expectRequeue || tc.expectError {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
@@ -241,7 +490,7 @@ var _ = Describe("Metal3IPPool manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			// get list of Metal3IPAddress objects
-			addressObjects := capm3.Metal3IPAddressList{}
+			addressObjects := infrav1.Metal3IPAddressList{}
 			opts := &client.ListOptions{}
 			err = c.List(context.TODO(), &addressObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
@@ -252,199 +501,179 @@ var _ = Describe("Metal3IPPool manager", func() {
 				Expect(tc.expectedIPAddresses).To(ContainElement(address.Name))
 				// TODO add further testing later
 			}
+			Expect(len(tc.ipClaim.Finalizers)).To(Equal(1))
 
-			if !tc.expectError {
-				Expect(tc.ipPool.Status.LastUpdated.IsZero()).To(BeFalse())
-			}
-			Expect(tc.ipPool.Status.Addresses).To(Equal(tc.expectedAddresses))
+			Expect(allocatedMap).To(Equal(tc.expectedAddresses))
 			Expect(tc.ipPool.Status.Allocations).To(Equal(tc.expectedAllocations))
 		},
-		Entry("No cluster label", testCaseCreateAddresses{
-			ipPool:      &capm3.Metal3IPPool{},
-			expectError: true,
-		}),
-		Entry("No OwnerRefs", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: clusterName,
-					},
-				},
-			},
-		}),
-		Entry("Wrong OwnerRefs", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: clusterName,
-					},
-					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Cluster",
-							APIVersion: "cluster.x-k8s.io/v1alpha3",
-						},
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Machine",
-							APIVersion: "cluster.x-k8s.io/v1alpha3",
-						},
-					},
-				},
-			},
-		}),
 		Entry("Already exists", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
+			ipPool: &infrav1.Metal3IPPool{
 				ObjectMeta: ipPoolMeta,
-				Status: capm3.Metal3IPPoolStatus{
-					Allocations: map[string]string{
-						"abc": "foo-0",
+				Status: infrav1.Metal3IPPoolStatus{
+					Allocations: map[string]infrav1.IPAddress{
+						"abc": infrav1.IPAddress("foo-0"),
 					},
 				},
 			},
-			expectedAllocations: map[string]string{"abc": "foo-0"},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+			},
+			expectedAllocations: map[string]infrav1.IPAddress{
+				"abc": infrav1.IPAddress("foo-0"),
+			},
 		}),
 		Entry("Not allocated yet, pre-allocated", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
+			ipPool: &infrav1.Metal3IPPool{
 				ObjectMeta: ipPoolMeta,
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.20")),
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.20")),
 						},
 					},
-					Allocations: map[string]capm3.IPAddress{
-						"abc": capm3.IPAddress("192.168.0.15"),
+					PreAllocations: map[string]infrav1.IPAddress{
+						"abc": infrav1.IPAddress("192.168.0.15"),
 					},
 					NamePrefix: "abcpref",
 				},
-				Status: capm3.Metal3IPPoolStatus{},
+				Status: infrav1.Metal3IPPoolStatus{
+					Allocations: map[string]infrav1.IPAddress{},
+				},
 			},
-			expectedAllocations: map[string]string{"abc": "abcpref-192-168-0-15"},
-			expectedAddresses:   map[string]string{"192.168.0.15": "abc"},
+			addresses: map[infrav1.IPAddress]string{},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+			},
+			expectedAllocations: map[string]infrav1.IPAddress{
+				"abc": infrav1.IPAddress("192.168.0.15"),
+			},
+			expectedAddresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.15"): "abc",
+			},
 			expectedIPAddresses: []string{"abcpref-192-168-0-15"},
 		}),
 		Entry("Not allocated yet", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
+			ipPool: &infrav1.Metal3IPPool{
 				ObjectMeta: ipPoolMeta,
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.20")),
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.20")),
 						},
 					},
 					NamePrefix: "abcpref",
 				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.0.11": "bcd",
-					},
+				Status: infrav1.Metal3IPPoolStatus{
+					Allocations: map[string]infrav1.IPAddress{},
 				},
 			},
-			expectedAllocations: map[string]string{"abc": "abcpref-192-168-0-12"},
-			expectedAddresses: map[string]string{
-				"192.168.0.12": "abc",
-				"192.168.0.11": "bcd",
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.11"): "bcd",
 			},
-			expectedIPAddresses: []string{"abcpref-192-168-0-12"},
-		}),
-		Entry("Not allocated yet, after error", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: ipPoolMeta,
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.20")),
-						},
-					},
-					NamePrefix: "abcpref",
-				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.0.11": "bcd",
-					},
-					Allocations: map[string]string{
-						"abc": "",
-					},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
 				},
 			},
-			expectedAllocations: map[string]string{"abc": "abcpref-192-168-0-12"},
-			expectedAddresses: map[string]string{
-				"192.168.0.12": "abc",
-				"192.168.0.11": "bcd",
+			expectedAllocations: map[string]infrav1.IPAddress{
+				"abc": infrav1.IPAddress("192.168.0.12"),
+			},
+			expectedAddresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.12"): "abc",
+				infrav1.IPAddress("192.168.0.11"): "bcd",
 			},
 			expectedIPAddresses: []string{"abcpref-192-168-0-12"},
 		}),
 		Entry("Not allocated yet, conflict", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
+			ipPool: &infrav1.Metal3IPPool{
 				ObjectMeta: ipPoolMeta,
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.20")),
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.20")),
 						},
 					},
 					NamePrefix: "abcpref",
 				},
-				Status: capm3.Metal3IPPoolStatus{},
+				Status: infrav1.Metal3IPPoolStatus{
+					Allocations: map[string]infrav1.IPAddress{},
+				},
 			},
-			ipAddresses: []*capm3.Metal3IPAddress{
-				&capm3.Metal3IPAddress{
+			addresses: map[infrav1.IPAddress]string{},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+			},
+			ipAddresses: []*infrav1.Metal3IPAddress{
+				&infrav1.Metal3IPAddress{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abcpref-192-168-0-11",
 						Namespace: "myns",
 					},
-					Spec: capm3.Metal3IPAddressSpec{
+					Spec: infrav1.Metal3IPAddressSpec{
 						Address: "192.168.0.11",
-						IPPool: &corev1.ObjectReference{
+						Pool: corev1.ObjectReference{
 							Name: "abc",
 						},
-						Owner: &corev1.ObjectReference{
-							Name: "abc",
+						Claim: corev1.ObjectReference{
+							Name: "bcd",
 						},
 					},
 				},
 			},
-			expectedAllocations: map[string]string{"abc": "abcpref-192-168-0-11"},
-			expectedAddresses:   map[string]string{"192.168.0.11": "abc"},
+			expectedAllocations: map[string]infrav1.IPAddress{},
+			expectedAddresses:   map[infrav1.IPAddress]string{},
 			expectedIPAddresses: []string{"abcpref-192-168-0-11"},
 			expectRequeue:       true,
 		}),
 		Entry("Not allocated yet, exhausted pool", testCaseCreateAddresses{
-			ipPool: &capm3.Metal3IPPool{
+			ipPool: &infrav1.Metal3IPPool{
 				ObjectMeta: ipPoolMeta,
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
 						},
 					},
 					NamePrefix: "abcpref",
 				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{"192.168.0.11": "bcde"},
+				Status: infrav1.Metal3IPPoolStatus{
+					Allocations: map[string]infrav1.IPAddress{},
 				},
 			},
-			expectedAllocations: map[string]string{"abc": ""},
-			expectedAddresses:   map[string]string{"192.168.0.11": "bcde"},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.11"): "bcd",
+			},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
+			},
+			expectedAllocations: map[string]infrav1.IPAddress{},
+			expectedAddresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.11"): "bcd",
+			},
+			expectedIPAddresses: []string{},
 			expectError:         true,
 		}),
 	)
 
 	type testCaseAllocateAddress struct {
-		ipPool          *capm3.Metal3IPPool
-		expectedAddress string
+		ipPool          *infrav1.Metal3IPPool
+		ipClaim         *infrav1.Metal3IPClaim
+		addresses       map[infrav1.IPAddress]string
+		expectedAddress infrav1.IPAddress
 		expectedPrefix  int
-		expectedGateway string
+		expectedGateway *infrav1.IPAddress
 		expectError     bool
 	}
 
@@ -455,9 +684,7 @@ var _ = Describe("Metal3IPPool manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			allocatedAddress, prefix, gateway, err := ipPoolMgr.allocateAddress(
-				metav1.OwnerReference{
-					Name: "TestRef",
-				},
+				tc.ipClaim, tc.addresses,
 			)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
@@ -467,173 +694,195 @@ var _ = Describe("Metal3IPPool manager", func() {
 			}
 			Expect(allocatedAddress).To(Equal(tc.expectedAddress))
 			Expect(prefix).To(Equal(tc.expectedPrefix))
-			Expect(string(*gateway)).To(Equal(tc.expectedGateway))
+			Expect(*gateway).To(Equal(*tc.expectedGateway))
 		},
 		Entry("Empty pools", testCaseAllocateAddress{
-			ipPool: &capm3.Metal3IPPool{
-				Spec: capm3.Metal3IPPoolSpec{},
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{},
+			},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "abc",
+				},
 			},
 			expectError: true,
 		}),
-		Entry("One pool, with start and existing address", testCaseAllocateAddress{
-			ipPool: &capm3.Metal3IPPool{
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
-							End:     (*capm3.IPAddress)(pointer.StringPtr("192.168.0.20")),
+		Entry("One pool, pre-allocated", testCaseAllocateAddress{
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:     (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.20")),
 							Prefix:  26,
-							Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.1.1")),
+							Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.1.1")),
 						},
 					},
-					Allocations: map[string]capm3.IPAddress{
-						"TestRef": capm3.IPAddress("192.168.0.15"),
+					PreAllocations: map[string]infrav1.IPAddress{
+						"TestRef": infrav1.IPAddress("192.168.0.15"),
 					},
 					Prefix:  24,
-					Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.1")),
-				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.0.12": "bcde",
-						"192.168.0.11": "abcd",
-						"192.168.0.15": "TestRef",
-					},
+					Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 				},
 			},
-			expectedAddress: "192.168.0.15",
-			expectedGateway: "192.168.0.1",
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
+				},
+			},
+			expectedAddress: infrav1.IPAddress("192.168.0.15"),
+			expectedGateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 			expectedPrefix:  24,
 		}),
 		Entry("One pool, with start and existing address", testCaseAllocateAddress{
-			ipPool: &capm3.Metal3IPPool{
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.11")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.20")),
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.20")),
 						},
 					},
 					Prefix:  24,
-					Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.1")),
-				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.0.12": "bcde",
-						"192.168.0.11": "abcd",
-					},
+					Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 				},
 			},
-			expectedAddress: "192.168.0.13",
-			expectedGateway: "192.168.0.1",
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
+				},
+			},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.12"): "bcde",
+				infrav1.IPAddress("192.168.0.11"): "abcd",
+			},
+			expectedAddress: infrav1.IPAddress("192.168.0.13"),
+			expectedGateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 			expectedPrefix:  24,
 		}),
 		Entry("One pool, with subnet and override prefix", testCaseAllocateAddress{
-			ipPool: &capm3.Metal3IPPool{
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Subnet:  (*capm3.IPSubnet)(pointer.StringPtr("192.168.0.10/24")),
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.11")),
+							End:     (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.20")),
 							Prefix:  24,
-							Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.1")),
+							Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 						},
 					},
 					Prefix:  26,
-					Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.1.1")),
-				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.0.12": "bcde",
-						"192.168.0.11": "abcd",
-					},
+					Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.1.1")),
 				},
 			},
-			expectedAddress: "192.168.0.13",
-			expectedGateway: "192.168.0.1",
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
+				},
+			},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.12"): "bcde",
+				infrav1.IPAddress("192.168.0.11"): "abcd",
+			},
+			expectedAddress: infrav1.IPAddress("192.168.0.13"),
+			expectedGateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 			expectedPrefix:  24,
 		}),
 		Entry("two pools, with subnet and override prefix", testCaseAllocateAddress{
-			ipPool: &capm3.Metal3IPPool{
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
+							End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
 						},
-						capm3.IPPool{
-							Subnet:  (*capm3.IPSubnet)(pointer.StringPtr("192.168.1.10/24")),
+						infrav1.IPPool{
+							Subnet:  (*infrav1.IPSubnet)(pointer.StringPtr("192.168.1.10/24")),
 							Prefix:  24,
-							Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.1.1")),
+							Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.1.1")),
 						},
 					},
 					Prefix:  26,
-					Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.2.1")),
-				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.1.11": "bcde",
-						"192.168.0.10": "abcd",
-					},
+					Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.2.1")),
 				},
 			},
-			expectedAddress: "192.168.1.12",
-			expectedGateway: "192.168.1.1",
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
+				},
+			},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.1.11"): "bcde",
+				infrav1.IPAddress("192.168.0.10"): "abcd",
+			},
+			expectedAddress: infrav1.IPAddress("192.168.1.12"),
+			expectedGateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.1.1")),
 			expectedPrefix:  24,
 		}),
 		Entry("Exhausted pools start", testCaseAllocateAddress{
-			ipPool: &capm3.Metal3IPPool{
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Start: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
-							End:   (*capm3.IPAddress)(pointer.StringPtr("192.168.0.10")),
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
+							End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
 						},
 					},
 					Prefix:  24,
-					Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.1")),
+					Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.0.10": "abcd",
-					},
+			},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
 				},
+			},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.10"): "abcd",
 			},
 			expectError: true,
 		}),
 		Entry("Exhausted pools subnet", testCaseAllocateAddress{
-			ipPool: &capm3.Metal3IPPool{
-				Spec: capm3.Metal3IPPoolSpec{
-					Pools: []capm3.IPPool{
-						capm3.IPPool{
-							Subnet: (*capm3.IPSubnet)(pointer.StringPtr("192.168.0.0/30")),
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{
+					Pools: []infrav1.IPPool{
+						infrav1.IPPool{
+							Subnet: (*infrav1.IPSubnet)(pointer.StringPtr("192.168.0.0/30")),
 						},
 					},
 					Prefix:  24,
-					Gateway: (*capm3.IPAddress)(pointer.StringPtr("192.168.0.1")),
+					Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
 				},
-				Status: capm3.Metal3IPPoolStatus{
-					Addresses: map[string]string{
-						"192.168.0.1": "abcd",
-						"192.168.0.2": "abcd",
-						"192.168.0.3": "abcd",
-					},
+			},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
 				},
+			},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.1"): "abcd",
+				infrav1.IPAddress("192.168.0.2"): "abcd",
+				infrav1.IPAddress("192.168.0.3"): "abcd",
 			},
 			expectError: true,
 		}),
 	)
 
 	type testCaseDeleteAddresses struct {
-		ipPool              *capm3.Metal3IPPool
-		addresses           []*capm3.Metal3IPAddress
-		expectedAddresses   map[string]string
-		expectedAllocations map[string]string
+		ipPool              *infrav1.Metal3IPPool
+		ipClaim             *infrav1.Metal3IPClaim
+		m3addresses         []*infrav1.Metal3IPAddress
+		addresses           map[infrav1.IPAddress]string
+		expectedAddresses   map[infrav1.IPAddress]string
+		expectedAllocations map[string]infrav1.IPAddress
+		expectError         bool
 	}
 
 	DescribeTable("Test DeleteAddresses",
 		func(tc testCaseDeleteAddresses) {
 			objects := []runtime.Object{}
-			for _, data := range tc.addresses {
-				objects = append(objects, data)
+			for _, address := range tc.m3addresses {
+				objects = append(objects, address)
 			}
 			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 			ipPoolMgr, err := NewIPPoolManager(c, tc.ipPool,
@@ -641,11 +890,15 @@ var _ = Describe("Metal3IPPool manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = ipPoolMgr.DeleteAddresses(context.TODO())
-			Expect(err).NotTo(HaveOccurred())
+			allocatedMap, err := ipPoolMgr.deleteAddress(context.TODO(), tc.ipClaim, tc.addresses)
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
 
 			// get list of Metal3IPAddress objects
-			addressObjects := capm3.Metal3IPAddressList{}
+			addressObjects := infrav1.Metal3IPAddressList{}
 			opts := &client.ListOptions{}
 			err = c.List(context.TODO(), &addressObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
@@ -653,148 +906,81 @@ var _ = Describe("Metal3IPPool manager", func() {
 			Expect(len(addressObjects.Items)).To(Equal(0))
 
 			Expect(tc.ipPool.Status.LastUpdated.IsZero()).To(BeFalse())
-			Expect(tc.ipPool.Status.Addresses).To(Equal(tc.expectedAddresses))
+			Expect(allocatedMap).To(Equal(tc.expectedAddresses))
 			Expect(tc.ipPool.Status.Allocations).To(Equal(tc.expectedAllocations))
+			Expect(len(tc.ipClaim.Finalizers)).To(Equal(0))
 		},
 		Entry("Empty IPPool", testCaseDeleteAddresses{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: testObjectMeta,
+			ipPool: &infrav1.Metal3IPPool{},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
+				},
 			},
 		}),
 		Entry("No Deletion needed", testCaseDeleteAddresses{
-			ipPool: &capm3.Metal3IPPool{
+			ipPool: &infrav1.Metal3IPPool{},
+			ipClaim: &infrav1.Metal3IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Machine",
-							APIVersion: "cluster.x-k8s.io/v1alpha3",
-						},
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Metal3Machine",
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
-						},
-					},
-				},
-				Status: capm3.Metal3IPPoolStatus{
-					Allocations: map[string]string{
-						"abc": "abc-0",
-					},
-					Addresses: map[string]string{
-						"0": "abc",
-					},
+					Name: "TestRef",
 				},
 			},
-			expectedAddresses:   map[string]string{"0": "abc"},
-			expectedAllocations: map[string]string{"abc": "abc-0"},
+			expectedAddresses: map[infrav1.IPAddress]string{infrav1.IPAddress("192.168.0.1"): "abcd"},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.1"): "abcd",
+			},
 		}),
 		Entry("Deletion needed, not found", testCaseDeleteAddresses{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Machine",
-							APIVersion: "cluster.x-k8s.io/v1alpha3",
-						},
-					},
-				},
-				Status: capm3.Metal3IPPoolStatus{
-					Allocations: map[string]string{
-						"abc": "abc-0",
-					},
-					Addresses: map[string]string{
-						"0": "abc",
+			ipPool: &infrav1.Metal3IPPool{
+				Status: infrav1.Metal3IPPoolStatus{
+					Allocations: map[string]infrav1.IPAddress{
+						"TestRef": infrav1.IPAddress("192.168.0.1"),
 					},
 				},
 			},
-			expectedAddresses:   map[string]string{},
-			expectedAllocations: map[string]string{},
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
+				},
+			},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.1"): "TestRef",
+			},
+			expectedAllocations: map[string]infrav1.IPAddress{},
+			expectedAddresses:   map[infrav1.IPAddress]string{},
 		}),
 		Entry("Deletion needed", testCaseDeleteAddresses{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Machine",
-							APIVersion: "cluster.x-k8s.io/v1alpha3",
-						},
-					},
+			ipPool: &infrav1.Metal3IPPool{
+				Spec: infrav1.Metal3IPPoolSpec{
+					NamePrefix: "abc",
 				},
-				Status: capm3.Metal3IPPoolStatus{
-					Allocations: map[string]string{
-						"abc": "abc-0",
-					},
-					Addresses: map[string]string{
-						"0": "abc",
+				Status: infrav1.Metal3IPPoolStatus{
+					Allocations: map[string]infrav1.IPAddress{
+						"TestRef": infrav1.IPAddress("192.168.0.1"),
 					},
 				},
 			},
-			expectedAddresses:   map[string]string{},
-			expectedAllocations: map[string]string{},
-			addresses: []*capm3.Metal3IPAddress{
-				&capm3.Metal3IPAddress{
+			ipClaim: &infrav1.Metal3IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "TestRef",
+					Finalizers: []string{
+						infrav1.IPClaimFinalizer,
+					},
+				},
+			},
+			addresses: map[infrav1.IPAddress]string{
+				infrav1.IPAddress("192.168.0.1"): "TestRef",
+			},
+			expectedAddresses:   map[infrav1.IPAddress]string{},
+			expectedAllocations: map[string]infrav1.IPAddress{},
+			m3addresses: []*infrav1.Metal3IPAddress{
+				&infrav1.Metal3IPAddress{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "abc-0",
+						Name: "abc-192-168-0-1",
 					},
 				},
 			},
 		}),
 	)
 
-	type testCaseDeleteReady struct {
-		ipPool      *capm3.Metal3IPPool
-		expectReady bool
-	}
-	DescribeTable("Test DeleteReady",
-		func(tc testCaseDeleteReady) {
-			ipPoolMgr, err := NewIPPoolManager(nil, tc.ipPool, klogr.New())
-			Expect(err).NotTo(HaveOccurred())
-
-			ready, err := ipPoolMgr.DeleteReady()
-			Expect(err).NotTo(HaveOccurred())
-			if tc.expectReady {
-				Expect(ready).To(BeTrue())
-			} else {
-				Expect(ready).To(BeFalse())
-			}
-		},
-		Entry("Ready", testCaseDeleteReady{
-			ipPool:      &capm3.Metal3IPPool{},
-			expectReady: true,
-		}),
-		Entry("Ready with OwnerRefs", testCaseDeleteReady{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Cluster",
-							APIVersion: "cluster.x-k8s.io/v1alpha3",
-						},
-					},
-				},
-			},
-			expectReady: true,
-		}),
-		Entry("Not Ready with OwnerRefs", testCaseDeleteReady{
-			ipPool: &capm3.Metal3IPPool{
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
-							Name:       "abc",
-							Kind:       "Metal3Machine",
-							APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
-						},
-					},
-				},
-			},
-			expectReady: false,
-		}),
-	)
 })

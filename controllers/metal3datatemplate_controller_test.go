@@ -28,6 +28,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,6 +36,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -50,6 +52,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		reconcileNormal      bool
 		reconcileNormalError bool
 		reconcileDeleteError bool
+		setOwnerRefError     bool
 	}
 
 	DescribeTable("Test Reconcile",
@@ -72,23 +75,27 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			} else if tc.expectManager {
 				f.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(m, nil)
 			}
+			if tc.expectManager {
+				if tc.setOwnerRefError {
+					m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(errors.New(""))
+				} else {
+					m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(nil)
+				}
+			}
 			if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() && tc.reconcileDeleteError {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(errors.New(""))
+				m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
 			} else if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(true, nil)
+				m.EXPECT().UpdateDatas(context.TODO()).Return(0, nil)
 				m.EXPECT().UnsetFinalizer()
 			}
 
 			if tc.m3dt != nil && tc.m3dt.DeletionTimestamp.IsZero() &&
 				tc.reconcileNormal {
 				m.EXPECT().SetFinalizer()
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
 				if tc.reconcileNormalError {
-					m.EXPECT().CreateDatas(context.TODO()).Return(errors.New(""))
+					m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
 				} else {
-					m.EXPECT().CreateDatas(context.TODO()).Return(nil)
+					m.EXPECT().UpdateDatas(context.TODO()).Return(1, nil)
 				}
 			}
 
@@ -120,39 +127,31 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			gomockCtrl.Finish()
 		},
 		Entry("Metal3DataTemplate not found", testCaseReconcile{}),
-		Entry("Missing cluster label", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-			},
-		}),
 		Entry("Cluster not found", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 		}),
 		Entry("Deletion, Cluster not found", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: "abc",
-					},
+					Name:              "abc",
+					Namespace:         "myns",
 					DeletionTimestamp: &timestampNow,
 				},
+				Spec: infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 			expectManager: true,
 		}),
 		Entry("Deletion, Cluster not found, error", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: "abc",
-					},
+					Name:              "abc",
+					Namespace:         "myns",
 					DeletionTimestamp: &timestampNow,
 				},
+				Spec: infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 			expectManager:        true,
 			reconcileDeleteError: true,
@@ -160,7 +159,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("Paused cluster", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -169,10 +169,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			expectRequeue: true,
+			expectManager: true,
 		}),
 		Entry("Error in manager", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -181,7 +183,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("Reconcile normal error", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -192,7 +195,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("Reconcile normal no error", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -205,9 +209,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	type reconcileNormalTestCase struct {
 		ExpectError   bool
 		ExpectRequeue bool
-		RecreateError bool
-		DeleteError   bool
-		CreateError   bool
+		UpdateError   bool
 	}
 
 	DescribeTable("ReconcileNormal tests",
@@ -225,19 +227,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 			m.EXPECT().SetFinalizer()
 
-			if !tc.RecreateError && !tc.DeleteError && !tc.CreateError {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().CreateDatas(context.TODO()).Return(nil)
-			} else if !tc.RecreateError && !tc.DeleteError {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().CreateDatas(context.TODO()).Return(errors.New(""))
-			} else if !tc.RecreateError {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteDatas(context.TODO()).Return(errors.New(""))
+			if !tc.UpdateError {
+				m.EXPECT().UpdateDatas(context.TODO()).Return(1, nil)
 			} else {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(errors.New(""))
+				m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
 			}
 
 			res, err := dataTemplateReconcile.reconcileNormal(context.TODO(), m)
@@ -258,29 +251,18 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			ExpectError:   false,
 			ExpectRequeue: false,
 		}),
-		Entry("Create error", reconcileNormalTestCase{
-			CreateError:   true,
-			ExpectError:   true,
-			ExpectRequeue: false,
-		}),
-		Entry("Delete error", reconcileNormalTestCase{
-			DeleteError:   true,
-			ExpectError:   true,
-			ExpectRequeue: false,
-		}),
-		Entry("Recreate error", reconcileNormalTestCase{
-			RecreateError: true,
+		Entry("Update error", reconcileNormalTestCase{
+			UpdateError:   true,
 			ExpectError:   true,
 			ExpectRequeue: false,
 		}),
 	)
 
 	type reconcileDeleteTestCase struct {
-		ExpectError      bool
-		ExpectRequeue    bool
-		DeleteReady      bool
-		DeleteError      bool
-		DeleteReadyError bool
+		ExpectError   bool
+		ExpectRequeue bool
+		DeleteReady   bool
+		DeleteError   bool
 	}
 
 	DescribeTable("ReconcileDelete tests",
@@ -296,18 +278,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
 
-			if !tc.DeleteError && !tc.DeleteReadyError && tc.DeleteReady {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(true, nil)
+			if !tc.DeleteError && tc.DeleteReady {
+				m.EXPECT().UpdateDatas(context.TODO()).Return(0, nil)
 				m.EXPECT().UnsetFinalizer()
-			} else if !tc.DeleteError && !tc.DeleteReadyError {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(false, nil)
 			} else if !tc.DeleteError {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(false, errors.New(""))
+				m.EXPECT().UpdateDatas(context.TODO()).Return(1, nil)
 			} else {
-				m.EXPECT().DeleteDatas(context.TODO()).Return(errors.New(""))
+				m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
 			}
 
 			res, err := dataTemplateReconcile.reconcileDelete(context.TODO(), m)
@@ -329,11 +306,6 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			ExpectError:   false,
 			ExpectRequeue: false,
 		}),
-		Entry("DeleteReady error", reconcileDeleteTestCase{
-			DeleteReadyError: true,
-			ExpectError:      true,
-			ExpectRequeue:    false,
-		}),
 		Entry("Delete error", reconcileDeleteTestCase{
 			DeleteError:   true,
 			ExpectError:   true,
@@ -344,6 +316,76 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			ExpectRequeue: false,
 			DeleteReady:   true,
 		}),
+	)
+
+	type TestCaseM3DCToM3DT struct {
+		DataClaim     *infrav1.Metal3DataClaim
+		ExpectRequest bool
+	}
+
+	DescribeTable("Metal3DataClaim To Metal3DataTemplate tests",
+		func(tc TestCaseM3DCToM3DT) {
+			r := Metal3DataTemplateReconciler{}
+			obj := handler.MapObject{
+				Object: tc.DataClaim,
+			}
+			reqs := r.Metal3DataClaimToMetal3DataTemplate(obj)
+
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+
+				req := reqs[0]
+				Expect(req.NamespacedName.Name).To(Equal(tc.DataClaim.Spec.Template.Name),
+					"Expected name %s, found %s", tc.DataClaim.Spec.Template.Name, req.NamespacedName.Name)
+				if tc.DataClaim.Spec.Template.Namespace == "" {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Namespace),
+						"Expected namespace %s, found %s", tc.DataClaim.Namespace, req.NamespacedName.Namespace)
+				} else {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Spec.Template.Namespace),
+						"Expected namespace %s, found %s", tc.DataClaim.Spec.Template.Namespace, req.NamespacedName.Namespace)
+				}
+
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+
+			}
+		},
+		Entry("No Metal3DataTemplate in Spec",
+			TestCaseM3DCToM3DT{
+				DataClaim: &infrav1.Metal3DataClaim{
+					ObjectMeta: testObjectMeta,
+					Spec:       infrav1.Metal3DataClaimSpec{},
+				},
+				ExpectRequest: false,
+			},
+		),
+		Entry("Metal3DataTemplate in Spec, with namespace",
+			TestCaseM3DCToM3DT{
+				DataClaim: &infrav1.Metal3DataClaim{
+					ObjectMeta: testObjectMeta,
+					Spec: infrav1.Metal3DataClaimSpec{
+						Template: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
+		Entry("Metal3DataTemplate in Spec, no namespace",
+			TestCaseM3DCToM3DT{
+				DataClaim: &infrav1.Metal3DataClaim{
+					ObjectMeta: testObjectMeta,
+					Spec: infrav1.Metal3DataClaimSpec{
+						Template: corev1.ObjectReference{
+							Name: "abc",
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
 	)
 
 	It("Test checkRequeueError", func() {

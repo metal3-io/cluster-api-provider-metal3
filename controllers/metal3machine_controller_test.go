@@ -32,9 +32,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
@@ -456,30 +458,30 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type TestCaseM3DToBMM struct {
-		Data          *infrav1.Metal3Data
+		DataClaim     *infrav1.Metal3DataClaim
 		ExpectRequest bool
 	}
 
-	DescribeTable("Metal3Data To Metal3Machines tests",
+	DescribeTable("Metal3DataClaim To Metal3Machines tests",
 		func(tc TestCaseM3DToBMM) {
 			r := Metal3MachineReconciler{}
 			obj := handler.MapObject{
-				Object: tc.Data,
+				Object: tc.DataClaim,
 			}
-			reqs := r.Metal3DataToMetal3Machines(obj)
+			reqs := r.Metal3DataClaimToMetal3Machines(obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
 
 				req := reqs[0]
-				Expect(req.NamespacedName.Name).To(Equal(tc.Data.Spec.Metal3Machine.Name),
-					"Expected name %s, found %s", tc.Data.Spec.Metal3Machine.Name, req.NamespacedName.Name)
-				if tc.Data.Spec.Metal3Machine.Namespace == "" {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Namespace),
-						"Expected namespace %s, found %s", tc.Data.Namespace, req.NamespacedName.Namespace)
+				Expect(req.NamespacedName.Name).To(Equal(tc.DataClaim.Spec.Metal3Machine.Name),
+					"Expected name %s, found %s", tc.DataClaim.Spec.Metal3Machine.Name, req.NamespacedName.Name)
+				if tc.DataClaim.Spec.Metal3Machine.Namespace == "" {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Namespace),
+						"Expected namespace %s, found %s", tc.DataClaim.Namespace, req.NamespacedName.Namespace)
 				} else {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Spec.Metal3Machine.Namespace),
-						"Expected namespace %s, found %s", tc.Data.Spec.Metal3Machine.Namespace, req.NamespacedName.Namespace)
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Spec.Metal3Machine.Namespace),
+						"Expected namespace %s, found %s", tc.DataClaim.Spec.Metal3Machine.Namespace, req.NamespacedName.Namespace)
 				}
 
 			} else {
@@ -489,19 +491,19 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("No Metal3Machine in Spec",
 			TestCaseM3DToBMM{
-				Data: &infrav1.Metal3Data{
+				DataClaim: &infrav1.Metal3DataClaim{
 					ObjectMeta: testObjectMeta,
-					Spec:       infrav1.Metal3DataSpec{},
+					Spec:       infrav1.Metal3DataClaimSpec{},
 				},
 				ExpectRequest: false,
 			},
 		),
 		Entry("Metal3Machine in Spec, with namespace",
 			TestCaseM3DToBMM{
-				Data: &infrav1.Metal3Data{
+				DataClaim: &infrav1.Metal3DataClaim{
 					ObjectMeta: testObjectMeta,
-					Spec: infrav1.Metal3DataSpec{
-						Metal3Machine: &corev1.ObjectReference{
+					Spec: infrav1.Metal3DataClaimSpec{
+						Metal3Machine: corev1.ObjectReference{
 							Name:      "abc",
 							Namespace: "myns",
 						},
@@ -512,10 +514,10 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		Entry("Metal3Machine in Spec, no namespace",
 			TestCaseM3DToBMM{
-				Data: &infrav1.Metal3Data{
+				DataClaim: &infrav1.Metal3DataClaim{
 					ObjectMeta: testObjectMeta,
-					Spec: infrav1.Metal3DataSpec{
-						Metal3Machine: &corev1.ObjectReference{
+					Spec: infrav1.Metal3DataClaimSpec{
+						Metal3Machine: corev1.ObjectReference{
 							Name: "abc",
 						},
 					},
@@ -585,5 +587,60 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequest: false,
 			},
 		),
+	)
+
+	type testCaseMetal3DataToMetal3Machines struct {
+		ownerRefs        []metav1.OwnerReference
+		expectedRequests []ctrl.Request
+	}
+
+	DescribeTable("test Metal3DataToMetal3Machines",
+		func(tc testCaseMetal3DataToMetal3Machines) {
+			ipClaim := &infrav1.Metal3Data{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:       "myns",
+					OwnerReferences: tc.ownerRefs,
+				},
+			}
+			c := fake.NewFakeClientWithScheme(setupScheme(), ipClaim)
+			r := Metal3MachineReconciler{
+				Client: c,
+			}
+			obj := handler.MapObject{
+				Object: ipClaim,
+			}
+			reqs := r.Metal3DataToMetal3Machines(obj)
+			Expect(reqs).To(Equal(tc.expectedRequests))
+		},
+		Entry("No OwnerRefs", testCaseMetal3DataToMetal3Machines{
+			expectedRequests: []ctrl.Request{},
+		}),
+		Entry("OwnerRefs", testCaseMetal3DataToMetal3Machines{
+			ownerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3Machine",
+					Name:       "abc",
+				},
+				metav1.OwnerReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3DataClaim",
+					Name:       "bcd",
+				},
+				metav1.OwnerReference{
+					APIVersion: "foo.bar/v1",
+					Kind:       "Metal3Machine",
+					Name:       "cde",
+				},
+			},
+			expectedRequests: []ctrl.Request{
+				ctrl.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      "abc",
+						Namespace: "myns",
+					},
+				},
+			},
+		}),
 	)
 })

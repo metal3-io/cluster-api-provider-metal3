@@ -34,7 +34,9 @@ import (
 	"k8s.io/klog/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	// ctrl "sigs.k8s.io/controller-runtime"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -50,6 +52,7 @@ var _ = Describe("Metal3IPPool controller", func() {
 		reconcileNormal      bool
 		reconcileNormalError bool
 		reconcileDeleteError bool
+		setOwnerRefError     bool
 	}
 
 	DescribeTable("Test Reconcile",
@@ -72,23 +75,29 @@ var _ = Describe("Metal3IPPool controller", func() {
 			} else if tc.expectManager {
 				f.EXPECT().NewIPPoolManager(gomock.Any(), gomock.Any()).Return(m, nil)
 			}
+
+			if tc.expectManager {
+				if tc.setOwnerRefError {
+					m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(errors.New(""))
+				} else {
+					m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(nil)
+				}
+			}
+
 			if tc.m3ipp != nil && !tc.m3ipp.DeletionTimestamp.IsZero() && tc.reconcileDeleteError {
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(errors.New(""))
+				m.EXPECT().UpdateAddresses(context.TODO()).Return(0, errors.New(""))
 			} else if tc.m3ipp != nil && !tc.m3ipp.DeletionTimestamp.IsZero() {
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(true, nil)
+				m.EXPECT().UpdateAddresses(context.TODO()).Return(0, nil)
 				m.EXPECT().UnsetFinalizer()
 			}
 
 			if tc.m3ipp != nil && tc.m3ipp.DeletionTimestamp.IsZero() &&
 				tc.reconcileNormal {
 				m.EXPECT().SetFinalizer()
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
 				if tc.reconcileNormalError {
-					m.EXPECT().CreateAddresses(context.TODO()).Return(errors.New(""))
+					m.EXPECT().UpdateAddresses(context.TODO()).Return(0, errors.New(""))
 				} else {
-					m.EXPECT().CreateAddresses(context.TODO()).Return(nil)
+					m.EXPECT().UpdateAddresses(context.TODO()).Return(1, nil)
 				}
 			}
 
@@ -120,39 +129,31 @@ var _ = Describe("Metal3IPPool controller", func() {
 			gomockCtrl.Finish()
 		},
 		Entry("Metal3IPPool not found", testCaseReconcile{}),
-		Entry("Missing cluster label", testCaseReconcile{
-			m3ipp: &infrav1.Metal3IPPool{
-				ObjectMeta: testObjectMeta,
-			},
-		}),
 		Entry("Cluster not found", testCaseReconcile{
 			m3ipp: &infrav1.Metal3IPPool{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
 			},
 		}),
 		Entry("Deletion, Cluster not found", testCaseReconcile{
 			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: "abc",
-					},
+					Name:              "abc",
+					Namespace:         "myns",
 					DeletionTimestamp: &timestampNow,
 				},
+				Spec: infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
 			},
 			expectManager: true,
 		}),
 		Entry("Deletion, Cluster not found, error", testCaseReconcile{
 			m3ipp: &infrav1.Metal3IPPool{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-					Labels: map[string]string{
-						capi.ClusterLabelName: "abc",
-					},
+					Name:              "abc",
+					Namespace:         "myns",
 					DeletionTimestamp: &timestampNow,
 				},
+				Spec: infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
 			},
 			expectManager:        true,
 			reconcileDeleteError: true,
@@ -160,7 +161,8 @@ var _ = Describe("Metal3IPPool controller", func() {
 		}),
 		Entry("Paused cluster", testCaseReconcile{
 			m3ipp: &infrav1.Metal3IPPool{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -169,10 +171,12 @@ var _ = Describe("Metal3IPPool controller", func() {
 				},
 			},
 			expectRequeue: true,
+			expectManager: true,
 		}),
 		Entry("Error in manager", testCaseReconcile{
 			m3ipp: &infrav1.Metal3IPPool{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -181,7 +185,8 @@ var _ = Describe("Metal3IPPool controller", func() {
 		}),
 		Entry("Reconcile normal error", testCaseReconcile{
 			m3ipp: &infrav1.Metal3IPPool{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -190,9 +195,18 @@ var _ = Describe("Metal3IPPool controller", func() {
 			reconcileNormalError: true,
 			expectManager:        true,
 		}),
+		Entry("Reconcile normal no cluster", testCaseReconcile{
+			m3ipp: &infrav1.Metal3IPPool{
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
+			},
+			reconcileNormal: false,
+			expectManager:   false,
+		}),
 		Entry("Reconcile normal no error", testCaseReconcile{
 			m3ipp: &infrav1.Metal3IPPool{
-				ObjectMeta: testObjectMetaWithLabel,
+				ObjectMeta: testObjectMeta,
+				Spec:       infrav1.Metal3IPPoolSpec{ClusterName: "abc"},
 			},
 			cluster: &capi.Cluster{
 				ObjectMeta: testObjectMeta,
@@ -205,9 +219,7 @@ var _ = Describe("Metal3IPPool controller", func() {
 	type reconcileNormalTestCase struct {
 		ExpectError   bool
 		ExpectRequeue bool
-		RecreateError bool
-		DeleteError   bool
-		CreateError   bool
+		UpdateError   bool
 	}
 
 	DescribeTable("ReconcileNormal tests",
@@ -225,19 +237,10 @@ var _ = Describe("Metal3IPPool controller", func() {
 
 			m.EXPECT().SetFinalizer()
 
-			if !tc.RecreateError && !tc.DeleteError && !tc.CreateError {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
-				m.EXPECT().CreateAddresses(context.TODO()).Return(nil)
-			} else if !tc.RecreateError && !tc.DeleteError {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
-				m.EXPECT().CreateAddresses(context.TODO()).Return(errors.New(""))
-			} else if !tc.RecreateError {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(nil)
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(errors.New(""))
+			if !tc.UpdateError {
+				m.EXPECT().UpdateAddresses(context.TODO()).Return(1, nil)
 			} else {
-				m.EXPECT().RecreateStatusConditionally(context.TODO()).Return(errors.New(""))
+				m.EXPECT().UpdateAddresses(context.TODO()).Return(0, errors.New(""))
 			}
 
 			res, err := ipPoolReconcile.reconcileNormal(context.TODO(), m)
@@ -258,29 +261,18 @@ var _ = Describe("Metal3IPPool controller", func() {
 			ExpectError:   false,
 			ExpectRequeue: false,
 		}),
-		Entry("Create error", reconcileNormalTestCase{
-			CreateError:   true,
-			ExpectError:   true,
-			ExpectRequeue: false,
-		}),
-		Entry("Delete error", reconcileNormalTestCase{
-			DeleteError:   true,
-			ExpectError:   true,
-			ExpectRequeue: false,
-		}),
-		Entry("Recreate error", reconcileNormalTestCase{
-			RecreateError: true,
+		Entry("Update error", reconcileNormalTestCase{
+			UpdateError:   true,
 			ExpectError:   true,
 			ExpectRequeue: false,
 		}),
 	)
 
 	type reconcileDeleteTestCase struct {
-		ExpectError      bool
-		ExpectRequeue    bool
-		DeleteReady      bool
-		DeleteError      bool
-		DeleteReadyError bool
+		ExpectError   bool
+		ExpectRequeue bool
+		DeleteReady   bool
+		DeleteError   bool
 	}
 
 	DescribeTable("ReconcileDelete tests",
@@ -296,18 +288,13 @@ var _ = Describe("Metal3IPPool controller", func() {
 			}
 			m := baremetal_mocks.NewMockIPPoolManagerInterface(gomockCtrl)
 
-			if !tc.DeleteError && !tc.DeleteReadyError && tc.DeleteReady {
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(true, nil)
+			if !tc.DeleteError && tc.DeleteReady {
+				m.EXPECT().UpdateAddresses(context.TODO()).Return(0, nil)
 				m.EXPECT().UnsetFinalizer()
-			} else if !tc.DeleteError && !tc.DeleteReadyError {
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(false, nil)
 			} else if !tc.DeleteError {
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(nil)
-				m.EXPECT().DeleteReady().Return(false, errors.New(""))
+				m.EXPECT().UpdateAddresses(context.TODO()).Return(1, nil)
 			} else {
-				m.EXPECT().DeleteAddresses(context.TODO()).Return(errors.New(""))
+				m.EXPECT().UpdateAddresses(context.TODO()).Return(0, errors.New(""))
 			}
 
 			res, err := ipPoolReconcile.reconcileDelete(context.TODO(), m)
@@ -329,11 +316,6 @@ var _ = Describe("Metal3IPPool controller", func() {
 			ExpectError:   false,
 			ExpectRequeue: false,
 		}),
-		Entry("DeleteReady error", reconcileDeleteTestCase{
-			DeleteReadyError: true,
-			ExpectError:      true,
-			ExpectRequeue:    false,
-		}),
 		Entry("Delete error", reconcileDeleteTestCase{
 			DeleteError:   true,
 			ExpectError:   true,
@@ -346,4 +328,73 @@ var _ = Describe("Metal3IPPool controller", func() {
 		}),
 	)
 
+	type TestCaseM3IPCToM3IPP struct {
+		IPClaim       *infrav1.Metal3IPClaim
+		ExpectRequest bool
+	}
+
+	DescribeTable("Metal3IPClaim To Metal3IPPool tests",
+		func(tc TestCaseM3IPCToM3IPP) {
+			r := Metal3IPPoolReconciler{}
+			obj := handler.MapObject{
+				Object: tc.IPClaim,
+			}
+			reqs := r.Metal3IPClaimToMetal3IPPool(obj)
+
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+
+				req := reqs[0]
+				Expect(req.NamespacedName.Name).To(Equal(tc.IPClaim.Spec.Pool.Name),
+					"Expected name %s, found %s", tc.IPClaim.Spec.Pool.Name, req.NamespacedName.Name)
+				if tc.IPClaim.Spec.Pool.Namespace == "" {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.IPClaim.Namespace),
+						"Expected namespace %s, found %s", tc.IPClaim.Namespace, req.NamespacedName.Namespace)
+				} else {
+					Expect(req.NamespacedName.Namespace).To(Equal(tc.IPClaim.Spec.Pool.Namespace),
+						"Expected namespace %s, found %s", tc.IPClaim.Spec.Pool.Namespace, req.NamespacedName.Namespace)
+				}
+
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+
+			}
+		},
+		Entry("No Metal3IPPool in Spec",
+			TestCaseM3IPCToM3IPP{
+				IPClaim: &infrav1.Metal3IPClaim{
+					ObjectMeta: testObjectMeta,
+					Spec:       infrav1.Metal3IPClaimSpec{},
+				},
+				ExpectRequest: false,
+			},
+		),
+		Entry("Metal3IPPool in Spec, with namespace",
+			TestCaseM3IPCToM3IPP{
+				IPClaim: &infrav1.Metal3IPClaim{
+					ObjectMeta: testObjectMeta,
+					Spec: infrav1.Metal3IPClaimSpec{
+						Pool: corev1.ObjectReference{
+							Name:      "abc",
+							Namespace: "myns",
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
+		Entry("Metal3IPPool in Spec, no namespace",
+			TestCaseM3IPCToM3IPP{
+				IPClaim: &infrav1.Metal3IPClaim{
+					ObjectMeta: testObjectMeta,
+					Spec: infrav1.Metal3IPClaimSpec{
+						Pool: corev1.ObjectReference{
+							Name: "abc",
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
+	)
 })

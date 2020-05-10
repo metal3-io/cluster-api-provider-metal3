@@ -26,6 +26,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+	v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // MockIPPoolManagerInterface is a mock of IPPoolManagerInterface interface
@@ -75,59 +76,31 @@ func (mr *MockIPPoolManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockIPPoolManagerInterface)(nil).UnsetFinalizer))
 }
 
-// RecreateStatusConditionally mocks base method
-func (m *MockIPPoolManagerInterface) RecreateStatusConditionally(arg0 context.Context) error {
+// SetClusterOwnerRef mocks base method
+func (m *MockIPPoolManagerInterface) SetClusterOwnerRef(arg0 *v1alpha3.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecreateStatusConditionally", arg0)
+	ret := m.ctrl.Call(m, "SetClusterOwnerRef", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RecreateStatusConditionally indicates an expected call of RecreateStatusConditionally
-func (mr *MockIPPoolManagerInterfaceMockRecorder) RecreateStatusConditionally(arg0 interface{}) *gomock.Call {
+// SetClusterOwnerRef indicates an expected call of SetClusterOwnerRef
+func (mr *MockIPPoolManagerInterfaceMockRecorder) SetClusterOwnerRef(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecreateStatusConditionally", reflect.TypeOf((*MockIPPoolManagerInterface)(nil).RecreateStatusConditionally), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClusterOwnerRef", reflect.TypeOf((*MockIPPoolManagerInterface)(nil).SetClusterOwnerRef), arg0)
 }
 
-// DeleteAddresses mocks base method
-func (m *MockIPPoolManagerInterface) DeleteAddresses(arg0 context.Context) error {
+// UpdateAddresses mocks base method
+func (m *MockIPPoolManagerInterface) UpdateAddresses(arg0 context.Context) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAddresses", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAddresses indicates an expected call of DeleteAddresses
-func (mr *MockIPPoolManagerInterfaceMockRecorder) DeleteAddresses(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAddresses", reflect.TypeOf((*MockIPPoolManagerInterface)(nil).DeleteAddresses), arg0)
-}
-
-// CreateAddresses mocks base method
-func (m *MockIPPoolManagerInterface) CreateAddresses(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateAddresses", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateAddresses indicates an expected call of CreateAddresses
-func (mr *MockIPPoolManagerInterfaceMockRecorder) CreateAddresses(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAddresses", reflect.TypeOf((*MockIPPoolManagerInterface)(nil).CreateAddresses), arg0)
-}
-
-// DeleteReady mocks base method
-func (m *MockIPPoolManagerInterface) DeleteReady() (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteReady")
-	ret0, _ := ret[0].(bool)
+	ret := m.ctrl.Call(m, "UpdateAddresses", arg0)
+	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DeleteReady indicates an expected call of DeleteReady
-func (mr *MockIPPoolManagerInterfaceMockRecorder) DeleteReady() *gomock.Call {
+// UpdateAddresses indicates an expected call of UpdateAddresses
+func (mr *MockIPPoolManagerInterfaceMockRecorder) UpdateAddresses(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteReady", reflect.TypeOf((*MockIPPoolManagerInterface)(nil).DeleteReady))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAddresses", reflect.TypeOf((*MockIPPoolManagerInterface)(nil).UpdateAddresses), arg0)
 }

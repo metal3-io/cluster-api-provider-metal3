@@ -26,6 +26,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -300,6 +301,12 @@ func (r *Metal3MachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).
 		Watches(
+			&source.Kind{Type: &capm3.Metal3DataClaim{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.Metal3DataClaimToMetal3Machines),
+			},
+		).
+		Watches(
 			&source.Kind{Type: &capm3.Metal3Data{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.Metal3DataToMetal3Machines),
@@ -406,17 +413,17 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 
 // Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
 // Metal3Data and that Metal3Data references a Metal3Machine.
-func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObject) []ctrl.Request {
-	if m3d, ok := obj.Object.(*capm3.Metal3Data); ok {
-		if m3d.Spec.Metal3Machine != nil {
-			namespace := m3d.Spec.Metal3Machine.Namespace
+func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj handler.MapObject) []ctrl.Request {
+	if m3dc, ok := obj.Object.(*capm3.Metal3DataClaim); ok {
+		if m3dc.Spec.Metal3Machine.Name != "" {
+			namespace := m3dc.Spec.Metal3Machine.Namespace
 			if namespace == "" {
-				namespace = m3d.Namespace
+				namespace = m3dc.Namespace
 			}
 			return []ctrl.Request{
 				ctrl.Request{
 					NamespacedName: types.NamespacedName{
-						Name:      m3d.Spec.Metal3Machine.Name,
+						Name:      m3dc.Spec.Metal3Machine.Name,
 						Namespace: namespace,
 					},
 				},
@@ -424,6 +431,33 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObje
 		}
 	}
 	return []ctrl.Request{}
+}
+
+// Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
+// Metal3Data and that Metal3Data references a Metal3Machine.
+func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObject) []ctrl.Request {
+	requests := []ctrl.Request{}
+	if m3d, ok := obj.Object.(*capm3.Metal3Data); ok {
+		for _, ownerRef := range m3d.OwnerReferences {
+			if ownerRef.Kind != "Metal3Machine" {
+				continue
+			}
+			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+			if err != nil {
+				continue
+			}
+			if aGV.Group != capm3.GroupVersion.Group {
+				continue
+			}
+			requests = append(requests, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ownerRef.Name,
+					Namespace: m3d.Namespace,
+				},
+			})
+		}
+	}
+	return requests
 }
 
 // setError sets the ErrorMessage and ErrorReason fields on the metal3machine

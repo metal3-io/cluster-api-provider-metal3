@@ -25,11 +25,15 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -144,5 +148,38 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 func (r *Metal3DataReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3Data{}).
+		Watches(
+			&source.Kind{Type: &capm3.Metal3IPClaim{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.Metal3IPClaimToMetal3Data),
+			},
+		).
 		Complete(r)
+}
+
+// Metal3IPClaimToMetal3Data will return a reconcile request for a Metal3Data if the event is for a
+// Metal3IPClaim and that Metal3IPClaim references a Metal3Data.
+func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj handler.MapObject) []ctrl.Request {
+	requests := []ctrl.Request{}
+	if m3dc, ok := obj.Object.(*capm3.Metal3IPClaim); ok {
+		for _, ownerRef := range m3dc.OwnerReferences {
+			if ownerRef.Kind != "Metal3Data" {
+				continue
+			}
+			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+			if err != nil {
+				continue
+			}
+			if aGV.Group != capm3.GroupVersion.Group {
+				continue
+			}
+			requests = append(requests, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ownerRef.Name,
+					Namespace: m3dc.Namespace,
+				},
+			})
+		}
+	}
+	return requests
 }
