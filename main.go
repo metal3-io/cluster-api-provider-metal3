@@ -281,12 +281,32 @@ func setupWebhooks(mgr ctrl.Manager) {
 	}
 
 	if err := (&infrav1.Metal3DataTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Metadata")
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataTemplate")
 		os.Exit(1)
 	}
 
 	if err := (&infrav1.Metal3Data{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Metadata")
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Data")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataClaim")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1.Metal3IPPool{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3IPPool")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1.Metal3IPAddress{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3IPAddress")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1.Metal3IPClaim{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3IPClaim")
 		os.Exit(1)
 	}
 }
