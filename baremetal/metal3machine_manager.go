@@ -1232,6 +1232,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 					Controller: pointer.BoolPtr(true),
 				},
 			},
+			Labels: m.Metal3Machine.Labels,
 		},
 		Spec: capm3.Metal3DataClaimSpec{
 			Metal3Machine: corev1.ObjectReference{

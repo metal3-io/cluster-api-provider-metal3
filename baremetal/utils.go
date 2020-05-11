@@ -210,7 +210,7 @@ func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3DataName, m3Data); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Data Claim not found, requeuing")
+			mLog.Info("Data Claim not found")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 		} else {
 			err := errors.Wrap(err, "Failed to get metadata")

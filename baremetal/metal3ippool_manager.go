@@ -329,6 +329,7 @@ func (m *IPPoolManager) createAddress(ctx context.Context,
 					UID:        addressClaim.UID,
 				},
 			},
+			Labels: addressClaim.Labels,
 		},
 		Spec: capm3.Metal3IPAddressSpec{
 			Address: allocatedAddress,

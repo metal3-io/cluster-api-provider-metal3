@@ -27,6 +27,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -241,6 +243,19 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		return indexes, nil
 	}
 
+	m3mUID := types.UID("")
+	for _, ownerRef := range dataClaim.OwnerReferences {
+		aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			return indexes, err
+		}
+		if ownerRef.Kind == "Metal3Machine" &&
+			ownerRef.Name == dataClaim.Spec.Metal3Machine.Name &&
+			aGV.Group == capm3.GroupVersion.Group {
+			m3mUID = ownerRef.UID
+		}
+	}
+
 	// Get a new index for this machine
 	m.Log.Info("Getting index", "Claim", dataClaim.Name)
 	claimIndex := len(indexes)
@@ -270,6 +285,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dataName,
 			Namespace: m.DataTemplate.Namespace,
+			Labels:    dataClaim.Labels,
 			OwnerReferences: []metav1.OwnerReference{
 				metav1.OwnerReference{
 					Controller: pointer.BoolPtr(true),
@@ -285,9 +301,10 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 					UID:        dataClaim.UID,
 				},
 				metav1.OwnerReference{
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: dataClaim.APIVersion,
 					Kind:       "Metal3Machine",
 					Name:       dataClaim.Spec.Metal3Machine.Name,
+					UID:        m3mUID,
 				},
 			},
 		},

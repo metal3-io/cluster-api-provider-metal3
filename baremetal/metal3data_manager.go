@@ -560,6 +560,7 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 						Controller: pointer.BoolPtr(true),
 					},
 				},
+				Labels: m.Data.Labels,
 			},
 			Spec: capm3.Metal3IPClaimSpec{
 				Pool: corev1.ObjectReference{
