@@ -61,7 +61,7 @@ type Metal3IPPoolSpec struct {
 	Pools []IPPool `json:"pools,omitempty"`
 
 	// PreAllocations contains the preallocated IP addresses
-	PreAllocations map[string]IPAddress `json:"preAllocations:omitempty"`
+	PreAllocations map[string]IPAddress `json:"preAllocations,omitempty"`
 
 	// +kubebuilder:validation:Maximum=128
 	// Prefix is the mask of the network as integer (max 128)
