@@ -50,6 +50,12 @@ type Metal3IPPoolReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ippools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ippools/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ipclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ipclaims/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ipaddresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3ipaddresses/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters/status,verbs=get
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
@@ -85,6 +91,12 @@ func (r *Metal3IPPoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rer
 		Namespace: capm3IPPool.Namespace,
 	}
 
+	if capm3IPPool.ObjectMeta.Labels == nil {
+		capm3IPPool.ObjectMeta.Labels = make(map[string]string)
+	}
+	capm3IPPool.ObjectMeta.Labels[capi.ClusterLabelName] = capm3IPPool.Spec.ClusterName
+	capm3IPPool.ObjectMeta.Labels[capi.ProviderLabelName] = "infrastructure-metal3"
+
 	// Fetch the Cluster. Ignore an error if the deletion timestamp is set
 	err = r.Client.Get(ctx, key, cluster)
 	if capm3IPPool.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -100,17 +112,15 @@ func (r *Metal3IPPoolReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rer
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the IP pool")
 	}
 
-	if cluster != nil {
-		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
-		if err := ipPoolMgr.SetClusterOwnerRef(cluster); err != nil {
-			return ctrl.Result{}, err
-		}
+	metadataLog = metadataLog.WithValues("cluster", cluster.Name)
+	if err := ipPoolMgr.SetClusterOwnerRef(cluster); err != nil {
+		return ctrl.Result{}, err
+	}
 
-		// Return early if the Metadata or Cluster is paused.
-		if util.IsPaused(cluster, capm3IPPool) {
-			metadataLog.Info("reconciliation is paused for this object")
-			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
-		}
+	// Return early if the Metadata or Cluster is paused.
+	if util.IsPaused(cluster, capm3IPPool) {
+		metadataLog.Info("reconciliation is paused for this object")
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	// Handle deleted metadata
