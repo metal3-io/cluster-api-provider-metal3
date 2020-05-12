@@ -1485,11 +1485,11 @@ var _ = Describe("Metal3Data manager", func() {
 											Network: "10.0.0.0",
 											Prefix:  16,
 											Gateway: infrav1.NetworkGatewayv4{
-												String: (*infrav1.IPAddressv4)(pointer.StringPtr("192.168.1.1")),
+												String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
 											},
 											Services: infrav1.NetworkDataServicev4{
-												DNS: []infrav1.IPAddressv4{
-													infrav1.IPAddressv4("8.8.8.8"),
+												DNS: []ipamv1.IPAddressv4Str{
+													ipamv1.IPAddressv4Str("8.8.8.8"),
 												},
 											},
 										},
@@ -1498,9 +1498,9 @@ var _ = Describe("Metal3Data manager", func() {
 							},
 						},
 						Services: infrav1.NetworkDataService{
-							DNS: []infrav1.IPAddress{
-								infrav1.IPAddress("8.8.8.8"),
-								infrav1.IPAddress("2001::8888"),
+							DNS: []ipamv1.IPAddressStr{
+								ipamv1.IPAddressStr("8.8.8.8"),
+								ipamv1.IPAddressStr("2001::8888"),
 							},
 						},
 					},
@@ -1611,19 +1611,19 @@ var _ = Describe("Metal3Data manager", func() {
 
 	It("Test renderNetworkServices", func() {
 		services := infrav1.NetworkDataService{
-			DNS: []infrav1.IPAddress{
-				(infrav1.IPAddress)("8.8.8.8"),
-				(infrav1.IPAddress)("2001::8888"),
+			DNS: []ipamv1.IPAddressStr{
+				(ipamv1.IPAddressStr)("8.8.8.8"),
+				(ipamv1.IPAddressStr)("2001::8888"),
 			},
 		}
 		expectedOutput := []interface{}{
 			map[string]interface{}{
 				"type":    "dns",
-				"address": infrav1.IPAddress("8.8.8.8"),
+				"address": ipamv1.IPAddressStr("8.8.8.8"),
 			},
 			map[string]interface{}{
 				"type":    "dns",
-				"address": infrav1.IPAddress("2001::8888"),
+				"address": ipamv1.IPAddressStr("2001::8888"),
 			},
 		}
 		result := renderNetworkServices(services)
@@ -1828,8 +1828,8 @@ var _ = Describe("Metal3Data manager", func() {
 									FromIPPool: pointer.StringPtr("abc"),
 								},
 								Services: infrav1.NetworkDataServicev4{
-									DNS: []infrav1.IPAddressv4{
-										infrav1.IPAddressv4("8.8.8.8"),
+									DNS: []ipamv1.IPAddressv4Str{
+										ipamv1.IPAddressv4Str("8.8.8.8"),
 									},
 								},
 							},
@@ -1844,16 +1844,16 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectedOutput: []interface{}{
 				map[string]interface{}{
-					"ip_address": infrav1.IPAddressv4("192.168.0.14"),
+					"ip_address": ipamv1.IPAddressv4Str("192.168.0.14"),
 					"routes": []interface{}{
 						map[string]interface{}{
-							"network": infrav1.IPAddressv4("10.0.0.0"),
-							"netmask": infrav1.IPAddressv4("255.255.0.0"),
-							"gateway": infrav1.IPAddressv4("192.168.1.1"),
+							"network": ipamv1.IPAddressv4Str("10.0.0.0"),
+							"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
+							"gateway": ipamv1.IPAddressv4Str("192.168.1.1"),
 							"services": []interface{}{
 								map[string]interface{}{
 									"type":    "dns",
-									"address": infrav1.IPAddressv4("8.8.8.8"),
+									"address": ipamv1.IPAddressv4Str("8.8.8.8"),
 								},
 							},
 						},
@@ -1861,7 +1861,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":    "ipv4",
 					"id":      "abc",
 					"link":    "def",
-					"netmask": infrav1.IPAddressv4("255.255.255.0"),
+					"netmask": ipamv1.IPAddressv4Str("255.255.255.0"),
 				},
 			},
 		}),
@@ -1902,8 +1902,8 @@ var _ = Describe("Metal3Data manager", func() {
 									FromIPPool: pointer.StringPtr("abc"),
 								},
 								Services: infrav1.NetworkDataServicev6{
-									DNS: []infrav1.IPAddressv6{
-										infrav1.IPAddressv6("2001::8888"),
+									DNS: []ipamv1.IPAddressv6Str{
+										ipamv1.IPAddressv6Str("2001::8888"),
 									},
 								},
 							},
@@ -1918,16 +1918,16 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectedOutput: []interface{}{
 				map[string]interface{}{
-					"ip_address": infrav1.IPAddressv6("fe80::2001:38"),
+					"ip_address": ipamv1.IPAddressv6Str("fe80::2001:38"),
 					"routes": []interface{}{
 						map[string]interface{}{
-							"network": infrav1.IPAddressv6("2001::"),
-							"netmask": infrav1.IPAddressv6("ffff:ffff:ffff:ffff::"),
-							"gateway": infrav1.IPAddressv6("fe80::2001:1"),
+							"network": ipamv1.IPAddressv6Str("2001::"),
+							"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
+							"gateway": ipamv1.IPAddressv6Str("fe80::2001:1"),
 							"services": []interface{}{
 								map[string]interface{}{
 									"type":    "dns",
-									"address": infrav1.IPAddressv6("2001::8888"),
+									"address": ipamv1.IPAddressv6Str("2001::8888"),
 								},
 							},
 						},
@@ -1935,7 +1935,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":    "ipv6",
 					"id":      "abc",
 					"link":    "def",
-					"netmask": infrav1.IPAddressv6("ffff:ffff:ffff:ffff:ffff:ffff::"),
+					"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff:ffff:ffff::"),
 				},
 			},
 		}),
@@ -1965,11 +1965,11 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "10.0.0.0",
 								Prefix:  16,
 								Gateway: infrav1.NetworkGatewayv4{
-									String: (*infrav1.IPAddressv4)(pointer.StringPtr("192.168.1.1")),
+									String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
 								},
 								Services: infrav1.NetworkDataServicev4{
-									DNS: []infrav1.IPAddressv4{
-										infrav1.IPAddressv4("8.8.8.8"),
+									DNS: []ipamv1.IPAddressv4Str{
+										ipamv1.IPAddressv4Str("8.8.8.8"),
 									},
 								},
 							},
@@ -1986,13 +1986,13 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]interface{}{
 					"routes": []interface{}{
 						map[string]interface{}{
-							"network": infrav1.IPAddressv4("10.0.0.0"),
-							"netmask": infrav1.IPAddressv4("255.255.0.0"),
-							"gateway": infrav1.IPAddressv4("192.168.1.1"),
+							"network": ipamv1.IPAddressv4Str("10.0.0.0"),
+							"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
+							"gateway": ipamv1.IPAddressv4Str("192.168.1.1"),
 							"services": []interface{}{
 								map[string]interface{}{
 									"type":    "dns",
-									"address": infrav1.IPAddressv4("8.8.8.8"),
+									"address": ipamv1.IPAddressv4Str("8.8.8.8"),
 								},
 							},
 						},
@@ -2014,11 +2014,11 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "2001::",
 								Prefix:  64,
 								Gateway: infrav1.NetworkGatewayv6{
-									String: (*infrav1.IPAddressv6)(pointer.StringPtr("fe80::2001:1")),
+									String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("fe80::2001:1")),
 								},
 								Services: infrav1.NetworkDataServicev6{
-									DNS: []infrav1.IPAddressv6{
-										infrav1.IPAddressv6("2001::8888"),
+									DNS: []ipamv1.IPAddressv6Str{
+										ipamv1.IPAddressv6Str("2001::8888"),
 									},
 								},
 							},
@@ -2035,13 +2035,13 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]interface{}{
 					"routes": []interface{}{
 						map[string]interface{}{
-							"network": infrav1.IPAddressv6("2001::"),
-							"netmask": infrav1.IPAddressv6("ffff:ffff:ffff:ffff::"),
-							"gateway": infrav1.IPAddressv6("fe80::2001:1"),
+							"network": ipamv1.IPAddressv6Str("2001::"),
+							"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
+							"gateway": ipamv1.IPAddressv6Str("fe80::2001:1"),
 							"services": []interface{}{
 								map[string]interface{}{
 									"type":    "dns",
-									"address": infrav1.IPAddressv6("2001::8888"),
+									"address": ipamv1.IPAddressv6Str("2001::8888"),
 								},
 							},
 						},
@@ -2063,11 +2063,11 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "2001::",
 								Prefix:  64,
 								Gateway: infrav1.NetworkGatewayv6{
-									String: (*infrav1.IPAddressv6)(pointer.StringPtr("fe80::2001:1")),
+									String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("fe80::2001:1")),
 								},
 								Services: infrav1.NetworkDataServicev6{
-									DNS: []infrav1.IPAddressv6{
-										infrav1.IPAddressv6("2001::8888"),
+									DNS: []ipamv1.IPAddressv6Str{
+										ipamv1.IPAddressv6Str("2001::8888"),
 									},
 								},
 							},
@@ -2084,13 +2084,13 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]interface{}{
 					"routes": []interface{}{
 						map[string]interface{}{
-							"network": infrav1.IPAddressv6("2001::"),
-							"netmask": infrav1.IPAddressv6("ffff:ffff:ffff:ffff::"),
-							"gateway": infrav1.IPAddressv6("fe80::2001:1"),
+							"network": ipamv1.IPAddressv6Str("2001::"),
+							"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
+							"gateway": ipamv1.IPAddressv6Str("fe80::2001:1"),
 							"services": []interface{}{
 								map[string]interface{}{
 									"type":    "dns",
-									"address": infrav1.IPAddressv6("2001::8888"),
+									"address": ipamv1.IPAddressv6Str("2001::8888"),
 								},
 							},
 						},
@@ -2109,7 +2109,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Network: "192.168.0.0",
 				Prefix:  24,
 				Gateway: infrav1.NetworkGatewayv4{
-					String: (*infrav1.IPAddressv4)(pointer.StringPtr("192.168.1.1")),
+					String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
 				},
 			},
 			infrav1.NetworkDataRoutev4{
@@ -2119,9 +2119,9 @@ var _ = Describe("Metal3Data manager", func() {
 					FromIPPool: pointer.StringPtr("abc"),
 				},
 				Services: infrav1.NetworkDataServicev4{
-					DNS: []infrav1.IPAddressv4{
-						infrav1.IPAddressv4("8.8.8.8"),
-						infrav1.IPAddressv4("8.8.4.4"),
+					DNS: []ipamv1.IPAddressv4Str{
+						ipamv1.IPAddressv4Str("8.8.8.8"),
+						ipamv1.IPAddressv4Str("8.8.4.4"),
 					},
 				},
 			},
@@ -2133,23 +2133,23 @@ var _ = Describe("Metal3Data manager", func() {
 		}
 		ExpectedOutput := []interface{}{
 			map[string]interface{}{
-				"network":  infrav1.IPAddressv4("192.168.0.0"),
-				"netmask":  infrav1.IPAddressv4("255.255.255.0"),
-				"gateway":  infrav1.IPAddressv4("192.168.1.1"),
+				"network":  ipamv1.IPAddressv4Str("192.168.0.0"),
+				"netmask":  ipamv1.IPAddressv4Str("255.255.255.0"),
+				"gateway":  ipamv1.IPAddressv4Str("192.168.1.1"),
 				"services": []interface{}{},
 			},
 			map[string]interface{}{
-				"network": infrav1.IPAddressv4("10.0.0.0"),
-				"netmask": infrav1.IPAddressv4("255.255.0.0"),
-				"gateway": infrav1.IPAddressv4("192.168.2.1"),
+				"network": ipamv1.IPAddressv4Str("10.0.0.0"),
+				"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
+				"gateway": ipamv1.IPAddressv4Str("192.168.2.1"),
 				"services": []interface{}{
 					map[string]interface{}{
 						"type":    "dns",
-						"address": infrav1.IPAddressv4("8.8.8.8"),
+						"address": ipamv1.IPAddressv4Str("8.8.8.8"),
 					},
 					map[string]interface{}{
 						"type":    "dns",
-						"address": infrav1.IPAddressv4("8.8.4.4"),
+						"address": ipamv1.IPAddressv4Str("8.8.4.4"),
 					},
 				},
 			},
@@ -2167,7 +2167,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Network: "2001::0",
 				Prefix:  96,
 				Gateway: infrav1.NetworkGatewayv6{
-					String: (*infrav1.IPAddressv6)(pointer.StringPtr("2001::1")),
+					String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("2001::1")),
 				},
 			},
 			infrav1.NetworkDataRoutev6{
@@ -2177,9 +2177,9 @@ var _ = Describe("Metal3Data manager", func() {
 					FromIPPool: pointer.StringPtr("abc"),
 				},
 				Services: infrav1.NetworkDataServicev6{
-					DNS: []infrav1.IPAddressv6{
-						infrav1.IPAddressv6("fe80:2001::8888"),
-						infrav1.IPAddressv6("fe80:2001::8844"),
+					DNS: []ipamv1.IPAddressv6Str{
+						ipamv1.IPAddressv6Str("fe80:2001::8888"),
+						ipamv1.IPAddressv6Str("fe80:2001::8844"),
 					},
 				},
 			},
@@ -2191,23 +2191,23 @@ var _ = Describe("Metal3Data manager", func() {
 		}
 		ExpectedOutput := []interface{}{
 			map[string]interface{}{
-				"network":  infrav1.IPAddressv6("2001::0"),
-				"netmask":  infrav1.IPAddressv6("ffff:ffff:ffff:ffff:ffff:ffff::"),
-				"gateway":  infrav1.IPAddressv6("2001::1"),
+				"network":  ipamv1.IPAddressv6Str("2001::0"),
+				"netmask":  ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff:ffff:ffff::"),
+				"gateway":  ipamv1.IPAddressv6Str("2001::1"),
 				"services": []interface{}{},
 			},
 			map[string]interface{}{
-				"network": infrav1.IPAddressv6("fe80::0"),
-				"netmask": infrav1.IPAddressv6("ffff:ffff:ffff:ffff::"),
-				"gateway": infrav1.IPAddressv6("fe80::1"),
+				"network": ipamv1.IPAddressv6Str("fe80::0"),
+				"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
+				"gateway": ipamv1.IPAddressv6Str("fe80::1"),
 				"services": []interface{}{
 					map[string]interface{}{
 						"type":    "dns",
-						"address": infrav1.IPAddressv6("fe80:2001::8888"),
+						"address": ipamv1.IPAddressv6Str("fe80:2001::8888"),
 					},
 					map[string]interface{}{
 						"type":    "dns",
-						"address": infrav1.IPAddressv6("fe80:2001::8844"),
+						"address": ipamv1.IPAddressv6Str("fe80:2001::8844"),
 					},
 				},
 			},
@@ -2232,20 +2232,20 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("IPv4 mask 24", testCaseTranslateMask{
 			mask:         24,
 			ipv4:         true,
-			expectedMask: infrav1.IPAddressv4("255.255.255.0"),
+			expectedMask: ipamv1.IPAddressv4Str("255.255.255.0"),
 		}),
 		Entry("IPv4 mask 16", testCaseTranslateMask{
 			mask:         16,
 			ipv4:         true,
-			expectedMask: infrav1.IPAddressv4("255.255.0.0"),
+			expectedMask: ipamv1.IPAddressv4Str("255.255.0.0"),
 		}),
 		Entry("IPv6 mask 64", testCaseTranslateMask{
 			mask:         64,
-			expectedMask: infrav1.IPAddressv6("ffff:ffff:ffff:ffff::"),
+			expectedMask: ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
 		}),
 		Entry("IPv6 mask 96", testCaseTranslateMask{
 			mask:         96,
-			expectedMask: infrav1.IPAddressv6("ffff:ffff:ffff:ffff:ffff:ffff::"),
+			expectedMask: ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff:ffff:ffff::"),
 		}),
 	)
 

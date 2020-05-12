@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha4
 
 import (
+	ipamv1 "github.com/metal3-io/ipam/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -103,14 +104,14 @@ type MetaDataIPAddress struct {
 	// Key is the metadata key when redendering this metadata element
 	Key string `json:"key"`
 	// Start is the first ip address that can be rendered
-	Start *IPAddress `json:"start,omitempty"`
+	Start *ipamv1.IPAddressStr `json:"start,omitempty"`
 	// End is the last IP address that can be rendered. It is used as a validation
 	// that the rendered IP is in bound.
-	End *IPAddress `json:"end,omitempty"`
+	End *ipamv1.IPAddressStr `json:"end,omitempty"`
 	// Subnet is used to validate that the rendered IP is in bounds. In case the
 	// Start value is not given, it is derived from the subnet ip incremented by 1
 	// (`192.168.0.1` for `192.168.0.0/24`)
-	Subnet *IPSubnet `json:"subnet,omitempty"`
+	Subnet *ipamv1.IPSubnetStr `json:"subnet,omitempty"`
 	// +kubebuilder:default=1
 	// Step is the step between the IP addresses rendered.
 	Step int `json:"step,omitempty"`
@@ -252,19 +253,19 @@ type NetworkDataLink struct {
 // NetworkDataService represents a service object
 type NetworkDataService struct {
 	// DNS is a list of DNS services
-	DNS []IPAddress `json:"dns,omitempty"`
+	DNS []ipamv1.IPAddressStr `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev4 represents a service object
 type NetworkDataServicev4 struct {
 	// DNS is a list of IPv4 DNS services
-	DNS []IPAddressv4 `json:"dns,omitempty"`
+	DNS []ipamv1.IPAddressv4Str `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev6 represents a service object
 type NetworkDataServicev6 struct {
 	// DNS is a list of IPv6 DNS services
-	DNS []IPAddressv6 `json:"dns,omitempty"`
+	DNS []ipamv1.IPAddressv6Str `json:"dns,omitempty"`
 }
 
 // NetworkGatewayv4 represents a gateway, given as a string or as a reference to
@@ -272,7 +273,7 @@ type NetworkDataServicev6 struct {
 type NetworkGatewayv4 struct {
 
 	// String is the gateway given as a string
-	String *IPAddressv4 `json:"string,omitempty"`
+	String *ipamv1.IPAddressv4Str `json:"string,omitempty"`
 
 	// FromIPPool is the name of the pool to fetch the gateway from
 	FromIPPool *string `json:"fromIPPool,omitempty"`
@@ -283,7 +284,7 @@ type NetworkGatewayv4 struct {
 type NetworkGatewayv6 struct {
 
 	// String is the gateway given as a string
-	String *IPAddressv6 `json:"string,omitempty"`
+	String *ipamv1.IPAddressv6Str `json:"string,omitempty"`
 
 	// FromIPPool is the name of the pool to fetch the gateway from
 	FromIPPool *string `json:"fromIPPool,omitempty"`
@@ -292,7 +293,7 @@ type NetworkGatewayv6 struct {
 // NetworkDataRoutev4 represents an ipv4 route object
 type NetworkDataRoutev4 struct {
 	// Network is the IPv4 network address
-	Network IPAddressv4 `json:"network"`
+	Network ipamv1.IPAddressv4Str `json:"network"`
 
 	// +kubebuilder:validation:Maximum=32
 	// Prefix is the mask of the network as integer (max 32)
@@ -308,7 +309,7 @@ type NetworkDataRoutev4 struct {
 // NetworkDataRoutev6 represents an ipv6 route object
 type NetworkDataRoutev6 struct {
 	// Network is the IPv6 network address
-	Network IPAddressv6 `json:"network"`
+	Network ipamv1.IPAddressv6Str `json:"network"`
 
 	// +kubebuilder:validation:Maximum=128
 	// Prefix is the mask of the network as integer (max 128)

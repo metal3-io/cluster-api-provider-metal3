@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"github.com/metal3-io/ipam/api/v1alpha1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -236,17 +237,17 @@ func (in *MetaDataIPAddress) DeepCopyInto(out *MetaDataIPAddress) {
 	*out = *in
 	if in.Start != nil {
 		in, out := &in.Start, &out.Start
-		*out = new(IPAddress)
+		*out = new(v1alpha1.IPAddressStr)
 		**out = **in
 	}
 	if in.End != nil {
 		in, out := &in.End, &out.End
-		*out = new(IPAddress)
+		*out = new(v1alpha1.IPAddressStr)
 		**out = **in
 	}
 	if in.Subnet != nil {
 		in, out := &in.Subnet, &out.Subnet
-		*out = new(IPSubnet)
+		*out = new(v1alpha1.IPSubnetStr)
 		**out = **in
 	}
 }
@@ -1283,7 +1284,7 @@ func (in *NetworkDataService) DeepCopyInto(out *NetworkDataService) {
 	*out = *in
 	if in.DNS != nil {
 		in, out := &in.DNS, &out.DNS
-		*out = make([]IPAddress, len(*in))
+		*out = make([]v1alpha1.IPAddressStr, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -1303,7 +1304,7 @@ func (in *NetworkDataServicev4) DeepCopyInto(out *NetworkDataServicev4) {
 	*out = *in
 	if in.DNS != nil {
 		in, out := &in.DNS, &out.DNS
-		*out = make([]IPAddressv4, len(*in))
+		*out = make([]v1alpha1.IPAddressv4Str, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -1323,7 +1324,7 @@ func (in *NetworkDataServicev6) DeepCopyInto(out *NetworkDataServicev6) {
 	*out = *in
 	if in.DNS != nil {
 		in, out := &in.DNS, &out.DNS
-		*out = make([]IPAddressv6, len(*in))
+		*out = make([]v1alpha1.IPAddressv6Str, len(*in))
 		copy(*out, *in)
 	}
 }
@@ -1343,7 +1344,7 @@ func (in *NetworkGatewayv4) DeepCopyInto(out *NetworkGatewayv4) {
 	*out = *in
 	if in.String != nil {
 		in, out := &in.String, &out.String
-		*out = new(IPAddressv4)
+		*out = new(v1alpha1.IPAddressv4Str)
 		**out = **in
 	}
 	if in.FromIPPool != nil {
@@ -1368,7 +1369,7 @@ func (in *NetworkGatewayv6) DeepCopyInto(out *NetworkGatewayv6) {
 	*out = *in
 	if in.String != nil {
 		in, out := &in.String, &out.String
-		*out = new(IPAddressv6)
+		*out = new(v1alpha1.IPAddressv6Str)
 		**out = **in
 	}
 	if in.FromIPPool != nil {

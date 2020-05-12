@@ -16,6 +16,7 @@ package v1alpha4
 import (
 	"testing"
 
+	ipamv1 "github.com/metal3-io/ipam/api/v1alpha1"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -135,7 +136,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			new: &Metal3DataTemplateSpec{
 				NetworkData: &NetworkData{
 					Services: NetworkDataService{
-						DNS: []IPAddress{
+						DNS: []ipamv1.IPAddressStr{
 							"abc",
 						},
 					},
@@ -144,7 +145,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			old: &Metal3DataTemplateSpec{
 				NetworkData: &NetworkData{
 					Services: NetworkDataService{
-						DNS: []IPAddress{
+						DNS: []ipamv1.IPAddressStr{
 							"abcd",
 						},
 					},
@@ -157,7 +158,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			new: &Metal3DataTemplateSpec{
 				NetworkData: &NetworkData{
 					Services: NetworkDataService{
-						DNS: []IPAddress{
+						DNS: []ipamv1.IPAddressStr{
 							"abc",
 						},
 					},

@@ -756,7 +756,7 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 		if !ok {
 			return nil, errors.New("Pool not found in cache")
 		}
-		ip := capm3.IPAddressv4(poolAddress.address)
+		ip := ipamv1.IPAddressv4Str(poolAddress.address)
 		mask := translateMask(poolAddress.prefix, true)
 		routes, err := getRoutesv4(network.Routes, poolAddresses)
 		if err != nil {
@@ -778,7 +778,7 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 		if !ok {
 			return nil, errors.New("Pool not found in cache")
 		}
-		ip := capm3.IPAddressv6(poolAddress.address)
+		ip := ipamv1.IPAddressv6Str(poolAddress.address)
 		mask := translateMask(poolAddress.prefix, false)
 		routes, err := getRoutesv6(network.Routes, poolAddresses)
 		if err != nil {
@@ -845,7 +845,7 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
 ) ([]interface{}, error) {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
-		gateway := capm3.IPAddressv4("")
+		gateway := ipamv1.IPAddressv4Str("")
 		if route.Gateway.String != nil {
 			gateway = *route.Gateway.String
 		} else if route.Gateway.FromIPPool != nil {
@@ -853,7 +853,7 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
 			if !ok {
 				return []interface{}{}, errors.New("Failed to fetch pool from cache")
 			}
-			gateway = capm3.IPAddressv4(poolAddress.gateway)
+			gateway = ipamv1.IPAddressv4Str(poolAddress.gateway)
 		}
 		services := []interface{}{}
 		for _, service := range route.Services.DNS {
@@ -879,7 +879,7 @@ func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6,
 ) ([]interface{}, error) {
 	routes := []interface{}{}
 	for _, route := range netRoutes {
-		gateway := capm3.IPAddressv6("")
+		gateway := ipamv1.IPAddressv6Str("")
 		if route.Gateway.String != nil {
 			gateway = *route.Gateway.String
 		} else if route.Gateway.FromIPPool != nil {
@@ -887,7 +887,7 @@ func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6,
 			if !ok {
 				return []interface{}{}, errors.New("Failed to fetch pool from cache")
 			}
-			gateway = capm3.IPAddressv6(poolAddress.gateway)
+			gateway = ipamv1.IPAddressv6Str(poolAddress.gateway)
 		}
 		services := []interface{}{}
 		for _, service := range route.Services.DNS {
@@ -914,11 +914,11 @@ func translateMask(maskInt int, ipv4 bool) interface{} {
 		address := net.IP(append([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255},
 			[]byte(net.CIDRMask(maskInt, 32))...,
 		)).String()
-		return capm3.IPAddressv4(address)
+		return ipamv1.IPAddressv4Str(address)
 	} else {
 		// get the mask
 		address := net.IP(net.CIDRMask(maskInt, 128)).String()
-		return capm3.IPAddressv6(address)
+		return ipamv1.IPAddressv6Str(address)
 	}
 }
 
