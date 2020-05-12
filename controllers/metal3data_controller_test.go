@@ -27,6 +27,7 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
+	ipamv1 "github.com/metal3-io/ipam/api/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -365,7 +366,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("test Metal3IPClaimToMetal3Data",
 		func(tc testCaseMetal3IPClaimToMetal3Data) {
-			ipClaim := &infrav1.Metal3IPClaim{
+			ipClaim := &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:       "myns",
 					OwnerReferences: tc.ownerRefs,

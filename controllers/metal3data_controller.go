@@ -23,6 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	ipamv1 "github.com/metal3-io/ipam/api/v1alpha1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -149,7 +150,7 @@ func (r *Metal3DataReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3Data{}).
 		Watches(
-			&source.Kind{Type: &capm3.Metal3IPClaim{}},
+			&source.Kind{Type: &ipamv1.IPClaim{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.Metal3IPClaimToMetal3Data),
 			},
@@ -161,7 +162,7 @@ func (r *Metal3DataReconciler) SetupWithManager(mgr ctrl.Manager) error {
 // Metal3IPClaim and that Metal3IPClaim references a Metal3Data.
 func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj handler.MapObject) []ctrl.Request {
 	requests := []ctrl.Request{}
-	if m3dc, ok := obj.Object.(*capm3.Metal3IPClaim); ok {
+	if m3dc, ok := obj.Object.(*ipamv1.IPClaim); ok {
 		for _, ownerRef := range m3dc.OwnerReferences {
 			if ownerRef.Kind != "Metal3Data" {
 				continue

@@ -37,9 +37,6 @@ type ManagerFactoryInterface interface {
 	NewDataManager(*capm3.Metal3Data, logr.Logger) (
 		DataManagerInterface, error,
 	)
-	NewIPPoolManager(*capm3.Metal3IPPool, logr.Logger) (
-		IPPoolManagerInterface, error,
-	)
 }
 
 // ManagerFactory only contains a client
@@ -74,9 +71,4 @@ func (f ManagerFactory) NewDataTemplateManager(metadata *capm3.Metal3DataTemplat
 // NewDataManager creates a new DataManager
 func (f ManagerFactory) NewDataManager(metadata *capm3.Metal3Data, metadataLog logr.Logger) (DataManagerInterface, error) {
 	return NewDataManager(f.client, metadata, metadataLog)
-}
-
-// NewIPPoolManager creates a new IPPoolManager
-func (f ManagerFactory) NewIPPoolManager(ipPool *capm3.Metal3IPPool, metadataLog logr.Logger) (IPPoolManagerInterface, error) {
-	return NewIPPoolManager(f.client, ipPool, metadataLog)
 }

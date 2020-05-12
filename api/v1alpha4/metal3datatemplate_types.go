@@ -141,13 +141,13 @@ type MetaData struct {
 	Namespaces []MetaDataNamespace `json:"namespaces,omitempty"`
 
 	// IPAddressesFromPool is the list of metadata items to be rendered as ip addresses.
-	IPAddressesFromPool []FromPool `json:"ipAddressesFromPool,omitempty"`
+	IPAddressesFromPool []FromPool `json:"ipAddressesFromIPPool,omitempty"`
 
 	// PrefixesFromPool is the list of metadata items to be rendered as ip addresses.
-	PrefixesFromPool []FromPool `json:"prefixesFromPool,omitempty"`
+	PrefixesFromPool []FromPool `json:"prefixesFromIPPool,omitempty"`
 
 	// GatewaysFromPool is the list of metadata items to be rendered as ip addresses.
-	GatewaysFromPool []FromPool `json:"gatewaysFromPool,omitempty"`
+	GatewaysFromPool []FromPool `json:"gatewaysFromIPPool,omitempty"`
 
 	// FromHostInterfaces is the list of metadata items to be rendered as MAC
 	// addresses of the host interfaces.

@@ -19,7 +19,6 @@ package baremetal
 import (
 	"context"
 	"gopkg.in/yaml.v2"
-	"net"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -27,6 +26,7 @@ import (
 
 	bmo "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	ipamv1 "github.com/metal3-io/ipam/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,7 +108,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.m3m != nil {
 				objects = append(objects, tc.m3m)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -189,7 +189,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.networkdataSecret != nil {
 				objects = append(objects, tc.networkdataSecret)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -563,7 +563,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -629,12 +629,12 @@ var _ = Describe("Metal3Data manager", func() {
 		func(tc testCaseGetAddressesFromPool) {
 			objects := []runtime.Object{}
 			for _, poolName := range tc.ipClaims {
-				pool := &infrav1.Metal3IPClaim{
+				pool := &ipamv1.IPClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-" + poolName,
 						Namespace: "myns",
 					},
-					Spec: infrav1.Metal3IPClaimSpec{
+					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference,
 					},
 				}
@@ -657,7 +657,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 				Spec: tc.m3dtSpec,
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(c, m3d,
 				klogr.New(),
 			)
@@ -965,12 +965,12 @@ var _ = Describe("Metal3Data manager", func() {
 		func(tc testCaseReleaseAddressesFromPool) {
 			objects := []runtime.Object{}
 			for _, poolName := range tc.ipClaims {
-				pool := &infrav1.Metal3IPClaim{
+				pool := &ipamv1.IPClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-" + poolName,
 						Namespace: "myns",
 					},
-					Spec: infrav1.Metal3IPClaimSpec{
+					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference,
 					},
 				}
@@ -992,7 +992,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 				Spec: tc.m3dtSpec,
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(c, m3d,
 				klogr.New(),
 			)
@@ -1010,7 +1010,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			for _, poolName := range tc.ipClaims {
-				capm3IPPool := &infrav1.Metal3IPClaim{}
+				capm3IPPool := &ipamv1.IPClaim{}
 				poolNamespacedName := types.NamespacedName{
 					Name:      "abc-" + poolName,
 					Namespace: m3d.Namespace,
@@ -1124,8 +1124,8 @@ var _ = Describe("Metal3Data manager", func() {
 		m3d               *infrav1.Metal3Data
 		poolName          string
 		poolAddresses     map[string]addressFromPool
-		ipClaim           *infrav1.Metal3IPClaim
-		ipAddress         *infrav1.Metal3IPAddress
+		ipClaim           *ipamv1.IPClaim
+		ipAddress         *ipamv1.IPAddress
 		expectError       bool
 		expectRequeue     bool
 		expectedAddresses map[string]addressFromPool
@@ -1142,7 +1142,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -1167,7 +1167,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			Expect(poolAddresses).To(Equal(tc.expectedAddresses))
 			if tc.expectClaim {
-				capm3IPClaim := &infrav1.Metal3IPClaim{}
+				capm3IPClaim := &ipamv1.IPClaim{}
 				claimNamespacedName := types.NamespacedName{
 					Name:      tc.m3d.Name + "-" + tc.poolName,
 					Namespace: tc.m3d.Namespace,
@@ -1219,7 +1219,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedAddresses: map[string]addressFromPool{
 				"abc": addressFromPool{},
 			},
-			ipClaim: &infrav1.Metal3IPClaim{
+			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
 					Namespace: "myns",
@@ -1238,12 +1238,12 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedAddresses: map[string]addressFromPool{
 				"abc": addressFromPool{},
 			},
-			ipClaim: &infrav1.Metal3IPClaim{
+			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
 					Namespace: "myns",
 				},
-				Status: infrav1.Metal3IPClaimStatus{
+				Status: ipamv1.IPClaimStatus{
 					ErrorMessage: pointer.StringPtr("Error happened"),
 				},
 			},
@@ -1261,12 +1261,12 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedAddresses: map[string]addressFromPool{
 				"abc": addressFromPool{},
 			},
-			ipClaim: &infrav1.Metal3IPClaim{
+			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
 					Namespace: "myns",
 				},
-				Status: infrav1.Metal3IPClaimStatus{
+				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.11",
 						Namespace: "myns",
@@ -1285,32 +1285,32 @@ var _ = Describe("Metal3Data manager", func() {
 			poolName: "abc",
 			expectedAddresses: map[string]addressFromPool{
 				"abc": addressFromPool{
-					address: infrav1.IPAddress("192.168.0.10"),
+					address: ipamv1.IPAddressStr("192.168.0.10"),
 					prefix:  26,
-					gateway: infrav1.IPAddress("192.168.0.1"),
+					gateway: ipamv1.IPAddressStr("192.168.0.1"),
 				},
 			},
-			ipClaim: &infrav1.Metal3IPClaim{
+			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
 					Namespace: "myns",
 				},
-				Status: infrav1.Metal3IPClaimStatus{
+				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.10",
 						Namespace: "myns",
 					},
 				},
 			},
-			ipAddress: &infrav1.Metal3IPAddress{
+			ipAddress: &ipamv1.IPAddress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-192.168.0.10",
 					Namespace: "myns",
 				},
-				Spec: infrav1.Metal3IPAddressSpec{
-					Address: infrav1.IPAddress("192.168.0.10"),
+				Spec: ipamv1.IPAddressSpec{
+					Address: ipamv1.IPAddressStr("192.168.0.10"),
 					Prefix:  26,
-					Gateway: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.1")),
+					Gateway: (*ipamv1.IPAddressStr)(pointer.StringPtr("192.168.0.1")),
 				},
 			},
 		}),
@@ -1320,7 +1320,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3d               *infrav1.Metal3Data
 		poolName          string
 		poolAddresses     map[string]bool
-		ipClaim           *infrav1.Metal3IPClaim
+		ipClaim           *ipamv1.IPClaim
 		expectError       bool
 		expectRequeue     bool
 		expectedAddresses map[string]bool
@@ -1332,7 +1332,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -1352,7 +1352,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			Expect(poolAddresses).To(Equal(tc.expectedAddresses))
 			if tc.ipClaim != nil {
-				capm3IPClaim := &infrav1.Metal3IPClaim{}
+				capm3IPClaim := &ipamv1.IPClaim{}
 				poolNamespacedName := types.NamespacedName{
 					Name:      tc.m3d.Name,
 					Namespace: tc.m3d.Namespace,
@@ -1418,7 +1418,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			poolName: "abc",
-			ipClaim: &infrav1.Metal3IPClaim{
+			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
 					Namespace: "myns",
@@ -1809,9 +1809,9 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("IPv4 network", testCaseRenderNetworkNetworks{
 			poolAddresses: map[string]addressFromPool{
 				"abc": addressFromPool{
-					address: infrav1.IPAddress("192.168.0.14"),
+					address: ipamv1.IPAddressStr("192.168.0.14"),
 					prefix:  24,
-					gateway: infrav1.IPAddress("192.168.1.1"),
+					gateway: ipamv1.IPAddressStr("192.168.1.1"),
 				},
 			},
 			networks: infrav1.NetworkDataNetwork{
@@ -1883,9 +1883,9 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("IPv6 network", testCaseRenderNetworkNetworks{
 			poolAddresses: map[string]addressFromPool{
 				"abc": addressFromPool{
-					address: infrav1.IPAddress("fe80::2001:38"),
+					address: ipamv1.IPAddressStr("fe80::2001:38"),
 					prefix:  96,
-					gateway: infrav1.IPAddress("fe80::2001:1"),
+					gateway: ipamv1.IPAddressStr("fe80::2001:1"),
 				},
 			},
 			networks: infrav1.NetworkDataNetwork{
@@ -2789,166 +2789,6 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectError: true,
-		}),
-	)
-
-	type testCaseGetIPAddress struct {
-		ipAddress   infrav1.IPPool
-		index       int
-		expectError bool
-		expectedIP  infrav1.IPAddress
-	}
-
-	DescribeTable("Test getIPAddress",
-		func(tc testCaseGetIPAddress) {
-			result, err := getIPAddress(tc.ipAddress, tc.index)
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(tc.expectedIP))
-			}
-		},
-		Entry("Empty Start and Subnet", testCaseGetIPAddress{
-			ipAddress:   infrav1.IPPool{},
-			index:       1,
-			expectError: true,
-		}),
-		Entry("Start set, no end or subnet", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
-			},
-			index:      1,
-			expectedIP: infrav1.IPAddress("192.168.0.11"),
-		}),
-		Entry("Start set, end set, subnet unset", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
-				End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.100")),
-			},
-			index:      1,
-			expectedIP: infrav1.IPAddress("192.168.0.11"),
-		}),
-		Entry("Start set, end set, subnet unset, out of bound", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Start: (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
-				End:   (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.100")),
-			},
-			index:       100,
-			expectError: true,
-		}),
-		Entry("Start set, end unset, subnet set", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Start:  (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
-				Subnet: (*infrav1.IPSubnet)(pointer.StringPtr("192.168.0.0/24")),
-			},
-			index:      1,
-			expectedIP: infrav1.IPAddress("192.168.0.11"),
-		}),
-		Entry("Start set, end unset, subnet set, out of bound", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Start:  (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
-				Subnet: (*infrav1.IPSubnet)(pointer.StringPtr("192.168.0.0/24")),
-			},
-			index:       250,
-			expectError: true,
-		}),
-		Entry("Start set, end unset, subnet empty", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Start:  (*infrav1.IPAddress)(pointer.StringPtr("192.168.0.10")),
-				Subnet: (*infrav1.IPSubnet)(pointer.StringPtr("")),
-			},
-			index:       1,
-			expectError: true,
-		}),
-		Entry("subnet empty", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Subnet: (*infrav1.IPSubnet)(pointer.StringPtr("")),
-			},
-			index:       1,
-			expectError: true,
-		}),
-		Entry("Start unset, end unset, subnet set", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Subnet: (*infrav1.IPSubnet)(pointer.StringPtr("192.168.0.10/24")),
-			},
-			index:      1,
-			expectedIP: infrav1.IPAddress("192.168.0.12"),
-		}),
-		Entry("Start unset, end unset, subnet set, out of bound", testCaseGetIPAddress{
-			ipAddress: infrav1.IPPool{
-				Subnet: (*infrav1.IPSubnet)(pointer.StringPtr("192.168.0.10/24")),
-			},
-			index:       250,
-			expectError: true,
-		}),
-	)
-
-	type testCaseAddOffsetToIP struct {
-		ip          string
-		endIP       string
-		offset      int
-		expectedIP  string
-		expectError bool
-	}
-
-	DescribeTable("Test AddOffsetToIP",
-		func(tc testCaseAddOffsetToIP) {
-			testIP := net.ParseIP(tc.ip)
-			testEndIP := net.ParseIP(tc.endIP)
-			expectedIP := net.ParseIP(tc.expectedIP)
-
-			result, err := addOffsetToIP(testIP, testEndIP, tc.offset)
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-				Expect(result).To(Equal(expectedIP))
-			}
-		},
-		Entry("valid IPv4", testCaseAddOffsetToIP{
-			ip:         "192.168.0.10",
-			endIP:      "192.168.0.200",
-			offset:     10,
-			expectedIP: "192.168.0.20",
-		}),
-		Entry("valid IPv4, no end ip", testCaseAddOffsetToIP{
-			ip:         "192.168.0.10",
-			offset:     1000,
-			expectedIP: "192.168.3.242",
-		}),
-		Entry("Over bound ipv4", testCaseAddOffsetToIP{
-			ip:          "192.168.0.10",
-			endIP:       "192.168.0.200",
-			offset:      1000,
-			expectError: true,
-		}),
-		Entry("error ipv4", testCaseAddOffsetToIP{
-			ip:          "255.255.255.250",
-			offset:      10,
-			expectError: true,
-		}),
-		Entry("valid IPv6", testCaseAddOffsetToIP{
-			ip:         "2001::10",
-			endIP:      "2001::fff0",
-			offset:     10,
-			expectedIP: "2001::1A",
-		}),
-		Entry("valid IPv6, no end ip", testCaseAddOffsetToIP{
-			ip:         "2001::10",
-			offset:     10000,
-			expectedIP: "2001::2720",
-		}),
-		Entry("Over bound ipv6", testCaseAddOffsetToIP{
-			ip:          "2001::10",
-			endIP:       "2001::00f0",
-			offset:      10000,
-			expectError: true,
-		}),
-		Entry("error ipv6", testCaseAddOffsetToIP{
-			ip:          "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFF0",
-			offset:      100,
 			expectError: true,
 		}),
 	)

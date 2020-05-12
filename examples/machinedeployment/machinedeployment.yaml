@@ -69,7 +69,7 @@ spec:
         object: metal3machine
       - key: bmh_name
         object: baremetalhost
-    ipAddressesFromPool:
+    ipAddressesFromIPPool:
       - key: ip_1
         name: pool1
       - key: ip_2
@@ -78,7 +78,7 @@ spec:
         name: pool6-1
       - key: ip6_2
         name: pool6-2
-    prefixesFromPool:
+    prefixesFromIPPool:
       - key: prefix_1
         name: pool1
       - key: prefix_2
@@ -87,7 +87,7 @@ spec:
         name: pool6-1
       - key: prefix6_2
         name: pool6-2
-    gatewaysFromPool:
+    gatewaysFromIPPool:
       - key: gateway_1
         name: pool1
       - key: gateway_2

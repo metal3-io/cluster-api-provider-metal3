@@ -29,6 +29,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	capm3remote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
+	ipamv1 "github.com/metal3-io/ipam/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -57,6 +58,7 @@ var (
 
 func init() {
 	_ = scheme.AddToScheme(myscheme)
+	_ = ipamv1.AddToScheme(myscheme)
 	_ = infrav1.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = bmoapis.AddToScheme(myscheme)
@@ -194,15 +196,6 @@ func setupReconcilers(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3DataReconciler")
 		os.Exit(1)
 	}
-
-	if err := (&controllers.Metal3IPPoolReconciler{
-		Client:         mgr.GetClient(),
-		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
-		Log:            ctrl.Log.WithName("controllers").WithName("Metal3IPPool"),
-	}).SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "Metal3IPPoolReconciler")
-		os.Exit(1)
-	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
@@ -292,21 +285,6 @@ func setupWebhooks(mgr ctrl.Manager) {
 
 	if err := (&infrav1.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataClaim")
-		os.Exit(1)
-	}
-
-	if err := (&infrav1.Metal3IPPool{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3IPPool")
-		os.Exit(1)
-	}
-
-	if err := (&infrav1.Metal3IPAddress{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3IPAddress")
-		os.Exit(1)
-	}
-
-	if err := (&infrav1.Metal3IPClaim{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3IPClaim")
 		os.Exit(1)
 	}
 }

@@ -68,7 +68,7 @@ spec:
         object: metal3machine
       - key: bmh_name
         object: baremetalhost
-    ipAddressesFromPool:
+    ipAddressesFromIPPool:
       - key: ip_1
         name: pool1
       - key: ip_2
@@ -77,7 +77,7 @@ spec:
         name: pool6-1
       - key: ip6_2
         name: pool6-2
-    prefixesFromPool:
+    prefixesFromIPPool:
       - key: prefix_1
         name: pool1
       - key: prefix_2
@@ -86,7 +86,7 @@ spec:
         name: pool6-1
       - key: prefix6_2
         name: pool6-2
-    gatewaysFromPool:
+    gatewaysFromIPPool:
       - key: gateway_1
         name: pool1
       - key: gateway_2
@@ -129,8 +129,8 @@ spec:
       dns:
         - 8.8.8.8
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-kind: Metal3IPPool
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
 metadata:
   name: pool1
 spec:
@@ -142,8 +142,8 @@ spec:
       gateway: 192.168.0.1
   namePrefix: pool1
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-kind: Metal3IPPool
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
 metadata:
   name: pool2
 spec:
@@ -154,8 +154,8 @@ spec:
   gateway: 192.168.1.1
   namePrefix: pool2
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-kind: Metal3IPPool
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
 metadata:
   name: pool6-1
 spec:
@@ -167,8 +167,8 @@ spec:
       gateway: 2001::1
   namePrefix: pool6-1
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-kind: Metal3IPPool
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
 metadata:
   name: pool6-2
 spec:

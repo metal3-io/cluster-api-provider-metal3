@@ -146,12 +146,8 @@ rules:
   resources:
   - metal3ipaddresses
   verbs:
-  - create
-  - delete
   - get
   - list
-  - patch
-  - update
   - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
@@ -159,8 +155,6 @@ rules:
   - metal3ipaddresses/status
   verbs:
   - get
-  - patch
-  - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
@@ -179,28 +173,6 @@ rules:
   - metal3ipclaims/status
   verbs:
   - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3ippools
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3ippools/status
-  verbs:
-  - get
-  - patch
-  - update
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:

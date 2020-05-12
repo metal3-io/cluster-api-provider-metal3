@@ -136,7 +136,7 @@ spec:
                       - object
                       type: object
                     type: array
-                  gatewaysFromPool:
+                  gatewaysFromIPPool:
                     description: GatewaysFromPool is the list of metadata items to
                       be rendered as ip addresses.
                     items:
@@ -182,7 +182,7 @@ spec:
                       - key
                       type: object
                     type: array
-                  ipAddressesFromPool:
+                  ipAddressesFromIPPool:
                     description: IPAddressesFromPool is the list of metadata items
                       to be rendered as ip addresses.
                     items:
@@ -238,7 +238,7 @@ spec:
                       - object
                       type: object
                     type: array
-                  prefixesFromPool:
+                  prefixesFromIPPool:
                     description: PrefixesFromPool is the list of metadata items to
                       be rendered as ip addresses.
                     items:
