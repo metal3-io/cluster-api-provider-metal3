@@ -7,7 +7,7 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/google/gofuzz v1.1.0
 	github.com/metal3-io/baremetal-operator v0.0.0-20200424085833-a1dd8aca186d
-	github.com/metal3-io/ipam v0.0.0-00010101000000-000000000000
+	github.com/metal3-io/metal3-ipam v0.0.0-00010101000000-000000000000
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/pkg/errors v0.9.1
@@ -54,4 +54,4 @@ replace github.com/openshift/api => github.com/openshift/api v0.0.0-201909241025
 
 //replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.0 // Issue with go-client version
 
-replace github.com/metal3-io/ipam => github.com/nordix/metal3-ipam v0.0.0-20200512072840-52c2b53df408
+replace github.com/metal3-io/metal3-ipam => github.com/nordix/metal3-ipam v0.0.0-20200512140424-d58d51a69126

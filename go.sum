@@ -688,7 +688,7 @@ github.com/metal3-io/baremetal-operator v0.0.0-20200328061249-10eb5aa3e614/go.mo
 github.com/metal3-io/baremetal-operator v0.0.0-20200424085833-a1dd8aca186d h1:+z1MMMC1tZFlDZdB124xkOcsxT1++u4s0psHuZFAX0o=
 github.com/metal3-io/baremetal-operator v0.0.0-20200424085833-a1dd8aca186d/go.mod h1:hb+evBgPvwwPomUzeN5okBOf45g1ZWbQ7rfrVp7sMTY=
 github.com/metal3-io/cluster-api-provider-metal3 v0.3.1/go.mod h1:Zh08qwz1xhpEhuSXptctZMi6gJDz2nWTYqtB2Dxo2xo=
-github.com/metal3-io/ipam v0.0.0-20200512063809-689a6a7b5ac0 h1:jSUUP+XpNkbOe60stmDLHAgIwY+Jwam0glcjOL389k4=
+github.com/metal3-io/metal3-ipam v0.0.0-20200512063809-689a6a7b5ac0 h1:jSUUP+XpNkbOe60stmDLHAgIwY+Jwam0glcjOL389k4=
 github.com/mholt/certmagic v0.6.2-0.20190624175158-6a42ef9fe8c2/go.mod h1:g4cOPxcjV0oFq3qwpjSA30LReKD8AoIfwAY9VvG35NY=
 github.com/mibk/dupl v1.0.0 h1:aZc3jqrF9n0tUHwHt/+jsRxA8cRgA0Gdl56M7W7PoqE=
 github.com/mibk/dupl v1.0.0/go.mod h1:pCr4pNxxIbFGvtyCOi0c7LVjmV6duhKWV+ex5vh38ME=
@@ -733,6 +733,8 @@ github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d h1:AREM5mwr4u1
 github.com/nbutton23/zxcvbn-go v0.0.0-20180912185939-ae427f1e4c1d/go.mod h1:o96djdrsSGy3AWPyBgZMAGfxZNfgntdJG+11KU4QvbU=
 github.com/nordix/metal3-ipam v0.0.0-20200512072840-52c2b53df408 h1:1/HWeZVxLeRubIFz5H6rcwAKm4AeF3Wz+SBAI+e24mY=
 github.com/nordix/metal3-ipam v0.0.0-20200512072840-52c2b53df408/go.mod h1:E90UJZLfZlno8xH3NtgN1CGwdDLSZeisu3MmS1jScew=
+github.com/nordix/metal3-ipam v0.0.0-20200512140424-d58d51a69126 h1:TiWwT1LO80xMeOGcDl3wTra/xh8wEbJly9obdDP6+g8=
+github.com/nordix/metal3-ipam v0.0.0-20200512140424-d58d51a69126/go.mod h1:mB9+sWJazXfcwKXdFJCl882rEV53XqqoT4ARE5joYLM=
 github.com/oklog/run v1.0.0/go.mod h1:dlhp/R75TPv97u0XWUtDeV/lRKWPKSdTuV0TZvrmrQA=
 github.com/oklog/ulid v1.3.1/go.mod h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=
 github.com/olekukonko/tablewriter v0.0.0-20170122224234-a0225b3f23b5/go.mod h1:vsDQFd/mU46D+Z4whnwzcISnGGzXWMclvtLoiIKAKIo=

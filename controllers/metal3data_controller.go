@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	ipamv1 "github.com/metal3-io/ipam/api/v1alpha1"
+	ipamv1 "github.com/metal3-io/metal3-ipam/api/v1alpha1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"

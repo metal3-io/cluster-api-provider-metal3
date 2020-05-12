@@ -21,7 +21,7 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"github.com/metal3-io/ipam/api/v1alpha1"
+	"github.com/metal3-io/metal3-ipam/api/v1alpha1"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
