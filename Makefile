@@ -127,6 +127,7 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kubebuilder.sh
 
+.PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kustomize.sh
 
@@ -344,8 +345,8 @@ release: clean-release  ## Builds and push container images using the latest git
 	$(MAKE) release-binaries
 
 .PHONY: release-manifests
-release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
-	kustomize build config > $(RELEASE_DIR)/infrastructure-components.yaml
+release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publish with a release
+	$(KUSTOMIZE) build config > $(RELEASE_DIR)/infrastructure-components.yaml
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 	cp examples/clusterctl-templates/clusterctl-cluster.yaml $(RELEASE_DIR)/cluster-template.yaml
 	cp examples/clusterctl-templates/example_variables.rc $(RELEASE_DIR)/example_variables.rc
