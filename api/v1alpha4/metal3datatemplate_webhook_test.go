@@ -16,7 +16,7 @@ package v1alpha4
 import (
 	"testing"
 
-	ipamv1 "github.com/metal3-io/metal3-ipam/api/v1alpha1"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
