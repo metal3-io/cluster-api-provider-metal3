@@ -7,7 +7,7 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/google/gofuzz v1.1.0
 	github.com/metal3-io/baremetal-operator v0.0.0-20200424085833-a1dd8aca186d
-	github.com/metal3-io/ip-address-manager v0.0.0-00010101000000-000000000000
+	github.com/metal3-io/ip-address-manager v0.0.1
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/pkg/errors v0.9.1
@@ -53,5 +53,3 @@ replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503
 replace github.com/openshift/api => github.com/openshift/api v0.0.0-20190924102528-32369d4db2ad // Required by BMO until https://github.com/operator-framework/operator-lifecycle-manager/pull/1241 is resolved
 
 //replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.0 // Issue with go-client version
-
-replace github.com/metal3-io/ip-address-manager => github.com/nordix/metal3-ipam v0.0.0-20200513114000-5aa96c6d33ff
