@@ -509,9 +509,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMetaWithOR,
 			},
 			expectedIndexes: map[string]int{
 				"abc": 0,
@@ -527,9 +525,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			},
 			indexes: map[int]string{},
 			dataClaim: &infrav1.Metal3DataClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMetaWithOR,
 			},
 			expectedIndexes: map[string]int{
 				"abc": 0,
@@ -551,9 +547,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			},
 			indexes: map[int]string{0: "bcd"},
 			dataClaim: &infrav1.Metal3DataClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMetaWithOR,
 			},
 			expectedIndexes: map[string]int{
 				"abc": 1,
@@ -575,9 +569,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			},
 			indexes: map[int]string{},
 			dataClaim: &infrav1.Metal3DataClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMetaWithOR,
 			},
 			datas: []*infrav1.Metal3Data{
 				&infrav1.Metal3Data{

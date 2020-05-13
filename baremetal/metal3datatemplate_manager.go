@@ -244,16 +244,21 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	}
 
 	m3mUID := types.UID("")
+	m3mName := ""
 	for _, ownerRef := range dataClaim.OwnerReferences {
 		aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 		if err != nil {
 			return indexes, err
 		}
 		if ownerRef.Kind == "Metal3Machine" &&
-			ownerRef.Name == dataClaim.Spec.Metal3Machine.Name &&
 			aGV.Group == capm3.GroupVersion.Group {
 			m3mUID = ownerRef.UID
+			m3mName = ownerRef.Name
+			break
 		}
+	}
+	if m3mName == "" {
+		return indexes, errors.New("Metal3Machine not found in owner references")
 	}
 
 	// Get a new index for this machine
@@ -303,7 +308,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 				metav1.OwnerReference{
 					APIVersion: dataClaim.APIVersion,
 					Kind:       "Metal3Machine",
-					Name:       dataClaim.Spec.Metal3Machine.Name,
+					Name:       m3mName,
 					UID:        m3mUID,
 				},
 			},

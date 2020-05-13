@@ -45,17 +45,11 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 				Name:      "abc",
 				Namespace: "abc",
 			},
-			Metal3Machine: corev1.ObjectReference{
-				Name:      "abc",
-				Namespace: "abc",
-			},
 		},
 	}
 
 	invalidHost1 := valid.DeepCopy()
 	invalidHost1.Spec.Template.Name = ""
-	invalidHost2 := valid.DeepCopy()
-	invalidHost2.Spec.Metal3Machine.Name = ""
 
 	tests := []struct {
 		name      string
@@ -66,11 +60,6 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 			name:      "should return error when template unset",
 			expectErr: true,
 			c:         invalidHost1,
-		},
-		{
-			name:      "should return error when metal3machine unset",
-			expectErr: true,
-			c:         invalidHost2,
 		},
 		{
 			name:      "should succeed when endpoint correct",

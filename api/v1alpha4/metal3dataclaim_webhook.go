@@ -50,16 +50,6 @@ func (c *Metal3DataClaim) ValidateCreate() error {
 		)
 	}
 
-	if c.Spec.Metal3Machine.Name == "" {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "metal3Machine", "name"),
-				c.Spec.Metal3Machine.Name,
-				"must be set",
-			),
-		)
-	}
-
 	if len(allErrs) == 0 {
 		return nil
 	}
@@ -95,32 +85,6 @@ func (c *Metal3DataClaim) ValidateUpdate(old runtime.Object) error {
 			field.Invalid(
 				field.NewPath("spec", "template"),
 				c.Spec.Template,
-				"cannot be modified",
-			),
-		)
-	}
-
-	if c.Spec.Metal3Machine.Name != oldMetal3DataClaim.Spec.Metal3Machine.Name {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "metal3Machine"),
-				c.Spec.Metal3Machine,
-				"cannot be modified",
-			),
-		)
-	} else if c.Spec.Metal3Machine.Namespace != oldMetal3DataClaim.Spec.Metal3Machine.Namespace {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "metal3Machine"),
-				c.Spec.Metal3Machine,
-				"cannot be modified",
-			),
-		)
-	} else if c.Spec.Metal3Machine.Kind != oldMetal3DataClaim.Spec.Metal3Machine.Kind {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "metal3Machine"),
-				c.Spec.Metal3Machine,
 				"cannot be modified",
 			),
 		)

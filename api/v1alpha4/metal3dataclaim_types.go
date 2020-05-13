@@ -31,9 +31,6 @@ const (
 type Metal3DataClaimSpec struct {
 	// Template is the Metal3DataTemplate this was generated for.
 	Template corev1.ObjectReference `json:"template"`
-
-	// Metal3Machine is the Metal3Machine this was generated for.
-	Metal3Machine corev1.ObjectReference `json:"metal3Machine"`
 }
 
 // Metal3DataClaimStatus defines the observed state of Metal3Data.

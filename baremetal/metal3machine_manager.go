@@ -1235,10 +1235,6 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 			Labels: m.Metal3Machine.Labels,
 		},
 		Spec: capm3.Metal3DataClaimSpec{
-			Metal3Machine: corev1.ObjectReference{
-				Name:      m.Metal3Machine.Name,
-				Namespace: m.Metal3Machine.Namespace,
-			},
 			Template: *m.Metal3Machine.Spec.DataTemplate,
 		},
 	}

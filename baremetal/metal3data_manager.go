@@ -32,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -1084,12 +1085,26 @@ func (m *DataManager) getM3Machine(ctx context.Context, m3dt *capm3.Metal3DataTe
 		return nil, err
 	}
 
-	if capm3DataClaim.Spec.Metal3Machine.Name == "" {
-		return nil, errors.New("Metal3Machine name not set in claim")
+	metal3MachineName := ""
+	for _, ownerRef := range capm3DataClaim.OwnerReferences {
+		oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+		// not matching on UID since when pivoting it might change
+		// Not matching on API version as this might change
+		if ownerRef.Kind == "Metal3Machine" &&
+			oGV.Group == capm3.GroupVersion.Group {
+			metal3MachineName = ownerRef.Name
+			break
+		}
+	}
+	if metal3MachineName == "" {
+		return nil, errors.New("Metal3Machine not found in owner references")
 	}
 
 	return getM3Machine(ctx, m.client, m.Log,
-		capm3DataClaim.Spec.Metal3Machine.Name, m.Data.Namespace, m3dt, true,
+		metal3MachineName, m.Data.Namespace, m3dt, true,
 	)
 }
 

@@ -458,15 +458,25 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type TestCaseM3DToBMM struct {
-		DataClaim     *infrav1.Metal3DataClaim
+		OwnerRef      *metav1.OwnerReference
 		ExpectRequest bool
 	}
 
 	DescribeTable("Metal3DataClaim To Metal3Machines tests",
 		func(tc TestCaseM3DToBMM) {
 			r := Metal3MachineReconciler{}
+			ownerRefs := []metav1.OwnerReference{}
+			if tc.OwnerRef != nil {
+				ownerRefs = append(ownerRefs, *tc.OwnerRef)
+			}
+			dataClaim := &infrav1.Metal3DataClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: ownerRefs,
+				},
+				Spec: infrav1.Metal3DataClaimSpec{},
+			}
 			obj := handler.MapObject{
-				Object: tc.DataClaim,
+				Object: dataClaim,
 			}
 			reqs := r.Metal3DataClaimToMetal3Machines(obj)
 
@@ -474,15 +484,10 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
 
 				req := reqs[0]
-				Expect(req.NamespacedName.Name).To(Equal(tc.DataClaim.Spec.Metal3Machine.Name),
-					"Expected name %s, found %s", tc.DataClaim.Spec.Metal3Machine.Name, req.NamespacedName.Name)
-				if tc.DataClaim.Spec.Metal3Machine.Namespace == "" {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Namespace),
-						"Expected namespace %s, found %s", tc.DataClaim.Namespace, req.NamespacedName.Namespace)
-				} else {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Spec.Metal3Machine.Namespace),
-						"Expected namespace %s, found %s", tc.DataClaim.Spec.Metal3Machine.Namespace, req.NamespacedName.Namespace)
-				}
+				Expect(req.NamespacedName.Name).To(Equal(tc.OwnerRef.Name),
+					"Expected name %s, found %s", tc.OwnerRef.Name, req.NamespacedName.Name)
+				Expect(req.NamespacedName.Namespace).To(Equal(dataClaim.Namespace),
+					"Expected namespace %s, found %s", dataClaim.Namespace, req.NamespacedName.Namespace)
 
 			} else {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
@@ -491,38 +496,47 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("No Metal3Machine in Spec",
 			TestCaseM3DToBMM{
-				DataClaim: &infrav1.Metal3DataClaim{
-					ObjectMeta: testObjectMeta,
-					Spec:       infrav1.Metal3DataClaimSpec{},
+				ExpectRequest: false,
+			},
+		),
+		Entry("Metal3Machine in ownerRef",
+			TestCaseM3DToBMM{
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "Metal3Machine",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+				ExpectRequest: true,
+			},
+		),
+		Entry("Wrong Kind",
+			TestCaseM3DToBMM{
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "Metal3Machin",
+					APIVersion: infrav1.GroupVersion.String(),
 				},
 				ExpectRequest: false,
 			},
 		),
-		Entry("Metal3Machine in Spec, with namespace",
+		Entry("Wrong Version, should work",
 			TestCaseM3DToBMM{
-				DataClaim: &infrav1.Metal3DataClaim{
-					ObjectMeta: testObjectMeta,
-					Spec: infrav1.Metal3DataClaimSpec{
-						Metal3Machine: corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "myns",
-						},
-					},
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "Metal3Machine",
+					APIVersion: infrav1.GroupVersion.Group + "/v1blah1",
 				},
 				ExpectRequest: true,
 			},
 		),
-		Entry("Metal3Machine in Spec, no namespace",
+		Entry("Wrong Group, should not work",
 			TestCaseM3DToBMM{
-				DataClaim: &infrav1.Metal3DataClaim{
-					ObjectMeta: testObjectMeta,
-					Spec: infrav1.Metal3DataClaimSpec{
-						Metal3Machine: corev1.ObjectReference{
-							Name: "abc",
-						},
-					},
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "Metal3Machine",
+					APIVersion: "foo.bar/" + infrav1.GroupVersion.Version,
 				},
-				ExpectRequest: true,
+				ExpectRequest: false,
 			},
 		),
 	)

@@ -2980,10 +2980,6 @@ var _ = Describe("Metal3Machine manager", func() {
 						Name:      "abcd",
 						Namespace: "myns",
 					},
-					Metal3Machine: corev1.ObjectReference{
-						Name:      "myName",
-						Namespace: "myns",
-					},
 				},
 				Status: capm3.Metal3DataClaimStatus{
 					RenderedData: &corev1.ObjectReference{

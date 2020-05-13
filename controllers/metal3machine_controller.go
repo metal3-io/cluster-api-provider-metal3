@@ -416,23 +416,27 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 // Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
 // Metal3Data and that Metal3Data references a Metal3Machine.
 func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj handler.MapObject) []ctrl.Request {
+	requests := []ctrl.Request{}
 	if m3dc, ok := obj.Object.(*capm3.Metal3DataClaim); ok {
-		if m3dc.Spec.Metal3Machine.Name != "" {
-			namespace := m3dc.Spec.Metal3Machine.Namespace
-			if namespace == "" {
-				namespace = m3dc.Namespace
+		for _, ownerRef := range m3dc.OwnerReferences {
+			oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+			if err != nil {
+				continue
 			}
-			return []ctrl.Request{
-				ctrl.Request{
+			// not matching on UID since when pivoting it might change
+			// Not matching on API version as this might change
+			if ownerRef.Kind == "Metal3Machine" &&
+				oGV.Group == capm3.GroupVersion.Group {
+				requests = append(requests, ctrl.Request{
 					NamespacedName: types.NamespacedName{
-						Name:      m3dc.Spec.Metal3Machine.Name,
-						Namespace: namespace,
+						Name:      ownerRef.Name,
+						Namespace: m3dc.Namespace,
 					},
-				},
+				})
 			}
 		}
 	}
-	return []ctrl.Request{}
+	return requests
 }
 
 // Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
