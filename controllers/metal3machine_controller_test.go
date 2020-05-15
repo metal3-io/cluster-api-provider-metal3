@@ -315,7 +315,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 	})
 
-	type TestCaseMetal3ClusterToBMM struct {
+	type TestCaseMetal3ClusterToM3M struct {
 		Cluster       *capi.Cluster
 		M3Cluster     *infrav1.Metal3Cluster
 		Machine0      *capi.Machine
@@ -325,7 +325,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	}
 
 	DescribeTable("Metal3Cluster To Metal3Machines tests",
-		func(tc TestCaseMetal3ClusterToBMM) {
+		func(tc TestCaseMetal3ClusterToM3M) {
 			objects := []runtime.Object{
 				tc.Cluster,
 				tc.M3Cluster,
@@ -362,7 +362,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		//Given correct resources, metal3Machines reconcile
 		Entry("Metal3Cluster To Metal3Machines, associated Metal3Machine Reconcile",
-			TestCaseMetal3ClusterToBMM{
+			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
 				M3Cluster:     newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
@@ -373,7 +373,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		//No owner cluster, no reconciliation
 		Entry("Metal3Cluster To Metal3Machines, No owner Cluster, No reconciliation",
-			TestCaseMetal3ClusterToBMM{
+			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster("my-other-cluster", nil, nil),
 				M3Cluster:     newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
@@ -384,7 +384,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		//No metal3 cluster, no reconciliation
 		Entry("Metal3Cluster To Metal3Machines, No metal3Cluster, No reconciliation",
-			TestCaseMetal3ClusterToBMM{
+			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster("my-other-cluster", nil, nil),
 				M3Cluster:     &infrav1.Metal3Cluster{},
 				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
@@ -395,13 +395,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 	)
 
-	type TestCaseBMHToBMM struct {
+	type TestCaseBMHToM3M struct {
 		Host          *bmh.BareMetalHost
 		ExpectRequest bool
 	}
 
 	DescribeTable("BareMetalHost To Metal3Machines tests",
-		func(tc TestCaseBMHToBMM) {
+		func(tc TestCaseBMHToM3M) {
 			r := Metal3MachineReconciler{}
 			obj := handler.MapObject{
 				Object: tc.Host,
@@ -424,7 +424,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		//Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines",
-			TestCaseBMHToBMM{
+			TestCaseBMHToM3M{
 				Host: &bmh.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
@@ -444,7 +444,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		//Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines, no ConsumerRef",
-			TestCaseBMHToBMM{
+			TestCaseBMHToM3M{
 				Host: &bmh.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
@@ -457,13 +457,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 	)
 
-	type TestCaseM3DToBMM struct {
+	type TestCaseM3DToM3M struct {
 		OwnerRef      *metav1.OwnerReference
 		ExpectRequest bool
 	}
 
 	DescribeTable("Metal3DataClaim To Metal3Machines tests",
-		func(tc TestCaseM3DToBMM) {
+		func(tc TestCaseM3DToM3M) {
 			r := Metal3MachineReconciler{}
 			ownerRefs := []metav1.OwnerReference{}
 			if tc.OwnerRef != nil {
@@ -495,12 +495,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 		},
 		Entry("No Metal3Machine in Spec",
-			TestCaseM3DToBMM{
+			TestCaseM3DToM3M{
 				ExpectRequest: false,
 			},
 		),
 		Entry("Metal3Machine in ownerRef",
-			TestCaseM3DToBMM{
+			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
 					Kind:       "Metal3Machine",
@@ -510,17 +510,17 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 		),
 		Entry("Wrong Kind",
-			TestCaseM3DToBMM{
+			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
-					Kind:       "Metal3Machin",
+					Kind:       "sdfousdf",
 					APIVersion: infrav1.GroupVersion.String(),
 				},
 				ExpectRequest: false,
 			},
 		),
 		Entry("Wrong Version, should work",
-			TestCaseM3DToBMM{
+			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
 					Kind:       "Metal3Machine",
@@ -530,7 +530,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 		),
 		Entry("Wrong Group, should not work",
-			TestCaseM3DToBMM{
+			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
 					Kind:       "Metal3Machine",
@@ -541,7 +541,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 	)
 
-	type TestCaseClusterToBMM struct {
+	type TestCaseClusterToM3M struct {
 		Cluster       *capi.Cluster
 		Machine       *capi.Machine
 		Machine1      *capi.Machine
@@ -551,7 +551,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	}
 
 	DescribeTable("Cluster To Metal3Machines tests",
-		func(tc TestCaseClusterToBMM) {
+		func(tc TestCaseClusterToM3M) {
 			objects := []runtime.Object{
 				tc.Cluster,
 				tc.Machine,
@@ -582,7 +582,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		//Given Cluster, Machine with metal3machine resource, metal3Machine reconcile
 		Entry("Cluster To Metal3Machines, associated Machine Reconciles",
-			TestCaseClusterToBMM{
+			TestCaseClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
 				M3Machine:     newMetal3Machine(metal3machineName, bmmObjectMetaWithOwnerRef(), nil, nil, false),
 				Machine:       newMachine(clusterName, machineName, metal3machineName),
@@ -593,7 +593,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 		//Given Cluster, Machine without metal3Machine resource, no reconciliation
 		Entry("Cluster To Metal3Machines, no metal3Machine, no Reconciliation",
-			TestCaseClusterToBMM{
+			TestCaseClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
 				M3Machine:     newMetal3Machine("my-metal3-machine-0", nil, nil, nil, false),
 				Machine:       newMachine(clusterName, "my-machine-0", ""),

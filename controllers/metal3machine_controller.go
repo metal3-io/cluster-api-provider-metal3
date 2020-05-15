@@ -91,7 +91,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 	//clear an error if one was previously set
-	clearErrorBMMachine(capm3Machine)
+	clearErrorM3Machine(capm3Machine)
 
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
@@ -110,7 +110,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		machineLog.Info("Metal3Machine's owner Machine is missing cluster label or cluster does not exist")
-		setErrorBMMachine(capm3Machine,
+		setErrorM3Machine(capm3Machine,
 			"Metal3Machine's owner Machine is missing cluster label or cluster does not exist",
 			capierrors.InvalidConfigurationMachineError,
 		)
@@ -118,7 +118,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine is missing label or the cluster does not exist")
 	}
 	if cluster == nil {
-		setErrorBMMachine(capm3Machine, fmt.Sprintf(
+		setErrorM3Machine(capm3Machine, fmt.Sprintf(
 			"The machine is NOT associated with a cluster using the label %s: <name of cluster>",
 			capi.ClusterLabelName,
 		), capierrors.InvalidConfigurationMachineError)
@@ -169,7 +169,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}
 
-	// Return early if the BMMachine or Cluster is paused.
+	// Return early if the M3Machine or Cluster is paused.
 	if util.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
@@ -330,13 +330,17 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(o handler.MapObject) [
 	c, ok := o.Object.(*capi.Cluster)
 
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get Metal3Machine for Cluster")
+		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object),
+			"failed to get Metal3Machine for Cluster",
+		)
 		return nil
 	}
 
 	labels := map[string]string{capi.ClusterLabelName: c.Name}
 	capiMachineList := &capi.MachineList{}
-	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace),
+		client.MatchingLabels(labels),
+	); err != nil {
 		r.Log.Error(err, "failed to list Metal3Machines")
 		return nil
 	}
@@ -360,7 +364,9 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o handler.MapObj
 	result := []ctrl.Request{}
 	c, ok := o.Object.(*capm3.Metal3Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o.Object), "failed to get Metal3Machine for Metal3Cluster")
+		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o.Object),
+			"failed to get Metal3Machine for Metal3Cluster",
+		)
 		return nil
 	}
 	log := r.Log.WithValues("Metal3Cluster", c.Name, "Namespace", c.Namespace)
@@ -409,6 +415,10 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 				},
 			}
 		}
+	} else {
+		r.Log.Error(errors.Errorf("expected a BareMetalHost but got a %T", obj.Object),
+			"failed to get Metal3Machine for BareMetalHost",
+		)
 	}
 	return []ctrl.Request{}
 }
@@ -421,6 +431,9 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj handler.Ma
 		for _, ownerRef := range m3dc.OwnerReferences {
 			oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 			if err != nil {
+				r.Log.Error(errors.Errorf("Failed to parse the group and version %v", ownerRef.APIVersion),
+					"failed to get Metal3Machine for BareMetalHost",
+				)
 				continue
 			}
 			// not matching on UID since when pivoting it might change
@@ -435,6 +448,10 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj handler.Ma
 				})
 			}
 		}
+	} else {
+		r.Log.Error(errors.Errorf("expected a Metal3DataClaim but got a %T", obj.Object),
+			"failed to get Metal3Machine for Metal3DataClaim",
+		)
 	}
 	return requests
 }
@@ -450,6 +467,9 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObje
 			}
 			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 			if err != nil {
+				r.Log.Error(errors.Errorf("Failed to parse the group and version %v", ownerRef.APIVersion),
+					"failed to get Metal3Machine for BareMetalHost",
+				)
 				continue
 			}
 			if aGV.Group != capm3.GroupVersion.Group {
@@ -462,12 +482,16 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObje
 				},
 			})
 		}
+	} else {
+		r.Log.Error(errors.Errorf("expected a Metal3Data but got a %T", obj.Object),
+			"failed to get Metal3Machine for Metal3Data",
+		)
 	}
 	return requests
 }
 
 // setError sets the ErrorMessage and ErrorReason fields on the metal3machine
-func setErrorBMMachine(bmm *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
+func setErrorM3Machine(bmm *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
 
 	bmm.Status.FailureMessage = pointer.StringPtr(message)
 	bmm.Status.FailureReason = &reason
@@ -475,7 +499,7 @@ func setErrorBMMachine(bmm *capm3.Metal3Machine, message string, reason capierro
 }
 
 // clearError removes the ErrorMessage from the metal3machine's Status if set.
-func clearErrorBMMachine(bmm *capm3.Metal3Machine) {
+func clearErrorM3Machine(bmm *capm3.Metal3Machine) {
 
 	if bmm.Status.FailureMessage != nil || bmm.Status.FailureReason != nil {
 		bmm.Status.FailureMessage = nil

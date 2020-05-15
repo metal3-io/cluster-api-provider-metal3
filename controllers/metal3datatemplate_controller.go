@@ -95,12 +95,6 @@ func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		Namespace: capm3DataTemplate.Namespace,
 	}
 
-	if capm3DataTemplate.ObjectMeta.Labels == nil {
-		capm3DataTemplate.ObjectMeta.Labels = make(map[string]string)
-	}
-	capm3DataTemplate.ObjectMeta.Labels[capi.ClusterLabelName] = capm3DataTemplate.Spec.ClusterName
-	capm3DataTemplate.ObjectMeta.Labels[capi.ProviderLabelName] = "infrastructure-metal3"
-
 	// Fetch the Cluster. Ignore an error if the deletion timestamp is set
 	err = r.Client.Get(ctx, key, cluster)
 	if capm3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
