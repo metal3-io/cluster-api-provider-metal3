@@ -286,6 +286,7 @@ func autoConvert_v1alpha4_Image_To_v1alpha2_Image(in *v1alpha4.Image, out *Image
 	out.URL = in.URL
 	out.Checksum = in.Checksum
 	// WARNING: in.ChecksumType requires manual conversion: does not exist in peer-type
+	// WARNING: in.DiskFormat requires manual conversion: does not exist in peer-type
 	return nil
 }
 

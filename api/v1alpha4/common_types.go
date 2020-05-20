@@ -58,4 +58,8 @@ type Image struct {
 	// e.g md5, sha256, sha512
 	// +kubebuilder:validation:Enum=md5;sha256;sha512
 	ChecksumType *string `json:"checksumType,omitempty"`
+
+	//DiskFormat contains the image disk format
+	// +kubebuilder:validation:Enum=raw;qcow2;qed;vdi;vmdk;vpc;vhd
+	DiskFormat *string `json:"format,omitempty"`
 }
