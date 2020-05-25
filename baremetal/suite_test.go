@@ -27,6 +27,7 @@ import (
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -74,6 +75,9 @@ var _ = BeforeSuite(func(done Done) {
 	err = infrav1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = ipamv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
 	err = apiextensionsv1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -111,6 +115,9 @@ func setupScheme() *runtime.Scheme {
 		panic(err)
 	}
 	if err := infrav1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := ipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {

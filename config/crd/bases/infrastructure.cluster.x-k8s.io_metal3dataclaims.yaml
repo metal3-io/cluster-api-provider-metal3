@@ -6,25 +6,25 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.8
   creationTimestamp: null
-  name: metal3datas.infrastructure.cluster.x-k8s.io
+  name: metal3dataclaims.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
     categories:
     - cluster-api
-    kind: Metal3Data
-    listKind: Metal3DataList
-    plural: metal3datas
+    kind: Metal3DataClaim
+    listKind: Metal3DataClaimList
+    plural: metal3dataclaims
     shortNames:
-    - m3d
-    - m3data
-    singular: metal3data
+    - m3dc
+    - m3dataclaim
+    singular: metal3dataclaim
   scope: Namespaced
   versions:
   - name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: Metal3Data is the Schema for the metal3datas API
+        description: Metal3DataClaim is the Schema for the metal3datas API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -41,74 +41,9 @@ spec:
           spec:
             description: Metal3DataSpec defines the desired state of Metal3Data.
             properties:
-              claim:
-                description: DataClaim points to the Metal3DataClaim the Metal3Data
-                  was created for.
-                properties:
-                  apiVersion:
-                    description: API version of the referent.
-                    type: string
-                  fieldPath:
-                    description: 'If referring to a piece of an object instead of
-                      an entire object, this string should contain a valid JSON/Go
-                      field access statement, such as desiredState.manifest.containers[2].
-                      For example, if the object reference is to a container within
-                      a pod, this would take on a value like: "spec.containers{name}"
-                      (where "name" refers to the name of the container that triggered
-                      the event) or if no container name is specified "spec.containers[2]"
-                      (container with index 2 in this pod). This syntax is chosen
-                      only to have some well-defined way of referencing a part of
-                      an object. TODO: this design is not final and this field is
-                      subject to change in the future.'
-                    type: string
-                  kind:
-                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                    type: string
-                  name:
-                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                    type: string
-                  namespace:
-                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                    type: string
-                  resourceVersion:
-                    description: 'Specific resourceVersion to which this reference
-                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                    type: string
-                  uid:
-                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                    type: string
-                type: object
-              index:
-                description: Index stores the index value of this instance in the
-                  Metal3DataTemplate.
-                type: integer
-              metaData:
-                description: MetaData points to the rendered MetaData secret.
-                properties:
-                  name:
-                    description: Name is unique within a namespace to reference a
-                      secret resource.
-                    type: string
-                  namespace:
-                    description: Namespace defines the space within which the secret
-                      name must be unique.
-                    type: string
-                type: object
-              networkData:
-                description: NetworkData points to the rendered NetworkData secret.
-                properties:
-                  name:
-                    description: Name is unique within a namespace to reference a
-                      secret resource.
-                    type: string
-                  namespace:
-                    description: Namespace defines the space within which the secret
-                      name must be unique.
-                    type: string
-                type: object
               template:
-                description: DataTemplate is the Metal3DataTemplate this was generated
-                  from.
+                description: Template is the Metal3DataTemplate this was generated
+                  for.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -144,19 +79,50 @@ spec:
                     type: string
                 type: object
             required:
-            - claim
             - template
             type: object
           status:
-            description: Metal3DataStatus defines the observed state of Metal3Data.
+            description: Metal3DataClaimStatus defines the observed state of Metal3Data.
             properties:
               errorMessage:
                 description: ErrorMessage contains the error message
                 type: string
-              ready:
-                description: Ready is a flag set to True if the secrets were rendered
-                  properly
-                type: boolean
+              renderedData:
+                description: RenderedData references the Metal3Data when ready
+                properties:
+                  apiVersion:
+                    description: API version of the referent.
+                    type: string
+                  fieldPath:
+                    description: 'If referring to a piece of an object instead of
+                      an entire object, this string should contain a valid JSON/Go
+                      field access statement, such as desiredState.manifest.containers[2].
+                      For example, if the object reference is to a container within
+                      a pod, this would take on a value like: "spec.containers{name}"
+                      (where "name" refers to the name of the container that triggered
+                      the event) or if no container name is specified "spec.containers[2]"
+                      (container with index 2 in this pod). This syntax is chosen
+                      only to have some well-defined way of referencing a part of
+                      an object. TODO: this design is not final and this field is
+                      subject to change in the future.'
+                    type: string
+                  kind:
+                    description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    type: string
+                  name:
+                    description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                    type: string
+                  namespace:
+                    description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                    type: string
+                  resourceVersion:
+                    description: 'Specific resourceVersion to which this reference
+                      is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                    type: string
+                  uid:
+                    description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                    type: string
+                type: object
             type: object
         type: object
     served: true

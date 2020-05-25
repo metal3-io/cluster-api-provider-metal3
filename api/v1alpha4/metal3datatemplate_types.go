@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha4
 
 import (
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -102,21 +103,26 @@ type MetaDataHostInterface struct {
 type MetaDataIPAddress struct {
 	// Key is the metadata key when redendering this metadata element
 	Key string `json:"key"`
-	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
 	// Start is the first ip address that can be rendered
-	Start *string `json:"start,omitempty"`
-	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
+	Start *ipamv1.IPAddressStr `json:"start,omitempty"`
 	// End is the last IP address that can be rendered. It is used as a validation
 	// that the rendered IP is in bound.
-	End *string `json:"end,omitempty"`
-	// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$))"
+	End *ipamv1.IPAddressStr `json:"end,omitempty"`
 	// Subnet is used to validate that the rendered IP is in bounds. In case the
 	// Start value is not given, it is derived from the subnet ip incremented by 1
 	// (`192.168.0.1` for `192.168.0.0/24`)
-	Subnet *string `json:"subnet,omitempty"`
+	Subnet *ipamv1.IPSubnetStr `json:"subnet,omitempty"`
 	// +kubebuilder:default=1
 	// Step is the step between the IP addresses rendered.
 	Step int `json:"step,omitempty"`
+}
+
+type FromPool struct {
+	// Key is the metadata key when redendering this metadata element
+	Key string `json:"key"`
+
+	// Name is the name of the pool to use
+	Name string `json:"name"`
 }
 
 // MetaData represents a keyand value of the metadata
@@ -135,8 +141,14 @@ type MetaData struct {
 	// Namespaces is the list of metadata items to be rendered from the namespace
 	Namespaces []MetaDataNamespace `json:"namespaces,omitempty"`
 
-	// IPAddresses is the list of metadata items to be rendered as ip addresses.
-	IPAddresses []MetaDataIPAddress `json:"ipAddresses,omitempty"`
+	// IPAddressesFromPool is the list of metadata items to be rendered as ip addresses.
+	IPAddressesFromPool []FromPool `json:"ipAddressesFromIPPool,omitempty"`
+
+	// PrefixesFromPool is the list of metadata items to be rendered as ip addresses.
+	PrefixesFromPool []FromPool `json:"prefixesFromIPPool,omitempty"`
+
+	// GatewaysFromPool is the list of metadata items to be rendered as ip addresses.
+	GatewaysFromPool []FromPool `json:"gatewaysFromIPPool,omitempty"`
 
 	// FromHostInterfaces is the list of metadata items to be rendered as MAC
 	// addresses of the host interfaces.
@@ -238,49 +250,57 @@ type NetworkDataLink struct {
 	Vlans []NetworkDataLinkVlan `json:"vlans,omitempty"`
 }
 
-// +kubebuilder:validation:Pattern="((^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$)|(^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$))"
-// NetworkDataDNSService is the ip address (version-agnostic) of a DNS server
-type NetworkDataDNSService string
-
-// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
-// NetworkDataDNSServicev4 is the ip address (IPv4) of a DNS server
-type NetworkDataDNSServicev4 string
-
-// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-// NetworkDataDNSServicev6 is the ip address (IPv6) of a DNS server
-type NetworkDataDNSServicev6 string
-
 // NetworkDataService represents a service object
 type NetworkDataService struct {
 	// DNS is a list of DNS services
-	DNS []NetworkDataDNSService `json:"dns,omitempty"`
+	DNS []ipamv1.IPAddressStr `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev4 represents a service object
 type NetworkDataServicev4 struct {
 	// DNS is a list of IPv4 DNS services
-	DNS []NetworkDataDNSServicev4 `json:"dns,omitempty"`
+	DNS []ipamv1.IPAddressv4Str `json:"dns,omitempty"`
 }
 
 // NetworkDataServicev6 represents a service object
 type NetworkDataServicev6 struct {
 	// DNS is a list of IPv6 DNS services
-	DNS []NetworkDataDNSServicev6 `json:"dns,omitempty"`
+	DNS []ipamv1.IPAddressv6Str `json:"dns,omitempty"`
+}
+
+// NetworkGatewayv4 represents a gateway, given as a string or as a reference to
+// a Metal3IPPool
+type NetworkGatewayv4 struct {
+
+	// String is the gateway given as a string
+	String *ipamv1.IPAddressv4Str `json:"string,omitempty"`
+
+	// FromIPPool is the name of the pool to fetch the gateway from
+	FromIPPool *string `json:"fromIPPool,omitempty"`
+}
+
+// NetworkGatewayv6 represents a gateway, given as a string or as a reference to
+// a Metal3IPPool
+type NetworkGatewayv6 struct {
+
+	// String is the gateway given as a string
+	String *ipamv1.IPAddressv6Str `json:"string,omitempty"`
+
+	// FromIPPool is the name of the pool to fetch the gateway from
+	FromIPPool *string `json:"fromIPPool,omitempty"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object
 type NetworkDataRoutev4 struct {
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 	// Network is the IPv4 network address
-	Network string `json:"network"`
+	Network ipamv1.IPAddressv4Str `json:"network"`
 
 	// +kubebuilder:validation:Maximum=32
-	// Netmask is the mask of the network as integer (max 32)
-	Netmask int `json:"netmask"`
+	// Prefix is the mask of the network as integer (max 32)
+	Prefix int `json:"prefix,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
 	// Gateway is the IPv4 address of the gateway
-	Gateway string `json:"gateway"`
+	Gateway NetworkGatewayv4 `json:"gateway"`
 
 	//Services is a list of IPv4 services
 	Services NetworkDataServicev4 `json:"services,omitempty"`
@@ -288,64 +308,18 @@ type NetworkDataRoutev4 struct {
 
 // NetworkDataRoutev6 represents an ipv6 route object
 type NetworkDataRoutev6 struct {
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
 	// Network is the IPv6 network address
-	Network string `json:"network"`
+	Network ipamv1.IPAddressv6Str `json:"network"`
 
 	// +kubebuilder:validation:Maximum=128
-	// Netmask is the mask of the network as integer (max 128)
-	Netmask int `json:"netmask"`
+	// Prefix is the mask of the network as integer (max 128)
+	Prefix int `json:"prefix,omitempty"`
 
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
 	// Gateway is the IPv6 address of the gateway
-	Gateway string `json:"gateway"`
+	Gateway NetworkGatewayv6 `json:"gateway"`
 
 	//Services is a list of IPv6 services
 	Services NetworkDataServicev6 `json:"services,omitempty"`
-}
-
-// NetworkDataIPAddressv4 contains the info to render the ipv4 address.
-type NetworkDataIPAddressv4 struct {
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
-	// Start is the first ipv4 address that can be rendered
-	Start string `json:"start,omitempty"`
-
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))$"
-	// End is the last IPv4 address that can be rendered. It is used as a validation
-	// that the rendered IP is in bound.
-	End string `json:"end,omitempty"`
-
-	// +kubebuilder:validation:Pattern="^((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))/([0-9]|[1-2][0-9]|3[0-2])$"
-	// Subnet is used to validate that the rendered IPv4 is in bounds. In case the
-	// Start value is not given, it is derived from the subnet ip incremented by 1
-	// (`192.168.0.1` for `192.168.0.0/24`)
-	Subnet string `json:"subnet,omitempty"`
-
-	// +kubebuilder:default=1
-	// Step is the step between the IP addresses rendered.
-	Step int `json:"step,omitempty"`
-}
-
-// NetworkDataIPAddressv6 contains the info to render the ipv6 address.
-type NetworkDataIPAddressv6 struct {
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-	// Start is the first ipv6 address that can be rendered
-	Start string `json:"start,omitempty"`
-
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))$"
-	// End is the last IPv6 address that can be rendered. It is used as a validation
-	// that the rendered IP is in bound.
-	End string `json:"end,omitempty"`
-
-	// +kubebuilder:validation:Pattern="^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:))/([0-9]|[0-9][0-9]|1[0-1][0-9]|12[0-8])$"
-	// Subnet is used to validate that the rendered IPv6 is in bounds. In case the
-	// Start value is not given, it is derived from the subnet ip incremented by 1
-	// (`2001::1` for `2001::0/64`)
-	Subnet string `json:"subnet,omitempty"`
-
-	// +kubebuilder:default=1
-	// Step is the step between the IP addresses rendered.
-	Step int `json:"step,omitempty"`
 }
 
 // NetworkDataIPv4 represents an ipv4 static network object
@@ -357,13 +331,8 @@ type NetworkDataIPv4 struct {
 	// Link is the link on which the network applies
 	Link string `json:"link"`
 
-	// +kubebuilder:validation:Maximum=32
-	// +kubebuilder:default=24
-	// Netmask is the network mask as integer (max 32, defaults to 24)
-	Netmask int `json:"netmask"`
-
-	// IPAddress contains the object to generate the IPv4 address
-	IPAddress NetworkDataIPAddressv4 `json:"ipAddress"`
+	// IPAddressFromIPPool contains the name of the pool to use to get an ip address
+	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// Routes contains a list of IPv4 routes
 	Routes []NetworkDataRoutev4 `json:"routes,omitempty"`
@@ -378,12 +347,8 @@ type NetworkDataIPv6 struct {
 	// Link is the link on which the network applies
 	Link string `json:"link"`
 
-	// +kubebuilder:validation:Maximum=128
-	// Netmask is the network mask as integer (max 128)
-	Netmask int `json:"netmask"`
-
-	// IPAddress contains the object to generate the IPv6 address
-	IPAddress NetworkDataIPAddressv6 `json:"ipAddress"`
+	// IPAddressFromIPPool contains the name of the pool to use to get an ip address
+	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// Routes contains a list of IPv6 routes
 	Routes []NetworkDataRoutev6 `json:"routes,omitempty"`
@@ -449,6 +414,10 @@ type NetworkData struct {
 // Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
 type Metal3DataTemplateSpec struct {
 
+	// ClusterName is the name of the Cluster this object belongs to.
+	// +kubebuilder:validation:MinLength=1
+	ClusterName string `json:"clusterName"`
+
 	//MetaData contains the information needed to generate the metadata secret
 	MetaData *MetaData `json:"metaData,omitempty"`
 
@@ -464,10 +433,7 @@ type Metal3DataTemplateStatus struct {
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	//Indexes contains the map of Metal3Machine and index used
-	Indexes map[string]string `json:"indexes,omitempty"`
-
-	//DataNames contains the map of Metal3Machine names and Metal3Data names
-	DataNames map[string]string `json:"dataNames,omitempty"`
+	Indexes map[string]int `json:"indexes,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

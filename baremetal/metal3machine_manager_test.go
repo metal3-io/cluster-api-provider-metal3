@@ -2750,19 +2750,20 @@ var _ = Describe("Metal3Machine manager", func() {
 	type testCaseM3MetaData struct {
 		M3Machine          *capm3.Metal3Machine
 		Machine            *capi.Machine
-		DataTemplate       *capm3.Metal3DataTemplate
+		DataClaim          *capm3.Metal3DataClaim
 		Data               *capm3.Metal3Data
 		ExpectError        bool
 		ExpectRequeue      bool
 		ExpectDataStatus   bool
 		ExpectSecretStatus bool
+		expectClaim        bool
 	}
 
 	DescribeTable("Test AssociateM3MetaData",
 		func(tc testCaseM3MetaData) {
 			objects := []runtime.Object{}
-			if tc.DataTemplate != nil {
-				objects = append(objects, tc.DataTemplate)
+			if tc.DataClaim != nil {
+				objects = append(objects, tc.DataClaim)
 			}
 			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.M3Machine,
@@ -2787,60 +2788,47 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.M3Machine.Spec.NetworkData != nil {
 				Expect(tc.M3Machine.Status.NetworkData).To(Equal(tc.M3Machine.Spec.NetworkData))
 			}
-			if tc.DataTemplate == nil {
-				return
+			if tc.expectClaim {
+				dataTemplate := capm3.Metal3DataClaim{}
+				err = c.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      tc.M3Machine.Name,
+						Namespace: tc.M3Machine.Namespace,
+					},
+					&dataTemplate,
+				)
+				Expect(err).NotTo(HaveOccurred())
 			}
-			dataTemplate := capm3.Metal3DataTemplate{}
-			err = c.Get(context.TODO(),
-				client.ObjectKey{
-					Name:      tc.DataTemplate.Name,
-					Namespace: tc.DataTemplate.Namespace,
-				},
-				&dataTemplate,
-			)
-			Expect(err).NotTo(HaveOccurred())
-			label, ok := dataTemplate.Labels[capi.ClusterLabelName]
-			Expect(ok).To(BeTrue())
-			Expect(label).To(Equal(tc.Machine.Spec.ClusterName))
-			_, err = machineMgr.FindOwnerRef(dataTemplate.OwnerReferences)
-			Expect(err).NotTo(HaveOccurred())
 		},
 		Entry("No Spec", testCaseM3MetaData{
-			M3Machine:    newMetal3Machine("myName", nil, nil, nil, nil),
-			Machine:      nil,
-			DataTemplate: nil,
+			M3Machine: newMetal3Machine("myName", nil, nil, nil, nil),
 		}),
 		Entry("MetaData and NetworkData set in spec", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				MetaData:    &corev1.SecretReference{Name: "abcd"},
 				NetworkData: &corev1.SecretReference{Name: "defg"},
 			}, nil, nil),
-			Machine:      nil,
-			DataTemplate: nil,
 		}),
 		Entry("RenderedData set in status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd"},
 			}, nil),
-			Machine:      nil,
-			DataTemplate: nil,
 		}),
-		Entry("DataTemplate does not exist yet", testCaseM3MetaData{
+		Entry("DataClaim does not exist yet", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine:       newMachine("myName", "myName", nil),
-			DataTemplate:  nil,
-			ExpectRequeue: true,
+			Machine:     newMachine("myName", "myName", nil),
+			expectClaim: true,
 		}),
-		Entry("DataTemplate with OwnerRefs", testCaseM3MetaData{
+		Entry("DataClaim exists", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abcd",
+					Name:      "myName",
 					Namespace: "myns",
 					OwnerReferences: []metav1.OwnerReference{
 						metav1.OwnerReference{
@@ -2849,31 +2837,43 @@ var _ = Describe("Metal3Machine manager", func() {
 							APIVersion: capm3.GroupVersion.String(),
 						},
 					},
-					Labels: map[string]string{
-						capi.ClusterLabelName: clusterName,
-					},
 				},
 			},
+			expectClaim: true,
 		}),
-		Entry("DataTemplate without OwnerRefs", testCaseM3MetaData{
+		Entry("DataClaim ready", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abcd",
+					Name:      "myName",
 					Namespace: "myns",
+					OwnerReferences: []metav1.OwnerReference{
+						metav1.OwnerReference{
+							Name:       "myName",
+							Kind:       "BMMachine",
+							APIVersion: capm3.GroupVersion.String(),
+						},
+					},
+				},
+				Status: capm3.Metal3DataClaimStatus{
+					RenderedData: &corev1.ObjectReference{
+						Name:      "abc",
+						Namespace: "myns",
+					},
 				},
 			},
+			expectClaim: true,
 		}),
 	)
 
 	DescribeTable("Test WaitForM3MetaData",
 		func(tc testCaseM3MetaData) {
 			objects := []runtime.Object{}
-			if tc.DataTemplate != nil {
-				objects = append(objects, tc.DataTemplate)
+			if tc.DataClaim != nil {
+				objects = append(objects, tc.DataClaim)
 			}
 			if tc.Data != nil {
 				objects = append(objects, tc.Data)
@@ -2926,43 +2926,41 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 		},
 		Entry("No Spec", testCaseM3MetaData{
-			M3Machine:    newMetal3Machine("myName", nil, nil, nil, nil),
-			Machine:      nil,
-			DataTemplate: nil,
+			M3Machine: newMetal3Machine("myName", nil, nil, nil, nil),
+			Machine:   nil,
 		}),
 		Entry("No Data template", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine:       newMachine("myName", "myName", nil),
-			DataTemplate:  nil,
 			ExpectRequeue: true,
 		}),
-		Entry("Data template without status", testCaseM3MetaData{
+		Entry("Data claim without status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abcd",
+					Name:      "myName",
 					Namespace: "myns",
 				},
 			},
 			ExpectRequeue: true,
 		}),
-		Entry("Data template with empty status", testCaseM3MetaData{
+		Entry("Data claim with empty status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abcd",
+					Name:      "myName",
 					Namespace: "myns",
 				},
-				Status: capm3.Metal3DataTemplateStatus{
-					DataNames: map[string]string{},
+				Status: capm3.Metal3DataClaimStatus{
+					RenderedData: &corev1.ObjectReference{},
 				},
 			},
 			ExpectRequeue: true,
@@ -2972,14 +2970,21 @@ var _ = Describe("Metal3Machine manager", func() {
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abcd",
+					Name:      "myName",
 					Namespace: "myns",
 				},
-				Status: capm3.Metal3DataTemplateStatus{
-					DataNames: map[string]string{
-						"myName": "abcd-0",
+				Spec: capm3.Metal3DataClaimSpec{
+					Template: corev1.ObjectReference{
+						Name:      "abcd",
+						Namespace: "myns",
+					},
+				},
+				Status: capm3.Metal3DataClaimStatus{
+					RenderedData: &corev1.ObjectReference{
+						Name:      "abcd-0",
+						Namespace: "myns",
 					},
 				},
 			},
@@ -2991,7 +2996,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
 			}, nil),
 			Machine:          newMachine("myName", "myName", nil),
-			DataTemplate:     nil,
 			ExpectRequeue:    true,
 			ExpectDataStatus: true,
 		}),
@@ -3056,8 +3060,8 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test DissociateM3MetaData",
 		func(tc testCaseM3MetaData) {
 			objects := []runtime.Object{}
-			if tc.DataTemplate != nil {
-				objects = append(objects, tc.DataTemplate)
+			if tc.DataClaim != nil {
+				objects = append(objects, tc.DataClaim)
 			}
 			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.M3Machine,
@@ -3085,29 +3089,26 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(tc.M3Machine.Status.NetworkData).To(BeNil())
 			}
 
-			if tc.DataTemplate == nil {
+			if tc.DataClaim == nil {
 				return
 			}
-			dataTemplate := capm3.Metal3DataTemplate{}
+			dataTemplate := capm3.Metal3DataClaim{}
 			err = c.Get(context.TODO(),
 				client.ObjectKey{
-					Name:      tc.DataTemplate.Name,
-					Namespace: tc.DataTemplate.Namespace,
+					Name:      tc.M3Machine.Name,
+					Namespace: tc.M3Machine.Namespace,
 				},
 				&dataTemplate,
 			)
-			Expect(err).NotTo(HaveOccurred())
-			_, err = machineMgr.FindOwnerRef(dataTemplate.OwnerReferences)
 			Expect(err).To(HaveOccurred())
-			Expect(err).To(BeAssignableToTypeOf(&NotFoundError{}))
+			Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		},
 		Entry("No Spec", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				MetaData:    &corev1.SecretReference{Name: "abcd"},
 				NetworkData: &corev1.SecretReference{Name: "defg"},
 			}, nil),
-			Machine:      newMachine("myName", "myName", nil),
-			DataTemplate: nil,
+			Machine: newMachine("myName", "myName", nil),
 		}),
 		Entry("MetaData and NetworkData set in spec and status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
@@ -3118,20 +3119,18 @@ var _ = Describe("Metal3Machine manager", func() {
 				NetworkData: &corev1.SecretReference{Name: "defg"},
 			}, nil),
 			Machine:            newMachine("myName", "myName", nil),
-			DataTemplate:       nil,
 			ExpectSecretStatus: true,
 		}),
-		Entry("DataTemplate not found", testCaseM3MetaData{
+		Entry("DataClaim not found", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "myns",
 				},
 			}, nil, nil),
-			Machine:      newMachine("myName", "myName", nil),
-			DataTemplate: nil,
+			Machine: newMachine("myName", "myName", nil),
 		}),
-		Entry("DataTemplate found, no owner refs", testCaseM3MetaData{
+		Entry("DataClaim found", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name:      "abcd",
@@ -3139,32 +3138,10 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abcd",
+					Name:      "myName",
 					Namespace: "myns",
-				},
-			},
-		}),
-		Entry("DataTemplate found, with owner refs", testCaseM3MetaData{
-			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{
-					Name:      "abcd",
-					Namespace: "myns",
-				},
-			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
-			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abcd",
-					Namespace: "myns",
-					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
-							Name:       "myName",
-							Kind:       "BMMachine",
-							APIVersion: capm3.GroupVersion.String(),
-						},
-					},
 				},
 			},
 		}),

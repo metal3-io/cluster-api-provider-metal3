@@ -38,20 +38,17 @@ type Metal3DataSpec struct {
 	// NetworkData points to the rendered NetworkData secret.
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 
-	// Metal3Machine points to the Metal3Machine the Metal3Data was created for.
-	Metal3Machine *corev1.ObjectReference `json:"metal3Machine,omitempty"`
+	// DataClaim points to the Metal3DataClaim the Metal3Data was created for.
+	Claim corev1.ObjectReference `json:"claim"`
 
 	// DataTemplate is the Metal3DataTemplate this was generated from.
-	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
+	Template corev1.ObjectReference `json:"template"`
 }
 
 // Metal3DataStatus defines the observed state of Metal3Data.
 type Metal3DataStatus struct {
 	// Ready is a flag set to True if the secrets were rendered properly
 	Ready bool `json:"ready,omitempty"`
-
-	// Error is a flag set to true if the secret rendering failed
-	Error bool `json:"error,omitempty"`
 
 	// ErrorMessage contains the error message
 	ErrorMessage *string `json:"errorMessage,omitempty"`

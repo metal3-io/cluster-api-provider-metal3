@@ -32,9 +32,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
@@ -313,7 +315,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 	})
 
-	type TestCaseMetal3ClusterToBMM struct {
+	type TestCaseMetal3ClusterToM3M struct {
 		Cluster       *capi.Cluster
 		M3Cluster     *infrav1.Metal3Cluster
 		Machine0      *capi.Machine
@@ -323,7 +325,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	}
 
 	DescribeTable("Metal3Cluster To Metal3Machines tests",
-		func(tc TestCaseMetal3ClusterToBMM) {
+		func(tc TestCaseMetal3ClusterToM3M) {
 			objects := []runtime.Object{
 				tc.Cluster,
 				tc.M3Cluster,
@@ -360,7 +362,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		//Given correct resources, metal3Machines reconcile
 		Entry("Metal3Cluster To Metal3Machines, associated Metal3Machine Reconcile",
-			TestCaseMetal3ClusterToBMM{
+			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
 				M3Cluster:     newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
@@ -371,7 +373,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		//No owner cluster, no reconciliation
 		Entry("Metal3Cluster To Metal3Machines, No owner Cluster, No reconciliation",
-			TestCaseMetal3ClusterToBMM{
+			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster("my-other-cluster", nil, nil),
 				M3Cluster:     newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
@@ -382,7 +384,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		//No metal3 cluster, no reconciliation
 		Entry("Metal3Cluster To Metal3Machines, No metal3Cluster, No reconciliation",
-			TestCaseMetal3ClusterToBMM{
+			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster("my-other-cluster", nil, nil),
 				M3Cluster:     &infrav1.Metal3Cluster{},
 				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
@@ -393,13 +395,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 	)
 
-	type TestCaseBMHToBMM struct {
+	type TestCaseBMHToM3M struct {
 		Host          *bmh.BareMetalHost
 		ExpectRequest bool
 	}
 
 	DescribeTable("BareMetalHost To Metal3Machines tests",
-		func(tc TestCaseBMHToBMM) {
+		func(tc TestCaseBMHToM3M) {
 			r := Metal3MachineReconciler{}
 			obj := handler.MapObject{
 				Object: tc.Host,
@@ -422,7 +424,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		//Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines",
-			TestCaseBMHToBMM{
+			TestCaseBMHToM3M{
 				Host: &bmh.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
@@ -442,7 +444,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		//Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines, no ConsumerRef",
-			TestCaseBMHToBMM{
+			TestCaseBMHToM3M{
 				Host: &bmh.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
@@ -455,32 +457,37 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 	)
 
-	type TestCaseM3DToBMM struct {
-		Data          *infrav1.Metal3Data
+	type TestCaseM3DToM3M struct {
+		OwnerRef      *metav1.OwnerReference
 		ExpectRequest bool
 	}
 
-	DescribeTable("Metal3Data To Metal3Machines tests",
-		func(tc TestCaseM3DToBMM) {
+	DescribeTable("Metal3DataClaim To Metal3Machines tests",
+		func(tc TestCaseM3DToM3M) {
 			r := Metal3MachineReconciler{}
-			obj := handler.MapObject{
-				Object: tc.Data,
+			ownerRefs := []metav1.OwnerReference{}
+			if tc.OwnerRef != nil {
+				ownerRefs = append(ownerRefs, *tc.OwnerRef)
 			}
-			reqs := r.Metal3DataToMetal3Machines(obj)
+			dataClaim := &infrav1.Metal3DataClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: ownerRefs,
+				},
+				Spec: infrav1.Metal3DataClaimSpec{},
+			}
+			obj := handler.MapObject{
+				Object: dataClaim,
+			}
+			reqs := r.Metal3DataClaimToMetal3Machines(obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
 
 				req := reqs[0]
-				Expect(req.NamespacedName.Name).To(Equal(tc.Data.Spec.Metal3Machine.Name),
-					"Expected name %s, found %s", tc.Data.Spec.Metal3Machine.Name, req.NamespacedName.Name)
-				if tc.Data.Spec.Metal3Machine.Namespace == "" {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Namespace),
-						"Expected namespace %s, found %s", tc.Data.Namespace, req.NamespacedName.Namespace)
-				} else {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.Data.Spec.Metal3Machine.Namespace),
-						"Expected namespace %s, found %s", tc.Data.Spec.Metal3Machine.Namespace, req.NamespacedName.Namespace)
-				}
+				Expect(req.NamespacedName.Name).To(Equal(tc.OwnerRef.Name),
+					"Expected name %s, found %s", tc.OwnerRef.Name, req.NamespacedName.Name)
+				Expect(req.NamespacedName.Namespace).To(Equal(dataClaim.Namespace),
+					"Expected namespace %s, found %s", dataClaim.Namespace, req.NamespacedName.Namespace)
 
 			} else {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
@@ -488,44 +495,53 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 		},
 		Entry("No Metal3Machine in Spec",
-			TestCaseM3DToBMM{
-				Data: &infrav1.Metal3Data{
-					ObjectMeta: testObjectMeta,
-					Spec:       infrav1.Metal3DataSpec{},
+			TestCaseM3DToM3M{
+				ExpectRequest: false,
+			},
+		),
+		Entry("Metal3Machine in ownerRef",
+			TestCaseM3DToM3M{
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "Metal3Machine",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+				ExpectRequest: true,
+			},
+		),
+		Entry("Wrong Kind",
+			TestCaseM3DToM3M{
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "sdfousdf",
+					APIVersion: infrav1.GroupVersion.String(),
 				},
 				ExpectRequest: false,
 			},
 		),
-		Entry("Metal3Machine in Spec, with namespace",
-			TestCaseM3DToBMM{
-				Data: &infrav1.Metal3Data{
-					ObjectMeta: testObjectMeta,
-					Spec: infrav1.Metal3DataSpec{
-						Metal3Machine: &corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "myns",
-						},
-					},
+		Entry("Wrong Version, should work",
+			TestCaseM3DToM3M{
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "Metal3Machine",
+					APIVersion: infrav1.GroupVersion.Group + "/v1blah1",
 				},
 				ExpectRequest: true,
 			},
 		),
-		Entry("Metal3Machine in Spec, no namespace",
-			TestCaseM3DToBMM{
-				Data: &infrav1.Metal3Data{
-					ObjectMeta: testObjectMeta,
-					Spec: infrav1.Metal3DataSpec{
-						Metal3Machine: &corev1.ObjectReference{
-							Name: "abc",
-						},
-					},
+		Entry("Wrong Group, should not work",
+			TestCaseM3DToM3M{
+				OwnerRef: &metav1.OwnerReference{
+					Name:       "abc",
+					Kind:       "Metal3Machine",
+					APIVersion: "foo.bar/" + infrav1.GroupVersion.Version,
 				},
-				ExpectRequest: true,
+				ExpectRequest: false,
 			},
 		),
 	)
 
-	type TestCaseClusterToBMM struct {
+	type TestCaseClusterToM3M struct {
 		Cluster       *capi.Cluster
 		Machine       *capi.Machine
 		Machine1      *capi.Machine
@@ -535,7 +551,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	}
 
 	DescribeTable("Cluster To Metal3Machines tests",
-		func(tc TestCaseClusterToBMM) {
+		func(tc TestCaseClusterToM3M) {
 			objects := []runtime.Object{
 				tc.Cluster,
 				tc.Machine,
@@ -566,7 +582,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		//Given Cluster, Machine with metal3machine resource, metal3Machine reconcile
 		Entry("Cluster To Metal3Machines, associated Machine Reconciles",
-			TestCaseClusterToBMM{
+			TestCaseClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
 				M3Machine:     newMetal3Machine(metal3machineName, bmmObjectMetaWithOwnerRef(), nil, nil, false),
 				Machine:       newMachine(clusterName, machineName, metal3machineName),
@@ -577,7 +593,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 		//Given Cluster, Machine without metal3Machine resource, no reconciliation
 		Entry("Cluster To Metal3Machines, no metal3Machine, no Reconciliation",
-			TestCaseClusterToBMM{
+			TestCaseClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
 				M3Machine:     newMetal3Machine("my-metal3-machine-0", nil, nil, nil, false),
 				Machine:       newMachine(clusterName, "my-machine-0", ""),
@@ -585,5 +601,60 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequest: false,
 			},
 		),
+	)
+
+	type testCaseMetal3DataToMetal3Machines struct {
+		ownerRefs        []metav1.OwnerReference
+		expectedRequests []ctrl.Request
+	}
+
+	DescribeTable("test Metal3DataToMetal3Machines",
+		func(tc testCaseMetal3DataToMetal3Machines) {
+			ipClaim := &infrav1.Metal3Data{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:       "myns",
+					OwnerReferences: tc.ownerRefs,
+				},
+			}
+			c := fake.NewFakeClientWithScheme(setupScheme(), ipClaim)
+			r := Metal3MachineReconciler{
+				Client: c,
+			}
+			obj := handler.MapObject{
+				Object: ipClaim,
+			}
+			reqs := r.Metal3DataToMetal3Machines(obj)
+			Expect(reqs).To(Equal(tc.expectedRequests))
+		},
+		Entry("No OwnerRefs", testCaseMetal3DataToMetal3Machines{
+			expectedRequests: []ctrl.Request{},
+		}),
+		Entry("OwnerRefs", testCaseMetal3DataToMetal3Machines{
+			ownerRefs: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3Machine",
+					Name:       "abc",
+				},
+				metav1.OwnerReference{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3DataClaim",
+					Name:       "bcd",
+				},
+				metav1.OwnerReference{
+					APIVersion: "foo.bar/v1",
+					Kind:       "Metal3Machine",
+					Name:       "cde",
+				},
+			},
+			expectedRequests: []ctrl.Request{
+				ctrl.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      "abc",
+						Namespace: "myns",
+					},
+				},
+			},
+		}),
 	)
 })

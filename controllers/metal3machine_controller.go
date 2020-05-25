@@ -26,6 +26,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -52,8 +53,10 @@ type Metal3MachineReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates;metal3datatemplates/status,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas;metal3datas/status,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims/status,verbs=get
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas/status,verbs=get
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -88,7 +91,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}()
 	//clear an error if one was previously set
-	clearErrorBMMachine(capm3Machine)
+	clearErrorM3Machine(capm3Machine)
 
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
@@ -107,7 +110,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		machineLog.Info("Metal3Machine's owner Machine is missing cluster label or cluster does not exist")
-		setErrorBMMachine(capm3Machine,
+		setErrorM3Machine(capm3Machine,
 			"Metal3Machine's owner Machine is missing cluster label or cluster does not exist",
 			capierrors.InvalidConfigurationMachineError,
 		)
@@ -115,7 +118,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine is missing label or the cluster does not exist")
 	}
 	if cluster == nil {
-		setErrorBMMachine(capm3Machine, fmt.Sprintf(
+		setErrorM3Machine(capm3Machine, fmt.Sprintf(
 			"The machine is NOT associated with a cluster using the label %s: <name of cluster>",
 			capi.ClusterLabelName,
 		), capierrors.InvalidConfigurationMachineError)
@@ -166,7 +169,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 		}
 	}
 
-	// Return early if the BMMachine or Cluster is paused.
+	// Return early if the M3Machine or Cluster is paused.
 	if util.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
@@ -300,6 +303,12 @@ func (r *Metal3MachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).
 		Watches(
+			&source.Kind{Type: &capm3.Metal3DataClaim{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.Metal3DataClaimToMetal3Machines),
+			},
+		).
+		Watches(
 			&source.Kind{Type: &capm3.Metal3Data{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.Metal3DataToMetal3Machines),
@@ -321,13 +330,17 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(o handler.MapObject) [
 	c, ok := o.Object.(*capi.Cluster)
 
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object), "failed to get Metal3Machine for Cluster")
+		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object),
+			"failed to get Metal3Machine for Cluster",
+		)
 		return nil
 	}
 
 	labels := map[string]string{capi.ClusterLabelName: c.Name}
 	capiMachineList := &capi.MachineList{}
-	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace),
+		client.MatchingLabels(labels),
+	); err != nil {
 		r.Log.Error(err, "failed to list Metal3Machines")
 		return nil
 	}
@@ -351,7 +364,9 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o handler.MapObj
 	result := []ctrl.Request{}
 	c, ok := o.Object.(*capm3.Metal3Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o.Object), "failed to get Metal3Machine for Metal3Cluster")
+		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o.Object),
+			"failed to get Metal3Machine for Metal3Cluster",
+		)
 		return nil
 	}
 	log := r.Log.WithValues("Metal3Cluster", c.Name, "Namespace", c.Namespace)
@@ -400,34 +415,83 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 				},
 			}
 		}
+	} else {
+		r.Log.Error(errors.Errorf("expected a BareMetalHost but got a %T", obj.Object),
+			"failed to get Metal3Machine for BareMetalHost",
+		)
 	}
 	return []ctrl.Request{}
 }
 
 // Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
 // Metal3Data and that Metal3Data references a Metal3Machine.
-func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObject) []ctrl.Request {
-	if m3d, ok := obj.Object.(*capm3.Metal3Data); ok {
-		if m3d.Spec.Metal3Machine != nil {
-			namespace := m3d.Spec.Metal3Machine.Namespace
-			if namespace == "" {
-				namespace = m3d.Namespace
+func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj handler.MapObject) []ctrl.Request {
+	requests := []ctrl.Request{}
+	if m3dc, ok := obj.Object.(*capm3.Metal3DataClaim); ok {
+		for _, ownerRef := range m3dc.OwnerReferences {
+			oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+			if err != nil {
+				r.Log.Error(errors.Errorf("Failed to parse the group and version %v", ownerRef.APIVersion),
+					"failed to get Metal3Machine for BareMetalHost",
+				)
+				continue
 			}
-			return []ctrl.Request{
-				ctrl.Request{
+			// not matching on UID since when pivoting it might change
+			// Not matching on API version as this might change
+			if ownerRef.Kind == "Metal3Machine" &&
+				oGV.Group == capm3.GroupVersion.Group {
+				requests = append(requests, ctrl.Request{
 					NamespacedName: types.NamespacedName{
-						Name:      m3d.Spec.Metal3Machine.Name,
-						Namespace: namespace,
+						Name:      ownerRef.Name,
+						Namespace: m3dc.Namespace,
 					},
-				},
+				})
 			}
 		}
+	} else {
+		r.Log.Error(errors.Errorf("expected a Metal3DataClaim but got a %T", obj.Object),
+			"failed to get Metal3Machine for Metal3DataClaim",
+		)
 	}
-	return []ctrl.Request{}
+	return requests
+}
+
+// Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
+// Metal3Data and that Metal3Data references a Metal3Machine.
+func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObject) []ctrl.Request {
+	requests := []ctrl.Request{}
+	if m3d, ok := obj.Object.(*capm3.Metal3Data); ok {
+		for _, ownerRef := range m3d.OwnerReferences {
+			if ownerRef.Kind != "Metal3Machine" {
+				continue
+			}
+			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+			if err != nil {
+				r.Log.Error(errors.Errorf("Failed to parse the group and version %v", ownerRef.APIVersion),
+					"failed to get Metal3Machine for BareMetalHost",
+				)
+				continue
+			}
+			if aGV.Group != capm3.GroupVersion.Group {
+				continue
+			}
+			requests = append(requests, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ownerRef.Name,
+					Namespace: m3d.Namespace,
+				},
+			})
+		}
+	} else {
+		r.Log.Error(errors.Errorf("expected a Metal3Data but got a %T", obj.Object),
+			"failed to get Metal3Machine for Metal3Data",
+		)
+	}
+	return requests
 }
 
 // setError sets the ErrorMessage and ErrorReason fields on the metal3machine
-func setErrorBMMachine(bmm *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
+func setErrorM3Machine(bmm *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
 
 	bmm.Status.FailureMessage = pointer.StringPtr(message)
 	bmm.Status.FailureReason = &reason
@@ -435,7 +499,7 @@ func setErrorBMMachine(bmm *capm3.Metal3Machine, message string, reason capierro
 }
 
 // clearError removes the ErrorMessage from the metal3machine's Status if set.
-func clearErrorBMMachine(bmm *capm3.Metal3Machine) {
+func clearErrorM3Machine(bmm *capm3.Metal3Machine) {
 
 	if bmm.Status.FailureMessage != nil || bmm.Status.FailureReason != nil {
 		bmm.Status.FailureMessage = nil

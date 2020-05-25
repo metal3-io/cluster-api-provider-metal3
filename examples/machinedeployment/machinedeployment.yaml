@@ -48,6 +48,7 @@ kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-md-metadata
 spec:
+  clusterName: ${CLUSTER_NAME}
   metaData:
     strings:
       - key: abc
@@ -68,21 +69,33 @@ spec:
         object: metal3machine
       - key: bmh_name
         object: baremetalhost
-    ipAddresses:
+    ipAddressesFromIPPool:
       - key: ip_1
-        start: 192.168.0.10
-        end: 192.168.0.100
-        step: 2
+        name: pool1
       - key: ip_2
-        subnet: 192.168.1.0/24
-        step: 1
+        name: pool2
       - key: ip6_1
-        start: 2001::af:a
-        end: 2001::af:fff0
-        step: 2
+        name: pool6-1
       - key: ip6_2
-        subnet: 2001:AB::0/64
-        step: 1
+        name: pool6-2
+    prefixesFromIPPool:
+      - key: prefix_1
+        name: pool1
+      - key: prefix_2
+        name: pool2
+      - key: prefix6_1
+        name: pool6-1
+      - key: prefix6_2
+        name: pool6-2
+    gatewaysFromIPPool:
+      - key: gateway_1
+        name: pool1
+      - key: gateway_2
+        name: pool2
+      - key: gateway6_1
+        name: pool6-1
+      - key: gateway6_2
+        name: pool6-2
     fromHostInterfaces:
       - key: mac
         interface: eth0
@@ -104,16 +117,12 @@ spec:
       ipv4:
         - id: baremetal
           link: enp2s0
-          ipAddress:
-            start: 192.168.111.10
-            end: 192.168.111.99
-            subnet: 192.168.111.0/24
-            step: 2
-          netmask: 24
+          ipAddressFromIPPool: pool1
           routes:
             - network: 0.0.0.0
-              netmask: 0
-              gateway: 192.168.111.1
+              prefix: 0
+              gateway:
+                fromIPPool: pool1
               services:
                 dns:
                   - 8.8.4.4

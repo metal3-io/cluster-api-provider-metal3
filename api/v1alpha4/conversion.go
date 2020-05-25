@@ -24,3 +24,4 @@ func (*Metal3MachineTemplate) Hub()     {}
 func (*Metal3MachineTemplateList) Hub() {}
 func (*Metal3DataTemplate) Hub()        {}
 func (*Metal3Data) Hub()                {}
+func (*Metal3DataClaim) Hub()           {}

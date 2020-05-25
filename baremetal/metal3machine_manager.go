@@ -1096,10 +1096,19 @@ func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller
 
 // DeleteOwnerRef removes the ownerreference to this Metal3 machine
 func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
+	return deleteOwnerRefFromList(refList, m.Metal3Machine.TypeMeta,
+		m.Metal3Machine.ObjectMeta,
+	)
+}
+
+// DeleteOwnerRefFromList removes the ownerreference to this Metal3 machine
+func deleteOwnerRefFromList(refList []metav1.OwnerReference,
+	objType metav1.TypeMeta, objMeta metav1.ObjectMeta,
+) ([]metav1.OwnerReference, error) {
 	if len(refList) == 0 {
 		return refList, nil
 	}
-	index, err := m.FindOwnerRef(refList)
+	index, err := findOwnerRefFromList(refList, objType, objMeta)
 	if err != nil {
 		if _, ok := err.(*NotFoundError); !ok {
 			return nil, err
@@ -1111,7 +1120,7 @@ func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]meta
 	}
 	refListLen := len(refList) - 1
 	refList[index] = refList[refListLen]
-	refList, err = m.DeleteOwnerRef(refList[:refListLen-1])
+	refList, err = deleteOwnerRefFromList(refList[:refListLen-1], objType, objMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -1199,36 +1208,40 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 	if m.Metal3Machine.Spec.DataTemplate.Namespace == "" {
 		m.Metal3Machine.Spec.DataTemplate.Namespace = m.Metal3Machine.Namespace
 	}
-	metal3DataTemplate, err := fetchM3DataTemplate(ctx,
-		m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
-		m.Machine.Spec.ClusterName,
+	_, err := fetchM3DataClaim(ctx, m.client, m.Log,
+		m.Metal3Machine.Name, m.Metal3Machine.Namespace,
 	)
 	if err != nil {
-		return err
-	}
-	if metal3DataTemplate == nil {
+		if _, ok := err.(HasRequeueAfterError); !ok {
+			return err
+		}
+	} else {
 		return nil
 	}
 
-	if _, err := m.FindOwnerRef(metal3DataTemplate.OwnerReferences); err != nil {
-		// If the error is not NotFound, return the error
-		if _, ok := err.(*NotFoundError); !ok {
-			return err
-		}
+	dataClaim := &capm3.Metal3DataClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.Metal3Machine.Name,
+			Namespace: m.Metal3Machine.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				metav1.OwnerReference{
+					APIVersion: m.Metal3Machine.APIVersion,
+					Kind:       m.Metal3Machine.Kind,
+					Name:       m.Metal3Machine.Name,
+					UID:        m.Metal3Machine.UID,
+					Controller: pointer.BoolPtr(true),
+				},
+			},
+			Labels: m.Metal3Machine.Labels,
+		},
+		Spec: capm3.Metal3DataClaimSpec{
+			Template: *m.Metal3Machine.Spec.DataTemplate,
+		},
+	}
 
-		// Set the owner ref and the cluster label.
-		metal3DataTemplate.OwnerReferences, err = m.SetOwnerRef(metal3DataTemplate.OwnerReferences, false)
-		if err != nil {
-			return err
-		}
-		if metal3DataTemplate.Labels == nil {
-			metal3DataTemplate.Labels = make(map[string]string)
-		}
-		metal3DataTemplate.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
-		err = updateObject(m.client, ctx, metal3DataTemplate)
-		if err != nil {
-			return err
-		}
+	err = createObject(m.client, ctx, dataClaim)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -1247,22 +1260,19 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 		if m.Metal3Machine.Spec.DataTemplate.Namespace == "" {
 			m.Metal3Machine.Spec.DataTemplate.Namespace = m.Metal3Machine.Namespace
 		}
-		metal3DataTemplate, err := fetchM3DataTemplate(ctx,
-			m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
-			m.Machine.Spec.ClusterName,
+		metal3DataClaim, err := fetchM3DataClaim(ctx, m.client, m.Log,
+			m.Metal3Machine.Name, m.Metal3Machine.Namespace,
 		)
 		if err != nil {
 			return err
 		}
-		if metal3DataTemplate == nil {
-			return nil
+		if metal3DataClaim == nil {
+			return &RequeueAfterError{}
 		}
 
-		if dataName, ok := metal3DataTemplate.Status.DataNames[m.Metal3Machine.Name]; ok {
-			m.Metal3Machine.Status.RenderedData = &corev1.ObjectReference{
-				Name:      dataName,
-				Namespace: metal3DataTemplate.Namespace,
-			}
+		if metal3DataClaim.Status.RenderedData != nil &&
+			metal3DataClaim.Status.RenderedData.Name != "" {
+			m.Metal3Machine.Status.RenderedData = metal3DataClaim.Status.RenderedData
 		} else {
 			return &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
@@ -1323,9 +1333,8 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 	m.Metal3Machine.Status.RenderedData = nil
 
 	// Get the Metal3DataTemplate object
-	metal3DataTemplate, err := fetchM3DataTemplate(ctx,
-		m.Metal3Machine.Spec.DataTemplate, m.client, m.Log,
-		m.Machine.Spec.ClusterName,
+	metal3DataClaim, err := fetchM3DataClaim(ctx, m.client, m.Log,
+		m.Metal3Machine.Name, m.Metal3Machine.Namespace,
 	)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
@@ -1333,27 +1342,9 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		}
 		return nil
 	}
-	if metal3DataTemplate == nil {
+	if metal3DataClaim == nil {
 		return nil
 	}
 
-	// Remove the ownerreference if it is set.
-	if _, err := m.FindOwnerRef(metal3DataTemplate.OwnerReferences); err == nil {
-		metal3DataTemplate.OwnerReferences, err = m.DeleteOwnerRef(
-			metal3DataTemplate.OwnerReferences,
-		)
-		if err != nil {
-			return err
-		}
-		err = updateObject(m.client, ctx, metal3DataTemplate)
-		if err != nil {
-			return err
-		}
-	} else {
-		if _, ok := err.(*NotFoundError); !ok {
-			return err
-		}
-	}
-
-	return nil
+	return deleteObject(m.client, ctx, metal3DataClaim)
 }

@@ -26,6 +26,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+	v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 // MockDataTemplateManagerInterface is a mock of DataTemplateManagerInterface interface
@@ -75,59 +76,31 @@ func (mr *MockDataTemplateManagerInterfaceMockRecorder) UnsetFinalizer() *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).UnsetFinalizer))
 }
 
-// RecreateStatusConditionally mocks base method
-func (m *MockDataTemplateManagerInterface) RecreateStatusConditionally(arg0 context.Context) error {
+// SetClusterOwnerRef mocks base method
+func (m *MockDataTemplateManagerInterface) SetClusterOwnerRef(arg0 *v1alpha3.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RecreateStatusConditionally", arg0)
+	ret := m.ctrl.Call(m, "SetClusterOwnerRef", arg0)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// RecreateStatusConditionally indicates an expected call of RecreateStatusConditionally
-func (mr *MockDataTemplateManagerInterfaceMockRecorder) RecreateStatusConditionally(arg0 interface{}) *gomock.Call {
+// SetClusterOwnerRef indicates an expected call of SetClusterOwnerRef
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) SetClusterOwnerRef(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecreateStatusConditionally", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).RecreateStatusConditionally), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetClusterOwnerRef", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).SetClusterOwnerRef), arg0)
 }
 
-// DeleteDatas mocks base method
-func (m *MockDataTemplateManagerInterface) DeleteDatas(arg0 context.Context) error {
+// UpdateDatas mocks base method
+func (m *MockDataTemplateManagerInterface) UpdateDatas(arg0 context.Context) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteDatas", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteDatas indicates an expected call of DeleteDatas
-func (mr *MockDataTemplateManagerInterfaceMockRecorder) DeleteDatas(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteDatas", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).DeleteDatas), arg0)
-}
-
-// CreateDatas mocks base method
-func (m *MockDataTemplateManagerInterface) CreateDatas(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateDatas", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CreateDatas indicates an expected call of CreateDatas
-func (mr *MockDataTemplateManagerInterfaceMockRecorder) CreateDatas(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDatas", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).CreateDatas), arg0)
-}
-
-// DeleteReady mocks base method
-func (m *MockDataTemplateManagerInterface) DeleteReady() (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteReady")
-	ret0, _ := ret[0].(bool)
+	ret := m.ctrl.Call(m, "UpdateDatas", arg0)
+	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// DeleteReady indicates an expected call of DeleteReady
-func (mr *MockDataTemplateManagerInterfaceMockRecorder) DeleteReady() *gomock.Call {
+// UpdateDatas indicates an expected call of UpdateDatas
+func (mr *MockDataTemplateManagerInterfaceMockRecorder) UpdateDatas(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteReady", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).DeleteReady))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDatas", reflect.TypeOf((*MockDataTemplateManagerInterface)(nil).UpdateDatas), arg0)
 }

@@ -42,27 +42,21 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 		name      string
 		dataName  string
 		expectErr bool
-		template  *corev1.ObjectReference
+		template  corev1.ObjectReference
 	}{
 		{
 			name:      "should succeed when values and templates correct",
 			expectErr: false,
 			dataName:  "abc-1",
-			template: &corev1.ObjectReference{
+			template: corev1.ObjectReference{
 				Name: "abc",
 			},
-		},
-		{
-			name:      "should fail without DataTemplate",
-			expectErr: true,
-			dataName:  "abc-1",
-			template:  nil,
 		},
 		{
 			name:      "should fail when Name does not match datatemplate",
 			expectErr: true,
 			dataName:  "abcd-1",
-			template: &corev1.ObjectReference{
+			template: corev1.ObjectReference{
 				Name: "abc",
 			},
 		},
@@ -70,7 +64,7 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 			name:      "should fail when Name does not match index",
 			expectErr: true,
 			dataName:  "abc-0",
-			template: &corev1.ObjectReference{
+			template: corev1.ObjectReference{
 				Name: "abc",
 			},
 		},
@@ -86,8 +80,8 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 					Name:      tt.dataName,
 				},
 				Spec: Metal3DataSpec{
-					DataTemplate: tt.template,
-					Index:        1,
+					Template: tt.template,
+					Index:    1,
 				},
 			}
 
@@ -117,13 +111,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should succeed when values are the same",
 			expectErr: false,
 			new: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Index: 1,
@@ -133,7 +127,7 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail with nil old",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Index: 1,
@@ -144,43 +138,29 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when index changes",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Index: 2,
 			},
 		},
 		{
-			name:      "should fail when dataTemplate is set to nil",
-			expectErr: true,
-			new: &Metal3DataSpec{
-				DataTemplate: nil,
-				Index:        1,
-			},
-			old: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
-					Name: "abc",
-				},
-				Index: 1,
-			},
-		},
-		{
 			name:      "should fail when dataTemplate name changes",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abcd",
 				},
 				Index: 1,
@@ -190,14 +170,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when datatemplate Namespace changes",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abcd",
 				},
@@ -208,14 +188,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when datatemplate kind changes",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				DataTemplate: &corev1.ObjectReference{
+				Template: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abcd",
 				},
@@ -223,47 +203,33 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			},
 		},
 		{
-			name:      "should fail when metal3Machine is set to nil",
+			name:      "should fail when Claim name changes",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				Metal3Machine: nil,
-				Index:         1,
-			},
-			old: &Metal3DataSpec{
-				Metal3Machine: &corev1.ObjectReference{
-					Name: "abc",
-				},
-				Index: 1,
-			},
-		},
-		{
-			name:      "should fail when metal3Machine name changes",
-			expectErr: true,
-			new: &Metal3DataSpec{
-				Metal3Machine: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				Metal3Machine: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abcd",
 				},
 				Index: 1,
 			},
 		},
 		{
-			name:      "should fail when metal3Machine Namespace changes",
+			name:      "should fail when Claim Namespace changes",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				Metal3Machine: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				Metal3Machine: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abcd",
 				},
@@ -271,17 +237,17 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			},
 		},
 		{
-			name:      "should fail when metal3Machine kind changes",
+			name:      "should fail when Claim kind changes",
 			expectErr: true,
 			new: &Metal3DataSpec{
-				Metal3Machine: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abc",
 				},
 				Index: 1,
 			},
 			old: &Metal3DataSpec{
-				Metal3Machine: &corev1.ObjectReference{
+				Claim: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abcd",
 				},

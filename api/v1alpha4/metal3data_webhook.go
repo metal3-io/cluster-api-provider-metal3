@@ -42,24 +42,14 @@ func (c *Metal3Data) Default() {
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (c *Metal3Data) ValidateCreate() error {
 	allErrs := field.ErrorList{}
-	if c.Spec.DataTemplate == nil {
+	if c.Name != c.Spec.Template.Name+"-"+strconv.Itoa(c.Spec.Index) {
 		allErrs = append(allErrs,
 			field.Invalid(
-				field.NewPath("spec", "dataTemplate"),
-				c.Spec.DataTemplate,
-				"cannot be empty",
+				field.NewPath("name"),
+				c.Name,
+				"should follow the convention <Metal3Template Name>-<index>",
 			),
 		)
-	} else {
-		if c.Name != c.Spec.DataTemplate.Name+"-"+strconv.Itoa(c.Spec.Index) {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("name"),
-					c.Name,
-					"should follow the convention <Metal3DataTemplate Name>-<index>",
-				),
-			)
-		}
 	}
 
 	if c.Spec.Index < 0 {
@@ -96,80 +86,56 @@ func (c *Metal3Data) ValidateUpdate(old runtime.Object) error {
 		)
 	}
 
-	if oldMetal3Data.Spec.DataTemplate != nil {
-		if c.Spec.DataTemplate == nil {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "DataTemplate"),
-					c.Spec.DataTemplate,
-					"cannot be modified",
-				),
-			)
-		} else {
-			if c.Spec.DataTemplate.Name != oldMetal3Data.Spec.DataTemplate.Name {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "DataTemplate"),
-						c.Spec.DataTemplate,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.DataTemplate.Namespace != oldMetal3Data.Spec.DataTemplate.Namespace {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "DataTemplate"),
-						c.Spec.DataTemplate,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.DataTemplate.Kind != oldMetal3Data.Spec.DataTemplate.Kind {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "DataTemplate"),
-						c.Spec.DataTemplate,
-						"cannot be modified",
-					),
-				)
-			}
-		}
+	if c.Spec.Template.Name != oldMetal3Data.Spec.Template.Name {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "Template"),
+				c.Spec.Template,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Template.Namespace != oldMetal3Data.Spec.Template.Namespace {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "Template"),
+				c.Spec.Template,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Template.Kind != oldMetal3Data.Spec.Template.Kind {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "Template"),
+				c.Spec.Template,
+				"cannot be modified",
+			),
+		)
 	}
 
-	if oldMetal3Data.Spec.Metal3Machine != nil {
-		if c.Spec.Metal3Machine == nil {
-			allErrs = append(allErrs,
-				field.Invalid(
-					field.NewPath("spec", "Metal3Machine"),
-					c.Spec.Metal3Machine,
-					"cannot be modified",
-				),
-			)
-		} else {
-			if c.Spec.Metal3Machine.Name != oldMetal3Data.Spec.Metal3Machine.Name {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "Metal3Machine"),
-						c.Spec.Metal3Machine,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.Metal3Machine.Namespace != oldMetal3Data.Spec.Metal3Machine.Namespace {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "Metal3Machine"),
-						c.Spec.Metal3Machine,
-						"cannot be modified",
-					),
-				)
-			} else if c.Spec.Metal3Machine.Kind != oldMetal3Data.Spec.Metal3Machine.Kind {
-				allErrs = append(allErrs,
-					field.Invalid(
-						field.NewPath("spec", "Metal3Machine"),
-						c.Spec.Metal3Machine,
-						"cannot be modified",
-					),
-				)
-			}
-		}
+	if c.Spec.Claim.Name != oldMetal3Data.Spec.Claim.Name {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "claim"),
+				c.Spec.Claim,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Claim.Namespace != oldMetal3Data.Spec.Claim.Namespace {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "claim"),
+				c.Spec.Claim,
+				"cannot be modified",
+			),
+		)
+	} else if c.Spec.Claim.Kind != oldMetal3Data.Spec.Claim.Kind {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "claim"),
+				c.Spec.Claim,
+				"cannot be modified",
+			),
+		)
 	}
 
 	if len(allErrs) == 0 {
