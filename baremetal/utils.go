@@ -29,7 +29,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -65,6 +67,29 @@ type NotFoundError struct {
 // Error implements the error interface
 func (e *NotFoundError) Error() string {
 	return "Object not found"
+}
+
+func patchIfFound(ctx context.Context, helper *patch.Helper, host runtime.Object) error {
+	err := helper.Patch(ctx, host)
+	if err != nil {
+		notFound := true
+		if aggr, ok := err.(kerrors.Aggregate); ok {
+			for _, kerr := range aggr.Errors() {
+				if !apierrors.IsNotFound(kerr) {
+					notFound = false
+				}
+				if apierrors.IsConflict(kerr) {
+					return &RequeueAfterError{}
+				}
+			}
+		} else {
+			notFound = false
+		}
+		if notFound {
+			return nil
+		}
+	}
+	return err
 }
 
 func updateObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {

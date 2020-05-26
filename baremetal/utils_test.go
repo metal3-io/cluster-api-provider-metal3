@@ -33,6 +33,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/klog/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var _ = Describe("Metal3 manager utils", func() {
@@ -115,6 +116,122 @@ var _ = Describe("Metal3 manager utils", func() {
 		ExpectedError  bool
 	}
 
+	type testCasePatch struct {
+		TestObject     *capm3.Metal3Machine
+		ExistingObject *capm3.Metal3Machine
+		ExpectedError  bool
+		CreateObject   bool
+	}
+
+	var testObject = &capm3.Metal3Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "abc",
+			Namespace: "myns",
+		},
+		Spec: capm3.Metal3MachineSpec{
+			ProviderID: pointer.StringPtr("abcdef"),
+		},
+		Status: capm3.Metal3MachineStatus{
+			Ready: true,
+		},
+	}
+
+	var existingObject = &capm3.Metal3Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "abc",
+			Namespace: "myns",
+		},
+		Spec: capm3.Metal3MachineSpec{
+			ProviderID: pointer.StringPtr("abcdefg"),
+		},
+		Status: capm3.Metal3MachineStatus{
+			Ready: true,
+		},
+	}
+
+	DescribeTable("Test patchIfFound",
+		func(tc testCasePatch) {
+			var err error
+			c := k8sClient
+
+			// Create the object in the API
+			if tc.CreateObject {
+				err = c.Create(context.TODO(), tc.ExistingObject)
+				Expect(err).NotTo(HaveOccurred())
+				m3m := capm3.Metal3Machine{}
+				err = c.Get(context.TODO(),
+					client.ObjectKey{
+						Name:      tc.ExistingObject.Name,
+						Namespace: tc.ExistingObject.Namespace,
+					},
+					&m3m,
+				)
+				tc.ExistingObject = &m3m
+				Expect(err).NotTo(HaveOccurred())
+				if !tc.ExpectedError {
+					tc.TestObject.ObjectMeta = m3m.ObjectMeta
+				}
+			}
+
+			// Create the helper, and the object reference
+			obj := tc.TestObject.DeepCopy()
+			helper, err := patch.NewHelper(tc.ExistingObject, c)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Run function
+			err = patchIfFound(context.TODO(), helper, tc.TestObject)
+			if tc.ExpectedError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+
+				// The object should not be modified
+				Expect(obj.Spec).To(Equal(tc.TestObject.Spec))
+				Expect(obj.Status).To(Equal(tc.TestObject.Status))
+
+				if tc.CreateObject {
+					// verify that the object was updated
+					savedObject := capm3.Metal3Machine{}
+					err = c.Get(context.TODO(),
+						client.ObjectKey{
+							Name:      tc.TestObject.Name,
+							Namespace: tc.TestObject.Namespace,
+						},
+						&savedObject,
+					)
+					Expect(err).NotTo(HaveOccurred())
+					Expect(savedObject.Spec).To(Equal(tc.TestObject.Spec))
+					Expect(savedObject.Status).To(Equal(tc.TestObject.Status))
+					Expect(savedObject.ResourceVersion).NotTo(Equal(tc.TestObject.ResourceVersion))
+				}
+			}
+
+			// Delete the object from API
+			err = c.Delete(context.TODO(), tc.ExistingObject)
+			if err != nil {
+				Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			}
+		},
+		Entry("Expect error", testCasePatch{
+			TestObject:     testObject.DeepCopy(),
+			ExistingObject: existingObject.DeepCopy(),
+			CreateObject:   true,
+			ExpectedError:  true,
+		}),
+		Entry("Object does not exist", testCasePatch{
+			TestObject:     testObject.DeepCopy(),
+			ExistingObject: existingObject.DeepCopy(),
+			ExpectedError:  false,
+			CreateObject:   false,
+		}),
+		Entry("Object exists", testCasePatch{
+			TestObject:     testObject.DeepCopy(),
+			ExistingObject: existingObject.DeepCopy(),
+			ExpectedError:  false,
+			CreateObject:   true,
+		}),
+	)
+
 	DescribeTable("Test Update",
 		func(tc testCaseUpdate) {
 			c := k8sClient
@@ -162,46 +279,13 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 		},
 		Entry("Object does not exist", testCaseUpdate{
-			TestObject: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abcdef"),
-				},
-				Status: capm3.Metal3MachineStatus{
-					Ready: true,
-				},
-			},
+			TestObject: testObject.DeepCopy(),
 			ExistingObject: nil,
 			ExpectedError:  true,
 		}),
 		Entry("Object exists", testCaseUpdate{
-			TestObject: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abcdef"),
-				},
-				Status: capm3.Metal3MachineStatus{
-					Ready: true,
-				},
-			},
-			ExistingObject: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abcdefg"),
-				},
-				Status: capm3.Metal3MachineStatus{
-					Ready: false,
-				},
-			},
+			TestObject: testObject.DeepCopy(),
+			ExistingObject: existingObject.DeepCopy(),
 			ExpectedError: false,
 		}),
 	)
@@ -239,46 +323,13 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 		},
 		Entry("Object does not exist", testCaseUpdate{
-			TestObject: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abcdef"),
-				},
-				Status: capm3.Metal3MachineStatus{
-					Ready: true,
-				},
-			},
+			TestObject: testObject.DeepCopy(),
 			ExistingObject: nil,
 			ExpectedError:  false,
 		}),
 		Entry("Object exists", testCaseUpdate{
-			TestObject: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abcdef"),
-				},
-				Status: capm3.Metal3MachineStatus{
-					Ready: true,
-				},
-			},
-			ExistingObject: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abcdefg"),
-				},
-				Status: capm3.Metal3MachineStatus{
-					Ready: false,
-				},
-			},
+			TestObject: testObject.DeepCopy(),
+			ExistingObject: existingObject.DeepCopy(),
 			ExpectedError: true,
 		}),
 	)

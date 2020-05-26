@@ -536,7 +536,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				result, err := machineMgr.chooseHost(context.TODO())
+				result, _, err := machineMgr.chooseHost(context.TODO())
 
 				if tc.ExpectedHostName == "" {
 					Expect(result).To(BeNil())
@@ -1037,7 +1037,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				result, err := machineMgr.getHost(context.TODO())
+				result, _, err := machineMgr.getHost(context.TODO())
 				Expect(err).NotTo(HaveOccurred())
 				if tc.ExpectPresent {
 					Expect(result).NotTo(BeNil())
@@ -2264,6 +2264,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			err = machineMgr.Associate(context.TODO())
 			if tc.ExpectRequeue {
 				_, ok := errors.Cause(err).(HasRequeueAfterError)
+				fmt.Println(errors.Cause(err))
 				Expect(ok).To(BeTrue())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -2428,10 +2429,8 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 				ExpectClusterLabel: true,
-				//The object is modified twice, so the second time results in a conflict
-				// TODO: fetch the BMH again after update to prevent conflicts.
-				ExpectRequeue:  true,
-				ExpectOwnerRef: true,
+				ExpectRequeue:      false,
+				ExpectOwnerRef:     true,
 			},
 		),
 	)
