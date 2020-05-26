@@ -17,6 +17,6 @@ else
     --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-metal3:ro,z" \
     --entrypoint sh \
     --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
-    registry.hub.docker.com/library/golang:1.12 \
+    registry.hub.docker.com/library/golang:1.13.7 \
     /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/gofmt.sh
 fi;

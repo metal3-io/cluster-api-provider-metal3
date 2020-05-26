@@ -248,7 +248,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Expect(testBMHost.Spec.UserData).To(BeNil())
 			}
 			if tc.CheckBMHostProvisioned {
-				Expect(*testBMHost.Spec.Image).Should(BeEquivalentTo(testBMmachine.Spec.Image))
+				Expect(testBMHost.Spec.Image.URL).Should(BeEquivalentTo(testBMmachine.Spec.Image.URL))
+				Expect(testBMHost.Spec.Image.Checksum).Should(BeEquivalentTo(testBMmachine.Spec.Image.Checksum))
+				if testBMmachine.Spec.Image.ChecksumType != nil {
+					Expect(testBMHost.Spec.Image.ChecksumType).Should(BeEquivalentTo(*testBMmachine.Spec.Image.ChecksumType))
+				} else {
+					Expect(testBMHost.Spec.Image.ChecksumType).Should(BeEquivalentTo(""))
+				}
 				Expect(testBMHost.Spec.UserData).NotTo(BeNil())
 				Expect(testBMHost.Spec.ConsumerRef.Name).To(Equal(testBMmachine.Name))
 			}
@@ -430,6 +436,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
+								// Checking the pointers,
+								// CheckBMHostProvisioned is true
+								ChecksumType: pointer.StringPtr("sha512"),
 							},
 						}, nil, false,
 					),
@@ -466,6 +475,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
+								//No ChecksumType given to test without it
+								// CheckBMHostProvisioned is true
 							},
 						}, nil, false,
 					),
