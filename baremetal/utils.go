@@ -16,6 +16,15 @@ limitations under the License.
 
 package baremetal
 
+import (
+	"context"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"sigs.k8s.io/cluster-api/util/patch"
+)
+
 // Filter filters a list for a string.
 func Filter(list []string, strToFilter string) (newList []string) {
 	for _, item := range list {
@@ -43,4 +52,27 @@ type NotFoundError struct {
 // Error implements the error interface
 func (e *NotFoundError) Error() string {
 	return "Object not found"
+}
+
+func patchIfFound(ctx context.Context, helper *patch.Helper, host runtime.Object) error {
+	err := helper.Patch(ctx, host)
+	if err != nil {
+		notFound := true
+		if aggr, ok := err.(kerrors.Aggregate); ok {
+			for _, kerr := range aggr.Errors() {
+				if !apierrors.IsNotFound(kerr) {
+					notFound = false
+				}
+				if apierrors.IsConflict(kerr) {
+					return &RequeueAfterError{}
+				}
+			}
+		} else {
+			notFound = false
+		}
+		if notFound {
+			return nil
+		}
+	}
+	return err
 }
