@@ -52,7 +52,7 @@ var providerID = "metal3:///foo/bar"
 
 var bootstrapData = "Qm9vdHN0cmFwIERhdGEK"
 
-func bmmOwnerRefs() []metav1.OwnerReference {
+func m3mOwnerRefs() []metav1.OwnerReference {
 	return []metav1.OwnerReference{
 		{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -62,42 +62,42 @@ func bmmOwnerRefs() []metav1.OwnerReference {
 	}
 }
 
-func bmmMetaWithOwnerRef() *metav1.ObjectMeta {
+func m3mMetaWithOwnerRef() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "abc",
 		Namespace:       namespaceName,
-		OwnerReferences: bmmOwnerRefs(),
+		OwnerReferences: m3mOwnerRefs(),
 		Annotations:     map[string]string{},
 	}
 }
 
-func bmmMetaWithDeletion() *metav1.ObjectMeta {
+func m3mMetaWithDeletion() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:              "abc",
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
-		OwnerReferences:   bmmOwnerRefs(),
+		OwnerReferences:   m3mOwnerRefs(),
 		Annotations:       map[string]string{},
 	}
 }
 
-func bmmMetaWithAnnotation() *metav1.ObjectMeta {
+func m3mMetaWithAnnotation() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "abc",
 		Namespace:       namespaceName,
-		OwnerReferences: bmmOwnerRefs(),
+		OwnerReferences: m3mOwnerRefs(),
 		Annotations: map[string]string{
 			baremetal.HostAnnotation: "testNameSpace/bmh-0",
 		},
 	}
 }
 
-func bmmMetaWithAnnotationDeletion() *metav1.ObjectMeta {
+func m3mMetaWithAnnotationDeletion() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:              "abc",
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
-		OwnerReferences:   bmmOwnerRefs(),
+		OwnerReferences:   m3mOwnerRefs(),
 		Annotations: map[string]string{
 			baremetal.HostAnnotation: "testNameSpace/bmh-0",
 		},
@@ -119,7 +119,7 @@ func userDataSecret() *corev1.Secret {
 	}
 }
 
-func bmmSpecWithSecret() *infrav1.Metal3MachineSpec {
+func m3mSpecWithSecret() *infrav1.Metal3MachineSpec {
 	return &infrav1.Metal3MachineSpec{
 		UserData: &corev1.SecretReference{
 			Name:      metal3machineName + "-user-data",
@@ -130,7 +130,7 @@ func bmmSpecWithSecret() *infrav1.Metal3MachineSpec {
 
 func metal3machineWithOwnerRefs() *infrav1.Metal3Machine {
 	return newMetal3Machine(
-		metal3machineName, bmmMetaWithOwnerRef(), nil, nil, false,
+		metal3machineName, m3mMetaWithOwnerRef(), nil, nil, false,
 	)
 }
 
@@ -395,12 +395,12 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ClusterInfraReady:       true,
 			},
 		),
-		//Given: BMMachine (Spec: Provider ID, Status: Ready), BMHost(Provisioned).
+		//Given: M3Machine (Spec: Provider ID, Status: Ready), BMHost(Provisioned).
 		//Expected: Since BMH is in provisioned state, nothing will happen since machine. bootstrapReady is false.
 		Entry("Should not return an error when metal3machine is deployed",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newMetal3Machine(metal3machineName, bmmMetaWithAnnotation(),
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1.Metal3MachineSpec{
 							ProviderID: &providerID,
 						},
@@ -422,7 +422,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady: false,
 			},
 		),
-		//Given: Machine has Bootstrap data available while BMMachine has no Host Annotation
+		//Given: Machine has Bootstrap data available while M3Machine has no Host Annotation
 		// BMH is in available state
 		//Expected: Requeue Expected
 		//			BMHost.Spec.Image = BMmachine.Spec.Image,
@@ -433,7 +433,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []runtime.Object{
 
 					newMetal3Machine(
-						metal3machineName, bmmMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
+						metal3machineName, m3mMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
 							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
@@ -462,7 +462,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMHostProvisioned:  true,
 			},
 		),
-		//Given: Machine has Bootstrap data available while BMMachine has no Host Annotation
+		//Given: Machine has Bootstrap data available while M3Machine has no Host Annotation
 		// BMH is in ready state
 		//Expected: Requeue Expected
 		//			BMHost.Spec.Image = BMmachine.Spec.Image,
@@ -473,7 +473,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []runtime.Object{
 
 					newMetal3Machine(
-						metal3machineName, bmmMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
+						metal3machineName, m3mMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
 							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
@@ -500,13 +500,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMHostProvisioned:  true,
 			},
 		),
-		//Given: Machine(with Bootstrap data), BMMachine (Annotation Given, no provider ID), BMH (provisioned)
+		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioned)
 		//Expected: No Error, BMH.Spec.ProviderID is set properly based on the UID
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is not given, BMH is provisioned",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
 					newMetal3Machine(
-						metal3machineName, bmmMetaWithAnnotation(),
+						metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1.Metal3MachineSpec{
 							Image: infrav1.Image{
 								Checksum: "abcd",
@@ -527,13 +527,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady: true,
 			},
 		),
-		//Given: Machine(with Bootstrap data), BMMachine (Annotation Given, no provider ID), BMH (provisioning)
+		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
 		//Expected: No Error, Requeue expected
 		//		BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newMetal3Machine(metal3machineName, bmmMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
 						Image: infrav1.Image{
 							Checksum: "abcd",
 							URL:      "abcd",
@@ -562,7 +562,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		Entry("Should requeue when patching an unavailable node",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newMetal3Machine(metal3machineName, bmmMetaWithAnnotation(), nil, nil, false),
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), nil, nil, false),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
@@ -583,7 +583,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		Entry("Should not requeue when patching an available node",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
-					newMetal3Machine(metal3machineName, bmmMetaWithAnnotation(), nil, nil, false),
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), nil, nil, false),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
@@ -608,14 +608,14 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady: true,
 			},
 		),
-		//Given: Deletion timestamp on BMMachine, No BMHost Given
-		//Expected: Delete is reconciled,BMMachine Finalizer is removed
+		//Given: Deletion timestamp on M3Machine, No BMHost Given
+		//Expected: Delete is reconciled,M3Machine Finalizer is removed
 		Entry("Should not return an error and finish deletion of Metal3Machine",
 			TestCaseReconcile{
 				Objects: []runtime.Object{
 					userDataSecret(),
-					newMetal3Machine(metal3machineName, bmmMetaWithDeletion(),
-						bmmSpecWithSecret(), nil, false,
+					newMetal3Machine(metal3machineName, m3mMetaWithDeletion(),
+						m3mSpecWithSecret(), nil, false,
 					),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
@@ -627,7 +627,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMFinalizer:  false,
 			},
 		),
-		//Given: Deletion timestamp on BMMachine, BMHost Given
+		//Given: Deletion timestamp on M3Machine, BMHost Given
 		//Expected: Requeue Expected
 		//          Delete is reconciled. BMH should be deprovisioned
 		Entry("Should not return an error and deprovision bmh",
@@ -635,7 +635,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []runtime.Object{
 					userDataSecret(),
 					newMetal3Machine(metal3machineName,
-						bmmMetaWithAnnotationDeletion(), bmmSpecWithSecret(), nil, false,
+						m3mMetaWithAnnotationDeletion(), m3mSpecWithSecret(), nil, false,
 					),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),

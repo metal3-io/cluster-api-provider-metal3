@@ -150,11 +150,11 @@ func clusterPauseSpec() *clusterv1.ClusterSpec {
 	}
 }
 
-func bmmObjectMetaWithOwnerRef() *metav1.ObjectMeta {
+func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            metal3machineName,
 		Namespace:       namespaceName,
-		OwnerReferences: bmmOwnerRefs(),
+		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
 			capi.ClusterLabelName: clusterName,
 		},

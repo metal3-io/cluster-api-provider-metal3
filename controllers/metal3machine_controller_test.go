@@ -584,7 +584,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Cluster To Metal3Machines, associated Machine Reconciles",
 			TestCaseClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
-				M3Machine:     newMetal3Machine(metal3machineName, bmmObjectMetaWithOwnerRef(), nil, nil, false),
+				M3Machine:     newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
 				Machine:       newMachine(clusterName, machineName, metal3machineName),
 				Machine1:      newMachine(clusterName, "my-machine-1", ""),
 				ExpectRequest: true,
