@@ -504,6 +504,17 @@ spec:
                     - sha256
                     - sha512
                     type: string
+                  format:
+                    description: DiskFormat contains the image disk format
+                    enum:
+                    - raw
+                    - qcow2
+                    - qed
+                    - vdi
+                    - vmdk
+                    - vpc
+                    - vhd
+                    type: string
                   url:
                     description: URL is a location of an image to deploy.
                     type: string

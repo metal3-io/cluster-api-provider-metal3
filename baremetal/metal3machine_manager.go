@@ -894,6 +894,7 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 			URL:          m.Metal3Machine.Spec.Image.URL,
 			Checksum:     m.Metal3Machine.Spec.Image.Checksum,
 			ChecksumType: bmh.ChecksumType(checksumType),
+			DiskFormat:   m.Metal3Machine.Spec.Image.DiskFormat,
 		}
 		host.Spec.UserData = m.Metal3Machine.Status.UserData
 		if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
