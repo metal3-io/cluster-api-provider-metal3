@@ -71,8 +71,9 @@ func bmmSpecAll() *capm3.Metal3MachineSpec {
 			Namespace: "myns",
 		},
 		Image: capm3.Image{
-			URL:      testImageURL,
-			Checksum: testImageChecksumURL,
+			URL:          testImageURL,
+			Checksum:     testImageChecksumURL,
+			ChecksumType: pointer.StringPtr("sha512"),
 		},
 		HostSelector: capm3.HostSelector{},
 	}

@@ -78,6 +78,7 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.MetaData = restored.Spec.MetaData
 	dst.Spec.NetworkData = restored.Spec.NetworkData
+	dst.Spec.Image = restored.Spec.Image
 	dst.Spec.DataTemplate = restored.Spec.DataTemplate
 	dst.Status.UserData = restored.Status.UserData
 	dst.Status.MetaData = restored.Status.MetaData
@@ -128,6 +129,7 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.MetaData = restored.Spec.Template.Spec.MetaData
 	dst.Spec.Template.Spec.NetworkData = restored.Spec.Template.Spec.NetworkData
 	dst.Spec.Template.Spec.DataTemplate = restored.Spec.Template.Spec.DataTemplate
+	dst.Spec.Template.Spec.Image = restored.Spec.Template.Spec.Image
 
 	return nil
 }
@@ -248,6 +250,16 @@ func Convert_v1alpha4_Metal3MachineStatus_To_v1alpha2_Metal3MachineStatus(in *v1
 
 func Convert_v1alpha4_Metal3MachineSpec_To_v1alpha2_Metal3MachineSpec(in *v1alpha4.Metal3MachineSpec, out *Metal3MachineSpec, s apiconversion.Scope) error {
 	if err := autoConvert_v1alpha4_Metal3MachineSpec_To_v1alpha2_Metal3MachineSpec(in, out, s); err != nil {
+		return err
+	}
+
+	// Discards unused ObjectMeta
+
+	return nil
+}
+
+func Convert_v1alpha4_Image_To_v1alpha2_Image(in *v1alpha4.Image, out *Image, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha4_Image_To_v1alpha2_Image(in, out, s); err != nil {
 		return err
 	}
 

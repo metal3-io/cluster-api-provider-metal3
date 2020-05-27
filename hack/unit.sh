@@ -18,6 +18,6 @@ else
     --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-metal3:ro,z" \
     --entrypoint sh \
     --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
-    quay.io/metal3-io/capbm-unit:master \
+    quay.io/metal3-io/capm3-unit:master \
     /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/unit.sh "${@}"
 fi;
