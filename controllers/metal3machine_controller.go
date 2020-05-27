@@ -491,19 +491,19 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj handler.MapObje
 }
 
 // setError sets the ErrorMessage and ErrorReason fields on the metal3machine
-func setErrorM3Machine(bmm *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
+func setErrorM3Machine(m3m *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
 
-	bmm.Status.FailureMessage = pointer.StringPtr(message)
-	bmm.Status.FailureReason = &reason
+	m3m.Status.FailureMessage = pointer.StringPtr(message)
+	m3m.Status.FailureReason = &reason
 
 }
 
 // clearError removes the ErrorMessage from the metal3machine's Status if set.
-func clearErrorM3Machine(bmm *capm3.Metal3Machine) {
+func clearErrorM3Machine(m3m *capm3.Metal3Machine) {
 
-	if bmm.Status.FailureMessage != nil || bmm.Status.FailureReason != nil {
-		bmm.Status.FailureMessage = nil
-		bmm.Status.FailureReason = nil
+	if m3m.Status.FailureMessage != nil || m3m.Status.FailureReason != nil {
+		m3m.Status.FailureMessage = nil
+		m3m.Status.FailureReason = nil
 	}
 
 }

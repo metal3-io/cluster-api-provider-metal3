@@ -21,7 +21,7 @@ import (
 )
 
 func TestMetal3MachineDefault(t *testing.T) {
-	// No-op because we do not default anything in BMM yet
+	// No-op because we do not default anything in M3M yet
 	c := &Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "fooboo",

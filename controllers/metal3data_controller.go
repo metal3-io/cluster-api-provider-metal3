@@ -169,6 +169,7 @@ func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj handler.MapObject) 
 			}
 			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 			if err != nil {
+				r.Log.Error(err, "failed to parse the API version")
 				continue
 			}
 			if aGV.Group != capm3.GroupVersion.Group {

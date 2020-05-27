@@ -811,17 +811,17 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 
 // consumerRefMatches returns a boolean based on whether the consumer
 // reference and bare metal machine metadata match
-func consumerRefMatches(consumer *corev1.ObjectReference, bmmachine *capm3.Metal3Machine) bool {
-	if consumer.Name != bmmachine.Name {
+func consumerRefMatches(consumer *corev1.ObjectReference, m3machine *capm3.Metal3Machine) bool {
+	if consumer.Name != m3machine.Name {
 		return false
 	}
-	if consumer.Namespace != bmmachine.Namespace {
+	if consumer.Namespace != m3machine.Namespace {
 		return false
 	}
-	if consumer.Kind != bmmachine.Kind {
+	if consumer.Kind != m3machine.Kind {
 		return false
 	}
-	if consumer.GroupVersionKind().Group != bmmachine.GroupVersionKind().Group {
+	if consumer.GroupVersionKind().Group != m3machine.GroupVersionKind().Group {
 		return false
 	}
 	return true

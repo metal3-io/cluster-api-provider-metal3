@@ -389,7 +389,7 @@ spec:
       jsonPath: .status.ready
       name: Ready
       type: string
-    - description: Cluster to which this BMMachine belongs
+    - description: Cluster to which this M3Machine belongs
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
