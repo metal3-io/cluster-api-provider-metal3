@@ -82,7 +82,7 @@ help:  ## Display this help
 testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
 
 .PHONY: test
-test: testprereqs generate fmt lint ## Run tests
+test: testprereqs fmt lint ## Run tests
 	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile ./cover.out
 
 .PHONY: test-integration
@@ -162,80 +162,6 @@ vet:
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
-
-.PHONY: generate
-generate: ## Generate code
-	$(MAKE) generate-go
-	$(MAKE) generate-manifests
-
-.PHONY: generate-go
-generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUSTOMIZE) ## Runs Go related generate targets
-	go generate ./...
-	$(CONTROLLER_GEN) \
-		paths=./api/... \
-		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
-
-	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.metal3cluster_manager.go \
-	  -source=./baremetal/metal3cluster_manager.go \
-		-package=baremetal_mocks \
-		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
-		ClusterManagerInterface
-
-	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.metal3machine_manager.go \
-	  -source=./baremetal/metal3machine_manager.go \
-		-package=baremetal_mocks \
-		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
-		MachineManagerInterface
-
-	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.metal3datatemplate_manager.go \
-	  -source=./baremetal/metal3datatemplate_manager.go \
-		-package=baremetal_mocks \
-		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
-		DataTemplateManagerInterface
-
-	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.metal3data_manager.go \
-	  -source=./baremetal/metal3data_manager.go \
-		-package=baremetal_mocks \
-		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
-		DataManagerInterface
-
-	$(MOCKGEN) \
-	  -destination=./baremetal/mocks/zz_generated.manager_factory.go \
-	  -source=./baremetal/manager_factory.go \
-		-package=baremetal_mocks \
-		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
-		ManagerFactoryInterface
-
-	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha2 \
-		--output-file-base=zz_generated.conversion \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-
-	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha3 \
-		--output-file-base=zz_generated.conversion \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-
-.PHONY: generate-manifests
-generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	$(CONTROLLER_GEN) \
-		paths=./api/... \
-		crd:crdVersions=v1 \
-		output:crd:dir=$(CRD_ROOT) \
-		output:webhook:dir=$(WEBHOOK_ROOT) \
-		webhook
-	$(CONTROLLER_GEN) \
-		paths=./controllers/... \
-		output:rbac:dir=$(RBAC_ROOT) \
-		rbac:roleName=manager-role
-
-.PHONY: generate-examples
-generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.
-	./examples/generate.sh
 
 ## --------------------------------------
 ## Docker
