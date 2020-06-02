@@ -27,24 +27,25 @@ import (
 	// comment for go-lint
 	"github.com/go-logr/logr"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
-	"k8s.io/client-go/tools/cache"
-	"k8s.io/utils/pointer"
-
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
+	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -156,7 +157,7 @@ func (m *MachineManager) role() string {
 // GetBaremetalHostID return the provider identifier for this machine
 func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error) {
 	// look for associated BMH
-	host, err := m.getHost(ctx)
+	host, _, err := m.getHost(ctx)
 	if err != nil {
 		m.setError("Failed to get a BaremetalHost for the Metal3Machine",
 			capierrors.CreateMachineError,
@@ -196,7 +197,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	m.clearError()
 
 	// look for associated BMH
-	host, err := m.getHost(ctx)
+	host, helper, err := m.getHost(ctx)
 	if err != nil {
 		m.setError("Failed to get the BaremetalHost for the Metal3Machine",
 			capierrors.CreateMachineError,
@@ -206,7 +207,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// no BMH found, trying to choose from available ones
 	if host == nil {
-		host, err = m.chooseHost(ctx)
+		host, helper, err = m.chooseHost(ctx)
 		if err != nil {
 			m.setError("Failed to pick a BaremetalHost for the Metal3Machine",
 				capierrors.CreateMachineError,
@@ -262,8 +263,15 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
-	err = m.updateObject(ctx, host)
+	err = helper.Patch(ctx, host)
 	if err != nil {
+		if aggr, ok := err.(kerrors.Aggregate); ok {
+			for _, kerr := range aggr.Errors() {
+				if apierrors.IsConflict(kerr) {
+					return &RequeueAfterError{}
+				}
+			}
+		}
 		return err
 	}
 
@@ -375,7 +383,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	// clear an error if one was previously set
 	m.clearError()
 
-	host, err := m.getHost(ctx)
+	host, helper, err := m.getHost(ctx)
 	if err != nil {
 		return err
 	}
@@ -417,8 +425,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.Image = nil
 			host.Spec.Online = false
 			host.Spec.UserData = nil
-			err = m.updateObject(ctx, host)
-			if err != nil && !apierrors.IsNotFound(err) {
+			if err := patchIfFound(ctx, helper, host); err != nil {
 				if _, ok := err.(HasRequeueAfterError); !ok {
 					m.setError("Failed to delete Metal3Machine",
 						capierrors.DeleteMachineError,
@@ -426,6 +433,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				}
 				return err
 			}
+
 			m.Log.Info("Deprovisioning BaremetalHost, requeuing")
 			return &RequeueAfterError{}
 		}
@@ -499,8 +507,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			}
 		}
 
-		err = m.updateObject(ctx, host)
-		if err != nil && !apierrors.IsNotFound(err) {
+		// Update the BMH object, if the errors are NotFound, do not return the
+		// errors
+		if err := patchIfFound(ctx, helper, host); err != nil {
 			if _, ok := err.(HasRequeueAfterError); !ok {
 				m.setError("Failed to delete Metal3Machine",
 					capierrors.DeleteMachineError,
@@ -522,7 +531,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 	// error messages yet, so we know that it's incorrect to have one here.
 	m.clearError()
 
-	host, err := m.getHost(ctx)
+	host, helper, err := m.getHost(ctx)
 	if err != nil {
 		return err
 	}
@@ -541,7 +550,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 
-	err = m.updateObject(ctx, host)
+	err = helper.Patch(ctx, host)
 	if err != nil {
 		return err
 	}
@@ -560,8 +569,8 @@ func (m *MachineManager) Update(ctx context.Context) error {
 
 // exists tests for the existence of a bare metal machine and is invoked by the Machine Controller
 func (m *MachineManager) exists(ctx context.Context) (bool, error) {
-	m.Log.Info("Checking if machine exists.")
-	host, err := m.getHost(ctx)
+	m.Log.Info("Checking if host exists.")
+	host, _, err := m.getHost(ctx)
 	if err != nil {
 		return false, err
 	}
@@ -576,8 +585,19 @@ func (m *MachineManager) exists(ctx context.Context) (bool, error) {
 // getHost gets the associated host by looking for an annotation on the machine
 // that contains a reference to the host. Returns nil if not found. Assumes the
 // host is in the same namespace as the machine.
-func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error) {
-	annotations := m.Metal3Machine.ObjectMeta.GetAnnotations()
+func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, *patch.Helper, error) {
+	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
+	if err != nil || host == nil {
+		return host, nil, err
+	}
+	helper, err := patch.NewHelper(host, m.client)
+	return host, helper, err
+}
+
+func getHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
+	mLog logr.Logger,
+) (*bmh.BareMetalHost, error) {
+	annotations := m3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		return nil, nil
 	}
@@ -587,7 +607,7 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 	}
 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
 	if err != nil {
-		m.Log.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+		mLog.Error(err, "Error parsing annotation value", "annotation key", hostKey)
 		return nil, err
 	}
 
@@ -596,9 +616,9 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 		Name:      hostName,
 		Namespace: hostNamespace,
 	}
-	err = m.client.Get(ctx, key, &host)
+	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
-		m.Log.Info("Annotated host not found", "host", hostKey)
+		mLog.Info("Annotated host not found", "host", hostKey)
 		return nil, nil
 	} else if err != nil {
 		return nil, err
@@ -607,9 +627,9 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, error
 }
 
 // chooseHost iterates through known hosts and returns one that can be
-// associated with the bare metal machine. It searches all hosts in case one already has an
-// association with this bare metal machine.
-func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, error) {
+// associated with the metal3 machine. It searches all hosts in case one already has an
+// association with this metal3 machine.
+func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *patch.Helper, error) {
 
 	// get list of BMH
 	hosts := bmh.BareMetalHostList{}
@@ -620,7 +640,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 
 	err := m.client.List(ctx, &hosts, opts)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Using the label selector on ListOptions above doesn't seem to work.
@@ -635,7 +655,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 		r, err := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
 		if err != nil {
 			m.Log.Error(err, "Failed to create MatchLabel requirement, not choosing host")
-			return nil, err
+			return nil, nil, err
 		}
 		reqs = append(reqs, *r)
 	}
@@ -648,7 +668,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 		r, err := labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
 		if err != nil {
 			m.Log.Error(err, "Failed to create MatchExpression requirement, not choosing host")
-			return nil, err
+			return nil, nil, err
 		}
 		reqs = append(reqs, *r)
 	}
@@ -659,7 +679,8 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 	for i, host := range hosts.Items {
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
-			return &hosts.Items[i], nil
+			helper, err := patch.NewHelper(&hosts.Items[i], m.client)
+			return &hosts.Items[i], helper, err
 		}
 		if !host.Available() {
 			continue
@@ -685,14 +706,15 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, er
 	}
 	m.Log.Info(fmt.Sprintf("%d hosts available while choosing host for bare metal machine", len(availableHosts)))
 	if len(availableHosts) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	// choose a host at random from available hosts
 	rand.Seed(time.Now().Unix())
 	chosenHost := availableHosts[rand.Intn(len(availableHosts))]
 
-	return chosenHost, nil
+	helper, err := patch.NewHelper(chosenHost, m.client)
+	return chosenHost, helper, err
 }
 
 // consumerRefMatches returns a boolean based on whether the consumer

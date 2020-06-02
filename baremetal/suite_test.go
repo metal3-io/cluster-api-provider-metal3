@@ -17,6 +17,7 @@ limitations under the License.
 package baremetal
 
 import (
+	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
@@ -27,10 +28,19 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	"k8s.io/klog"
+	"k8s.io/klog/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 const (
@@ -50,10 +60,22 @@ var bmcOwnerRef = &metav1.OwnerReference{
 	Kind:       "Cluster",
 	Name:       clusterName,
 }
+var cfg *rest.Config
+var k8sClient client.Client
+var testEnv *envtest.Environment
 
-//-----------------------------------
-//------ Helper functions -----------
-//-----------------------------------
+func init() {
+	klog.InitFlags(nil)
+	logf.SetLogger(klogr.New())
+
+	// Register required object kinds with global scheme.
+	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
+	_ = clusterv1.AddToScheme(scheme.Scheme)
+	_ = infrav1.AddToScheme(scheme.Scheme)
+	_ = corev1.AddToScheme(scheme.Scheme)
+	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
+}
+
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
 	if err := clusterv1.AddToScheme(s); err != nil {
@@ -71,6 +93,43 @@ func setupScheme() *runtime.Scheme {
 	return s
 }
 
+var _ = BeforeSuite(func(done Done) {
+	logf.SetLogger(zap.LoggerTo(GinkgoWriter, true))
+
+	By("bootstrapping test environment")
+	testEnv = &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+	}
+
+	var err error
+	cfg, err = testEnv.Start()
+	Expect(err).ToNot(HaveOccurred())
+	Expect(cfg).ToNot(BeNil())
+
+	err = infrav1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = apiextensionsv1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	// +kubebuilder:scaffold:scheme
+
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).ToNot(HaveOccurred())
+	Expect(k8sClient).ToNot(BeNil())
+
+	close(done)
+}, 60)
+
+var _ = AfterSuite(func() {
+	By("tearing down the test environment")
+	err := testEnv.Stop()
+	Expect(err).ToNot(HaveOccurred())
+})
+
+//-----------------------------------
+//------ Helper functions -----------
+//-----------------------------------
 func newCluster(clusterName string) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
