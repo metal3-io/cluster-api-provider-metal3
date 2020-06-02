@@ -163,6 +163,54 @@ modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 
+.PHONY: generate
+generate: ## Generate code
+	$(MAKE) generate-go
+	$(MAKE) generate-manifests
+
+.PHONY: generate-go
+generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUSTOMIZE) ## Runs Go related generate targets
+	go generate ./...
+	$(CONTROLLER_GEN) \
+		paths=./api/... \
+		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt
+
+	$(CONVERSION_GEN) \
+		--input-dirs=./api/v1alpha2 \
+		--output-file-base=zz_generated.conversion \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+
+	$(MOCKGEN) \
+	  -destination=./baremetal/mocks/zz_generated.metal3cluster_manager.go \
+	  -source=./baremetal/metal3cluster_manager.go \
+		-package=baremetal_mocks \
+		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
+		ClusterManagerInterface
+
+	$(MOCKGEN) \
+	  -destination=./baremetal/mocks/zz_generated.metal3machine_manager.go \
+	  -source=./baremetal/metal3machine_manager.go \
+		-package=baremetal_mocks \
+		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
+		MachineManagerInterface
+
+.PHONY: generate-manifests
+generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
+	$(CONTROLLER_GEN) \
+		paths=./api/... \
+		crd:crdVersions=v1 \
+		output:crd:dir=$(CRD_ROOT) \
+		output:webhook:dir=$(WEBHOOK_ROOT) \
+		webhook
+	$(CONTROLLER_GEN) \
+		paths=./controllers/... \
+		output:rbac:dir=$(RBAC_ROOT) \
+		rbac:roleName=manager-role
+
+.PHONY: generate-examples
+generate-examples: clean-examples ## Generate examples configurations to run a cluster.
+	./examples/generate.sh
+
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
