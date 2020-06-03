@@ -3,6 +3,7 @@
 set -eux
 
 IS_CONTAINER=${IS_CONTAINER:-false}
+ARTIFACTS=${ARTIFACTS:-/tmp}
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
@@ -10,7 +11,12 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   mkdir /tmp/unit
   cp -r ./* /tmp/unit
   cd /tmp/unit
-  make generate 
+  INPUT_FILES="api/v1alpha2/zz_generated.*.go api/v1alpha2/zz_generated.*.go api/v1alpha4/zz_generated.*.go baremetal/mocks/zz_generated.*.go"
+  cksum $INPUT_FILES > "$ARTIFACTS/lint.cksums.before"
+  export VERBOSE="--verbose"
+  make generate
+  cksum $INPUT_FILES > "$ARTIFACTS/lint.cksums.after"
+  diff "$ARTIFACTS/lint.cksums.before" "$ARTIFACTS/lint.cksums.after"
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
