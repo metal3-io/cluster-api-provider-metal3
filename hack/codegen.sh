@@ -11,7 +11,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   mkdir /tmp/unit
   cp -r ./* /tmp/unit
   cd /tmp/unit
-  INPUT_FILES="api/v1alpha2/zz_generated.*.go api/v1alpha2/zz_generated.*.go api/v1alpha4/zz_generated.*.go baremetal/mocks/zz_generated.*.go"
+  INPUT_FILES="api/v1alpha2/zz_generated.*.go api/v1alpha3/zz_generated.*.go api/v1alpha4/zz_generated.*.go baremetal/mocks/zz_generated.*.go"
   cksum $INPUT_FILES > "$ARTIFACTS/lint.cksums.before"
   export VERBOSE="--verbose"
   make generate
