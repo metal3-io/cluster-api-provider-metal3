@@ -610,6 +610,8 @@ github.com/maxbrunsfeld/counterfeiter/v6 v6.2.2/go.mod h1:eD9eIE7cdwcMi9rYluz88J
 github.com/metal3-io/baremetal-operator v0.0.0-20200525055224-15110661b9eb/go.mod h1:APx4CKkgSfJo6NZ2v3POqfS70cjflST7Vm56veBJn+o=
 github.com/metal3-io/baremetal-operator v0.0.0-20200527084724-b801335fd391 h1:M4XGuhmUhzOyIPIAR7gkxjP6r/2HAjoUKOyGV89sDoU=
 github.com/metal3-io/baremetal-operator v0.0.0-20200527084724-b801335fd391/go.mod h1:cJHbFsmTz+rAFC77BRm+I213ilcJUYSzaLIUV35BRHQ=
+github.com/metal3-io/baremetal-operator v0.0.0-20200602195426-56927565ba1d h1:GJsBViJsWljypblziRUq5nMYoSrEdKSkbKEbY2j+5SY=
+github.com/metal3-io/baremetal-operator v0.0.0-20200602195426-56927565ba1d/go.mod h1:KlJvjh+uvh51OZOyxt/tOcKchOm9QiErfucwfhcf2mU=
 github.com/metal3-io/ip-address-manager v0.0.2 h1:2XSJ4ciB57Kc4S+cZ+LJE6kEYmF4VnaE795R9IWcBxA=
 github.com/metal3-io/ip-address-manager v0.0.2/go.mod h1:R7eG3DMXUvx3ynrGnf1FtZ/5YgY24t5PBfsW5Gv4G3E=
 github.com/mholt/certmagic v0.6.2-0.20190624175158-6a42ef9fe8c2/go.mod h1:g4cOPxcjV0oFq3qwpjSA30LReKD8AoIfwAY9VvG35NY=
