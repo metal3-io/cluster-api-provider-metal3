@@ -7,10 +7,9 @@ ARTIFACTS=${ARTIFACTS:-/tmp}
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
+  eval "$(go env)"
+  cd "${GOPATH}"/src/github.com/metal3-io/cluster-api-provider-metal3
   export XDG_CACHE_HOME=/tmp/.cache
-  mkdir /tmp/unit
-  cp -r ./* /tmp/unit
-  cd /tmp/unit
   INPUT_FILES="api/v1alpha2/zz_generated.*.go api/v1alpha3/zz_generated.*.go api/v1alpha4/zz_generated.*.go baremetal/mocks/zz_generated.*.go"
   cksum $INPUT_FILES > "$ARTIFACTS/lint.cksums.before"
   export VERBOSE="--verbose"
