@@ -10,12 +10,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   mkdir /tmp/unit
   cp -r ./* /tmp/unit
   cd /tmp/unit
-  make fmt > /tmp/fmt-output.log
-  FILE_LENGTH="$(wc -l /tmp/fmt-output.log | awk '{ print $1 }')"
-  cat /tmp/fmt-output.log
-  if [ "${FILE_LENGTH}" != "1" ]; then
-    exit 1
-  fi
+  make lint
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
