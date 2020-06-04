@@ -46,6 +46,7 @@ type reconcileNormalTestCase struct {
 	BootstrapNotReady      bool
 	Annotated              bool
 	AssociateFails         bool
+	GetProviderIDFails     bool
 	GetBMHIDFails          bool
 	BMHIDSet               bool
 	SetNodeProviderIDFails bool
@@ -65,6 +66,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().Update(context.TODO())
 		m.EXPECT().IsBootstrapReady().MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
+		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
 		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		return m
 	}
@@ -73,6 +75,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	m.EXPECT().IsBootstrapReady().Return(!tc.BootstrapNotReady)
 	if tc.BootstrapNotReady {
 		m.EXPECT().HasAnnotation().MaxTimes(0)
+		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
 		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		m.EXPECT().Update(context.TODO()).MaxTimes(0)
 		return m
@@ -84,6 +87,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if associate fails, we do not go further
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
+			m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 			return m
 		} else {
@@ -96,6 +100,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 	// if node is now associated, if getting the ID fails, we do not go further
 	if tc.GetBMHIDFails {
+		m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil,
 			errors.New("Failed"),
 		)
@@ -105,9 +110,17 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 	// The ID is available (GetBaremetalHostID did not return nil)
 	if tc.BMHIDSet {
-		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
-			pointer.StringPtr("abc"), nil,
-		)
+		if tc.GetProviderIDFails {
+			m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
+			m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
+				pointer.StringPtr("abc"), nil,
+			)
+		} else {
+			m.EXPECT().GetProviderIDAndBMHID().Return(
+				"metal3://abc", pointer.StringPtr("abc"),
+			)
+			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
+		}
 
 		// if we fail to set it on the node, we do not go further
 		if tc.SetNodeProviderIDFails {
@@ -126,6 +139,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 		// We did not get an id (got nil), so we'll requeue and not go further
 	} else {
+		m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
 
 		m.EXPECT().
@@ -240,6 +254,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectError:   false,
 				ExpectRequeue: false,
 				BMHIDSet:      true,
+			}),
+			Entry("BMH ID set", reconcileNormalTestCase{
+				ExpectError:        false,
+				ExpectRequeue:      false,
+				BMHIDSet:           true,
+				GetProviderIDFails: true,
 			}),
 			Entry("BMH ID set, SetNodeProviderID fails", reconcileNormalTestCase{
 				ExpectError:            true,

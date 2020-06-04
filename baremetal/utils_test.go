@@ -228,4 +228,9 @@ var _ = Describe("Metal3 manager utils", func() {
 			CreateObject:   true,
 		}),
 	)
+
+	It("Parses the providerID properly", func() {
+		Expect(parseProviderID("metal3://abcd")).To(Equal("abcd"))
+		Expect(parseProviderID("foo://abcd")).To(Equal("foo://abcd"))
+	})
 })

@@ -163,12 +163,15 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
 ) (ctrl.Result, error) {
+
+	var err error
+
 	// If the Metal3Machine doesn't have finalizer, add it.
 	machineMgr.SetFinalizer()
 
 	// if the machine is already provisioned, return
 	if machineMgr.IsProvisioned() {
-		err := machineMgr.Update(ctx)
+		err = machineMgr.Update(ctx)
 		return ctrl.Result{}, err
 	}
 
@@ -181,33 +184,40 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// Check if the metal3machine was associated with a baremetalhost
 	if !machineMgr.HasAnnotation() {
 		//Associate the baremetalhost hosting the machine
-		err := machineMgr.Associate(ctx)
+		err = machineMgr.Associate(ctx)
 		if err != nil {
 			return checkError(err, "failed to associate the Metal3Machine to a BaremetalHost")
 		}
 	} else {
-		err := machineMgr.Update(ctx)
+		err = machineMgr.Update(ctx)
 		if err != nil {
 			return checkError(err, "failed to update BaremetalHost")
 		}
 	}
 
-	bmhID, err := machineMgr.GetBaremetalHostID(ctx)
-	if err != nil {
-		return checkError(err, "failed to get the providerID for the metal3machine")
+	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
+	if bmhID == nil {
+		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
+		if err != nil {
+			return checkError(err,
+				"failed to get the providerID for the metal3machine",
+			)
+		}
+		if bmhID != nil {
+			providerID = fmt.Sprintf("metal3://%s", *bmhID)
+		}
 	}
 	if bmhID != nil {
-		providerID := fmt.Sprintf("metal3://%s", *bmhID)
 		// Set the providerID on the node if no Cloud provider
 		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
 		if err != nil {
-			return checkError(err, "failed to get the providerID for the metal3machine")
+			return checkError(err, "failed to set the target node providerID")
 		}
 		// Make sure Spec.ProviderID is set and mark the capm3Machine ready
 		machineMgr.SetProviderID(providerID)
 	}
 
-	return ctrl.Result{}, err
+	return ctrl.Result{}, nil
 }
 
 func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
