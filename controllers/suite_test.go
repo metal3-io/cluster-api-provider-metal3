@@ -33,6 +33,7 @@ import (
 
 	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -68,6 +69,7 @@ func init() {
 	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
 	_ = clusterv1.AddToScheme(scheme.Scheme)
 	_ = infrav1.AddToScheme(scheme.Scheme)
+	_ = ipamv1.AddToScheme(scheme.Scheme)
 	_ = corev1.AddToScheme(scheme.Scheme)
 	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
 }
@@ -78,6 +80,9 @@ func setupScheme() *runtime.Scheme {
 		panic(err)
 	}
 	if err := infrav1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := ipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -145,11 +150,11 @@ func clusterPauseSpec() *clusterv1.ClusterSpec {
 	}
 }
 
-func bmmObjectMetaWithOwnerRef() *metav1.ObjectMeta {
+func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            metal3machineName,
 		Namespace:       namespaceName,
-		OwnerReferences: bmmOwnerRefs(),
+		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
 			capi.ClusterLabelName: clusterName,
 		},

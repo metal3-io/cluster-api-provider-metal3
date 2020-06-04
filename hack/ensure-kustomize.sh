@@ -19,7 +19,7 @@ set -o nounset
 set -o pipefail
 
 GOPATH_BIN="$(go env GOPATH)/bin/"
-MINIMUM_KUSTOMIZE_VERSION=v3.2.0
+MINIMUM_KUSTOMIZE_VERSION=v3.5.5
 
 # Ensure the kustomize tool exists and is a viable version, or installs it
 verify_kustomize_version() {

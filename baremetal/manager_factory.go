@@ -63,12 +63,12 @@ func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
 		capm3Machine, machineLog)
 }
 
-// NewDataTemplateManager creates a new MetadataManager
+// NewDataTemplateManager creates a new DataTemplateManager
 func (f ManagerFactory) NewDataTemplateManager(metadata *capm3.Metal3DataTemplate, metadataLog logr.Logger) (DataTemplateManagerInterface, error) {
 	return NewDataTemplateManager(f.client, metadata, metadataLog)
 }
 
-// NewDataManager creates a new MetadataManager
+// NewDataManager creates a new DataManager
 func (f ManagerFactory) NewDataManager(metadata *capm3.Metal3Data, metadataLog logr.Logger) (DataManagerInterface, error) {
 	return NewDataManager(f.client, metadata, metadataLog)
 }

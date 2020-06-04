@@ -1,12 +1,11 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: baremetal-operator
-  namespace: capm3-system
+  name: metal3-baremetal-operator
 spec:
   template:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: quay.io/metal3-io/baremetal-operator:master
+      - image: quay.io/metal3-io/baremetal-operator
         name: baremetal-operator

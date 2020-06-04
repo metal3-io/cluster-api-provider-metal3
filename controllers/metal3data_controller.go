@@ -23,13 +23,18 @@ import (
 	"github.com/go-logr/logr"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -121,7 +126,7 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 
 	err := metadataMgr.Reconcile(ctx)
 	if err != nil {
-		return checkMetadataError(err, "Failed to create secrets")
+		return checkRequeueError(err, "Failed to create secrets")
 	}
 	return ctrl.Result{}, nil
 }
@@ -129,6 +134,11 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 	metadataMgr baremetal.DataManagerInterface,
 ) (ctrl.Result, error) {
+
+	err := metadataMgr.ReleaseLeases(ctx)
+	if err != nil {
+		return checkRequeueError(err, "Failed to release IP address leases")
+	}
 
 	metadataMgr.UnsetFinalizer()
 
@@ -139,5 +149,39 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 func (r *Metal3DataReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3Data{}).
+		Watches(
+			&source.Kind{Type: &ipamv1.IPClaim{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.Metal3IPClaimToMetal3Data),
+			},
+		).
 		Complete(r)
+}
+
+// Metal3IPClaimToMetal3Data will return a reconcile request for a Metal3Data if the event is for a
+// Metal3IPClaim and that Metal3IPClaim references a Metal3Data.
+func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj handler.MapObject) []ctrl.Request {
+	requests := []ctrl.Request{}
+	if m3dc, ok := obj.Object.(*ipamv1.IPClaim); ok {
+		for _, ownerRef := range m3dc.OwnerReferences {
+			if ownerRef.Kind != "Metal3Data" {
+				continue
+			}
+			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+			if err != nil {
+				r.Log.Error(err, "failed to parse the API version")
+				continue
+			}
+			if aGV.Group != capm3.GroupVersion.Group {
+				continue
+			}
+			requests = append(requests, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ownerRef.Name,
+					Namespace: m3dc.Namespace,
+				},
+			})
+		}
+	}
+	return requests
 }

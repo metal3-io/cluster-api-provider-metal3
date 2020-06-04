@@ -127,6 +127,7 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kubebuilder.sh
 
+.PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kustomize.sh
 
@@ -233,7 +234,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		rbac:roleName=manager-role
 
 .PHONY: generate-examples
-generate-examples: clean-examples ## Generate examples configurations to run a cluster.
+generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
 
 ## --------------------------------------
@@ -280,8 +281,11 @@ docker-push-manifest: ## Push the fat manifest docker image.
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/manager/manager_image_patch.yaml
+	
+.PHONY: set-manifest-image-bmo
+set-manifest-image-bmo:
+	$(info Updating kustomize image patch file for baremetal-operator)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG_BMO}:$(MANIFEST_TAG_BMO)"'@' ./config/bmo/bmo_image_patch.yaml
-
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
@@ -345,8 +349,8 @@ release: clean-release  ## Builds and push container images using the latest git
 	$(MAKE) release-binaries
 
 .PHONY: release-manifests
-release-manifests: $(RELEASE_DIR) ## Builds the manifests to publish with a release
-	kustomize build config > $(RELEASE_DIR)/infrastructure-components.yaml
+release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publish with a release
+	$(KUSTOMIZE) build config > $(RELEASE_DIR)/infrastructure-components.yaml
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 	cp examples/clusterctl-templates/clusterctl-cluster.yaml $(RELEASE_DIR)/cluster-template.yaml
 	cp examples/clusterctl-templates/example_variables.rc $(RELEASE_DIR)/example_variables.rc

@@ -1,13 +1,15 @@
-export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"
-export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"
-export IRONIC_URL="http://172.22.0.1:6385/v1/"
-export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"
+export DEPLOY_KERNEL_URL="${DEPLOY_KERNEL_URL}"
+export DEPLOY_RAMDISK_URL="${DEPLOY_RAMDISK_URL}"
+export IRONIC_URL="${IRONIC_URL}"
+export IRONIC_INSPECTOR_URL="${IRONIC_INSPECTOR_URL}"
 export POD_CIDR='"192.168.0.0/24"'
 export SERVICE_CIDR='"10.96.0.0/12"'
 export API_ENDPOINT_HOST="192.168.111.249"
 export API_ENDPOINT_PORT="6443"
 export IMAGE_URL="http://192.168.0.1/ubuntu.qcow2"
 export IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"
+export IMAGE_CHECKSUM_TYPE="md5"
+export IMAGE_FORMAT="qcow2"
 export CTLPLANE_KUBEADM_EXTRA_CONFIG="
     preKubeadmCommands:
       - ip link set dev enp2s0 up

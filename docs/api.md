@@ -558,12 +558,15 @@ spec:
       - key: index
         offset: 0
         step: 1
-    ipAddesses:
+    ipAddressesFromIPPool:
       - key: ip
-        start: 192.168.0.10
-        end: 192.168.0.100
-        subnet: 192.168.0.0/24
-        step: 1
+        Name: pool-1
+    prefixesFromIPPool:
+      - key: ip
+        Name: pool-1
+    gatewaysFromIPPool:
+      - key: gateway
+        Name: pool-1
     fromHostInterfaces:
       - key: mac
         interface: "eth0"
@@ -612,16 +615,12 @@ spec:
       ipv4:
         - id: "Baremetal"
           link: "vlan1"
-          ipAddress:
-            start: "192.168.0.10"
-            end: "192.168.0.100"
-            subnet: "192.168.0.0/24"
-            step: 1
-          netmask: 24
+          IPAddressFromIPPool: pool-1
           routes:
             - network: "0.0.0.0"
               netmask: 0
-              gateway: "192.168.0.1"
+              gateway:
+                fromIPPool: pool-1
               services:
                 - type: "dns"
                   address: "8.8.4.4"
@@ -634,16 +633,12 @@ spec:
       ipv6:
         - id: "Baremetal6"
           link: "vlan1"
-          ipAddress:
-            start: "2001:0db8:85a3::8a2e:0370:a"
-            end: "2001:0db8:85a3::8a2e:0370:fff0"
-            subnet: "2001:0db8:85a3::8a2e:0370:0/64"
-            step: 10
-          netmask: 64
+          IPAddressFromIPPool: pool6-1
           routes:
             - network: "0::0"
               netmask: 0
-              gateway: "2001:0db8:85a3::8a2e:0370:1"
+              gateway:
+                string: "2001:0db8:85a3::8a2e:0370:1"
               services:
                 - dns: "2001:4860:4860::8844"
     services:
@@ -685,13 +680,15 @@ ways. The following types of objects are available and accept lists:
   if the step is unspecified (default value being 0), the controller will
   automatically change it for 1. The `prefix` and `suffix` attributes are to
   provide a prefix and a suffix for the rendered index.
-* **ipAddresses**: renders an ip address based on the index, based on the `start` value
-  if given or using `subnet` to calculate the start value, and checking that
-  the rendered value is not over the `end` value. The increment is the `step`
-  value. If the computed value goes out of bounds, the error status will be set
-  with the error in the error message. In case of using the `subnet` value to
-  get the start IP address, it will be the second IP of the subnet (for example
-  `192.168.0.1` for a subnet `192.168.0.0/24`).
+* **ipAddressesFromIPPool**: renders an ip address from an *IPPool*
+  object. The *IPPool* objects are defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
+* **ipAddressesFromIPPool**: renders a network prefix from an *IPPool*
+  object. The *IPPool* objects are defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
+* **ipAddressesFromIPPool**: renders a network gateway from an *IPPool*
+  object. The *IPPool* objects are defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
 * **fromHostInterfaces**: renders the MAC address of the BareMetalHost that
   matches the name given as value.
 * **fromLabels**: renders the content of a label on an object or an empty string
@@ -786,25 +783,17 @@ The **networks/ipv4** object contains the following:
 
 * **id**: the network name
 * **link**: The name of the link to configure this network for
-* **ipAddress**: the IP address object
-* **netmask**: the netmask, in an integer format
+* **ipAddressFromIPPool**: renders an ip address from an *IPPool*
+  object. The *IPPool* objects are defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
 * **routes**: the list of route objects
 
-The **networks/ipv4/ipAddress** is an address object containing:
-
-* **start**: the start IP address
-* **end**: The end IP address
-* **subnet**: The subnet in a CIDR notation "X.X.X.X/X"
-* **step**: the step between IP addresses
-
-If the **subnet** is specified, then **start** and **end** are not required and
-reverse, if **start** and **end** are specified, then **subnet** is not required
-
-The **networks/ipv4/routes** is a route object containing:
+The **networks/ipv*/routes** is a route object containing:
 
 * **network**: the subnet to reach
 * **netmask**: the mask of the subnet as integer
-* **gateway**: the gateway to use
+* **gateway**: the gateway to use, it can either be given as a string in
+  *string* or as an IPPool name in *fromIPPool*
 * **services**: a list of services object as defined later
 
 The **networks/ipv4Dhcp** object contains the following:
@@ -817,8 +806,9 @@ The **networks/ipv6** object contains the following:
 
 * **id**: the network name
 * **link**: The name of the link to configure this network for
-* **ipAddress**: the IP address object
-* **netmask**: the netmask, in an integer format
+* **ipAddressFromIPPool**: renders an ip address from an *IPPool*
+  object. The *IPPool* objects are defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
 * **routes**: the list of route objects
 
 The **networks/ipv6Dhcp** object contains the following:
@@ -838,6 +828,35 @@ The **networks/ipv6Slaac** object contains the following:
 The object for the **services** section can be:
 
 * **dns**: a list of dns service with the ip address of a dns server
+
+## The Metal3DataClaim object
+
+A new object would be created, a Metal3DataClaim type.
+
+```yaml
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3DataClaim
+metadata:
+  name: machine-1
+  namespace: default
+  ownerReferences:
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    controller: true
+    kind: Metal3Machine
+    name: machine-1
+spec:
+  template:
+    name: nodepool-1
+status:
+  renderedData:
+    name: nodepool-1-0
+  errorMessage: ""
+```
+
+The *Metal3DataClaim* object will reference its target *Metal3DataTemplate*
+object. In its status, the *renderedData* would reference the *Metal3Data*
+object when it would be generated. In case of error, the *errorMessage* would
+contain a description of the error.
 
 ## The Metal3Data object
 
@@ -878,29 +897,30 @@ The Metal3Data will contain the index of this node, and links to the secrets
 generated and to the Metal3Machine using this Metal3Data object.
 
 If the Metal3DataTemplate object is updated, the generated secrets will not be
-updated, to allow for re-provisioning of the nodes in the exact same state as
+updated, to allow for reprovisioning of the nodes in the exact same state as
 they were initially provisioned. Hence, to do an update, it is necessary to do
 a rolling upgrade of all nodes.
 
 The reconciliation of the Metal3DataTemplate object will also be triggered by
 changes on Metal3Machines. In the case that a Metal3Machine gets modified, if
-the `dataTemplate` references a Metal3DataTemplate, that object will be reconciled.
-There will be two cases:
+the `dataTemplate` references a Metal3DataTemplate, that *Metal3DataClaim*
+object will be reconciled. There will be two cases:
 
-* An already generated Metal3Data object exists with an ownerReference to this
-  Metal3Machine. In that case, the reconciler will verify that the required
-  secrets exist. If they do not, they will be created.
-* if no Metal3Data exists with an ownerReference to this Metal3Machine, then the
+* An already generated Metal3Data object exists for that *Metal3DataClaim*. If
+  the reference is not in the *Metal3DataClaim* object, the reconciler will add
+  it. The reconciler will also verify that the required secrets exist. If they
+  do not, they will be created.
+* if no Metal3Data exists for that *Metal3DataClaim*, then the
   reconciler will create one and fill the respective field with the secret name.
 
-To create a Metal3Data object, the Metal3DataTemplate controller will select an
+To create a Metal3Data object, the *Metal3DataClaim* controller will select an
 index for that Metal3Machine. The selection happens by selecting the lowest
-available index that is not in the `indexes` field of the status. If the
-`indexes` field is empty, the controller will list all existing Metal3Data
-object linked to this Metal3DataTemplate and recreate the unavailable indexes.
-It will fill it by extracting the index from the Metal3Data names. The indexes
-always start from 0 and increment by 1. The lowest available index is to be used
-next. The `dataNames` field contains the map of Metal3Machine to Metal3Data.
+available index that is not in use. To do that, the controller will list all
+existing Metal3Data object linked to this Metal3DataTemplate and to get the
+unavailable indexes. The indexes always start from 0 and increment by 1. The
+lowest available index is to be used next. The `dataNames` field contains the
+map of Metal3Machine to Metal3Data and the `indexes` contains the map of
+allocated indexes and claims.
 
 Once the next lowest available index is found, it will create the Metal3Data
 object. The name would be a concatenation of the Metal3DataTemplate name and
@@ -909,16 +929,55 @@ Metal3Data and try to create the new object with the new index, this will happen
 until the new object is created successfully. Upon success, it will render the
 content values, and create the secrets containing the rendered data. The
 controller will generate the content based on the `metaData` or `networkData`
-field of the Metal3DataTemplate Specs.
+field of the Metal3DataTemplate Specs. The *ready* field in *renderedData* will
+then be set accordingly. If any error happens during the rendering, an error
+message will be added.
 
-Once the generation is successful, the status field `ready` will be set to True.
-If any error happens during the rendering, an error message will be added.
-
-## The generated secrets
+### The generated secrets
 
 The name of the secret will be made of a prefix and the index. The Metal3Machine
 object name will be used as the prefix. A `-metadata-` or `-networkdata-` will
 be added between the prefix and the index.
+
+## Deployment flow
+
+### Manual secret creation
+
+In the case where the Metal3Machine is created without a `dataTemplate` value,
+if the `metaData` or `networkData` fields are set (one or both), the
+Metal3Machine reconciler will fetch the secret, set the status field and
+directly start the provisioning of the BareMetalHost using the secrets if given.
+If one of the secrets does not exist, the controller will wait to start the
+provisioning of the BareMetalHost until it exists.
+
+### Dynamic secret creation
+
+In the case where the Metal3Machine is created with a `dataTemplate` value, the
+Metal3Machine reconciler will create a *Metal3DataClaim* for that object.
+
+The *Metal3DataClaim* would then be reconciled, and its controller will create
+an index for this *Metal3DataClaim* if it does not exist yet, and create a
+Metal3Data object with the index. Upon success, it will set the *ready* field
+to true, and the *renderedData* field to reference the *Metal3Data* object.
+
+The Metal3Data reconciler will then generate the secrets, based on the index,
+the Metal3DataTemplate and the machine. Once created, it will set the status
+field `ready` to True.
+
+Once the Metal3Data object is ready, the Metal3Machine controller will fetch
+the secrets that have been created (one or both) and use them to start
+provisioning the BareMetalHost.
+
+### Hybrid configuration
+
+If the Metal3Machine object is created with a `dataTemplate` field set, but one
+of the `metaData` or `networkData` is also set in the spec, this one will
+override the template generation for this specific secret. i.e. if the user sets
+the three fields, the controller will use the user input secret for both.
+
+This means that some hybrid scenarios are supported, where the user can give
+directly the `metaData` secret and let the controller render the `networkData`
+secret through the Metal3DataTemplate object.
 
 ## Metal3 dev env examples
 

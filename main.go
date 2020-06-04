@@ -29,6 +29,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	capm3remote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -57,6 +58,7 @@ var (
 
 func init() {
 	_ = scheme.AddToScheme(myscheme)
+	_ = ipamv1.AddToScheme(myscheme)
 	_ = infrav1.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = bmoapis.AddToScheme(myscheme)
@@ -272,12 +274,17 @@ func setupWebhooks(mgr ctrl.Manager) {
 	}
 
 	if err := (&infrav1.Metal3DataTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Metadata")
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataTemplate")
 		os.Exit(1)
 	}
 
 	if err := (&infrav1.Metal3Data{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Metadata")
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Data")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataClaim")
 		os.Exit(1)
 	}
 }

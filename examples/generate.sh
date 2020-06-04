@@ -19,6 +19,7 @@ set -o nounset
 # Directories.
 SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${OUTPUT_DIR:-${SOURCE_DIR}/_out}
+KUSTOMIZE="${SOURCE_DIR}/../hack/tools/bin/kustomize"
 
 # Binaries
 ENVSUBST=${ENVSUBST:-envsubst}
@@ -85,44 +86,44 @@ fi
 mkdir -p "${OUTPUT_DIR}"
 
 # Generate cluster resources.
-kustomize build "${SOURCE_DIR}/cluster" | envsubst > "${CLUSTER_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/cluster" | envsubst > "${CLUSTER_GENERATED_FILE}"
 echo "Generated ${CLUSTER_GENERATED_FILE}"
 
 # Generate controlplane resources.
-kustomize build "${SOURCE_DIR}/controlplane" | envsubst > "${CONTROLPLANE_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/controlplane" | envsubst > "${CONTROLPLANE_GENERATED_FILE}"
 echo "Generated ${CONTROLPLANE_GENERATED_FILE}"
 
 # Generate metal3crds resources.
-kustomize build "${SOURCE_DIR}/metal3crds" | envsubst > "${METAL3CRDS_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/metal3crds" | envsubst > "${METAL3CRDS_GENERATED_FILE}"
 echo "Generated ${METAL3CRDS_GENERATED_FILE}"
 
 # Generate metal3plane resources.
-kustomize build "${SOURCE_DIR}/metal3plane" | envsubst > "${METAL3PLANE_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/metal3plane" | envsubst > "${METAL3PLANE_GENERATED_FILE}"
 echo "Generated ${METAL3PLANE_GENERATED_FILE}"
 
 # Generate machinedeployment resources.
-kustomize build "${SOURCE_DIR}/machinedeployment" | envsubst >> "${MACHINEDEPLOYMENT_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/machinedeployment" | envsubst >> "${MACHINEDEPLOYMENT_GENERATED_FILE}"
 echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
 # Get Cert-manager provider components file
 curl -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github.com/jetstack/cert-manager/releases/download/v0.13.0/cert-manager.yaml
 
 # Generate Cluster API provider components file.
-kustomize build "github.com/kubernetes-sigs/cluster-api/config/?ref=master" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/config/?ref=master" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 
 # Generate Kubeadm Bootstrap Provider components file.
-kustomize build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/?ref=master" > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/?ref=master" > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
 # Generate Kubeadm Controlplane components file.
-kustomize build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/?ref=master" > "${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/?ref=master" > "${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 
 # Generate METAL3 Infrastructure Provider components file.
-kustomize build "${SOURCE_DIR}/../config" | envsubst > "${COMPONENTS_METAL3_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/../config" | envsubst > "${COMPONENTS_METAL3_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_METAL3_GENERATED_FILE}"
 
 # Generate a single provider components file.
-kustomize build "${SOURCE_DIR}/provider-components" | envsubst > "${PROVIDER_COMPONENTS_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/provider-components" | envsubst > "${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"

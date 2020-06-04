@@ -29,7 +29,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -67,6 +69,29 @@ func (e *NotFoundError) Error() string {
 	return "Object not found"
 }
 
+func patchIfFound(ctx context.Context, helper *patch.Helper, host runtime.Object) error {
+	err := helper.Patch(ctx, host)
+	if err != nil {
+		notFound := true
+		if aggr, ok := err.(kerrors.Aggregate); ok {
+			for _, kerr := range aggr.Errors() {
+				if !apierrors.IsNotFound(kerr) {
+					notFound = false
+				}
+				if apierrors.IsConflict(kerr) {
+					return &RequeueAfterError{}
+				}
+			}
+		} else {
+			notFound = false
+		}
+		if notFound {
+			return nil
+		}
+	}
+	return err
+}
+
 func updateObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
 	err := cl.Update(ctx, obj.DeepCopyObject(), opts...)
 	if apierrors.IsConflict(err) {
@@ -79,6 +104,14 @@ func createObject(cl client.Client, ctx context.Context, obj runtime.Object, opt
 	err := cl.Create(ctx, obj.DeepCopyObject(), opts...)
 	if apierrors.IsAlreadyExists(err) {
 		return &RequeueAfterError{}
+	}
+	return err
+}
+
+func deleteObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
+	err := cl.Delete(ctx, obj.DeepCopyObject(), opts...)
+	if apierrors.IsNotFound(err) {
+		return nil
 	}
 	return err
 }
@@ -184,13 +217,32 @@ func fetchM3DataTemplate(ctx context.Context,
 	}
 
 	// Verify that this Metal3Data belongs to the correct cluster
-	if clusterNameTest, ok := metal3DataTemplate.ObjectMeta.Labels[capi.ClusterLabelName]; ok {
-		if clusterNameTest != clusterName {
-			return nil, errors.New("Metal3DataTemplate associated with another cluster")
-		}
+	if clusterName != metal3DataTemplate.Spec.ClusterName {
+		return nil, errors.New("Metal3DataTemplate associated with another cluster")
 	}
 
 	return metal3DataTemplate, nil
+}
+
+func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
+	name, namespace string,
+) (*capm3.Metal3DataClaim, error) {
+	// Fetch the Metal3Data
+	m3Data := &capm3.Metal3DataClaim{}
+	metal3DataName := types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
+	if err := cl.Get(ctx, metal3DataName, m3Data); err != nil {
+		if apierrors.IsNotFound(err) {
+			mLog.Info("Data Claim not found")
+			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+		} else {
+			err := errors.Wrap(err, "Failed to get metadata")
+			return nil, err
+		}
+	}
+	return m3Data, nil
 }
 
 func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
