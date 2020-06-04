@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"strings"
 
 	// comment for go-lint
 	"github.com/go-logr/logr"
@@ -305,4 +306,8 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 		return nil, nil
 	}
 	return tmpM3Machine, nil
+}
+
+func parseProviderID(providerID string) string {
+	return strings.TrimPrefix(providerID, "metal3://")
 }
