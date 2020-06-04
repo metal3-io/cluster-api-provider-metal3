@@ -279,14 +279,14 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 		},
 		Entry("Object does not exist", testCaseUpdate{
-			TestObject: testObject.DeepCopy(),
+			TestObject:     testObject.DeepCopy(),
 			ExistingObject: nil,
 			ExpectedError:  true,
 		}),
 		Entry("Object exists", testCaseUpdate{
-			TestObject: testObject.DeepCopy(),
+			TestObject:     testObject.DeepCopy(),
 			ExistingObject: existingObject.DeepCopy(),
-			ExpectedError: false,
+			ExpectedError:  false,
 		}),
 	)
 
@@ -323,14 +323,14 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 		},
 		Entry("Object does not exist", testCaseUpdate{
-			TestObject: testObject.DeepCopy(),
+			TestObject:     testObject.DeepCopy(),
 			ExistingObject: nil,
 			ExpectedError:  false,
 		}),
 		Entry("Object exists", testCaseUpdate{
-			TestObject: testObject.DeepCopy(),
+			TestObject:     testObject.DeepCopy(),
 			ExistingObject: existingObject.DeepCopy(),
-			ExpectedError: true,
+			ExpectedError:  true,
 		}),
 	)
 
@@ -731,4 +731,9 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectEmpty: true,
 		}),
 	)
+
+	It("Parses the providerID properly", func() {
+		Expect(parseProviderID("metal3://abcd")).To(Equal("abcd"))
+		Expect(parseProviderID("foo://abcd")).To(Equal("foo://abcd"))
+	})
 })

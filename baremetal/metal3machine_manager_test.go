@@ -1923,6 +1923,40 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 	})
 
+	type testCaseGetProviderIDAndBMHID struct {
+		providerID    *string
+		expectedBMHID string
+	}
+
+	DescribeTable("Test GetProviderIDAndBMHID",
+		func(tc testCaseGetProviderIDAndBMHID) {
+			m3m := capm3.Metal3Machine{
+				Spec: capm3.Metal3MachineSpec{
+					ProviderID: tc.providerID,
+				},
+			}
+
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &m3m, klogr.New())
+			Expect(err).NotTo(HaveOccurred())
+
+			providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
+
+			if tc.providerID != nil {
+				Expect(providerID).To(Equal(*tc.providerID))
+				Expect(bmhID).NotTo(BeNil())
+				Expect(*bmhID).To(Equal(tc.expectedBMHID))
+			} else {
+				Expect(providerID).To(Equal(""))
+				Expect(bmhID).To(BeNil())
+			}
+		},
+		Entry("Empty providerID", testCaseGetProviderIDAndBMHID{}),
+		Entry("Provider ID set", testCaseGetProviderIDAndBMHID{
+			providerID:    pointer.StringPtr("metal3://abcd"),
+			expectedBMHID: "abcd",
+		}),
+	)
+
 	Describe("Test SetNodeProviderID", func() {
 		scheme := runtime.NewScheme()
 		err := capi.AddToScheme(scheme)

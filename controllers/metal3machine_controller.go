@@ -232,19 +232,24 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		}
 	}
 
-	bmhID, err := machineMgr.GetBaremetalHostID(ctx)
-	if err != nil {
-		return checkMachineError(machineMgr, err,
-			"failed to get the providerID for the metal3machine", errType,
-		)
+	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
+	if bmhID == nil {
+		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
+		if err != nil {
+			return checkMachineError(machineMgr, err,
+				"failed to get the providerID for the metal3machine", errType,
+			)
+		}
+		if bmhID != nil {
+			providerID = fmt.Sprintf("metal3://%s", *bmhID)
+		}
 	}
 	if bmhID != nil {
-		providerID := fmt.Sprintf("metal3://%s", *bmhID)
 		// Set the providerID on the node if no Cloud provider
 		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
 		if err != nil {
 			return checkMachineError(machineMgr, err,
-				"failed to get the providerID for the metal3machine", errType,
+				"failed to set the target node providerID", errType,
 			)
 		}
 		// Make sure Spec.ProviderID is set and mark the capm3Machine ready
