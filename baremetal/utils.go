@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -75,4 +76,8 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host runtime.Object
 		}
 	}
 	return err
+}
+
+func parseProviderID(providerID string) string {
+	return strings.TrimPrefix(providerID, "metal3://")
 }

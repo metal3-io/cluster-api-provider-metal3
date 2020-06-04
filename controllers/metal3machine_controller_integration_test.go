@@ -154,22 +154,23 @@ func machineWithBootstrap() *clusterv1.Machine {
 var _ = Describe("Reconcile metal3machine", func() {
 
 	type TestCaseReconcile struct {
-		Objects                 []runtime.Object
-		TargetObjects           []runtime.Object
-		ErrorExpected           bool
-		RequeueExpected         bool
-		ErrorReasonExpected     bool
-		ErrorReason             capierrors.MachineStatusError
-		ErrorType               error
-		ExpectedRequeueDuration time.Duration
-		LabelExpected           bool
-		ClusterInfraReady       bool
-		CheckBMFinalizer        bool
-		CheckBMState            bool
-		CheckBMProviderID       bool
-		CheckBootStrapReady     bool
-		CheckBMHostCleaned      bool
-		CheckBMHostProvisioned  bool
+		Objects                    []runtime.Object
+		TargetObjects              []runtime.Object
+		ErrorExpected              bool
+		RequeueExpected            bool
+		ErrorReasonExpected        bool
+		ErrorReason                capierrors.MachineStatusError
+		ErrorType                  error
+		ExpectedRequeueDuration    time.Duration
+		LabelExpected              bool
+		ClusterInfraReady          bool
+		CheckBMFinalizer           bool
+		CheckBMState               bool
+		CheckBMProviderID          bool
+		CheckBMProviderIDUnchanged bool
+		CheckBootStrapReady        bool
+		CheckBMHostCleaned         bool
+		CheckBMHostProvisioned     bool
 	}
 
 	DescribeTable("Reconcile tests",
@@ -234,8 +235,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Expect(testBMmachine.Status.Ready).To(BeTrue())
 			}
 			if tc.CheckBMProviderID {
-				Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("metal3://%s",
-					string(testBMHost.ObjectMeta.UID)))))
+				if tc.CheckBMProviderIDUnchanged {
+					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(pointer.StringPtr(fmt.Sprintf("metal3://%s",
+						string(testBMHost.ObjectMeta.UID)))))
+				} else {
+					Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("metal3://%s",
+						string(testBMHost.ObjectMeta.UID)))))
+				}
 			}
 			if tc.CheckBootStrapReady {
 				Expect(testmachine.Status.BootstrapReady).To(BeTrue())
@@ -477,7 +483,36 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady: true,
 			},
 		),
-		//Given: Machine(with Bootstrap data), BMMachine (Annotation Given, no provider ID), BMH (provisioning)
+		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, provider ID set), BMH (provisioned)
+		//Expected: No Error, BMH.Spec.ProviderID is set properly (unchanged)
+		Entry("Should set ProviderID when bootstrap data is available, ProviderID is given, BMH is provisioned",
+			TestCaseReconcile{
+				Objects: []runtime.Object{
+					newMetal3Machine(
+						metal3machineName, bmmMetaWithAnnotation(),
+						&infrav1.Metal3MachineSpec{
+							ProviderID: pointer.StringPtr("metal3://abcd"),
+							Image: infrav1.Image{
+								Checksum: "abcd",
+								URL:      "abcd",
+							},
+						}, nil, false,
+					),
+					machineWithBootstrap(),
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, nil, nil, nil, false),
+					newBareMetalHost(nil, nil),
+				},
+				ErrorExpected:              false,
+				RequeueExpected:            false,
+				ClusterInfraReady:          true,
+				CheckBMFinalizer:           true,
+				CheckBMProviderID:          true,
+				CheckBootStrapReady:        true,
+				CheckBMProviderIDUnchanged: true,
+			},
+		),
+		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
 		//Expected: No Error, Requeue expected
 		//		BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",

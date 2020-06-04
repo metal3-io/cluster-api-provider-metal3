@@ -75,6 +75,7 @@ type MachineManagerInterface interface {
 	Delete(context.Context) error
 	Update(context.Context) error
 	HasAnnotation() bool
+	GetProviderIDAndBMHID() (string, *string)
 	SetNodeProviderID(context.Context, string, string, ClientGetter) error
 	SetProviderID(string)
 }
@@ -924,6 +925,14 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 	}
 
 	return addrs
+}
+
+func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
+	providerID := m.Metal3Machine.Spec.ProviderID
+	if providerID == nil {
+		return "", nil
+	}
+	return *providerID, pointer.StringPtr(parseProviderID(*providerID))
 }
 
 // ClientGetter prototype
