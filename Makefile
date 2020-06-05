@@ -82,7 +82,7 @@ help:  ## Display this help
 testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
 
 .PHONY: test
-test: testprereqs generate fmt lint ## Run tests
+test: testprereqs fmt lint ## Run tests
 	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./api/... ./controllers/... ./baremetal/... -coverprofile ./cover.out
 
 .PHONY: test-integration
