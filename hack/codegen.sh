@@ -10,7 +10,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   export XDG_CACHE_HOME=/tmp/.cache
   eval "$(go env)"
   cd "${GOPATH}"/src/github.com/metal3-io/cluster-api-provider-metal3
-  INPUT_FILES="api/v1alpha2/zz_generated.*.go api/v1alpha3/zz_generated.*.go api/v1alpha4/zz_generated.*.go baremetal/mocks/zz_generated.*.go"
+  INPUT_FILES="config/certmanager/*.yaml config/crd/*.yaml config/crd/bases/*.yaml config/crd/patches/*.yaml config/default/*.yaml config/ipam/*.yaml config/manager/*.yaml config/rbac/*.yaml config/webhook/*.yaml config/*.yaml api/v1alpha2/zz_generated.*.go api/v1alpha3/zz_generated.*.go api/v1alpha4/zz_generated.*.go baremetal/mocks/zz_generated.*.go"
   # shellcheck disable=SC2086
   cksum $INPUT_FILES > "$ARTIFACTS/lint.cksums.before"
   export VERBOSE="--verbose"
