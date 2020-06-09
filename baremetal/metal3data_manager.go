@@ -605,11 +605,16 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		return addresses, false, err
 	}
 
+	gateway := ipamv1.IPAddressStr("")
+	if ipAddress.Spec.Gateway != nil {
+		gateway = *ipAddress.Spec.Gateway
+	}
+
 	// get address, gateway and prefixes
 	addresses[poolName] = addressFromPool{
 		address: ipAddress.Spec.Address,
 		prefix:  ipAddress.Spec.Prefix,
-		gateway: *ipAddress.Spec.Gateway,
+		gateway: gateway,
 	}
 
 	return addresses, false, nil
