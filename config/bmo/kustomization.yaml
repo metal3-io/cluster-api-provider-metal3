@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: capm3-system
+resources:
+- github.com/metal3-io/baremetal-operator/deploy/operator/?ref=master
+- github.com/metal3-io/baremetal-operator/deploy/crds/?ref=master
+- github.com/metal3-io/baremetal-operator/deploy/rbac/?ref=master
+
+configMapGenerator:
+- behavior: create
+  literals:
+  - DEPLOY_KERNEL_URL=${DEPLOY_KERNEL_URL}
+  - DEPLOY_RAMDISK_URL=${DEPLOY_RAMDISK_URL}
+  - IRONIC_ENDPOINT=${IRONIC_URL}
+  - IRONIC_INSPECTOR_ENDPOINT=${IRONIC_INSPECTOR_URL}
+  name: ironic-bmo-configmap
+
+patchesStrategicMerge:
+- bmo_image_patch.yaml
+
+configurations:
+- kustomizeconfig.yaml

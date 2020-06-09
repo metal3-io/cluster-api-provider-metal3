@@ -1,0 +1,15 @@
+# the following config is for teaching kustomize where to look at when substituting vars.
+# It requires kustomize v2.1.0 or newer to work properly.
+nameReference:
+- kind: ServiceAccount
+  version: v1
+  fieldSpecs:
+  - kind: ClusterRoleBinding
+    group: rbac.authorization.k8s.io
+    path: subjects/name
+
+namespace:
+- kind: ClusterRoleBinding
+  group: rbac.authorization.k8s.io
+  path: subjects/namespace
+  create: true

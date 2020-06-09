@@ -281,7 +281,11 @@ docker-push-manifest: ## Push the fat manifest docker image.
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/manager/manager_image_patch.yaml
-
+	
+.PHONY: set-manifest-image-bmo
+set-manifest-image-bmo:
+	$(info Updating kustomize image patch file for baremetal-operator)
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG_BMO}:$(MANIFEST_TAG_BMO)"'@' ./config/bmo/bmo_image_patch.yaml
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
