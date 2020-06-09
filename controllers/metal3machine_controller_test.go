@@ -651,24 +651,24 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("OwnerRefs", testCaseMetal3DataToMetal3Machines{
 			ownerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3Machine",
 					Name:       "abc",
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3DataClaim",
 					Name:       "bcd",
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: "foo.bar/v1",
 					Kind:       "Metal3Machine",
 					Name:       "cde",
 				},
 			},
 			expectedRequests: []ctrl.Request{
-				ctrl.Request{
+				{
 					NamespacedName: types.NamespacedName{
 						Name:      "abc",
 						Namespace: "myns",

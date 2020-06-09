@@ -44,7 +44,7 @@ func (dst *Metal3Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 
 	// Fill the APIEndpoint
 	dst.Status.APIEndpoints = []APIEndpoint{
-		APIEndpoint{
+		{
 			Host: src.Spec.ControlPlaneEndpoint.Host,
 			Port: src.Spec.ControlPlaneEndpoint.Port,
 		},

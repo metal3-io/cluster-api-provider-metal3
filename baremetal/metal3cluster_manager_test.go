@@ -315,7 +315,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		}),
 		Entry("One Cluster Descendant", descendantsTestCase{
 			Machines: []*clusterv1.Machine{
-				&clusterv1.Machine{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: namespaceName,
 						Labels: map[string]string{

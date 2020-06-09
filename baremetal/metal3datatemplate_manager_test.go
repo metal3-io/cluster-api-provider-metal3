@@ -107,7 +107,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc",
 					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
+						{
 							Name: "def",
 						},
 					},
@@ -124,10 +124,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc",
 					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
+						{
 							Name: "def",
 						},
-						metav1.OwnerReference{
+						{
 							Name: "abc-cluster",
 						},
 					},
@@ -182,7 +182,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 			},
 			indexes: []*infrav1.Metal3Data{
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-0",
 						Namespace: "myns",
@@ -193,7 +193,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Claim:    *testObjectReference,
 					},
 				},
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "bbc-1",
 						Namespace: "myns",
@@ -210,7 +210,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						},
 					},
 				},
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-2",
 						Namespace: "myns",
@@ -221,7 +221,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Claim:    *testObjectReference,
 					},
 				},
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-3",
 						Namespace: "myns",
@@ -315,7 +315,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 			},
 			dataClaims: []*infrav1.Metal3DataClaim{
-				&infrav1.Metal3DataClaim{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
 						Namespace: "myns",
@@ -327,7 +327,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						},
 					},
 				},
-				&infrav1.Metal3DataClaim{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abcd",
 						Namespace: "myns",
@@ -345,7 +345,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						},
 					},
 				},
-				&infrav1.Metal3DataClaim{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abce",
 						Namespace: "myns",
@@ -363,7 +363,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						},
 					},
 				},
-				&infrav1.Metal3DataClaim{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "abcf",
 						Namespace:         "myns",
@@ -384,7 +384,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			datas: []*infrav1.Metal3Data{
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-0",
 						Namespace: "myns",
@@ -401,7 +401,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Index: 0,
 					},
 				},
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-1",
 						Namespace: "myns",
@@ -418,7 +418,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Index: 1,
 					},
 				},
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-3",
 						Namespace: "myns",
@@ -572,7 +572,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMetaWithOR,
 			},
 			datas: []*infrav1.Metal3Data{
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-0",
 						Namespace: "myns",
@@ -701,7 +701,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedMap:     map[int]string{},
 			expectedIndexes: map[string]int{},
 			datas: []*infrav1.Metal3Data{
-				&infrav1.Metal3Data{
+				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "abc-0",
 					},

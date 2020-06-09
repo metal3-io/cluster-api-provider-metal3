@@ -387,24 +387,24 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("OwnerRefs", testCaseMetal3IPClaimToMetal3Data{
 			ownerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3Data",
 					Name:       "abc",
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3DataClaim",
 					Name:       "bcd",
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: "foo.bar/v1",
 					Kind:       "Metal3Data",
 					Name:       "cde",
 				},
 			},
 			expectedRequests: []ctrl.Request{
-				ctrl.Request{
+				{
 					NamespacedName: types.NamespacedName{
 						Name:      "abc",
 						Namespace: "myns",

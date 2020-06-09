@@ -374,7 +374,7 @@ var _ = Describe("Metal3 manager utils", func() {
 						Name:      "abc",
 						Namespace: "myns",
 						OwnerReferences: []metav1.OwnerReference{
-							metav1.OwnerReference{
+							{
 								Name:       "ghij",
 								Kind:       "Metal3Machine",
 								APIVersion: capm3.GroupVersion.String(),
@@ -389,7 +389,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 			}
-			ownerRef := []metav1.OwnerReference{metav1.OwnerReference{
+			ownerRef := []metav1.OwnerReference{{
 				Name:       "abcd",
 				Kind:       "Metal3Machine",
 				APIVersion: capm3.GroupVersion.String(),

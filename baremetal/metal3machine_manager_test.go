@@ -508,7 +508,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 		m3mconfig4, infrastructureRef4 := newConfig("", map[string]string{},
 			[]capm3.HostSelectorRequirement{
-				capm3.HostSelectorRequirement{
+				{
 					Key:      "key1",
 					Operator: "in",
 					Values:   []string{"abc", "value1", "123"},
@@ -517,7 +517,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 		m3mconfig5, infrastructureRef5 := newConfig("", map[string]string{},
 			[]capm3.HostSelectorRequirement{
-				capm3.HostSelectorRequirement{
+				{
 					Key:      "key1",
 					Operator: "pancakes",
 					Values:   []string{"abc", "value1", "123"},
@@ -1682,11 +1682,11 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					Status: capi.MachineStatus{
 						Addresses: []capi.MachineAddress{
-							capi.MachineAddress{
+							{
 								Address: "192.168.1.255",
 								Type:    "InternalIP",
 							},
-							capi.MachineAddress{
+							{
 								Address: "172.0.20.255",
 								Type:    "InternalIP",
 							},
@@ -1704,11 +1704,11 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					Status: capm3.Metal3MachineStatus{
 						Addresses: []capi.MachineAddress{
-							capi.MachineAddress{
+							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
 							},
-							capi.MachineAddress{
+							{
 								Address: "172.0.20.2",
 								Type:    "InternalIP",
 							},
@@ -1719,11 +1719,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectedMachine: capi.Machine{
 					Status: capi.MachineStatus{
 						Addresses: []capi.MachineAddress{
-							capi.MachineAddress{
+							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
 							},
-							capi.MachineAddress{
+							{
 								Address: "172.0.20.2",
 								Type:    "InternalIP",
 							},
@@ -1746,11 +1746,11 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					Status: capi.MachineStatus{
 						Addresses: []capi.MachineAddress{
-							capi.MachineAddress{
+							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
 							},
-							capi.MachineAddress{
+							{
 								Address: "172.0.20.2",
 								Type:    "InternalIP",
 							},
@@ -1768,11 +1768,11 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					Status: capm3.Metal3MachineStatus{
 						Addresses: []capi.MachineAddress{
-							capi.MachineAddress{
+							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
 							},
-							capi.MachineAddress{
+							{
 								Address: "172.0.20.2",
 								Type:    "InternalIP",
 							},
@@ -1783,11 +1783,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectedMachine: capi.Machine{
 					Status: capi.MachineStatus{
 						Addresses: []capi.MachineAddress{
-							capi.MachineAddress{
+							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
 							},
-							capi.MachineAddress{
+							{
 								Address: "172.0.20.2",
 								Type:    "InternalIP",
 							},
@@ -2556,7 +2556,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Absent", testCaseFindOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
@@ -2568,13 +2568,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present 0", testCaseFindOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
@@ -2587,13 +2587,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present 1", testCaseFindOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
@@ -2606,13 +2606,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present but different versions", testCaseFindOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
 					Name:       "myName",
@@ -2625,13 +2625,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Wrong group", testCaseFindOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: "nfrastructure.cluster.x-k8s.io/v1alpha1",
 					Name:       "myName",
@@ -2667,7 +2667,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Absent", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
@@ -2678,13 +2678,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present 0", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
@@ -2695,13 +2695,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present 1", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
@@ -2712,7 +2712,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
@@ -2742,7 +2742,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Absent", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
@@ -2753,13 +2753,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present 0", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
@@ -2770,13 +2770,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Present 1", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: "abc.com/v1",
 					Kind:       "def",
 					Name:       "ghi",
 					UID:        "adfasdf",
 				},
-				metav1.OwnerReference{
+				{
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 					Name:       "myName",
@@ -2870,7 +2870,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Name:      "myName",
 					Namespace: "myns",
 					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
+						{
 							Name:       "myName",
 							Kind:       "M3Machine",
 							APIVersion: capm3.GroupVersion.String(),
@@ -2890,7 +2890,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Name:      "myName",
 					Namespace: "myns",
 					OwnerReferences: []metav1.OwnerReference{
-						metav1.OwnerReference{
+						{
 							Name:       "myName",
 							Kind:       "M3Machine",
 							APIVersion: capm3.GroupVersion.String(),
