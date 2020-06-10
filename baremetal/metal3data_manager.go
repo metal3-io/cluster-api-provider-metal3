@@ -226,7 +226,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 
 	// Create the owner Ref for the secret
 	ownerRefs := []metav1.OwnerReference{
-		metav1.OwnerReference{
+		{
 			Controller: pointer.BoolPtr(true),
 			APIVersion: m.Data.APIVersion,
 			Kind:       m.Data.Kind,
@@ -553,7 +553,7 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 				Name:      m.Data.Name + "-" + poolName,
 				Namespace: m.Data.Namespace,
 				OwnerReferences: []metav1.OwnerReference{
-					metav1.OwnerReference{
+					{
 						APIVersion: m.Data.APIVersion,
 						Kind:       m.Data.Kind,
 						Name:       m.Data.Name,

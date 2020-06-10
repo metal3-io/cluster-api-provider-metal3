@@ -467,7 +467,7 @@ func (m *MachineManager) createSecret(ctx context.Context, name string,
 
 	err := createSecret(m.client, ctx, name, namespace,
 		m.Machine.Spec.ClusterName,
-		[]metav1.OwnerReference{metav1.OwnerReference{
+		[]metav1.OwnerReference{{
 			Controller: pointer.BoolPtr(true),
 			APIVersion: m.Metal3Machine.APIVersion,
 			Kind:       m.Metal3Machine.Kind,
@@ -1264,7 +1264,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 			Name:      m.Metal3Machine.Name,
 			Namespace: m.Metal3Machine.Namespace,
 			OwnerReferences: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					APIVersion: m.Metal3Machine.APIVersion,
 					Kind:       m.Metal3Machine.Kind,
 					Name:       m.Metal3Machine.Name,

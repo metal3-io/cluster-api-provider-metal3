@@ -95,7 +95,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			expectErr: true,
 			new: &Metal3DataTemplateSpec{
 				MetaData: &MetaData{
-					Strings: []MetaDataString{MetaDataString{
+					Strings: []MetaDataString{{
 						Key:   "abc",
 						Value: "def",
 					}},
@@ -103,7 +103,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			},
 			old: &Metal3DataTemplateSpec{
 				MetaData: &MetaData{
-					Strings: []MetaDataString{MetaDataString{
+					Strings: []MetaDataString{{
 						Key:   "abc",
 						Value: "defg",
 					}},
@@ -115,7 +115,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			expectErr: true,
 			new: &Metal3DataTemplateSpec{
 				MetaData: &MetaData{
-					Strings: []MetaDataString{MetaDataString{
+					Strings: []MetaDataString{{
 						Key:   "abc",
 						Value: "def",
 					}},
@@ -123,7 +123,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			},
 			old: &Metal3DataTemplateSpec{
 				MetaData: &MetaData{
-					Namespaces: []MetaDataNamespace{MetaDataNamespace{
+					Namespaces: []MetaDataNamespace{{
 						Key: "abc",
 					}},
 				},
@@ -168,7 +168,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 				NetworkData: &NetworkData{
 					Networks: NetworkDataNetwork{
 						IPv4DHCP: []NetworkDataIPv4DHCP{
-							NetworkDataIPv4DHCP{
+							{
 								ID:   "abc",
 								Link: "abc",
 							},

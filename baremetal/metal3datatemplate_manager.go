@@ -292,20 +292,20 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			Namespace: m.DataTemplate.Namespace,
 			Labels:    dataClaim.Labels,
 			OwnerReferences: []metav1.OwnerReference{
-				metav1.OwnerReference{
+				{
 					Controller: pointer.BoolPtr(true),
 					APIVersion: m.DataTemplate.APIVersion,
 					Kind:       m.DataTemplate.Kind,
 					Name:       m.DataTemplate.Name,
 					UID:        m.DataTemplate.UID,
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: dataClaim.APIVersion,
 					Kind:       dataClaim.Kind,
 					Name:       dataClaim.Name,
 					UID:        dataClaim.UID,
 				},
-				metav1.OwnerReference{
+				{
 					APIVersion: dataClaim.APIVersion,
 					Kind:       "Metal3Machine",
 					Name:       m3mName,

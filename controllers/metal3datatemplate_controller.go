@@ -192,7 +192,7 @@ func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(obj h
 				namespace = m3dc.Namespace
 			}
 			return []ctrl.Request{
-				ctrl.Request{
+				{
 					NamespacedName: types.NamespacedName{
 						Name:      m3dc.Spec.Template.Name,
 						Namespace: namespace,

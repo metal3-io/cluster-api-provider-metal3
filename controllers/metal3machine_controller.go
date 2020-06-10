@@ -412,7 +412,7 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 			host.Spec.ConsumerRef.Kind == "Metal3Machine" &&
 			host.Spec.ConsumerRef.GroupVersionKind().Group == capm3.GroupVersion.Group {
 			return []ctrl.Request{
-				ctrl.Request{
+				{
 					NamespacedName: types.NamespacedName{
 						Name:      host.Spec.ConsumerRef.Name,
 						Namespace: host.Spec.ConsumerRef.Namespace,
