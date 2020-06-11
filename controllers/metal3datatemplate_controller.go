@@ -29,11 +29,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -110,14 +107,16 @@ func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the metadata")
 	}
 
-	metadataLog = metadataLog.WithValues("cluster", cluster.Name)
-	if err := metadataMgr.SetClusterOwnerRef(cluster); err != nil {
-		return ctrl.Result{}, err
-	}
-	// Return early if the Metadata or Cluster is paused.
-	if util.IsPaused(cluster, capm3DataTemplate) {
-		metadataLog.Info("reconciliation is paused for this object")
-		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	if capm3DataTemplate.Spec.ClusterName != "" && cluster.Name != "" {
+		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
+		if err := metadataMgr.SetClusterOwnerRef(cluster); err != nil {
+			return ctrl.Result{}, err
+		}
+		// Return early if the Metadata or Cluster is paused.
+		if util.IsPaused(cluster, capm3DataTemplate) {
+			metadataLog.Info("reconciliation is paused for this object")
+			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+		}
 	}
 
 	// Handle deleted metadata
@@ -169,14 +168,6 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.Metal3DataClaimToMetal3DataTemplate),
 			},
-			// Do not trigger a reconciliation on updates of the claim, as the Spec
-			// fields are immutable
-			builder.WithPredicates(predicate.Funcs{
-				UpdateFunc:  func(e event.UpdateEvent) bool { return false },
-				CreateFunc:  func(e event.CreateEvent) bool { return true },
-				DeleteFunc:  func(e event.DeleteEvent) bool { return true },
-				GenericFunc: func(e event.GenericEvent) bool { return false },
-			}),
 		).
 		Complete(r)
 }
