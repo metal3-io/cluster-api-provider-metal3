@@ -281,7 +281,7 @@ docker-push-manifest: ## Push the fat manifest docker image.
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG}:$(MANIFEST_TAG)"'@' ./config/manager/manager_image_patch.yaml
-	
+
 .PHONY: set-manifest-image-bmo
 set-manifest-image-bmo:
 	$(info Updating kustomize image patch file for baremetal-operator)
@@ -319,9 +319,9 @@ deploy-examples:
 	kubectl apply -f ./examples/_out/controlplane.yaml
 
 delete-examples:
-	kubectl delete -f ./examples/_out/controlplane.yaml
-	kubectl delete -f ./examples/_out/machinedeployment.yaml
-	kubectl delete -f ./examples/_out/cluster.yaml
+	kubectl delete -f ./examples/_out/machinedeployment.yaml || true
+	kubectl delete -f ./examples/_out/controlplane.yaml || true
+	kubectl delete -f ./examples/_out/cluster.yaml || true
 
 
 ## --------------------------------------
