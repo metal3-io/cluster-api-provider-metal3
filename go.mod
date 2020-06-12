@@ -11,7 +11,7 @@ require (
 	github.com/google/gofuzz v1.1.0
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/metal3-io/baremetal-operator v0.0.0-20200602195426-56927565ba1d
-	github.com/metal3-io/ip-address-manager v0.0.2
+	github.com/metal3-io/ip-address-manager v0.0.3
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
