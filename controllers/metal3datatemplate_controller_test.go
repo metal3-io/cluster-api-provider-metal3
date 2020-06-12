@@ -79,7 +79,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				if tc.setOwnerRefError {
 					m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(errors.New(""))
 				} else {
-					m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(nil)
+					if tc.cluster != nil {
+						m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(nil)
+					}
 				}
 			}
 			if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() && tc.reconcileDeleteError {

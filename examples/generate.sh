@@ -34,6 +34,12 @@ export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
 
+# BMO settings
+export DEPLOY_KERNEL_URL="${DEPLOY_KERNEL_URL:-http://127.0.0.1:6180/images/ironic-python-agent.kernel}"
+export DEPLOY_RAMDISK_URL="${DEPLOY_RAMDISK_URL:-http://127.0.0.1:6180/images/ironic-python-agent.initramfs}"
+export IRONIC_URL="${IRONIC_URL:-http://127.0.0.1:6385/v1/}"
+export IRONIC_INSPECTOR_URL="${IRONIC_INSPECTOR_URL:-http://127.0.0.1:5050/v1/}"
+
 # Outputs.
 COMPONENTS_CERT_MANAGER_GENERATED_FILE=${OUTPUT_DIR}/cert-manager.yaml
 COMPONENTS_CLUSTER_API_GENERATED_FILE=${SOURCE_DIR}/provider-components/core-components.yaml
