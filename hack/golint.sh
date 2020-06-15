@@ -2,7 +2,7 @@
 
 set -eux
 
-IS_CONTAINER=${IS_CONTAINER:-false}
+IS_CONTAINER="${IS_CONTAINER:-false}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
@@ -10,7 +10,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   mkdir /tmp/unit
   cp -r ./* /tmp/unit
   cd /tmp/unit
-  make vet
+  make lint
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
@@ -18,5 +18,5 @@ else
     --entrypoint sh \
     --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
     registry.hub.docker.com/library/golang:1.13.7 \
-    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/govet.sh
+    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/gofmt.sh
 fi;
