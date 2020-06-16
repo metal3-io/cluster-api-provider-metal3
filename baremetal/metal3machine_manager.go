@@ -808,13 +808,18 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 		default:
 			continue
 		}
-		// continue if BaremetalHost is paused
+
+		// continue if BaremetalHost is paused or marked with UnhealthyAnnotation
 		annotations := host.GetAnnotations()
 		if annotations != nil {
 			if _, ok := annotations[bmh.PausedAnnotation]; ok {
 				continue
 			}
+			if _, ok := annotations[capm3.UnhealthyAnnotation]; ok {
+				continue
+			}
 		}
+
 		if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
 			m.Log.Info("Host matched hostSelector for Metal3Machine", "host", host.Name)
 			availableHosts = append(availableHosts, &hosts.Items[i])

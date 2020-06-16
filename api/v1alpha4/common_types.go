@@ -20,6 +20,11 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 )
 
+const (
+	// UnhealthyAnnotation is the annotation that sets unhealthy status of BMH
+	UnhealthyAnnotation = "capi.metal3.io/unhealthy"
+)
+
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
 	// Host is the hostname on which the API server is serving.

@@ -496,6 +496,13 @@ var _ = Describe("Metal3Machine manager", func() {
 				Labels:    map[string]string{"key1": "value1"},
 			},
 		}
+		hostWithUnhealthyAnnotation := bmh.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "hostWithUnhealthyAnnotation",
+				Namespace:   "myns",
+				Annotations: map[string]string{capm3.UnhealthyAnnotation: "unhealthy"},
+			},
+		}
 
 		m3mconfig, infrastructureRef := newConfig("", map[string]string{},
 			[]capm3.HostSelectorRequirement{},
@@ -561,6 +568,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				testCaseChooseHost{
 					Machine:          newMachine("machine1", "", infrastructureRef2),
 					Hosts:            []runtime.Object{&discoveredHost, &host2, &host1},
+					M3Machine:        m3mconfig2,
+					ExpectedHostName: host2.Name,
+				},
+			),
+			Entry("Ignore hostWithUnhealthyAnnotation and pick host2, which lacks a ConsumerRef",
+				testCaseChooseHost{
+					Machine:          newMachine("machine1", "", infrastructureRef2),
+					Hosts:            []runtime.Object{&hostWithUnhealthyAnnotation, &host1, &host2},
 					M3Machine:        m3mconfig2,
 					ExpectedHostName: host2.Name,
 				},
