@@ -12,8 +12,10 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   cd /tmp/unit
   make fmt > /tmp/fmt-output.log
   FILE_LENGTH="$(wc -l /tmp/fmt-output.log | awk '{ print $1 }')"
-  cat /tmp/fmt-output.log
   if [ "${FILE_LENGTH}" != "1" ]; then
+    echo "Formatting error! Please run 'make fmt' to correct the problem."
+    echo "The problematic files are listed below, after the command that should be run"
+    cat /tmp/fmt-output.log
     exit 1
   fi
 else
