@@ -53,7 +53,10 @@ STAGING_REGISTRY := quay.io/metal3-io
 PROD_REGISTRY := quay.io/metal3-io
 IMAGE_NAME ?= cluster-api-provider-metal3
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
+BMO_IMAGE_NAME ?= baremetal-operator
+BMO_CONTROLLER_IMG ?= $(REGISTRY)/$(BMO_IMAGE_NAME)
 TAG ?= v1alpha2
+BMO_TAG ?= capm3-$(TAG)
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
@@ -287,11 +290,17 @@ set-manifest-image-bmo:
 	$(info Updating kustomize image patch file for baremetal-operator)
 	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG_BMO}:$(MANIFEST_TAG_BMO)"'@' ./config/bmo/bmo_image_patch.yaml
 
+.PHONY: set-manifest-image-ipam
+set-manifest-image-ipam:
+	$(info Updating kustomize image patch file for IPAM controller)
+	sed -i'' -e 's@image: .*@image: '"${MANIFEST_IMG_IPAM}:$(MANIFEST_TAG_IPAM)"'@' ./config/ipam/image_patch.yaml
+
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
 	$(info Updating kustomize pull policy file for manager resource)
 	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/manager/manager_pull_policy.yaml
 	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/bmo/bmo_pull_policy.yaml
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/ipam/pull_policy_patch.yaml
 ## --------------------------------------
 ## Deploying
 ## --------------------------------------
@@ -343,6 +352,10 @@ release: clean-release  ## Builds and push container images using the latest git
 	# Set the manifest image to the production bucket.
 	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		$(MAKE) set-manifest-image
+	# TODO : this is temporarily, as long as we don't have BMO releases, we use compatibility
+	# tags. The "capm3-<release-tag>" tag must be created on current BMO master branch
+	MANIFEST_IMG_BMO=$(PROD_REGISTRY)/$(BMO_IMAGE_NAME) MANIFEST_TAG_BMO=capm3-$(RELEASE_TAG) \
+		$(MAKE) set-manifest-image-bmo
 	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
 
 	$(MAKE) release-manifests
