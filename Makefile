@@ -291,7 +291,7 @@ set-manifest-image-bmo:
 set-manifest-pull-policy:
 	$(info Updating kustomize pull policy file for manager resource)
 	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/manager/manager_pull_policy.yaml
-
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/bmo/bmo_pull_policy.yaml
 ## --------------------------------------
 ## Deploying
 ## --------------------------------------
