@@ -146,6 +146,22 @@ spec:
                 url:
                   description: URL is a location of an image to deploy.
                   type: string
+                checksumType:
+                  description: ChecksumType is the checksum algorithm for
+                    the image. e.g md5, sha256, sha512
+                  enum:
+                  - md5
+                  - sha256
+                  - sha512
+                  type: string
+                format:
+                  description: DiskFormat contains the image disk format
+                  enum:
+                  - raw
+                  - qcow2
+                  - vdi
+                  - vmdk
+                  type: string
               required:
               - checksum
               - url
