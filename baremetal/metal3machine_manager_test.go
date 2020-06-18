@@ -54,6 +54,7 @@ const (
 
 var ProviderID = "metal3://12345ID6789"
 var CloudInitData = []byte("metal3:cloudInitData1010101test__hello")
+var testImageDiskFormat = pointer.StringPtr("raw")
 
 func bmmSpec() *capm3.Metal3MachineSpec {
 	return &capm3.Metal3MachineSpec{
@@ -69,8 +70,10 @@ func bmmSpecAll() *capm3.Metal3MachineSpec {
 			Namespace: "myns",
 		},
 		Image: capm3.Image{
-			URL:      testImageURL,
-			Checksum: testImageChecksumURL,
+			URL:          testImageURL,
+			Checksum:     testImageChecksumURL,
+			ChecksumType: pointer.StringPtr("sha512"),
+			DiskFormat:   testImageDiskFormat,
 		},
 		HostSelector: capm3.HostSelector{},
 	}
@@ -105,8 +108,10 @@ func consumerRefSome() *corev1.ObjectReference {
 
 func expectedImg() *bmh.Image {
 	return &bmh.Image{
-		URL:      testImageURL,
-		Checksum: testImageChecksumURL,
+		URL:          testImageURL,
+		Checksum:     testImageChecksumURL,
+		DiskFormat:   testImageDiskFormat,
+		ChecksumType: "sha512",
 	}
 }
 
@@ -2348,8 +2353,10 @@ func newConfig(UserDataNamespace string,
 		},
 		Spec: capm3.Metal3MachineSpec{
 			Image: capm3.Image{
-				URL:      testImageURL,
-				Checksum: testImageChecksumURL,
+				URL:          testImageURL,
+				Checksum:     testImageChecksumURL,
+				DiskFormat:   testImageDiskFormat,
+				ChecksumType: pointer.StringPtr("sha512"),
 			},
 			UserData: &corev1.SecretReference{
 				Name:      testUserDataSecretName,

@@ -18,11 +18,13 @@ package v1alpha2
 
 import (
 	"fmt"
+	"net/url"
+	"strconv"
+
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	"net/url"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
-	"strconv"
 )
 
 //Constant variables
@@ -65,12 +67,33 @@ func (dst *Metal3ClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.Metal3Machine)
-	return Convert_v1alpha2_Metal3Machine_To_v1alpha3_Metal3Machine(src, dst, nil)
+	if err := Convert_v1alpha2_Metal3Machine_To_v1alpha3_Metal3Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1alpha3.Metal3Machine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Image = restored.Spec.Image
+
+	return nil
 }
 
 func (dst *Metal3Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Metal3Machine)
-	return Convert_v1alpha3_Metal3Machine_To_v1alpha2_Metal3Machine(src, dst, nil)
+	if err := Convert_v1alpha3_Metal3Machine_To_v1alpha2_Metal3Machine(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *Metal3MachineList) ConvertTo(dstRaw conversion.Hub) error {
@@ -87,12 +110,33 @@ func (dst *Metal3MachineList) ConvertFrom(srcRaw conversion.Hub) error {
 
 func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha3.Metal3MachineTemplate)
-	return Convert_v1alpha2_Metal3MachineTemplate_To_v1alpha3_Metal3MachineTemplate(src, dst, nil)
+	if err := Convert_v1alpha2_Metal3MachineTemplate_To_v1alpha3_Metal3MachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &v1alpha3.Metal3MachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	dst.Spec.Template.Spec.Image = restored.Spec.Template.Spec.Image
+
+	return nil
 }
 
 func (dst *Metal3MachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha3.Metal3MachineTemplate)
-	return Convert_v1alpha3_Metal3MachineTemplate_To_v1alpha2_Metal3MachineTemplate(src, dst, nil)
+	if err := Convert_v1alpha3_Metal3MachineTemplate_To_v1alpha2_Metal3MachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *Metal3MachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
@@ -191,6 +235,14 @@ func Convert_v1alpha3_Metal3MachineStatus_To_v1alpha2_Metal3MachineStatus(in *v1
 	// Manually convert the Failure fields to the Error fields
 	out.ErrorMessage = in.FailureMessage
 	out.ErrorReason = in.FailureReason
+
+	return nil
+}
+
+func Convert_v1alpha3_Image_To_v1alpha2_Image(in *v1alpha3.Image, out *Image, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha3_Image_To_v1alpha2_Image(in, out, s); err != nil {
+		return err
+	}
 
 	return nil
 }

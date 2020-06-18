@@ -25,9 +25,11 @@ import (
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	//"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	//fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -106,12 +108,6 @@ var _ = Describe("Metal3 manager utils", func() {
 			Expect(err.Error()).To(Equal("Object not found"))
 		})
 	})
-
-	type testCaseUpdate struct {
-		TestObject     *capm3.Metal3Machine
-		ExistingObject *capm3.Metal3Machine
-		ExpectedError  bool
-	}
 
 	type testCasePatch struct {
 		TestObject     *capm3.Metal3Machine
