@@ -1,7 +1,10 @@
 FROM registry.hub.docker.com/library/golang:1.13
 
-COPY /hack/tools /usr/local/kubebuilder/
+COPY . /usr/local/kubebuilder/
 WORKDIR /usr/local/kubebuilder
+RUN go mod download -json
+
+WORKDIR /usr/local/kubebuilder/hack/tools
 RUN ./install_kustomize.sh && \
     ./install_kubebuilder.sh
-RUN go mod download
+RUN go mod download -json
