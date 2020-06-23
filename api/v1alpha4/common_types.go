@@ -65,6 +65,6 @@ type Image struct {
 	ChecksumType *string `json:"checksumType,omitempty"`
 
 	//DiskFormat contains the image disk format
-	// +kubebuilder:validation:Enum=raw;qcow2;qed;vdi;vmdk;vpc;vhd
+	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk
 	DiskFormat *string `json:"format,omitempty"`
 }
