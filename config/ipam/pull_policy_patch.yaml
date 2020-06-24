@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipam-controller-manager
+  namespace: capm3-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        imagePullPolicy: IfNotPresent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ipam-controller-manager
+  namespace: capi-webhook-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        imagePullPolicy: IfNotPresent
