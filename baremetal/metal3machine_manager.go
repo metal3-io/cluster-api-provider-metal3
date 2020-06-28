@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -190,7 +191,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
 		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
-			capierrors.CreateMachineError,
+			capierrors.UpdateMachineError,
 		)
 		return err
 	}
@@ -205,12 +206,21 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 			m.Log.Info("BaremetalHost is already paused")
 			return nil
 		}
-		m.Log.Info("Adding PausedAnnotation in BareMetalHost")
-		host.Annotations[bmh.PausedAnnotation] = pausedAnnotationKey
 	} else {
 		host.Annotations = make(map[string]string)
-		host.Annotations[bmh.PausedAnnotation] = pausedAnnotationKey
 	}
+	m.Log.Info("Adding PausedAnnotation in BareMetalHost")
+	host.Annotations[bmh.PausedAnnotation] = pausedAnnotationKey
+
+	// Setting annotation with BMH status
+	newAnnotation, err := json.Marshal(&host.Status)
+	if err != nil {
+		m.SetError("Failed to marshal the BareMetalHost status",
+			capierrors.UpdateMachineError,
+		)
+		return errors.Wrap(err, "failed to marshall status annotation")
+	}
+	host.Annotations[bmh.StatusAnnotation] = string(newAnnotation)
 	return helper.Patch(ctx, host)
 }
 
