@@ -143,6 +143,17 @@ func clusterPauseSpec() *clusterv1.ClusterSpec {
 	}
 }
 
+func bmmObjectMetaWithOwnerRef() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            metal3machineName,
+		Namespace:       namespaceName,
+		OwnerReferences: bmmOwnerRefs(),
+		Labels: map[string]string{
+			clusterv1.ClusterLabelName: clusterName,
+		},
+	}
+}
+
 func bmcSpec() *infrav1.Metal3ClusterSpec {
 	return &infrav1.Metal3ClusterSpec{
 		ControlPlaneEndpoint: infrav1.APIEndpoint{

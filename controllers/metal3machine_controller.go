@@ -120,18 +120,6 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 
 	machineLog = machineLog.WithValues("cluster", cluster.Name)
 
-	// Return early if the BMMachine or Cluster is paused.
-	if util.IsPaused(cluster, capm3Machine) {
-		machineLog.Info("reconciliation is paused for this object")
-		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
-	}
-
-	// Make sure infrastructure is ready
-	if !cluster.Status.InfrastructureReady {
-		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
-		return ctrl.Result{}, nil
-	}
-
 	// Fetch the Metal3 cluster.
 	metal3Cluster := &capm3.Metal3Cluster{}
 	metal3ClusterName := types.NamespacedName{
@@ -149,6 +137,34 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, metal3Cluster, capiMachine, capm3Machine, machineLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the machineMgr")
+	}
+
+	// Check pause annotation on associated bmh (if any)
+	if !cluster.Spec.Paused {
+		err := machineMgr.RemovePauseAnnotation(ctx)
+		if err != nil {
+			machineLog.Info("failed to check pause annotation on associated bmh")
+			return ctrl.Result{}, nil
+		}
+	} else {
+		// set pause annotation on associated bmh (if any)
+		err := machineMgr.SetPauseAnnotation(ctx)
+		if err != nil {
+			machineLog.Info("failed to set pause annotation on associated bmh")
+			return ctrl.Result{}, nil
+		}
+	}
+
+	// Return early if the BMMachine or Cluster is paused.
+	if util.IsPaused(cluster, capm3Machine) {
+		machineLog.Info("reconciliation is paused for this object")
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	}
+
+	// Make sure infrastructure is ready
+	if !cluster.Status.InfrastructureReady {
+		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
+		return ctrl.Result{}, nil
 	}
 
 	// Handle deleted machines
@@ -247,6 +263,12 @@ func (r *Metal3MachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).
 		Watches(
+			&source.Kind{Type: &capi.Cluster{}},
+			&handler.EnqueueRequestsFromMapFunc{
+				ToRequests: handler.ToRequestsFunc(r.ClusterToMetal3Machines),
+			},
+		).
+		Watches(
 			&source.Kind{Type: &capm3.Metal3Cluster{}},
 			&handler.EnqueueRequestsFromMapFunc{
 				ToRequests: handler.ToRequestsFunc(r.Metal3ClusterToMetal3Machines),
@@ -259,6 +281,41 @@ func (r *Metal3MachineReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			},
 		).
 		Complete(r)
+}
+
+// ClusterToMetal3Machines is a handler.ToRequestsFunc to be used to enqeue
+// requests for reconciliation of Metal3Machines.
+func (r *Metal3MachineReconciler) ClusterToMetal3Machines(o handler.MapObject) []ctrl.Request {
+	result := []ctrl.Request{}
+	c, ok := o.Object.(*capi.Cluster)
+
+	if !ok {
+		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o.Object),
+			"failed to get Metal3Machine for Cluster",
+		)
+		return nil
+	}
+
+	labels := map[string]string{capi.ClusterLabelName: c.Name}
+	capiMachineList := &capi.MachineList{}
+	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace),
+		client.MatchingLabels(labels),
+	); err != nil {
+		r.Log.Error(err, "failed to list Metal3Machines")
+		return nil
+	}
+	for _, m := range capiMachineList.Items {
+		if m.Spec.InfrastructureRef.Name == "" {
+			continue
+		}
+		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		if m.Spec.InfrastructureRef.Namespace != "" {
+			name = client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		}
+		result = append(result, ctrl.Request{NamespacedName: name})
+	}
+
+	return result
 }
 
 // Metal3ClusterToMetal3Machines is a handler.ToRequestsFunc to be used to enqeue
@@ -309,7 +366,7 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 			host.Spec.ConsumerRef.Kind == "Metal3Machine" &&
 			host.Spec.ConsumerRef.GroupVersionKind().Group == capm3.GroupVersion.Group {
 			return []ctrl.Request{
-				ctrl.Request{
+				{
 					NamespacedName: types.NamespacedName{
 						Name:      host.Spec.ConsumerRef.Name,
 						Namespace: host.Spec.ConsumerRef.Namespace,
