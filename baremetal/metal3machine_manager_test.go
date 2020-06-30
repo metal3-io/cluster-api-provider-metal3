@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -638,10 +639,11 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type testCaseSetPauseAnnotation struct {
-		M3Machine     *capm3.Metal3Machine
-		Host          *bmh.BareMetalHost
-		ExpectPresent bool
-		ExpectError   bool
+		M3Machine           *capm3.Metal3Machine
+		Host                *bmh.BareMetalHost
+		ExpectPausePresent  bool
+		ExpectStatusPresent bool
+		ExpectError         bool
 	}
 
 	DescribeTable("Test Set BMH Pause Annotation",
@@ -666,13 +668,23 @@ var _ = Describe("Metal3Machine manager", func() {
 				&savedHost,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			if tc.ExpectPresent {
-				Expect(savedHost.Annotations[bmh.PausedAnnotation]).NotTo(BeNil())
+			_, pausePresent := savedHost.Annotations[bmh.PausedAnnotation]
+			if tc.ExpectPausePresent {
+				Expect(pausePresent).To(BeTrue())
 			} else {
-				Expect(savedHost.Annotations[bmh.PausedAnnotation]).To(BeNil())
+				Expect(pausePresent).To(BeFalse())
+			}
+			status, statusPresent := savedHost.Annotations[bmh.StatusAnnotation]
+			if tc.ExpectStatusPresent {
+				Expect(statusPresent).To(BeTrue())
+				annotation, err := json.Marshal(&tc.Host.Status)
+				Expect(err).To(BeNil())
+				Expect(status).To(Equal(string(annotation)))
+			} else {
+				Expect(statusPresent).To(BeFalse())
 			}
 		},
-		Entry("Set BMH Pause Annotation, with valid CAPM3 Paused annotations", testCaseSetPauseAnnotation{
+		Entry("Set BMH Pause Annotation, with valid CAPM3 Paused annotations, already paused", testCaseSetPauseAnnotation{
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
 				Spec: bmh.BareMetalHostSpec{
@@ -686,10 +698,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
-			ExpectPresent: true,
-			ExpectError:   false,
+			ExpectPausePresent: true,
+			ExpectError:        false,
 		}),
-		Entry("Set BMH Pause Annotation, with valid Paused annotations, Empty Key", testCaseSetPauseAnnotation{
+		Entry("Set BMH Pause Annotation, with valid Paused annotations, Empty Key, already paused", testCaseSetPauseAnnotation{
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: *bmhObjectMetaWithValidEmptyPausedAnnotations(),
 				Spec: bmh.BareMetalHostSpec{
@@ -703,8 +715,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
-			ExpectPresent: true,
-			ExpectError:   false,
+			ExpectPausePresent: true,
+			ExpectError:        false,
 		}),
 		Entry("Set BMH Pause Annotation, with no Paused annotations", testCaseSetPauseAnnotation{
 			Host: &bmh.BareMetalHost{
@@ -717,11 +729,15 @@ var _ = Describe("Metal3Machine manager", func() {
 						APIVersion: capm3.GroupVersion.String(),
 					},
 				},
+				Status: bmh.BareMetalHostStatus{
+					OperationalStatus: "OK",
+				},
 			},
 			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
-			ExpectPresent: true,
-			ExpectError:   false,
+			ExpectPausePresent:  true,
+			ExpectStatusPresent: true,
+			ExpectError:         false,
 		}),
 	)
 
