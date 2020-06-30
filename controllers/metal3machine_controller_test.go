@@ -325,6 +325,68 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 	})
 
+	type TestCaseClusterToM3M struct {
+		Cluster       *capi.Cluster
+		Machine       *capi.Machine
+		Machine1      *capi.Machine
+		Machine2      *capi.Machine
+		M3Machine     *infrav1.Metal3Machine
+		ExpectRequest bool
+	}
+
+	DescribeTable("Cluster To Metal3Machines tests",
+		func(tc TestCaseClusterToM3M) {
+			objects := []runtime.Object{
+				tc.Cluster,
+				tc.Machine,
+				tc.Machine1,
+				tc.M3Machine,
+			}
+			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+			r := Metal3MachineReconciler{
+				Client: c,
+			}
+			obj := handler.MapObject{
+				Object: tc.Cluster,
+			}
+			reqs := r.ClusterToMetal3Machines(obj)
+
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+				req := infrav1.Metal3Machine{}
+				err := c.Get(context.TODO(), reqs[0].NamespacedName, &req)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(req.Labels[capi.ClusterLabelName]).To(Equal(tc.Cluster.Name),
+					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[capi.ClusterLabelName])
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+
+			}
+		},
+		//Given Cluster, Machine with metal3machine resource, metal3Machine reconcile
+		Entry("Cluster To Metal3Machines, associated Machine Reconciles",
+			TestCaseClusterToM3M{
+				Cluster:       newCluster(clusterName, nil, nil),
+				M3Machine:     newMetal3Machine(metal3machineName, bmmObjectMetaWithOwnerRef(), nil, nil, false),
+				Machine:       newMachine(clusterName, machineName, metal3machineName),
+				Machine1:      newMachine(clusterName, "my-machine-1", ""),
+				ExpectRequest: true,
+			},
+		),
+
+		//Given Cluster, Machine without metal3Machine resource, no reconciliation
+		Entry("Cluster To Metal3Machines, no metal3Machine, no Reconciliation",
+			TestCaseClusterToM3M{
+				Cluster:       newCluster(clusterName, nil, nil),
+				M3Machine:     newMetal3Machine("my-metal3-machine-0", nil, nil, nil, false),
+				Machine:       newMachine(clusterName, "my-machine-0", ""),
+				Machine1:      newMachine(clusterName, "my-machine-1", ""),
+				ExpectRequest: false,
+			},
+		),
+	)
+
 	type TestCaseMetal3ClusterToBMM struct {
 		Cluster       *capi.Cluster
 		M3Cluster     *infrav1.Metal3Cluster

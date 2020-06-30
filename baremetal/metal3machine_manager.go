@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"strings"
@@ -54,11 +55,12 @@ const (
 	ProviderName = "baremetal"
 	// HostAnnotation is the key for an annotation that should go on a Machine to
 	// reference what BareMetalHost it corresponds to.
-	HostAnnotation     = "metal3.io/BareMetalHost"
-	requeueAfter       = time.Second * 30
-	bmRoleControlPlane = "control-plane"
-	bmRoleNode         = "node"
-	userDataFinalizer  = "metal3machine.infrastructure.cluster.x-k8s.io/userData"
+	HostAnnotation      = "metal3.io/BareMetalHost"
+	requeueAfter        = time.Second * 30
+	bmRoleControlPlane  = "control-plane"
+	bmRoleNode          = "node"
+	userDataFinalizer   = "metal3machine.infrastructure.cluster.x-k8s.io/userData"
+	pausedAnnotationKey = "metal3.io/capm3"
 
 	// metal3SecretType defines the type of secret created by metal3
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
@@ -78,6 +80,8 @@ type MachineManagerInterface interface {
 	GetProviderIDAndBMHID() (string, *string)
 	SetNodeProviderID(context.Context, string, string, ClientGetter) error
 	SetProviderID(string)
+	SetPauseAnnotation(context.Context) error
+	RemovePauseAnnotation(context.Context) error
 }
 
 // MachineManager is responsible for performing machine reconciliation
@@ -153,6 +157,76 @@ func (m *MachineManager) role() string {
 		return bmRoleControlPlane
 	}
 	return bmRoleNode
+}
+
+// RemovePauseAnnotation checks and/or Removes the pause annotations on associated bmh
+func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
+	// look for associated BMH
+	host, helper, err := m.getHost(ctx)
+	if err != nil {
+		m.setError("Failed to get a BaremetalHost for the Metal3Machine",
+			capierrors.CreateMachineError,
+		)
+		return err
+	}
+
+	if host == nil {
+		return nil
+	}
+
+	annotations := host.GetAnnotations()
+
+	if annotations != nil {
+		if _, ok := annotations[bmh.PausedAnnotation]; ok {
+			if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] == pausedAnnotationKey {
+				// Removing BMH Paused Annotation Since Owner Cluster is not paused
+				delete(host.Annotations, bmh.PausedAnnotation)
+			} else if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] != pausedAnnotationKey {
+				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
+				return nil
+			}
+		}
+	}
+	return helper.Patch(ctx, host)
+}
+
+// SetPauseAnnotation sets the pause annotations on associated bmh
+func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
+	// look for associated BMH
+	host, helper, err := m.getHost(ctx)
+	if err != nil {
+		m.setError("Failed to get a BaremetalHost for the Metal3Machine",
+			capierrors.UpdateMachineError,
+		)
+		return err
+	}
+	if host == nil {
+		return nil
+	}
+
+	annotations := host.GetAnnotations()
+
+	if annotations != nil {
+		if _, ok := annotations[bmh.PausedAnnotation]; ok {
+			m.Log.Info("BaremetalHost is already paused")
+			return nil
+		}
+	} else {
+		host.Annotations = make(map[string]string)
+	}
+	m.Log.Info("Adding PausedAnnotation in BareMetalHost")
+	host.Annotations[bmh.PausedAnnotation] = pausedAnnotationKey
+
+	// Setting annotation with BMH status
+	newAnnotation, err := json.Marshal(&host.Status)
+	if err != nil {
+		m.setError("Failed to marshal the BareMetalHost status",
+			capierrors.UpdateMachineError,
+		)
+		return errors.Wrap(err, "failed to marshall status annotation")
+	}
+	host.Annotations[bmh.StatusAnnotation] = string(newAnnotation)
+	return helper.Patch(ctx, host)
 }
 
 // GetBaremetalHostID return the provider identifier for this machine

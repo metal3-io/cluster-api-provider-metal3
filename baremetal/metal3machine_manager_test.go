@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"time"
@@ -160,6 +161,48 @@ func bmhSpecSomeImg() *bmh.BareMetalHostSpec {
 func bmhSpecNoImg() *bmh.BareMetalHostSpec {
 	return &bmh.BareMetalHostSpec{
 		ConsumerRef: consumerRef(),
+	}
+}
+
+func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Labels: map[string]string{
+			capi.ClusterLabelName: clusterName,
+		},
+		Annotations: map[string]string{
+			bmh.PausedAnnotation: pausedAnnotationKey,
+		},
+	}
+}
+
+func bmhObjectMetaWithValidEmptyPausedAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations: map[string]string{
+			bmh.PausedAnnotation: "",
+		},
+	}
+}
+
+func bmhObjectMetaEmptyAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
+		Annotations:     map[string]string{},
+	}
+}
+
+func bmhObjectMetaNoAnnotations() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            "myhost",
+		Namespace:       "myns",
+		OwnerReferences: []metav1.OwnerReference{},
 	}
 }
 
@@ -567,6 +610,201 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 		)
 	})
+
+	type testCaseSetPauseAnnotation struct {
+		M3Machine           *capm3.Metal3Machine
+		Host                *bmh.BareMetalHost
+		ExpectPausePresent  bool
+		ExpectStatusPresent bool
+		ExpectError         bool
+	}
+
+	DescribeTable("Test Set BMH Pause Annotation",
+		func(tc testCaseSetPauseAnnotation) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host, tc.M3Machine)
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, tc.M3Machine, klogr.New())
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.SetPauseAnnotation(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			savedHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
+				},
+				&savedHost,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			_, pausePresent := savedHost.Annotations[bmh.PausedAnnotation]
+			if tc.ExpectPausePresent {
+				Expect(pausePresent).To(BeTrue())
+			} else {
+				Expect(pausePresent).To(BeFalse())
+			}
+			status, statusPresent := savedHost.Annotations[bmh.StatusAnnotation]
+			if tc.ExpectStatusPresent {
+				Expect(statusPresent).To(BeTrue())
+				annotation, err := json.Marshal(&tc.Host.Status)
+				Expect(err).To(BeNil())
+				Expect(status).To(Equal(string(annotation)))
+			} else {
+				Expect(statusPresent).To(BeFalse())
+			}
+		},
+		Entry("Set BMH Pause Annotation, with valid CAPM3 Paused annotations, already paused", testCaseSetPauseAnnotation{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mym3machine",
+						Namespace:  "myns",
+						Kind:       "M3Machine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPausePresent: true,
+			ExpectError:        false,
+		}),
+		Entry("Set BMH Pause Annotation, with valid Paused annotations, Empty Key, already paused", testCaseSetPauseAnnotation{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidEmptyPausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mym3machine",
+						Namespace:  "myns",
+						Kind:       "M3Machine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPausePresent: true,
+			ExpectError:        false,
+		}),
+		Entry("Set BMH Pause Annotation, with no Paused annotations", testCaseSetPauseAnnotation{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaEmptyAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mym3machine",
+						Namespace:  "myns",
+						Kind:       "M3Machine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+				Status: bmh.BareMetalHostStatus{
+					OperationalStatus: "OK",
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPausePresent:  true,
+			ExpectStatusPresent: true,
+			ExpectError:         false,
+		}),
+	)
+
+	type testCaseRemovePauseAnnotation struct {
+		Cluster       *capi.Cluster
+		M3Machine     *capm3.Metal3Machine
+		Host          *bmh.BareMetalHost
+		ExpectPresent bool
+		ExpectError   bool
+	}
+
+	DescribeTable("Test Remove BMH Pause Annotation",
+		func(tc testCaseRemovePauseAnnotation) {
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), tc.Host, tc.M3Machine, tc.Cluster)
+			machineMgr, err := NewMachineManager(c, tc.Cluster, nil, nil, tc.M3Machine, klogr.New())
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.RemovePauseAnnotation(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			savedHost := bmh.BareMetalHost{}
+			err = c.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
+				},
+				&savedHost,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			if tc.ExpectPresent {
+				Expect(savedHost.Annotations[bmh.PausedAnnotation]).NotTo(BeNil())
+			} else {
+				Expect(savedHost.Annotations).To(BeNil())
+			}
+		},
+		Entry("Remove BMH Pause Annotation, with valid CAPM3 Paused annotations", testCaseRemovePauseAnnotation{
+			Cluster: newCluster(clusterName),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mym3machine",
+						Namespace:  "myns",
+						Kind:       "M3Machine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: false,
+			ExpectError:   false,
+		}),
+		Entry("Do not Remove Annotation, with valid Paused annotations, Empty Key", testCaseRemovePauseAnnotation{
+			Cluster: newCluster(clusterName),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaWithValidEmptyPausedAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mym3machine",
+						Namespace:  "myns",
+						Kind:       "M3Machine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: true,
+			ExpectError:   false,
+		}),
+		Entry("No Annotation, Should Not Error", testCaseRemovePauseAnnotation{
+			Cluster: newCluster(clusterName),
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaNoAnnotations(),
+				Spec: bmh.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "mym3machine",
+						Namespace:  "myns",
+						Kind:       "M3Machine",
+						APIVersion: capm3.GroupVersion.String(),
+					},
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, bmmSpec(), nil,
+				bmmObjectMetaWithValidAnnotations()),
+			ExpectPresent: false,
+			ExpectError:   false,
+		}),
+	)
 
 	type testCaseSetHostSpec struct {
 		UserDataNamespace         string
