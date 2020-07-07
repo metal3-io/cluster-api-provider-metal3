@@ -517,7 +517,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		switch host.Status.Provisioning.State {
 		case bmh.StateRegistrationError, bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
-			bmh.StateReady, bmh.StateAvailable, bmh.StateNone:
+			bmh.StateReady, bmh.StateAvailable, bmh.StateNone,
+			bmh.StateUnmanaged:
 			// Host is not provisioned
 			waiting = false
 		case bmh.StateExternallyProvisioned:
