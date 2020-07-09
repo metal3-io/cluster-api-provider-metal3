@@ -1386,10 +1386,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 				host := bmh.BareMetalHost{}
 
-				if tc.Host != nil {
-					err := c.Get(context.TODO(), key, &host)
-					Expect(err).NotTo(HaveOccurred())
-				}
+				err := c.Get(context.TODO(), key, &host)
+				Expect(err).NotTo(HaveOccurred())
 
 				name := ""
 				expectedName := ""
@@ -1520,6 +1518,19 @@ var _ = Describe("Metal3Machine manager", func() {
 			testCaseDelete{
 				Host: newBareMetalHost("myhost", bmhSpecNoImg(),
 					bmh.StateExternallyProvisioned, bmhPowerStatus(), false, true,
+				),
+				Machine: newMachine("mymachine", "", nil),
+				M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+					m3mObjectMetaWithValidAnnotations(),
+				),
+				Secret:              newSecret(),
+				ExpectSecretDeleted: true,
+			},
+		),
+		Entry("Consumer ref should be removed from unmanaged host",
+			testCaseDelete{
+				Host: newBareMetalHost("myhost", bmhSpecNoImg(),
+					bmh.StateUnmanaged, bmhPowerStatus(), false, true,
 				),
 				Machine: newMachine("mymachine", "", nil),
 				M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),

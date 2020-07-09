@@ -10,11 +10,12 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/google/gofuzz v1.1.0
 	github.com/mailru/easyjson v0.7.1 // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20200615181011-aafc2178777d
+	github.com/metal3-io/baremetal-operator v0.0.0-20200707051855-4d4d033a8059
 	github.com/metal3-io/ip-address-manager v0.0.3
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
 	github.com/pkg/errors v0.9.1
+	github.com/securego/gosec v0.0.0-20200401082031-e946c8c39989 // indirect
 	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2
 	gopkg.in/yaml.v2 v2.3.0
 	k8s.io/api v0.19.0-alpha.2
