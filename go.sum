@@ -638,6 +638,8 @@ github.com/metal3-io/baremetal-operator v0.0.0-20200602195426-56927565ba1d h1:GJ
 github.com/metal3-io/baremetal-operator v0.0.0-20200602195426-56927565ba1d/go.mod h1:KlJvjh+uvh51OZOyxt/tOcKchOm9QiErfucwfhcf2mU=
 github.com/metal3-io/baremetal-operator v0.0.0-20200611065708-ae0531dd3002 h1:MPN4LkhaJErzvkaqktSRlCTK+BcphWhQwZJtmc01Pq8=
 github.com/metal3-io/baremetal-operator v0.0.0-20200611065708-ae0531dd3002/go.mod h1:KlJvjh+uvh51OZOyxt/tOcKchOm9QiErfucwfhcf2mU=
+github.com/metal3-io/baremetal-operator v0.0.0-20200615181011-aafc2178777d h1:/dF7vHPu5GM2HrWIqjEcBqlJynk9gOjYzRZGnFc7laQ=
+github.com/metal3-io/baremetal-operator v0.0.0-20200615181011-aafc2178777d/go.mod h1:KlJvjh+uvh51OZOyxt/tOcKchOm9QiErfucwfhcf2mU=
 github.com/metal3-io/ip-address-manager v0.0.2 h1:2XSJ4ciB57Kc4S+cZ+LJE6kEYmF4VnaE795R9IWcBxA=
 github.com/metal3-io/ip-address-manager v0.0.2/go.mod h1:R7eG3DMXUvx3ynrGnf1FtZ/5YgY24t5PBfsW5Gv4G3E=
 github.com/metal3-io/ip-address-manager v0.0.3 h1:Q/IWwjs6mFKCxqQhe/53oobag0+vVAJ0UL3H9Ogsx4g=

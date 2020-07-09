@@ -274,6 +274,8 @@ func Convert_v1alpha4_HostSelectorRequirement_To_v1alpha3_HostSelectorRequiremen
 func autoConvert_v1alpha3_Image_To_v1alpha4_Image(in *Image, out *v1alpha4.Image, s conversion.Scope) error {
 	out.URL = in.URL
 	out.Checksum = in.Checksum
+	out.ChecksumType = (*string)(unsafe.Pointer(in.ChecksumType))
+	out.DiskFormat = (*string)(unsafe.Pointer(in.DiskFormat))
 	return nil
 }
 
@@ -285,8 +287,8 @@ func Convert_v1alpha3_Image_To_v1alpha4_Image(in *Image, out *v1alpha4.Image, s 
 func autoConvert_v1alpha4_Image_To_v1alpha3_Image(in *v1alpha4.Image, out *Image, s conversion.Scope) error {
 	out.URL = in.URL
 	out.Checksum = in.Checksum
-	// WARNING: in.ChecksumType requires manual conversion: does not exist in peer-type
-	// WARNING: in.DiskFormat requires manual conversion: does not exist in peer-type
+	out.ChecksumType = (*string)(unsafe.Pointer(in.ChecksumType))
+	out.DiskFormat = (*string)(unsafe.Pointer(in.DiskFormat))
 	return nil
 }
 
