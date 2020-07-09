@@ -1,10 +1,11 @@
 FROM registry.hub.docker.com/library/golang:1.13
 
 COPY .  /CAPM3
-RUN cd /CAPM3 && go mod download -json
-RUN cp -r /CAPM3/hack/tools /usr/local/kubebuilder/
-RUN cd .. && rm -rf CAPM3
+RUN cd /CAPM3 && go mod download -json && \
+    cp -r /CAPM3/hack/tools /usr/local/kubebuilder/ && \
+    bash -c "source /CAPM3/hack/fetch_ext_bins.sh && \
+    fetch_tools" && rm -rf /CAPM3
 WORKDIR /usr/local/kubebuilder/
 RUN ./install_kustomize.sh && \
-    ./install_kubebuilder.sh
-RUN go mod download -json
+    ./install_kubebuilder.sh && \
+    go mod download -json
