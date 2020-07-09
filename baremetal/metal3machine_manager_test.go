@@ -1282,10 +1282,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 				host := bmh.BareMetalHost{}
 
-				if tc.Host != nil {
-					err := c.Get(context.TODO(), key, &host)
-					Expect(err).NotTo(HaveOccurred())
-				}
+				err := c.Get(context.TODO(), key, &host)
+				Expect(err).NotTo(HaveOccurred())
 
 				name := ""
 				expectedName := ""
@@ -1396,6 +1394,17 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			ExpectedConsumerRef: consumerRef(),
 			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
+			Secret:              newSecret(),
+		}),
+		Entry("Unmanaged host should not be waited on", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
+				bmh.StateUnmanaged, bmhPowerStatus(), true, false,
+			),
+			Machine: newMachine("mymachine", "", nil),
+			BMMachine: newMetal3Machine("mybmmachine", nil, bmmSecret(), nil,
+				bmmObjectMetaWithValidAnnotations(),
+			),
+			ExpectSecretDeleted: true,
 			Secret:              newSecret(),
 		}),
 		Entry("Consumer ref should be removed from externally provisioned host",
