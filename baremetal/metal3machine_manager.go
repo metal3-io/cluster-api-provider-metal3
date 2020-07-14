@@ -496,10 +496,30 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			}
 		}
 
-		if host.Spec.Image != nil || host.Spec.Online || host.Spec.UserData != nil {
+		bmhUpdated := false
+
+		if host.Spec.Image != nil {
 			host.Spec.Image = nil
-			host.Spec.Online = false
+			bmhUpdated = true
+		}
+		if host.Spec.UserData != nil {
 			host.Spec.UserData = nil
+			bmhUpdated = true
+		}
+		if host.Spec.MetaData != nil {
+			host.Spec.MetaData = nil
+			bmhUpdated = true
+		}
+		if host.Spec.NetworkData != nil {
+			host.Spec.NetworkData = nil
+			bmhUpdated = true
+		}
+		if host.Spec.Online {
+			host.Spec.Online = false
+			bmhUpdated = true
+		}
+
+		if bmhUpdated {
 			if err := patchIfFound(ctx, helper, host); err != nil {
 				if _, ok := err.(HasRequeueAfterError); !ok {
 					m.setError("Failed to delete Metal3Machine",
