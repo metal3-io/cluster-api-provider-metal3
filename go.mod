@@ -27,7 +27,7 @@ require (
 	github.com/mailru/easyjson v0.7.1 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a // indirect
 	github.com/mdempsky/maligned v0.0.0-20180708014732-6e39bd26a8c8 // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20200707051855-4d4d033a8059
+	github.com/metal3-io/baremetal-operator v0.0.0-20200715105701-3207e795cae5
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible // indirect
