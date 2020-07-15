@@ -10,7 +10,7 @@ require (
 	github.com/golang/mock v1.4.3
 	github.com/google/gofuzz v1.1.0
 	github.com/mailru/easyjson v0.7.1 // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20200707051855-4d4d033a8059
+	github.com/metal3-io/baremetal-operator v0.0.0-20200715105701-3207e795cae5
 	github.com/metal3-io/ip-address-manager v0.0.3
 	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.10.1
