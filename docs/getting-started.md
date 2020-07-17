@@ -1,4 +1,4 @@
-# Cluster API provider Bare Metal
+# Cluster API provider Metal³
 
 This provider integrates with the
 [Cluster API project](https://github.com/kubernetes-sigs/cluster-api).
