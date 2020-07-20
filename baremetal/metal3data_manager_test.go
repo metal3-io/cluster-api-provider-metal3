@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+
 	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
@@ -1321,6 +1322,9 @@ var _ = Describe("Metal3Data manager", func() {
 					address: ipamv1.IPAddressStr("192.168.0.10"),
 					prefix:  26,
 					gateway: ipamv1.IPAddressStr("192.168.0.1"),
+					dnsServers: []ipamv1.IPAddressStr{
+						"8.8.8.8",
+					},
 				},
 			},
 			ipClaim: &ipamv1.IPClaim{
@@ -1335,6 +1339,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
+
 			ipAddress: &ipamv1.IPAddress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-192.168.0.10",
@@ -1344,6 +1349,9 @@ var _ = Describe("Metal3Data manager", func() {
 					Address: ipamv1.IPAddressStr("192.168.0.10"),
 					Prefix:  26,
 					Gateway: (*ipamv1.IPAddressStr)(pointer.StringPtr("192.168.0.1")),
+					DNSServers: []ipamv1.IPAddressStr{
+						"8.8.8.8",
+					},
 				},
 			},
 		}),
@@ -1648,6 +1656,14 @@ var _ = Describe("Metal3Data manager", func() {
 				(ipamv1.IPAddressStr)("8.8.8.8"),
 				(ipamv1.IPAddressStr)("2001::8888"),
 			},
+			DNSFromIPPool: pointer.StringPtr("pool1"),
+		}
+		poolAddresses := map[string]addressFromPool{
+			"pool1": {
+				dnsServers: []ipamv1.IPAddressStr{
+					ipamv1.IPAddressStr("8.8.4.4"),
+				},
+			},
 		}
 		expectedOutput := []interface{}{
 			map[string]interface{}{
@@ -1658,9 +1674,14 @@ var _ = Describe("Metal3Data manager", func() {
 				"type":    "dns",
 				"address": ipamv1.IPAddressStr("2001::8888"),
 			},
+			map[string]interface{}{
+				"type":    "dns",
+				"address": ipamv1.IPAddressStr("8.8.4.4"),
+			},
 		}
-		result := renderNetworkServices(services)
+		result, err := renderNetworkServices(services, poolAddresses)
 		Expect(result).To(Equal(expectedOutput))
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	type testCaseRenderNetworkLinks struct {
@@ -2156,12 +2177,16 @@ var _ = Describe("Metal3Data manager", func() {
 						ipamv1.IPAddressv4Str("8.8.8.8"),
 						ipamv1.IPAddressv4Str("8.8.4.4"),
 					},
+					DNSFromIPPool: pointer.StringPtr("abc"),
 				},
 			},
 		}
 		poolAddresses := map[string]addressFromPool{
 			"abc": {
 				gateway: "192.168.2.1",
+				dnsServers: []ipamv1.IPAddressStr{
+					"1.1.1.1",
+				},
 			},
 		}
 		ExpectedOutput := []interface{}{
@@ -2183,6 +2208,10 @@ var _ = Describe("Metal3Data manager", func() {
 					map[string]interface{}{
 						"type":    "dns",
 						"address": ipamv1.IPAddressv4Str("8.8.4.4"),
+					},
+					map[string]interface{}{
+						"type":    "dns",
+						"address": ipamv1.IPAddressStr("1.1.1.1"),
 					},
 				},
 			},
@@ -2214,12 +2243,16 @@ var _ = Describe("Metal3Data manager", func() {
 						ipamv1.IPAddressv6Str("fe80:2001::8888"),
 						ipamv1.IPAddressv6Str("fe80:2001::8844"),
 					},
+					DNSFromIPPool: pointer.StringPtr("abc"),
 				},
 			},
 		}
 		poolAddresses := map[string]addressFromPool{
 			"abc": {
 				gateway: "fe80::1",
+				dnsServers: []ipamv1.IPAddressStr{
+					"fe80:2001::1111",
+				},
 			},
 		}
 		ExpectedOutput := []interface{}{
@@ -2241,6 +2274,10 @@ var _ = Describe("Metal3Data manager", func() {
 					map[string]interface{}{
 						"type":    "dns",
 						"address": ipamv1.IPAddressv6Str("fe80:2001::8844"),
+					},
+					map[string]interface{}{
+						"type":    "dns",
+						"address": ipamv1.IPAddressStr("fe80:2001::1111"),
 					},
 				},
 			},

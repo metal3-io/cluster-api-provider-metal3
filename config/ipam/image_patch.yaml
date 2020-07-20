@@ -8,7 +8,7 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: quay.io/metal3-io/ip-address-manager:v0.0.3
+      - image: quay.io/metal3-io/ip-address-manager:v0.0.4
         name: manager
 ---
 apiVersion: apps/v1
@@ -21,5 +21,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: quay.io/metal3-io/ip-address-manager:v0.0.3
+      - image: quay.io/metal3-io/ip-address-manager:v0.0.4
         name: manager
