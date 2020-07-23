@@ -293,18 +293,19 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 	return m.releaseAddressesFromPool(ctx, *m3dt)
 }
 
-// addressFromPool contains the address, prefix and gateway coming from a pool
+// addressFromPool contains the elements coming from an IPPool
 type addressFromPool struct {
-	address ipamv1.IPAddressStr
-	prefix  int
-	gateway ipamv1.IPAddressStr
+	address    ipamv1.IPAddressStr
+	prefix     int
+	gateway    ipamv1.IPAddressStr
+	dnsServers []ipamv1.IPAddressStr
 }
 
 // getAddressesFromPool will fetch each Metal3IPPool referenced at least once,
 // set the Ownerreference if not set, and check if the Metal3IPAddress has been
-// allocated. If not, it will requeue once all pools were fetched. If all have
-// been allocated it will return a map containing the pool name and the address,
-// prefix and gateway from that pool
+// allocated. If not, it will requeue once all IPPools were fetched. If all have
+// been allocated it will return a map containing the IPPool name and the address,
+// prefix and gateway from that IPPool
 func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	m3dt capm3.Metal3DataTemplate,
 ) (map[string]addressFromPool, error) {
@@ -334,6 +335,13 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 				return addresses, err
 			}
 		}
+		for _, pool := range m3dt.Spec.MetaData.DNSServersFromPool {
+			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return addresses, err
+			}
+		}
 	}
 	if m3dt.Spec.NetworkData != nil {
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
@@ -346,6 +354,13 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
 						return addresses, err
@@ -368,6 +383,13 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 						return addresses, err
 					}
 				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
 			}
 		}
 
@@ -375,6 +397,13 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
 						return addresses, err
@@ -392,6 +421,13 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 						return addresses, err
 					}
 				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
 			}
 		}
 
@@ -404,6 +440,20 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 						return addresses, err
 					}
 				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return addresses, err
+					}
+				}
+			}
+		}
+		if m3dt.Spec.NetworkData.Services.DNSFromIPPool != nil {
+			addresses, itemRequeue, err = m.getAddressFromPool(ctx, *m3dt.Spec.NetworkData.Services.DNSFromIPPool, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return addresses, err
 			}
 		}
 	}
@@ -444,6 +494,13 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 				return err
 			}
 		}
+		for _, pool := range m3dt.Spec.MetaData.DNSServersFromPool {
+			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return err
+			}
+		}
 	}
 	if m3dt.Spec.NetworkData != nil {
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
@@ -456,6 +513,13 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
 					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
 						return err
@@ -478,6 +542,13 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 						return err
 					}
 				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 
@@ -485,6 +556,13 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
 					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
 						return err
@@ -502,6 +580,13 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 						return err
 					}
 				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 
@@ -514,6 +599,20 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 						return err
 					}
 				}
+				if route.Services.DNSFromIPPool != nil {
+					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
+					requeue = requeue || itemRequeue
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+		if m3dt.Spec.NetworkData.Services.DNSFromIPPool != nil {
+			_, itemRequeue, err = m.releaseAddressFromPool(ctx, *m3dt.Spec.NetworkData.Services.DNSFromIPPool, addresses)
+			requeue = requeue || itemRequeue
+			if err != nil {
+				return err
 			}
 		}
 	}
@@ -610,11 +709,11 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		gateway = *ipAddress.Spec.Gateway
 	}
 
-	// get address, gateway and prefixes
 	addresses[poolName] = addressFromPool{
-		address: ipAddress.Spec.Address,
-		prefix:  ipAddress.Spec.Prefix,
-		gateway: gateway,
+		address:    ipAddress.Spec.Address,
+		prefix:     ipAddress.Spec.Prefix,
+		gateway:    gateway,
+		dnsServers: ipAddress.Spec.DNSServers,
 	}
 
 	return addresses, false, nil
@@ -678,13 +777,16 @@ func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		return nil, err
 	}
 
-	networkData["services"] = renderNetworkServices(m3dt.Spec.NetworkData.Services)
+	networkData["services"], err = renderNetworkServices(m3dt.Spec.NetworkData.Services, poolAddresses)
+	if err != nil {
+		return nil, err
+	}
 
 	return yaml.Marshal(networkData)
 }
 
 // renderNetworkServices renders the services
-func renderNetworkServices(services capm3.NetworkDataService) []interface{} {
+func renderNetworkServices(services capm3.NetworkDataService, poolAddresses map[string]addressFromPool) ([]interface{}, error) {
 	data := []interface{}{}
 
 	for _, service := range services.DNS {
@@ -694,7 +796,20 @@ func renderNetworkServices(services capm3.NetworkDataService) []interface{} {
 		})
 	}
 
-	return data
+	if services.DNSFromIPPool != nil {
+		poolAddress, ok := poolAddresses[*services.DNSFromIPPool]
+		if !ok {
+			return nil, errors.New("Pool not found in cache")
+		}
+		for _, service := range poolAddress.dnsServers {
+			data = append(data, map[string]interface{}{
+				"type":    "dns",
+				"address": service,
+			})
+		}
+	}
+
+	return data, nil
 }
 
 // renderNetworkLinks renders the different types of links
@@ -868,6 +983,18 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
 				"address": service,
 			})
 		}
+		if route.Services.DNSFromIPPool != nil {
+			poolAddress, ok := poolAddresses[*route.Services.DNSFromIPPool]
+			if !ok {
+				return []interface{}{}, errors.New("Pool not found in cache")
+			}
+			for _, service := range poolAddress.dnsServers {
+				services = append(services, map[string]interface{}{
+					"type":    "dns",
+					"address": service,
+				})
+			}
+		}
 		mask := translateMask(route.Prefix, true)
 		routes = append(routes, map[string]interface{}{
 			"network":  route.Network,
@@ -901,6 +1028,18 @@ func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6,
 				"type":    "dns",
 				"address": service,
 			})
+		}
+		if route.Services.DNSFromIPPool != nil {
+			poolAddress, ok := poolAddresses[*route.Services.DNSFromIPPool]
+			if !ok {
+				return []interface{}{}, errors.New("Pool not found in cache")
+			}
+			for _, service := range poolAddress.dnsServers {
+				services = append(services, map[string]interface{}{
+					"type":    "dns",
+					"address": service,
+				})
+			}
 		}
 		mask := translateMask(route.Prefix, false)
 		routes = append(routes, map[string]interface{}{

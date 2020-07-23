@@ -567,6 +567,9 @@ spec:
     gatewaysFromIPPool:
       - key: gateway
         Name: pool-1
+    dnsServersFromIPPool:
+      - key: dns
+        Name: pool-1
     fromHostInterfaces:
       - key: mac
         interface: "eth0"
@@ -622,8 +625,9 @@ spec:
               gateway:
                 fromIPPool: pool-1
               services:
-                - type: "dns"
-                  address: "8.8.4.4"
+                dns:
+                  - "8.8.4.4"
+                dnsFromIPPool: pool-1
       ipv6DHCP:
         - id: "provisioning6"
           link: "bond0"
@@ -640,7 +644,9 @@ spec:
               gateway:
                 string: "2001:0db8:85a3::8a2e:0370:1"
               services:
-                - dns: "2001:4860:4860::8844"
+                dns:
+                  - "2001:4860:4860::8844"
+                dnsFromIPPool: pool6-1
     services:
       dns:
         - "8.8.8.8"
@@ -683,10 +689,13 @@ ways. The following types of objects are available and accept lists:
 * **ipAddressesFromIPPool**: renders an ip address from an *IPPool*
   object. The *IPPool* objects are defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
-* **ipAddressesFromIPPool**: renders a network prefix from an *IPPool*
+* **prefixesFromIPPool**: renders a network prefix from an *IPPool*
   object. The *IPPool* objects are defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
-* **ipAddressesFromIPPool**: renders a network gateway from an *IPPool*
+* **gatewaysFromIPPool**: renders a network gateway from an *IPPool*
+  object. The *IPPool* objects are defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
+* **dnsServersFromIPPool**: renders a dns servers list from an *IPPool*
   object. The *IPPool* objects are defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
 * **fromHostInterfaces**: renders the MAC address of the BareMetalHost that
@@ -828,6 +837,7 @@ The **networks/ipv6Slaac** object contains the following:
 The object for the **services** section can be:
 
 * **dns**: a list of dns service with the ip address of a dns server
+* **dnsFromIPPool**: the IPPool from which to fetch the dns servers list
 
 ## The Metal3DataClaim object
 

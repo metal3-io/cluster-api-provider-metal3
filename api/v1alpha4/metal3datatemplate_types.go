@@ -29,7 +29,7 @@ const (
 
 // MetaDataIndex contains the information to render the index
 type MetaDataIndex struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// Offset is the offset to apply to the index when rendering it
 	Offset int `json:"offset,omitempty"`
@@ -45,7 +45,7 @@ type MetaDataIndex struct {
 // MetaDataFromLabel contains the information to fetch a label content, if the
 // label does not exist, it is rendered as empty string
 type MetaDataFromLabel struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
 	// Object is the type of the object from which we retrieve the name
@@ -57,7 +57,7 @@ type MetaDataFromLabel struct {
 // MetaDataFromAnnotation contains the information to fetch an annotation
 // content, if the label does not exist, it is rendered as empty string
 type MetaDataFromAnnotation struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
 	// Object is the type of the object from which we retrieve the name
@@ -68,7 +68,7 @@ type MetaDataFromAnnotation struct {
 
 // MetaDataString contains the information to render the string
 type MetaDataString struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// Value is the string to render.
 	Value string `json:"value"`
@@ -76,13 +76,13 @@ type MetaDataString struct {
 
 // MetaDataNamespace contains the information to render the namespace
 type MetaDataNamespace struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 }
 
 // MetaDataObjectName contains the information to render the object name
 type MetaDataObjectName struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
 	// Object is the type of the object from which we retrieve the name
@@ -91,7 +91,7 @@ type MetaDataObjectName struct {
 
 // MetaDataHostInterface contains the information to render the object name
 type MetaDataHostInterface struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// Interface is the name of the interface in the BareMetalHost Status Hardware
 	// Details list of interfaces from which to fetch the MAC address.
@@ -101,7 +101,7 @@ type MetaDataHostInterface struct {
 // MetaDataIPAddress contains the info to render th ip address. It is IP-version
 // agnostic
 type MetaDataIPAddress struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// Start is the first ip address that can be rendered
 	Start *ipamv1.IPAddressStr `json:"start,omitempty"`
@@ -118,10 +118,10 @@ type MetaDataIPAddress struct {
 }
 
 type FromPool struct {
-	// Key is the metadata key when redendering this metadata element
+	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 
-	// Name is the name of the pool to use
+	// Name is the name of the IPPool used to fetch the value to set in the metadata map for cloud-init
 	Name string `json:"name"`
 }
 
@@ -144,11 +144,14 @@ type MetaData struct {
 	// IPAddressesFromPool is the list of metadata items to be rendered as ip addresses.
 	IPAddressesFromPool []FromPool `json:"ipAddressesFromIPPool,omitempty"`
 
-	// PrefixesFromPool is the list of metadata items to be rendered as ip addresses.
+	// PrefixesFromPool is the list of metadata items to be rendered as network prefixes.
 	PrefixesFromPool []FromPool `json:"prefixesFromIPPool,omitempty"`
 
-	// GatewaysFromPool is the list of metadata items to be rendered as ip addresses.
+	// GatewaysFromPool is the list of metadata items to be rendered as gateway addresses.
 	GatewaysFromPool []FromPool `json:"gatewaysFromIPPool,omitempty"`
+
+	// DNSServersFromPool is the list of metadata items to be rendered as dns servers.
+	DNSServersFromPool []FromPool `json:"dnsServersFromIPPool,omitempty"`
 
 	// FromHostInterfaces is the list of metadata items to be rendered as MAC
 	// addresses of the host interfaces.
@@ -252,20 +255,30 @@ type NetworkDataLink struct {
 
 // NetworkDataService represents a service object
 type NetworkDataService struct {
+
 	// DNS is a list of DNS services
 	DNS []ipamv1.IPAddressStr `json:"dns,omitempty"`
+
+	//DNSFromIPPool is the name of the IPPool from which to get the DNS servers
+	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
 }
 
 // NetworkDataServicev4 represents a service object
 type NetworkDataServicev4 struct {
 	// DNS is a list of IPv4 DNS services
 	DNS []ipamv1.IPAddressv4Str `json:"dns,omitempty"`
+
+	//DNSFromIPPool is the name of the IPPool from which to get the DNS servers
+	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
 }
 
 // NetworkDataServicev6 represents a service object
 type NetworkDataServicev6 struct {
 	// DNS is a list of IPv6 DNS services
 	DNS []ipamv1.IPAddressv6Str `json:"dns,omitempty"`
+
+	//DNSFromIPPool is the name of the IPPool from which to get the DNS servers
+	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
 }
 
 // NetworkGatewayv4 represents a gateway, given as a string or as a reference to
@@ -275,7 +288,7 @@ type NetworkGatewayv4 struct {
 	// String is the gateway given as a string
 	String *ipamv1.IPAddressv4Str `json:"string,omitempty"`
 
-	// FromIPPool is the name of the pool to fetch the gateway from
+	// FromIPPool is the name of the IPPool to fetch the gateway from
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 }
 
@@ -286,7 +299,7 @@ type NetworkGatewayv6 struct {
 	// String is the gateway given as a string
 	String *ipamv1.IPAddressv6Str `json:"string,omitempty"`
 
-	// FromIPPool is the name of the pool to fetch the gateway from
+	// FromIPPool is the name of the IPPool to fetch the gateway from
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 }
 
@@ -331,7 +344,7 @@ type NetworkDataIPv4 struct {
 	// Link is the link on which the network applies
 	Link string `json:"link"`
 
-	// IPAddressFromIPPool contains the name of the pool to use to get an ip address
+	// IPAddressFromIPPool contains the name of the IPPool to use to get an ip address
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// Routes contains a list of IPv4 routes
@@ -347,7 +360,7 @@ type NetworkDataIPv6 struct {
 	// Link is the link on which the network applies
 	Link string `json:"link"`
 
-	// IPAddressFromIPPool contains the name of the pool to use to get an ip address
+	// IPAddressFromIPPool contains the name of the IPPool to use to get an ip address
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// Routes contains a list of IPv6 routes
