@@ -33,6 +33,13 @@ For the metaData, soome values are set by default to maintain compatibility:
 However, setting any of those values in the metaData secret will override those
 default values.
 
+### Unhealthy annotation
+
+In CAPM3 v1alpha4 it is possible to mark BareMetalHost object as unhealthy by adding an
+annotation `capi.metal3.io/unhealthy`. This annotation prevents CAPM3 to select
+unhealthy BareMetalHost for newly created metal3machine. Removing the annotation
+will enable the normal operations.
+
 ## Cluster
 
 A Cluster is a Cluster API core object representing a Kubernetes cluster.
