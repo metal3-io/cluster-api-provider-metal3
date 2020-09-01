@@ -46,7 +46,7 @@ All code PR must be labeled with one of
 - ✨ (:sparkles:, minor or feature additions)
 - 🐛 (:bug:, patch and bugfixes)
 - 📖 (:book:, documentation or proposals)
-- 🏃 (:running:, other)
+- 🌱 (:seedling:, minor or other)
 
 All changes must be code reviewed. Coding conventions and standards are
 explained in the official [developer
