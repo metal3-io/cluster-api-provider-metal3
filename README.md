@@ -11,10 +11,11 @@ For more information about this actuator and related repositories, see
 
 ## Compatibility with Cluster API
 
-| CAPM3 version | Cluster API version | Release |
-|---------------|---------------------|---------|
-| v1alpha2      | v1alpha2            | v0.2.X  |
-| v1alpha3      | v1alpha3            | v0.3.X  |
+| CAPM3 version | Cluster API version | CAPM3 Release |
+|---------------|---------------------|---------------|
+| v1alpha2      | v1alpha2            | v0.2.X        |
+| v1alpha3      | v1alpha3            | v0.3.X        |
+| v1alpha4      | v1alpha3            | v0.4.X        |
 
 You can find information on how to use this provider with Cluster API and
 clusterctl in the [getting-started](docs/getting-started.md).
