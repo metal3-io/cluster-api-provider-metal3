@@ -45,6 +45,8 @@ KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 RELEASE_NOTES_BIN := bin/release-notes
 RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
+ENVSUBST_BIN := envsubst
+ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -133,6 +135,15 @@ $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 .PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kustomize.sh
+
+$(ENVSUBST): ## Build envsubst from tools folder.
+	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/envsubst-drone github.com/drone/envsubst/cmd/envsubst
+	ln -sf envsubst-drone $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)
+
+.PHONY: $(ENVSUBST_BIN)
+$(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
+
 
 $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
@@ -406,7 +417,7 @@ release-notes: $(RELEASE_NOTES)  ## Generates a release notes template to be use
 create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster using examples
 	$(CLUSTERCTL) \
 	create cluster -v 4 \
-	--bootstrap-flags="name=clusterapi" \
+	--bootstrap-flags="name=capm3" \
 	--bootstrap-type kind \
 	-m ./examples/_out/controlplane.yaml \
 	-c ./examples/_out/cluster.yaml \
@@ -416,23 +427,23 @@ create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster using e
 
 .PHONY: create-cluster-management
 create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes cluster in a KIND management cluster.
-	kind create cluster --name=clusterapi
+	kind create cluster --name=capm3
 	# Apply provider-components.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		--kubeconfig=$$(kind get kubeconfig-path --name="capm3") \
 		create -f examples/_out/provider-components.yaml
 	# Create Cluster.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		--kubeconfig=$$(kind get kubeconfig-path --name="capm3") \
 		create -f examples/_out/cluster.yaml
 	# Create control plane machine.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		--kubeconfig=$$(kind get kubeconfig-path --name="capm3") \
 		create -f examples/_out/controlplane.yaml
 	# Get KubeConfig using clusterctl.
 	$(CLUSTERCTL) \
 		alpha phases get-kubeconfig -v=3 \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		--kubeconfig=$$(kind get kubeconfig-path --name="capm3") \
 		--namespace=default \
 		--cluster-name=test1
 	# Apply addons on the target cluster, waiting for the control-plane to become available.
@@ -442,11 +453,11 @@ create-cluster-management: $(CLUSTERCTL) ## Create a development Kubernetes clus
 		-a examples/addons.yaml
 	# Create a worker node with MachineDeployment.
 	kubectl \
-		--kubeconfig=$$(kind get kubeconfig-path --name="clusterapi") \
+		--kubeconfig=$$(kind get kubeconfig-path --name="capm3") \
 		create -f examples/_out/machinedeployment.yaml
 
 .PHONY: delete-cluster
-delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "test1"
+delete-workload-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "test1"
 	$(CLUSTERCTL) \
 	delete cluster -v 4 \
 	--bootstrap-type kind \
@@ -455,9 +466,29 @@ delete-cluster: $(CLUSTERCTL) ## Deletes the development Kubernetes Cluster "tes
 	--kubeconfig ./kubeconfig \
 	-p ./examples/_out/provider-components.yaml \
 
+## --------------------------------------
+## Tilt / Kind
+## --------------------------------------
+
+.PHONY: kind-create
+kind-create: ## create capm3 kind cluster if needed
+	./hack/kind_with_registry.sh
+
+.PHONY: tilt-settings
+tilt-settings:
+	./hack/gen_tilt_settings.sh
+
+.PHONY: tilt-up
+tilt-up: $(ENVSUBST) $(KUSTOMIZE) kind-create ## start tilt and build kind cluster if needed
+	tilt up
+
+.PHONY: delete-cluster
+delete-cluster: delete-workload-cluster  ## Deletes the example kind cluster "capm3"
+	kind delete cluster --name=capm3
+
 .PHONY: kind-reset
-kind-reset: ## Destroys the "clusterapi" kind cluster.
-	kind delete cluster --name=clusterapi || true
+kind-reset: ## Destroys the "capm3" kind cluster.
+	kind delete cluster --name=capm3 || true
 
 ## --------------------------------------
 ## Cleanup / Verification

@@ -22,11 +22,14 @@ clusterctl in the [getting-started](docs/getting-started.md).
 
 ## Development Environment
 
+There are multiple ways to setup a development environment:
+
+* [Using Tilt](docs/dev-setup.md#tilt-development-environment)
+* [Other management cluster](docs/dev-setup.md#development-using-Kind-or-Minikube)
 * See [metal3-dev-env](https://github.com/metal3-io/metal3-dev-env) for an
   end-to-end development and test environment for
   `cluster-api-provider-metal3` and
   [baremetal-operator](https://github.com/metal3-io/baremetal-operator).
-* [Setting up for tests](docs/dev-setup.md)
 
 ## API
 
@@ -38,43 +41,3 @@ deployment process.
 ## Architecture
 
 The architecture with the components involved is documented [here](docs/architecture.md)
-
-## Deployment and examples
-
-### Deploy Bare Metal Operator CRDs and CRs
-
-for testing purposes only, when Bare Metal Operator is not deployed
-
-```sh
-    make deploy-bmo-cr
-```
-
-### Deploy CAPM3
-
-Deploys CAPM3 CRDs and deploys CAPI, CABPK, CACPK and CAPM3 controllers
-
-```sh
-    make deploy
-```
-
-### Run locally
-
-Runs CAPM3 controller locally
-
-```sh
-    kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager \
-      --replicas 0
-    make run
-```
-
-### Deploy an example cluster
-
-```sh
-    make deploy-examples
-```
-
-### Delete the example cluster
-
-```sh
-    make delete-examples
-```

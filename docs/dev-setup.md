@@ -17,6 +17,144 @@ during development.
 ./hack/tools/install_kubebuilder.sh
 ```
 
+## Tilt development environment
+
+### Management cluster setup
+
+In order to develop CAPM3 using Tilt, there is a requirement to have kind
+and Tilt installed.
+
+```sh
+    hack/ensure-kind.sh
+    curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+```
+
+Once installed, you will need a tilt-settings.json. You can generate one using
+
+```sh
+    make tilt-settings
+```
+
+This requires the following environment variables to be exported :
+
+* `DEPLOY_KERNEL_URL`
+* `DEPLOY_RAMDISK_URL`
+* `IRONIC_INSPECTOR_URL`
+* `IRONIC_URL`
+
+Those need to be set up accordingly with the
+[local ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
+
+The tilt-settings file can be customized. Tilt will also consider everything
+under `tilt.d` directory. Then start Tilt:
+
+```sh
+    make tilt-up
+```
+
+Changes in the go code will trigger an update of the images running to run the
+latest code of CAPM3.
+
+Tilt can be used in Metal3-dev-env, as long as the
+03_launch_mgmt_cluster.sh script is **NOT** run. In that case Ironic needs to
+be deployed locally first, following the
+[local ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
+
+By default, the Cluster API components deployed by Tilt have experimental
+features turned off. If you would like to enable these features, add
+`extra_args` as specified in
+[The Cluster API Book](https://cluster-api.sigs.k8s.io/developer/tilt.html#create-a-tilt-settingsjson-file).
+
+Once your kind management cluster is up and running, you can
+[deploy an example cluster](#deploying-an-example-cluster).
+
+You can also
+[deploy a flavor cluster as a local tilt resource](../templates/flavors/README.md#Running-flavor-clusters-as-a-tilt-resource).
+
+To tear down the kind cluster built by the command above, just run:
+
+```shell
+make kind-reset
+```
+
+### Running flavor clusters as a tilt resource
+
+For a successful deployment, you need to have exported the proper variables.
+You can use the following command:
+
+```sh
+    source ./examples/clusterctl-templates/example_variables.rc
+```
+
+#### From CLI
+
+run `tilt up ${flavors}` to spin up worker clusters represented by
+a Tilt local resource.  You can also modify flavors while Tilt is up by running
+`tilt args ${flavors}`
+
+#### From Tilt Config
+
+Add your desired flavors to tilt_config.json:
+
+```json
+{
+    "worker-flavors": ["default"]
+}
+```
+
+#### Requirements
+
+Please note your tilt-settings.json must contain at minimum the following
+fields when using tilt resources to deploy cluster flavors:
+
+```json
+{
+  "kustomize_substitutions": {
+    "DEPLOY_KERNEL_URL": "...",
+    "DEPLOY_RAMDISK_URL": "...",
+    "IRONIC_INSPECTOR_URL": "...",
+    "IRONIC_URL": "..."
+  }
+}
+```
+
+#### Defining Variable Overrides
+
+If you wish to override the default variables for flavor workers, you can
+specify them as part of your tilt-settings.json as seen in the example
+below.  Please note, the precedence of variables is as follows:
+
+1. explicitly defined vars for each flavor i.e.
+   `worker-templates.flavors[0].WORKER_MACHINE_COUNT`
+1. vars defined at 'metadata' level-- spans workers i.e.
+   `metadata.WORKER_MACHINE_COUNT`
+1. programmatically defined default vars i.e. everything except ironic
+   related URL variables "DEPLOY_KERNEL_URL", "DEPLOY_RAMDISK_URL",
+   "IRONIC_INSPECTOR_URL" and "IRONIC_URL"
+
+```json
+{
+    "kustomize_substitutions": {
+        "DEPLOY_KERNEL_URL": "...",
+        "DEPLOY_RAMDISK_URL": "...",
+        "IRONIC_INSPECTOR_URL": "...",
+        "IRONIC_URL": "..."
+    },
+    "worker-templates": {
+        "flavors": {
+            "default": {
+                "CLUSTER_NAME": "example-default-cluster-name",
+            }
+        },
+        "metadata": {,
+            "CONTROL_PLANE_MACHINE_COUNT": "1",
+            "KUBERNETES_VERSION": "v1.18.8",
+            "WORKER_MACHINE_COUNT": "2",
+        }
+    }
+}
+```
+
 ## Development using Kind or Minikube
 
 See the [Kind docs](https://kind.sigs.k8s.io/docs/user/quick-start) for
@@ -73,3 +211,15 @@ make run
 You can follow the output on the console to see information about what the
 controller is doing. You can also proceed to create/update/delete
 `Metal3Machines` and `BareMetalHosts` to test the controller logic.
+
+### Deploy an example cluster
+
+```sh
+    make deploy-examples
+```
+
+### Delete the example cluster
+
+```sh
+    make delete-examples
+```
