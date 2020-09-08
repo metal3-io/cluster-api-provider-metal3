@@ -19,7 +19,17 @@ during development.
 
 ## Tilt development environment
 
-### Management cluster setup
+Both of the [Tilt](https://tilt.dev) setups below will get you started
+developing CAPM3 in a local kind cluster. The main difference is the number of
+components you will build from source and the scope of the changes you'd like
+to make.
+If you only want to make changes in CAPM3, then follow
+[CAPM3 instructions](#tilt-for-dev-in-capm3). This will save you from having to
+build all of the images for CAPI, which can take a while. If the scope of your
+development will span both CAPM3 and CAPI, then follow the
+[CAPI and CAPM3 instructions](#tilt-for-dev-in-both-capm3-and-capi).
+
+### Tilt for dev in CAPM3
 
 In order to develop CAPM3 using Tilt, there is a requirement to have kind
 and Tilt installed.
@@ -76,6 +86,76 @@ To tear down the kind cluster built by the command above, just run:
 ```shell
 make kind-reset
 ```
+
+#### Tilt for dev in both CAPM3 and CAPI
+
+If you want to develop in both CAPI and CAPM3 at the same time, then this is
+the path for you.
+
+First, you will need a kind setup with a registry. You can use the following
+command
+
+```sh
+    make kind-create
+```
+
+To use [Tilt](https://tilt.dev/) for a simplified development workflow, follow
+the [instructions](https://cluster-api.sigs.k8s.io/developer/tilt.html) in the
+cluster API repo.  The instructions will walk you through cloning the Cluster
+API (CAPI) repository and configuring Tilt to use `kind` to deploy the cluster
+api management components.
+
+> you may wish to checkout out the correct version of CAPI to match the
+[version used in CAPM3](go.mod)
+
+Note that `tilt up` will be run from the `cluster-api repository` directory and
+the `tilt-settings.json` file will point back to the
+`cluster-api-provider-metal3` repository directory.  Any changes you make to the
+source code in `cluster-api` or `cluster-api-provider-metal3` repositories will
+automatically redeployed to the `kind` cluster.
+
+After you have cloned both repositories, your folder structure should look like:
+
+```tree
+|-- src/cluster-api-provider-metal3
+|-- src/cluster-api (run `tilt up` here)
+```
+
+After configuring the environment variables, run the following to generate your
+`tilt-settings.json` file in the cluster API repository:
+
+```shell
+cat <<EOF > tilt-settings.json
+{
+    "allowed_contexts": ["kind-capm3"],
+    "deploy_cert_manager": True,
+    "preload_images_for_kind": True,
+    "kind_cluster_name": "capm3",
+    "provider_repos": ["../cluster-api-provider-metal3"],
+    "enable_providers": ["metal3", "docker", "kubeadm-bootstrap", "kubeadm-control-plane"],
+    "kustomize_substitutions": {
+        "DEPLOY_KERNEL_URL": "${DEPLOY_KERNEL_URL}",
+        "DEPLOY_RAMDISK_URL": "${DEPLOY_RAMDISK_URL}",
+        "IRONIC_INSPECTOR_URL": "${IRONIC_INSPECTOR_URL}",
+        "IRONIC_URL": ${IRONIC_URL}"
+  }
+}
+EOF
+```
+
+This requires the following environment variables to be exported :
+
+* `DEPLOY_KERNEL_URL`
+* `DEPLOY_RAMDISK_URL`
+* `IRONIC_INSPECTOR_URL`
+* `IRONIC_URL`
+
+Those need to be set up accordingly with the
+[local ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
+
+The cluster-api management components that are deployed are configured at the
+`/config` folder of each repository respectively. Making changes to those files
+will trigger a redeploy of the management cluster components.
 
 ### Running flavor clusters as a tilt resource
 

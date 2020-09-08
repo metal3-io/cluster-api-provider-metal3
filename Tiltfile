@@ -68,7 +68,7 @@ def deploy_cert_manager():
     registry = settings.get("cert_manager_registry", "quay.io/jetstack")
     version = settings.get("cert_manager_version", "v0.16.1")
 
-    # check if cert-mamager is already installed, otherwise pre-load images & apply the manifest
+    # check if cert-manager is already installed, otherwise pre-load images & apply the manifest
     # NB. this is required until https://github.com/jetstack/cert-manager/issues/3121 is addressed otherwise
     # when applying the manifest twice to same cluster kubectl get stuck
     existsCheck = str(local("kubectl get namespaces"))
@@ -273,7 +273,7 @@ def deploy_worker_templates(flavor, substitutions):
 
     yaml = str(read_file(yaml_file))
 
-    # azure account and ssh replacements
+    # substitutions to replace template variables
     for substitution in substitutions:
         value = substitutions[substitution]
         yaml = yaml.replace("${" + substitution + "}", value)
