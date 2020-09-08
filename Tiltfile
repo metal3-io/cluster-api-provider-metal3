@@ -14,10 +14,15 @@ settings = {
     "kind_cluster_name": "capm3",
     "capi_version": "v0.3.9",
     "cert_manager_version": "v0.16.1",
-    "kubernetes_version": "v1.18.8"
+    "kubernetes_version": "v1.18.8",
+    "enable_providers": [],
 }
 
 keys = ["DEPLOY_KERNEL_URL", "DEPLOY_RAMDISK_URL", "IRONIC_INSPECTOR_URL", "IRONIC_URL"]
+
+always_enable_providers = ["metal3"]
+providers = {}
+extra_args = settings.get("extra_args", {})
 
 # global settings
 settings.update(read_json(
@@ -60,6 +65,25 @@ spec:
   issuerRef:
     name: test-selfsigned
 """
+
+def load_provider_tiltfiles(provider_repos):
+    for repo in provider_repos:
+        file = repo + "/tilt-provider.json"
+        provider_details = read_json(file, default = {})
+        if type(provider_details) != type([]):
+            provider_details = [provider_details]
+        for item in provider_details:
+            provider_name = item["name"]
+            provider_config = item["config"]
+            if "context" in provider_config:
+                provider_config["context"] = repo + "/" + provider_config["context"]
+            else:
+                provider_config["context"] = repo
+            if "kustomize_config" not in provider_config:
+                provider_config["kustomize_config"] = True
+            if "go_main" not in provider_config:
+                provider_config["go_main"] = "main.go"
+            providers[provider_name] = provider_config
 
 # Prepull all the cert-manager images to your local environment and then load them directly into kind. This speeds up
 # setup if you're repeatedly destroying and recreating your kind cluster, as it doesn't have to pull the images over
@@ -189,58 +213,74 @@ COPY --from=tilt-helper /restart.sh .
 COPY manager .
 """
 
+# Configures a provider by doing the following:
+#
+# 1. Enables a local_resource go build of the provider's manager binary
+# 2. Configures a docker build for the provider, with live updating of the manager binary
+# 3. Runs kustomize for the provider's config/ and applies it
+def enable_provider(name):
+    p = providers.get(name)
 
-# Build CAPM3
-def capm3():
-    # Apply the kustomized yaml for this provider
-    substitutions = settings.get("kustomize_substitutions", {})
-    os.environ.update(substitutions)
-    yaml = str(kustomizesub("./config"))
+    name = p.get("name", name)
+    context = p.get("context")
+    go_main = p.get("go_main")
 
+    # Prefix each live reload dependency with context. For example, for if the context is
+    # test/infra/docker and main.go is listed as a dep, the result is test/infra/docker/main.go. This adjustment is
+    # needed so Tilt can watch the correct paths for changes.
+    live_reload_deps = []
+    for d in p.get("live_reload_deps", []):
+        live_reload_deps.append(context + "/" + d)
 
-    # add extra_args if they are defined
-    if settings.get("extra_args"):
-        metal3_extra_args = settings.get("extra_args").get("metal3")
-        if metal3_extra_args:
-            yaml_dict = decode_yaml_stream(yaml)
-            append_arg_for_container_in_deployment(yaml_dict, "capm3-controller-manager", "capm3-system", "cluster-api-provider-metal3", metal3_extra_args)
-            yaml = str(encode_yaml_stream(yaml_dict))
-            yaml = fixup_yaml_empty_arrays(yaml)
-
-    # Set up a local_resource build of the provider's manager binary.
+    # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
+    # manager_build_path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/manager.
     local_resource(
-        "manager",
-        cmd = 'mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager',
-        deps = ["api", "baremetal", "config", "controllers", "go.mod", "go.sum", "main.go"]
+        name + "_manager",
+        cmd = "cd " + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager ' + go_main,
+        deps = live_reload_deps,
     )
+
+    additional_docker_helper_commands = p.get("additional_docker_helper_commands", "")
+    additional_docker_build_commands = p.get("additional_docker_build_commands", "")
 
     dockerfile_contents = "\n".join([
         tilt_helper_dockerfile_header,
+        additional_docker_helper_commands,
         tilt_dockerfile_header,
+        additional_docker_build_commands,
     ])
-
-    entrypoint = ["sh", "/start.sh", "/manager"]
-    extra_args = settings.get("extra_args")
-    if extra_args:
-        entrypoint.extend(extra_args)
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
     # build into the container.
+    entrypoint = ["sh", "/start.sh", "/manager"]
+    provider_args = extra_args.get(name)
+    if provider_args:
+        entrypoint.extend(provider_args)
+
     docker_build(
-        ref = "quay.io/metal3-io/cluster-api-provider-metal3",
-        context = "./.tiltbuild/",
+        ref = p.get("image"),
+        context = context + "/.tiltbuild/",
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
         entrypoint = entrypoint,
         only = "manager",
         live_update = [
-            sync(".tiltbuild/manager", "/manager"),
+            sync(context + "/.tiltbuild/manager", "/manager"),
             run("sh /restart.sh"),
         ],
-        ignore = ["examples"]
     )
 
-    k8s_yaml(blob(yaml))
+    if p.get("kustomize_config"):
+
+        # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
+        # are not available and their placeholders will be replaced with the empty string when we call kustomize +
+        # envsubst below.
+        substitutions = settings.get("kustomize_substitutions", {})
+        os.environ.update(substitutions)
+
+        # Apply the kustomized yaml for this provider
+        yaml = str(kustomizesub(context + "/config"))
+        k8s_yaml(blob(yaml))
 
 
 # run worker clusters specified from 'tilt up' or in 'tilt_config.json'
@@ -326,6 +366,18 @@ def deploy_worker_templates(flavor, substitutions):
         trigger_mode = TRIGGER_MODE_MANUAL
     )
 
+# Enable core cluster-api plus everything listed in 'enable_providers' in tilt-settings.json
+def enable_providers():
+    local("make hack/tools/bin/kustomize hack/tools/bin/envsubst-drone")
+
+    provider_repos = settings.get("provider_repos", [])
+    union_provider_repos = [ k for k in provider_repos + ["."] ]
+    load_provider_tiltfiles(union_provider_repos)
+
+    user_enable_providers = settings.get("enable_providers", [])
+    union_enable_providers = {k: "" for k in user_enable_providers + always_enable_providers}.keys()
+    for name in union_enable_providers:
+        enable_provider(name)
 
 def base64_encode(to_encode):
     encode_blob = local("echo '{}' | tr -d '\n' | base64 - | tr -d '\n'".format(to_encode), quiet=True)
@@ -362,7 +414,7 @@ if settings.get("deploy_cert_manager"):
 
 deploy_capi()
 
-capm3()
+enable_providers()
 
 flavors()
 

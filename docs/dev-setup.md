@@ -56,7 +56,9 @@ Those need to be set up accordingly with the
 [local ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
 
 The tilt-settings file can be customized. Tilt will also consider everything
-under `tilt.d` directory. Then start Tilt:
+under `tilt.d` directory.
+
+Then start Tilt:
 
 ```sh
     make tilt-up
@@ -79,7 +81,7 @@ Once your kind management cluster is up and running, you can
 [deploy an example cluster](#deploying-an-example-cluster).
 
 You can also
-[deploy a flavor cluster as a local tilt resource](../templates/flavors/README.md#Running-flavor-clusters-as-a-tilt-resource).
+[deploy a flavor cluster as a local tilt resource](#Running-flavor-clusters-as-a-tilt-resource).
 
 To tear down the kind cluster built by the command above, just run:
 
@@ -87,7 +89,7 @@ To tear down the kind cluster built by the command above, just run:
 make kind-reset
 ```
 
-#### Tilt for dev in both CAPM3 and CAPI
+### Tilt for dev in both CAPM3 and CAPI
 
 If you want to develop in both CAPI and CAPM3 at the same time, then this is
 the path for you.
@@ -156,6 +158,39 @@ Those need to be set up accordingly with the
 The cluster-api management components that are deployed are configured at the
 `/config` folder of each repository respectively. Making changes to those files
 will trigger a redeploy of the management cluster components.
+
+### Including Baremetal Operator and IP Address Manager
+
+If you want to develop on Baremetal Operator or IP Address Manager repository
+you can include them. First you need to clone the repositories you intend to
+modify locally, then modify your tilt-settings.json to point to the correct
+repositories. In case you have a tree like:
+
+```bash
+#-|
+# |- cluster-api
+# |- cluster-api-provider-metal3
+# |- baremetal-operator
+# |- ip-address-manager
+```
+
+and you create your `tilt-settings.json` in the ./cluster-api or in the
+./cluster-api-provider-metal3 folder. Then your tilt-settings.json file would
+be :
+
+```json
+{
+  "provider_repos": [ ... , "../baremetal-operator", "../metal3-ipam"],
+  "enable_providers": [ ... , "metal3-bmo", "metal3-ipam"],
+}
+```
+
+The provider name for Baremetal Operator is `metal3-bmo` and for IP Address
+Manager `metal3-ipam`. Those names are defined in their respective repository.
+
+> In case you are modifying the manifests for BMO or IPAM, then you should also
+modify the `kustomization.yaml` files in `./config/bmo` and `./config/ipam` to
+refer to the modified manifests locally instead of downloading released ones.
 
 ### Running flavor clusters as a tilt resource
 
