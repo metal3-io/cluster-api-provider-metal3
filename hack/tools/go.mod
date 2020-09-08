@@ -3,6 +3,7 @@ module sigs.k8s.io/cluster-api/hack/tools
 go 1.12
 
 require (
+	github.com/drone/envsubst v1.0.3-0.20200804185402-58bc65f69603 // indirect
 	github.com/golang/mock v1.4.3
 	github.com/golangci/golangci-lint v1.17.1
 	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect

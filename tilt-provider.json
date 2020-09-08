@@ -1,0 +1,9 @@
+{
+    "name": "metal3",
+    "config": {
+        "image": "quay.io/metal3-io/cluster-api-provider-metal3",
+        "live_reload_deps": [
+            "api", "baremetal", "config", "controllers", "go.mod", "go.sum", "main.go"
+        ]
+    }
+}
