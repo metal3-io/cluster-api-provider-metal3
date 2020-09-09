@@ -9,54 +9,57 @@ This provider integrates with the
 
 The pre-requisite for the deployment of CAPM3 are the following:
 
-- [Baremetal-Operator](https://github.com/metal3-io/baremetal-operator) deployed
 - Ironic up and running (inside or outside of the cluster)
 - BareMetalHost resources created for all hardware nodes and in "ready" or
   "available" state
-- If deploying CAPI in a multi-tenancy scenario, all cluster-related CRs (inc.
-  BareMetalHosts and related) must be in the same namespace. This is due to the
-  fact that the controllers are restricted to their own namespace with RBAC.
+- all cluster-related CRs (inc. BareMetalHosts and related) must be in the
+  same namespace. This is due to the use of owner references.
 
 ### Using clusterctl
 
 Please refer to
 [Clusterctl documentation](https://master.cluster-api.sigs.k8s.io/clusterctl/overview.html).
-Once the Pre-requisites are fulfilled, you can follow the normal clusterctl
-flow for the `init`, `config`, `upgrade` and `delete` workflow. The `move`
-command is supported only if the baremetalhosts are moved independently first,
-and their status is preserved during the move. Please refer to the *Pivoting
-Ironic* section.
+Once the [Pre-requisites](#pre-requisites) are fulfilled, you can follow the
+normal clusterctl flow for the `init`, `config`, `upgrade`, `move` and `delete`
+workflow. Please refer to the [Pivoting Ironic](#pivoting-or-updating-ironic) section for
+additional information on the `move` process.
 
-### Cluster templates variables
+#### Environment variables
 
-You can find an example file containing the environment variables
-`example_variables.rc`in the release or
-[here](https://github.com/metal3-io/cluster-api-provider-metal3/tree/master/examples/clusterctl-templates/example_variables.rc)
-
-#### DEPLOY_KERNEL_URL
+##### DEPLOY_KERNEL_URL
 
 This is the URL of the kernel to deploy. For example:
 
 `DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"`
 
-#### DEPLOY_RAMDISK_URL
+##### DEPLOY_RAMDISK_URL
 
 This is the URL of the ramdisk to deploy. For example:
 
 `DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"`
 
-#### IRONIC_URL
+##### IRONIC_URL
 
 This is the URL of the ironic endpoint. For example:
 
 `IRONIC_URL="http://172.22.0.1:6385/v1/"`
 
-#### IRONIC_INSPECTOR_URL
+##### IRONIC_INSPECTOR_URL
 
 This is the URL of the ironic inspector endpoint.
 For example:
 
 `IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"`
+
+#### Cluster templates variables
+
+CAPM3 provides a cluster template. This requires some environment variables
+properly set. You can find an example file containing the environment variables
+`example_variables.rc`in the release or
+[here](https://github.com/metal3-io/cluster-api-provider-metal3/tree/master/examples/clusterctl-templates/example_variables.rc).
+The examples provided there or below assume that you are deploying the target
+node using an off-the-shelf Ubuntu image (18.04), served locally in the
+metal3-dev-env. They must be adapted for any deployment.
 
 #### POD_CIDR
 
@@ -229,16 +232,38 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
 "
 ```
 
-## Pivoting Ironic
+## Pivoting or updating Ironic
 
-Before running the move command of Clusterctl, elements such as Baremetal
-Operator, Ironic if applicable, and the BareMetalHost CRs need to be moved to
-the target cluster. During the move, the BareMetalHost object must be annotated
-with `baremetalhost.metal3.io/paused` key. The value does not matter. The
-presence of this annotation will stop the reconciliation loop for that object.
+Before running the `move` command of Clusterctl, elements such as Ironic if
+applicable, need to be moved to the target cluster. It is recommended to
+scale down the ironic pod in the origin cluster before deploying it on the
+target cluster to prevent issues with a duplicated DHCP server.
 
-In addition, it is critical that the move of the BMHs does not lead to a lost
-status for those objects. If the status is lost, BMO will register the nodes
-as available, and introspect them again.
+Both for pivoting or updating ironic, it is critical that the cluster is in
+a stable situation. No operations on BareMetal hosts shall be on-going,
+otherwise they might fail. Similarly, in order to prevent conflict during
+the pivoting of the DHCP server, we recommend to have no BareMetalHosts
+running IPA (in `ready` state with `fasttrack` option enabled) during the
+the pivoting. It could otherwise result in IP address conflicts or changes
+of the IP address of a running host that would not be supported by Ironic.
 
-More information TBA on move commands.
+In the case of a self-hosted cluster, special care must be paid to Ironic.
+Since Ironic runs on the target cluster, updating the target cluster means
+that ironic will need to be moved between nodes of the cluster. This results
+in similar issues as pivoting. The following points should be ensured to run
+a target cluster upgrade:
+
+- no unnecessary hosts are running IPA during the upgrade to limit the amount
+  of conflicts
+- When upgrading the K8S node or group of nodes that run Ironic currently, only
+  one node at a time should be upgraded, and no other parallel upgrade
+  operations should be happening.
+- All nodes that are hosting Ironic or have connectivity to the provisioning
+  network must be using a static IP address. If not, Ironic might not come
+  up since Keepalived will not be starting. In addition, if using DHCP,
+  conflicts could happen. We highly recommend that ALL nodes with connectivity
+  to the provisioning network are using static IP addresses, using
+  Metal3DataTemplates for example.
+- Ironic should always be the first component upgraded, before a CAPM3 / BMO
+  upgrade using clusterctl for example, or before nodes upgrades. This is to
+  ensure that the cluster is in a stable condition while upgrading Ironic.

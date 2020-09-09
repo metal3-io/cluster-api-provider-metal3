@@ -29,6 +29,7 @@ You must have docker installed.
     - A manifest file - `infrastructure-components.yaml`
     - A metadata file - `metadata.yaml`
     - A cluster template - `cluster-template.yaml`
+    - A file containing an example of variables to set - `example_variables.rc`
 
 ### Artifact locations
 

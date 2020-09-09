@@ -20,6 +20,13 @@ For more information about this actuator and related repositories, see
 You can find information on how to use this provider with Cluster API and
 clusterctl in the [getting-started](docs/getting-started.md).
 
+## Deploying the metal3 provider
+
+The recommended method is using
+[Clusterctl](https://master.cluster-api.sigs.k8s.io/clusterctl/overview.html).
+Please refer to the [getting-started](docs/getting-started.md) for the
+pre-requisites.
+
 ## Development Environment
 
 There are multiple ways to setup a development environment:

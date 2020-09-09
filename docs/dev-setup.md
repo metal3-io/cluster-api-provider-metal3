@@ -201,6 +201,10 @@ You can use the following command:
     source ./examples/clusterctl-templates/example_variables.rc
 ```
 
+However, the example variables do not guarantee a successful deployment, they
+need to be adapted. If deploying on Metal3-dev-env, please rather use the
+Metal3-dev-env deployment scripts that are tailored for it.
+
 #### From CLI
 
 run `tilt up ${flavors}` to spin up worker clusters represented by
@@ -276,27 +280,6 @@ See the [Kind docs](https://kind.sigs.k8s.io/docs/user/quick-start) for
 instructions on launching a Kind cluster and the
 [Minikube docs](https://kubernetes.io/docs/setup/minikube/) for
 instructions on launching a Minikube cluster.
-
-### Add CRDs and CRs from baremetal-operator
-
-The provider also uses the `BareMetalHost` custom resource that’s defined by
-the `baremetal-operator`. The following command deploys the CRD and creates
-dummy BareMetalHosts.
-
-```sh
-    make deploy-bmo-cr
-```
-
-When a `Metal3Machine` gets created, the provider looks for an available
-`BareMetalHost` to claim and then sets it to be provisioned to fulfill the
-request expressed by the `Metal3Machine`. Before creating a
-`Metal3Machine`, we can create a dummy `BareMetalHost` object. There’s no
-requirement to actually run the
-`baremetal-operator` to test the reconciliation logic of the provider.
-
-Refer to the [baremetal-operator developer
-documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
-for instructions and tools for creating BareMetalHost objects.
 
 ### Deploy CAPI and CAPM3
 
