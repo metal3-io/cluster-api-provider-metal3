@@ -56,7 +56,9 @@ Those need to be set up accordingly with the
 [local ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
 
 The tilt-settings file can be customized. Tilt will also consider everything
-under `tilt.d` directory. Then start Tilt:
+under `tilt.d` directory.
+
+Then start Tilt:
 
 ```sh
     make tilt-up
@@ -79,7 +81,7 @@ Once your kind management cluster is up and running, you can
 [deploy an example cluster](#deploying-an-example-cluster).
 
 You can also
-[deploy a flavor cluster as a local tilt resource](../templates/flavors/README.md#Running-flavor-clusters-as-a-tilt-resource).
+[deploy a flavor cluster as a local tilt resource](#Running-flavor-clusters-as-a-tilt-resource).
 
 To tear down the kind cluster built by the command above, just run:
 
@@ -87,7 +89,7 @@ To tear down the kind cluster built by the command above, just run:
 make kind-reset
 ```
 
-#### Tilt for dev in both CAPM3 and CAPI
+### Tilt for dev in both CAPM3 and CAPI
 
 If you want to develop in both CAPI and CAPM3 at the same time, then this is
 the path for you.
@@ -157,6 +159,39 @@ The cluster-api management components that are deployed are configured at the
 `/config` folder of each repository respectively. Making changes to those files
 will trigger a redeploy of the management cluster components.
 
+### Including Baremetal Operator and IP Address Manager
+
+If you want to develop on Baremetal Operator or IP Address Manager repository
+you can include them. First you need to clone the repositories you intend to
+modify locally, then modify your tilt-settings.json to point to the correct
+repositories. In case you have a tree like:
+
+```bash
+#-|
+# |- cluster-api
+# |- cluster-api-provider-metal3
+# |- baremetal-operator
+# |- ip-address-manager
+```
+
+and you create your `tilt-settings.json` in the ./cluster-api or in the
+./cluster-api-provider-metal3 folder. Then your tilt-settings.json file would
+be :
+
+```json
+{
+  "provider_repos": [ ... , "../baremetal-operator", "../metal3-ipam"],
+  "enable_providers": [ ... , "metal3-bmo", "metal3-ipam"],
+}
+```
+
+The provider name for Baremetal Operator is `metal3-bmo` and for IP Address
+Manager `metal3-ipam`. Those names are defined in their respective repository.
+
+> In case you are modifying the manifests for BMO or IPAM, then you should also
+modify the `kustomization.yaml` files in `./config/bmo` and `./config/ipam` to
+refer to the modified manifests locally instead of downloading released ones.
+
 ### Running flavor clusters as a tilt resource
 
 For a successful deployment, you need to have exported the proper variables.
@@ -165,6 +200,10 @@ You can use the following command:
 ```sh
     source ./examples/clusterctl-templates/example_variables.rc
 ```
+
+However, the example variables do not guarantee a successful deployment, they
+need to be adapted. If deploying on Metal3-dev-env, please rather use the
+Metal3-dev-env deployment scripts that are tailored for it.
 
 #### From CLI
 
@@ -241,27 +280,6 @@ See the [Kind docs](https://kind.sigs.k8s.io/docs/user/quick-start) for
 instructions on launching a Kind cluster and the
 [Minikube docs](https://kubernetes.io/docs/setup/minikube/) for
 instructions on launching a Minikube cluster.
-
-### Add CRDs and CRs from baremetal-operator
-
-The provider also uses the `BareMetalHost` custom resource that’s defined by
-the `baremetal-operator`. The following command deploys the CRD and creates
-dummy BareMetalHosts.
-
-```sh
-    make deploy-bmo-cr
-```
-
-When a `Metal3Machine` gets created, the provider looks for an available
-`BareMetalHost` to claim and then sets it to be provisioned to fulfill the
-request expressed by the `Metal3Machine`. Before creating a
-`Metal3Machine`, we can create a dummy `BareMetalHost` object. There’s no
-requirement to actually run the
-`baremetal-operator` to test the reconciliation logic of the provider.
-
-Refer to the [baremetal-operator developer
-documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
-for instructions and tools for creating BareMetalHost objects.
 
 ### Deploy CAPI and CAPM3
 

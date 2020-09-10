@@ -12,7 +12,7 @@ resources (CRs) representing them as Metal3 Machines (M3M).
 
 ## Components
 
-The ```cluster-api-provider-metal3 (CAPM3)``` operator is responsible for
+The ```cluster-api-provider-metal3 (CAPM3)``` controller is responsible for
 watching and reconciling multiple resources. However, it is important to see
 other controllers and custom resources (CRs) involved in the process. The
 ultimate goal of the interaction between the controllers and CRs is to provision
