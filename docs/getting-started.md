@@ -26,30 +26,75 @@ additional information on the `move` process.
 
 #### Environment variables
 
+There are some required variables :
+
+- DEPLOY_KERNEL_URL
+- DEPLOY_RAMDISK_URL
+- IRONIC_URL
+- IRONIC_INSPECTOR_URL
+- IRONIC_CA_CERT_B64 **or** IRONIC_NO_CA_CERT
+
 ##### DEPLOY_KERNEL_URL
 
 This is the URL of the kernel to deploy. For example:
 
-`DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"`
+```sh
+  export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"`
+```
 
 ##### DEPLOY_RAMDISK_URL
 
 This is the URL of the ramdisk to deploy. For example:
 
-`DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"`
+```sh
+  export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"`
+```
 
 ##### IRONIC_URL
 
 This is the URL of the ironic endpoint. For example:
 
-`IRONIC_URL="http://172.22.0.1:6385/v1/"`
+```sh
+  export IRONIC_URL="http://172.22.0.1:6385/v1/"`
+```
 
 ##### IRONIC_INSPECTOR_URL
 
 This is the URL of the ironic inspector endpoint.
 For example:
 
-`IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"`
+```sh
+  export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"`
+```
+
+##### IRONIC_CA_CERT_B64
+
+This contains the CA certificate for Ironic, encoded in Base 64. It defaults to
+an empty string in case you do not want to provide a CA certificate. Setting
+this variable is optional, but either this variable or `IRONIC_NO_CA_CERT` must
+be set.
+
+```sh
+  export IRONIC_CA_CERT_B64="LS0tLS1C..."
+```
+
+The content of this variable must be string without line wraps. It can be
+generated as follows :
+
+```sh
+  export IRONIC_CA_CERT_B64="$(cat ca.crt | base64 -w 0)"
+```
+
+##### IRONIC_NO_CA_CERT
+
+Do not use a dedicated CA certificate for Ironic API. Any value provided in
+this variable disables additional CA certificate validation. To provide a CA
+certificate, leave this variable unset. If unset, then `IRONIC_CA_CERT_B64`
+must be set.
+
+```sh
+  export IRONIC_NO_BASIC_AUTH="true"
+```
 
 #### Cluster templates variables
 
