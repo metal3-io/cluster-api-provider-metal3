@@ -5,6 +5,7 @@ resources:
 - github.com/metal3-io/baremetal-operator/deploy/operator/?ref=master
 - github.com/metal3-io/baremetal-operator/deploy/crds/?ref=master
 - github.com/metal3-io/baremetal-operator/deploy/rbac/?ref=master
+- secrets.yaml
 
 configMapGenerator:
 - behavior: create
@@ -15,11 +16,6 @@ configMapGenerator:
   - IRONIC_INSPECTOR_ENDPOINT=${IRONIC_INSPECTOR_URL}
   - IRONIC_CACERT_FILE=/opt/metal3/certs/ca/tls.crt
   name: ironic-bmo-configmap
-
-secretGenerator:
-- name: ironic-cacert
-  literals:
-  - tls.crt=${IRONIC_CA_CERT_B64:-""}
 
 patchesStrategicMerge:
 - bmo_image_patch.yaml

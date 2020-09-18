@@ -33,6 +33,9 @@ There are some required variables :
 - IRONIC_URL
 - IRONIC_INSPECTOR_URL
 - IRONIC_CA_CERT_B64 **or** IRONIC_NO_CA_CERT
+- IRONIC_NO_BASIC_AUTH **or** IRONIC_USERNAME and IRONIC_PASSWORD
+- IRONIC_INSPECTOR_NO_BASIC_AUTH **or** IRONIC_INSPECTOR_USERNAME and
+  IRONIC_INSPECTOR_PASSWORD
 
 ##### DEPLOY_KERNEL_URL
 
@@ -94,6 +97,63 @@ must be set.
 
 ```sh
   export IRONIC_NO_BASIC_AUTH="true"
+```
+
+##### IRONIC_USERNAME
+
+Username for Ironic basic auth. Optional, but either this variable or
+`IRONIC_NO_BASIC_AUTH` must be set.
+
+```sh
+  export IRONIC_USERNAME="<username>"
+```
+
+##### IRONIC_PASSWORD
+
+Password for Ironic basic auth. Optional, but either this variable or
+`IRONIC_NO_BASIC_AUTH` must be set.
+
+```sh
+  export IRONIC_PASSWORD="<password>"
+```
+
+##### IRONIC_NO_BASIC_AUTH
+
+Disables basic authentication for Ironic API. Any value provided in this
+variable disables authentication. To enable authentication, leave this variable
+unset. If unset, then `IRONIC_USERNAME` and `IRONIC_PASSWORD` must be set.
+
+```sh
+  export IRONIC_NO_BASIC_AUTH="true"
+```
+
+##### IRONIC_INSPECTOR_USERNAME
+
+Username for Ironic inspector basic auth. Optional, but either this variable or
+`IRONIC_INSPECTOR_NO_BASIC_AUTH` must be set.
+
+```sh
+  export IRONIC_INSPECTOR_USERNAME="<username>"
+```
+
+##### IRONIC_INSPECTOR_PASSWORD
+
+Password for Ironic inspector basic auth. Optional, but either this variable or
+`IRONIC_INSPECTOR_NO_BASIC_AUTH` must be set.
+
+```sh
+  export IRONIC_INSPECTOR_PASSWORD="<password>"
+```
+
+##### IRONIC_INSPECTOR_NO_BASIC_AUTH
+
+Disables basic authentication for Ironic inspector API. Any value provided in
+this variable disables authentication. To enable authentication, leave this
+variable unset. If unset, then `IRONIC_INSPECTOR_USERNAME` and
+`IRONIC_INSPECTOR_PASSWORD` must be set.
+
+```sh
+  export IRONIC_INSPECTOR_NO_BASIC_AUTH="true"
 ```
 
 #### Cluster templates variables
