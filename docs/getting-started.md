@@ -267,3 +267,10 @@ a target cluster upgrade:
 - Ironic should always be the first component upgraded, before a CAPM3 / BMO
   upgrade using clusterctl for example, or before nodes upgrades. This is to
   ensure that the cluster is in a stable condition while upgrading Ironic.
+
+**Important Note:**
+Currently, when target cluster is up and node appears, CAPM3 will fetch the node
+and set the providerID value to BMH UUID, meaning that it is not advisable to
+directly map the K.Node <---> BMH after pivoting. However, if needed, we can
+still find the providerID value in Metal3Machine Spec. which enables us to do
+the mapping with an intermediary step, i.e K.Node <--> M3Machine <--> BMH.
