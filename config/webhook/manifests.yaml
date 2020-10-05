@@ -138,6 +138,50 @@ webhooks:
     resources:
     - metal3machinetemplates
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha5-metal3remediation
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.metal3remediation.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha5
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3remediations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha5-metal3remediationtemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.metal3remediationtemplate.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha5
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3remediationtemplates
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -277,4 +321,48 @@ webhooks:
     - UPDATE
     resources:
     - metal3machinetemplates
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha5-metal3remediation
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.metal3remediation.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha5
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3remediations
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha5-metal3remediationtemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.metal3remediationtemplate.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha5
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - metal3remediationtemplates
   sideEffects: None

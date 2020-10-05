@@ -24,7 +24,6 @@ import (
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
@@ -104,8 +103,8 @@ func m3mMetaWithAnnotationDeletion() *metav1.ObjectMeta {
 	}
 }
 
-func userDataSecret() *corev1.Secret {
-	return &corev1.Secret{
+func userDataSecret() *v1.Secret {
+	return &v1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
@@ -121,7 +120,7 @@ func userDataSecret() *corev1.Secret {
 
 func m3mSpecWithSecret() *infrav1alpha5.Metal3MachineSpec {
 	return &infrav1alpha5.Metal3MachineSpec{
-		UserData: &corev1.SecretReference{
+		UserData: &v1.SecretReference{
 			Name:      metal3machineName + "-user-data",
 			Namespace: namespaceName,
 		},
@@ -678,7 +677,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, false),
 					newBareMetalHost(&bmh.BareMetalHostSpec{
-						ConsumerRef: &corev1.ObjectReference{
+						ConsumerRef: &v1.ObjectReference{
 							Name:       metal3machineName,
 							Namespace:  namespaceName,
 							Kind:       "Metal3Machine",
