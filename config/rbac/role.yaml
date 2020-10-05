@@ -67,6 +67,26 @@ rules:
 - apiGroups:
   - cluster.x-k8s.io
   resources:
+  - machine
+  verbs:
+  - create
+  - delete
+  - list
+  - patch
+  - update
+  - verbs=get
+  - watch
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
+  - machine/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - cluster.x-k8s.io
+  resources:
   - machinedeployments
   verbs:
   - create
@@ -237,6 +257,26 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - metal3remediations
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - metal3remediations/status
+  verbs:
+  - get
+  - patch
+  - update
 - apiGroups:
   - metal3.io
   resources:
