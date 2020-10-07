@@ -2309,8 +2309,6 @@ var _ = Describe("Metal3Machine manager", func() {
 		Host               *bmh.BareMetalHost
 		M3Machine          *capm3.Metal3Machine
 		BMCSecret          *corev1.Secret
-		DataTemplate       *capm3.Metal3DataTemplate
-		Data               *capm3.Metal3Data
 		ExpectRequeue      bool
 		ExpectClusterLabel bool
 		ExpectOwnerRef     bool
@@ -2324,12 +2322,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			if tc.Host != nil {
 				objects = append(objects, tc.Host)
-			}
-			if tc.DataTemplate != nil {
-				objects = append(objects, tc.DataTemplate)
-			}
-			if tc.Data != nil {
-				objects = append(objects, tc.Data)
 			}
 			if tc.BMCSecret != nil {
 				objects = append(objects, tc.BMCSecret)
@@ -2465,7 +2457,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host:               newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, false),
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
-				ExpectRequeue:      true,
+				ExpectRequeue:      false,
 				ExpectOwnerRef:     true,
 			},
 		),
@@ -2491,25 +2483,8 @@ var _ = Describe("Metal3Machine manager", func() {
 						RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
 					}, nil,
 				),
-				Host:      newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, false),
-				BMCSecret: newBMCSecret("mycredentials", false),
-				Data: &capm3.Metal3Data{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abcd-0",
-						Namespace: "myns",
-					},
-					Spec: capm3.Metal3DataSpec{
-						MetaData: &corev1.SecretReference{
-							Name: "metadata",
-						},
-						NetworkData: &corev1.SecretReference{
-							Name: "networkdata",
-						},
-					},
-					Status: capm3.Metal3DataStatus{
-						Ready: true,
-					},
-				},
+				Host:               newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, false),
+				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
 				ExpectOwnerRef:     true,

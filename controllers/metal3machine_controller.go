@@ -206,6 +206,17 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 
 	errType := capierrors.CreateMachineError
 
+	// Check if the metal3machine was associated with a baremetalhost
+	if !machineMgr.HasAnnotation() {
+		//Associate the baremetalhost hosting the machine
+		err := machineMgr.Associate(ctx)
+		if err != nil {
+			return checkMachineError(machineMgr, err,
+				"failed to associate the Metal3Machine to a BaremetalHost", errType,
+			)
+		}
+	}
+
 	// Make sure that the metadata is ready if any
 	err := machineMgr.AssociateM3Metadata(ctx)
 	if err != nil {
@@ -214,22 +225,11 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		)
 	}
 
-	// Check if the metal3machine was associated with a baremetalhost
-	if !machineMgr.HasAnnotation() {
-		//Associate the baremetalhost hosting the machine
-		err = machineMgr.Associate(ctx)
-		if err != nil {
-			return checkMachineError(machineMgr, err,
-				"failed to associate the Metal3Machine to a BaremetalHost", errType,
-			)
-		}
-	} else {
-		err := machineMgr.Update(ctx)
-		if err != nil {
-			return checkMachineError(machineMgr, err,
-				"failed to update BaremetalHost", errType,
-			)
-		}
+	err = machineMgr.Update(ctx)
+	if err != nil {
+		return checkMachineError(machineMgr, err,
+			"failed to update BaremetalHost", errType,
+		)
 	}
 
 	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
@@ -428,7 +428,7 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj handler.MapO
 	return []ctrl.Request{}
 }
 
-// Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
+// Metal3DataClaimToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
 // Metal3Data and that Metal3Data references a Metal3Machine.
 func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj handler.MapObject) []ctrl.Request {
 	requests := []ctrl.Request{}

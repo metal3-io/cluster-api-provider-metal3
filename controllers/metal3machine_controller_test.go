@@ -85,13 +85,14 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		return m
 	}
 
-	m.EXPECT().AssociateM3Metadata(context.TODO()).Return(nil)
 	// Bootstrap data is ready and node is not annotated, i.e. not associated
 	m.EXPECT().HasAnnotation().Return(tc.Annotated)
 	if !tc.Annotated {
 		// if associate fails, we do not go further
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
+			m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
+			m.EXPECT().Update(context.TODO()).MaxTimes(0)
 			m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
@@ -99,10 +100,10 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		} else {
 			m.EXPECT().Associate(context.TODO()).Return(nil)
 		}
-		m.EXPECT().Update(context.TODO()).MaxTimes(0)
-	} else {
-		m.EXPECT().Update(context.TODO())
 	}
+
+	m.EXPECT().AssociateM3Metadata(context.TODO()).Return(nil)
+	m.EXPECT().Update(context.TODO())
 
 	// if node is now associated, if getting the ID fails, we do not go further
 	if tc.GetBMHIDFails {
