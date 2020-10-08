@@ -25,7 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	bmo "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
