@@ -31,7 +31,7 @@ import (
 	"k8s.io/klog"
 	"k8s.io/klog/klogr"
 
-	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -361,7 +361,7 @@ func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 	return &bmh.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalHost",
-			APIVersion: bmh.SchemeGroupVersion.String(),
+			APIVersion: bmh.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bmh-0",

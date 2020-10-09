@@ -28,8 +28,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	bmoapis "github.com/metal3-io/baremetal-operator/pkg/apis"
-	bmh "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -2005,7 +2004,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		if err != nil {
 			log.Printf("AddToScheme failed: %v", err)
 		}
-		err = bmoapis.AddToScheme(scheme)
+		err = bmh.AddToScheme(scheme)
 		if err != nil {
 			log.Printf("AddToScheme failed: %v", err)
 		}
@@ -3212,7 +3211,7 @@ func setupSchemeMm() *runtime.Scheme {
 	if err := capm3.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := bmoapis.AddToScheme(s); err != nil {
+	if err := bmh.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {

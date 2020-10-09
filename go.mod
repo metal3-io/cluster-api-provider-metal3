@@ -5,7 +5,9 @@ go 1.13
 require (
 	github.com/emicklei/go-restful v2.14.2+incompatible // indirect
 	github.com/go-logr/logr v0.2.1
+	github.com/go-openapi/spec v0.19.9 // indirect
 	github.com/go-openapi/swag v0.19.9 // indirect
+	github.com/gobuffalo/envy v1.7.1 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/google/go-cmp v0.5.2 // indirect
 	github.com/google/gofuzz v1.2.0
@@ -13,10 +15,11 @@ require (
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20200908104157-be68785b97f3
+	github.com/metal3-io/baremetal-operator v0.0.0-20201008113413-e4fcc9b53e41
 	github.com/metal3-io/ip-address-manager v0.0.4
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.2
+	github.com/operator-framework/operator-sdk v0.17.0 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.13.0 // indirect
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
