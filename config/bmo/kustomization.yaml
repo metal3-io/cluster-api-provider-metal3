@@ -14,6 +14,8 @@ configMapGenerator:
   - IRONIC_INSPECTOR_ENDPOINT=${IRONIC_INSPECTOR_URL}
   - IRONIC_CACERT_FILE=/opt/metal3/certs/ca/tls.crt
   name: baremetal-operator-ironic
+  namespace: baremetal-operator-system
+
 
 patchesStrategicMerge:
 - bmo_image_patch.yaml
