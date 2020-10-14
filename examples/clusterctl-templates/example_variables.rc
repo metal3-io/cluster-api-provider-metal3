@@ -10,6 +10,9 @@ export IMAGE_URL="http://192.168.0.1/ubuntu.qcow2"
 export IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"
 export IMAGE_CHECKSUM_TYPE="md5"
 export IMAGE_FORMAT="qcow2"
+export IRONIC_NO_CA_CERT=true
+export IRONIC_NO_BASIC_AUTH=true
+export IRONIC_INSPECTOR_NO_BASIC_AUTH=true
 export CTLPLANE_KUBEADM_EXTRA_CONFIG="
     preKubeadmCommands:
       - ip link set dev enp2s0 up
