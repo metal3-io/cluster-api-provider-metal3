@@ -96,7 +96,7 @@ certificate, leave this variable unset. If unset, then `IRONIC_CA_CERT_B64`
 must be set.
 
 ```sh
-  export IRONIC_NO_BASIC_AUTH="true"
+  export IRONIC_NO_CA_CERT="true"
 ```
 
 ##### IRONIC_USERNAME
