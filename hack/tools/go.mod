@@ -1,6 +1,6 @@
 module sigs.k8s.io/cluster-api/hack/tools
 
-go 1.12
+go 1.15
 
 require (
 	github.com/drone/envsubst v1.0.3-0.20200804185402-58bc65f69603 // indirect
