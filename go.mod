@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3
 
-go 1.13
+go 1.15
 
 require (
 	github.com/emicklei/go-restful v2.14.2+incompatible // indirect
