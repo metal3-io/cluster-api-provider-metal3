@@ -35,6 +35,7 @@ metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
+  nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT:-"0s"}
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   version: ${KUBERNETES_VERSION}
   infrastructureTemplate:
@@ -90,6 +91,7 @@ spec:
         cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
         nodepool: nodepool-0
     spec:
+      nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT:-"0s"}
       clusterName: ${CLUSTER_NAME}
       version: ${KUBERNETES_VERSION}
       bootstrap:
