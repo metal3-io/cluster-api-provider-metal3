@@ -33,6 +33,7 @@ export KUBERNETES_VERSION="${KUBERNETES_VERSION:-v1.16.0}"
 export CONTROL_PLANE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export NODE_MACHINE_TYPE="${CONTROL_PLANE_MACHINE_TYPE:-t2.medium}"
 export SSH_KEY_NAME="${SSH_KEY_NAME:-default}"
+export NODE_DRAIN_TIMEOUT="${NODE_DRAIN_TIMEOUT:-"0s"}"
 
 # BMO settings
 export DEPLOY_KERNEL_URL="${DEPLOY_KERNEL_URL:-http://127.0.0.1:6180/images/ironic-python-agent.kernel}"

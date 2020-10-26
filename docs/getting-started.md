@@ -204,6 +204,12 @@ This is the URL of the md5sum of the image to deploy. For example:
 
 `IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"`
 
+#### NODE_DRAIN_TIMEOUT
+
+This variable sets the nodeDrainTimout for cluster, controlplane and machinedeployment template. Users can set desired value in seconds ("300s") or minutes ("5m"). If it is not set, default value will be "0s" which will not make any change in the current deployment. For example:
+
+`NODE_DRAIN_TIMEOUT="300s"`
+
 #### CTLPLANE_KUBEADM_EXTRA_CONFIG
 
 This contains the extra configuration to pass in KubeadmControlPlane. It is
