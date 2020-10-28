@@ -130,8 +130,8 @@ After configuring the environment variables, run the following to generate your
 cat <<EOF > tilt-settings.json
 {
     "allowed_contexts": ["kind-capm3"],
-    "deploy_cert_manager": True,
-    "preload_images_for_kind": True,
+    "deploy_cert_manager": true,
+    "preload_images_for_kind": true,
     "kind_cluster_name": "capm3",
     "provider_repos": ["../cluster-api-provider-metal3"],
     "enable_providers": ["metal3", "docker", "kubeadm-bootstrap", "kubeadm-control-plane"],
@@ -139,7 +139,7 @@ cat <<EOF > tilt-settings.json
         "DEPLOY_KERNEL_URL": "${DEPLOY_KERNEL_URL}",
         "DEPLOY_RAMDISK_URL": "${DEPLOY_RAMDISK_URL}",
         "IRONIC_INSPECTOR_URL": "${IRONIC_INSPECTOR_URL}",
-        "IRONIC_URL": ${IRONIC_URL}"
+        "IRONIC_URL": "${IRONIC_URL}"
   }
 }
 EOF
@@ -180,7 +180,7 @@ be :
 
 ```json
 {
-  "provider_repos": [ ... , "../baremetal-operator", "../metal3-ipam"],
+  "provider_repos": [ ... , "../baremetal-operator", "../ip-address-manager"],
   "enable_providers": [ ... , "metal3-bmo", "metal3-ipam"],
 }
 ```
