@@ -27,13 +27,13 @@ const (
 	DataClaimFinalizer = "metal3dataclaim.infrastructure.cluster.x-k8s.io"
 )
 
-// Metal3DataSpec defines the desired state of Metal3Data.
+// Metal3DataClaimSpec defines the desired state of Metal3DataClaim.
 type Metal3DataClaimSpec struct {
 	// Template is the Metal3DataTemplate this was generated for.
 	Template corev1.ObjectReference `json:"template"`
 }
 
-// Metal3DataClaimStatus defines the observed state of Metal3Data.
+// Metal3DataClaimStatus defines the observed state of Metal3DataClaim.
 type Metal3DataClaimStatus struct {
 	// RenderedData references the Metal3Data when ready
 	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
