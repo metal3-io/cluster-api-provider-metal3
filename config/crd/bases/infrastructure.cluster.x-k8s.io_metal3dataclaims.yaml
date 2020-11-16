@@ -39,7 +39,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3DataSpec defines the desired state of Metal3Data.
+            description: Metal3DataClaimSpec defines the desired state of Metal3DataClaim.
             properties:
               template:
                 description: Template is the Metal3DataTemplate this was generated
@@ -82,7 +82,7 @@ spec:
             - template
             type: object
           status:
-            description: Metal3DataClaimStatus defines the observed state of Metal3Data.
+            description: Metal3DataClaimStatus defines the observed state of Metal3DataClaim.
             properties:
               errorMessage:
                 description: ErrorMessage contains the error message
