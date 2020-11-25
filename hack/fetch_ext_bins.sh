@@ -98,6 +98,7 @@ function fetch_tools {
     curl -fsL ${kb_tools_download_url} -o "${kb_tools_archive_path}"
   fi
   tar -zvxf "${kb_tools_archive_path}" -C "${tmp_root}/"
+  rm "${kb_tools_archive_path}"
 }
 
 function setup_envs {
