@@ -439,7 +439,7 @@ type Metal3DataTemplateSpec struct {
 	NetworkData *NetworkData `json:"networkData,omitempty"`
 }
 
-// Metal3DataTemplateSptatus defines the observed state of Metal3DataTemplate.
+// Metal3DataTemplateStatus defines the observed state of Metal3DataTemplate.
 type Metal3DataTemplateStatus struct {
 	// LastUpdated identifies when this status was last observed.
 	// +optional

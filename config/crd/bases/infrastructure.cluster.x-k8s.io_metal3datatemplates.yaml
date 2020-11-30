@@ -825,7 +825,7 @@ spec:
             - clusterName
             type: object
           status:
-            description: Metal3DataTemplateSptatus defines the observed state of Metal3DataTemplate.
+            description: Metal3DataTemplateStatus defines the observed state of Metal3DataTemplate.
             properties:
               indexes:
                 additionalProperties:
