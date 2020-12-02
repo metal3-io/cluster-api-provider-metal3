@@ -19,8 +19,8 @@ configMapGenerator:
 
 patchesStrategicMerge:
 - bmo_image_patch.yaml
-- bmo_pull_policy.yaml
-- secret_mount.yaml
+- bmo_pull_policy_patch.yaml
+- secret_mount_patch.yaml
 
 configurations:
 - kustomizeconfig.yaml

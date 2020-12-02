@@ -167,6 +167,10 @@ fmt:
 vet:
 	go vet ./api/... ./controllers/... ./baremetal/... .
 
+# Run manifest validation
+.PHONY: manifest-lint
+manifest-lint:
+	./hack/manifestlint.sh
 
 ## --------------------------------------
 ## Generate
@@ -309,8 +313,8 @@ set-manifest-image-ipam:
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
 	$(info Updating kustomize pull policy file for manager resource)
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/manager/manager_pull_policy.yaml
-	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/bmo/bmo_pull_policy.yaml
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/manager/manager_pull_policy_patch.yaml
+	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/bmo/bmo_pull_policy_patch.yaml
 	sed -i'' -e 's@imagePullPolicy: .*@imagePullPolicy: '"$(PULL_POLICY)"'@' ./config/ipam/pull_policy_patch.yaml
 ## --------------------------------------
 ## Deploying
