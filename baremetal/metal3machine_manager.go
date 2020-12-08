@@ -788,7 +788,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 		if host.GetDeletionTimestamp() != nil {
 			continue
 		}
-		if host.HasError() {
+		if host.Status.ErrorMessage != "" {
 			continue
 		}
 		switch host.Status.Provisioning.State {
