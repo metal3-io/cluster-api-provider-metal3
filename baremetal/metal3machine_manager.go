@@ -782,7 +782,13 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 			helper, err := patch.NewHelper(&hosts.Items[i], m.client)
 			return &hosts.Items[i], helper, err
 		}
-		if !host.Available() {
+		if host.Spec.ConsumerRef != nil {
+			continue
+		}
+		if host.GetDeletionTimestamp() != nil {
+			continue
+		}
+		if host.Status.ErrorMessage != "" {
 			continue
 		}
 		switch host.Status.Provisioning.State {
