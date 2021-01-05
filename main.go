@@ -196,6 +196,16 @@ func setupReconcilers(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3DataReconciler")
 		os.Exit(1)
 	}
+
+	if err := (&controllers.Metal3LabelSyncReconciler{
+		Client:           mgr.GetClient(),
+		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:              ctrl.Log.WithName("controllers").WithName("Metal3LabelSync"),
+		CapiClientGetter: capm3remote.NewClusterClient,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Metal3LabelSyncReconciler")
+		os.Exit(1)
+	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
