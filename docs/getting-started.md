@@ -42,7 +42,7 @@ There are some required variables :
 This is the URL of the kernel to deploy. For example:
 
 ```sh
-  export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"`
+  export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"
 ```
 
 ##### DEPLOY_RAMDISK_URL
@@ -50,7 +50,7 @@ This is the URL of the kernel to deploy. For example:
 This is the URL of the ramdisk to deploy. For example:
 
 ```sh
-  export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"`
+  export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"
 ```
 
 ##### IRONIC_URL
@@ -58,7 +58,7 @@ This is the URL of the ramdisk to deploy. For example:
 This is the URL of the ironic endpoint. For example:
 
 ```sh
-  export IRONIC_URL="http://172.22.0.1:6385/v1/"`
+  export IRONIC_URL="http://172.22.0.1:6385/v1/"
 ```
 
 ##### IRONIC_INSPECTOR_URL
@@ -67,7 +67,7 @@ This is the URL of the ironic inspector endpoint.
 For example:
 
 ```sh
-  export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"`
+  export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"
 ```
 
 ##### IRONIC_CA_CERT_B64
