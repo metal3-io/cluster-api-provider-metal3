@@ -98,12 +98,66 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			},
 			ExpectedResult: map[string]string{},
 		}),
+		Entry("Empty prefix set and empty labels", TestCaseBuildLabelSyncSet{
+			PrefixSet:      map[string]struct{}{},
+			Labels:         map[string]string{},
+			ExpectedResult: map[string]string{},
+		}),
 		Entry("Empty labels", TestCaseBuildLabelSyncSet{
 			PrefixSet: map[string]struct{}{
 				"foo.metal3.io": struct{}{},
 			},
 			Labels:         map[string]string{},
 			ExpectedResult: map[string]string{},
+		}),
+	)
+
+	type TestCaseParsePrefixAnnotation struct {
+		PrefixStr      string
+		ExpectedErr    bool
+		ExpectedResult map[string]struct{}
+	}
+
+	DescribeTable("Parse Prefix Annotation",
+		func(tc TestCaseParsePrefixAnnotation) {
+			prefixSet, err := parsePrefixAnnotation(tc.PrefixStr)
+			if tc.ExpectedErr {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(reflect.DeepEqual(prefixSet, tc.ExpectedResult)).To(Equal(true), "Expected %v but got %v", tc.ExpectedResult, prefixSet)
+			}
+		},
+		Entry("Parse single prefix", TestCaseParsePrefixAnnotation{
+			PrefixStr:   "foo.metal3.io",
+			ExpectedErr: false,
+			ExpectedResult: map[string]struct{}{
+				"foo.metal3.io": struct{}{},
+			},
+		}),
+		Entry("Parse multiple prefixes", TestCaseParsePrefixAnnotation{
+			PrefixStr:   "foo.metal3.io, moo.myprefix,,bar",
+			ExpectedErr: false,
+			ExpectedResult: map[string]struct{}{
+				"foo.metal3.io": struct{}{},
+				"moo.myprefix":  struct{}{},
+				"bar":           struct{}{},
+			},
+		}),
+		Entry("Parse empty prefix string", TestCaseParsePrefixAnnotation{
+			PrefixStr:      "",
+			ExpectedErr:    false,
+			ExpectedResult: map[string]struct{}{},
+		}),
+		Entry("Parse empty prefix string with commas", TestCaseParsePrefixAnnotation{
+			PrefixStr:      ",, ,,",
+			ExpectedErr:    false,
+			ExpectedResult: map[string]struct{}{},
+		}),
+		Entry("Invalid prefix does not meet DNS (RFC 1123)", TestCaseParsePrefixAnnotation{
+			PrefixStr:      "foo.io, @bar.io",
+			ExpectedErr:    true,
+			ExpectedResult: nil,
 		}),
 	)
 
@@ -211,6 +265,26 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			},
 			ExpectedResult: map[string]string{
 				"foo.metal3.io/bar": "blue",
+			},
+		}),
+		Entry("Empty prefix set, do nothing", TestCaseSynchronizeLabelSyncSetsOnNode{
+			PrefixSet: map[string]struct{}{},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"some.bmh-label.io/blah": "gray", // ignore
+					},
+				},
+			},
+			Node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"some.node-label.io/bar": "orange", // ignore
+					},
+				},
+			},
+			ExpectedResult: map[string]string{
+				"some.node-label.io/bar": "orange",
 			},
 		}),
 	)

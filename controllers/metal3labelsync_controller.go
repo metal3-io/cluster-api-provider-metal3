@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -29,8 +31,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/utils/strings"
+	k8strings "k8s.io/utils/strings"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -47,6 +50,7 @@ var (
 
 const (
 	labelSyncControllerName = "metal3-label-sync-controller"
+	PrefixAnnotationKey     = "metal3.io/metal3-label-sync-prefixes"
 )
 
 // Metal3LabelSyncReconciler reconciles label updates to BareMetalHost objects with the corresponding K Node objects in the workload cluster.
@@ -63,12 +67,12 @@ type Metal3LabelSyncReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines/status,verbs=get
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // Reconcile handles label sync events
 func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
 	ctx := context.Background()
-	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-baremetalhost", req.NamespacedName)
+	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-label-sync", req.NamespacedName)
 
 	// We need to get the NodeRef from the CAPI Machine object:
 	// BMH.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
@@ -80,6 +84,13 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 		}
 		return ctrl.Result{}, err
 	}
+	if host.Annotations != nil {
+		if _, ok := host.Annotations[bmh.PausedAnnotation]; ok {
+			controllerLog.Info("BaremetalHost is currently paused. Remove pause to continue reconciliation.")
+			return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
+		}
+	}
+
 	helper, err := patch.NewHelper(host, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
@@ -87,7 +98,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	defer func() {
 		err := helper.Patch(ctx, host)
 		if err != nil {
-			controllerLog.Info("failed to Patch BareMetalHost")
+			controllerLog.Info("Failed to Patch BareMetalHost")
 		}
 	}()
 
@@ -114,7 +125,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 		}
 		return ctrl.Result{}, err
 	}
-	controllerLog.Info(fmt.Sprintf("Found Metal3Machine %v", capm3MachineKey))
+	controllerLog.V(5).Info(fmt.Sprintf("Found Metal3Machine %v", capm3MachineKey))
 
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
@@ -125,7 +136,11 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 		controllerLog.Info("Could not find Machine object, will retry")
 		return ctrl.Result{RequeueAfter: retryInterval}, nil
 	}
-	controllerLog.Info(fmt.Sprintf("Found Machine %v/%v", capiMachine.Name, capiMachine.Namespace))
+	controllerLog.V(5).Info(fmt.Sprintf("Found Machine %v/%v", capiMachine.Name, capiMachine.Namespace))
+	if capiMachine.Status.NodeRef == nil {
+		controllerLog.Info("Could not find Node Ref on Machine object, will retry")
+		return ctrl.Result{RequeueAfter: retryInterval}, nil
+	}
 
 	// Fetch the Cluster
 	cluster := &capi.Cluster{}
@@ -138,38 +153,66 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 		controllerLog.Info("Error fetching cluster, will retry")
 		return ctrl.Result{RequeueAfter: retryInterval}, err
 	}
-	controllerLog.Info(fmt.Sprintf("Found Cluster %v/%v", cluster.Name, cluster.Namespace))
+	controllerLog.V(5).Info(fmt.Sprintf("Found Cluster %v/%v", cluster.Name, cluster.Namespace))
 
-	err = r.reconcileBMHLabels(ctx, host, capiMachine, cluster)
+	// Fetch the Metal3 cluster.
+	metal3Cluster := &capm3.Metal3Cluster{}
+	metal3ClusterName := types.NamespacedName{
+		Namespace: capm3Machine.Namespace,
+		Name:      cluster.Spec.InfrastructureRef.Name,
+	}
+	if err := r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
+		controllerLog.Info("Error fetching Metal3Cluster, will retry")
+		return ctrl.Result{RequeueAfter: retryInterval}, err
+	}
+	controllerLog.V(5).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
+
+	if util.IsPaused(cluster, metal3Cluster) {
+		controllerLog.Info("Cluster and/or Metal3Cluster are currently paused. Remove pause to continue reconciliation.")
+		return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
+	}
+
+	// Get prefix set
+	annotations := metal3Cluster.ObjectMeta.GetAnnotations()
+	if annotations == nil {
+		return ctrl.Result{}, nil
+	}
+	prefixStr, ok := annotations[PrefixAnnotationKey]
+	if !ok {
+		controllerLog.V(5).Info("No annotation for prefixes found on Metal3Cluster")
+		return ctrl.Result{}, nil
+	}
+
+	prefixSet, err := parsePrefixAnnotation(prefixStr)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	err = r.reconcileBMHLabels(ctx, host, capiMachine, cluster, prefixSet)
 	if err != nil {
 		controllerLog.Info(fmt.Sprintf("Error reconciling BMH labels to Node, will retry: %v", err))
 		return ctrl.Result{RequeueAfter: retryInterval}, err
 	}
-
+	controllerLog.Info("Finished synchronizing labels between BaremetalHost and Node")
 	// Always requeue to ensure label sync runs periodically for each BMH. This is necessary to catch any label updates to the Node that are synchronized through the BMH.
 	return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 
 }
 
-func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmh.BareMetalHost, machine *capi.Machine, cluster *capi.Cluster) error {
-
-	prefixSet := map[string]struct{}{
-		"my-prefix.metal3.io": struct{}{},
-	}
+func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmh.BareMetalHost, machine *capi.Machine, cluster *capi.Cluster, prefixSet map[string]struct{}) error {
 
 	hostLabelSyncSet := buildLabelSyncSet(prefixSet, host.Labels)
 	// Get the Node from the workload cluster
 	corev1Remote, err := r.CapiClientGetter(ctx, r.Client, cluster)
 	if err != nil {
-		return errors.Wrap(err, "Error creating a remote client")
+		return errors.Wrap(err, "error creating a remote client")
 	}
-	node, err := corev1Remote.Nodes().Get(ctx, machine.Status.NodeRef.Name, metav1.GetOptions{})
+	node, err := corev1Remote.Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	nodeLabelSyncSet := buildLabelSyncSet(prefixSet, node.Labels)
 	synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet, node)
-	_, err = corev1Remote.Nodes().Update(ctx, node, metav1.UpdateOptions{})
+	_, err = corev1Remote.Nodes().Update(node)
 	if err != nil {
 		return errors.Wrap(err, "unable to update the target node")
 	}
@@ -179,7 +222,7 @@ func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host
 func buildLabelSyncSet(prefixSet map[string]struct{}, labels map[string]string) map[string]string {
 	labelSyncSet := make(map[string]string)
 	for labelKey, labelVal := range labels {
-		p, n := strings.SplitQualifiedName(labelKey)
+		p, n := k8strings.SplitQualifiedName(labelKey)
 		if p == "" || n == "" {
 			continue
 		}
@@ -233,7 +276,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o handler.MapO
 		)
 		return nil
 	}
-	log := r.Log.WithValues("Metal3Cluster", c.Name, "Namespace", c.Namespace)
+	log := r.Log.WithValues("Metal3ClusterToBareMetalHosts", c.Name, "Namespace", c.Namespace)
 	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:
@@ -259,23 +302,23 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o handler.MapO
 		}
 		capm3Machine := &capm3.Metal3Machine{}
 		if err := r.Client.Get(context.TODO(), name, capm3Machine); err != nil {
-			log.Error(err, "failed to get Metal3Machine", "name", name)
-			return nil
+			log.Error(err, "failed to get Metal3Machine")
+			continue
 		}
 		annotations := capm3Machine.ObjectMeta.GetAnnotations()
 		if annotations == nil {
-			log.Error(err, "no annotations found on Metal3Machine", "name", name)
-			return nil
+			log.Error(errors.Errorf("no annotations found on Metal3Machine: %v", name), "failed to get annotations in Metal3Machine")
+			continue
 		}
 		hostKey, ok := annotations[baremetal.HostAnnotation]
 		if !ok {
-			log.Error(errors.New("no BareMetalHost annotation on Metal3Machine"), "name", name)
-			return nil
+			log.Error(errors.Errorf("no %v annotation on Metal3Machine: %v", baremetal.HostAnnotation, name), "failed to get BareMetalHost annotation in Metal3Machine")
+			continue
 		}
 		hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
 		if err != nil {
-			log.Error(err, "could not parase host annotation", "annotation key", hostKey)
-			return nil
+			log.Error(err, "could not parse host annotation")
+			continue
 		}
 		hostObjKey := client.ObjectKey{
 			Name:      hostName,
@@ -285,4 +328,60 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o handler.MapO
 		result = append(result, ctrl.Request{NamespacedName: hostObjKey})
 	}
 	return result
+}
+
+// parsePrefixAnnotation parses a string for prefixes. The string must be in the format: `prefix-1,prefix-2,...` and each prefix must conform to the definition of a subdomain in DNS (RFC 1123).
+func parsePrefixAnnotation(prefixStr string) (map[string]struct{}, error) {
+	entries := strings.Split(prefixStr, ",")
+	prefixSet := make(map[string]struct{})
+	for _, prefix := range entries {
+		prefix = strings.TrimSpace(prefix)
+		if len(prefix) == 0 {
+			// ignore empty prefix string (e.g. `, ,`)
+			continue
+		} else if err := IsDNS1123Subdomain(prefix); err != nil {
+			return nil, errors.New(fmt.Sprintf("invalid prefix (%v): %v", prefix, err))
+		}
+		prefixSet[prefix] = struct{}{}
+	}
+	return prefixSet, nil
+}
+
+// The following code is also used by kubectl for label and prefix validation.
+// Reference: https://github.com/kubernetes/apimachinery/blob/master/pkg/util/validation/validation.go
+const dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
+const dns1123SubdomainFmt string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
+const dns1123SubdomainErrorMsg string = "a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
+
+// DNS1123SubdomainMaxLength is a subdomain's max length in DNS (RFC 1123)
+const DNS1123SubdomainMaxLength int = 253
+
+var dns1123SubdomainRegexp = regexp.MustCompile("^" + dns1123SubdomainFmt + "$")
+
+// IsDNS1123Subdomain tests for a string that conforms to the definition of a
+// subdomain in DNS (RFC 1123).
+func IsDNS1123Subdomain(value string) error {
+	if len(value) > DNS1123SubdomainMaxLength {
+		return errors.New(fmt.Sprintf("%v must be no more than %d characters", value, DNS1123SubdomainMaxLength))
+	}
+	if !dns1123SubdomainRegexp.MatchString(value) {
+		return errors.New(RegexError(dns1123SubdomainErrorMsg, dns1123SubdomainFmt, "example.com"))
+	}
+	return nil
+}
+
+// RegexError returns a string explanation of a regex validation failure.
+func RegexError(msg string, fmt string, examples ...string) string {
+	if len(examples) == 0 {
+		return msg + " (regex used for validation is '" + fmt + "')"
+	}
+	msg += " (e.g. "
+	for i := range examples {
+		if i > 0 {
+			msg += " or "
+		}
+		msg += "'" + examples[i] + "', "
+	}
+	msg += "regex used for validation is '" + fmt + "')"
+	return msg
 }
