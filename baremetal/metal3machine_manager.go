@@ -536,7 +536,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		waiting := true
 		switch host.Status.Provisioning.State {
-		case bmh.StateRegistrationError, bmh.StateRegistering,
+		case bmh.StateRegistering,
 			bmh.StateMatchProfile, bmh.StateInspecting,
 			bmh.StateReady, bmh.StateAvailable, bmh.StateNone,
 			bmh.StateUnmanaged:
@@ -1086,7 +1086,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		return errors.Wrap(err, "Error creating a remote client")
 	}
 
-	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{
+	nodes, err := corev1Remote.Nodes().List(metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("metal3.io/uuid=%v", bmhID),
 	})
 	if err != nil {
@@ -1104,7 +1104,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 			continue
 		}
 		node.Spec.ProviderID = providerID
-		_, err = corev1Remote.Nodes().Update(ctx, &node, metav1.UpdateOptions{})
+		_, err = corev1Remote.Nodes().Update(&node)
 		if err != nil {
 			return errors.Wrap(err, "unable to update the target node")
 		}

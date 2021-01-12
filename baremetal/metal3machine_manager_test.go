@@ -2046,7 +2046,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 
 				// get the node
-				node, err := corev1Client.Nodes().Get(context.TODO(), tc.Node.Name,
+				node, err := corev1Client.Nodes().Get(tc.Node.Name,
 					metav1.GetOptions{},
 				)
 				Expect(err).NotTo(HaveOccurred())
