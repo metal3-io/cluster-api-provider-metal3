@@ -72,6 +72,9 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= IfNotPresent
 
+# Default Image pull registry
+OVERRIDE_DOCKER_HUB_REGISTRY ?= "registry.hub.docker.com"
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -261,7 +264,7 @@ generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configuratio
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
-	docker build --network=host --pull --build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker build --network=host --pull --build-arg ARCH=$(ARCH) --build-arg OVERRIDE_DOCKER_HUB_REGISTRY=${OVERRIDE_DOCKER_HUB_REGISTRY} . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
