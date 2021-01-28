@@ -501,6 +501,7 @@ func autoConvert_v1alpha4_Metal3MachineSpec_To_v1alpha3_Metal3MachineSpec(in *v1
 	// WARNING: in.DataTemplate requires manual conversion: does not exist in peer-type
 	// WARNING: in.MetaData requires manual conversion: does not exist in peer-type
 	// WARNING: in.NetworkData requires manual conversion: does not exist in peer-type
+	// WARNING: in.AutomatedCleaningMode requires manual conversion: does not exist in peer-type
 	return nil
 }
 

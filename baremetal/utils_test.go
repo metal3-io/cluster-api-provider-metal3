@@ -25,9 +25,11 @@ import (
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	//"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	//fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -129,7 +131,8 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: "myns",
 		},
 		Spec: capm3.Metal3MachineSpec{
-			ProviderID: pointer.StringPtr("abcdef"),
+			ProviderID:            pointer.StringPtr("abcdef"),
+			AutomatedCleaningMode: "metadata",
 		},
 		Status: capm3.Metal3MachineStatus{
 			Ready: true,

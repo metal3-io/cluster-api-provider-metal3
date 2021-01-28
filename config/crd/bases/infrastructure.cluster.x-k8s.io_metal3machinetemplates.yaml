@@ -182,6 +182,14 @@ spec:
                     description: Spec is the specification of the desired behavior
                       of the machine.
                     properties:
+                      automatedCleaningMode:
+                        default: metadata
+                        description: When set to disabled, automated cleaning will
+                          be skipped during provisioning and deprovisioning.
+                        enum:
+                        - metadata
+                        - disabled
+                        type: string
                       dataTemplate:
                         description: MetadataTemplate is a reference to a Metal3DataTemplate
                           object containing a template of metadata to be rendered.

@@ -62,6 +62,12 @@ type Metal3MachineSpec struct {
 	// NetworkData is an object storing the reference to the secret containing the
 	// network data given by the user.
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
+
+	// When set to disabled, automated cleaning will be skipped
+	// during provisioning and deprovisioning.
+	// +kubebuilder:default:=metadata
+	// +kubebuilder:validation:Enum:=metadata;disabled
+	AutomatedCleaningMode string `json:"automatedCleaningMode,omitempty"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
