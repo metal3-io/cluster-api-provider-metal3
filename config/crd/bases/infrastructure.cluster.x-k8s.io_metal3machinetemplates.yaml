@@ -143,6 +143,10 @@ spec:
           spec:
             description: Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate
             properties:
+              nodeReuse:
+                default: false
+                description: When set to True, CAPM3 Machine controller will pick the same pool of BMHs' that were released during the upgrade operation.
+                type: boolean
               template:
                 description: Metal3MachineTemplateResource describes the data needed to create a Metal3Machine from a template
                 properties:

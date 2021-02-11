@@ -510,7 +510,20 @@ spec:
 
 ## Metal3MachineTemplate
 
-The Metal3MachineTemplate contains the template to create Metal3Machine.
+The Metal3MachineTemplate contains following two specification fields:
+
+* **nodeReuse**: (true/false) Whether the same pool of BareMetalHosts will be re-used during the
+  upgrade/remediation operations. By default set to false, if set to true, CAPM3 Machine controller
+  will pick the same pool of BareMetalHosts that were released while upgrading/remediation - for the
+  next provisioning phase.
+* **template**: is a template containing the data needed to create a Metal3Machine.
+
+### Enabling nodeReuse feature
+
+This feature can be desirable and enabled in scenarios such as upgrade/remediation, where root and externally attached disks of the BareMetalHosts needs to be left untouched and same pool of BareMetalHosts reused during the re-provisioning. To achieve that, `nodeReuse` field in `Metal3MachineTemplateSpec` must be set to `True`, and next CAPM3 Machine controller:
+
+* Sets `infrastructure.cluster.x-k8s.io/node-reuse` label to the corresponding CAPI object name (`KubeadmControlPlane` or `MachineDeployment`) on the BareMetalHost during deprovisioning;
+* Selects the BareMetalHost that contains `infrastructure.cluster.x-k8s.io/node-reuse` label and matches exact same CAPI object name set in the previous step during next provisioning.
 
 Example Metal3MachineTemplate :
 
@@ -520,6 +533,7 @@ kind: Metal3MachineTemplate
 metadata:
   name: md-0
 spec:
+  nodeReuse: false
   template:
     spec:
       image:

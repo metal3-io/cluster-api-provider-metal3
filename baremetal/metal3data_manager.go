@@ -270,7 +270,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	return nil
 }
 
-// CreateSecrets creates the secret if they do not exist.
+// ReleaseLeases releases addresses from pool.
 func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 	if m.Data.Spec.Template.Name == "" {
 		return nil
