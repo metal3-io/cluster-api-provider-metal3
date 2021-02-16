@@ -114,3 +114,18 @@ func (mr *MockManagerFactoryInterfaceMockRecorder) NewMachineManager(arg0, arg1,
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewMachineManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewMachineManager), arg0, arg1, arg2, arg3, arg4)
 }
+
+// NewMachineTemplateManager mocks base method.
+func (m *MockManagerFactoryInterface) NewMachineTemplateManager(capm3Template *v1alpha4.Metal3MachineTemplate, capm3MachineList *v1alpha4.Metal3MachineList, metadataLog logr.Logger) (baremetal.TemplateManagerInterface, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewMachineTemplateManager", capm3Template, capm3MachineList, metadataLog)
+	ret0, _ := ret[0].(baremetal.TemplateManagerInterface)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewMachineTemplateManager indicates an expected call of NewMachineTemplateManager.
+func (mr *MockManagerFactoryInterfaceMockRecorder) NewMachineTemplateManager(capm3Template, capm3MachineList, metadataLog interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewMachineTemplateManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewMachineTemplateManager), capm3Template, capm3MachineList, metadataLog)
+}
