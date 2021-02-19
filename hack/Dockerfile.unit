@@ -1,4 +1,4 @@
-FROM registry.hub.docker.com/library/golang:1.15.3
+FROM registry.hub.docker.com/library/golang:1.16
 
 WORKDIR /usr/local/kubebuilder
 COPY /hack/tools /usr/local/kubebuilder/

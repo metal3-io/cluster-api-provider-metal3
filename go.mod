@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3
 
-go 1.15
+go 1.16
 
 require (
 	cloud.google.com/go v0.74.0 // indirect
