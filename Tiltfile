@@ -12,7 +12,7 @@ settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
     "kind_cluster_name": "capm3",
-    "capi_version": "v0.3.9",
+    "capi_version": "v0.3.14",
     "cert_manager_version": "v0.16.1",
     "kubernetes_version": "v1.18.8",
     "enable_providers": [],
