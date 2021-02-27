@@ -25,10 +25,10 @@ import (
 	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -36,7 +36,7 @@ import (
 var _ = Describe("Reconcile metal3Cluster", func() {
 
 	type TestCaseReconcileBMC struct {
-		Objects             []runtime.Object
+		Objects             []client.Object
 		ErrorType           error
 		ErrorExpected       bool
 		RequeueExpected     bool
@@ -47,12 +47,13 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 	DescribeTable("Reconcile tests metal3Cluster",
 		func(tc TestCaseReconcileBMC) {
 			testclstr := &infrav1alpha5.Metal3Cluster{}
-			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 
 			r := &Metal3ClusterReconciler{
-				Client:         c,
-				ManagerFactory: baremetal.NewManagerFactory(c),
-				Log:            klogr.New(),
+				Client:           c,
+				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Log:              klogr.New(),
+				WatchFilterValue: "",
 			}
 
 			req := reconcile.Request{
@@ -61,8 +62,8 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 					Namespace: namespaceName,
 				},
 			}
-
-			res, err := r.Reconcile(req)
+			ctx := context.Background()
+			res, err := r.Reconcile(ctx, req)
 
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
@@ -88,7 +89,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		// Given cluster, but no metal3cluster resource
 		Entry("Should not return an error when metal3cluster is not found",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
@@ -98,7 +99,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		// Given no cluster resource
 		Entry("Should return en error when cluster is not found",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 				},
 				ErrorExpected:       true,
@@ -110,7 +111,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		// Given cluster and metal3cluster with no owner reference
 		Entry("Should not return an error if OwnerRef is not set on Metal3Cluster",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
@@ -121,7 +122,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		// Given cluster and Metal3Cluster with no APIEndpoint
 		Entry("Should return an error if APIEndpoint is not set",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
@@ -136,7 +137,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		// Given cluster and Metal3Cluster with mandatory fields
 		Entry("Should not return an error when mandatory fields are provided",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 					newCluster(clusterName, nil, nil),
 				},
@@ -150,7 +151,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		//Expected: Requeue Expected
 		Entry("Should requeue when owner Cluster is paused",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newCluster(clusterName, clusterPauseSpec(), nil),
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
 				},
@@ -164,7 +165,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		//Expected: Requeue Expected
 		Entry("Should requeue when Metal3Cluster has paused annotation",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, true),
 				},
@@ -175,7 +176,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		// Reconcile Deletion
 		Entry("Should reconcileDelete when deletion timestamp is set.",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					&infrav1alpha5.Metal3Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind: "Metal3Cluster",
@@ -197,7 +198,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		// Reconcile Deletion, wait for metal3machine
 		Entry("reconcileDelete should wait for metal3machine",
 			TestCaseReconcileBMC{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					&infrav1alpha5.Metal3Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind: "Metal3Cluster",

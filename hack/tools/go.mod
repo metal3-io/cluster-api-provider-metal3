@@ -7,8 +7,8 @@ require (
 	github.com/golang/mock v1.5.0
 	github.com/golangci/golangci-lint v1.40.0
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
-	k8s.io/code-generator v0.20.2
-	sigs.k8s.io/controller-tools v0.5.0
+	k8s.io/code-generator v0.21.1
+	sigs.k8s.io/controller-tools v0.6.0
 	sigs.k8s.io/kustomize/kustomize/v3 v3.10.0
 	sigs.k8s.io/testing_frameworks v0.1.1
 )

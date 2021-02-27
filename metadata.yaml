@@ -3,7 +3,7 @@ kind: Metadata
 releaseSeries:
 - major: 0
   minor: 5
-  contract: v1alpha3 # This should point towards v1alpha4 when the v1alpha4 changes land
+  contract: v1alpha4
 - major: 0
   minor: 4
   contract: v1alpha3  

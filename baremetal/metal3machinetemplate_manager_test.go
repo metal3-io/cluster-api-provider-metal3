@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -44,8 +44,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				tc.M3MachineTemplate,
 				tc.M3MachineList,
 			}
-
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithRuntimeObjects(objects...).Build()
 			templateMgr, err := NewMachineTemplateManager(c, tc.M3MachineTemplate,
 				tc.M3MachineList, klogr.New(),
 			)

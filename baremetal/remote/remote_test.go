@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -88,7 +88,8 @@ users:
 
 func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
-		client := fake.NewFakeClient(validSecret)
+		client := fake.NewClientBuilder().WithRuntimeObjects(validSecret).Build()
+
 		c, err := NewClusterClient(context.TODO(), client, clusterWithValidKubeConfig)
 		if err != nil {
 			t.Fatalf("Expected no errors, got %v", err)
@@ -100,7 +101,7 @@ func TestNewClusterClient(t *testing.T) {
 	})
 
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
-		client := fake.NewFakeClient()
+		client := fake.NewClientBuilder().Build()
 		_, err := NewClusterClient(context.TODO(), client, clusterWithNoKubeConfig)
 		if !strings.Contains(err.Error(), "not found") {
 			t.Fatalf("Expected not found error, got %v", err)
@@ -108,7 +109,7 @@ func TestNewClusterClient(t *testing.T) {
 	})
 
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
-		client := fake.NewFakeClient(invalidSecret)
+		client := fake.NewClientBuilder().WithRuntimeObjects(invalidSecret).Build()
 		_, err := NewClusterClient(context.TODO(), client, clusterWithInvalidKubeConfig)
 		if err == nil || apierrors.IsNotFound(err) {
 			t.Fatalf("Expected error other than not found, got %v", err)

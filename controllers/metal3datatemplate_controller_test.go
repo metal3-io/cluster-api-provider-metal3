@@ -30,13 +30,12 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/klog/v2/klogr"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -61,14 +60,14 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			f := baremetal_mocks.NewMockManagerFactoryInterface(gomockCtrl)
 			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
 
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
 			if tc.cluster != nil {
 				objects = append(objects, tc.cluster)
 			}
-			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 			if tc.managerError {
 				f.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
@@ -102,9 +101,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 
 			dataTemplateReconcile := &Metal3DataTemplateReconciler{
-				Client:         c,
-				ManagerFactory: f,
-				Log:            klogr.New(),
+				Client:           c,
+				ManagerFactory:   f,
+				Log:              klogr.New(),
+				WatchFilterValue: "",
 			}
 
 			req := reconcile.Request{
@@ -113,8 +113,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Namespace: "myns",
 				},
 			}
-
-			result, err := dataTemplateReconcile.Reconcile(req)
+			ctx := context.Background()
+			result, err := dataTemplateReconcile.Reconcile(ctx, req)
 
 			if tc.expectError || tc.managerError || tc.reconcileNormalError {
 				Expect(err).To(HaveOccurred())
@@ -218,12 +218,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		func(tc reconcileNormalTestCase) {
 			gomockCtrl := gomock.NewController(GinkgoT())
 
-			c := fake.NewFakeClientWithScheme(setupScheme())
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			dataTemplateReconcile := &Metal3DataTemplateReconciler{
-				Client:         c,
-				ManagerFactory: baremetal.NewManagerFactory(c),
-				Log:            klogr.New(),
+				Client:           c,
+				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Log:              klogr.New(),
+				WatchFilterValue: "",
 			}
 			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
 
@@ -271,12 +272,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		func(tc reconcileDeleteTestCase) {
 			gomockCtrl := gomock.NewController(GinkgoT())
 
-			c := fake.NewFakeClientWithScheme(setupScheme())
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			dataTemplateReconcile := &Metal3DataTemplateReconciler{
-				Client:         c,
-				ManagerFactory: baremetal.NewManagerFactory(c),
-				Log:            klogr.New(),
+				Client:           c,
+				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Log:              klogr.New(),
+				WatchFilterValue: "",
 			}
 			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
 
@@ -328,9 +330,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	DescribeTable("Metal3DataClaim To Metal3DataTemplate tests",
 		func(tc TestCaseM3DCToM3DT) {
 			r := Metal3DataTemplateReconciler{}
-			obj := handler.MapObject{
-				Object: tc.DataClaim,
-			}
+			obj := client.Object(tc.DataClaim)
 			reqs := r.Metal3DataClaimToMetal3DataTemplate(obj)
 
 			if tc.ExpectRequest {
