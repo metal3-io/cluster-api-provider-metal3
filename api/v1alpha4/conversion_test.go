@@ -21,6 +21,7 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -51,40 +52,40 @@ func TestFuzzyConversion(t *testing.T) {
 	g.Expect(AddToScheme(scheme)).To(Succeed())
 	g.Expect(v1alpha5.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for Metal3Cluster", utilconversion.FuzzTestFunc(
-		scheme,
-		&v1alpha5.Metal3Cluster{},
-		&Metal3Cluster{},
-		apiEndpointFuzzerFuncs,
-	))
+	t.Run("for Metal3Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme:      scheme,
+		Hub:         &v1alpha5.Metal3Cluster{},
+		Spoke:       &Metal3Cluster{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{apiEndpointFuzzerFuncs},
+	}))
 
-	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(
-		scheme,
-		&v1alpha5.Metal3Machine{},
-		&Metal3Machine{},
-	))
+	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1alpha5.Metal3Machine{},
+		Spoke:  &Metal3Machine{},
+	}))
 
-	t.Run("for Metal3MachineTemplate", utilconversion.FuzzTestFunc(
-		scheme,
-		&v1alpha5.Metal3MachineTemplate{},
-		&Metal3MachineTemplate{},
-	))
+	t.Run("for Metal3MachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1alpha5.Metal3MachineTemplate{},
+		Spoke:  &Metal3MachineTemplate{},
+	}))
 
-	t.Run("for Metal3Data", utilconversion.FuzzTestFunc(
-		scheme,
-		&v1alpha5.Metal3Data{},
-		&Metal3Data{},
-	))
+	t.Run("for Metal3Data", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1alpha5.Metal3Data{},
+		Spoke:  &Metal3Data{},
+	}))
 
-	t.Run("for Metal3DataTemplate", utilconversion.FuzzTestFunc(
-		scheme,
-		&v1alpha5.Metal3DataTemplate{},
-		&Metal3DataTemplate{},
-	))
+	t.Run("for Metal3DataTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1alpha5.Metal3DataTemplate{},
+		Spoke:  &Metal3DataTemplate{},
+	}))
 
-	t.Run("for Metal3DataClaim", utilconversion.FuzzTestFunc(
-		scheme,
-		&v1alpha5.Metal3DataClaim{},
-		&Metal3DataClaim{},
-	))
+	t.Run("for Metal3DataClaim", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
+		Scheme: scheme,
+		Hub:    &v1alpha5.Metal3DataClaim{},
+		Spoke:  &Metal3DataClaim{},
+	}))
 }

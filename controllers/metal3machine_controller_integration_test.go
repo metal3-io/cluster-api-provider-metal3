@@ -40,8 +40,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/klog/v2/klogr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -50,7 +50,7 @@ import (
 
 var providerID = "metal3:///foo/bar"
 
-var bootstrapData = "Qm9vdHN0cmFwIERhdGEK"
+var bootstrapDataSecretName = "testdatasecret"
 
 func m3mOwnerRefs() []metav1.OwnerReference {
 	return []metav1.OwnerReference{
@@ -143,7 +143,7 @@ func machineWithBootstrap() *clusterv1.Machine {
 		clusterName, machineName, metal3machineName,
 	)
 	machine.Spec.Bootstrap = clusterv1.Bootstrap{
-		Data: &bootstrapData,
+		DataSecretName: &bootstrapDataSecretName,
 	}
 	machine.Status = clusterv1.MachineStatus{
 		BootstrapReady: true,
@@ -154,7 +154,7 @@ func machineWithBootstrap() *clusterv1.Machine {
 var _ = Describe("Reconcile metal3machine", func() {
 
 	type TestCaseReconcile struct {
-		Objects                    []runtime.Object
+		Objects                    []client.Object
 		TargetObjects              []runtime.Object
 		ErrorExpected              bool
 		RequeueExpected            bool
@@ -180,7 +180,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			testBMmachine := &infrav1alpha5.Metal3Machine{}
 			testBMHost := &bmh.BareMetalHost{}
 
-			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {
@@ -192,6 +192,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ManagerFactory:   baremetal.NewManagerFactory(c),
 				Log:              klogr.New(),
 				CapiClientGetter: mockCapiClientGetter,
+				WatchFilterValue: "",
 			}
 
 			req := reconcile.Request{
@@ -200,7 +201,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 					Namespace: namespaceName,
 				},
 			}
-			res, err := r.Reconcile(req)
+			ctx := context.Background()
+			res, err := r.Reconcile(ctx, req)
 			_ = c.Get(context.TODO(), *getKey(machineName), testmachine)
 			objMeta := testmachine.ObjectMeta
 			_ = c.Get(context.TODO(), *getKey(clusterName), testcluster)
@@ -276,7 +278,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: No error. NotFound error is consumed by reconciler and returns nil.
 		Entry("Should not return an error when metal3machine is not found",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMachine(clusterName, machineName, metal3machineName),
 				},
 				ErrorExpected:   false,
@@ -287,7 +289,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: No error. Reconciler waits for  Machine Controller to set OwnerRef
 		Entry("Should not return an error if OwnerRef is not set on Metal3Cluster",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, nil, nil, nil, false),
 				},
 				ErrorExpected:   false,
@@ -298,7 +300,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: Error. Machine not found.
 		Entry("Should return an error when Machine cannot be found",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					metal3machineWithOwnerRefs(),
 				},
 				ErrorExpected:   true,
@@ -310,7 +312,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: Error. Cluster not found
 		Entry("Should return an error when owner Cluster cannot be found",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					metal3machineWithOwnerRefs(),
 					machineWithInfra(),
 				},
@@ -324,7 +326,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: No Error. it should wait and not return error
 		Entry("Should not return an error when owner Cluster infrastructure is not ready",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newCluster(clusterName, nil, &clusterv1.ClusterStatus{
 						InfrastructureReady: false,
 					}),
@@ -340,7 +342,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: No error. Reconciler should wait for BMC Controller to create the BMCluster
 		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster does not exist",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					metal3machineWithOwnerRefs(),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
@@ -354,7 +356,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: No error. Reconciler should set Finalizer on Metal3Machine
 		Entry("Should not return an error when owner Cluster infrastructure is ready and BMCluster exist",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					metal3machineWithOwnerRefs(),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
@@ -372,7 +374,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: Requeue Expected
 		Entry("Should requeue when owner Cluster is paused",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					metal3machineWithOwnerRefs(),
 					machineWithInfra(),
 					newCluster(clusterName, clusterPauseSpec(), nil),
@@ -389,7 +391,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: Requeue Expected
 		Entry("Should requeue when Metal3Machine has paused annotation",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, nil, nil, nil, true),
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
@@ -405,7 +407,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: Since BMH is in provisioned state, nothing will happen since machine. bootstrapReady is false.
 		Entry("Should not return an error when metal3machine is deployed",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1alpha5.Metal3MachineSpec{
 							ProviderID: &providerID,
@@ -436,7 +438,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		// 			Expect BMHost.Spec.ConsumerRef.Name = BMmachine.Name
 		Entry("Should set BMH Spec in correct state and requeue when all objects are available but no annotation, BMH state is available",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithOwnerRef(), &infrav1alpha5.Metal3MachineSpec{
@@ -476,7 +478,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		// 			Expect BMHost.Spec.ConsumerRef.Name = BMmachine.Name
 		Entry("Should set BMH Spec in correct state and requeue when all objects are available but no annotation",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithOwnerRef(), &infrav1alpha5.Metal3MachineSpec{
@@ -510,7 +512,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: No Error, BMH.Spec.ProviderID is set properly based on the UID
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is not given, BMH is provisioned",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1alpha5.Metal3MachineSpec{
@@ -537,7 +539,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: No Error, BMH.Spec.ProviderID is set properly (unchanged)
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is given, BMH is provisioned",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1alpha5.Metal3MachineSpec{
@@ -567,7 +569,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//		BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1alpha5.Metal3MachineSpec{
 						Image: infrav1alpha5.Image{
 							Checksum: "abcd",
@@ -596,7 +598,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: no error, requeing. ProviderID should not be set.
 		Entry("Should requeue when patching an unavailable node",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), nil, nil, false),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
@@ -617,7 +619,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: no error, no requeue. ProviderID should be set.
 		Entry("Should not requeue when patching an available node",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), nil, nil, false),
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
@@ -647,7 +649,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//Expected: Delete is reconciled,M3Machine Finalizer is removed
 		Entry("Should not return an error and finish deletion of Metal3Machine",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					userDataSecret(),
 					newMetal3Machine(metal3machineName, m3mMetaWithDeletion(),
 						m3mSpecWithSecret(), nil, false,
@@ -667,7 +669,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		//          Delete is reconciled. BMH should be deprovisioned
 		Entry("Should not return an error and deprovision bmh",
 			TestCaseReconcile{
-				Objects: []runtime.Object{
+				Objects: []client.Object{
 					userDataSecret(),
 					newMetal3Machine(metal3machineName,
 						m3mMetaWithAnnotationDeletion(), m3mSpecWithSecret(), nil, false,

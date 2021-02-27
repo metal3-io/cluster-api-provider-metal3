@@ -23,6 +23,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -37,14 +38,14 @@ const (
 
 // Metal3MachineTemplateReconciler reconciles a Metal3MachineTemplate object
 type Metal3MachineTemplateReconciler struct {
-	Client         client.Client
-	ManagerFactory baremetal.ManagerFactoryInterface
-	Log            logr.Logger
+	Client           client.Client
+	ManagerFactory   baremetal.ManagerFactoryInterface
+	Log              logr.Logger
+	WatchFilterValue string
 }
 
 // Reconcile handles Metal3MachineTemplate events
-func (r *Metal3MachineTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
+func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	m3templateLog := r.Log.WithName(templateControllerName).WithValues("metal3-machine-template", req.NamespacedName)
 
 	// Fetch the Metal3MachineTemplate instance.
@@ -109,8 +110,9 @@ func (r *Metal3MachineTemplateReconciler) reconcileNormal(ctx context.Context,
 }
 
 // SetupWithManager will add watches for this controller
-func (r *Metal3MachineTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3MachineTemplate{}).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }

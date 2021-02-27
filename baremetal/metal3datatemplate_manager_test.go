@@ -28,11 +28,8 @@ import (
 	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/klogr"
-
-	// "k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/klog/v2/klogr"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -153,11 +150,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test getIndexes",
 		func(tc testGetIndexes) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			for _, address := range tc.indexes {
 				objects = append(objects, address)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
 				klogr.New(),
 			)
@@ -263,14 +260,14 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test UpdateDatas",
 		func(tc testCaseUpdateDatas) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
 			for _, claim := range tc.dataClaims {
 				objects = append(objects, claim)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
 				klogr.New(),
 			)
@@ -459,12 +456,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test Template Reference",
 		func(tc testCaseTemplateReference) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			objects = append(objects, tc.dataClaim)
 			if tc.dataObject != nil {
 				objects = append(objects, tc.dataObject)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template2,
 				klogr.New(),
 			)
@@ -636,11 +633,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test CreateAddresses",
 		func(tc testCaseCreateAddresses) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
 				klogr.New(),
 			)
@@ -784,11 +781,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test DeleteAddresses",
 		func(tc testCaseDeleteDatas) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
 				klogr.New(),
 			)

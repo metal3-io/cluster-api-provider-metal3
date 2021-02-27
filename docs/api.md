@@ -110,10 +110,11 @@ metadata:
 spec:
   replicas: 3
   version: v1.17.0
-  infrastructureTemplate:
-    kind: Metal3MachineTemplate
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-    name: m3cluster-controlplane
+  machineTemplate:
+    infrastructureRef:
+      kind: Metal3MachineTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+      name: m3cluster-controlplane
   kubeadmConfigSpec:
     initConfiguration:
       nodeRegistration:
