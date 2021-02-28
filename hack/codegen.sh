@@ -20,7 +20,6 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   config/manager/*.yaml
   config/rbac/*.yaml
   config/webhook/*.yaml
-  config/*.yaml
   api/v1alpha2/zz_generated.*.go
   api/v1alpha3/zz_generated.*.go
   api/v1alpha4/zz_generated.*.go
