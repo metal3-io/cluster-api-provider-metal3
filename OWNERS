@@ -3,14 +3,14 @@
 approvers:
  - dhellmann
  - hardys
+ - kashifest
+ - maelk
  - mhrivnak
  - russellb
- - maelk
- - kashifest
-
+ 
 reviewers:
- - Xenwar
- - Jaakko-Os
  - fmuyassarov
  - furkatgofurov7
+ - Jaakko-Os
  - jan-est
+ - Xenwar
