@@ -17,8 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -63,7 +62,7 @@ func (s *Metal3MachineSpec) IsValid() error {
 		missing = append(missing, "Image.Checksum")
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("Missing fields from ProviderSpec: %v", missing)
+		return errors.Errorf("Missing fields from ProviderSpec: %v", missing)
 	}
 	return nil
 }
