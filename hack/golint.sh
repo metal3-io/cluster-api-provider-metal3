@@ -18,5 +18,5 @@ else
     --entrypoint sh \
     --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
     registry.hub.docker.com/library/golang:1.16 \
-    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/gofmt.sh
+    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/golint.sh
 fi;
