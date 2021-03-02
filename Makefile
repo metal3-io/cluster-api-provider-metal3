@@ -72,6 +72,9 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= IfNotPresent
 
+# Build time versioning details.
+LDFLAGS := $(shell hack/version.sh)
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -108,7 +111,7 @@ binaries: manager ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
-	go build -o $(BIN_DIR)/manager .
+	go build -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/manager .
 
 ## --------------------------------------
 ## Tooling Binaries
@@ -393,7 +396,7 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace" \
 		-w /workspace \
 		golang:1.15.3 \
-		go build -a -ldflags '-extldflags "-static"' \
+		go build -a -ldflags '$(LDFLAGS) -extldflags "-static"' \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
 
 .PHONY: release-staging

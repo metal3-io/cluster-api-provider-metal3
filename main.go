@@ -29,6 +29,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	capm3remote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
+	"github.com/metal3-io/cluster-api-provider-metal3/version"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -112,7 +113,7 @@ func main() {
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
-	setupLog.Info("starting manager")
+	setupLog.Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
