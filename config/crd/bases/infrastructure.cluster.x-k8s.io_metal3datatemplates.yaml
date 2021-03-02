@@ -18,6 +18,9 @@ spec:
     shortNames:
     - m3dt
     - m3datatemplate
+    - m3datatemplates
+    - metal3dt
+    - metal3datatemplate
     singular: metal3datatemplate
   scope: Namespaced
   versions:

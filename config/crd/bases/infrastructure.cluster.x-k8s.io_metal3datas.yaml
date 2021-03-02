@@ -18,6 +18,9 @@ spec:
     shortNames:
     - m3d
     - m3data
+    - m3datas
+    - metal3d
+    - metal3data
     singular: metal3data
   scope: Namespaced
   versions:
