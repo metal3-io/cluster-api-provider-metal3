@@ -615,7 +615,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 	if host == nil {
-		return fmt.Errorf("host not found for machine %s", m.Machine.Name)
+		return errors.Errorf("host not found for machine %s", m.Machine.Name)
 	}
 
 	if err := m.WaitForM3Metadata(ctx); err != nil {

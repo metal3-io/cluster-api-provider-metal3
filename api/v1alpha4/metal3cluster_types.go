@@ -17,8 +17,7 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
@@ -49,7 +48,7 @@ func (s *Metal3ClusterSpec) IsValid() error {
 	}
 
 	if len(missing) > 0 {
-		return fmt.Errorf("Missing fields from Spec: %v", missing)
+		return errors.Errorf("Missing fields from Spec: %v", missing)
 	}
 	return nil
 }
