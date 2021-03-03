@@ -1,0 +1,81 @@
+---
+# E2E test scenario using local dev images and manifests built from the source tree for following providers:
+# - cluster-api
+# - bootstrap kubeadm
+# - control-plane kubeadm
+# - metal3
+
+images:
+  # Use local dev images built source tree;
+  - name: quay.io/metal3-io/cluster-api-provider-metal3:latest
+    loadBehavior: mustLoad
+  - name: quay.io/metal3-io/baremetal-operator:latest
+    loadBehavior: mustLoad
+  - name: quay.io/metal3-io/ip-address-manager:latest
+    loadBehavior: mustLoad
+
+providers:
+  - name: cluster-api
+    type: CoreProvider
+    versions:
+      - name: v0.3.12
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.12/core-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+  - name: kubeadm
+    type: BootstrapProvider
+    versions:
+      - name: v0.3.12
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.12/bootstrap-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+  - name: kubeadm
+    type: ControlPlaneProvider
+    versions:
+      - name: v0.3.12
+        # Use manifest from source files
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.12/control-plane-components.yaml"
+        type: "url"
+        replacements:
+          - old: "imagePullPolicy: Always"
+            new: "imagePullPolicy: IfNotPresent"
+          - old: "--enable-leader-election"
+            new: "--enable-leader-election=false"
+  - name: metal3
+    type: InfrastructureProvider
+    versions:
+    - name: v0.4.1
+      value: "${PWD}/config"
+    files:
+    - sourcePath: "${PWD}/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "${PWD}/templates/test/cluster-template-prow-single-master.yaml"
+      targetName: "cluster-template-single-master.yaml"
+    - sourcePath: "${PWD}/templates/test/cluster-template-prow-ha.yaml"
+      targetName: "cluster-template-ha.yaml"
+
+variables:
+  KUBERNETES_VERSION: "v1.20.4"
+  CNI: "./data/cni/calico/calico.yaml"
+
+intervals:
+  default/wait-controllers: ["3m", "10s"]
+  default/wait-cluster: ["20m", "10s"]
+  default/wait-control-plane: ["30m", "10s"]
+  default/wait-worker-nodes: ["30m", "10s"]
+  default/wait-delete-cluster: ["20m", "10s"]
+  default/wait-machine-upgrade: ["50m", "10s"]
+  default/wait-machine-remediation: ["30m", "10s"]
+  default/wait-deployment: ["5m", "10s"]
+  default/wait-job: ["5m", "10s"]
+  default/wait-service: ["3m", "10s"]

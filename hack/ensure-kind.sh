@@ -40,7 +40,7 @@ verify_kind_version() {
   fi
 
   local kind_version
-  kind_version="v.$(kind version -q)"
+  kind_version="v$(kind version -q)"
   if [[ "${MINIMUM_KIND_VERSION}" != $(echo -e "${MINIMUM_KIND_VERSION}\n${kind_version}" | sort -V | head -n1) ]]; then
     cat <<EOF
 Detected kind version: ${kind_version}.

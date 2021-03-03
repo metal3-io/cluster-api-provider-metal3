@@ -1,0 +1,397 @@
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: Cluster
+metadata:
+  name: test1
+  namespace: metal3
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks:
+      - 192.168.0.0/18
+    services:
+      cidrBlocks:
+      - 10.96.0.0/12
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    kind: KubeadmControlPlane
+    name: test1
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    kind: Metal3Cluster
+    name: test1
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3Cluster
+metadata:
+  name: test1
+  namespace: metal3
+spec:
+  controlPlaneEndpoint:
+    host: 192.168.111.249
+    port: 6443
+  noCloudProvider: true
+---
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
+metadata:
+  name: provisioning-pool
+  namespace: metal3
+spec:
+  clusterName: test1
+  namePrefix: test1-prov
+  pools:
+  - end: 172.22.0.200
+    start: 172.22.0.100
+  prefix: 24
+---
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
+metadata:
+  name: baremetalv4-pool
+  namespace: metal3
+spec:
+  clusterName: test1
+  gateway: 192.168.111.1
+  namePrefix: test1-bmv4
+  pools:
+  - end: 192.168.111.200
+    start: 192.168.111.100
+  prefix: 24
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+kind: KubeadmControlPlane
+metadata:
+  name: test1
+  namespace: metal3
+spec:
+  infrastructureTemplate:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    kind: Metal3MachineTemplate
+    name: test1-controlplane
+  kubeadmConfigSpec:
+    clusterConfiguration: {}
+    files:
+    - content: |
+        #!/bin/bash
+        while :; do
+          curl -sk https://127.0.0.1:6443/healthz 1>&2 > /dev/null
+          isOk=$?
+          isActive=$(systemctl show -p ActiveState keepalived.service | cut -d'=' -f2)
+          if [ $isOk == "0" ] &&  [ $isActive != "active" ]; then
+            logger 'API server is healthy, however keepalived is not running, starting keepalived'
+            echo 'API server is healthy, however keepalived is not running, starting keepalived'
+            sudo systemctl start keepalived.service
+          elif [ $isOk != "0" ] &&  [ $isActive == "active" ]; then
+            logger 'API server is not healthy, however keepalived running, stopping keepalived'
+            echo 'API server is not healthy, however keepalived running, stopping keepalived'
+            sudo systemctl stop keepalived.service
+          fi
+          sleep 5
+        done
+      owner: root:root
+      path: /usr/local/bin/monitor.keepalived.sh
+      permissions: "0755"
+    - content: |
+        [Unit]
+        Description=Monitors keepalived adjusts status with that of API server
+        After=syslog.target network-online.target
+
+        [Service]
+        Type=simple
+        Restart=always
+        ExecStart=/usr/local/bin/monitor.keepalived.sh
+
+        [Install]
+        WantedBy=multi-user.target
+      owner: root:root
+      path: /lib/systemd/system/monitor.keepalived.service
+    - content: |
+        ! Configuration File for keepalived
+        global_defs {
+            notification_email {
+            sysadmin@example.com
+            support@example.com
+            }
+            notification_email_from lb@example.com
+            smtp_server localhost
+            smtp_connect_timeout 30
+        }
+        vrrp_instance VI_2 {
+            state MASTER
+            interface enp2s0
+            virtual_router_id 2
+            priority 101
+            advert_int 1
+            virtual_ipaddress {
+                192.168.111.249
+            }
+        }
+      path: /etc/keepalived/keepalived.conf
+    - content: |
+        network:
+          version: 2
+          renderer: networkd
+          bridges:
+            ironicendpoint:
+              interfaces: [enp1s0]
+              addresses:
+              - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
+      owner: root:root
+      path: /etc/netplan/52-ironicendpoint.yaml
+      permissions: "0644"
+    - content: |
+        [registries.search]
+        registries = ['docker.io']
+
+        [registries.insecure]
+        registries = ['192.168.111.1:5000']
+      path: /etc/containers/registries.conf
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cgroup-driver: systemd
+          container-runtime: remote
+          container-runtime-endpoint: unix:///var/run/crio/crio.sock
+          feature-gates: AllAlpha=false,RunAsGroup=true
+          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+          provider-id: metal3://{{ ds.meta_data.uuid }}
+          runtime-request-timeout: 5m
+        name: '{{ ds.meta_data.name }}'
+    joinConfiguration:
+      controlPlane: {}
+      nodeRegistration:
+        kubeletExtraArgs:
+          cgroup-driver: systemd
+          container-runtime: remote
+          container-runtime-endpoint: unix:///var/run/crio/crio.sock
+          feature-gates: AllAlpha=false,RunAsGroup=true
+          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+          provider-id: metal3://{{ ds.meta_data.uuid }}
+          runtime-request-timeout: 5m
+        name: '{{ ds.meta_data.name }}'
+    postKubeadmCommands:
+    - mkdir -p /home/metal3/.kube
+    - cp /etc/kubernetes/admin.conf /home/metal3/.kube/config
+    - systemctl enable --now keepalived
+    - chown metal3:metal3 /home/metal3/.kube/config
+    preKubeadmCommands:
+    - netplan apply
+    - systemctl enable --now crio kubelet
+    - if (curl -sk --max-time 10 https://192.168.111.249:6443/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
+    - systemctl link /lib/systemd/system/monitor.keepalived.service
+    - systemctl enable monitor.keepalived.service
+    - systemctl start monitor.keepalived.service
+    users:
+    - name: metal3
+      sshAuthorizedKeys:
+      - ${SSH_PUB_KEY_CONTENT}
+      sudo: ALL=(ALL) NOPASSWD:ALL
+  nodeDrainTimeout: 0s
+  replicas: 1
+  version: v1.20.4
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3MachineTemplate
+metadata:
+  name: test1-controlplane
+  namespace: metal3
+spec:
+  template:
+    spec:
+      dataTemplate:
+        name: test1-controlplane-template
+      image:
+        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img.md5sum
+        checksumType: md5
+        format: raw
+        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3DataTemplate
+metadata:
+  name: test1-controlplane-template
+  namespace: metal3
+spec:
+  clusterName: test1
+  metaData:
+    ipAddressesFromIPPool:
+    - key: provisioningIP
+      name: provisioning-pool
+    objectNames:
+    - key: name
+      object: machine
+    - key: local-hostname
+      object: machine
+    - key: local_hostname
+      object: machine
+    prefixesFromIPPool:
+    - key: provisioningCIDR
+      name: provisioning-pool
+  networkData:
+    links:
+      ethernets:
+      - id: enp1s0
+        macAddress:
+          fromHostInterface: enp1s0
+        type: phy
+      - id: enp2s0
+        macAddress:
+          fromHostInterface: enp2s0
+        type: phy
+    networks:
+      ipv4:
+      - id: baremetalv4
+        ipAddressFromIPPool: baremetalv4-pool
+        link: enp2s0
+        routes:
+        - gateway:
+            fromIPPool: baremetalv4-pool
+          network: 0.0.0.0
+          prefix: 0
+    services:
+      dns:
+      - 8.8.8.8
+---
+apiVersion: cluster.x-k8s.io/v1alpha3
+kind: MachineDeployment
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: test1
+    nodepool: nodepool-0
+  name: test1
+  namespace: metal3
+spec:
+  clusterName: test1
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: test1
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: test1
+        nodepool: nodepool-0
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          kind: KubeadmConfigTemplate
+          name: test1-workers
+      clusterName: test1
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        kind: Metal3MachineTemplate
+        name: test1-workers
+      nodeDrainTimeout: 0s
+      version: v1.20.4
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3MachineTemplate
+metadata:
+  name: test1-workers
+  namespace: metal3
+spec:
+  template:
+    spec:
+      dataTemplate:
+        name: test1-workers-template
+      image:
+        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img.md5sum
+        checksumType: md5
+        format: raw
+        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+kind: Metal3DataTemplate
+metadata:
+  name: test1-workers-template
+  namespace: metal3
+spec:
+  clusterName: test1
+  metaData:
+    ipAddressesFromIPPool:
+    - key: provisioningIP
+      name: provisioning-pool
+    objectNames:
+    - key: name
+      object: machine
+    - key: local-hostname
+      object: machine
+    - key: local_hostname
+      object: machine
+    prefixesFromIPPool:
+    - key: provisioningCIDR
+      name: provisioning-pool
+  networkData:
+    links:
+      ethernets:
+      - id: enp1s0
+        macAddress:
+          fromHostInterface: enp1s0
+        type: phy
+      - id: enp2s0
+        macAddress:
+          fromHostInterface: enp2s0
+        type: phy
+    networks:
+      ipv4:
+      - id: baremetalv4
+        ipAddressFromIPPool: baremetalv4-pool
+        link: enp2s0
+        routes:
+        - gateway:
+            fromIPPool: baremetalv4-pool
+          network: 0.0.0.0
+          prefix: 0
+    services:
+      dns:
+      - 8.8.8.8
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+kind: KubeadmConfigTemplate
+metadata:
+  name: test1-workers
+  namespace: metal3
+spec:
+  template:
+    spec:
+      files:
+      - content: |
+          network:
+            version: 2
+            renderer: networkd
+            bridges:
+              ironicendpoint:
+                interfaces: [enp1s0]
+                addresses:
+                - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
+        owner: root:root
+        path: /etc/netplan/52-ironicendpoint.yaml
+        permissions: "0644"
+      - content: |
+          [registries.search]
+          registries = ['docker.io']
+
+          [registries.insecure]
+          registries = ['192.168.111.1:5000']
+        path: /etc/containers/registries.conf
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cgroup-driver: systemd
+            container-runtime: remote
+            container-runtime-endpoint: unix:///var/run/crio/crio.sock
+            feature-gates: AllAlpha=false,RunAsGroup=true
+            node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+            provider-id: metal3://{{ ds.meta_data.uuid }}
+            runtime-request-timeout: 5m
+          name: '{{ ds.meta_data.name }}'
+      preKubeadmCommands:
+      - netplan apply
+      - systemctl enable --now crio kubelet
+      users:
+      - name: metal3
+        sshAuthorizedKeys:
+        - ${SSH_PUB_KEY_CONTENT}
+        sudo: ALL=(ALL) NOPASSWD:ALL

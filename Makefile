@@ -32,7 +32,7 @@ export GO111MODULE=on
 
 # Directories.
 # Full directory of where the Makefile resides
-ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
@@ -105,6 +105,27 @@ test-integration: ## Run integration tests
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
 	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+GINKGO_NOCOLOR ?= false
+ARTIFACTS ?= $(ROOT_DIR)/_artifacts
+E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
+E2E_CONF_FILE_ENVSUBST ?= $(ROOT_DIR)/test/e2e/config/e2e_conf_envsubst.yaml
+SKIP_CLEANUP ?= false
+SKIP_CREATE_MGMT_CLUSTER ?= true
+
+.PHONY: e2e-tests
+e2e-tests: ## Run e2e tests with capi e2e testing framework
+	docker pull quay.io/metal3-io/cluster-api-provider-metal3
+	docker pull quay.io/metal3-io/baremetal-operator
+	docker pull quay.io/metal3-io/ip-address-manager
+	make envsubst
+	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST) && \
+	time ginkgo -v -trace -progress -v -tags=e2e --noColor=$(GINKGO_NOCOLOR) ./test/e2e -- \
+		-e2e.artifacts-folder="$(ARTIFACTS)" \
+		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
+		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
+		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
+	rm $(E2E_CONF_FILE_ENVSUBST)
 
 ## --------------------------------------
 ## Binaries
