@@ -31,6 +31,7 @@ export GOPROXY
 export GO111MODULE=on
 
 # Directories.
+ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
@@ -98,6 +99,24 @@ test-integration: ## Run integration tests
 test-e2e: ## Run e2e tests
 	PULL_POLICY=IfNotPresent $(MAKE) docker-build
 	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+GINKGO_NOCOLOR ?= false
+ARTIFACTS ?= $(ROOT_DIR)/_artifacts
+E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
+SKIP_CLEANUP ?= false
+SKIP_CREATE_MGMT_CLUSTER ?= false
+
+.PHONY: e2e-tests
+e2e-tests: ## Run e2e tests with capi e2e testing framework
+	$(MAKE) release-manifests
+	docker pull $(REGISTRY)/cluster-api-provider-metal3
+	docker pull $(REGISTRY)/baremetal-operator
+	docker pull $(REGISTRY)/ip-address-manager
+	ginkgo -v -trace -progress -v -tags=e2e --noColor=$(GINKGO_NOCOLOR) ./test/e2e -- \
+		-e2e.artifacts-folder="$(ARTIFACTS)" \
+		-e2e.config="$(E2E_CONF_FILE)" \
+		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
+		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 
 ## --------------------------------------
 ## Binaries
