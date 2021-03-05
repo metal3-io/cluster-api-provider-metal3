@@ -79,7 +79,9 @@ func main() {
 
 	ctrl.SetLogger(klogr.New())
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	restConfig := ctrl.GetConfigOrDie()
+	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
+	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                 myscheme,
 		MetricsBindAddress:     metricsAddr,
 		LeaderElection:         enableLeaderElection,
