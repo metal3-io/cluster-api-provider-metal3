@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ARCH=amd64
-MINIMUM_KUSTOMIZE_VERSION=3.8.2
+MINIMUM_KUSTOMIZE_VERSION=4.0.5
 
 # Ensure the kustomize tool exists and is a viable version, or installs it
 verify_kustomize_version() {
