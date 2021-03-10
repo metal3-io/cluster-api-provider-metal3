@@ -55,7 +55,7 @@ type Metal3DataStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:path=metal3datas,scope=Namespaced,categories=cluster-api,shortName=m3d;m3data
+// +kubebuilder:resource:path=metal3datas,scope=Namespaced,categories=cluster-api,shortName=m3d;m3data;m3datas;metal3d;metal3data
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true

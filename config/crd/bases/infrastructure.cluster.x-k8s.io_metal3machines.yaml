@@ -18,6 +18,9 @@ spec:
     shortNames:
     - m3m
     - m3machine
+    - m3machines
+    - metal3m
+    - metal3machine
     singular: metal3machine
   scope: Namespaced
   versions:

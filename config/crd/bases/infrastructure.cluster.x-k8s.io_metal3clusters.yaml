@@ -18,6 +18,9 @@ spec:
     shortNames:
     - m3c
     - m3cluster
+    - m3clusters
+    - metal3c
+    - metal3cluster
     singular: metal3cluster
   scope: Namespaced
   versions:

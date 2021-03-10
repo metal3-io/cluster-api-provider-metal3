@@ -18,6 +18,9 @@ spec:
     shortNames:
     - m3dc
     - m3dataclaim
+    - m3dataclaims
+    - metal3dc
+    - metal3dataclaim
     singular: metal3dataclaim
   scope: Namespaced
   versions:

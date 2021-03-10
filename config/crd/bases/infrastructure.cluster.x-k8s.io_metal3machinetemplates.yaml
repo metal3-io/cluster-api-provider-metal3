@@ -15,6 +15,12 @@ spec:
     kind: Metal3MachineTemplate
     listKind: Metal3MachineTemplateList
     plural: metal3machinetemplates
+    shortNames:
+    - m3mt
+    - m3machinetemplate
+    - m3machinetemplates
+    - metal3mt
+    - metal3machinetemplate
     singular: metal3machinetemplate
   scope: Namespaced
   versions:

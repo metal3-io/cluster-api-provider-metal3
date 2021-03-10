@@ -161,7 +161,7 @@ type Metal3MachineStatus struct {
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +kubebuilder:resource:path=metal3machines,scope=Namespaced,categories=cluster-api,shortName=m3m;m3machine
+// +kubebuilder:resource:path=metal3machines,scope=Namespaced,categories=cluster-api,shortName=m3m;m3machine;m3machines;metal3m;metal3machine
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

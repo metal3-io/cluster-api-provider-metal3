@@ -27,7 +27,7 @@ type Metal3MachineTemplateSpec struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=metal3machinetemplates,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=metal3machinetemplates,scope=Namespaced,categories=cluster-api,shortName=m3mt;m3machinetemplate;m3machinetemplates;metal3mt;metal3machinetemplate
 // +kubebuilder:storageversion
 
 // Metal3MachineTemplate is the Schema for the metal3machinetemplates API
