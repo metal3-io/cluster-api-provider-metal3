@@ -13,7 +13,6 @@ For more information about this actuator and related repositories, see
 
 | CAPM3 version | Cluster API version | CAPM3 Release |
 |---------------|---------------------|---------------|
-| v1alpha2      | v1alpha2            | v0.2.X        |
 | v1alpha3      | v1alpha3            | v0.3.X        |
 | v1alpha4      | v1alpha3            | v0.4.X        |
 
