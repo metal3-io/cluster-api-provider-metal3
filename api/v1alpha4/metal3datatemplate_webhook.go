@@ -65,7 +65,7 @@ func (c *Metal3DataTemplate) ValidateUpdate(old runtime.Object) error {
 	if !reflect.DeepEqual(c.Spec.NetworkData, oldM3dt.Spec.NetworkData) {
 		allErrs = append(allErrs,
 			field.Invalid(
-				field.NewPath("spec", "MetaData"),
+				field.NewPath("spec", "NetworkData"),
 				c.Spec.NetworkData,
 				"cannot be modified",
 			),
