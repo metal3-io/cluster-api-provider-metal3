@@ -32,6 +32,11 @@ type Metal3DataSpec struct {
 	// Index stores the index value of this instance in the Metal3DataTemplate.
 	Index int `json:"index,omitempty"`
 
+	// TemplateReference refers to the Template the Metal3MachineTemplate refers to.
+	// It can be matched against the key or it may also point to the name of the template
+	// Metal3Data refers to
+	TemplateReference string `json:"templateReference,omitempty"`
+
 	// MetaData points to the rendered MetaData secret.
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
