@@ -31,9 +31,16 @@ export GOPROXY
 export GO111MODULE=on
 
 # Directories.
+# Full directory of where the Makefile resides
+ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+
+# Set --output-base for conversion-gen if we are not within GOPATH
+ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/sigs.k8s.io/cluster-api-provider-metal3)
+	CONVERSION_GEN_OUTPUT_BASE := --output-base=$(ROOT_DIR)
+endif
 
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
@@ -230,7 +237,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
-		--output-file-base=zz_generated.conversion \
+		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
