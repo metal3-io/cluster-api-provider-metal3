@@ -18,9 +18,8 @@ about: Tell us about a problem you are experiencing
 **Environment:**
 
 - Cluster-api version:
-- CAPBM version:
-- Minikube version:
-- environment (metal3-dev-env or other):
+- Cluster-api-provider-metal3 version:
+- Environment (metal3-dev-env or other):
 - Kubernetes version: (use `kubectl version`):
 
 /kind bug
