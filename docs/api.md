@@ -615,7 +615,7 @@ spec:
           mtu: 1500
           macAddress:
             string: "YY:YY:YY:YY:YY:YY"
-          vlanId: 1
+          vlanID: 1
           vlanLink: bond0
     networks:
       ipv4DHCP:
@@ -782,7 +782,7 @@ The **links/vlans** object contains the following:
 * **id**: Interface name
 * **mtu**: Interface MTU
 * **macAddress**: an object to render the MAC Address
-* **vlanId**: The vlan ID
+* **vlanID**: The vlan ID
 * **vlanLink** : The link on which to create the vlan
 
 #### The networks specifications
