@@ -77,9 +77,9 @@ function prepare_staging_dir {
   if [[ -z "${SKIP_FETCH_TOOLS}" ]]; then
     rm -rf "${kb_root_dir}"
   else
-    rm -f "${kb_root_dir}/kubebuilder/bin/kubebuilder"
-    rm -f "${kb_root_dir}/kubebuilder/bin/kubebuilder-gen"
-    rm -f "${kb_root_dir}/kubebuilder/bin/vendor.tar.gz"
+    rm -f "${kb_root_dir}/bin/kubebuilder"
+    rm -f "${kb_root_dir}/bin/kubebuilder-gen"
+    rm -f "${kb_root_dir}/bin/vendor.tar.gz"
   fi
 }
 
@@ -105,8 +105,8 @@ function setup_envs {
   header_text "setting up env vars"
 
   # Setup env vars
-  export PATH=/tmp/kubebuilder/bin:$PATH
-  export TEST_ASSET_KUBECTL=/tmp/kubebuilder/bin/kubectl
-  export TEST_ASSET_KUBE_APISERVER=/tmp/kubebuilder/bin/kube-apiserver
-  export TEST_ASSET_ETCD=/tmp/kubebuilder/bin/etcd
+  export PATH=${kb_root_dir}/bin:$PATH
+  export TEST_ASSET_KUBECTL=${kb_root_dir}/bin/kubectl
+  export TEST_ASSET_KUBE_APISERVER=${kb_root_dir}/bin/kube-apiserver
+  export TEST_ASSET_ETCD=${kb_root_dir}/bin/etcd
 }
