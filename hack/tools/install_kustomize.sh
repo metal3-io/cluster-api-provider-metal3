@@ -29,19 +29,26 @@ EOF
 
   # If kustomize is not available on the path, get it
   if ! [ -x "$(command -v ./bin/kustomize)" ]; then
-    if [[ "${OSTYPE}" == "linux-gnu" ]]; then
-      echo 'kustomize not found, installing'
-      if ! [ -d "./bin" ]; then
-        mkdir -p "./bin"
-      fi
-      curl -L -O "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_linux_${ARCH}.tar.gz"
-      tar -xzvf kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_linux_${ARCH}.tar.gz
-      mv kustomize ./bin
-      rm kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_linux_${ARCH}.tar.gz
-    else
-      echo "Missing required binary: $(PWD)bin/kustomize"
-      return 2
+    case "${OSTYPE}" in
+      linux-gnu)
+	OS='linux'
+	;;
+      darwin*)
+	OS='darwin'
+	;;
+      *)
+	echo "Missing required binary: $(PWD)bin/kustomize" >&2
+	return 2
+	;;
+    esac
+    echo 'kustomize not found, installing'
+    if ! [ -d "./bin" ]; then
+      mkdir -p "./bin"
     fi
+    curl -L -O "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${OS}_${ARCH}.tar.gz"
+    tar -xzvf kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${OS}_${ARCH}.tar.gz
+    mv kustomize ./bin
+    rm kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${OS}_${ARCH}.tar.gz
   fi
 }
 
