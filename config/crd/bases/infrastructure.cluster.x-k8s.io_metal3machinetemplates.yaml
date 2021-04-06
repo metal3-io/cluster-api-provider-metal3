@@ -94,12 +94,12 @@ spec:
                             - qcow2
                             - vdi
                             - vmdk
+                            - live-iso
                             type: string
                           url:
                             description: URL is a location of an image to deploy.
                             type: string
                         required:
-                        - checksum
                         - url
                         type: object
                       providerID:
@@ -222,12 +222,12 @@ spec:
                             - qcow2
                             - vdi
                             - vmdk
+                            - live-iso
                             type: string
                           url:
                             description: URL is a location of an image to deploy.
                             type: string
                         required:
-                        - checksum
                         - url
                         type: object
                       metaData:
