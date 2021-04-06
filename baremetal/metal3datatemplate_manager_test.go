@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -29,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/klogr"
+
 	// "k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -444,6 +446,182 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 	)
 
+	type testCaseTemplateReference struct {
+		template1                  *infrav1.Metal3DataTemplate
+		template2                  *infrav1.Metal3DataTemplate
+		dataObject                 *infrav1.Metal3Data
+		dataClaim                  *infrav1.Metal3DataClaim
+		indexes                    map[int]string
+		expectError                bool
+		expectTemplateReference    bool
+		expectDataObjectAssociated bool
+	}
+
+	DescribeTable("Test Template Reference",
+		func(tc testCaseTemplateReference) {
+			objects := []runtime.Object{}
+			objects = append(objects, tc.dataClaim)
+			if tc.dataObject != nil {
+				objects = append(objects, tc.dataObject)
+			}
+			c := fakeclient.NewFakeClientWithScheme(setupSchemeMm(), objects...)
+			templateMgr, err := NewDataTemplateManager(c, tc.template2,
+				klogr.New(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = templateMgr.createData(context.TODO(), tc.dataClaim, tc.indexes)
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			dataObjects := infrav1.Metal3DataList{}
+			opts := &client.ListOptions{}
+			err = c.List(context.TODO(), &dataObjects, opts)
+			fmt.Printf("%v", dataObjects)
+			Expect(err).NotTo(HaveOccurred())
+			if tc.dataObject != nil {
+				Expect(len(dataObjects.Items)).To(Equal(2))
+			} else {
+				Expect(len(dataObjects.Items)).To(Equal(1))
+			}
+
+			if tc.expectTemplateReference {
+				Expect(dataObjects.Items[0].Spec.TemplateReference).To(Equal(tc.template1.Name))
+			} else {
+				Expect(dataObjects.Items[0].Spec.TemplateReference).ToNot(Equal(tc.template1.Name))
+			}
+
+			if tc.dataObject != nil {
+				if tc.expectDataObjectAssociated {
+					result := templateMgr.dataObjectBelongsToTemplate(*tc.dataObject)
+					Expect(result).To(BeTrue())
+					dataClaimIndex := tc.template1.Status.Indexes[tc.dataClaim.ObjectMeta.Name]
+					Expect(tc.dataObject.ObjectMeta.Name).To(Equal(tc.template1.ObjectMeta.Name + "-" + strconv.Itoa(dataClaimIndex)))
+				} else {
+					result := templateMgr.dataObjectBelongsToTemplate(*tc.dataObject)
+					Expect(result).To(BeFalse())
+					dataClaimIndex := tc.template1.Status.Indexes[tc.dataClaim.ObjectMeta.Name]
+					Expect(tc.dataObject.ObjectMeta.Name).ToNot(Equal(tc.template1.ObjectMeta.Name + "-" + strconv.Itoa(dataClaimIndex)))
+				}
+			}
+		},
+		Entry("TemplateReferenceExist", testCaseTemplateReference{
+			template1: &infrav1.Metal3DataTemplate{
+				ObjectMeta: templateMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{},
+			},
+			indexes: map[int]string{},
+			template2: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc1",
+					Namespace: "myns",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					TemplateReference: "abc",
+				},
+				Status: infrav1.Metal3DataTemplateStatus{
+					Indexes: map[string]int{},
+				},
+			},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: testObjectMetaWithOR,
+			},
+			expectTemplateReference: true,
+		}),
+		Entry("TemplateReferenceDoNotExist", testCaseTemplateReference{
+			template1: &infrav1.Metal3DataTemplate{
+				ObjectMeta: templateMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{},
+			},
+			indexes: map[int]string{},
+			template2: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc1",
+					Namespace: "myns",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{},
+				Status: infrav1.Metal3DataTemplateStatus{
+					Indexes: map[string]int{},
+				},
+			},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: testObjectMetaWithOR,
+			},
+			expectTemplateReference: false,
+		}),
+		Entry("TemplateReferenceRefersToOldTemplate", testCaseTemplateReference{
+			template1: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "template1",
+					Namespace: "myns",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{},
+			},
+			indexes: map[int]string{},
+			template2: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "template2",
+					Namespace: "myns",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					TemplateReference: "template1",
+				},
+				Status: infrav1.Metal3DataTemplateStatus{
+					Indexes: map[string]int{},
+				},
+			},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: testObjectMetaWithOR,
+			},
+			expectTemplateReference:    true,
+			expectDataObjectAssociated: true,
+		}),
+		Entry("TemplateReferenceRefersToZombieTemplate", testCaseTemplateReference{
+			template1: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "template1",
+					Namespace: "myns",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{},
+			},
+			indexes: map[int]string{},
+			template2: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "template2",
+					Namespace: "myns",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					TemplateReference: "template1",
+				},
+				Status: infrav1.Metal3DataTemplateStatus{
+					Indexes: map[string]int{},
+				},
+			},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: testObjectMetaWithOR,
+			},
+			dataObject: &infrav1.Metal3Data{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc",
+					Namespace: "myns",
+				},
+				Spec: infrav1.Metal3DataSpec{
+					Index: 0,
+					Template: corev1.ObjectReference{
+						Name: "template12",
+					},
+					Claim: corev1.ObjectReference{
+						Name: "abc",
+					},
+				},
+			},
+			expectDataObjectAssociated: false,
+		}),
+	)
+
 	type testCaseCreateAddresses struct {
 		template        *infrav1.Metal3DataTemplate
 		dataClaim       *infrav1.Metal3DataClaim
@@ -487,7 +665,6 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			err = c.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
 
-			fmt.Println(dataObjects.Items)
 			Expect(len(tc.expectedDatas)).To(Equal(len(dataObjects.Items)))
 			// Iterate over the Metal3Data objects to find all indexes and objects
 			for _, address := range dataObjects.Items {
