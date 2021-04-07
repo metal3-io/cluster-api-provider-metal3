@@ -57,14 +57,15 @@ type Image struct {
 	URL string `json:"url"`
 
 	// Checksum is a md5sum value or a URL to retrieve one.
-	Checksum string `json:"checksum"`
+	// Not required for live-iso.
+	Checksum string `json:"checksum,omitempty"`
 
 	// ChecksumType is the checksum algorithm for the image.
 	// e.g md5, sha256, sha512
 	// +kubebuilder:validation:Enum=md5;sha256;sha512
 	ChecksumType *string `json:"checksumType,omitempty"`
 
-	//DiskFormat contains the image disk format
+	//DiskFormat contains the image disk format.
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk;live-iso
 	DiskFormat *string `json:"format,omitempty"`
 }
