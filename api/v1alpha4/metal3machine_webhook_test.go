@@ -18,6 +18,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func TestMetal3MachineDefault(t *testing.T) {
@@ -49,6 +50,10 @@ func TestMetal3MachineValidation(t *testing.T) {
 	invalidChecksum := valid.DeepCopy()
 	invalidChecksum.Spec.Image.Checksum = ""
 
+	validIso := valid.DeepCopy()
+	validIso.Spec.Image.Checksum = ""
+	validIso.Spec.Image.DiskFormat = pointer.StringPtr("live-iso")
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -68,6 +73,11 @@ func TestMetal3MachineValidation(t *testing.T) {
 			name:      "should succeed when image correct",
 			expectErr: false,
 			c:         valid,
+		},
+		{
+			name:      "should succeed when disk format is 'live-iso' even when checksum is empty",
+			expectErr: false,
+			c:         validIso,
 		},
 	}
 
