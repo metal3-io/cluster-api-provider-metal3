@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 )
 
 func TestSpecIsValid(t *testing.T) {
@@ -87,6 +88,32 @@ func TestSpecIsValid(t *testing.T) {
 			},
 			ErrorExpected: true,
 			Name:          "missing Image.Checksum",
+		},
+		{
+			Spec: Metal3MachineSpec{
+				Image: Image{
+					URL:        "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					DiskFormat: pointer.StringPtr("qcow2"),
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: true,
+			Name:          "Missing Image.Checksum with DiskFormat set",
+		},
+		{
+			Spec: Metal3MachineSpec{
+				Image: Image{
+					URL:        "http://172.22.0.1/images/rhcos-ootpa-latest.iso",
+					DiskFormat: pointer.StringPtr("live-iso"),
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: false,
+			Name:          "Missing Image.Checksum for live-iso",
 		},
 		{
 			Spec: Metal3MachineSpec{
