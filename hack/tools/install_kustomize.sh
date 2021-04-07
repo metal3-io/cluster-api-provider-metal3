@@ -12,36 +12,46 @@ verify_kustomize_version() {
     local kustomize_version
     kustomize_version=$(./bin/kustomize version | grep -P '(?<=kustomize/v)[0-9]+\.[0-9]+\.[0-9]+' -o)
     if [[ "${MINIMUM_KUSTOMIZE_VERSION}" != $(echo -e "${MINIMUM_KUSTOMIZE_VERSION}\n${kustomize_version}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
-      if [[ "${OSTYPE}" == "linux-gnu" ]]; then
-        echo "Kustomize version ${kustomize_version}, expected ${MINIMUM_KUSTOMIZE_VERSION}"
-        echo "Updating, removing the old version"
-        rm ./bin/kustomize
-      else
-        cat <<EOF
+      case "${OSTYPE}" in
+	linux-gnu|darwin*)
+	  echo "Kustomize version ${kustomize_version}, expected ${MINIMUM_KUSTOMIZE_VERSION}"
+	  echo "Updating, removing the old version"
+	  rm ./bin/kustomize
+	  ;;
+	*)
+	  cat <<EOF
 Detected kustomize version: ${kustomize_version}.
 Requires ${MINIMUM_KUSTOMIZE_VERSION} or greater.
 Please install ${MINIMUM_KUSTOMIZE_VERSION} or later as $(PWD)bin/kustomize.
 EOF
-        return 2
-      fi
+	  return 2
+	  ;;
+      esac
     fi
   fi
 
   # If kustomize is not available on the path, get it
   if ! [ -x "$(command -v ./bin/kustomize)" ]; then
-    if [[ "${OSTYPE}" == "linux-gnu" ]]; then
-      echo 'kustomize not found, installing'
-      if ! [ -d "./bin" ]; then
-        mkdir -p "./bin"
-      fi
-      curl -L -O "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_linux_${ARCH}.tar.gz"
-      tar -xzvf kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_linux_${ARCH}.tar.gz
-      mv kustomize ./bin
-      rm kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_linux_${ARCH}.tar.gz
-    else
-      echo "Missing required binary: $(PWD)bin/kustomize"
-      return 2
+    case "${OSTYPE}" in
+      linux-gnu)
+	OS='linux'
+	;;
+      darwin*)
+	OS='darwin'
+	;;
+      *)
+	echo "Missing required binary: $(PWD)bin/kustomize" >&2
+	return 2
+	;;
+    esac
+    echo 'kustomize not found, installing'
+    if ! [ -d "./bin" ]; then
+      mkdir -p "./bin"
     fi
+    curl -L -O "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${OS}_${ARCH}.tar.gz"
+    tar -xzvf kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${OS}_${ARCH}.tar.gz
+    mv kustomize ./bin
+    rm kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${OS}_${ARCH}.tar.gz
   fi
 }
 
