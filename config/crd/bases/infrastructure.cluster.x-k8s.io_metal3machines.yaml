@@ -89,7 +89,7 @@ spec:
                 description: Image is the image to be provisioned.
                 properties:
                   checksum:
-                    description: Checksum is a md5sum value or a URL to retrieve one.
+                    description: Checksum is a md5sum value or a URL to retrieve one. Not required for live-iso.
                     type: string
                   checksumType:
                     description: ChecksumType is the checksum algorithm for the image. e.g md5, sha256, sha512
@@ -99,7 +99,7 @@ spec:
                     - sha512
                     type: string
                   format:
-                    description: DiskFormat contains the image disk format
+                    description: DiskFormat contains the image disk format.
                     enum:
                     - raw
                     - qcow2
@@ -260,7 +260,7 @@ spec:
                 description: Image is the image to be provisioned.
                 properties:
                   checksum:
-                    description: Checksum is a md5sum value or a URL to retrieve one.
+                    description: Checksum is a md5sum value or a URL to retrieve one. Not required for live-iso.
                     type: string
                   checksumType:
                     description: ChecksumType is the checksum algorithm for the image. e.g md5, sha256, sha512
@@ -270,7 +270,7 @@ spec:
                     - sha512
                     type: string
                   format:
-                    description: DiskFormat contains the image disk format
+                    description: DiskFormat contains the image disk format.
                     enum:
                     - raw
                     - qcow2
