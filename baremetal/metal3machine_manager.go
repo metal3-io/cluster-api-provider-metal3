@@ -58,7 +58,7 @@ const (
 	requeueAfter        = time.Second * 30
 	bmRoleControlPlane  = "control-plane"
 	bmRoleNode          = "node"
-	pausedAnnotationKey = "metal3.io/capm3"
+	PausedAnnotationKey = "metal3.io/capm3"
 )
 
 // MachineManagerInterface is an interface for a ClusterManager
@@ -173,10 +173,10 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmh.PausedAnnotation]; ok {
-			if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] == pausedAnnotationKey {
+			if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] == PausedAnnotationKey {
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused
 				delete(host.Annotations, bmh.PausedAnnotation)
-			} else if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] != pausedAnnotationKey {
+			} else if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
 				return nil
 			}
@@ -210,7 +210,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		host.Annotations = make(map[string]string)
 	}
 	m.Log.Info("Adding PausedAnnotation in BareMetalHost")
-	host.Annotations[bmh.PausedAnnotation] = pausedAnnotationKey
+	host.Annotations[bmh.PausedAnnotation] = PausedAnnotationKey
 
 	// Setting annotation with BMH status
 	newAnnotation, err := json.Marshal(&host.Status)
@@ -587,7 +587,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		m.Log.Info("Removing Paused Annotation (if any)")
-		if host.Annotations != nil && host.Annotations[bmh.PausedAnnotation] == pausedAnnotationKey {
+		if host.Annotations != nil && host.Annotations[bmh.PausedAnnotation] == PausedAnnotationKey {
 			delete(host.Annotations, bmh.PausedAnnotation)
 		}
 

@@ -195,7 +195,7 @@ func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
 			capi.ClusterLabelName: clusterName,
 		},
 		Annotations: map[string]string{
-			bmh.PausedAnnotation: pausedAnnotationKey,
+			bmh.PausedAnnotation: PausedAnnotationKey,
 		},
 	}
 }
@@ -1423,7 +1423,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					&savedHost,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedHost.Annotations[bmh.PausedAnnotation]).NotTo(Equal(pausedAnnotationKey))
+				Expect(savedHost.Annotations[bmh.PausedAnnotation]).NotTo(Equal(PausedAnnotationKey))
 			}
 
 			if tc.ExpectClusterLabelDeleted {
