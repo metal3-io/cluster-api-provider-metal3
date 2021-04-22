@@ -98,6 +98,10 @@ func m3mSecretStatus() *capm3.Metal3MachineStatus {
 	}
 }
 
+func m3mSecretStatusNil() *capm3.Metal3MachineStatus {
+	return &capm3.Metal3MachineStatus{}
+}
+
 func consumerRef() *corev1.ObjectReference {
 	return &corev1.ObjectReference{
 		Name:       "mym3machine",
@@ -163,6 +167,9 @@ func bmhSpecSomeImg() *bmh.BareMetalHostSpec {
 		Image: &bmh.Image{
 			URL: "someoneelsesimage",
 		},
+		MetaData:    &corev1.SecretReference{},
+		NetworkData: &corev1.SecretReference{},
+		UserData:    &corev1.SecretReference{},
 	}
 }
 
@@ -1397,21 +1404,31 @@ var _ = Describe("Metal3Machine manager", func() {
 					expectedName = tc.ExpectedConsumerRef.Name
 				}
 				Expect(name).To(Equal(expectedName))
+				if machineMgr.Metal3Machine.Status.MetaData == nil {
+					Expect(host.Spec.MetaData).NotTo(BeNil())
+				}
+				if machineMgr.Metal3Machine.Status.NetworkData == nil {
+					Expect(host.Spec.NetworkData).NotTo(BeNil())
+				}
+				if machineMgr.Metal3Machine.Status.UserData == nil {
+					Expect(host.Spec.UserData).NotTo(BeNil())
+				}
 			}
 
 			tmpBootstrapSecret := corev1.Secret{}
-			key := client.ObjectKey{
-				Name:      tc.M3Machine.Status.UserData.Name,
-				Namespace: tc.M3Machine.Status.UserData.Namespace,
+			if tc.M3Machine.Status.UserData != nil {
+				key := client.ObjectKey{
+					Name:      tc.M3Machine.Status.UserData.Name,
+					Namespace: tc.M3Machine.Status.UserData.Namespace,
+				}
+				err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
+				if tc.ExpectSecretDeleted {
+					Expect(err).To(HaveOccurred())
+					Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+				}
 			}
-			err = c.Get(context.TODO(), key, &tmpBootstrapSecret)
-			if tc.ExpectSecretDeleted {
-				Expect(err).To(HaveOccurred())
-				Expect(apierrors.IsNotFound(err)).To(BeTrue())
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-			}
-
 			if tc.ExpectedPausedAnnotationDeleted {
 				// get the saved host
 				savedHost := bmh.BareMetalHost{}
@@ -1663,6 +1680,17 @@ var _ = Describe("Metal3Machine manager", func() {
 			BMCSecret:                 newBMCSecret("mycredentials", false),
 			ExpectSecretDeleted:       true,
 			ExpectClusterLabelDeleted: false,
+		}),
+		Entry("BMH MetaData, NetworkData and UserData should not be cleaned on deprovisioning", testCaseDelete{
+			Host: newBareMetalHost("myhost", bmhSpecSomeImg(),
+				bmh.StateProvisioned, bmhStatus(), false, true,
+			),
+			Machine: newMachine("mymachine", "mym3machine", nil),
+			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatusNil(),
+				m3mObjectMetaWithValidAnnotations(),
+			),
+			Secret:              newSecret(),
+			ExpectedConsumerRef: consumerRefSome(),
 		}),
 	)
 

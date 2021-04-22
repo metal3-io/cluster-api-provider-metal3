@@ -506,15 +506,15 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.Image = nil
 			bmhUpdated = true
 		}
-		if host.Spec.UserData != nil {
+		if m.Metal3Machine.Status.UserData != nil && host.Spec.UserData != nil {
 			host.Spec.UserData = nil
 			bmhUpdated = true
 		}
-		if host.Spec.MetaData != nil {
+		if m.Metal3Machine.Status.MetaData != nil && host.Spec.MetaData != nil {
 			host.Spec.MetaData = nil
 			bmhUpdated = true
 		}
-		if host.Spec.NetworkData != nil {
+		if m.Metal3Machine.Status.NetworkData != nil && host.Spec.NetworkData != nil {
 			host.Spec.NetworkData = nil
 			bmhUpdated = true
 		}
