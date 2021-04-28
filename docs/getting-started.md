@@ -37,9 +37,18 @@ There are some required variables :
 - IRONIC_INSPECTOR_NO_BASIC_AUTH **or** IRONIC_INSPECTOR_USERNAME and
   IRONIC_INSPECTOR_PASSWORD
 
+#### Deploy ramdisk
+
+Ironic requires a special ramdisk image with an agent service to use while inspecting, cleaning
+and deploying. You can build your ramdisk using
+[IPA-builder](https://docs.openstack.org/ironic-python-agent-builder/latest/) or download a
+pre-built ramdisk from the [Ironic download
+site](https://tarballs.opendev.org/openstack/ironic-python-agent/dib/files/) (use the master
+image).
+
 ##### DEPLOY_KERNEL_URL
 
-This is the URL of the kernel to deploy. For example:
+This is the URL of the kernel of the deploy ramdisk. For example:
 
 ```sh
   export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"
@@ -47,7 +56,7 @@ This is the URL of the kernel to deploy. For example:
 
 ##### DEPLOY_RAMDISK_URL
 
-This is the URL of the ramdisk to deploy. For example:
+This is the URL of the initramfs of the deploy ramdisk. For example:
 
 ```sh
   export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"
@@ -55,7 +64,7 @@ This is the URL of the ramdisk to deploy. For example:
 
 ##### IRONIC_URL
 
-This is the URL of the ironic endpoint. For example:
+This is the URL of the Ironic endpoint. For example:
 
 ```sh
   export IRONIC_URL="http://172.22.0.1:6385/v1/"
@@ -63,7 +72,7 @@ This is the URL of the ironic endpoint. For example:
 
 ##### IRONIC_INSPECTOR_URL
 
-This is the URL of the ironic inspector endpoint.
+This is the URL of the Ironic Inspector endpoint.
 For example:
 
 ```sh
