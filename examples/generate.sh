@@ -15,15 +15,12 @@
 
 set -o errexit
 set -o nounset
+set -o pipefail
 
 # Directories.
 SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 OUTPUT_DIR=${OUTPUT_DIR:-${SOURCE_DIR}/_out}
 KUSTOMIZE="${SOURCE_DIR}/../hack/tools/bin/kustomize"
-
-# Binaries
-ENVSUBST=${ENVSUBST:-envsubst}
-command -v "${ENVSUBST}" >/dev/null 2>&1 || echo -v "Cannot find ${ENVSUBST} in path."
 
 # Cluster.
 export CLUSTER_NAME="${CLUSTER_NAME:-test1}"
@@ -92,49 +89,53 @@ fi
 
 mkdir -p "${OUTPUT_DIR}"
 
+
+# Get enhanced envsubst version to evaluate expressions like ${VAR:=default}
+ENVSUBST="${SOURCE_DIR}/envsubst-go"
+curl --fail -Ss -L -o "${ENVSUBST}" https://github.com/a8m/envsubst/releases/download/v1.2.0/envsubst-"$(uname -s)"-"$(uname -m)"
+chmod +x "$ENVSUBST"
+
+
 # Generate cluster resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/cluster" | envsubst > "${CLUSTER_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/cluster" | "$ENVSUBST" > "${CLUSTER_GENERATED_FILE}"
 echo "Generated ${CLUSTER_GENERATED_FILE}"
 
 # Generate controlplane resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/controlplane" | envsubst > "${CONTROLPLANE_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/controlplane" | "$ENVSUBST" > "${CONTROLPLANE_GENERATED_FILE}"
 echo "Generated ${CONTROLPLANE_GENERATED_FILE}"
 
 # Generate metal3crds resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/metal3crds" | envsubst > "${METAL3CRDS_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/metal3crds" | "$ENVSUBST" > "${METAL3CRDS_GENERATED_FILE}"
 echo "Generated ${METAL3CRDS_GENERATED_FILE}"
 
 # Generate metal3plane resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/metal3plane" | envsubst > "${METAL3PLANE_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/metal3plane" | "$ENVSUBST" > "${METAL3PLANE_GENERATED_FILE}"
 echo "Generated ${METAL3PLANE_GENERATED_FILE}"
 
 # Generate machinedeployment resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/machinedeployment" | envsubst >> "${MACHINEDEPLOYMENT_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/machinedeployment" | "$ENVSUBST" >> "${MACHINEDEPLOYMENT_GENERATED_FILE}"
 echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
 # Get Cert-manager provider components file
-curl -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github.com/jetstack/cert-manager/releases/download/v0.13.0/cert-manager.yaml
-
-# Get enhanced envsubst version to evaluate expressions like ${VAR:=default}
-curl -L -o "${SOURCE_DIR}"/envsubst-go https://github.com/a8m/envsubst/releases/download/v1.2.0/envsubst-"$(uname -s)"-"$(uname -m)"
-chmod +x "${SOURCE_DIR}"/envsubst-go
+curl --fail -Ss -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github.com/jetstack/cert-manager/releases/download/v1.3.1/cert-manager.yaml
+echo "Downloaded ${COMPONENTS_CERT_MANAGER_GENERATED_FILE}"
 
 # Generate Cluster API provider components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/config/?ref=master" | "${SOURCE_DIR}"/envsubst-go > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/config/?ref=release-0.3" | "$ENVSUBST" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 
 # Generate Kubeadm Bootstrap Provider components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/?ref=master" | "${SOURCE_DIR}"/envsubst-go > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/?ref=release-0.3" | "$ENVSUBST" > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
 # Generate Kubeadm Controlplane components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/?ref=master" | "${SOURCE_DIR}"/envsubst-go > "${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/?ref=release-0.3" | "$ENVSUBST" > "${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 
 # Generate METAL3 Infrastructure Provider components file.
-"$KUSTOMIZE" build "${SOURCE_DIR}/../config" | envsubst > "${COMPONENTS_METAL3_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/../config" | "$ENVSUBST" > "${COMPONENTS_METAL3_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_METAL3_GENERATED_FILE}"
 
 # Generate a single provider components file.
-"$KUSTOMIZE" build "${SOURCE_DIR}/provider-components" | envsubst > "${PROVIDER_COMPONENTS_GENERATED_FILE}"
+"$KUSTOMIZE" build "${SOURCE_DIR}/provider-components" | "$ENVSUBST" > "${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"

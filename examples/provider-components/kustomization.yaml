@@ -7,3 +7,4 @@ resources:
 - infrastructure-components.yaml
 patchesStrategicMerge:
 - manager_tolerations_patch.yaml
+- image_versions_patch.yaml
