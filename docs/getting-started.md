@@ -129,7 +129,7 @@ unset. If unset, then `IRONIC_USERNAME` and `IRONIC_PASSWORD` must be set.
 
 ##### IRONIC_INSPECTOR_USERNAME
 
-Username for Ironic inspector basic auth. Optional, but either this variable or
+Username for Ironic Inspector basic auth. Optional, but either this variable or
 `IRONIC_INSPECTOR_NO_BASIC_AUTH` must be set.
 
 ```sh
@@ -138,7 +138,7 @@ Username for Ironic inspector basic auth. Optional, but either this variable or
 
 ##### IRONIC_INSPECTOR_PASSWORD
 
-Password for Ironic inspector basic auth. Optional, but either this variable or
+Password for Ironic Inspector basic auth. Optional, but either this variable or
 `IRONIC_INSPECTOR_NO_BASIC_AUTH` must be set.
 
 ```sh
@@ -147,7 +147,7 @@ Password for Ironic inspector basic auth. Optional, but either this variable or
 
 ##### IRONIC_INSPECTOR_NO_BASIC_AUTH
 
-Disables basic authentication for Ironic inspector API. Any value provided in
+Disables basic authentication for Ironic Inspector API. Any value provided in
 this variable disables authentication. To enable authentication, leave this
 variable unset. If unset, then `IRONIC_INSPECTOR_USERNAME` and
 `IRONIC_INSPECTOR_PASSWORD` must be set.
@@ -347,10 +347,10 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
 
 Before running the `move` command of Clusterctl, elements such as Ironic if
 applicable, need to be moved to the target cluster. It is recommended to
-scale down the ironic pod in the origin cluster before deploying it on the
+scale down the Ironic pod in the origin cluster before deploying it on the
 target cluster to prevent issues with a duplicated DHCP server.
 
-Both for pivoting or updating ironic, it is critical that the cluster is in
+Both for pivoting or updating Ironic, it is critical that the cluster is in
 a stable situation. No operations on BareMetal hosts shall be on-going,
 otherwise they might fail. Similarly, in order to prevent conflict during
 the pivoting of the DHCP server, we recommend to have no BareMetalHosts
@@ -360,7 +360,7 @@ of the IP address of a running host that would not be supported by Ironic.
 
 In the case of a self-hosted cluster, special care must be paid to Ironic.
 Since Ironic runs on the target cluster, updating the target cluster means
-that ironic will need to be moved between nodes of the cluster. This results
+that Ironic will need to be moved between nodes of the cluster. This results
 in similar issues as pivoting. The following points should be ensured to run
 a target cluster upgrade:
 

@@ -18,7 +18,7 @@ The cluster should either :
   the userData and would set the providerIDs based on the BareMetalHost UID.
 * Be deployed with the ProviderID set to be the BareMetalHostUUID
 * be deployed with each node with the label "metal3.io/uuid" set to the
-  BareMetalHost UID that is provided by ironic to cloud-init through the
+  BareMetalHost UID that is provided by Ironic to cloud-init through the
   metadata `ds.meta_data.uuid`. This can be achieved by setting the following in
   the KubeadmConfig :
 
