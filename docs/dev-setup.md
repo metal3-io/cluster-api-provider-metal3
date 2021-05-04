@@ -123,6 +123,23 @@ After you have cloned both repositories, your folder structure should look like:
 |-- src/cluster-api (run `tilt up` here)
 ```
 
+Checkout a stable CAPI release, for example:
+
+```bash
+git checkout release-0.3
+```
+
+Install kustomize from within the cluster-api repo
+
+```bash
+make kustomize
+
+# verify installation
+./hack/tools/bin/kustomize version
+```
+
+If the above installation does not work, install kustomize using a package manager and move the binary to ```hack/tools/bin/kustomize``` in the cluster-api repo.
+
 After configuring the environment variables, run the following to generate your
 `tilt-settings.json` file in the cluster API repository:
 
@@ -130,6 +147,7 @@ After configuring the environment variables, run the following to generate your
 cat <<EOF > tilt-settings.json
 {
     "allowed_contexts": ["kind-capm3"],
+    "default_registry": "gcr.io/cluster-api-provider",
     "deploy_cert_manager": true,
     "preload_images_for_kind": true,
     "kind_cluster_name": "capm3",
