@@ -41,8 +41,6 @@ SSH_PUB_KEY_CONTENT=$(cat "$HOME/.ssh/id_rsa.pub")
 export SSH_PUB_KEY_CONTENT
 
 PATH=$PATH:/usr/local/go/bin
-go get github.com/onsi/ginkgo/ginkgo
-go get github.com/onsi/gomega/...
 
 PATH=$PATH:$(go env GOPATH)/bin
 

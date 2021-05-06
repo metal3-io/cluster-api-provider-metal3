@@ -188,7 +188,7 @@ spec:
       sudo: ALL=(ALL) NOPASSWD:ALL
   nodeDrainTimeout: 0s
   replicas: 1
-  version: v1.20.4
+  version: v1.21.0
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3MachineTemplate
@@ -201,10 +201,10 @@ spec:
       dataTemplate:
         name: test1-controlplane-template
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img.md5sum
+        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.0-raw.img.md5sum
         checksumType: md5
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img
+        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.0-raw.img
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3DataTemplate
@@ -284,7 +284,7 @@ spec:
         kind: Metal3MachineTemplate
         name: test1-workers
       nodeDrainTimeout: 0s
-      version: v1.20.4
+      version: v1.21.0
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3MachineTemplate
@@ -297,10 +297,10 @@ spec:
       dataTemplate:
         name: test1-workers-template
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img.md5sum
+        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.0-raw.img.md5sum
         checksumType: md5
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.20.4-raw.img
+        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.0-raw.img
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3DataTemplate

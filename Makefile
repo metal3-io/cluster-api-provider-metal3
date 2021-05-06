@@ -119,8 +119,9 @@ e2e-tests: ## Run e2e tests with capi e2e testing framework
 	docker pull quay.io/metal3-io/baremetal-operator
 	docker pull quay.io/metal3-io/ip-address-manager
 	make envsubst
-	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST) && \
-	time ginkgo -v -trace -progress -v -tags=e2e --noColor=$(GINKGO_NOCOLOR) ./test/e2e -- \
+	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
+	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
+		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
