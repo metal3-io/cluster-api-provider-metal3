@@ -334,8 +334,8 @@ deploy: generate-examples
 	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-webhook
 	kubectl apply -f examples/_out/provider-components.yaml
 
-deploy-examples:
-	kubectl apply -f ./examples/metal3plane/hosts.yaml
+deploy-examples: generate-examples
+	kubectl apply -f ./examples/_out/metal3plane.yaml
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml
@@ -344,7 +344,7 @@ delete-examples:
 	kubectl delete -f ./examples/_out/machinedeployment.yaml || true
 	kubectl delete -f ./examples/_out/controlplane.yaml || true
 	kubectl delete -f ./examples/_out/cluster.yaml || true
-	kubectl delete -f ./examples/metal3plane/hosts.yaml || true
+	kubectl delete -f ./examples/_out/metal3plane.yaml || true
 
 
 ## --------------------------------------

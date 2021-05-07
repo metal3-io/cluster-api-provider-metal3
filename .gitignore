@@ -43,6 +43,7 @@ kubeconfig
 bin/*
 hack/tools/bin/*
 examples/_out/*
+examples/envsubst-go
 examples/provider-components/*-components.yaml
 out/*
 
