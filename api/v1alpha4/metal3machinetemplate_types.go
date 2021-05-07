@@ -23,6 +23,12 @@ import (
 // Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate
 type Metal3MachineTemplateSpec struct {
 	Template Metal3MachineTemplateResource `json:"template"`
+
+	// When set to True, CAPM3 Machine controller will
+	// pick the same pool of BMHs' that were released during the upgrade operation.
+	// +kubebuilder:default=false
+	// +optional
+	NodeReuse bool `json:"nodeReuse"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
