@@ -47,10 +47,14 @@ spec:
         description: Metal3Cluster is the Schema for the metal3clusters API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -58,7 +62,8 @@ spec:
             description: Metal3ClusterSpec defines the desired state of Metal3Cluster.
             properties:
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
                 properties:
                   host:
                     description: Host is the hostname on which the API server is serving.
@@ -79,17 +84,23 @@ spec:
             description: Metal3ClusterStatus defines the observed state of Metal3Cluster.
             properties:
               failureMessage:
-                description: FailureMessage indicates that there is a fatal problem reconciling the state, and will be set to a descriptive error message.
+                description: FailureMessage indicates that there is a fatal problem
+                  reconciling the state, and will be set to a descriptive error message.
                 type: string
               failureReason:
-                description: FailureReason indicates that there is a fatal problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.
+                description: FailureReason indicates that there is a fatal problem
+                  reconciling the state, and will be set to a token value suitable
+                  for programmatic interpretation.
                 type: string
               lastUpdated:
                 description: LastUpdated identifies when this status was last observed.
                 format: date-time
                 type: string
               ready:
-                description: Ready denotes that the Metal3 cluster (infrastructure) is ready. In Baremetal case, it does not mean anything for now as no infrastructure steps need to be performed. Required by Cluster API. Set to True by the metal3Cluster controller after creation.
+                description: Ready denotes that the Metal3 cluster (infrastructure)
+                  is ready. In Baremetal case, it does not mean anything for now as
+                  no infrastructure steps need to be performed. Required by Cluster
+                  API. Set to True by the metal3Cluster controller after creation.
                 type: boolean
             required:
             - ready
@@ -122,10 +133,14 @@ spec:
         description: Metal3Cluster is the Schema for the metal3clusters API
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -133,7 +148,8 @@ spec:
             description: Metal3ClusterSpec defines the desired state of Metal3Cluster.
             properties:
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+                description: ControlPlaneEndpoint represents the endpoint used to
+                  communicate with the control plane.
                 properties:
                   host:
                     description: Host is the hostname on which the API server is serving.
@@ -154,17 +170,23 @@ spec:
             description: Metal3ClusterStatus defines the observed state of Metal3Cluster.
             properties:
               failureMessage:
-                description: FailureMessage indicates that there is a fatal problem reconciling the state, and will be set to a descriptive error message.
+                description: FailureMessage indicates that there is a fatal problem
+                  reconciling the state, and will be set to a descriptive error message.
                 type: string
               failureReason:
-                description: FailureReason indicates that there is a fatal problem reconciling the state, and will be set to a token value suitable for programmatic interpretation.
+                description: FailureReason indicates that there is a fatal problem
+                  reconciling the state, and will be set to a token value suitable
+                  for programmatic interpretation.
                 type: string
               lastUpdated:
                 description: LastUpdated identifies when this status was last observed.
                 format: date-time
                 type: string
               ready:
-                description: Ready denotes that the Metal3 cluster (infrastructure) is ready. In Baremetal case, it does not mean anything for now as no infrastructure steps need to be performed. Required by Cluster API. Set to True by the metal3Cluster controller after creation.
+                description: Ready denotes that the Metal3 cluster (infrastructure)
+                  is ready. In Baremetal case, it does not mean anything for now as
+                  no infrastructure steps need to be performed. Required by Cluster
+                  API. Set to True by the metal3Cluster controller after creation.
                 type: boolean
             required:
             - ready
