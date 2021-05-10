@@ -8,7 +8,7 @@ CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 if [ "${IS_CONTAINER}" != "false" ]; then
   export XDG_CACHE_HOME=/tmp/.cache
   mkdir /tmp/unit
-  cp -r ./* /tmp/unit
+  cp -r . /tmp/unit
   cd /tmp/unit
   make fmt > /tmp/fmt-output.log
   FILE_LENGTH="$(wc -l /tmp/fmt-output.log | awk '{ print $1 }')"
