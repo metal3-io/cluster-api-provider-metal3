@@ -23,38 +23,39 @@
 package baremetal_mocks
 
 import (
+	reflect "reflect"
+
 	logr "github.com/go-logr/logr"
 	gomock "github.com/golang/mock/gomock"
 	v1alpha4 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	reflect "reflect"
 	v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
-// MockManagerFactoryInterface is a mock of ManagerFactoryInterface interface
+// MockManagerFactoryInterface is a mock of ManagerFactoryInterface interface.
 type MockManagerFactoryInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockManagerFactoryInterfaceMockRecorder
 }
 
-// MockManagerFactoryInterfaceMockRecorder is the mock recorder for MockManagerFactoryInterface
+// MockManagerFactoryInterfaceMockRecorder is the mock recorder for MockManagerFactoryInterface.
 type MockManagerFactoryInterfaceMockRecorder struct {
 	mock *MockManagerFactoryInterface
 }
 
-// NewMockManagerFactoryInterface creates a new mock instance
+// NewMockManagerFactoryInterface creates a new mock instance.
 func NewMockManagerFactoryInterface(ctrl *gomock.Controller) *MockManagerFactoryInterface {
 	mock := &MockManagerFactoryInterface{ctrl: ctrl}
 	mock.recorder = &MockManagerFactoryInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockManagerFactoryInterface) EXPECT() *MockManagerFactoryInterfaceMockRecorder {
 	return m.recorder
 }
 
-// NewClusterManager mocks base method
+// NewClusterManager mocks base method.
 func (m *MockManagerFactoryInterface) NewClusterManager(cluster *v1alpha3.Cluster, metal3Cluster *v1alpha4.Metal3Cluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewClusterManager", cluster, metal3Cluster, clusterLog)
@@ -63,43 +64,13 @@ func (m *MockManagerFactoryInterface) NewClusterManager(cluster *v1alpha3.Cluste
 	return ret0, ret1
 }
 
-// NewClusterManager indicates an expected call of NewClusterManager
+// NewClusterManager indicates an expected call of NewClusterManager.
 func (mr *MockManagerFactoryInterfaceMockRecorder) NewClusterManager(cluster, metal3Cluster, clusterLog interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewClusterManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewClusterManager), cluster, metal3Cluster, clusterLog)
 }
 
-// NewMachineManager mocks base method
-func (m *MockManagerFactoryInterface) NewMachineManager(arg0 *v1alpha3.Cluster, arg1 *v1alpha4.Metal3Cluster, arg2 *v1alpha3.Machine, arg3 *v1alpha4.Metal3Machine, arg4 logr.Logger) (baremetal.MachineManagerInterface, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewMachineManager", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(baremetal.MachineManagerInterface)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// NewMachineManager indicates an expected call of NewMachineManager
-func (mr *MockManagerFactoryInterfaceMockRecorder) NewMachineManager(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewMachineManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewMachineManager), arg0, arg1, arg2, arg3, arg4)
-}
-
-// NewDataTemplateManager mocks base method
-func (m *MockManagerFactoryInterface) NewDataTemplateManager(arg0 *v1alpha4.Metal3DataTemplate, arg1 logr.Logger) (baremetal.DataTemplateManagerInterface, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewDataTemplateManager", arg0, arg1)
-	ret0, _ := ret[0].(baremetal.DataTemplateManagerInterface)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// NewDataTemplateManager indicates an expected call of NewDataTemplateManager
-func (mr *MockManagerFactoryInterfaceMockRecorder) NewDataTemplateManager(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDataTemplateManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewDataTemplateManager), arg0, arg1)
-}
-
-// NewDataManager mocks base method
+// NewDataManager mocks base method.
 func (m *MockManagerFactoryInterface) NewDataManager(arg0 *v1alpha4.Metal3Data, arg1 logr.Logger) (baremetal.DataManagerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewDataManager", arg0, arg1)
@@ -108,8 +79,38 @@ func (m *MockManagerFactoryInterface) NewDataManager(arg0 *v1alpha4.Metal3Data, 
 	return ret0, ret1
 }
 
-// NewDataManager indicates an expected call of NewDataManager
+// NewDataManager indicates an expected call of NewDataManager.
 func (mr *MockManagerFactoryInterfaceMockRecorder) NewDataManager(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDataManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewDataManager), arg0, arg1)
+}
+
+// NewDataTemplateManager mocks base method.
+func (m *MockManagerFactoryInterface) NewDataTemplateManager(arg0 *v1alpha4.Metal3DataTemplate, arg1 logr.Logger) (baremetal.DataTemplateManagerInterface, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewDataTemplateManager", arg0, arg1)
+	ret0, _ := ret[0].(baremetal.DataTemplateManagerInterface)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewDataTemplateManager indicates an expected call of NewDataTemplateManager.
+func (mr *MockManagerFactoryInterfaceMockRecorder) NewDataTemplateManager(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewDataTemplateManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewDataTemplateManager), arg0, arg1)
+}
+
+// NewMachineManager mocks base method.
+func (m *MockManagerFactoryInterface) NewMachineManager(arg0 *v1alpha3.Cluster, arg1 *v1alpha4.Metal3Cluster, arg2 *v1alpha3.Machine, arg3 *v1alpha4.Metal3Machine, arg4 logr.Logger) (baremetal.MachineManagerInterface, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewMachineManager", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(baremetal.MachineManagerInterface)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewMachineManager indicates an expected call of NewMachineManager.
+func (mr *MockManagerFactoryInterfaceMockRecorder) NewMachineManager(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewMachineManager", reflect.TypeOf((*MockManagerFactoryInterface)(nil).NewMachineManager), arg0, arg1, arg2, arg3, arg4)
 }
