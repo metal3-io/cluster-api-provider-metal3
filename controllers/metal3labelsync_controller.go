@@ -109,7 +109,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	}
 	if host.Spec.ConsumerRef.Kind != "Metal3Machine" &&
 		host.Spec.ConsumerRef.GroupVersionKind().Group != capm3.GroupVersion.Group {
-		controllerLog.Info(fmt.Sprintf("Unkown GroupVersionKind in BareMetalHost Consumer Ref %v", host.Spec.ConsumerRef.GroupVersionKind()))
+		controllerLog.Info(fmt.Sprintf("Unknown GroupVersionKind in BareMetalHost Consumer Ref %v", host.Spec.ConsumerRef.GroupVersionKind()))
 		return ctrl.Result{}, nil
 
 	}

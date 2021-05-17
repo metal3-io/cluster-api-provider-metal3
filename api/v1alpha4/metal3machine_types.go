@@ -52,7 +52,7 @@ type Metal3MachineSpec struct {
 
 	// MetadataTemplate is a reference to a Metal3DataTemplate object containing
 	// a template of metadata to be rendered. Metadata keys defined in the
-	// metadataTemplate take precendence over keys defined in metadata field.
+	// metadataTemplate take precedence over keys defined in metadata field.
 	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
 
 	// MetaData is an object storing the reference to the secret containing the
