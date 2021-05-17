@@ -259,8 +259,8 @@ spec:
               dataTemplate:
                 description: MetadataTemplate is a reference to a Metal3DataTemplate
                   object containing a template of metadata to be rendered. Metadata
-                  keys defined in the metadataTemplate take precendence over keys
-                  defined in metadata field.
+                  keys defined in the metadataTemplate take precedence over keys defined
+                  in metadata field.
                 properties:
                   apiVersion:
                     description: API version of the referent.
