@@ -32,10 +32,12 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -167,11 +169,31 @@ func reconcileDelete(ctx context.Context,
 
 // SetupWithManager will add watches for this controller
 func (r *Metal3ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	ctx := context.Background()
+	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(capm3.GroupVersion.WithKind("Metal3Cluster"))
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3Cluster{}).
 		Watches(
 			&source.Kind{Type: &capi.Cluster{}},
-			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(capm3.GroupVersion.WithKind("Metal3Cluster"))),
+			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
+				requests := clusterToInfraFn(o)
+				if requests == nil {
+					return nil
+				}
+
+				c := &capm3.Metal3Cluster{}
+				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
+					r.Log.V(4).Error(err, "Failed to get Metal3 cluster")
+					return nil
+				}
+
+				if annotations.IsExternallyManaged(c) {
+					r.Log.V(4).Info("Metal3Cluster is externally managed, skipping mapping.")
+					return nil
+				}
+				return requests
+			}),
 		).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetLogger())).
 		Complete(r)
 }
