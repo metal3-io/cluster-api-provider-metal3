@@ -169,7 +169,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 				bmcOwnerRef, nil, nil,
 			),
 		}),
-		Entry("Pre-existing error message overridden", testCaseBMClusterManager{
+		Entry("Pre-existing error message overriden", testCaseBMClusterManager{
 			Cluster: newCluster(clusterName),
 			BMCluster: newMetal3Cluster(metal3ClusterName,
 				bmcOwnerRef, nil, &infrav1.Metal3ClusterStatus{

@@ -161,10 +161,10 @@ $(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v --timeout=10m
+	$(GOLANGCI_LINT) run -v
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	$(GOLANGCI_LINT) run -v --fast=false
 
 # Run go fmt against code
 fmt:
@@ -334,8 +334,8 @@ deploy: generate-examples
 	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-webhook
 	kubectl apply -f examples/_out/provider-components.yaml
 
-deploy-examples: generate-examples
-	kubectl apply -f ./examples/_out/metal3plane.yaml
+deploy-examples:
+	kubectl apply -f ./examples/metal3plane/hosts.yaml
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml
@@ -344,7 +344,7 @@ delete-examples:
 	kubectl delete -f ./examples/_out/machinedeployment.yaml || true
 	kubectl delete -f ./examples/_out/controlplane.yaml || true
 	kubectl delete -f ./examples/_out/cluster.yaml || true
-	kubectl delete -f ./examples/_out/metal3plane.yaml || true
+	kubectl delete -f ./examples/metal3plane/hosts.yaml || true
 
 
 ## --------------------------------------
