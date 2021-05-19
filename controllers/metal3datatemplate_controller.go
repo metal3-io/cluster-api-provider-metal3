@@ -25,8 +25,8 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	"sigs.k8s.io/cluster-api/util"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -61,8 +61,7 @@ type Metal3DataTemplateReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles Metal3Machine events
-func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
+func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
 
 	// Fetch the Metal3DataTemplate instance.
@@ -113,7 +112,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(req ctrl.Request) (_ ctrl.Resul
 			return ctrl.Result{}, err
 		}
 		// Return early if the Metadata or Cluster is paused.
-		if util.IsPaused(cluster, capm3DataTemplate) {
+		if annotations.IsPaused(cluster, capm3DataTemplate) {
 			metadataLog.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
@@ -165,9 +164,7 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		For(&capm3.Metal3DataTemplate{}).
 		Watches(
 			&source.Kind{Type: &capm3.Metal3DataClaim{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.Metal3DataClaimToMetal3DataTemplate),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.Metal3DataClaimToMetal3DataTemplate),
 		).
 		Complete(r)
 }
@@ -175,8 +172,8 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(mgr ctrl.Manager) error 
 // Metal3DataClaimToMetal3DataTemplate will return a reconcile request for a
 // Metal3DataTemplate if the event is for a
 // Metal3DataClaim and that Metal3DataClaim references a Metal3DataTemplate
-func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(obj handler.MapObject) []ctrl.Request {
-	if m3dc, ok := obj.Object.(*capm3.Metal3DataClaim); ok {
+func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(obj client.Object) []ctrl.Request {
+	if m3dc, ok := obj.(*capm3.Metal3DataClaim); ok {
 		if m3dc.Spec.Template.Name != "" {
 			namespace := m3dc.Spec.Template.Namespace
 			if namespace == "" {

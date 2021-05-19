@@ -41,7 +41,7 @@ import (
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -50,7 +50,7 @@ import (
 
 var providerID = "metal3:///foo/bar"
 
-var bootstrapData = "Qm9vdHN0cmFwIERhdGEK"
+var bootstrapDataSecretName = "testdatasecret"
 
 func m3mOwnerRefs() []metav1.OwnerReference {
 	return []metav1.OwnerReference{
@@ -143,7 +143,7 @@ func machineWithBootstrap() *clusterv1.Machine {
 		clusterName, machineName, metal3machineName,
 	)
 	machine.Spec.Bootstrap = clusterv1.Bootstrap{
-		Data: &bootstrapData,
+		DataSecretName: &bootstrapDataSecretName,
 	}
 	machine.Status = clusterv1.MachineStatus{
 		BootstrapReady: true,
@@ -200,7 +200,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					Namespace: namespaceName,
 				},
 			}
-			res, err := r.Reconcile(req)
+			res, err := r.Reconcile(context.TODO(), req)
 			_ = c.Get(context.TODO(), *getKey(machineName), testmachine)
 			objMeta := testmachine.ObjectMeta
 			_ = c.Get(context.TODO(), *getKey(clusterName), testcluster)

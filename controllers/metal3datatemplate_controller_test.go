@@ -33,10 +33,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -114,7 +113,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			}
 
-			result, err := dataTemplateReconcile.Reconcile(req)
+			result, err := dataTemplateReconcile.Reconcile(context.TODO(), req)
 
 			if tc.expectError || tc.managerError || tc.reconcileNormalError {
 				Expect(err).To(HaveOccurred())
@@ -328,9 +327,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	DescribeTable("Metal3DataClaim To Metal3DataTemplate tests",
 		func(tc TestCaseM3DCToM3DT) {
 			r := Metal3DataTemplateReconciler{}
-			obj := handler.MapObject{
-				Object: tc.DataClaim,
-			}
+			obj := tc.DataClaim
 			reqs := r.Metal3DataClaimToMetal3DataTemplate(obj)
 
 			if tc.ExpectRequest {
