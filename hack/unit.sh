@@ -8,7 +8,7 @@ CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 if [ "${IS_CONTAINER}" != "false" ]; then
   export XDG_CACHE_HOME=/tmp/.cache
   mkdir /tmp/unit
-  cp -r ./* /tmp/unit
+  cp -r . /tmp/unit
   cp -r /usr/local/kubebuilder/bin /tmp/unit/hack/tools
   cd /tmp/unit
   make test

@@ -24,58 +24,35 @@ package baremetal_mocks
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockDataManagerInterface is a mock of DataManagerInterface interface
+// MockDataManagerInterface is a mock of DataManagerInterface interface.
 type MockDataManagerInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockDataManagerInterfaceMockRecorder
 }
 
-// MockDataManagerInterfaceMockRecorder is the mock recorder for MockDataManagerInterface
+// MockDataManagerInterfaceMockRecorder is the mock recorder for MockDataManagerInterface.
 type MockDataManagerInterfaceMockRecorder struct {
 	mock *MockDataManagerInterface
 }
 
-// NewMockDataManagerInterface creates a new mock instance
+// NewMockDataManagerInterface creates a new mock instance.
 func NewMockDataManagerInterface(ctrl *gomock.Controller) *MockDataManagerInterface {
 	mock := &MockDataManagerInterface{ctrl: ctrl}
 	mock.recorder = &MockDataManagerInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockDataManagerInterface) EXPECT() *MockDataManagerInterfaceMockRecorder {
 	return m.recorder
 }
 
-// SetFinalizer mocks base method
-func (m *MockDataManagerInterface) SetFinalizer() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetFinalizer")
-}
-
-// SetFinalizer indicates an expected call of SetFinalizer
-func (mr *MockDataManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockDataManagerInterface)(nil).SetFinalizer))
-}
-
-// UnsetFinalizer mocks base method
-func (m *MockDataManagerInterface) UnsetFinalizer() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "UnsetFinalizer")
-}
-
-// UnsetFinalizer indicates an expected call of UnsetFinalizer
-func (mr *MockDataManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockDataManagerInterface)(nil).UnsetFinalizer))
-}
-
-// Reconcile mocks base method
+// Reconcile mocks base method.
 func (m *MockDataManagerInterface) Reconcile(ctx context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Reconcile", ctx)
@@ -83,13 +60,13 @@ func (m *MockDataManagerInterface) Reconcile(ctx context.Context) error {
 	return ret0
 }
 
-// Reconcile indicates an expected call of Reconcile
+// Reconcile indicates an expected call of Reconcile.
 func (mr *MockDataManagerInterfaceMockRecorder) Reconcile(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reconcile", reflect.TypeOf((*MockDataManagerInterface)(nil).Reconcile), ctx)
 }
 
-// ReleaseLeases mocks base method
+// ReleaseLeases mocks base method.
 func (m *MockDataManagerInterface) ReleaseLeases(ctx context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReleaseLeases", ctx)
@@ -97,8 +74,32 @@ func (m *MockDataManagerInterface) ReleaseLeases(ctx context.Context) error {
 	return ret0
 }
 
-// ReleaseLeases indicates an expected call of ReleaseLeases
+// ReleaseLeases indicates an expected call of ReleaseLeases.
 func (mr *MockDataManagerInterfaceMockRecorder) ReleaseLeases(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReleaseLeases", reflect.TypeOf((*MockDataManagerInterface)(nil).ReleaseLeases), ctx)
+}
+
+// SetFinalizer mocks base method.
+func (m *MockDataManagerInterface) SetFinalizer() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetFinalizer")
+}
+
+// SetFinalizer indicates an expected call of SetFinalizer.
+func (mr *MockDataManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockDataManagerInterface)(nil).SetFinalizer))
+}
+
+// UnsetFinalizer mocks base method.
+func (m *MockDataManagerInterface) UnsetFinalizer() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "UnsetFinalizer")
+}
+
+// UnsetFinalizer indicates an expected call of UnsetFinalizer.
+func (mr *MockDataManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockDataManagerInterface)(nil).UnsetFinalizer))
 }
