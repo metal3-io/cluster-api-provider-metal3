@@ -35,14 +35,14 @@ In order to develop CAPM3 using Tilt, there is a requirement to have kind
 and Tilt installed.
 
 ```sh
-    hack/ensure-kind.sh
-    curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
+hack/ensure-kind.sh
+curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
 ```
 
 Once installed, you will need a tilt-settings.json. You can generate one using
 
 ```sh
-    make tilt-settings
+make tilt-settings
 ```
 
 This requires the following environment variables to be exported :
@@ -61,7 +61,7 @@ under `tilt.d` directory.
 Then start Tilt:
 
 ```sh
-    make tilt-up
+make tilt-up
 ```
 
 Changes in the go code will trigger an update of the images running to run the
@@ -305,7 +305,7 @@ The following command will deploy the controllers from CAPI, CABPK and CAPM3 and
 the requested CRDs.
 
 ```sh
-    make deploy
+make deploy
 ```
 
 ### Run the Controller locally
@@ -313,8 +313,8 @@ the requested CRDs.
 You will first need to scale down the controller deployment :
 
 ```sh
-    kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager \
-      --replicas 0
+kubectl scale -n capm3-system deployment.v1.apps/capm3-baremetal-operator-controller-manager --replicas 0
+kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager --replicas 0
 ```
 
 You can manually run the controller from outside of the cluster for development
@@ -331,11 +331,16 @@ controller is doing. You can also proceed to create/update/delete
 ### Deploy an example cluster
 
 ```sh
-    make deploy-examples
+make deploy-examples
 ```
+
+If you want to simulate the behavior of the metal3 operator, change
+`provisioning.state` of BareMetalHost resources to `provisioned` after the
+deployment of examples. Observe how a providerID is assigned to `machine` and
+`metal3machine` resources.
 
 ### Delete the example cluster
 
 ```sh
-    make delete-examples
+make delete-examples
 ```

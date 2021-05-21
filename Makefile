@@ -357,6 +357,10 @@ deploy: generate-examples
 	kubectl apply -f examples/_out/provider-components.yaml
 
 deploy-examples: generate-examples
+	# CRD for baremetalhosts in provider-components.yaml is not compatible
+	# with setting the status explicitly. Recreate it from metal3crds.yaml
+	kubectl delete -f examples/_out/metal3crds.yaml
+	kubectl apply -f examples/_out/metal3crds.yaml
 	kubectl apply -f ./examples/_out/metal3plane.yaml
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
