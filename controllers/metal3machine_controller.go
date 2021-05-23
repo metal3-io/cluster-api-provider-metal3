@@ -32,6 +32,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -174,7 +175,7 @@ func (r *Metal3MachineReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	}
 
 	// Return early if the M3Machine or Cluster is paused.
-	if util.IsPaused(cluster, capm3Machine) {
+	if annotations.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}

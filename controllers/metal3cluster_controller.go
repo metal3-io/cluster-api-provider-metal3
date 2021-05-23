@@ -30,6 +30,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,7 +101,7 @@ func (r *Metal3ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	clusterLog = clusterLog.WithValues("cluster", cluster.Name)
 
 	// Return early if BMCluster or Cluster is paused.
-	if util.IsPaused(cluster, metal3Cluster) {
+	if annotations.IsPaused(cluster, metal3Cluster) {
 		clusterLog.Info("reconciliation is paused for this object")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}

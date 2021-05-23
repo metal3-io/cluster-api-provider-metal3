@@ -36,6 +36,7 @@ import (
 	k8strings "k8s.io/utils/strings"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -167,7 +168,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	}
 	controllerLog.V(5).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
 
-	if util.IsPaused(cluster, metal3Cluster) {
+	if annotations.IsPaused(cluster, metal3Cluster) {
 		controllerLog.Info("Cluster and/or Metal3Cluster are currently paused. Remove pause to continue reconciliation.")
 		return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 	}
