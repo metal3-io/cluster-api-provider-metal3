@@ -92,7 +92,7 @@ spec:
                         properties:
                           checksum:
                             description: Checksum is a md5sum value or a URL to retrieve
-                              one.
+                              one. Not required for live-iso.
                             type: string
                           checksumType:
                             description: ChecksumType is the checksum algorithm for
@@ -103,7 +103,7 @@ spec:
                             - sha512
                             type: string
                           format:
-                            description: DiskFormat contains the image disk format
+                            description: DiskFormat contains the image disk format.
                             enum:
                             - raw
                             - qcow2
@@ -261,7 +261,7 @@ spec:
                         properties:
                           checksum:
                             description: Checksum is a md5sum value or a URL to retrieve
-                              one.
+                              one. Not required for live-iso.
                             type: string
                           checksumType:
                             description: ChecksumType is the checksum algorithm for
@@ -272,7 +272,7 @@ spec:
                             - sha512
                             type: string
                           format:
-                            description: DiskFormat contains the image disk format
+                            description: DiskFormat contains the image disk format.
                             enum:
                             - raw
                             - qcow2
