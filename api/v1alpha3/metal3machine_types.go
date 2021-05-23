@@ -58,8 +58,7 @@ func (s *Metal3MachineSpec) IsValid() error {
 	if s.Image.URL == "" {
 		missing = append(missing, "Image.URL")
 	}
-	// Checksum is not required for live-iso.
-	if s.Image.Checksum == "" && (s.Image.DiskFormat == nil || *s.Image.DiskFormat != "live-iso") {
+	if s.Image.Checksum == "" {
 		missing = append(missing, "Image.Checksum")
 	}
 	if len(missing) > 0 {
