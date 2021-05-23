@@ -24,100 +24,35 @@ package baremetal_mocks
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockClusterManagerInterface is a mock of ClusterManagerInterface interface
+// MockClusterManagerInterface is a mock of ClusterManagerInterface interface.
 type MockClusterManagerInterface struct {
 	ctrl     *gomock.Controller
 	recorder *MockClusterManagerInterfaceMockRecorder
 }
 
-// MockClusterManagerInterfaceMockRecorder is the mock recorder for MockClusterManagerInterface
+// MockClusterManagerInterfaceMockRecorder is the mock recorder for MockClusterManagerInterface.
 type MockClusterManagerInterfaceMockRecorder struct {
 	mock *MockClusterManagerInterface
 }
 
-// NewMockClusterManagerInterface creates a new mock instance
+// NewMockClusterManagerInterface creates a new mock instance.
 func NewMockClusterManagerInterface(ctrl *gomock.Controller) *MockClusterManagerInterface {
 	mock := &MockClusterManagerInterface{ctrl: ctrl}
 	mock.recorder = &MockClusterManagerInterfaceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClusterManagerInterface) EXPECT() *MockClusterManagerInterfaceMockRecorder {
 	return m.recorder
 }
 
-// Create mocks base method
-func (m *MockClusterManagerInterface) Create(arg0 context.Context) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Create indicates an expected call of Create
-func (mr *MockClusterManagerInterfaceMockRecorder) Create(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockClusterManagerInterface)(nil).Create), arg0)
-}
-
-// Delete mocks base method
-func (m *MockClusterManagerInterface) Delete() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Delete indicates an expected call of Delete
-func (mr *MockClusterManagerInterfaceMockRecorder) Delete() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClusterManagerInterface)(nil).Delete))
-}
-
-// UpdateClusterStatus mocks base method
-func (m *MockClusterManagerInterface) UpdateClusterStatus() error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterStatus")
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateClusterStatus indicates an expected call of UpdateClusterStatus
-func (mr *MockClusterManagerInterfaceMockRecorder) UpdateClusterStatus() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterStatus", reflect.TypeOf((*MockClusterManagerInterface)(nil).UpdateClusterStatus))
-}
-
-// SetFinalizer mocks base method
-func (m *MockClusterManagerInterface) SetFinalizer() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetFinalizer")
-}
-
-// SetFinalizer indicates an expected call of SetFinalizer
-func (mr *MockClusterManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockClusterManagerInterface)(nil).SetFinalizer))
-}
-
-// UnsetFinalizer mocks base method
-func (m *MockClusterManagerInterface) UnsetFinalizer() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "UnsetFinalizer")
-}
-
-// UnsetFinalizer indicates an expected call of UnsetFinalizer
-func (mr *MockClusterManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockClusterManagerInterface)(nil).UnsetFinalizer))
-}
-
-// CountDescendants mocks base method
+// CountDescendants mocks base method.
 func (m *MockClusterManagerInterface) CountDescendants(arg0 context.Context) (int, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CountDescendants", arg0)
@@ -126,8 +61,74 @@ func (m *MockClusterManagerInterface) CountDescendants(arg0 context.Context) (in
 	return ret0, ret1
 }
 
-// CountDescendants indicates an expected call of CountDescendants
+// CountDescendants indicates an expected call of CountDescendants.
 func (mr *MockClusterManagerInterfaceMockRecorder) CountDescendants(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountDescendants", reflect.TypeOf((*MockClusterManagerInterface)(nil).CountDescendants), arg0)
+}
+
+// Create mocks base method.
+func (m *MockClusterManagerInterface) Create(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockClusterManagerInterfaceMockRecorder) Create(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockClusterManagerInterface)(nil).Create), arg0)
+}
+
+// Delete mocks base method.
+func (m *MockClusterManagerInterface) Delete() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockClusterManagerInterfaceMockRecorder) Delete() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClusterManagerInterface)(nil).Delete))
+}
+
+// SetFinalizer mocks base method.
+func (m *MockClusterManagerInterface) SetFinalizer() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetFinalizer")
+}
+
+// SetFinalizer indicates an expected call of SetFinalizer.
+func (mr *MockClusterManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockClusterManagerInterface)(nil).SetFinalizer))
+}
+
+// UnsetFinalizer mocks base method.
+func (m *MockClusterManagerInterface) UnsetFinalizer() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "UnsetFinalizer")
+}
+
+// UnsetFinalizer indicates an expected call of UnsetFinalizer.
+func (mr *MockClusterManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockClusterManagerInterface)(nil).UnsetFinalizer))
+}
+
+// UpdateClusterStatus mocks base method.
+func (m *MockClusterManagerInterface) UpdateClusterStatus() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClusterStatus")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateClusterStatus indicates an expected call of UpdateClusterStatus.
+func (mr *MockClusterManagerInterfaceMockRecorder) UpdateClusterStatus() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterStatus", reflect.TypeOf((*MockClusterManagerInterface)(nil).UpdateClusterStatus))
 }

@@ -8,7 +8,7 @@ CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 if [ "${IS_CONTAINER}" != "false" ]; then
   export XDG_CACHE_HOME=/tmp/.cache
   mkdir /tmp/unit
-  cp -r ./* /tmp/unit
+  cp -r . /tmp/unit
   cd /tmp/unit
   make lint
 else
@@ -18,5 +18,5 @@ else
     --entrypoint sh \
     --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
     registry.hub.docker.com/library/golang:1.16 \
-    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/gofmt.sh
+    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/golint.sh
 fi;

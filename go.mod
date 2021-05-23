@@ -4,38 +4,25 @@ go 1.16
 
 require (
 	cloud.google.com/go v0.78.0 // indirect
-	github.com/emicklei/go-restful v2.14.2+incompatible // indirect
 	github.com/go-logr/logr v0.4.0
-	github.com/go-logr/zapr v0.3.0 // indirect
-	github.com/go-openapi/spec v0.19.9 // indirect
-	github.com/go-openapi/swag v0.19.9 // indirect
-	github.com/gobuffalo/envy v1.7.1 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.5.0
 	github.com/google/go-cmp v0.5.5 // indirect
 	github.com/google/gofuzz v1.2.0
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/googleapis/gnostic v0.5.4 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/mailru/easyjson v0.7.6 // indirect
-	github.com/metal3-io/baremetal-operator v0.0.0-20210309111124-0e689212fe8c
-	github.com/metal3-io/ip-address-manager v0.0.4
-	github.com/nxadm/tail v1.4.6 // indirect
+	github.com/metal3-io/baremetal-operator/apis v0.0.0-20210416073321-c927d1d8da76
+	github.com/metal3-io/ip-address-manager v0.0.5
 	github.com/onsi/ginkgo v1.14.2
 	github.com/onsi/gomega v1.11.0
-	github.com/operator-framework/operator-sdk v0.17.0 // indirect
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.9.0 // indirect
 	github.com/prometheus/common v0.18.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.16.0 // indirect
 	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110
 	golang.org/x/oauth2 v0.0.0-20210220000619-9bb904979d93 // indirect
 	golang.org/x/sys v0.0.0-20210309074719-68d13333faf2 // indirect
 	golang.org/x/term v0.0.0-20210220032956-6a3ed077a48d // indirect
-	golang.org/x/text v0.3.5 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect

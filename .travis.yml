@@ -12,6 +12,8 @@ env:
     - TARGET=markdownlint
     - TARGET=govet
     - TARGET=gofmt
+    - TARGET=golint
+    - TARGET=codegen
 
 script:
 - ./hack/${TARGET}.sh

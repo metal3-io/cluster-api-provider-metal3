@@ -19,6 +19,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -93,6 +94,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -167,6 +169,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -241,6 +244,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -315,6 +319,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -389,6 +394,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -463,6 +469,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -537,6 +544,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -611,6 +619,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret
@@ -685,6 +694,7 @@ spec:
     credentialsName: demo-externally-provisioned-secret
 status:
   errorMessage: ""
+  errorCount: 0
   goodCredentials:
     credentials:
       name: demo-externally-provisioned-secret

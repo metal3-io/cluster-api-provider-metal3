@@ -40,7 +40,7 @@ with Ironic to make changes on the Bare Metal Server.
 During the initial introspection and state changes, the above logic works in the
  opposite direction as well. Information gathered during introspection or any
  state changes on the Bare Metal Server, results in BMO learning about the
- change(s) via ironic and a chain of events starts. Once BMO learns about the
+ change(s) via Ironic and a chain of events starts. Once BMO learns about the
  changes, it makes the required
 changes on the BMH.
 
