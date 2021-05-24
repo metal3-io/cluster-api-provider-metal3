@@ -953,8 +953,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			err = machineMgr.setHostSpec(context.TODO(), tc.Host)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(err).NotTo(HaveOccurred())
-
 			// validate the saved host
 			Expect(tc.Host.Spec.Online).To(BeTrue())
 			if tc.ExpectedImage == nil {
