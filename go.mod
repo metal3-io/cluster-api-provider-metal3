@@ -13,7 +13,7 @@ require (
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/metal3-io/baremetal-operator/apis v0.0.0-20210416073321-c927d1d8da76
 	github.com/metal3-io/ip-address-manager v0.0.5
-	github.com/onsi/ginkgo v1.14.2
+	github.com/onsi/ginkgo v1.16.1
 	github.com/onsi/gomega v1.11.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.18.0 // indirect
