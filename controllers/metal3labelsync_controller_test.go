@@ -51,7 +51,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		},
 		Entry("Single label case", TestCaseBuildLabelSyncSet{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
 			},
 			Labels: map[string]string{
 				"foo.metal3.io/bar": "blue",
@@ -62,8 +62,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 		Entry("Multiple label case", TestCaseBuildLabelSyncSet{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
-				"boo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
+				"boo.metal3.io": {},
 			},
 			Labels: map[string]string{
 				"foo.metal3.io/bar":  "blue",
@@ -78,7 +78,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 		Entry("Ignore labels not in prefix set", TestCaseBuildLabelSyncSet{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
 			},
 			Labels: map[string]string{
 				"boo.metal3.io/blah":     "red",
@@ -105,7 +105,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 		Entry("Empty labels", TestCaseBuildLabelSyncSet{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
 			},
 			Labels:         map[string]string{},
 			ExpectedResult: map[string]string{},
@@ -132,16 +132,16 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			PrefixStr:   "foo.metal3.io",
 			ExpectedErr: false,
 			ExpectedResult: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
 			},
 		}),
 		Entry("Parse multiple prefixes", TestCaseParsePrefixAnnotation{
 			PrefixStr:   "foo.metal3.io, moo.myprefix,,bar",
 			ExpectedErr: false,
 			ExpectedResult: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
-				"moo.myprefix":  struct{}{},
-				"bar":           struct{}{},
+				"foo.metal3.io": {},
+				"moo.myprefix":  {},
+				"bar":           {},
 			},
 		}),
 		Entry("Parse empty prefix string", TestCaseParsePrefixAnnotation{
@@ -177,7 +177,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		},
 		Entry("Label exists, do nothing", TestCaseSynchronizeLabelSyncSetsOnNode{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
 			},
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
@@ -199,7 +199,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 		Entry("Add label on Node", TestCaseSynchronizeLabelSyncSetsOnNode{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
 			},
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
@@ -219,8 +219,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 		Entry("Add multiple labels on Node, ignore existing label", TestCaseSynchronizeLabelSyncSetsOnNode{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
-				"boo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
+				"boo.metal3.io": {},
 			},
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
@@ -245,8 +245,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 		Entry("Remove and update labels from Node", TestCaseSynchronizeLabelSyncSetsOnNode{
 			PrefixSet: map[string]struct{}{
-				"foo.metal3.io": struct{}{},
-				"boo.metal3.io": struct{}{},
+				"foo.metal3.io": {},
+				"boo.metal3.io": {},
 			},
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
