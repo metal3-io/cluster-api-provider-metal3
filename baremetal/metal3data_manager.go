@@ -1210,9 +1210,6 @@ func getBMHMacByName(name string, bmh *bmo.BareMetalHost) (string, error) {
 
 func (m *DataManager) getM3Machine(ctx context.Context, m3dt *capm3.Metal3DataTemplate) (*capm3.Metal3Machine, error) {
 	if m.Data.Spec.Claim.Name == "" {
-		return nil, errors.New("Claim not set")
-	}
-	if m.Data.Spec.Claim.Name == "" {
 		return nil, errors.New("Claim name not set")
 	}
 
