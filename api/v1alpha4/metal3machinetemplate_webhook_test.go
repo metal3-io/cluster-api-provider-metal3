@@ -18,6 +18,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func TestMetal3MachineTemplateDefault(t *testing.T) {
@@ -53,6 +54,10 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 	invalidChecksum := valid.DeepCopy()
 	invalidChecksum.Spec.Template.Spec.Image.Checksum = ""
 
+	validIso := valid.DeepCopy()
+	validIso.Spec.Template.Spec.Image.Checksum = ""
+	validIso.Spec.Template.Spec.Image.DiskFormat = pointer.StringPtr("live-iso")
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -72,6 +77,11 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 			name:      "should succeed when image correct",
 			expectErr: false,
 			c:         valid,
+		},
+		{
+			name:      "should succeed when disk format is 'live-iso' even when checksum is empty",
+			expectErr: false,
+			c:         validIso,
 		},
 	}
 
