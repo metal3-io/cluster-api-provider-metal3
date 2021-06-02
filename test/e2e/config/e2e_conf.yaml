@@ -59,13 +59,11 @@ providers:
     files:
     - sourcePath: "${PWD}/metadata.yaml"
       targetName: "metadata.yaml"
-    - sourcePath: "${PWD}/templates/test/cluster-template-prow-single-master.yaml"
-      targetName: "cluster-template-single-master.yaml"
-    - sourcePath: "${PWD}/templates/test/cluster-template-prow-ha.yaml"
+    - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha.yaml"
       targetName: "cluster-template-ha.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.21.2"
+  KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
   CNI: "./data/cni/calico/calico.yaml"
 
 intervals:

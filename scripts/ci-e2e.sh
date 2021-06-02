@@ -33,7 +33,7 @@ M3_DEV_ENV_BRANCH=master
 M3_DEV_ENV_PATH="${WORKING_DIR}"/metal3-dev-env
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
-cp "${REPO_ROOT}"/hack/e2e/config_ubuntu.sh "${M3_DEV_ENV_PATH}/config_${USER}.sh"
+cp "${REPO_ROOT}"/hack/e2e/environment.sh "${M3_DEV_ENV_PATH}/config_${USER}.sh"
 
 pushd ${M3_DEV_ENV_PATH}
 make
@@ -57,7 +57,9 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=./hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
-make e2e-tests
+# This will run the tests with env variabls defined in environment.sh
+# or exported by metal3-dev-env scripts
+${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests
 
 pushd ${M3_DEV_ENV_PATH} || exit 1
 make clean

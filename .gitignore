@@ -47,6 +47,10 @@ examples/envsubst-go
 examples/provider-components/*-components.yaml
 out/*
 
+# e2e
+test/e2e/_out
+/_artifacts
+
 # Tilt files.
 .tiltbuild
 /tilt.d

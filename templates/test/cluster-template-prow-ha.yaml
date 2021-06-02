@@ -1,73 +1,71 @@
 apiVersion: cluster.x-k8s.io/v1alpha3
 kind: Cluster
 metadata:
-  name: test1
-  namespace: metal3
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
 spec:
   clusterNetwork:
     pods:
-      cidrBlocks:
-      - 192.168.0.0/18
+      cidrBlocks: ["${POD_CIDR}"]
     services:
-      cidrBlocks:
-      - 10.96.0.0/12
+      cidrBlocks: ["${SERVICE_CIDR}"]
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
     kind: KubeadmControlPlane
-    name: test1
+    name: ${CLUSTER_NAME}
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: Metal3Cluster
-    name: test1
+    name: ${CLUSTER_NAME}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3Cluster
 metadata:
-  name: test1
-  namespace: metal3
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
 spec:
   controlPlaneEndpoint:
-    host: 192.168.111.249
-    port: 6443
+    host: ${CLUSTER_APIENDPOINT_HOST}
+    port: ${CLUSTER_APIENDPOINT_PORT}
   noCloudProvider: true
 ---
 apiVersion: ipam.metal3.io/v1alpha1
 kind: IPPool
 metadata:
   name: provisioning-pool
-  namespace: metal3
+  namespace: ${NAMESPACE}
 spec:
-  clusterName: test1
-  namePrefix: test1-prov
+  clusterName: ${CLUSTER_NAME}
+  namePrefix: ${CLUSTER_NAME}-prov
   pools:
-  - end: 172.22.0.200
-    start: 172.22.0.100
-  prefix: 24
+    - start: ${PROVISIONING_POOL_RANGE_START}
+      end: ${PROVISIONING_POOL_RANGE_END}
+  prefix: ${PROVISIONING_CIDR}
 ---
 apiVersion: ipam.metal3.io/v1alpha1
 kind: IPPool
 metadata:
   name: baremetalv4-pool
-  namespace: metal3
+  namespace: ${NAMESPACE}
 spec:
-  clusterName: test1
-  gateway: 192.168.111.1
-  namePrefix: test1-bmv4
+  clusterName: ${CLUSTER_NAME}
+  namePrefix: ${CLUSTER_NAME}-bmv4
   pools:
-  - end: 192.168.111.200
-    start: 192.168.111.100
-  prefix: 24
+    - start: ${BAREMETALV4_POOL_RANGE_START}
+      end: ${BAREMETALV4_POOL_RANGE_END}
+  prefix: ${EXTERNAL_SUBNET_V4_PREFIX}
+  gateway: ${EXTERNAL_SUBNET_V4_HOST}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
 kind: KubeadmControlPlane
 metadata:
-  name: test1
-  namespace: metal3
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
 spec:
   infrastructureTemplate:
     apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
     kind: Metal3MachineTemplate
-    name: test1-controlplane
+    name: ${CLUSTER_NAME}-controlplane
   kubeadmConfigSpec:
     clusterConfiguration: {}
     files:
@@ -123,7 +121,7 @@ spec:
             priority 101
             advert_int 1
             virtual_ipaddress {
-                192.168.111.249
+                ${CLUSTER_APIENDPOINT_HOST}
             }
         }
       path: /etc/keepalived/keepalived.conf
@@ -132,7 +130,7 @@ spec:
           version: 2
           renderer: networkd
           bridges:
-            ironicendpoint:
+            ${CLUSTER_PROVISIONING_INTERFACE}:
               interfaces: [enp1s0]
               addresses:
               - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
@@ -144,7 +142,7 @@ spec:
         registries = ['docker.io']
 
         [registries.insecure]
-        registries = ['192.168.111.1:5000']
+        registries = ['${REGISTRY}']
       path: /etc/containers/registries.conf
     initConfiguration:
       nodeRegistration:
@@ -170,52 +168,52 @@ spec:
           runtime-request-timeout: 5m
         name: '{{ ds.meta_data.name }}'
     postKubeadmCommands:
-    - mkdir -p /home/metal3/.kube
-    - cp /etc/kubernetes/admin.conf /home/metal3/.kube/config
+    - mkdir -p /home/${IMAGE_USERNAME}/.kube
+    - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
     - systemctl enable --now keepalived
-    - chown metal3:metal3 /home/metal3/.kube/config
+    - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
     preKubeadmCommands:
     - netplan apply
     - systemctl enable --now crio kubelet
-    - if (curl -sk --max-time 10 https://192.168.111.249:6443/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
+    - if (curl -sk --max-time 10 https://${CLUSTER_APIENDPOINT_HOST}:${CLUSTER_APIENDPOINT_PORT}/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
     - systemctl link /lib/systemd/system/monitor.keepalived.service
     - systemctl enable monitor.keepalived.service
     - systemctl start monitor.keepalived.service
     users:
-    - name: metal3
+    - name: ${IMAGE_USERNAME}
       sshAuthorizedKeys:
       - ${SSH_PUB_KEY_CONTENT}
       sudo: ALL=(ALL) NOPASSWD:ALL
-  nodeDrainTimeout: 0s
-  replicas: 3
-  #rolloutStrategy:
-  #  rollingUpdate:
-  #    maxSurge: 1
-  version: v1.21.2
+  nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT}
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  rolloutStrategy:
+    rollingUpdate:
+      maxSurge: 1
+  version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3MachineTemplate
 metadata:
-  name: test1-controlplane
-  namespace: metal3
+  name: ${CLUSTER_NAME}-controlplane
+  namespace: ${NAMESPACE}
 spec:
   template:
     spec:
       dataTemplate:
-        name: test1-controlplane-template
+        name: ${CLUSTER_NAME}-controlplane-template
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img.md5sum
-        checksumType: md5
-        format: raw
-        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img
+        checksum: ${IMAGE_RAW_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: ${IMAGE_FORMAT}
+        url: ${IMAGE_RAW_URL}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3DataTemplate
 metadata:
-  name: test1-controlplane-template
-  namespace: metal3
+  name: ${CLUSTER_NAME}-controlplane-template
+  namespace: ${NAMESPACE}
 spec:
-  clusterName: test1
+  clusterName: ${CLUSTER_NAME}
   metaData:
     ipAddressesFromIPPool:
     - key: provisioningIP
@@ -259,59 +257,59 @@ apiVersion: cluster.x-k8s.io/v1alpha3
 kind: MachineDeployment
 metadata:
   labels:
-    cluster.x-k8s.io/cluster-name: test1
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
     nodepool: nodepool-0
-  name: test1
-  namespace: metal3
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
 spec:
-  clusterName: test1
-  replicas: 1
+  clusterName: ${CLUSTER_NAME}
+  replicas: ${WORKER_MACHINE_COUNT}
   selector:
     matchLabels:
-      cluster.x-k8s.io/cluster-name: test1
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
       nodepool: nodepool-0
   template:
     metadata:
       labels:
-        cluster.x-k8s.io/cluster-name: test1
+        cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
         nodepool: nodepool-0
     spec:
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
           kind: KubeadmConfigTemplate
-          name: test1-workers
-      clusterName: test1
+          name: ${CLUSTER_NAME}-workers
+      clusterName: ${CLUSTER_NAME}
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
         kind: Metal3MachineTemplate
-        name: test1-workers
+        name: ${CLUSTER_NAME}-workers
       nodeDrainTimeout: 0s
-      version: v1.21.2
+      version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3MachineTemplate
 metadata:
-  name: test1-workers
-  namespace: metal3
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
 spec:
   template:
     spec:
       dataTemplate:
-        name: test1-workers-template
+        name: ${CLUSTER_NAME}-workers-template
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img.md5sum
-        checksumType: md5
-        format: raw
-        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img
+        checksum: ${IMAGE_RAW_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: ${IMAGE_FORMAT}
+        url: ${IMAGE_RAW_URL}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
 kind: Metal3DataTemplate
 metadata:
-  name: test1-workers-template
-  namespace: metal3
+  name: ${CLUSTER_NAME}-workers-template
+  namespace: ${NAMESPACE}
 spec:
-  clusterName: test1
+  clusterName: ${CLUSTER_NAME}
   metaData:
     ipAddressesFromIPPool:
     - key: provisioningIP
@@ -354,8 +352,8 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
 kind: KubeadmConfigTemplate
 metadata:
-  name: test1-workers
-  namespace: metal3
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
 spec:
   template:
     spec:
@@ -365,7 +363,7 @@ spec:
             version: 2
             renderer: networkd
             bridges:
-              ironicendpoint:
+              ${CLUSTER_PROVISIONING_INTERFACE}:
                 interfaces: [enp1s0]
                 addresses:
                 - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
@@ -377,7 +375,7 @@ spec:
           registries = ['docker.io']
 
           [registries.insecure]
-          registries = ['192.168.111.1:5000']
+          registries = ['${REGISTRY}']
         path: /etc/containers/registries.conf
       joinConfiguration:
         nodeRegistration:
