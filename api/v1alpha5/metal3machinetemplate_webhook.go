@@ -64,7 +64,8 @@ func (c *Metal3MachineTemplate) validate() error {
 		)
 	}
 
-	if len(c.Spec.Template.Spec.Image.Checksum) == 0 {
+	// Checksum is not required for live-iso.
+	if len(c.Spec.Template.Spec.Image.Checksum) == 0 && (c.Spec.Template.Spec.Image.DiskFormat == nil || *c.Spec.Template.Spec.Image.DiskFormat != "live-iso") {
 		allErrs = append(
 			allErrs,
 			field.Invalid(

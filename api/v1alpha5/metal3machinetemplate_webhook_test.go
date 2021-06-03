@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -18,6 +18,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 )
 
 func TestMetal3MachineTemplateDefault(t *testing.T) {
@@ -53,6 +54,10 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 	invalidChecksum := valid.DeepCopy()
 	invalidChecksum.Spec.Template.Spec.Image.Checksum = ""
 
+	validIso := valid.DeepCopy()
+	validIso.Spec.Template.Spec.Image.Checksum = ""
+	validIso.Spec.Template.Spec.Image.DiskFormat = pointer.StringPtr("live-iso")
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -72,6 +77,11 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 			name:      "should succeed when image correct",
 			expectErr: false,
 			c:         valid,
+		},
+		{
+			name:      "should succeed when disk format is 'live-iso' even when checksum is empty",
+			expectErr: false,
+			c:         validIso,
 		},
 	}
 

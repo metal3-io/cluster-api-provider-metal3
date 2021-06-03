@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,5 +23,8 @@ func (*Metal3MachineList) Hub()         {}
 func (*Metal3MachineTemplate) Hub()     {}
 func (*Metal3MachineTemplateList) Hub() {}
 func (*Metal3DataTemplate) Hub()        {}
+func (*Metal3DataTemplateList) Hub()    {}
 func (*Metal3Data) Hub()                {}
+func (*Metal3DataList) Hub()            {}
 func (*Metal3DataClaim) Hub()           {}
+func (*Metal3DataClaimList) Hub()       {}
