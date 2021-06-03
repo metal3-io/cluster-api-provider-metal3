@@ -44,7 +44,6 @@ type Metal3DataClaimStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:path=metal3dataclaims,scope=Namespaced,categories=cluster-api,shortName=m3dc;m3dataclaim;m3dataclaims;metal3dc;metal3dataclaim
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 // Metal3DataClaim is the Schema for the metal3datas API
