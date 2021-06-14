@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	"github.com/pkg/errors"

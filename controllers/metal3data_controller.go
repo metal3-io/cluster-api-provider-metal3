@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"

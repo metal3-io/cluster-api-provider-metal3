@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
@@ -19,7 +19,7 @@ import (
 	"time"
 
 	fuzz "github.com/google/gofuzz"
-	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
@@ -34,7 +34,7 @@ var seededRand *rand.Rand = rand.New(
 
 func apiEndpointFuzzerFuncs(codecs runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		func(i *v1alpha4.APIEndpoint, c fuzz.Continue) {
+		func(i *v1alpha5.APIEndpoint, c fuzz.Continue) {
 			b := make([]byte, seededRand.Intn(264))
 			for i := range b {
 				b[i] = charset[seededRand.Intn(len(charset))]
@@ -49,9 +49,9 @@ func TestFuzzyConversion(t *testing.T) {
 	g := NewWithT(t)
 	scheme := runtime.NewScheme()
 	g.Expect(AddToScheme(scheme)).To(Succeed())
-	g.Expect(v1alpha4.AddToScheme(scheme)).To(Succeed())
+	g.Expect(v1alpha5.AddToScheme(scheme)).To(Succeed())
 
-	t.Run("for Metal3Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Metal3Cluster{}, &Metal3Cluster{}, apiEndpointFuzzerFuncs))
-	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Metal3Machine{}, &Metal3Machine{}))
-	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha4.Metal3MachineTemplate{}, &Metal3MachineTemplate{}))
+	t.Run("for Metal3Cluster", utilconversion.FuzzTestFunc(scheme, &v1alpha5.Metal3Cluster{}, &Metal3Cluster{}, apiEndpointFuzzerFuncs))
+	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha5.Metal3Machine{}, &Metal3Machine{}))
+	t.Run("for Metal3Machine", utilconversion.FuzzTestFunc(scheme, &v1alpha5.Metal3MachineTemplate{}, &Metal3MachineTemplate{}))
 }

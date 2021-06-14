@@ -23,7 +23,7 @@ package v1alpha4
 import (
 	"github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
 )

@@ -33,7 +33,7 @@ import (
 	"k8s.io/klog/klogr"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"

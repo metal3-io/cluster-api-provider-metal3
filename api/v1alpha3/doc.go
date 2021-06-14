@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ limitations under the License.
 // +k8s:openapi-gen=true
 // +k8s:deepcopy-gen=package,register
 // +k8s:defaulter-gen=TypeMeta
-// +k8s:conversion-gen=github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4
+// +k8s:conversion-gen=github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5
 // +kubebuilder:object:generate=true
 // +groupName=infrastructure.cluster.x-k8s.io
 package v1alpha3

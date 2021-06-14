@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -79,7 +79,6 @@ type Metal3ClusterStatus struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:resource:path=metal3clusters,scope=Namespaced,categories=cluster-api,shortName=m3c;m3cluster;m3clusters;metal3c;metal3cluster
-// +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="metal3Cluster is Ready"

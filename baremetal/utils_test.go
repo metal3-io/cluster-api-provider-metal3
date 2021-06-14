@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,11 +23,13 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	//"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	//fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import (
 	// comment for go-lint
 	"github.com/go-logr/logr"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

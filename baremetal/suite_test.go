@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"

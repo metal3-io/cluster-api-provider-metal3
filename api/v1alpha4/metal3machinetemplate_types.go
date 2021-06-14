@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -34,7 +34,6 @@ type Metal3MachineTemplateSpec struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=metal3machinetemplates,scope=Namespaced,categories=cluster-api,shortName=m3mt;m3machinetemplate;m3machinetemplates;metal3mt;metal3machinetemplate
-// +kubebuilder:storageversion
 
 // Metal3MachineTemplate is the Schema for the metal3machinetemplates API
 type Metal3MachineTemplate struct {

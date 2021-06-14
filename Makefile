@@ -64,7 +64,7 @@ IMAGE_NAME ?= cluster-api-provider-metal3
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 BMO_IMAGE_NAME ?= baremetal-operator
 BMO_CONTROLLER_IMG ?= $(REGISTRY)/$(BMO_IMAGE_NAME)
-TAG ?= v1alpha4
+TAG ?= v1alpha5
 BMO_TAG ?= capm3-$(TAG)
 ARCH ?= amd64
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
@@ -264,6 +264,11 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
+		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
+		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
+	
+	$(CONVERSION_GEN) \
+		--input-dirs=./api/v1alpha4 \
 		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 

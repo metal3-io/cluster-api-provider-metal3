@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import (
 	// TODO Why blank import ?
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
 	capierrors "sigs.k8s.io/cluster-api/errors"

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ var (
 	AddToScheme = SchemeBuilder.AddToScheme
 
 	// localSchemeBuilder is for automatically generated conversions
-	// localSchemeBuilder = SchemeBuilder.SchemeBuilder
+	localSchemeBuilder = SchemeBuilder.SchemeBuilder
 )
 
 // Resource is required by pkg/client/listers/...
