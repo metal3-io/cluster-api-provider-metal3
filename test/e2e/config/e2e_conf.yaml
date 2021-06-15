@@ -18,9 +18,9 @@ providers:
   - name: cluster-api
     type: CoreProvider
     versions:
-      - name: v0.3.12
+      - name: v0.3.17
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.12/core-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.17/core-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -30,9 +30,9 @@ providers:
   - name: kubeadm
     type: BootstrapProvider
     versions:
-      - name: v0.3.12
+      - name: v0.3.17
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.12/bootstrap-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.17/bootstrap-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -42,9 +42,9 @@ providers:
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
-      - name: v0.3.12
+      - name: v0.3.17
         # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.12/control-plane-components.yaml"
+        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.17/control-plane-components.yaml"
         type: "url"
         replacements:
           - old: "imagePullPolicy: Always"
@@ -54,7 +54,7 @@ providers:
   - name: metal3
     type: InfrastructureProvider
     versions:
-    - name: v0.4.1
+    - name: v0.4.2
       value: "${PWD}/config"
     files:
     - sourcePath: "${PWD}/metadata.yaml"
@@ -65,7 +65,7 @@ providers:
       targetName: "cluster-template-ha.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.21.0"
+  KUBERNETES_VERSION: "v1.21.2"
   CNI: "./data/cni/calico/calico.yaml"
 
 intervals:
