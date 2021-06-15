@@ -31,7 +31,7 @@ M3_DEV_ENV_BRANCH=master
 M3_DEV_ENV_PATH="${WORKING_DIR}"/metal3-dev-env
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
-cp "${REPO_ROOT}"/hack/e2e/config_ubuntu.sh ${M3_DEV_ENV_PATH}
+cp "${REPO_ROOT}"/hack/e2e/config_ubuntu.sh "${M3_DEV_ENV_PATH}/config_$(whoami).sh"
 
 pushd ${M3_DEV_ENV_PATH} || exit 1
 make || exit 1

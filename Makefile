@@ -97,14 +97,9 @@ testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
 test: testprereqs fmt lint ## Run tests
 	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./controllers/... ./baremetal/... -coverprofile ./cover.out; cd api; go test -v ./... -coverprofile ./cover.out
 
-.PHONY: test-integration
-test-integration: ## Run integration tests
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v -tags=integration ./test/integration/...
-
 .PHONY: test-e2e
-test-e2e: ## Run e2e tests
-	PULL_POLICY=IfNotPresent $(MAKE) docker-build
-	go test -v -tags=e2e -timeout=1h ./test/e2e/... -args --managerImage $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+test-e2e: ## Run e2e tests with capi e2e testing framework
+	./scripts/ci-e2e.sh
 
 GINKGO_NOCOLOR ?= false
 ARTIFACTS ?= $(ROOT_DIR)/_artifacts
@@ -114,7 +109,7 @@ SKIP_CLEANUP ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
 .PHONY: e2e-tests
-e2e-tests: ## Run e2e tests with capi e2e testing framework
+e2e-tests: ## This target should be called from scripts/ci-e2e.sh
 	docker pull quay.io/metal3-io/cluster-api-provider-metal3
 	docker pull quay.io/metal3-io/baremetal-operator
 	docker pull quay.io/metal3-io/ip-address-manager
