@@ -65,7 +65,7 @@ providers:
       targetName: "cluster-template-ha.yaml"
 
 variables:
-  KUBERNETES_VERSION: "v1.21.0"
+  KUBERNETES_VERSION: "v1.21.1"
   CNI: "./data/cni/calico/calico.yaml"
 
 intervals:
