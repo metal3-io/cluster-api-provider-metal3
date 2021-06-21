@@ -22,5 +22,26 @@ patchesStrategicMerge:
 - bmo_pull_policy_patch.yaml
 - secret_mount_patch.yaml
 
+patchesJson6902:
+  - target:
+      group: cert-manager.io
+      version: v1
+      kind: Certificate
+      name: baremetal-operator-serving-cert
+      namespace: baremetal-operator-system
+    path: bmo_patch_cert_dns.yaml
+  - target:
+      group: admissionregistration.k8s.io
+      version: v1
+      kind: ValidatingWebhookConfiguration
+      name: baremetal-operator-validating-webhook-configuration
+    path: bmo_inject_ca_patch.yaml
+  - target:
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: baremetalhosts.metal3.io
+    path: bmo_inject_ca_patch.yaml
+
 configurations:
 - kustomizeconfig.yaml
