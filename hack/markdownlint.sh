@@ -14,6 +14,6 @@ else
     --volume "${PWD}:/workdir:ro,z" \
     --entrypoint sh \
     --workdir /workdir \
-    registry.hub.docker.com/pipelinecomponents/markdownlint:latest \
+    docker.io/pipelinecomponents/markdownlint:latest \
     /workdir/hack/markdownlint.sh "${@}"
 fi;

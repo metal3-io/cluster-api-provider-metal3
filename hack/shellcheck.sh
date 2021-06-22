@@ -14,6 +14,6 @@ else
     --volume "${PWD}:/workdir:ro,z" \
     --entrypoint sh \
     --workdir /workdir \
-    registry.hub.docker.com/koalaman/shellcheck-alpine:stable \
+    docker.io/koalaman/shellcheck-alpine:stable \
     /workdir/hack/shellcheck.sh "${@}"
 fi;
