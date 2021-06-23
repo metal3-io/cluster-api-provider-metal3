@@ -16,7 +16,7 @@ This doc gives short instructions how to run e2e tests. For the developing e2e t
 Run e2e tests with
 
 ```sh
-./scripts/ci-e2e.sh
+make test-e2e
 ```
 
 ## Cleanup
