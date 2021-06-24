@@ -1,4 +1,5 @@
 package e2e
+
 import (
 	"context"
 	"os"
@@ -42,6 +43,7 @@ var _ = Describe("Workload cluster creation", func() {
 	Context("Creating a highly available control-plane cluster", func() {
 		It("Should create a cluster with 3 control-plane and 1 worker nodes", func() {
 			By("Creating a high available cluster")
+			Expect(false).To(BeTrue())
 			result := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 				ClusterProxy: bootstrapClusterProxy,
 				ConfigCluster: clusterctl.ConfigClusterInput{
