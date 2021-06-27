@@ -256,7 +256,7 @@ The Metal3Machine contains information related to the deployment of the
 BareMetalHost such as the image and the host selector. For each machine, there
 must be a Metal3Machine.
 
-The fields are :
+The fields are:
 
 * **image** -- This includes two sub-fields, `url` and `checksum`, which
   include the URL to the image and the URL to a checksum for that image. These
@@ -293,6 +293,13 @@ The fields are :
 * **hostSelector** -- Specify criteria for matching labels on `BareMetalHost`
   objects. This can be used to limit the set of available `BareMetalHost`
   objects chosen for this `Machine`.
+
+* **automatedCleaningMode** -- An interface to enable or disable Ironic automated cleaning during provisioning
+  or deprovisioning of a host. When set to `disabled`, automated cleaning will be skipped, where
+  `metadata`(default) value enables it. It is recommended to tune the cleaning via metal3MachineTemplate rather than
+  metal3Machine. When `spec.template.spec.automatedCleaningMode` field of metal3MachineTemplate
+  is updated, metal3MachineTemplate controller will update all the metal3Machines (cloned from the metal3MachineTemplate)
+  and eventually BareMetalHosts with the same value.
 
 The `metaData` and `networkData` field in the `spec` section are for the user
 to give directly a secret to use as metaData or networkData. The `userData`,
@@ -520,7 +527,20 @@ The Metal3MachineTemplate contains following two specification fields:
 
 ### Enabling nodeReuse feature
 
-This feature can be desirable and enabled in scenarios such as upgrade/remediation, where root and externally attached disks of the BareMetalHosts needs to be left untouched and same pool of BareMetalHosts reused during the re-provisioning. To achieve that, `nodeReuse` field in `Metal3MachineTemplateSpec` must be set to `True`, and next CAPM3 Machine controller:
+This feature can be desirable and enabled in scenarios such as upgrade or node remediation. For example, the same pool of hosts need to be used after cluster upgrade and no data of secondary storage should be lost.
+To achieve that:
+
+1. `spec.nodeReuse` field of metal3MachineTemplate must be set to `True`. This tells that we want to reuse the same hosts
+  after the upgrade, or to be exact same BareMetalHosts should be provisioned.
+
+1. `spec.template.spec.automatedCleaningMode` field of metal3MachineTemplate must be set to `disabled`. This tells that we
+  want secondary/hosted storage data to persist even after upgrade.
+
+Above field changes need to be made before you start upgrading your cluster.
+
+#### Node Reuse flow
+
+When `spec.nodeReuse` field of metal3MachineTemplate is set to `True`, CAPM3 Machine controller:
 
 * Sets `infrastructure.cluster.x-k8s.io/node-reuse` label to the corresponding CAPI object name (`KubeadmControlPlane` or `MachineDeployment`) on the BareMetalHost during deprovisioning;
 * Selects the BareMetalHost that contains `infrastructure.cluster.x-k8s.io/node-reuse` label and matches exact same CAPI object name set in the previous step during next provisioning.
@@ -536,6 +556,7 @@ spec:
   nodeReuse: false
   template:
     spec:
+      automatedCleaningMode: metadata
       image:
         url: https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img
         checksum: https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img.md5sum

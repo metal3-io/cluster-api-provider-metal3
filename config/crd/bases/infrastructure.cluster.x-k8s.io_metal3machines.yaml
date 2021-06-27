@@ -256,6 +256,14 @@ spec:
           spec:
             description: Metal3MachineSpec defines the desired state of Metal3Machine
             properties:
+              automatedCleaningMode:
+                default: metadata
+                description: When set to disabled, automated cleaning will be skipped
+                  during provisioning and deprovisioning.
+                enum:
+                - metadata
+                - disabled
+                type: string
               dataTemplate:
                 description: MetadataTemplate is a reference to a Metal3DataTemplate
                   object containing a template of metadata to be rendered. Metadata

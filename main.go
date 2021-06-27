@@ -202,6 +202,14 @@ func setupReconcilers(mgr ctrl.Manager) {
 		CapiClientGetter: capm3remote.NewClusterClient,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3LabelSyncReconciler")
+	}
+
+	if err := (&controllers.Metal3MachineTemplateReconciler{
+		Client:         mgr.GetClient(),
+		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:            ctrl.Log.WithName("controllers").WithName("Metal3MachineTemplate"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Metal3MachineTemplateReconciler")
 		os.Exit(1)
 	}
 }
