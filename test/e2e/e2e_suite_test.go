@@ -4,13 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
-	"log"
 
-	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
+	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,7 +57,7 @@ var (
 	bootstrapClusterProxy framework.ClusterProxy
 
 	kubeconfigPath string
-	e2eTestsPath string
+	e2eTestsPath   string
 )
 
 func init() {
@@ -65,7 +65,7 @@ func init() {
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", true, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
-	flag.StringVar(&kubeconfigPath, "e2e.kubeconfig-path", os.Getenv("HOME") + "/.kube/config", "if e2e.use-existing-cluster is true, path to the kubeconfig file")
+	flag.StringVar(&kubeconfigPath, "e2e.kubeconfig-path", os.Getenv("HOME")+"/.kube/config", "if e2e.use-existing-cluster is true, path to the kubeconfig file")
 	e2eTestsPath = getE2eTestsPath()
 }
 
@@ -135,7 +135,7 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	_ = v1alpha3.AddToScheme(sc)
+	_ = v1alpha4.AddToScheme(sc)
 
 	return sc
 }
