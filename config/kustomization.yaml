@@ -8,7 +8,6 @@ bases:
 - webhook # Disable this if you're not using the webhook functionality.
 - default
 - ipam
-- bmo
 
 patchesJson6902:
 - target: # NOTE: This patch needs to be repeatd for EACH CustomResourceDefinition you have under crd/bases.

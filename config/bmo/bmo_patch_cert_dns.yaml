@@ -1,3 +1,0 @@
-- op: replace
-  path: "/spec/dnsNames/0"
-  value: capm3-baremetal-operator-webhook-service.capm3-system.svc
