@@ -23,7 +23,6 @@ import (
 	"time"
 
 	bmoapis "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1alpha3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha3"
 	infrav1alpha4 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
@@ -63,7 +62,6 @@ func init() {
 	_ = infrav1alpha4.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = bmoapis.AddToScheme(myscheme)
-	_ = infrav1alpha3.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 

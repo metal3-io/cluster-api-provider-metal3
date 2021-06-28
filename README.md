@@ -13,11 +13,14 @@ For more information about this actuator and related repositories, see
 
 | CAPM3 version | Cluster API version | CAPM3 Release |
 |---------------|---------------------|---------------|
-| v1alpha3      | v1alpha3            | v0.3.X        |
+| ~~v1alpha3~~  | ~~v1alpha3~~        | ~~v0.3.X~~    |
 | v1alpha4      | v1alpha3            | v0.4.X        |
+| v1alpha5      | v1alpha4            | v0.5.X        |
 
 You can find information on how to use this provider with Cluster API and
 clusterctl in the [getting-started](docs/getting-started.md).
+
+**Note:** We have stopped supporting CAPM3 v1alpha3
 
 ## Deploying the metal3 provider
 
