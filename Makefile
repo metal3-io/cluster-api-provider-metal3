@@ -104,17 +104,26 @@ test-e2e: ## Run e2e tests with capi e2e testing framework
 GINKGO_NOCOLOR ?= false
 ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
-E2E_CONF_FILE_ENVSUBST ?= $(ROOT_DIR)/test/e2e/config/e2e_conf_envsubst.yaml
+E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/templates/test
+E2E_ENVSUBST_DIR ?= $(ROOT_DIR)/test/e2e/_out
+E2E_CONF_FILE_ENVSUBST ?= $(E2E_ENVSUBST_DIR)/$(notdir $(E2E_CONF_FILE))
 SKIP_CLEANUP ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
+$(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml
+	mkdir -p $(E2E_ENVSUBST_DIR)
+	$(ENVSUBST) < $^ > $@
+
+## Processes all files from templates/test, as well as e2e_conf file
+.PHONY: e2e-substitutions
+e2e-substitutions: $(ENVSUBST) $(subst $(E2E_TEMPLATES_DIR),$(E2E_ENVSUBST_DIR),$(wildcard $(E2E_TEMPLATES_DIR)/*.yaml))
+	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
+
 .PHONY: e2e-tests
-e2e-tests: ## This target should be called from scripts/ci-e2e.sh
+e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e.sh
 	docker pull quay.io/metal3-io/cluster-api-provider-metal3
 	docker pull quay.io/metal3-io/baremetal-operator
 	docker pull quay.io/metal3-io/ip-address-manager
-	make envsubst
-	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
 	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
 		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
@@ -527,6 +536,7 @@ kind-reset: ## Destroys the "capm3" kind cluster.
 clean: ## Remove all generated files
 	$(MAKE) clean-bin
 	$(MAKE) clean-temporary
+	$(MAKE) clean-e2e
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
@@ -546,6 +556,10 @@ clean-release: ## Remove the release folder
 clean-examples: ## Remove all the temporary files generated in the examples folder
 	rm -rf examples/_out/
 	rm -f examples/provider-components/provider-components-*.yaml
+
+clean-e2e:
+	rm -f $(E2E_CONF_FILE_ENVSUBST)
+	rm -rf $(E2E_ENVSUBST_DIR)
 
 .PHONY: verify
 verify: verify-boilerplate verify-modules
