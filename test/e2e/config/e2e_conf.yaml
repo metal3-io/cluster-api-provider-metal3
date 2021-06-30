@@ -61,6 +61,8 @@ providers:
       targetName: "metadata.yaml"
     - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha.yaml"
       targetName: "cluster-template-ha.yaml"
+    - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha-centos.yaml"
+      targetName: "cluster-template-ha-centos.yaml"
 
 variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
