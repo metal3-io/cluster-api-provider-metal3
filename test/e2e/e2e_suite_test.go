@@ -23,6 +23,12 @@ import (
 
 const (
 	KubernetesVersion = "KUBERNETES_VERSION"
+	IronicNamespace   = "IRONIC_NAMESPACE"
+	BmoPath           = "BMOPATH"
+	IronicDataDir     = "IRONIC_DATA_DIR"
+	IronicTLSEnable   = "IRONIC_TLS_SETUP"
+	IronicBasicAuth   = "IRONIC_BASIC_AUTH"
+	IronicHost        = "IRONIC_HOST"
 )
 
 // Test suite flags.
