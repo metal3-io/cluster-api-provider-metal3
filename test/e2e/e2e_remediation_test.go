@@ -42,76 +42,71 @@ var _ = Describe("Remedation Pivoting", func() {
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, cluster, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
-	Context("Creating a highly available control-plane cluster", func() {
-		It("Should create a cluster with 3 control-plane and 1 worker nodes", func() {
-			By("Creating a high available cluster")
-			result := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-				ClusterProxy: bootstrapClusterProxy,
-				ConfigCluster: clusterctl.ConfigClusterInput{
-					LogFolder:                clusterctlLogFolder,
-					ClusterctlConfigPath:     clusterctlConfigPath,
-					KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
-					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-					Flavor:                   "ha",
-					Namespace:                namespace,
-					ClusterName:              clusterName,
-					KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
-					ControlPlaneMachineCount: pointer.Int64Ptr(3),
-					WorkerMachineCount:       pointer.Int64Ptr(1),
-				},
-				CNIManifestPath:              e2eTestsPath + "/data/cni/calico/calico.yaml",
-				WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
-				WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
-				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-			})
-			cluster = result.Cluster
+	Specify("Test remediation", func() {
+		By("Creting a a cluster with 3 control-plane and 1 worker nodes")
+		result := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+			ClusterProxy: bootstrapClusterProxy,
+			ConfigCluster: clusterctl.ConfigClusterInput{
+				LogFolder:                clusterctlLogFolder,
+				ClusterctlConfigPath:     clusterctlConfigPath,
+				KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
+				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				Flavor:                   "ha",
+				Namespace:                namespace,
+				ClusterName:              clusterName,
+				KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
+				ControlPlaneMachineCount: pointer.Int64Ptr(3),
+				WorkerMachineCount:       pointer.Int64Ptr(1),
+			},
+			CNIManifestPath:              e2eTestsPath + "/data/cni/calico/calico.yaml",
+			WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
+			WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
+			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
+		cluster = result.Cluster
 
-		It("Rebooted node should become Ready", func() {
-			// targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, clusterName, namespace)
+		By("Checking that rebooted node becomes Ready")
+		// targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, clusterName, namespace)
 
-			By("Check if machines are running.")
-			fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
-			lister := bootstrapClusterProxy.GetClient()
-			Eventually(func() error {
-				machines := &clusterv1.MachineList{}
+		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
+		lister := bootstrapClusterProxy.GetClient()
+		Eventually(func() error {
+			machines := &clusterv1.MachineList{}
 
-				if err := lister.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
-					return err
+			if err := lister.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
+				return err
+			}
+			fmt.Println("Machines:", machines)
+			if len(machines.Items) != 4 {
+				return errors.New("MachineList should have length 4")
+			}
+			Expect(machines.Items).To((HaveLen(4)))
+			for _, machine := range machines.Items {
+				if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
+					return errors.New("Machine is not in 'running' phase")
 				}
-				fmt.Println("Machines:", machines)
-				if len(machines.Items) != 4 {
-					return errors.New("MachineList should have length 4")
-				}
-				Expect(machines.Items).To((HaveLen(4)))
-				for _, machine := range machines.Items {
-					if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
-						return errors.New("Machine is not in 'running' phase")
-					}
-				}
-				return nil
-			}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
+			}
+			return nil
+		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
 
-			// 		  - name: Fetch the target cluster kubeconfig
-			//     shell: "kubectl get secrets {{ CLUSTER_NAME }}-kubeconfig -n {{ NAMESPACE }} -o json | jq -r '.data.value'| base64 -d > /tmp/kubeconfig-{{ CLUSTER_NAME }}.yaml"
+		// 		  - name: Fetch the target cluster kubeconfig
+		//     shell: "kubectl get secrets {{ CLUSTER_NAME }}-kubeconfig -n {{ NAMESPACE }} -o json | jq -r '.data.value'| base64 -d > /tmp/kubeconfig-{{ CLUSTER_NAME }}.yaml"
 
-			//   # Reboot a single worker node
-			//   - name: Reboot "{{ WORKER_BMH }}"
-			//     shell: |
-			//        kubectl annotate bmh "{{ WORKER_BMH }}" -n "{{ NAMESPACE }}" reboot.metal3.io=
+		//   # Reboot a single worker node
+		//   - name: Reboot "{{ WORKER_BMH }}"
+		//     shell: |
+		//        kubectl annotate bmh "{{ WORKER_BMH }}" -n "{{ NAMESPACE }}" reboot.metal3.io=
 
-			//   - name: List only powered off VMs
-			//     virt:
-			//       command: list_vms
-			//       state: shutdown
-			//     register: shutdown_vms
-			//     retries: 50
-			//     delay: 10
-			//     until: WORKER_VM in shutdown_vms.list_vms
-			//     become: yes
-			//     become_user: root
-
-		})
+		//   - name: List only powered off VMs
+		//     virt:
+		//       command: list_vms
+		//       state: shutdown
+		//     register: shutdown_vms
+		//     retries: 50
+		//     delay: 10
+		//     until: WORKER_VM in shutdown_vms.list_vms
+		//     become: yes
+		//     become_user: root
 
 	})
 
