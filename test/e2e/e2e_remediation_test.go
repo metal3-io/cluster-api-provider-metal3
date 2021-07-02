@@ -72,13 +72,17 @@ var _ = Describe("Remedation Pivoting", func() {
 
 			By("Check if machines are running.")
 			fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
+			lister := bootstrapClusterProxy.GetClient()
 			Eventually(func() error {
 				machines := &clusterv1.MachineList{}
 
-				if err := bootstrapClusterProxy.GetClient().List(ctx, machines, client.InNamespace(namespace)); err != nil {
+				if err := lister.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
 					return err
 				}
 				fmt.Println("Machines:", machines)
+				if len(machines.Items) != 4 {
+					return errors.New("MachineList should have length 4")
+				}
 				Expect(machines.Items).To((HaveLen(4)))
 				for _, machine := range machines.Items {
 					if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
@@ -112,3 +116,13 @@ var _ = Describe("Remedation Pivoting", func() {
 	})
 
 })
+
+// byClusterOptions returns a set of ListOptions that allows to identify all the objects belonging to a Cluster.
+func byClusterOptions(name, namespace string) []client.ListOption {
+	return []client.ListOption{
+		client.InNamespace(namespace),
+		client.MatchingLabels{
+			clusterv1.ClusterLabelName: name,
+		},
+	}
+}
