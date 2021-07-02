@@ -78,6 +78,7 @@ var _ = Describe("Remedation Pivoting", func() {
 					return err
 				}
 				fmt.Println("Machines:", machines)
+				Expect(machines).To((HaveLen(4)))
 				for _, machine := range machines.Items {
 					if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
 						return errors.New("Machine is not in 'running' phase")
