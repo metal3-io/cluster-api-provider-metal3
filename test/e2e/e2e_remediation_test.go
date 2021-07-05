@@ -99,7 +99,11 @@ var _ = Describe("Remedation Pivoting", func() {
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
 
+		workloadCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+		fmt.Println("workloadCluster", workloadCluster)
+
 		hosts := bmh.BareMetalHostList{}
+
 		err := lister.List(ctx, &hosts, client.InNamespace(namespace))
 		Expect(err).NotTo(HaveOccurred())
 
