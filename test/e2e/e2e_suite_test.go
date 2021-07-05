@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -135,7 +136,8 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	_ = v1alpha4.AddToScheme(sc)
+	Expect(v1alpha1.AddToScheme(sc)).NotTo(HaveOccurred())
+	Expect(v1alpha4.AddToScheme(sc)).NotTo(HaveOccurred())
 
 	return sc
 }
