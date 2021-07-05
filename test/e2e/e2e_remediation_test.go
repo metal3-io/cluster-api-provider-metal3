@@ -103,19 +103,7 @@ var _ = Describe("Remedation Pivoting", func() {
 		workloadCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		fmt.Println("workloadCluster", workloadCluster)
 
-		bmhs := &bmh.BareMetalHostList{}
-		Eventually(func() error {
-			if err := client.List(ctx, bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
-				fmt.Println(err)
-				return err
-			}
-			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(BeNil())
-
-		for _, bmh := range bmhs.Items {
-			fmt.Printf("bmh: %+v\n", bmh)
-			fmt.Printf("bmh annotations: %+v\n", bmh.GetAnnotations())
-		}
+		bmhs := getAllBMH(ctx, client, clusterName, namespace, specName)
 
 		bmh := &bmhs.Items[2]
 		key := "reboot.metal3.io"
@@ -132,6 +120,8 @@ var _ = Describe("Remedation Pivoting", func() {
 		Expect(err).ToNot(HaveOccurred())
 		err = helper.Patch(ctx, bmh)
 		Expect(err).NotTo(HaveOccurred())
+
+		getAllBMH(ctx, client, clusterName, namespace, specName)
 
 		// hosts := bmh.BareMetalHostList{}
 
@@ -162,6 +152,26 @@ var _ = Describe("Remedation Pivoting", func() {
 	})
 
 })
+
+func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace, specName string) bmh.BareMetalHostList {
+
+	bmhs := bmh.BareMetalHostList{}
+	Eventually(func() error {
+		if err := client.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
+			fmt.Println(err)
+			return err
+		}
+		return nil
+	}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(BeNil())
+
+	for _, bmh := range bmhs.Items {
+		fmt.Printf("bmh: %+v\n", bmh)
+		fmt.Printf("bmh annotations: %+v\n", bmh.GetAnnotations())
+	}
+
+	return bmhs
+
+}
 
 // func getHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
 // 	mLog logr.Logger,
