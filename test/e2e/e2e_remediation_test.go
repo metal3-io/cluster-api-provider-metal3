@@ -105,7 +105,7 @@ var _ = Describe("Remedation Pivoting", func() {
 		Eventually(func() error {
 			bmhs := &bmh.BareMetalHostList{}
 
-			if err := workloadCluster.GetClient().List(ctx, bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
+			if err := lister.List(ctx, bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
 				fmt.Println(err)
 				return err
 			}
