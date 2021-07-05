@@ -95,7 +95,6 @@ var _ = Describe("Remedation Pivoting", func() {
 				if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
 					return errors.New("Machine is not in 'running' phase")
 				}
-				fmt.Println("annotations: ", machine.GetAnnotations())
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
@@ -106,6 +105,7 @@ var _ = Describe("Remedation Pivoting", func() {
 		bmhs := getAllBMH(ctx, client, clusterName, namespace, specName)
 
 		bmh := &bmhs.Items[2]
+		helper, err := patch.NewHelper(bmh, client)
 		key := "reboot.metal3.io"
 		fmt.Printf("marking BMH for reboot %+v\n", bmh)
 
@@ -115,10 +115,8 @@ var _ = Describe("Remedation Pivoting", func() {
 			annotations = make(map[string]string)
 		}
 		annotations[key] = ""
-
 		bmh.SetAnnotations(annotations)
 		fmt.Printf("Patching bmh: %+v\n", bmh)
-		helper, err := patch.NewHelper(bmh, client)
 		Expect(err).ToNot(HaveOccurred())
 		err = helper.Patch(ctx, bmh)
 		Expect(err).NotTo(HaveOccurred())
