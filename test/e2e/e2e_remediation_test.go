@@ -102,15 +102,16 @@ var _ = Describe("Remedation Pivoting", func() {
 		workloadCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		fmt.Println("workloadCluster", workloadCluster)
 
+		bmhs := &bmh.BareMetalHostList{}
 		Eventually(func() error {
-			bmhs := &bmh.BareMetalHostList{}
-
 			if err := lister.List(ctx, bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
 				fmt.Println(err)
 				return err
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(BeNil())
+
+		fmt.Println("BMHs", bmhs)
 
 		// hosts := bmh.BareMetalHostList{}
 
