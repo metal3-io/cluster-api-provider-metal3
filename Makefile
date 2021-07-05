@@ -107,7 +107,7 @@ E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
 E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/templates/test
 E2E_ENVSUBST_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_ENVSUBST_DIR)/$(notdir $(E2E_CONF_FILE))
-SKIP_CLEANUP ?= false
+SKIP_CLEANUP ?= true
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
 $(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml
@@ -130,7 +130,16 @@ e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
-	rm $(E2E_CONF_FILE_ENVSUBST)
+
+e2e-tests-rerun: e2e-substitutions
+	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
+		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
+		-ginkgo.focus="Run test"
+		-e2e.artifacts-folder="$(ARTIFACTS)" \
+		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
+		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
+		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
+	
 
 ## --------------------------------------
 ## Binaries

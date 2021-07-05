@@ -42,9 +42,9 @@ var _ = Describe("Remedation Pivoting", func() {
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, cluster, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
-	Specify("Test remediation", func() {
-		By("Creting a a cluster with 3 control-plane and 1 worker nodes")
-		result := clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+	It("Apply cluster", func() {
+		By("Creating a a cluster with 3 control-plane and 1 worker nodes")
+		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: bootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                clusterctlLogFolder,
@@ -63,7 +63,17 @@ var _ = Describe("Remedation Pivoting", func() {
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
-		cluster = result.Cluster
+
+	})
+
+	It("Run test remediation", func() {
+
+		// log.Logf("Waiting for the cluster infrastructure to be detected")
+		// cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+		// 	Getter:    input.ClusterProxy.GetClient(),
+		// 	Namespace: input.ConfigCluster.Namespace,
+		// 	Name:      input.ConfigCluster.ClusterName,
+		// }, input.WaitForClusterIntervals...)
 
 		By("Checking that rebooted node becomes Ready")
 		// targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, clusterName, namespace)
