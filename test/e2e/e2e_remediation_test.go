@@ -46,7 +46,7 @@ var _ = Describe("Remedation Pivoting", func() {
 
 	It("Apply cluster", func() {
 		By("Creating a a cluster with 3 control-plane and 1 worker nodes")
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		cluster = clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: bootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
 				LogFolder:                clusterctlLogFolder,
@@ -64,7 +64,7 @@ var _ = Describe("Remedation Pivoting", func() {
 			WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-		})
+		}).Cluster
 
 	})
 
