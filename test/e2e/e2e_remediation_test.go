@@ -104,7 +104,7 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		hosts := bmh.BareMetalHostList{}
 
-		err := lister.List(ctx, &hosts, client.InNamespace(namespace))
+		err := workloadCluster.GetClient().List(ctx, &hosts, client.InNamespace(namespace))
 		Expect(err).NotTo(HaveOccurred())
 
 		fmt.Println(hosts)
