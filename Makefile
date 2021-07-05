@@ -131,10 +131,10 @@ e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 
-e2e-tests-rerun: e2e-substitutions
+e2e-tests-rerun:
 	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
 		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
-		-ginkgo.focus="Run test"
+		-ginkgo.focus="Run test" \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
