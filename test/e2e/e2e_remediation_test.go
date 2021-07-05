@@ -111,6 +111,10 @@ var _ = Describe("Remedation Pivoting", func() {
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(BeNil())
 
+		for _, bmh := range bmhs.Items {
+			fmt.Printf("bmh: %+v\n", bmh)
+			fmt.Printf("bmh annotations: %+v\n", bmh.GetAnnotations())
+		}
 		fmt.Println("BMHs", bmhs)
 
 		// hosts := bmh.BareMetalHostList{}
