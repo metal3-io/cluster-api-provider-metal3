@@ -102,12 +102,22 @@ var _ = Describe("Remedation Pivoting", func() {
 		workloadCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		fmt.Println("workloadCluster", workloadCluster)
 
-		hosts := bmh.BareMetalHostList{}
+		Eventually(func() error {
+			bmhs := &bmh.BareMetalHostList{}
 
-		err := workloadCluster.GetClient().List(ctx, &hosts, client.InNamespace(namespace))
-		Expect(err).NotTo(HaveOccurred())
+			if err := lister.List(ctx, bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
+				fmt.Println(err)
+				return err
+			}
+			return nil
+		}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(BeNil())
 
-		fmt.Println(hosts)
+		// hosts := bmh.BareMetalHostList{}
+
+		// err := workloadCluster.GetClient().List(ctx, &hosts, client.InNamespace(namespace))
+		// Expect(err).NotTo(HaveOccurred())
+
+		// fmt.Println(hosts)
 
 		// 		  - name: Fetch the target cluster kubeconfig
 		//     shell: "kubectl get secrets {{ CLUSTER_NAME }}-kubeconfig -n {{ NAMESPACE }} -o json | jq -r '.data.value'| base64 -d > /tmp/kubeconfig-{{ CLUSTER_NAME }}.yaml"
