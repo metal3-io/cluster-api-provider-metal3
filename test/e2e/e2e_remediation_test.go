@@ -107,15 +107,17 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		bmh := &bmhs.Items[2]
 		key := "reboot.metal3.io"
-		fmt.Printf("markin BMH for reboot %+v\n", bmh)
+		fmt.Printf("marking BMH for reboot %+v\n", bmh)
 
 		annotations := bmh.GetAnnotations()
 
 		if annotations == nil {
-			bmh.Annotations = make(map[string]string)
+			annotations = make(map[string]string)
 		}
-		bmh.Annotations[key] = ""
+		annotations[key] = ""
 
+		bmh.SetAnnotations(annotations)
+		fmt.Printf("Patching bmh: %+v\n", bmh)
 		helper, err := patch.NewHelper(bmh, client)
 		Expect(err).ToNot(HaveOccurred())
 		err = helper.Patch(ctx, bmh)
