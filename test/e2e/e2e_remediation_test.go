@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
@@ -86,10 +88,7 @@ var _ = Describe("Remedation Pivoting", func() {
 			if err := lister.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
 				return err
 			}
-			fmt.Println("Machines:", machines)
-			if len(machines.Items) != 4 {
-				return errors.New("MachineList should have length 4")
-			}
+
 			Expect(machines.Items).To((HaveLen(4)))
 			for _, machine := range machines.Items {
 				if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
@@ -98,6 +97,12 @@ var _ = Describe("Remedation Pivoting", func() {
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
+
+		hosts := bmh.BareMetalHostList{}
+		err := lister.List(ctx, &hosts, byClusterOptions(clusterName, namespace)...)
+		Expect(err).NotTo(HaveOccurred())
+
+		fmt.Println(hosts)
 
 		// 		  - name: Fetch the target cluster kubeconfig
 		//     shell: "kubectl get secrets {{ CLUSTER_NAME }}-kubeconfig -n {{ NAMESPACE }} -o json | jq -r '.data.value'| base64 -d > /tmp/kubeconfig-{{ CLUSTER_NAME }}.yaml"
@@ -121,6 +126,77 @@ var _ = Describe("Remedation Pivoting", func() {
 	})
 
 })
+
+// func getHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
+// 	mLog logr.Logger,
+// ) (*bmh.BareMetalHost, error) {
+// 	annotations := m3Machine.ObjectMeta.GetAnnotations()
+// 	if annotations == nil {
+// 		return nil, nil
+// 	}
+// 	hostKey, ok := annotations[HostAnnotation]
+// 	if !ok {
+// 		return nil, nil
+// 	}
+// 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
+// 	if err != nil {
+// 		mLog.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+// 		return nil, err
+// 	}
+
+// 	host := bmh.BareMetalHost{}
+// 	key := client.ObjectKey{
+// 		Name:      hostName,
+// 		Namespace: hostNamespace,
+// 	}
+// 	err = cl.Get(ctx, key, &host)
+// 	if apierrors.IsNotFound(err) {
+// 		mLog.Info("Annotated host not found", "host", hostKey)
+// 		return nil, nil
+// 	} else if err != nil {
+// 		return nil, err
+// 	}
+// 	return &host, nil
+// }
+
+// // SetPauseAnnotation sets the pause annotations on associated bmh
+// func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
+// 	// look for associated BMH
+// 	host, helper, err := m.getHost(ctx)
+// 	if err != nil {
+// 		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
+// 			capierrors.UpdateMachineError,
+// 		)
+// 		return err
+// 	}
+// 	if host == nil {
+// 		return nil
+// 	}
+
+// 	annotations := host.GetAnnotations()
+
+// 	if annotations != nil {
+// 		if _, ok := annotations[bmh.PausedAnnotation]; ok {
+// 			m.Log.Info("BaremetalHost is already paused")
+// 			return nil
+// 		}
+// 	} else {
+// 		host.Annotations = make(map[string]string)
+// 	}
+// 	m.Log.Info("Adding PausedAnnotation in BareMetalHost")
+// 	host.Annotations[bmh.PausedAnnotation] = PausedAnnotationKey
+
+// 	// Setting annotation with BMH status
+// 	newAnnotation, err := json.Marshal(&host.Status)
+// 	if err != nil {
+// 		m.SetError("Failed to marshal the BareMetalHost status",
+// 			capierrors.UpdateMachineError,
+// 		)
+// 		return errors.Wrap(err, "failed to marshall status annotation")
+// 	}
+// 	host.Annotations[bmh.StatusAnnotation] = string(newAnnotation)
+// 	return helper.Patch(ctx, host)
+// }
 
 // byClusterOptions returns a set of ListOptions that allows to identify all the objects belonging to a Cluster.
 func byClusterOptions(name, namespace string) []client.ListOption {
