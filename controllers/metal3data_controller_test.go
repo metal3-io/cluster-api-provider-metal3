@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
@@ -62,7 +62,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError          bool
 			expectRequeue        bool
 			expectManager        bool
-			m3d                  *infrav1.Metal3Data
+			m3d                  *infrav1alpha5.Metal3Data
 			cluster              *capi.Cluster
 			managerError         bool
 			reconcileNormal      bool
@@ -143,17 +143,17 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			Entry("Metal3Data not found", testCaseReconcile{}),
 			Entry("Missing cluster label", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: testObjectMeta,
 				},
 			}),
 			Entry("Cluster not found", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
 			}),
 			Entry("Deletion, Cluster not found", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
 						Namespace: "myns",
@@ -166,7 +166,7 @@ var _ = Describe("Metal3Data manager", func() {
 				expectManager: true,
 			}),
 			Entry("Deletion, release requeue", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
 						Namespace: "myns",
@@ -181,7 +181,7 @@ var _ = Describe("Metal3Data manager", func() {
 				releaseLeasesRequeue: true,
 			}),
 			Entry("Deletion, release error", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
 						Namespace: "myns",
@@ -196,7 +196,7 @@ var _ = Describe("Metal3Data manager", func() {
 				releaseLeasesError: true,
 			}),
 			Entry("Paused cluster", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
@@ -208,7 +208,7 @@ var _ = Describe("Metal3Data manager", func() {
 				expectRequeue: true,
 			}),
 			Entry("Error in manager", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
@@ -217,7 +217,7 @@ var _ = Describe("Metal3Data manager", func() {
 				managerError: true,
 			}),
 			Entry("Reconcile normal error", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
@@ -228,7 +228,7 @@ var _ = Describe("Metal3Data manager", func() {
 				expectManager:        true,
 			}),
 			Entry("Reconcile normal no error", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
 				cluster: &capi.Cluster{
@@ -388,12 +388,12 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("OwnerRefs", testCaseMetal3IPClaimToMetal3Data{
 			ownerRefs: []metav1.OwnerReference{
 				{
-					APIVersion: infrav1.GroupVersion.String(),
+					APIVersion: infrav1alpha5.GroupVersion.String(),
 					Kind:       "Metal3Data",
 					Name:       "abc",
 				},
 				{
-					APIVersion: infrav1.GroupVersion.String(),
+					APIVersion: infrav1alpha5.GroupVersion.String(),
 					Kind:       "Metal3DataClaim",
 					Name:       "bcd",
 				},
