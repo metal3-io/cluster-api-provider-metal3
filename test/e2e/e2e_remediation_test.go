@@ -15,6 +15,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -81,11 +82,11 @@ var _ = Describe("Remedation Pivoting", func() {
 		// targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, clusterName, namespace)
 
 		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
-		lister := bootstrapClusterProxy.GetClient()
+		client := bootstrapClusterProxy.GetClient()
 		Eventually(func() error {
 			machines := &clusterv1.MachineList{}
 
-			if err := lister.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
+			if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
 				return err
 			}
 
@@ -104,7 +105,7 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		bmhs := &bmh.BareMetalHostList{}
 		Eventually(func() error {
-			if err := lister.List(ctx, bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
+			if err := client.List(ctx, bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
 				fmt.Println(err)
 				return err
 			}
@@ -115,7 +116,22 @@ var _ = Describe("Remedation Pivoting", func() {
 			fmt.Printf("bmh: %+v\n", bmh)
 			fmt.Printf("bmh annotations: %+v\n", bmh.GetAnnotations())
 		}
-		fmt.Println("BMHs", bmhs)
+
+		bmh := &bmhs.Items[2]
+		key := "reboot.metal3.io"
+		fmt.Printf("markin BMH for reboot %+v\n", bmh)
+
+		annotations := bmh.GetAnnotations()
+
+		if annotations == nil {
+			bmh.Annotations = make(map[string]string)
+		}
+		bmh.Annotations[key] = ""
+
+		helper, err := patch.NewHelper(bmh, client)
+		Expect(err).ToNot(HaveOccurred())
+		err = helper.Patch(ctx, bmh)
+		Expect(err).NotTo(HaveOccurred())
 
 		// hosts := bmh.BareMetalHostList{}
 
