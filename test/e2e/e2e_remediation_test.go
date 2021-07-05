@@ -94,12 +94,13 @@ var _ = Describe("Remedation Pivoting", func() {
 				if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
 					return errors.New("Machine is not in 'running' phase")
 				}
+				fmt.Println("annotations: ", machine.GetAnnotations())
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
 
 		hosts := bmh.BareMetalHostList{}
-		err := lister.List(ctx, &hosts, byClusterOptions(clusterName, namespace)...)
+		err := lister.List(ctx, &hosts, client.InNamespace(namespace))
 		Expect(err).NotTo(HaveOccurred())
 
 		fmt.Println(hosts)
