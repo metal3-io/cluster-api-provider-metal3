@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 
@@ -120,6 +121,8 @@ var _ = Describe("Remedation Pivoting", func() {
 		Expect(err).ToNot(HaveOccurred())
 		err = helper.Patch(ctx, bmh)
 		Expect(err).NotTo(HaveOccurred())
+
+		time.Sleep(10 * time.Second)
 
 		getAllBMH(ctx, client, clusterName, namespace, specName)
 
