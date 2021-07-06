@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -155,6 +156,24 @@ var _ = Describe("Remedation Pivoting", func() {
 	})
 
 })
+
+func listPoweredOffVMs() []string {
+	cmd := exec.Command("virsh", "list", "--state-shutoff", "--name")
+	fmt.Println("Running command", cmd)
+	result, err := cmd.Output()
+	Expect(err).NotTo(HaveOccurred())
+
+	// virsh returns some empty lines which need to be removed
+	lines := strings.Split(string(result), "\n")
+	i := 0
+	for _, line := range lines {
+		if line != "" {
+			lines[i] = line
+			i++
+		}
+	}
+	return lines[:i]
+}
 
 func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace, specName string) bmh.BareMetalHostList {
 
