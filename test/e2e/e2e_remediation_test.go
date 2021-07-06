@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 
@@ -106,8 +105,12 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		bmhs := getAllBMH(ctx, client, clusterName, namespace, specName)
 
+		// TODO select the worker VM
 		bmh := &bmhs.Items[2]
+
 		helper, err := patch.NewHelper(bmh, client)
+		Expect(err).ToNot(HaveOccurred())
+
 		key := "reboot.metal3.io"
 		fmt.Printf("marking BMH for reboot %+v\n", bmh)
 
@@ -119,13 +122,26 @@ var _ = Describe("Remedation Pivoting", func() {
 		annotations[key] = ""
 		bmh.SetAnnotations(annotations)
 		fmt.Printf("Patching bmh: %+v\n", bmh)
-		Expect(err).ToNot(HaveOccurred())
-		err = helper.Patch(ctx, bmh)
-		Expect(err).NotTo(HaveOccurred())
 
-		time.Sleep(10 * time.Second)
+		Expect(helper.Patch(ctx, bmh)).To(Succeed())
 
-		getAllBMH(ctx, client, clusterName, namespace, specName)
+		fmt.Printf("The bmh: %#v\n", bmh)
+
+		// wait for the rebooted node to show as powered off
+		Eventually(func() error {
+			vms := listPoweredOffVMs()
+			fmt.Printf("Looking for vm %#v among %#v \n", bmh.Name, vms)
+			for _, name := range vms {
+				if name == strings.ReplaceAll(bmh.Name, "-", "_") {
+					return nil
+				}
+			}
+			return fmt.Errorf("VM '%s' not listed as shut down", bmh.Name)
+
+		}, e2eConfig.GetIntervals(specName, "wait-machine-shutoff")...).Should(BeNil())
+		fmt.Printf("%#v\n", listPoweredOffVMs())
+
+		// getAllBMH(ctx, client, clusterName, namespace, specName)
 
 		// hosts := bmh.BareMetalHostList{}
 

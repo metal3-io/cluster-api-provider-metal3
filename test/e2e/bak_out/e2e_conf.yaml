@@ -55,15 +55,15 @@ providers:
     type: InfrastructureProvider
     versions:
     - name: v0.4.2
-      value: "${PWD}/config"
+      value: "/home/ubuntu/sync/472-remediation-test/bml-wgeisler-3/cluster-api-provider-metal3/config"
     files:
-    - sourcePath: "${PWD}/metadata.yaml"
+    - sourcePath: "/home/ubuntu/sync/472-remediation-test/bml-wgeisler-3/cluster-api-provider-metal3/metadata.yaml"
       targetName: "metadata.yaml"
-    - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha.yaml"
+    - sourcePath: "/home/ubuntu/sync/472-remediation-test/bml-wgeisler-3/cluster-api-provider-metal3/test/e2e/_out/cluster-template-prow-ha.yaml"
       targetName: "cluster-template-ha.yaml"
 
 variables:
-  KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
+  KUBERNETES_VERSION: "v1.21.2"
   CNI: "./data/cni/calico/calico.yaml"
 
 intervals:
@@ -74,7 +74,6 @@ intervals:
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["50m", "10s"]
   default/wait-machine-remediation: ["30m", "10s"]
-  default/wait-machine-shutoff: ["2m", "500ms"]
   default/wait-deployment: ["5m", "10s"]
   default/wait-job: ["5m", "10s"]
   default/wait-service: ["3m", "10s"]
