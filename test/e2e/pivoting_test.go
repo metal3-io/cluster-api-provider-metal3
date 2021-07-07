@@ -116,7 +116,7 @@ var _ = Describe("Doing Pivoting", func() {
 			Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
 
 			By("Initialize Provider component in target cluster")
-			Init(ctx.TODO(), InitInput{
+			clusterctl.Init(context.TODO(), clusterctl.InitInput{
 				KubeconfigPath:          targetCluster.GetKubeconfigPath(),
 				ClusterctlConfigPath:    clusterctlConfigPath,
 				CoreProvider:            config.ClusterAPIProviderName,
