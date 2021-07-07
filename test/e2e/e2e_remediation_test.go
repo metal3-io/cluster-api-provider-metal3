@@ -29,6 +29,7 @@ const (
 	SHUTOFF
 	OTHER
 )
+const REBOOT_ANNOTATION = "reboot.metal3.io"
 
 var _ = Describe("Remedation Pivoting", func() {
 	var (
@@ -123,11 +124,11 @@ var _ = Describe("Remedation Pivoting", func() {
 		bmhs := getAllBMH(ctx, client, clusterName, namespace, specName)
 
 		// TODO select the worker VM
-		bmh := &bmhs.Items[2]
-		vmName := bmhToVmName(*bmh)
+		host := &bmhs.Items[2]
+		vmName := bmhToVmName(*host)
 
 		By("Rebooting a BareMetalHost")
-		rebootBmh(ctx, client, bmh)
+		rebootBmh(ctx, client, host)
 
 		// wait for the rebooted node to show as powered off
 		Eventually(func() error {
@@ -138,7 +139,7 @@ var _ = Describe("Remedation Pivoting", func() {
 					return nil
 				}
 			}
-			return fmt.Errorf("VM '%s' not listed as shut down", bmh.Name)
+			return fmt.Errorf("VM '%s' not listed as shut down", host.Name)
 		}, e2eConfig.GetIntervals(specName, "wait-machine-shutoff")...).Should(BeNil())
 
 		// TODO wait for NonReady and Ready states
@@ -152,7 +153,7 @@ var _ = Describe("Remedation Pivoting", func() {
 					return nil
 				}
 			}
-			return fmt.Errorf("VM '%s' not listed as shut down", bmh.Name)
+			return fmt.Errorf("VM '%s' not listed as shut down", host.Name)
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
 
 		// getAllBMH(ctx, client, clusterName, namespace, specName)
@@ -187,19 +188,18 @@ var _ = Describe("Remedation Pivoting", func() {
 
 })
 
-func rebootBmh(ctx context.Context, client client.Client, bmh *bmh.BareMetalHost) {
-	helper, err := patch.NewHelper(bmh, client)
+func rebootBmh(ctx context.Context, client client.Client, host *bmh.BareMetalHost) {
+	helper, err := patch.NewHelper(host, client)
 	Expect(err).ToNot(HaveOccurred())
 
-	key := "reboot.metal3.io"
-	annotations := bmh.GetAnnotations()
+	annotations := host.GetAnnotations()
 
 	if annotations == nil {
 		annotations = make(map[string]string)
 	}
-	annotations[key] = ""
-	bmh.SetAnnotations(annotations)
-	Expect(helper.Patch(ctx, bmh)).To(Succeed())
+	annotations[REBOOT_ANNOTATION] = ""
+	host.SetAnnotations(annotations)
+	Expect(helper.Patch(ctx, host)).To(Succeed())
 }
 
 func metal3MachineToBmhName(m3machine v1alpha4.Metal3Machine) string {
@@ -207,8 +207,8 @@ func metal3MachineToBmhName(m3machine v1alpha4.Metal3Machine) string {
 }
 
 // Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object
-func bmhToVmName(bmh bmh.BareMetalHost) string {
-	return strings.ReplaceAll(bmh.Name, "-", "_")
+func bmhToVmName(host bmh.BareMetalHost) string {
+	return strings.ReplaceAll(host.Name, "-", "_")
 }
 
 func listVms(state vmState) []string {
@@ -251,9 +251,9 @@ func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(BeNil())
 
-	for _, bmh := range bmhs.Items {
-		fmt.Printf("bmh: %+v\n", bmh)
-		fmt.Printf("bmh annotations: %+v\n", bmh.GetAnnotations())
+	for _, item := range bmhs.Items {
+		fmt.Printf("bmh: %+v\n", item)
+		fmt.Printf("bmh annotations: %+v\n", item.GetAnnotations())
 	}
 
 	return bmhs
