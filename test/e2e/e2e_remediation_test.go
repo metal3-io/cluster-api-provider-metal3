@@ -80,7 +80,7 @@ var _ = Describe("Remedation Pivoting", func() {
 
 	})
 
-	It("Run test remediation", func() {
+	It("Run test: remediation", func() {
 
 		// log.Logf("Waiting for the cluster infrastructure to be detected")
 		// cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
@@ -126,24 +126,8 @@ var _ = Describe("Remedation Pivoting", func() {
 		bmh := &bmhs.Items[2]
 		vmName := bmhToVmName(*bmh)
 
-		helper, err := patch.NewHelper(bmh, client)
-		Expect(err).ToNot(HaveOccurred())
-
-		key := "reboot.metal3.io"
-		fmt.Printf("marking BMH for reboot \n")
-
-		annotations := bmh.GetAnnotations()
-
-		if annotations == nil {
-			annotations = make(map[string]string)
-		}
-		annotations[key] = ""
-		bmh.SetAnnotations(annotations)
-		// fmt.Printf("Patching bmh: %+v\n", bmh)
-
-		Expect(helper.Patch(ctx, bmh)).To(Succeed())
-
-		// fmt.Printf("The bmh: %#v\n", bmh)
+		By("Rebooting a BareMetalHost")
+		rebootBmh(ctx, client, bmh)
 
 		// wait for the rebooted node to show as powered off
 		Eventually(func() error {
@@ -202,6 +186,21 @@ var _ = Describe("Remedation Pivoting", func() {
 	})
 
 })
+
+func rebootBmh(ctx context.Context, client client.Client, bmh *bmh.BareMetalHost) {
+	helper, err := patch.NewHelper(bmh, client)
+	Expect(err).ToNot(HaveOccurred())
+
+	key := "reboot.metal3.io"
+	annotations := bmh.GetAnnotations()
+
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	annotations[key] = ""
+	bmh.SetAnnotations(annotations)
+	Expect(helper.Patch(ctx, bmh)).To(Succeed())
+}
 
 func metal3MachineToBmhName(m3machine v1alpha4.Metal3Machine) string {
 	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
