@@ -110,26 +110,27 @@ var _ = Describe("Remedation Pivoting", func() {
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
 
-		fmt.Printf("Machines: %#v\n", machines.Items)
+		ctrlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
+		Expect(err).NotTo(HaveOccurred())
 
-		m3machines := &v1alpha4.Metal3MachineList{}
-		Expect(client.List(ctx, m3machines, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-		fmt.Printf("m3Machines: %#v\n", m3machines.Items)
-
-		workloadCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-		fmt.Println("workloadCluster", workloadCluster)
+		for _, m3machine := range ctrlM3Machines {
+			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
+		}
+		for _, m3machine := range workerM3Machines {
+			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
+		}
 
 		bmhs := getAllBMH(ctx, client, clusterName, namespace, specName)
 
 		// TODO select the worker VM
 		bmh := &bmhs.Items[2]
-		vmName := bmhNameToVmName(bmh.Name)
+		vmName := bmhToVmName(*bmh)
 
 		helper, err := patch.NewHelper(bmh, client)
 		Expect(err).ToNot(HaveOccurred())
 
 		key := "reboot.metal3.io"
-		fmt.Printf("marking BMH for reboot %+v\n", bmh)
+		fmt.Printf("marking BMH for reboot \n")
 
 		annotations := bmh.GetAnnotations()
 
@@ -138,11 +139,11 @@ var _ = Describe("Remedation Pivoting", func() {
 		}
 		annotations[key] = ""
 		bmh.SetAnnotations(annotations)
-		fmt.Printf("Patching bmh: %+v\n", bmh)
+		// fmt.Printf("Patching bmh: %+v\n", bmh)
 
 		Expect(helper.Patch(ctx, bmh)).To(Succeed())
 
-		fmt.Printf("The bmh: %#v\n", bmh)
+		// fmt.Printf("The bmh: %#v\n", bmh)
 
 		// wait for the rebooted node to show as powered off
 		Eventually(func() error {
@@ -202,6 +203,15 @@ var _ = Describe("Remedation Pivoting", func() {
 
 })
 
+func metal3MachineToBmhName(m3machine v1alpha4.Metal3Machine) string {
+	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
+}
+
+// Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object
+func bmhToVmName(bmh bmh.BareMetalHost) string {
+	return strings.ReplaceAll(bmh.Name, "-", "_")
+}
+
 func listVms(state vmState) []string {
 	var flag string
 	switch state {
@@ -231,10 +241,6 @@ func listVms(state vmState) []string {
 	return lines[:i]
 }
 
-func bmhNameToVmName(bmhName string) string {
-	return strings.ReplaceAll(bmhName, "-", "_")
-}
-
 func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace, specName string) bmh.BareMetalHostList {
 
 	bmhs := bmh.BareMetalHostList{}
@@ -252,79 +258,22 @@ func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace
 	}
 
 	return bmhs
-
 }
 
-// func getHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
-// 	mLog logr.Logger,
-// ) (*bmh.BareMetalHost, error) {
-// 	annotations := m3Machine.ObjectMeta.GetAnnotations()
-// 	if annotations == nil {
-// 		return nil, nil
-// 	}
-// 	hostKey, ok := annotations[HostAnnotation]
-// 	if !ok {
-// 		return nil, nil
-// 	}
-// 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
-// 	if err != nil {
-// 		mLog.Error(err, "Error parsing annotation value", "annotation key", hostKey)
-// 		return nil, err
-// 	}
-
-// 	host := bmh.BareMetalHost{}
-// 	key := client.ObjectKey{
-// 		Name:      hostName,
-// 		Namespace: hostNamespace,
-// 	}
-// 	err = cl.Get(ctx, key, &host)
-// 	if apierrors.IsNotFound(err) {
-// 		mLog.Info("Annotated host not found", "host", hostKey)
-// 		return nil, nil
-// 	} else if err != nil {
-// 		return nil, err
-// 	}
-// 	return &host, nil
-// }
-
-// // SetPauseAnnotation sets the pause annotations on associated bmh
-// func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
-// 	// look for associated BMH
-// 	host, helper, err := m.getHost(ctx)
-// 	if err != nil {
-// 		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
-// 			capierrors.UpdateMachineError,
-// 		)
-// 		return err
-// 	}
-// 	if host == nil {
-// 		return nil
-// 	}
-
-// 	annotations := host.GetAnnotations()
-
-// 	if annotations != nil {
-// 		if _, ok := annotations[bmh.PausedAnnotation]; ok {
-// 			m.Log.Info("BaremetalHost is already paused")
-// 			return nil
-// 		}
-// 	} else {
-// 		host.Annotations = make(map[string]string)
-// 	}
-// 	m.Log.Info("Adding PausedAnnotation in BareMetalHost")
-// 	host.Annotations[bmh.PausedAnnotation] = PausedAnnotationKey
-
-// 	// Setting annotation with BMH status
-// 	newAnnotation, err := json.Marshal(&host.Status)
-// 	if err != nil {
-// 		m.SetError("Failed to marshal the BareMetalHost status",
-// 			capierrors.UpdateMachineError,
-// 		)
-// 		return errors.Wrap(err, "failed to marshall status annotation")
-// 	}
-// 	host.Annotations[bmh.StatusAnnotation] = string(newAnnotation)
-// 	return helper.Patch(ctx, host)
-// }
+func getMetal3Machines(ctx context.Context, client client.Client, cluster, namespace string) (controlplane, workers []v1alpha4.Metal3Machine, err error) {
+	allMachines := &v1alpha4.Metal3MachineList{}
+	if err = client.List(ctx, allMachines, byClusterOptions(cluster, namespace)...); err != nil {
+		return
+	}
+	for _, machine := range allMachines.Items {
+		if strings.Contains(machine.ObjectMeta.Name, "workers") {
+			workers = append(workers, machine)
+		} else {
+			controlplane = append(controlplane, machine)
+		}
+	}
+	return
+}
 
 // byClusterOptions returns a set of ListOptions that allows to identify all the objects belonging to a Cluster.
 func byClusterOptions(name, namespace string) []client.ListOption {
