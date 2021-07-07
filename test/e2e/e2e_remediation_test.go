@@ -11,6 +11,7 @@ import (
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
+	v1 "k8s.io/api/core/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -122,7 +123,8 @@ var _ = Describe("Remedation Pivoting", func() {
 		// }, input.WaitForClusterIntervals...)
 
 		By("Checking that rebooted node becomes Ready")
-		// targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, clusterName, namespace)
+		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, clusterName, namespace)
+		targetClient := targetCluster.GetClient()
 
 		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
 		client := bootstrapClusterProxy.GetClient()
@@ -156,6 +158,11 @@ var _ = Describe("Remedation Pivoting", func() {
 		// TODO select the worker VM
 		host := bmhs.Items[2]
 		By("Rebooting a BareMetalHost")
+		nodes := &v1.NodeList{}
+		Expect(targetClient.List(ctx, nodes)).To(Succeed())
+
+		fmt.Printf("nodes in target cluster: %+#v\n", nodes)
+
 		rebootBmh(client, host)
 
 		// wait for the rebooted node to show as powered off
