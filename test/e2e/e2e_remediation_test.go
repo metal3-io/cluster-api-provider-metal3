@@ -20,6 +20,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type vmState int
+
+const (
+	RUNNING vmState = iota
+	PAUSED
+	SHUTOFF
+	OTHER
+)
+
 var _ = Describe("Remedation Pivoting", func() {
 	var (
 		ctx                 = context.TODO()
@@ -107,6 +116,7 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		// TODO select the worker VM
 		bmh := &bmhs.Items[2]
+		vmName := bmhNameToVmName(bmh.Name)
 
 		helper, err := patch.NewHelper(bmh, client)
 		Expect(err).ToNot(HaveOccurred())
@@ -129,17 +139,29 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		// wait for the rebooted node to show as powered off
 		Eventually(func() error {
-			vms := listPoweredOffVMs()
-			fmt.Printf("Looking for vm %#v among %#v \n", bmh.Name, vms)
+			vms := listVms(SHUTOFF)
+			fmt.Printf("Looking for vm %#v among %#v \n", vmName, vms)
 			for _, name := range vms {
-				if name == strings.ReplaceAll(bmh.Name, "-", "_") {
+				if name == vmName {
 					return nil
 				}
 			}
 			return fmt.Errorf("VM '%s' not listed as shut down", bmh.Name)
-
 		}, e2eConfig.GetIntervals(specName, "wait-machine-shutoff")...).Should(BeNil())
-		fmt.Printf("%#v\n", listPoweredOffVMs())
+
+		// TODO wait for NonReady and Ready states
+
+		// wait for the rebooted node to show as powered on
+		Eventually(func() error {
+			vms := listVms(RUNNING)
+			fmt.Printf("Looking for vm %#v among %#v \n", vmName, vms)
+			for _, name := range vms {
+				if name == vmName {
+					return nil
+				}
+			}
+			return fmt.Errorf("VM '%s' not listed as shut down", bmh.Name)
+		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
 
 		// getAllBMH(ctx, client, clusterName, namespace, specName)
 
@@ -173,13 +195,24 @@ var _ = Describe("Remedation Pivoting", func() {
 
 })
 
-func listPoweredOffVMs() []string {
-	cmd := exec.Command("virsh", "list", "--state-shutoff", "--name")
-	fmt.Println("Running command", cmd)
+func listVms(state vmState) []string {
+	var flag string
+	switch state {
+	case RUNNING:
+		flag = "--state-running"
+	case SHUTOFF:
+		flag = "--state-shutoff"
+	case PAUSED:
+		flag = "--state-paused"
+	case OTHER:
+		flag = "--state-other"
+	}
+
+	cmd := exec.Command("virsh", "list", "--name", flag)
 	result, err := cmd.Output()
 	Expect(err).NotTo(HaveOccurred())
 
-	// virsh returns some empty lines which need to be removed
+	// virsh may return some empty lines which need to be removed
 	lines := strings.Split(string(result), "\n")
 	i := 0
 	for _, line := range lines {
@@ -189,6 +222,10 @@ func listPoweredOffVMs() []string {
 		}
 	}
 	return lines[:i]
+}
+
+func bmhNameToVmName(bmhName string) string {
+	return strings.ReplaceAll(bmhName, "-", "_")
 }
 
 func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace, specName string) bmh.BareMetalHostList {
