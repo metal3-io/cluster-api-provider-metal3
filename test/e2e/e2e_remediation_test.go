@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -93,8 +94,8 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
 		client := bootstrapClusterProxy.GetClient()
+		machines := &clusterv1.MachineList{}
 		Eventually(func() error {
-			machines := &clusterv1.MachineList{}
 
 			if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
 				return err
@@ -108,6 +109,12 @@ var _ = Describe("Remedation Pivoting", func() {
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
+
+		fmt.Printf("Machines: %#v\n", machines.Items)
+
+		m3machines := &v1alpha4.Metal3MachineList{}
+		Expect(client.List(ctx, m3machines, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+		fmt.Printf("m3Machines: %#v\n", m3machines.Items)
 
 		workloadCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		fmt.Println("workloadCluster", workloadCluster)
