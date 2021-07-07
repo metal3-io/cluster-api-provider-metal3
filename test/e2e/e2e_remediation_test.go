@@ -14,32 +14,63 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type vmState int
+type vmState string
 
 const (
-	RUNNING vmState = iota
-	PAUSED
-	SHUTOFF
-	OTHER
+	running vmState = "running"
+	paused  vmState = "paused"
+	shutoff vmState = "shutoff"
+	other   vmState = "other"
 )
-const REBOOT_ANNOTATION = "reboot.metal3.io"
+const rebootAnnotation = "reboot.metal3.io"
 
 var _ = Describe("Remedation Pivoting", func() {
 	var (
-		ctx                 = context.TODO()
-		specName            = "metal3"
-		namespace           = "metal3"
-		cluster             *clusterv1.Cluster
-		clusterName         = "test1"
-		clusterctlLogFolder string
+		ctx                      = context.TODO()
+		specName                 = "metal3"
+		namespace                = "metal3"
+		cluster                  *clusterv1.Cluster
+		clusterName              = "test1"
+		clusterctlLogFolder      string
+		controlPlaneMachineCount int64 = 3
+		workerMachineCount       int64 = 1
 	)
+
+	waitForVmState := func(vmName string, state vmState) {
+		Eventually(func() error {
+			vms := listVms(state)
+			for _, name := range vms {
+				if name == vmName {
+					return nil
+				}
+			}
+			return fmt.Errorf("VM '%s' not listed with state '%s'", vmName, state)
+		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(BeNil())
+	}
+
+	rebootBmh := func(client client.Client, host bmh.BareMetalHost) {
+		helper, err := patch.NewHelper(&host, client)
+		Expect(err).ToNot(HaveOccurred())
+
+		annotations := host.GetAnnotations()
+
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[rebootAnnotation] = ""
+		host.SetAnnotations(annotations)
+		Expect(helper.Patch(ctx, &host)).To(Succeed())
+
+		vmName := bmhToVmName(host)
+		waitForVmState(vmName, shutoff)
+		waitForVmState(vmName, running)
+	}
 
 	BeforeEach(func() {
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
@@ -70,8 +101,8 @@ var _ = Describe("Remedation Pivoting", func() {
 				Namespace:                namespace,
 				ClusterName:              clusterName,
 				KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(3),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
+				ControlPlaneMachineCount: &controlPlaneMachineCount,
+				WorkerMachineCount:       &workerMachineCount,
 			},
 			CNIManifestPath:              e2eTestsPath + "/data/cni/calico/calico.yaml",
 			WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
@@ -97,12 +128,11 @@ var _ = Describe("Remedation Pivoting", func() {
 		client := bootstrapClusterProxy.GetClient()
 		machines := &clusterv1.MachineList{}
 		Eventually(func() error {
-
 			if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
 				return err
 			}
 
-			Expect(machines.Items).To((HaveLen(4)))
+			Expect(machines.Items).To((HaveLen(int(controlPlaneMachineCount + workerMachineCount))))
 			for _, machine := range machines.Items {
 				if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
 					return errors.New("Machine is not in 'running' phase")
@@ -124,83 +154,18 @@ var _ = Describe("Remedation Pivoting", func() {
 		bmhs := getAllBMH(ctx, client, clusterName, namespace, specName)
 
 		// TODO select the worker VM
-		host := &bmhs.Items[2]
-		vmName := bmhToVmName(*host)
-
+		host := bmhs.Items[2]
 		By("Rebooting a BareMetalHost")
-		rebootBmh(ctx, client, host)
+		rebootBmh(client, host)
 
 		// wait for the rebooted node to show as powered off
-		Eventually(func() error {
-			vms := listVms(SHUTOFF)
-			fmt.Printf("Looking for vm %#v among %#v \n", vmName, vms)
-			for _, name := range vms {
-				if name == vmName {
-					return nil
-				}
-			}
-			return fmt.Errorf("VM '%s' not listed as shut down", host.Name)
-		}, e2eConfig.GetIntervals(specName, "wait-machine-shutoff")...).Should(BeNil())
 
 		// TODO wait for NonReady and Ready states
 
 		// wait for the rebooted node to show as powered on
-		Eventually(func() error {
-			vms := listVms(RUNNING)
-			fmt.Printf("Looking for vm %#v among %#v \n", vmName, vms)
-			for _, name := range vms {
-				if name == vmName {
-					return nil
-				}
-			}
-			return fmt.Errorf("VM '%s' not listed as shut down", host.Name)
-		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
-
-		// getAllBMH(ctx, client, clusterName, namespace, specName)
-
-		// hosts := bmh.BareMetalHostList{}
-
-		// err := workloadCluster.GetClient().List(ctx, &hosts, client.InNamespace(namespace))
-		// Expect(err).NotTo(HaveOccurred())
-
-		// fmt.Println(hosts)
-
-		// 		  - name: Fetch the target cluster kubeconfig
-		//     shell: "kubectl get secrets {{ CLUSTER_NAME }}-kubeconfig -n {{ NAMESPACE }} -o json | jq -r '.data.value'| base64 -d > /tmp/kubeconfig-{{ CLUSTER_NAME }}.yaml"
-
-		//   # Reboot a single worker node
-		//   - name: Reboot "{{ WORKER_BMH }}"
-		//     shell: |
-		//        kubectl annotate bmh "{{ WORKER_BMH }}" -n "{{ NAMESPACE }}" reboot.metal3.io=
-
-		//   - name: List only powered off VMs
-		//     virt:
-		//       command: list_vms
-		//       state: shutdown
-		//     register: shutdown_vms
-		//     retries: 50
-		//     delay: 10
-		//     until: WORKER_VM in shutdown_vms.list_vms
-		//     become: yes
-		//     become_user: root
-
 	})
 
 })
-
-func rebootBmh(ctx context.Context, client client.Client, host *bmh.BareMetalHost) {
-	helper, err := patch.NewHelper(host, client)
-	Expect(err).ToNot(HaveOccurred())
-
-	annotations := host.GetAnnotations()
-
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-	annotations[REBOOT_ANNOTATION] = ""
-	host.SetAnnotations(annotations)
-	Expect(helper.Patch(ctx, host)).To(Succeed())
-}
 
 func metal3MachineToBmhName(m3machine v1alpha4.Metal3Machine) string {
 	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
@@ -214,13 +179,13 @@ func bmhToVmName(host bmh.BareMetalHost) string {
 func listVms(state vmState) []string {
 	var flag string
 	switch state {
-	case RUNNING:
+	case running:
 		flag = "--state-running"
-	case SHUTOFF:
+	case shutoff:
 		flag = "--state-shutoff"
-	case PAUSED:
+	case paused:
 		flag = "--state-paused"
-	case OTHER:
+	case other:
 		flag = "--state-other"
 	}
 
