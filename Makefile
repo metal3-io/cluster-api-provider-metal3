@@ -107,6 +107,8 @@ E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
 E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/templates/test
 E2E_ENVSUBST_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_ENVSUBST_DIR)/$(notdir $(E2E_CONF_FILE))
+E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
+
 SKIP_CLEANUP ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
@@ -120,10 +122,11 @@ e2e-substitutions: $(ENVSUBST) $(subst $(E2E_TEMPLATES_DIR),$(E2E_ENVSUBST_DIR),
 	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
 
 .PHONY: e2e-tests
+e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
 e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e.sh
-	docker pull quay.io/metal3-io/cluster-api-provider-metal3
-	docker pull quay.io/metal3-io/baremetal-operator
-	docker pull quay.io/metal3-io/ip-address-manager
+	for image in $(E2E_CONTAINERS); do \
+		$(CONTAINER_RUNTIME) pull $$image; \
+	done
 	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
 		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
