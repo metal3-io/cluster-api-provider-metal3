@@ -44,6 +44,21 @@ var _ = Describe("Remediation Pivoting", func() {
 		workerMachineCount       int64 = 1
 	)
 
+	assertNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) error {
+		node := &v1.Node{}
+		Expect(client.Get(ctx, name, node)).To(Succeed())
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == v1.NodeReady {
+				if status == condition.Status {
+					return nil
+				} else {
+					return fmt.Errorf("Node %s has status '%s', should have '%s'", name.Name, condition.Status, status)
+				}
+			}
+		}
+		return fmt.Errorf("Node %s missing condition \"Ready\"", name.Name)
+	}
+
 	waitForVmState := func(vmName string, state vmState) {
 		Expect(strings.TrimSpace(vmName)).NotTo(Equal(""))
 		By(fmt.Sprintf("Waiting for VM %s to become '%s'", vmName, state))
@@ -60,20 +75,20 @@ var _ = Describe("Remediation Pivoting", func() {
 
 	waitForNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
 		By(fmt.Sprintf("Waiting for Node %s to have ready=%s status", name.Name, status))
-		Eventually(func() error {
-			node := &v1.Node{}
-			Expect(client.Get(ctx, name, node)).To(Succeed())
-			for _, condition := range node.Status.Conditions {
-				if condition.Type == v1.NodeReady {
-					if status == condition.Status {
-						return nil
-					} else {
-						return fmt.Errorf("Node %s has status '%s', should have '%s'", name.Name, condition.Status, status)
-					}
-				}
-			}
-			return fmt.Errorf("Node %s missing condition \"Ready\"", name.Name)
-		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(BeNil())
+		Eventually(
+			func() error { return assertNodeStatus(client, name, status) },
+			e2eConfig.GetIntervals(specName, "wait-vm-state")...,
+		).Should(BeNil())
+	}
+
+	monitorNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
+		// TODO look int gomega 1.14 to use assertions in the func
+
+		By(fmt.Sprintf("Ensuring Node %s consistently hsa ready=%s status", name.Name, status))
+		Consistently(
+			func() error { return assertNodeStatus(client, name, status) },
+			e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
+		).Should(BeNil())
 	}
 
 	rebootBmh := func(client client.Client, host bmh.BareMetalHost) {
@@ -190,12 +205,13 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		// Note: what is reported in the CLI as NotReady, is initially unknown status
 		// This call will wait for the actual "False" condition status
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
+		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
 		waitForVmState(vmName, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 	})
 
 })
