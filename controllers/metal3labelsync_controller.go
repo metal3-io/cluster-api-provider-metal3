@@ -45,7 +45,6 @@ import (
 
 var (
 	bmhSyncInterval = 60 * time.Second
-	retryInterval   = 1 * time.Second
 )
 
 const (
@@ -121,7 +120,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	if err := r.Client.Get(ctx, capm3MachineKey, capm3Machine); err != nil {
 		if apierrors.IsNotFound(err) {
 			controllerLog.Info(fmt.Sprintf("Could not find associated Metal3Machine %v for BareMetalHost %v/%v, will retry", capm3MachineKey, host.Namespace, host.Name))
-			return ctrl.Result{RequeueAfter: retryInterval}, nil
+			return ctrl.Result{RequeueAfter: requeueAfter}, nil
 		}
 		return ctrl.Result{}, err
 	}
@@ -134,12 +133,12 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	}
 	if capiMachine == nil {
 		controllerLog.Info("Could not find Machine object, will retry")
-		return ctrl.Result{RequeueAfter: retryInterval}, nil
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 	controllerLog.V(5).Info(fmt.Sprintf("Found Machine %v/%v", capiMachine.Name, capiMachine.Namespace))
 	if capiMachine.Status.NodeRef == nil {
 		controllerLog.Info("Could not find Node Ref on Machine object, will retry")
-		return ctrl.Result{RequeueAfter: retryInterval}, nil
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
 	// Fetch the Cluster
@@ -151,7 +150,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	err = r.Client.Get(ctx, clusterKey, cluster)
 	if err != nil {
 		controllerLog.Info("Error fetching cluster, will retry")
-		return ctrl.Result{RequeueAfter: retryInterval}, err
+		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.V(5).Info(fmt.Sprintf("Found Cluster %v/%v", cluster.Name, cluster.Namespace))
 
@@ -163,7 +162,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	}
 	if err := r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
 		controllerLog.Info("Error fetching Metal3Cluster, will retry")
-		return ctrl.Result{RequeueAfter: retryInterval}, err
+		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.V(5).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
 
@@ -190,7 +189,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	err = r.reconcileBMHLabels(ctx, host, capiMachine, cluster, prefixSet)
 	if err != nil {
 		controllerLog.Info(fmt.Sprintf("Error reconciling BMH labels to Node, will retry: %v", err))
-		return ctrl.Result{RequeueAfter: retryInterval}, err
+		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.Info("Finished synchronizing labels between BaremetalHost and Node")
 	// Always requeue to ensure label sync runs periodically for each BMH. This is necessary to catch any label updates to the Node that are synchronized through the BMH.
