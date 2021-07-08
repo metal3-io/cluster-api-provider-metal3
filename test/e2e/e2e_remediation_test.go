@@ -56,6 +56,24 @@ var _ = Describe("Remedation Pivoting", func() {
 		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(BeNil())
 	}
 
+	waitForNodeStatus := func(client client.Client, name types.NamespacedName, shouldBeReady bool) {
+		Eventually(func() error {
+			node := &v1.Node{}
+			Expect(client.Get(ctx, name, node)).To(Succeed())
+			for _, condition := range node.Status.Conditions {
+				if condition.Type == "Ready" {
+					if (shouldBeReady && condition.Status == v1.ConditionTrue) ||
+						(!shouldBeReady && condition.Status == v1.ConditionFalse) {
+						return nil
+					} else {
+						return fmt.Errorf("Node %s has status %s", name.Name, condition.Status)
+					}
+				}
+			}
+			return fmt.Errorf("Node %s missing condition \"Ready\"", name.Name)
+		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(BeNil())
+	}
+
 	rebootBmh := func(client client.Client, host bmh.BareMetalHost) {
 		helper, err := patch.NewHelper(&host, client)
 		Expect(err).ToNot(HaveOccurred())
@@ -68,10 +86,6 @@ var _ = Describe("Remedation Pivoting", func() {
 		annotations[rebootAnnotation] = ""
 		host.SetAnnotations(annotations)
 		Expect(helper.Patch(ctx, &host)).To(Succeed())
-
-		vmName := bmhToVmName(host)
-		waitForVmState(vmName, shutoff)
-		waitForVmState(vmName, running)
 	}
 
 	BeforeEach(func() {
@@ -154,37 +168,35 @@ var _ = Describe("Remedation Pivoting", func() {
 			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
 		}
 
-		bmhs := getAllBMH(ctx, client, clusterName, namespace, specName)
+		workerToReboot := workerM3Machines[0]
+		bmhToReboot := bmh.BareMetalHost{}
+		machineName, err := metal3MachineToMachineName(workerToReboot)
+		Expect(err).ToNot(HaveOccurred())
+		nodeName := machineName
+		vmName := bmhToVmName(bmhToReboot)
 
-		// TODO select the worker VM
-		nodes := &v1.NodeList{}
-		Expect(targetClient.List(ctx, nodes)).To(Succeed())
+		Expect(client.Get(ctx,
+			types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(workerToReboot)},
+			&bmhToReboot)).To(Succeed())
+		rebootBmh(client, bmhToReboot)
 
-		node := &v1.Node{}
-		Expect(targetClient.Get(ctx, types.NamespacedName{Namespace: "default", Name: nodes.Items[0].GetName()}, node)).To(Succeed())
-
-		for i, condition := range node.Status.Conditions {
-			if condition.Type == "Ready" {
-				Expect(condition.Status == v1.ConditionTrue)
-				fmt.Printf("Confirmed node %s to be Ready\n", node.GetName())
-			} else {
-				// fail if there is no Ready condition
-				Expect(i < len(node.Status.Conditions)).To(BeTrue())
-			}
-		}
-
-		host := bmhs.Items[2]
-		By("Rebooting a BareMetalHost")
-		rebootBmh(client, host)
-
-		// wait for the rebooted node to show as powered off
-
-		// TODO wait for NonReady and Ready states
-
-		// wait for the rebooted node to show as powered on
+		waitForVmState(vmName, shutoff)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, false)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, true)
+		waitForVmState(vmName, running)
 	})
 
 })
+
+func metal3MachineToMachineName(m3machine v1alpha4.Metal3Machine) (string, error) {
+	ownerReferences := m3machine.GetOwnerReferences()
+	for _, reference := range ownerReferences {
+		if reference.Kind == "Machine" {
+			return reference.Name, nil
+		}
+	}
+	return "", fmt.Errorf("metal3machine missing a \"Machine\" kind owner reference")
+}
 
 func metal3MachineToBmhName(m3machine v1alpha4.Metal3Machine) string {
 	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
