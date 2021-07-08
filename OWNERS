@@ -1,16 +1,14 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
- - dhellmann
  - hardys
  - kashifest
  - maelk
  - mhrivnak
- - russellb
+ - furkatgofurov7
+ - Xenwar
+
  
 reviewers:
  - fmuyassarov
- - furkatgofurov7
- - Jaakko-Os
  - jan-est
- - Xenwar
