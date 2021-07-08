@@ -31,6 +31,7 @@ const (
 	other   vmState = "other"
 )
 const rebootAnnotation = "reboot.metal3.io"
+const poweroffAnnotation = "reboot.metal3.io/poweroff"
 
 var _ = Describe("Remediation Pivoting", func() {
 	var (
@@ -43,6 +44,8 @@ var _ = Describe("Remediation Pivoting", func() {
 		controlPlaneMachineCount int64 = 3
 		workerMachineCount       int64 = 1
 	)
+
+	// functions defined here to use the local variables
 
 	assertNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) error {
 		node := &v1.Node{}
@@ -104,6 +107,23 @@ var _ = Describe("Remediation Pivoting", func() {
 		host.SetAnnotations(annotations)
 		Expect(helper.Patch(ctx, &host)).To(Succeed())
 	}
+
+	// powerCycleBmh := func(client client.Client, host bmh.BareMetalHost) {
+	// 	helper, err := patch.NewHelper(&host, client)
+	// 	Expect(err).ToNot(HaveOccurred())
+
+	// 	annotations := host.GetAnnotations()
+	// 	if annotations == nil {
+	// 		annotations = make(map[string]string)
+	// 	}
+	// 	annotations[poweroffAnnotation] = ""
+	// 	host.SetAnnotations(annotations)
+	// 	Expect(helper.Patch(ctx, &host)).To(Succeed())
+
+	// 	delete(annotations, poweroffAnnotation)
+	// 	host.SetAnnotations(annotations)
+	// 	Expect(helper.Patch(ctx, &host)).To(Succeed())
+	// }
 
 	BeforeEach(func() {
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
@@ -201,15 +221,34 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		waitForVmState(vmName, shutoff)
 
-		// Note: the status briefly becomes "Unknown", then goes back to ready. After node goes back to running it will be NotReady again
-
 		// Note: what is reported in the CLI as NotReady, is initially unknown status
 		// This call will wait for the actual "False" condition status
-		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
 		waitForVmState(vmName, running)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+
+		// power cycle
+
+		helper, err := patch.NewHelper(&bmhToReboot, client)
+		Expect(err).ToNot(HaveOccurred())
+
+		annotations := bmhToReboot.GetAnnotations()
+		if annotations == nil {
+			annotations = make(map[string]string)
+		}
+		annotations[poweroffAnnotation] = ""
+		bmhToReboot.SetAnnotations(annotations)
+		Expect(helper.Patch(ctx, &bmhToReboot)).To(Succeed())
+
+		waitForVmState(vmName, shutoff)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
+		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
+
+		delete(annotations, poweroffAnnotation)
+		bmhToReboot.SetAnnotations(annotations)
+		Expect(helper.Patch(ctx, &bmhToReboot)).To(Succeed())
+		waitForVmState(vmName, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 	})
