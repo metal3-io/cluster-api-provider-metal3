@@ -14,6 +14,8 @@ resources:
 - bases/infrastructure.cluster.x-k8s.io_metal3datatemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_metal3datas.yaml
 - bases/infrastructure.cluster.x-k8s.io_metal3dataclaims.yaml
+- bases/infrastructure.cluster.x-k8s.io_metal3remediations.yaml
+- bases/infrastructure.cluster.x-k8s.io_metal3remediationtemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

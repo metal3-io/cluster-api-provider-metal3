@@ -212,6 +212,15 @@ func setupReconcilers(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3MachineTemplateReconciler")
 		os.Exit(1)
 	}
+
+	if err := (&controllers.Metal3RemediationReconciler{
+		Client:         mgr.GetClient(),
+		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:            ctrl.Log.WithName("controllers").WithName("Metal3Remediation"),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Metal3Remediation")
+		os.Exit(1)
+	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
@@ -273,6 +282,15 @@ func setupWebhooks(mgr ctrl.Manager) {
 
 	if err := (&infrav1.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataClaim")
+		os.Exit(1)
+	}
+
+	if err := (&infrav1.Metal3Remediation{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Remediation")
+		os.Exit(1)
+	}
+	if err := (&infrav1.Metal3RemediationTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3RemediationTemplate")
 		os.Exit(1)
 	}
 }
