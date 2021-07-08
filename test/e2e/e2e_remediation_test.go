@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -59,18 +58,17 @@ var _ = Describe("Remedation Pivoting", func() {
 		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(BeNil())
 	}
 
-	waitForNodeStatus := func(client client.Client, name types.NamespacedName, shouldBeReady bool) {
-		By(fmt.Sprintf("Waiting for Node %s to have ready=%s status", name.Name, strconv.FormatBool(shouldBeReady)))
+	waitForNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
+		By(fmt.Sprintf("Waiting for Node %s to have ready=%s status", name.Name, status))
 		Eventually(func() error {
 			node := &v1.Node{}
 			Expect(client.Get(ctx, name, node)).To(Succeed())
 			for _, condition := range node.Status.Conditions {
 				if condition.Type == v1.NodeReady {
-					if (shouldBeReady && condition.Status == v1.ConditionTrue) ||
-						(!shouldBeReady && condition.Status == v1.ConditionFalse) {
+					if status == condition.Status {
 						return nil
 					} else {
-						return fmt.Errorf("Node %s has status %s", name.Name, condition.Status)
+						return fmt.Errorf("Node %s has status '%s', should have '%s'", name.Name, condition.Status, status)
 					}
 				}
 			}
@@ -187,11 +185,16 @@ var _ = Describe("Remedation Pivoting", func() {
 		rebootBmh(client, bmhToReboot)
 
 		waitForVmState(vmName, shutoff)
+
+		// Note: the status briefly becomes "Unknown", then goes back to ready. After node goes back to running it will be NotReady again
+
 		// Note: what is reported in the CLI as NotReady, is initially unknown status
 		// This call will wait for the actual "False" condition status
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, false)
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, true)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		waitForVmState(vmName, running)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 	})
 
 })
