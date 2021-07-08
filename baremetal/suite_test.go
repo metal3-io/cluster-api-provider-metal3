@@ -26,7 +26,7 @@ import (
 
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -72,7 +72,7 @@ var _ = BeforeSuite(func(done Done) {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(cfg).ToNot(BeNil())
 
-	err = infrav1.AddToScheme(scheme.Scheme)
+	err = infrav1alpha5.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = ipamv1.AddToScheme(scheme.Scheme)
@@ -114,7 +114,7 @@ func setupScheme() *runtime.Scheme {
 	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := infrav1.AddToScheme(s); err != nil {
+	if err := infrav1alpha5.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := ipamv1.AddToScheme(s); err != nil {
@@ -153,19 +153,19 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 }
 
 func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference,
-	spec *infrav1.Metal3ClusterSpec, status *infrav1.Metal3ClusterStatus) *infrav1.Metal3Cluster {
+	spec *infrav1alpha5.Metal3ClusterSpec, status *infrav1alpha5.Metal3ClusterStatus) *infrav1alpha5.Metal3Cluster {
 	if spec == nil {
-		spec = &infrav1.Metal3ClusterSpec{}
+		spec = &infrav1alpha5.Metal3ClusterSpec{}
 	}
 	if status == nil {
-		status = &infrav1.Metal3ClusterStatus{}
+		status = &infrav1alpha5.Metal3ClusterStatus{}
 	}
 	ownerRefs := []metav1.OwnerReference{}
 	if ownerRef != nil {
 		ownerRefs = []metav1.OwnerReference{*ownerRef}
 	}
 
-	return &infrav1.Metal3Cluster{
+	return &infrav1alpha5.Metal3Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Metal3Cluster",
 		},
