@@ -263,6 +263,7 @@ func installIronic(targetCluster framework.ClusterProxy) {
 	cmd.Env = append(env, os.Environ()...)
 
 	err := cmd.Start()
+	Expect(err).To(BeNil(), "Fail to deploy Ironic")
 	err = cmd.Wait()
 	Expect(err).To(BeNil(), "Fail to deploy Ironic")
 }
