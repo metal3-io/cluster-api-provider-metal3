@@ -73,7 +73,7 @@ var _ = Describe("Remediation Pivoting", func() {
 				}
 			}
 			return fmt.Errorf("VM '%s' not listed with state '%s'", vmName, state)
-		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(BeNil())
+		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
 	}
 
 	waitForNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
@@ -81,7 +81,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		Eventually(
 			func() error { return assertNodeStatus(client, name, status) },
 			e2eConfig.GetIntervals(specName, "wait-vm-state")...,
-		).Should(BeNil())
+		).Should(Succeed())
 	}
 
 	monitorNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
@@ -91,7 +91,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		Consistently(
 			func() error { return assertNodeStatus(client, name, status) },
 			e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
-		).Should(BeNil())
+		).Should(Succeed())
 	}
 
 	rebootBmh := func(client client.Client, host bmh.BareMetalHost) {
@@ -193,7 +193,7 @@ var _ = Describe("Remediation Pivoting", func() {
 				}
 			}
 			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(BeNil())
+		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 		ctrlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
 		Expect(err).NotTo(HaveOccurred())
@@ -242,15 +242,17 @@ var _ = Describe("Remediation Pivoting", func() {
 		Expect(helper.Patch(ctx, &bmhToReboot)).To(Succeed())
 
 		waitForVmState(vmName, shutoff)
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
-		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 
+		// power on
 		delete(annotations, poweroffAnnotation)
 		bmhToReboot.SetAnnotations(annotations)
 		Expect(helper.Patch(ctx, &bmhToReboot)).To(Succeed())
 		waitForVmState(vmName, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+
 	})
 
 })
@@ -312,7 +314,7 @@ func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace
 			return err
 		}
 		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(BeNil())
+	}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(Succeed())
 
 	for _, item := range bmhs.Items {
 		fmt.Printf("bmh: %+v\n", item)
