@@ -32,7 +32,7 @@ const (
 )
 const rebootAnnotation = "reboot.metal3.io"
 
-var _ = Describe("Remedation Pivoting", func() {
+var _ = Describe("Remediation Pivoting", func() {
 	var (
 		ctx                      = context.TODO()
 		specName                 = "metal3"
@@ -191,7 +191,8 @@ var _ = Describe("Remedation Pivoting", func() {
 		// Note: what is reported in the CLI as NotReady, is initially unknown status
 		// This call will wait for the actual "False" condition status
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
+		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		waitForVmState(vmName, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
