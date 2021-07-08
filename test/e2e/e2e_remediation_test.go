@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -45,6 +46,8 @@ var _ = Describe("Remedation Pivoting", func() {
 	)
 
 	waitForVmState := func(vmName string, state vmState) {
+		Expect(strings.TrimSpace(vmName)).NotTo(Equal(""))
+		By(fmt.Sprintf("Waiting for VM %s to become '%s'", vmName, state))
 		Eventually(func() error {
 			vms := listVms(state)
 			for _, name := range vms {
@@ -57,11 +60,12 @@ var _ = Describe("Remedation Pivoting", func() {
 	}
 
 	waitForNodeStatus := func(client client.Client, name types.NamespacedName, shouldBeReady bool) {
+		By(fmt.Sprintf("Waiting for Node %s to have ready=%s status", name.Name, strconv.FormatBool(shouldBeReady)))
 		Eventually(func() error {
 			node := &v1.Node{}
 			Expect(client.Get(ctx, name, node)).To(Succeed())
 			for _, condition := range node.Status.Conditions {
-				if condition.Type == "Ready" {
+				if condition.Type == v1.NodeReady {
 					if (shouldBeReady && condition.Status == v1.ConditionTrue) ||
 						(!shouldBeReady && condition.Status == v1.ConditionFalse) {
 						return nil
@@ -170,17 +174,21 @@ var _ = Describe("Remedation Pivoting", func() {
 
 		workerToReboot := workerM3Machines[0]
 		bmhToReboot := bmh.BareMetalHost{}
+		Expect(client.Get(ctx,
+			types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(workerToReboot)},
+			&bmhToReboot)).To(Succeed())
+
 		machineName, err := metal3MachineToMachineName(workerToReboot)
 		Expect(err).ToNot(HaveOccurred())
 		nodeName := machineName
 		vmName := bmhToVmName(bmhToReboot)
 
-		Expect(client.Get(ctx,
-			types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(workerToReboot)},
-			&bmhToReboot)).To(Succeed())
+		By("Marking a BMH for reboot")
 		rebootBmh(client, bmhToReboot)
 
 		waitForVmState(vmName, shutoff)
+		// Note: what is reported in the CLI as NotReady, is initially unknown status
+		// This call will wait for the actual "False" condition status
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, false)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, true)
 		waitForVmState(vmName, running)
