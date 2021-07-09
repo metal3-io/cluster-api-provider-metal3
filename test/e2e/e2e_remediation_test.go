@@ -230,6 +230,7 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		// power cycle
 
+		By("Marking a BMH for poweroff")
 		helper, err := patch.NewHelper(&bmhToReboot, client)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -246,6 +247,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 
 		// power on
+		By("Marking a BMH for poweron")
 		helper, err = patch.NewHelper(&bmhToReboot, client)
 		Expect(err).ToNot(HaveOccurred())
 		delete(annotations, poweroffAnnotation)
