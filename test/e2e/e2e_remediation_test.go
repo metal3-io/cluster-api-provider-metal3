@@ -13,6 +13,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -230,17 +231,13 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		// power cycle
 
-		By("Marking a BMH for poweroff")
-		helper, err := patch.NewHelper(&bmhToReboot, client)
-		Expect(err).ToNot(HaveOccurred())
+		// powerCycle := func(host bmh.BareMetalHost, m3machine v1alpha4.Metal3Machine) error {
 
-		annotations := bmhToReboot.GetAnnotations()
-		if annotations == nil {
-			annotations = make(map[string]string)
-		}
-		annotations[poweroffAnnotation] = ""
-		bmhToReboot.SetAnnotations(annotations)
-		Expect(helper.Patch(ctx, &bmhToReboot)).To(Succeed())
+		// 	return nil
+		// }
+
+		By("Marking a BMH for poweroff")
+		Expect(annotateBmh(ctx, bmhToReboot, client, poweroffAnnotation, pointer.String(""))).To(Succeed())
 
 		waitForVmState(vmName, shutoff)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
@@ -248,11 +245,8 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		// power on
 		By("Marking a BMH for poweron")
-		helper, err = patch.NewHelper(&bmhToReboot, client)
-		Expect(err).ToNot(HaveOccurred())
-		delete(annotations, poweroffAnnotation)
-		bmhToReboot.SetAnnotations(annotations)
-		Expect(helper.Patch(ctx, &bmhToReboot)).To(Succeed())
+		Expect(annotateBmh(ctx, bmhToReboot, client, poweroffAnnotation, nil)).To(Succeed())
+
 		waitForVmState(vmName, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
@@ -260,6 +254,24 @@ var _ = Describe("Remediation Pivoting", func() {
 	})
 
 })
+
+func annotateBmh(ctx context.Context, host bmh.BareMetalHost, client client.Client, key string, value *string) error {
+	helper, err := patch.NewHelper(&host, client)
+	if err != nil {
+		return err
+	}
+	annotations := host.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+	if value == nil {
+		delete(annotations, key)
+	} else {
+		annotations[key] = *value
+	}
+	host.SetAnnotations(annotations)
+	return helper.Patch(ctx, &host)
+}
 
 func metal3MachineToMachineName(m3machine v1alpha4.Metal3Machine) (string, error) {
 	ownerReferences := m3machine.GetOwnerReferences()
