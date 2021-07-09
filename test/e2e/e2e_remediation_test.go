@@ -95,20 +95,6 @@ var _ = Describe("Remediation Pivoting", func() {
 		).Should(Succeed())
 	}
 
-	rebootBmh := func(client client.Client, host bmh.BareMetalHost) {
-		helper, err := patch.NewHelper(&host, client)
-		Expect(err).ToNot(HaveOccurred())
-
-		annotations := host.GetAnnotations()
-
-		if annotations == nil {
-			annotations = make(map[string]string)
-		}
-		annotations[rebootAnnotation] = ""
-		host.SetAnnotations(annotations)
-		Expect(helper.Patch(ctx, &host)).To(Succeed())
-	}
-
 	// powerCycleBmh := func(client client.Client, host bmh.BareMetalHost) {
 	// 	helper, err := patch.NewHelper(&host, client)
 	// 	Expect(err).ToNot(HaveOccurred())
@@ -218,7 +204,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		vmName := bmhToVmName(bmhToReboot)
 
 		By("Marking a BMH for reboot")
-		rebootBmh(client, bmhToReboot)
+		annotateBmh(ctx, client, bmhToReboot, rebootAnnotation, pointer.String(""))
 
 		waitForVmState(vmName, shutoff)
 
@@ -236,16 +222,16 @@ var _ = Describe("Remediation Pivoting", func() {
 		// 	return nil
 		// }
 
-		By("Marking a BMH for poweroff")
-		Expect(annotateBmh(ctx, bmhToReboot, client, poweroffAnnotation, pointer.String(""))).To(Succeed())
+		By("Marking a BMH for power off")
+		Expect(annotateBmh(ctx, client, bmhToReboot, poweroffAnnotation, pointer.String(""))).To(Succeed())
 
 		waitForVmState(vmName, shutoff)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 
 		// power on
-		By("Marking a BMH for poweron")
-		Expect(annotateBmh(ctx, bmhToReboot, client, poweroffAnnotation, nil)).To(Succeed())
+		By("Marking a BMH for power on")
+		Expect(annotateBmh(ctx, client, bmhToReboot, poweroffAnnotation, nil)).To(Succeed())
 
 		waitForVmState(vmName, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
@@ -255,7 +241,7 @@ var _ = Describe("Remediation Pivoting", func() {
 
 })
 
-func annotateBmh(ctx context.Context, host bmh.BareMetalHost, client client.Client, key string, value *string) error {
+func annotateBmh(ctx context.Context, client client.Client, host bmh.BareMetalHost, key string, value *string) error {
 	helper, err := patch.NewHelper(&host, client)
 	if err != nil {
 		return err
