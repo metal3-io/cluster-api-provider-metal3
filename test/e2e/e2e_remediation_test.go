@@ -87,7 +87,7 @@ var _ = Describe("Remediation Pivoting", func() {
 	monitorNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
 		// TODO look int gomega 1.14 to use assertions in the func
 
-		By(fmt.Sprintf("Ensuring Node %s consistently hsa ready=%s status", name.Name, status))
+		By(fmt.Sprintf("Ensuring Node %s consistently has ready=%s status", name.Name, status))
 		Consistently(
 			func() error { return assertNodeStatus(client, name, status) },
 			e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
@@ -223,7 +223,7 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		// Note: what is reported in the CLI as NotReady, is initially unknown status
 		// This call will wait for the actual "False" condition status
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionFalse)
+		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 		waitForVmState(vmName, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
@@ -246,6 +246,8 @@ var _ = Describe("Remediation Pivoting", func() {
 		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 
 		// power on
+		helper, err = patch.NewHelper(&bmhToReboot, client)
+		Expect(err).ToNot(HaveOccurred())
 		delete(annotations, poweroffAnnotation)
 		bmhToReboot.SetAnnotations(annotations)
 		Expect(helper.Patch(ctx, &bmhToReboot)).To(Succeed())
