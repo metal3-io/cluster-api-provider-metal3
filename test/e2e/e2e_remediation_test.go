@@ -63,35 +63,35 @@ var _ = Describe("Remediation Pivoting", func() {
 		return fmt.Errorf("Node %s missing condition \"Ready\"", name.Name)
 	}
 
-	waitForVmState := func(vmName string, state vmState) {
-		Expect(strings.TrimSpace(vmName)).NotTo(Equal(""))
-		By(fmt.Sprintf("Waiting for VM %s to become '%s'", vmName, state))
-		Eventually(func() error {
+	waitForVmsState := func(vmNames []string, state vmState) {
+		By(fmt.Sprintf("Waiting for VMs %#v to become '%s'", vmNames, state))
+		Eventually(func() {
 			vms := listVms(state)
-			for _, name := range vms {
-				if name == vmName {
-					return nil
-				}
-			}
-			return fmt.Errorf("VM '%s' not listed with state '%s'", vmName, state)
+			Expect(vms).To(ContainElements(vmNames))
 		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
 	}
 
 	waitForNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
-		By(fmt.Sprintf("Waiting for Node %s to have ready=%s status", name.Name, status))
+		By(fmt.Sprintf("Waiting for Node '%s' to have ready=%s status", name, status))
 		Eventually(
 			func() error { return assertNodeStatus(client, name, status) },
 			e2eConfig.GetIntervals(specName, "wait-vm-state")...,
 		).Should(Succeed())
 	}
 
-	monitorNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
+	monitorNodesStatus := func(client client.Client, namespace string, names []string, status v1.ConditionStatus) {
 		// TODO look int gomega 1.14 to use assertions in the func
 
-		By(fmt.Sprintf("Ensuring Node %s consistently has ready=%s status", name.Name, status))
+		By(fmt.Sprintf("Ensuring Nodes %#v consistently has ready=%s status", names, status))
 		Consistently(
-			func() error { return assertNodeStatus(client, name, status) },
-			e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
+			func() error {
+				for _, node := range names {
+					if err := assertNodeStatus(client, types.NamespacedName{Namespace: namespace, Name: node}, status); err != nil {
+						return err
+					}
+				}
+				return nil
+			}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
 		).Should(Succeed())
 	}
 
@@ -206,40 +206,109 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Marking a BMH for reboot")
 		annotateBmh(ctx, client, bmhToReboot, rebootAnnotation, pointer.String(""))
 
-		waitForVmState(vmName, shutoff)
+		waitForVmsState([]string{vmName}, shutoff)
 
 		// Note: what is reported in the CLI as NotReady, is initially unknown status
 		// This call will wait for the actual "False" condition status
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-		waitForVmState(vmName, running)
+		waitForVmsState([]string{vmName}, running)
 		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
-		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+		monitorNodesStatus(targetClient, "defaul", []string{nodeName}, v1.ConditionTrue)
 
 		// power cycle
 
-		// powerCycle := func(host bmh.BareMetalHost, m3machine v1alpha4.Metal3Machine) error {
+		powerCycle := func(machines machineSetSlice) error {
+			By("Marking a BMH for power off")
+			for _, set := range machines {
+				Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
+			}
+			waitForVmsState(machines.getVmNames(), shutoff)
 
-		// 	return nil
-		// }
+			for _, nodeName := range machines.getNodeNames() {
+				waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+			}
+			monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionUnknown)
 
-		By("Marking a BMH for power off")
-		Expect(annotateBmh(ctx, client, bmhToReboot, poweroffAnnotation, pointer.String(""))).To(Succeed())
+			// power on
+			By("Marking a BMH for power on")
+			for _, set := range machines {
+				Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
+			}
 
-		waitForVmState(vmName, shutoff)
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+			// waitForVmState(vmName, running)
+			waitForVmsState(machines.getVmNames(), running)
+			for _, nodeName := range machines.getNodeNames() {
+				waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+			}
+			monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionTrue)
+			return nil
+		}
 
-		// power on
-		By("Marking a BMH for power on")
-		Expect(annotateBmh(ctx, client, bmhToReboot, poweroffAnnotation, nil)).To(Succeed())
+		powerCycle(make([]machineSet, 0))
 
-		waitForVmState(vmName, running)
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
-		monitorNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+		// By("Marking a BMH for power off")
+		// Expect(annotateBmh(ctx, client, bmhToReboot, poweroffAnnotation, pointer.String(""))).To(Succeed())
+
+		// waitForVmsState([]string{vmName}, shutoff)
+		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+		// // monitorNodesStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+
+		// // power on
+		// By("Marking a BMH for power on")
+		// Expect(annotateBmh(ctx, client, bmhToReboot, poweroffAnnotation, nil)).To(Succeed())
+
+		// waitForVmsState([]string{vmName}, running)
+		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+		// // monitorNodesStatus(targetClient, types.NamespacedN,ame{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+
+		powerCycle(machineSetSlice{
+			{
+				baremetalhost: &bmhToReboot,
+				metal3machine: &workerToReboot,
+			},
+		})
 
 	})
 
 })
+
+type machineSet struct {
+	baremetalhost *bmh.BareMetalHost
+	metal3machine *v1alpha4.Metal3Machine
+}
+type machineSetSlice []machineSet
+
+func (msl machineSetSlice) getBMHs() (hosts []bmh.BareMetalHost) {
+	for _, ms := range msl {
+		if ms.baremetalhost != nil {
+			hosts = append(hosts, *ms.baremetalhost)
+		}
+	}
+	return
+}
+
+func (msl machineSetSlice) getVmNames() (names []string) {
+	for _, host := range msl.getBMHs() {
+		names = append(names, bmhToVmName(host))
+	}
+	return
+}
+
+func (msl machineSetSlice) getMachineNames() (names []string) {
+	for _, ms := range msl {
+		if ms.metal3machine != nil {
+			name, err := metal3MachineToMachineName(*ms.metal3machine)
+			Expect(err).NotTo(HaveOccurred())
+			names = append(names, name)
+		}
+	}
+	return
+}
+
+func (msl machineSetSlice) getNodeNames() []string {
+	// nodes have the same names as machines
+	return msl.getMachineNames()
+}
 
 func annotateBmh(ctx context.Context, client client.Client, host bmh.BareMetalHost, key string, value *string) error {
 	helper, err := patch.NewHelper(&host, client)
