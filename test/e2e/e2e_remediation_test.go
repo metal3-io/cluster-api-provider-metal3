@@ -269,10 +269,14 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Testing unhealthy annotation")
 
 		ctrlplane := kcp.KubeadmControlPlane{}
+		Expect(client.Get(ctx,
+			types.NamespacedName{Namespace: "metal3", Name: "test1"},
+			&ctrlplane)).To(Succeed())
 		helper, err := patch.NewHelper(&ctrlplane, client)
 		Expect(err).To(BeNil())
 		fmt.Printf("ctrlplane.spec: %#+v\n", ctrlplane.Spec)
-		ctrlplane.Spec.Replicas = pointer.Int32Ptr(2)
+		// setting "2" errors out, cause it's an even numbe
+		ctrlplane.Spec.Replicas = pointer.Int32Ptr(1)
 		Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
 	})
 
