@@ -182,29 +182,34 @@ var _ = Describe("Remediation Pivoting", func() {
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
-		ctrlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
+		controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
 		Expect(err).NotTo(HaveOccurred())
 
-		for _, m3machine := range ctrlM3Machines {
+		for _, m3machine := range controlM3Machines {
 			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
 		}
 		for _, m3machine := range workerM3Machines {
 			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
 		}
 
-		workerToReboot := workerM3Machines[0]
-		bmhToReboot := bmh.BareMetalHost{}
-		Expect(client.Get(ctx,
-			types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(workerToReboot)},
-			&bmhToReboot)).To(Succeed())
+		getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) bmh.BareMetalHost {
+			theBmh := bmh.BareMetalHost{}
+			Expect(client.Get(ctx,
+				types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
+				&theBmh)).To(Succeed())
+			return theBmh
+		}
 
-		machineName, err := metal3MachineToMachineName(workerToReboot)
+		workerM3Machine := workerM3Machines[0]
+		workerBmh := getBmhFromM3Machine(workerM3Machine)
+
+		machineName, err := metal3MachineToMachineName(workerM3Machine)
 		Expect(err).ToNot(HaveOccurred())
 		nodeName := machineName
-		vmName := bmhToVmName(bmhToReboot)
+		vmName := bmhToVmName(workerBmh)
 
 		By("Marking a BMH for reboot")
-		annotateBmh(ctx, client, bmhToReboot, rebootAnnotation, pointer.String(""))
+		annotateBmh(ctx, client, workerBmh, rebootAnnotation, pointer.String(""))
 
 		waitForVmsState([]string{vmName}, shutoff)
 
@@ -244,8 +249,6 @@ var _ = Describe("Remediation Pivoting", func() {
 			return nil
 		}
 
-		powerCycle(make([]machineSet, 0))
-
 		// By("Marking a BMH for power off")
 		// Expect(annotateBmh(ctx, client, bmhToReboot, poweroffAnnotation, pointer.String(""))).To(Succeed())
 
@@ -263,10 +266,24 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		powerCycle(machineSetSlice{
 			{
-				baremetalhost: &bmhToReboot,
-				metal3machine: &workerToReboot,
+				baremetalhost: &workerBmh,
+				metal3machine: &workerM3Machine,
 			},
 		})
+
+		controlMachineSets := make([]machineSet, len(controlM3Machines))
+		for i, m3machine := range controlM3Machines {
+			theBmh := getBmhFromM3Machine(m3machine)
+			controlMachineSets[i] = machineSet{
+				baremetalhost: &theBmh,
+				metal3machine: &m3machine,
+			}
+		}
+
+		By("Power cycling 1 control plane machine")
+		powerCycle(controlMachineSets[:1])
+		By("Power cycling 2 control plane machines")
+		powerCycle(controlMachineSets[1:3])
 
 	})
 
