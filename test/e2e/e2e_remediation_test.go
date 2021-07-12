@@ -230,16 +230,11 @@ var _ = Describe("Remediation Pivoting", func() {
 		// power cycle
 
 		powerCycle := func(machines machineSetSlice) error {
-			By("Marking a BMH for power off")
+			By(fmt.Sprintf("Power cycling %d machines", len(machines)))
 			for _, set := range machines {
 				Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
 			}
 			waitForVmsState(machines.getVmNames(), shutoff)
-
-			// for _, nodeName := range machines.getNodeNames() {
-			// 	waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-			// }
-			// monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionUnknown)
 
 			// power on
 			By("Marking a BMH for power on")
@@ -263,9 +258,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			},
 		})
 
-		By("Power cycling 1 control plane machine")
 		powerCycle(controlMachineSets[:1])
-		By("Power cycling 2 control plane machines")
 		powerCycle(controlMachineSets[1:3])
 
 	})
