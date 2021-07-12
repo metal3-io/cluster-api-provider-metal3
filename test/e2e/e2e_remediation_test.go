@@ -162,105 +162,109 @@ var _ = Describe("Remediation Pivoting", func() {
 		// 	Name:      input.ConfigCluster.ClusterName,
 		// }, input.WaitForClusterIntervals...)
 
-		By("Checking that rebooted node becomes Ready")
-		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-		targetClient := targetCluster.GetClient()
+		_ = func() {
+			By("Checking that rebooted node becomes Ready")
+			targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+			targetClient := targetCluster.GetClient()
 
-		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
-		client := bootstrapClusterProxy.GetClient()
-		machines := &clusterv1.MachineList{}
-		Eventually(func() error {
-			if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
-				return err
+			fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
+			client := bootstrapClusterProxy.GetClient()
+			machines := &clusterv1.MachineList{}
+			Eventually(func() error {
+				if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
+					return err
+				}
+
+				Expect(machines.Items).To((HaveLen(int(controlPlaneMachineCount + workerMachineCount))))
+				for _, machine := range machines.Items {
+					if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
+						return errors.New("Machine is not in 'running' phase")
+					}
+				}
+				return nil
+			}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
+
+			controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
+			Expect(err).NotTo(HaveOccurred())
+
+			getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) (result bmh.BareMetalHost) {
+				Expect(client.Get(ctx,
+					types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
+					&result)).To(Succeed())
+				return result
 			}
 
-			Expect(machines.Items).To((HaveLen(int(controlPlaneMachineCount + workerMachineCount))))
-			for _, machine := range machines.Items {
-				if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
-					return errors.New("Machine is not in 'running' phase")
+			controlMachineSets := make([]machineSet, len(controlM3Machines))
+			for i, m3machine := range controlM3Machines {
+				theBmh := getBmhFromM3Machine(m3machine)
+				controlMachineSets[i] = machineSet{
+					baremetalhost: &theBmh,
+					metal3machine: &controlM3Machines[i],
 				}
 			}
-			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
+			fmt.Printf("controlMachineSets: %s\n", controlMachineSets)
 
-		controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
-		Expect(err).NotTo(HaveOccurred())
-
-		getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) (result bmh.BareMetalHost) {
-			Expect(client.Get(ctx,
-				types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
-				&result)).To(Succeed())
-			return result
-		}
-
-		controlMachineSets := make([]machineSet, len(controlM3Machines))
-		for i, m3machine := range controlM3Machines {
-			theBmh := getBmhFromM3Machine(m3machine)
-			controlMachineSets[i] = machineSet{
-				baremetalhost: &theBmh,
-				metal3machine: &controlM3Machines[i],
-			}
-		}
-		fmt.Printf("controlMachineSets: %s\n", controlMachineSets)
-
-		for _, m3machine := range workerM3Machines {
-			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
-		}
-
-		workerM3Machine := workerM3Machines[0]
-		workerBmh := getBmhFromM3Machine(workerM3Machine)
-
-		machineName, err := metal3MachineToMachineName(workerM3Machine)
-		Expect(err).ToNot(HaveOccurred())
-		nodeName := machineName
-		vmName := bmhToVmName(workerBmh)
-
-		By("Marking a BMH for reboot")
-		annotateBmh(ctx, client, workerBmh, rebootAnnotation, pointer.String(""))
-
-		waitForVmsState([]string{vmName}, shutoff)
-
-		// Note: what is reported in the CLI as NotReady, is initially unknown status
-		// This call will wait for the actual "False" condition status
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-		waitForVmsState([]string{vmName}, running)
-		waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
-		monitorNodesStatus(targetClient, "defaul", []string{nodeName}, v1.ConditionTrue)
-
-		// power cycle
-
-		powerCycle := func(machines machineSetSlice) error {
-			By(fmt.Sprintf("Power cycling %d machines", len(machines)))
-			for _, set := range machines {
-				Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
-			}
-			waitForVmsState(machines.getVmNames(), shutoff)
-
-			// power on
-			By("Marking a BMH for power on")
-			for _, set := range machines {
-				Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
+			for _, m3machine := range workerM3Machines {
+				fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
 			}
 
-			// waitForVmState(vmName, running)
-			waitForVmsState(machines.getVmNames(), running)
-			for _, nodeName := range machines.getNodeNames() {
-				waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+			workerM3Machine := workerM3Machines[0]
+			workerBmh := getBmhFromM3Machine(workerM3Machine)
+
+			machineName, err := metal3MachineToMachineName(workerM3Machine)
+			Expect(err).ToNot(HaveOccurred())
+			nodeName := machineName
+			vmName := bmhToVmName(workerBmh)
+
+			By("Marking a BMH for reboot")
+			annotateBmh(ctx, client, workerBmh, rebootAnnotation, pointer.String(""))
+
+			waitForVmsState([]string{vmName}, shutoff)
+
+			// Note: what is reported in the CLI as NotReady, is initially unknown status
+			// This call will wait for the actual "False" condition status
+			waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+			waitForVmsState([]string{vmName}, running)
+			waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+			monitorNodesStatus(targetClient, "defaul", []string{nodeName}, v1.ConditionTrue)
+
+			// power cycle
+
+			powerCycle := func(machines machineSetSlice) error {
+				By(fmt.Sprintf("Power cycling %d machines", len(machines)))
+				for _, set := range machines {
+					Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
+				}
+				waitForVmsState(machines.getVmNames(), shutoff)
+
+				// power on
+				By("Marking a BMH for power on")
+				for _, set := range machines {
+					Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
+				}
+
+				// waitForVmState(vmName, running)
+				waitForVmsState(machines.getVmNames(), running)
+				for _, nodeName := range machines.getNodeNames() {
+					waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+				}
+				monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionTrue)
+				return nil
 			}
-			monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionTrue)
-			return nil
+
+			powerCycle(machineSetSlice{
+				{
+					baremetalhost: &workerBmh,
+					metal3machine: &workerM3Machine,
+				},
+			})
+
+			powerCycle(controlMachineSets[:1])
+			powerCycle(controlMachineSets[1:3])
+
 		}
 
-		powerCycle(machineSetSlice{
-			{
-				baremetalhost: &workerBmh,
-				metal3machine: &workerM3Machine,
-			},
-		})
-
-		powerCycle(controlMachineSets[:1])
-		powerCycle(controlMachineSets[1:3])
-
+		By("Testing unhealthy annotation")
 	})
 
 })
