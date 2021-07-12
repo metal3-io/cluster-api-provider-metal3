@@ -237,10 +237,10 @@ var _ = Describe("Remediation Pivoting", func() {
 			}
 			waitForVmsState(machines.getVmNames(), shutoff)
 
-			for _, nodeName := range machines.getNodeNames() {
-				waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-			}
-			monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionUnknown)
+			// for _, nodeName := range machines.getNodeNames() {
+			// 	waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+			// }
+			// monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionUnknown)
 
 			// power on
 			By("Marking a BMH for power on")
