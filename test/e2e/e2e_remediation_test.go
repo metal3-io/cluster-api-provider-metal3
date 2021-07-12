@@ -295,6 +295,13 @@ type machineSet struct {
 }
 type machineSetSlice []machineSet
 
+func (ms machineSet) String() string {
+	return fmt.Sprintf("machineSet{%p bmh:%s, %p metal3machine:%s}",
+		ms.baremetalhost, ms.baremetalhost.GetName(),
+		ms.metal3machine, ms.metal3machine.GetName(),
+	)
+}
+
 func (msl machineSetSlice) getBMHs() (hosts []bmh.BareMetalHost) {
 	for _, ms := range msl {
 		if ms.baremetalhost != nil {
