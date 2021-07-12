@@ -18,6 +18,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -162,13 +163,14 @@ var _ = Describe("Remediation Pivoting", func() {
 		// 	Name:      input.ConfigCluster.ClusterName,
 		// }, input.WaitForClusterIntervals...)
 
-		_ = func() {
-			By("Checking that rebooted node becomes Ready")
-			targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-			targetClient := targetCluster.GetClient()
+		By("Checking that rebooted node becomes Ready")
+		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+		targetClient := targetCluster.GetClient()
 
-			fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
-			client := bootstrapClusterProxy.GetClient()
+		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
+		client := bootstrapClusterProxy.GetClient()
+
+		_ = func() {
 			machines := &clusterv1.MachineList{}
 			Eventually(func() error {
 				if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
@@ -265,6 +267,13 @@ var _ = Describe("Remediation Pivoting", func() {
 		}
 
 		By("Testing unhealthy annotation")
+
+		ctrlplane := kcp.KubeadmControlPlane{}
+		helper, err := patch.NewHelper(&ctrlplane, client)
+		Expect(err).To(BeNil())
+		fmt.Printf("ctrlplane.spec: %#+v\n", ctrlplane.Spec)
+		ctrlplane.Spec.Replicas = pointer.Int32Ptr(2)
+		Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
 	})
 
 })
