@@ -24,7 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	_ "github.com/go-logr/logr"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,18 +36,18 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func bmcSpec() *infrav1.Metal3ClusterSpec {
-	return &infrav1.Metal3ClusterSpec{
-		ControlPlaneEndpoint: infrav1.APIEndpoint{
+func bmcSpec() *infrav1alpha5.Metal3ClusterSpec {
+	return &infrav1alpha5.Metal3ClusterSpec{
+		ControlPlaneEndpoint: infrav1alpha5.APIEndpoint{
 			Host: "192.168.111.249",
 			Port: 6443,
 		},
 	}
 }
 
-func bmcSpecAPIEmpty() *infrav1.Metal3ClusterSpec {
-	return &infrav1.Metal3ClusterSpec{
-		ControlPlaneEndpoint: infrav1.APIEndpoint{
+func bmcSpecAPIEmpty() *infrav1alpha5.Metal3ClusterSpec {
+	return &infrav1alpha5.Metal3ClusterSpec{
+		ControlPlaneEndpoint: infrav1alpha5.APIEndpoint{
 			Host: "",
 			Port: 0,
 		},
@@ -55,7 +55,7 @@ func bmcSpecAPIEmpty() *infrav1.Metal3ClusterSpec {
 }
 
 type testCaseBMClusterManager struct {
-	BMCluster     *infrav1.Metal3Cluster
+	BMCluster     *infrav1alpha5.Metal3Cluster
 	Cluster       *clusterv1.Cluster
 	ExpectSuccess bool
 }
@@ -89,7 +89,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 			},
 			Entry("Cluster and BMCluster Defined", testCaseBMClusterManager{
 				Cluster:       &clusterv1.Cluster{},
-				BMCluster:     &infrav1.Metal3Cluster{},
+				BMCluster:     &infrav1alpha5.Metal3Cluster{},
 				ExpectSuccess: true,
 			}),
 			Entry("BMCluster undefined", testCaseBMClusterManager{
@@ -99,7 +99,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 			}),
 			Entry("Cluster undefined", testCaseBMClusterManager{
 				Cluster:       nil,
-				BMCluster:     &infrav1.Metal3Cluster{},
+				BMCluster:     &infrav1alpha5.Metal3Cluster{},
 				ExpectSuccess: false,
 			}),
 		)
@@ -113,13 +113,13 @@ var _ = Describe("Metal3Cluster manager", func() {
 			clusterMgr.SetFinalizer()
 
 			Expect(tc.BMCluster.ObjectMeta.Finalizers).To(ContainElement(
-				infrav1.ClusterFinalizer,
+				infrav1alpha5.ClusterFinalizer,
 			))
 
 			clusterMgr.UnsetFinalizer()
 
 			Expect(tc.BMCluster.ObjectMeta.Finalizers).NotTo(ContainElement(
-				infrav1.ClusterFinalizer,
+				infrav1alpha5.ClusterFinalizer,
 			))
 		},
 		Entry("No finalizers", testCaseBMClusterManager{
@@ -130,7 +130,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		}),
 		Entry("Finalizers", testCaseBMClusterManager{
 			Cluster: nil,
-			BMCluster: &infrav1.Metal3Cluster{
+			BMCluster: &infrav1alpha5.Metal3Cluster{
 				TypeMeta: metav1.TypeMeta{
 					Kind: "Metal3Cluster",
 				},
@@ -138,10 +138,10 @@ var _ = Describe("Metal3Cluster manager", func() {
 					Name:            metal3ClusterName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{*bmcOwnerRef},
-					Finalizers:      []string{infrav1.ClusterFinalizer},
+					Finalizers:      []string{infrav1alpha5.ClusterFinalizer},
 				},
-				Spec:   infrav1.Metal3ClusterSpec{},
-				Status: infrav1.Metal3ClusterStatus{},
+				Spec:   infrav1alpha5.Metal3ClusterSpec{},
+				Status: infrav1alpha5.Metal3ClusterStatus{},
 			},
 		}),
 	)
@@ -172,7 +172,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		Entry("Pre-existing error message overridden", testCaseBMClusterManager{
 			Cluster: newCluster(clusterName),
 			BMCluster: newMetal3Cluster(metal3ClusterName,
-				bmcOwnerRef, nil, &infrav1.Metal3ClusterStatus{
+				bmcOwnerRef, nil, &infrav1alpha5.Metal3ClusterStatus{
 					FailureMessage: pointer.StringPtr("cba"),
 				},
 			),
@@ -193,7 +193,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		},
 		Entry("deleting BMCluster", testCaseBMClusterManager{
 			Cluster:       &clusterv1.Cluster{},
-			BMCluster:     &infrav1.Metal3Cluster{},
+			BMCluster:     &infrav1alpha5.Metal3Cluster{},
 			ExpectSuccess: true,
 		}),
 	)
@@ -221,7 +221,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		}),
 		Entry("Cluster exists, BMCluster empty", testCaseBMClusterManager{
 			Cluster:       newCluster(clusterName),
-			BMCluster:     &infrav1.Metal3Cluster{},
+			BMCluster:     &infrav1alpha5.Metal3Cluster{},
 			ExpectSuccess: false,
 		}),
 		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{
@@ -277,7 +277,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		}),
 		Entry("Cluster exists, BMCluster empty", testCaseBMClusterManager{
 			Cluster:       newCluster(clusterName),
-			BMCluster:     &infrav1.Metal3Cluster{},
+			BMCluster:     &infrav1alpha5.Metal3Cluster{},
 			ExpectSuccess: false,
 		}),
 		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{

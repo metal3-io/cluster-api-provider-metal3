@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,7 +46,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 
 	DescribeTable("Reconcile tests metal3Cluster",
 		func(tc TestCaseReconcileBMC) {
-			testclstr := &infrav1.Metal3Cluster{}
+			testclstr := &infrav1alpha5.Metal3Cluster{}
 			c := fake.NewFakeClientWithScheme(setupScheme(), tc.Objects...)
 
 			r := &Metal3ClusterReconciler{
@@ -126,7 +126,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected: true,
-				//ErrorType:           &infrav1.APIEndPointError{},
+				//ErrorType:           &infrav1alpha5.APIEndPointError{},
 				RequeueExpected:     false,
 				ErrorReasonExpected: true,
 				ErrorReason:         capierrors.InvalidConfigurationClusterError,
@@ -176,7 +176,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should reconcileDelete when deletion timestamp is set.",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					&infrav1.Metal3Cluster{
+					&infrav1alpha5.Metal3Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind: "Metal3Cluster",
 						},
@@ -198,7 +198,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("reconcileDelete should wait for metal3machine",
 			TestCaseReconcileBMC{
 				Objects: []runtime.Object{
-					&infrav1.Metal3Cluster{
+					&infrav1alpha5.Metal3Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind: "Metal3Cluster",
 						},

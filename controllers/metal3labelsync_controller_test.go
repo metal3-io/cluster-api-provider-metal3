@@ -20,7 +20,7 @@ import (
 	"reflect"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -290,9 +290,9 @@ var _ = Describe("Metal3LabelSync controller", func() {
 	)
 	type TestCaseMetal3ClusterToBMHs struct {
 		Cluster        *capi.Cluster
-		M3Cluster      *infrav1.Metal3Cluster
+		M3Cluster      *infrav1alpha5.Metal3Cluster
 		Machine        *capi.Machine
-		M3Machine      *infrav1.Metal3Machine
+		M3Machine      *infrav1alpha5.Metal3Machine
 		ExpectRequests []ctrl.Request
 	}
 

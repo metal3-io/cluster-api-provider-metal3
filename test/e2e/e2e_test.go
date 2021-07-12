@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,15 +14,24 @@ import (
 
 var _ = Describe("Workload cluster creation", func() {
 	var (
-		ctx                 = context.TODO()
-		specName            = "metal3"
-		namespace           = "metal3"
+		ctx       = context.TODO()
+		specName  = "metal3"
+		namespace = "metal3"
+		// flavorSuffix        string
 		cluster             *clusterv1.Cluster
 		clusterName         = "test1"
 		clusterctlLogFolder string
 	)
 
 	BeforeEach(func() {
+		osType := strings.ToLower(os.Getenv("OS"))
+		Expect(osType).ToNot(Equal(""))
+		// if osType == "centos" {
+		// 	flavorSuffix = "-centos"
+		// } else {
+		// 	flavorSuffix = ""
+		// }
+
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(clusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. clusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. bootstrapClusterProxy can't be nil when calling %s spec", specName)
@@ -47,7 +57,7 @@ var _ = Describe("Workload cluster creation", func() {
 	// 				ClusterctlConfigPath:     clusterctlConfigPath,
 	// 				KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
 	// 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-	// 				Flavor:                   "ha",
+	// 				Flavor:                   "ha" + flavorSuffix,
 	// 				Namespace:                namespace,
 	// 				ClusterName:              clusterName,
 	// 				KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),

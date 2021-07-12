@@ -68,7 +68,50 @@ spec:
     name: ${CLUSTER_NAME}-controlplane
   kubeadmConfigSpec:
     clusterConfiguration: {}
+    joinConfiguration:
+      controlPlane: {}
+      nodeRegistration:
+        kubeletExtraArgs:
+          cgroup-driver: systemd
+          container-runtime: remote
+          container-runtime-endpoint: unix:///var/run/crio/crio.sock
+          feature-gates: AllAlpha=false,RunAsGroup=true
+          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+          provider-id: metal3://{{ ds.meta_data.uuid }}
+          runtime-request-timeout: 5m
+        name: '{{ ds.meta_data.name }}'
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cgroup-driver: systemd
+          container-runtime: remote
+          container-runtime-endpoint: unix:///var/run/crio/crio.sock
+          feature-gates: AllAlpha=false,RunAsGroup=true
+          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+          provider-id: metal3://{{ ds.meta_data.uuid }}
+          runtime-request-timeout: 5m
+        name: '{{ ds.meta_data.name }}'
+
+
     files:
+    - path: /usr/local/bin/retrieve.configuration.files.sh
+      owner: root:root
+      permissions: '0755'
+      content: |
+          #!/bin/bash
+          set -e
+          url="${1}"
+          dst="${2}"
+          filename="$(basename ${url})"
+          tmpfile="/tmp/${filename}"
+          curl -sSL -w "%{http_code}" "${url}" | sed "s:/usr/bin:/usr/local/bin:g" > /tmp/"${filename}"
+          http_status=$(cat "${tmpfile}" | tail -n 1)
+          if [ "${http_status}" != "200" ]; then
+            echo "Error: unable to retrieve ${filename} file";
+            exit 1;
+          else
+            cat "${tmpfile}"| sed '$d' > "${dst}";
+          fi
     - content: |
         #!/bin/bash
         while :; do
@@ -89,21 +132,20 @@ spec:
       owner: root:root
       path: /usr/local/bin/monitor.keepalived.sh
       permissions: "0755"
-    - content: |
+    - path: /lib/systemd/system/monitor.keepalived.service
+      owner: root:root
+      content: |
         [Unit]
         Description=Monitors keepalived adjusts status with that of API server
         After=syslog.target network-online.target
-
         [Service]
         Type=simple
         Restart=always
         ExecStart=/usr/local/bin/monitor.keepalived.sh
-
         [Install]
         WantedBy=multi-user.target
-      owner: root:root
-      path: /lib/systemd/system/monitor.keepalived.service
-    - content: |
+    - path: /etc/keepalived/keepalived.conf
+      content: |
         ! Configuration File for keepalived
         global_defs {
             notification_email {
@@ -114,29 +156,48 @@ spec:
             smtp_server localhost
             smtp_connect_timeout 30
         }
-        vrrp_instance VI_2 {
+        vrrp_instance VI_1 {
             state MASTER
-            interface enp2s0
-            virtual_router_id 2
+            interface eth1
+            virtual_router_id 1
             priority 101
             advert_int 1
             virtual_ipaddress {
                 ${CLUSTER_APIENDPOINT_HOST}
             }
         }
-      path: /etc/keepalived/keepalived.conf
-    - content: |
-        network:
-          version: 2
-          renderer: networkd
-          bridges:
-            ${CLUSTER_PROVISIONING_INTERFACE}:
-              interfaces: [enp1s0]
-              addresses:
-              - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
+    - path: /etc/sysconfig/network-scripts/ifcfg-eth0
       owner: root:root
-      path: /etc/netplan/52-ironicendpoint.yaml
-      permissions: "0644"
+      permissions: '0644'
+      content: |
+        BOOTPROTO=none
+        DEVICE=eth0
+        ONBOOT=yes
+        TYPE=Ethernet
+        USERCTL=no
+        BRIDGE=${CLUSTER_PROVISIONING_INTERFACE}
+    - content: |
+        TYPE=Bridge
+        DEVICE=${CLUSTER_PROVISIONING_INTERFACE}
+        ONBOOT=yes
+        USERCTL=no
+        BOOTPROTO="static"
+        IPADDR={{ "{{ ds.meta_data.provisioningIP }}" }}
+        PREFIX={{ "{{ ds.meta_data.provisioningCIDR }}" }}
+      path: /etc/sysconfig/network-scripts/ifcfg-ironicendpoint
+      owner: root:root
+      permissions: '0644'
+    - content: |
+        [kubernetes]
+        name=Kubernetes
+        baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg 
+      path: /etc/yum.repos.d/kubernetes.repo
+      owner: root:root
+      permissions: '0644'
     - content: |
         [registries.search]
         registries = ['docker.io']
@@ -144,38 +205,14 @@ spec:
         [registries.insecure]
         registries = ['${REGISTRY}']
       path: /etc/containers/registries.conf
-    initConfiguration:
-      nodeRegistration:
-        kubeletExtraArgs:
-          cgroup-driver: systemd
-          container-runtime: remote
-          container-runtime-endpoint: unix:///var/run/crio/crio.sock
-          feature-gates: AllAlpha=false,RunAsGroup=true
-          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-          provider-id: metal3://{{ ds.meta_data.uuid }}
-          runtime-request-timeout: 5m
-        name: '{{ ds.meta_data.name }}'
-    joinConfiguration:
-      controlPlane: {}
-      nodeRegistration:
-        kubeletExtraArgs:
-          cgroup-driver: systemd
-          container-runtime: remote
-          container-runtime-endpoint: unix:///var/run/crio/crio.sock
-          feature-gates: AllAlpha=false,RunAsGroup=true
-          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-          provider-id: metal3://{{ ds.meta_data.uuid }}
-          runtime-request-timeout: 5m
-        name: '{{ ds.meta_data.name }}'
     postKubeadmCommands:
     - mkdir -p /home/${IMAGE_USERNAME}/.kube
     - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
-    - systemctl enable --now keepalived
     - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
     preKubeadmCommands:
-    - netplan apply
-    - systemctl enable --now crio kubelet
-    - if (curl -sk --max-time 10 https://${CLUSTER_APIENDPOINT_HOST}:${CLUSTER_APIENDPOINT_PORT}/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
+    - systemctl restart NetworkManager.service
+    - ifup eth0
+    - systemctl enable --now crio keepalived kubelet
     - systemctl link /lib/systemd/system/monitor.keepalived.service
     - systemctl enable monitor.keepalived.service
     - systemctl start monitor.keepalived.service
@@ -359,24 +396,64 @@ spec:
     spec:
       files:
       - content: |
-          network:
-            version: 2
-            renderer: networkd
-            bridges:
-              ${CLUSTER_PROVISIONING_INTERFACE}:
-                interfaces: [enp1s0]
-                addresses:
-                - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
+            #!/bin/bash
+            set -e
+            url="${1}"
+            dst="${2}"
+            filename="$(basename ${url})"
+            tmpfile="/tmp/${filename}"
+            curl -sSL -w "%{http_code}" "${url}" | sed "s:/usr/bin:/usr/local/bin:g" > /tmp/"${filename}"
+            http_status=$(cat "${tmpfile}" | tail -n 1)
+            if [ "${http_status}" != "200" ]; then
+              echo "Error: unable to retrieve ${filename} file";
+              exit 1;
+            else
+              cat "${tmpfile}"| sed '$d' > "${dst}";
+            fi
         owner: root:root
-        path: /etc/netplan/52-ironicendpoint.yaml
-        permissions: "0644"
+        path: /usr/local/bin/retrieve.configuration.files.sh
+        permissions: "0755"
       - content: |
+          BOOTPROTO=none
+          DEVICE=eth0
+          ONBOOT=yes
+          TYPE=Ethernet
+          USERCTL=no
+          BRIDGE=${CLUSTER_PROVISIONING_INTERFACE}
+        path: /etc/sysconfig/network-scripts/ifcfg-eth0
+        owner: root:root
+        permissions: '0644'
+      - path: /etc/sysconfig/network-scripts/ifcfg-ironicendpoint
+        owner: root:root
+        permissions: '0644'
+        content: |
+          TYPE=Bridge
+          DEVICE=${CLUSTER_PROVISIONING_INTERFACE}
+          ONBOOT=yes
+          USERCTL=no
+          BOOTPROTO="static"
+          IPADDR={{ "{{ ds.meta_data.provisioningIP }}" }}
+          PREFIX={{ "{{ ds.meta_data.provisioningCIDR }}" }}
+      - path: /etc/yum.repos.d/kubernetes.repo
+        owner: root:root
+        permissions: '0644'
+        content: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=0
+          gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      - path : /etc/containers/registries.conf
+        owner: root:root
+        permissions: '0644'
+        content: |
           [registries.search]
           registries = ['docker.io']
 
           [registries.insecure]
           registries = ['${REGISTRY}']
-        path: /etc/containers/registries.conf
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
@@ -389,7 +466,8 @@ spec:
             runtime-request-timeout: 5m
           name: '{{ ds.meta_data.name }}'
       preKubeadmCommands:
-      - netplan apply
+      - systemctl restart NetworkManager.service
+      - ifup eth0
       - systemctl enable --now crio kubelet
       users:
       - name: metal3
