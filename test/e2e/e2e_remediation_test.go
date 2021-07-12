@@ -53,6 +53,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		Expect(client.Get(ctx, name, node)).To(Succeed())
 		for _, condition := range node.Status.Conditions {
 			if condition.Type == v1.NodeReady {
+				// fmt.Printf("Node %s has status '%s', should have '%s'\n", name.Name, condition.Status, status)
 				if status == condition.Status {
 					return nil
 				} else {
@@ -82,7 +83,7 @@ var _ = Describe("Remediation Pivoting", func() {
 	monitorNodesStatus := func(client client.Client, namespace string, names []string, status v1.ConditionStatus) {
 		// TODO look int gomega 1.14 to use assertions in the func
 
-		By(fmt.Sprintf("Ensuring Nodes %#v consistently has ready=%s status", names, status))
+		By(fmt.Sprintf("Ensuring Nodes %#v consistently have ready=%s status", names, status))
 		Consistently(
 			func() error {
 				for _, node := range names {
@@ -185,19 +186,26 @@ var _ = Describe("Remediation Pivoting", func() {
 		controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
 		Expect(err).NotTo(HaveOccurred())
 
-		for _, m3machine := range controlM3Machines {
-			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
-		}
-		for _, m3machine := range workerM3Machines {
-			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
-		}
-
 		getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) bmh.BareMetalHost {
 			theBmh := bmh.BareMetalHost{}
 			Expect(client.Get(ctx,
 				types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
 				&theBmh)).To(Succeed())
 			return theBmh
+		}
+
+		controlMachineSets := make([]machineSet, len(controlM3Machines))
+		for i, m3machine := range controlM3Machines {
+			theBmh := getBmhFromM3Machine(m3machine)
+			controlMachineSets[i] = machineSet{
+				baremetalhost: &theBmh,
+				metal3machine: &controlM3Machines[i],
+			}
+		}
+		fmt.Printf("controlMachineSets: %s\n", controlMachineSets)
+
+		for _, m3machine := range workerM3Machines {
+			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
 		}
 
 		workerM3Machine := workerM3Machines[0]
@@ -264,21 +272,12 @@ var _ = Describe("Remediation Pivoting", func() {
 		// waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 		// // monitorNodesStatus(targetClient, types.NamespacedN,ame{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 
-		powerCycle(machineSetSlice{
-			{
-				baremetalhost: &workerBmh,
-				metal3machine: &workerM3Machine,
-			},
-		})
-
-		controlMachineSets := make([]machineSet, len(controlM3Machines))
-		for i, m3machine := range controlM3Machines {
-			theBmh := getBmhFromM3Machine(m3machine)
-			controlMachineSets[i] = machineSet{
-				baremetalhost: &theBmh,
-				metal3machine: &m3machine,
-			}
-		}
+		// powerCycle(machineSetSlice{
+		// 	{
+		// 		baremetalhost: &workerBmh,
+		// 		metal3machine: &workerM3Machine,
+		// 	},
+		// })
 
 		By("Power cycling 1 control plane machine")
 		powerCycle(controlMachineSets[:1])
