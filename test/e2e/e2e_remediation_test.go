@@ -152,17 +152,6 @@ var _ = Describe("Remediation Pivoting", func() {
 			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}).Cluster
 
-	})
-
-	It("Run test: remediation", func() {
-
-		// log.Logf("Waiting for the cluster infrastructure to be detected")
-		// cluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
-		// 	Getter:    input.ClusterProxy.GetClient(),
-		// 	Namespace: input.ConfigCluster.Namespace,
-		// 	Name:      input.ConfigCluster.ClusterName,
-		// }, input.WaitForClusterIntervals...)
-
 		By("Checking that rebooted node becomes Ready")
 		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		targetClient := targetCluster.GetClient()
