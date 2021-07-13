@@ -159,49 +159,49 @@ var _ = Describe("Remediation Pivoting", func() {
 		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
 		client := bootstrapClusterProxy.GetClient()
 
+		machines := &clusterv1.MachineList{}
+		Eventually(func() error {
+			if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
+				return err
+			}
+
+			Expect(machines.Items).To((HaveLen(int(controlPlaneMachineCount + workerMachineCount))))
+			for _, machine := range machines.Items {
+				if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
+					return errors.New("Machine is not in 'running' phase")
+				}
+			}
+			return nil
+		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
+
+		controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
+		Expect(err).NotTo(HaveOccurred())
+
+		getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) (result bmh.BareMetalHost) {
+			Expect(client.Get(ctx,
+				types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
+				&result)).To(Succeed())
+			return result
+		}
+
+		controlMachineSets := make([]machineSet, len(controlM3Machines))
+		for i, m3machine := range controlM3Machines {
+			theBmh := getBmhFromM3Machine(m3machine)
+			controlMachineSets[i] = machineSet{
+				baremetalhost: &theBmh,
+				metal3machine: &controlM3Machines[i],
+			}
+		}
+		fmt.Printf("controlMachineSets: %s\n", controlMachineSets)
+
+		for _, m3machine := range workerM3Machines {
+			fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
+		}
+
+		workerM3Machine := workerM3Machines[0]
+		workerBmh := getBmhFromM3Machine(workerM3Machine)
+
 		_ = func() {
-			machines := &clusterv1.MachineList{}
-			Eventually(func() error {
-				if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
-					return err
-				}
-
-				Expect(machines.Items).To((HaveLen(int(controlPlaneMachineCount + workerMachineCount))))
-				for _, machine := range machines.Items {
-					if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
-						return errors.New("Machine is not in 'running' phase")
-					}
-				}
-				return nil
-			}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
-
-			controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
-			Expect(err).NotTo(HaveOccurred())
-
-			getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) (result bmh.BareMetalHost) {
-				Expect(client.Get(ctx,
-					types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
-					&result)).To(Succeed())
-				return result
-			}
-
-			controlMachineSets := make([]machineSet, len(controlM3Machines))
-			for i, m3machine := range controlM3Machines {
-				theBmh := getBmhFromM3Machine(m3machine)
-				controlMachineSets[i] = machineSet{
-					baremetalhost: &theBmh,
-					metal3machine: &controlM3Machines[i],
-				}
-			}
-			fmt.Printf("controlMachineSets: %s\n", controlMachineSets)
-
-			for _, m3machine := range workerM3Machines {
-				fmt.Printf("m3 name: %s bmh name: %s \n", m3machine.ObjectMeta.Name, metal3MachineToBmhName(m3machine))
-			}
-
-			workerM3Machine := workerM3Machines[0]
-			workerBmh := getBmhFromM3Machine(workerM3Machine)
-
 			machineName, err := metal3MachineToMachineName(workerM3Machine)
 			Expect(err).ToNot(HaveOccurred())
 			nodeName := machineName
@@ -267,6 +267,9 @@ var _ = Describe("Remediation Pivoting", func() {
 		// setting "2" errors out, cause it's an even numbe
 		ctrlplane.Spec.Replicas = pointer.Int32Ptr(1)
 		Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
+
+		annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
+		defer annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", nil)
 	})
 
 })
