@@ -191,6 +191,8 @@ var _ = Describe("Remediation Pivoting", func() {
 		controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, bootstrapClient, clusterName, namespace)
 		Expect(err).NotTo(HaveOccurred())
 
+		allMachinesCount := len(controlM3Machines) + len(workerM3Machines)
+
 		getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) (result bmh.BareMetalHost) {
 			Expect(bootstrapClient.Get(ctx,
 				client.ObjectKey{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
@@ -297,7 +299,6 @@ var _ = Describe("Remediation Pivoting", func() {
 		).Should(Succeed())
 
 		By("Annotating BMH as unhealthy")
-
 		annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
 		defer annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
 
@@ -328,6 +329,37 @@ var _ = Describe("Remediation Pivoting", func() {
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
 		).Should(Succeed())
+
+		By("Scaling up machine deployment")
+		Expect(scaleMachineDeployment(
+			ctx, bootstrapClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 2),
+		).To(Succeed())
+
+		By("Verifying that none of the BMHs start provisioning")
+		Consistently(
+			func() error {
+				bmhs := bmh.BareMetalHostList{}
+				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
+				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioning)).To(HaveLen(0))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "monitor-provisioning")...,
+		)
+
+		By("Annotating BMH as healthy")
+		annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil)
+
+		By("Verifying that all BMHs are provisioned")
+		Eventually(
+			func() error {
+				bmhs := bmh.BareMetalHostList{}
+				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+		)
 	})
 
 })
@@ -393,6 +425,18 @@ func annotateBmh(ctx context.Context, client client.Client, host bmh.BareMetalHo
 	}
 	host.SetAnnotations(annotations)
 	return helper.Patch(ctx, &host)
+}
+
+func scaleMachineDeployment(ctx context.Context, client client.Client, name client.ObjectKey, newReplicas int) error {
+	deployment := clusterv1.MachineDeployment{}
+	client.Get(ctx, name, &deployment)
+
+	helper, err := patch.NewHelper(&deployment, client)
+	if err != nil {
+		return err
+	}
+	deployment.Spec.Replicas = pointer.Int32(int32(newReplicas))
+	return helper.Patch(ctx, &deployment)
 }
 
 func metal3MachineToMachineName(m3machine v1alpha4.Metal3Machine) (string, error) {

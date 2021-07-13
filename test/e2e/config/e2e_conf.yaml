@@ -78,6 +78,7 @@ intervals:
   default/wait-machine-remediation: ["30m", "10s"]
   default/wait-vm-state: ["10m", "100ms"]
   default/monitor-vm-state: ["1m", "500ms"]
+  default/monitor-provisioning: ["5m", "500ms"]
   default/wait-deployment: ["5m", "10s"]
   default/wait-job: ["5m", "10s"]
   default/wait-service: ["3m", "10s"]
