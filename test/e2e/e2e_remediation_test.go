@@ -12,6 +12,7 @@ import (
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo"
@@ -168,7 +169,9 @@ var _ = Describe("Remediation Pivoting", func() {
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}).Cluster
+	})
 
+	It("Run test", func() {
 		By("Checking that rebooted node becomes Ready")
 		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		targetClient := targetCluster.GetClient()
@@ -303,8 +306,9 @@ var _ = Describe("Remediation Pivoting", func() {
 			Eventually(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
+					fmt.Printf("Listing BMHs\n")
 					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-					fmt.Printf("Looking for %s BMH among %#+v", bmh.StateReady, bmhs.Items)
+					fmt.Printf("Looking for %s BMH among %#+v\n", bmh.StateReady, bmhs.Items)
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 					return nil
 				},
@@ -319,7 +323,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			machineName, err := metal3MachineToMachineName(workerM3Machine)
 			Expect(err).ToNot(HaveOccurred())
 			workerMachine := getMachine(client.ObjectKey{Namespace: namespace, Name: machineName})
-			Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed())
+			Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed(), "Failed to delete worker Machine")
 
 			By("Waiting for worker BMH to be in ready state")
 			Eventually(
@@ -403,6 +407,57 @@ var _ = Describe("Remediation Pivoting", func() {
 		}()
 
 		By("Testing Metal3DataTemplate reference")
+
+		m3dataTemplate := v1alpha4.Metal3DataTemplate{}
+		m3dataTemplateName := fmt.Sprintf("%s-workers-template", clusterName)
+		newM3dataTemplateName := "test-new-m3dt"
+		bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3dataTemplateName}, &m3dataTemplate)
+
+		newM3DataTemplate := v1alpha4.Metal3DataTemplate{
+			Spec: v1alpha4.Metal3DataTemplateSpec{
+				MetaData:          m3dataTemplate.Spec.MetaData,
+				NetworkData:       m3dataTemplate.Spec.NetworkData,
+				ClusterName:       clusterName,
+				TemplateReference: m3dataTemplateName,
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: newM3dataTemplateName,
+			},
+		}
+
+		Expect(bootstrapClient.Create(ctx, &newM3DataTemplate)).To(Succeed(), "Failed to create new M3DataTemplate")
+
+		m3machineTemplate := v1alpha4.Metal3MachineTemplate{}
+		m3machineTemplateName := fmt.Sprintf("%s-workers", clusterName)
+		bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)
+		newM3MachineTemplateName := "test-new-m3mt"
+
+		// 	            spec:
+		//       dataTemplate:
+		//         name: "test-new-m3dt"
+		//       image: "{{ m3mt.resources[0].spec.template.spec.image }}"
+
+		tmpDataTemplate := v1.ObjectReference{
+			Kind:      "Metal3DataTemplate",
+			Namespace: namespace,
+			Name:      newM3dataTemplateName,
+		}
+
+		newM3MachineTemplate := v1alpha4.Metal3MachineTemplate{
+			Spec: v1alpha4.Metal3MachineTemplateSpec{
+				Template: v1alpha4.Metal3MachineTemplateResource{
+					Spec: v1alpha4.Metal3MachineSpec{
+						Image:        m3machineTemplate.Spec.Template.Spec.Image,
+						DataTemplate: &tmpDataTemplate,
+					},
+				},
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name: newM3MachineTemplateName,
+			},
+		}
+
+		Expect(bootstrapClient.Create(ctx, &newM3MachineTemplate)).To(Succeed(), "Failed to create new M3MachineTemplate")
 
 	})
 })
