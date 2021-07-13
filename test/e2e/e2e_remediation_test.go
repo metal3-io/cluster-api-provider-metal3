@@ -323,7 +323,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			func() error {
 				bmhs := bmh.BareMetalHostList{}
 				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
+				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
