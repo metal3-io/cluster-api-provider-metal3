@@ -12,7 +12,6 @@ import (
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo"
@@ -49,7 +48,7 @@ var _ = Describe("Remediation Pivoting", func() {
 
 	// functions defined here to use the local variables
 
-	assertNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) error {
+	assertNodeStatus := func(client client.Client, name client.ObjectKey, status v1.ConditionStatus) error {
 		node := &v1.Node{}
 		Expect(client.Get(ctx, name, node)).To(Succeed())
 		for _, condition := range node.Status.Conditions {
@@ -73,7 +72,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
 	}
 
-	waitForNodeStatus := func(client client.Client, name types.NamespacedName, status v1.ConditionStatus) {
+	waitForNodeStatus := func(client client.Client, name client.ObjectKey, status v1.ConditionStatus) {
 		By(fmt.Sprintf("Waiting for Node '%s' to have ready=%s status", name, status))
 		Eventually(
 			func() error { return assertNodeStatus(client, name, status) },
@@ -81,14 +80,14 @@ var _ = Describe("Remediation Pivoting", func() {
 		).Should(Succeed())
 	}
 
-	monitorNodesStatus := func(client client.Client, namespace string, names []string, status v1.ConditionStatus) {
+	monitorNodesStatus := func(c client.Client, namespace string, names []string, status v1.ConditionStatus) {
 		// TODO look int gomega 1.14 to use assertions in the func
 
 		By(fmt.Sprintf("Ensuring Nodes %#v consistently have ready=%s status", names, status))
 		Consistently(
 			func() error {
 				for _, node := range names {
-					if err := assertNodeStatus(client, types.NamespacedName{Namespace: namespace, Name: node}, status); err != nil {
+					if err := assertNodeStatus(c, client.ObjectKey{Namespace: namespace, Name: node}, status); err != nil {
 						return err
 					}
 				}
@@ -166,17 +165,17 @@ var _ = Describe("Remediation Pivoting", func() {
 		targetClient := targetCluster.GetClient()
 
 		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
-		client := bootstrapClusterProxy.GetClient()
+		bootstrapClient := bootstrapClusterProxy.GetClient()
 
-		getMachine := func(name types.NamespacedName) (result clusterv1.Machine) {
+		getMachine := func(name client.ObjectKey) (result clusterv1.Machine) {
 			By(fmt.Sprintf("Getting machine %s", name))
-			Expect(client.Get(ctx, name, &result)).To(Succeed())
+			Expect(bootstrapClient.Get(ctx, name, &result)).To(Succeed())
 			return
 		}
 
 		machines := &clusterv1.MachineList{}
 		Eventually(func() error {
-			if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
+			if err := bootstrapClient.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
 				return err
 			}
 
@@ -189,12 +188,12 @@ var _ = Describe("Remediation Pivoting", func() {
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
-		controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, client, clusterName, namespace)
+		controlM3Machines, workerM3Machines, err := getMetal3Machines(ctx, bootstrapClient, clusterName, namespace)
 		Expect(err).NotTo(HaveOccurred())
 
 		getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) (result bmh.BareMetalHost) {
-			Expect(client.Get(ctx,
-				types.NamespacedName{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
+			Expect(bootstrapClient.Get(ctx,
+				client.ObjectKey{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
 				&result)).To(Succeed())
 			return result
 		}
@@ -223,15 +222,15 @@ var _ = Describe("Remediation Pivoting", func() {
 			vmName := bmhToVmName(workerBmh)
 
 			By("Marking a BMH for reboot")
-			annotateBmh(ctx, client, workerBmh, rebootAnnotation, pointer.String(""))
+			annotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
 
 			waitForVmsState([]string{vmName}, shutoff)
 
 			// Note: what is reported in the CLI as NotReady, is initially unknown status
 			// This call will wait for the actual "False" condition status
-			waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
+			waitForNodeStatus(targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
 			waitForVmsState([]string{vmName}, running)
-			waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+			waitForNodeStatus(targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 			monitorNodesStatus(targetClient, "defaul", []string{nodeName}, v1.ConditionTrue)
 
 			// power cycle
@@ -239,20 +238,20 @@ var _ = Describe("Remediation Pivoting", func() {
 			powerCycle := func(machines machineSetSlice) error {
 				By(fmt.Sprintf("Power cycling %d machines", len(machines)))
 				for _, set := range machines {
-					Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
+					Expect(annotateBmh(ctx, bootstrapClient, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
 				}
 				waitForVmsState(machines.getVmNames(), shutoff)
 
 				// power on
 				By("Marking a BMH for power on")
 				for _, set := range machines {
-					Expect(annotateBmh(ctx, client, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
+					Expect(annotateBmh(ctx, bootstrapClient, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
 				}
 
 				// waitForVmState(vmName, running)
 				waitForVmsState(machines.getVmNames(), running)
 				for _, nodeName := range machines.getNodeNames() {
-					waitForNodeStatus(targetClient, types.NamespacedName{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+					waitForNodeStatus(targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
 				}
 				monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionTrue)
 				return nil
@@ -273,10 +272,10 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Testing unhealthy annotation")
 
 		ctrlplane := kcp.KubeadmControlPlane{}
-		Expect(client.Get(ctx,
-			types.NamespacedName{Namespace: "metal3", Name: "test1"},
+		Expect(bootstrapClient.Get(ctx,
+			client.ObjectKey{Namespace: "metal3", Name: "test1"},
 			&ctrlplane)).To(Succeed())
-		helper, err := patch.NewHelper(&ctrlplane, client)
+		helper, err := patch.NewHelper(&ctrlplane, bootstrapClient)
 		Expect(err).To(BeNil())
 		fmt.Printf("ctrlplane.spec: %#+v\n", ctrlplane.Spec)
 		// setting "2" errors out, cause it's an even numbe
@@ -290,7 +289,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		Eventually(
 			func() error {
 				bmhs := bmh.BareMetalHostList{}
-				Expect(client.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
 				Expect(filterByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 				return nil
 			},
@@ -299,14 +298,34 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		By("Waiting for 2 BMHs to be Ready")
 
-		annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
-		defer annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
+		annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
+		defer annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
 
 		machineName, err := metal3MachineToMachineName(workerM3Machine)
 		Expect(err).ToNot(HaveOccurred())
-		workerMachine := getMachine(types.NamespacedName{Namespace: namespace, Name: machineName})
-		Expect(client.Delete(ctx, &workerMachine)).To(Succeed())
+		workerMachine := getMachine(client.ObjectKey{Namespace: namespace, Name: machineName})
+		Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed())
 
+		By("Waiting for worker BMH to be in ready state")
+		Eventually(
+			func() error {
+				Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
+				Expect(workerBmh.Status.Provisioning.State).To(Equal(bmh.StateReady))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+		).Should(Succeed())
+
+		By("Waiting for 3 BMHs to be Provisioned")
+		Eventually(
+			func() error {
+				bmhs := bmh.BareMetalHostList{}
+				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+		).Should(Succeed())
 	})
 
 })
