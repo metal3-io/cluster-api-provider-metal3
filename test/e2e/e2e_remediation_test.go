@@ -168,6 +168,12 @@ var _ = Describe("Remediation Pivoting", func() {
 		fmt.Println("KubeconfigPath:", bootstrapClusterProxy.GetKubeconfigPath())
 		client := bootstrapClusterProxy.GetClient()
 
+		getMachine := func(name types.NamespacedName) (result clusterv1.Machine) {
+			By(fmt.Sprintf("Getting machine %s", name))
+			Expect(client.Get(ctx, name, &result)).To(Succeed())
+			return
+		}
+
 		machines := &clusterv1.MachineList{}
 		Eventually(func() error {
 			if err := client.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
@@ -291,8 +297,15 @@ var _ = Describe("Remediation Pivoting", func() {
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
 		).Should(Succeed())
 
+		By("Waiting for 2 BMHs to be Ready")
+
 		annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
 		defer annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
+
+		machineName, err := metal3MachineToMachineName(workerM3Machine)
+		Expect(err).ToNot(HaveOccurred())
+		workerMachine := getMachine(types.NamespacedName{Namespace: namespace, Name: machineName})
+		Expect(client.Delete(ctx, &workerMachine)).To(Succeed())
 
 	})
 
