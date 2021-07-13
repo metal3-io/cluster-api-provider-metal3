@@ -96,10 +96,19 @@ var _ = Describe("Remediation Pivoting", func() {
 		).Should(Succeed())
 	}
 
-	filterByProvisioningState := func(bmhs []bmh.BareMetalHost, state bmh.ProvisioningState) (result []bmh.BareMetalHost) {
+	filterBmhsByProvisioningState := func(bmhs []bmh.BareMetalHost, state bmh.ProvisioningState) (result []bmh.BareMetalHost) {
 		for _, bmh := range bmhs {
 			if bmh.Status.Provisioning.State == state {
 				result = append(result, bmh)
+			}
+		}
+		return
+	}
+
+	filterMachinesByPhase := func(machines []clusterv1.Machine, phase string) (result []clusterv1.Machine) {
+		for _, machine := range machines {
+			if machine.Status.Phase == phase {
+				result = append(result, machine)
 			}
 		}
 		return
@@ -292,7 +301,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			func() error {
 				bmhs := bmh.BareMetalHostList{}
 				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
+				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
@@ -324,7 +333,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			func() error {
 				bmhs := bmh.BareMetalHostList{}
 				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
+				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
@@ -340,8 +349,8 @@ var _ = Describe("Remediation Pivoting", func() {
 			func() error {
 				bmhs := bmh.BareMetalHostList{}
 				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
-				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioning)).To(HaveLen(0))
+				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
+				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioning)).To(HaveLen(0))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "monitor-provisioning")...,
@@ -350,16 +359,44 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Annotating BMH as healthy")
 		annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil)
 
-		By("Verifying that all BMHs are provisioned")
+		By("Waiting for all BMHs to be Provisioned")
 		Eventually(
 			func() error {
 				bmhs := bmh.BareMetalHostList{}
 				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount))
+				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
 		)
+
+		By("Waiting for all machines to be Running")
+		Eventually(
+			func() error {
+				machines := clusterv1.MachineList{}
+				Expect(bootstrapClient.List(ctx, &machines, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+				Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+		)
+
+		By("Scaling down machine deployment")
+		Expect(scaleMachineDeployment(
+			ctx, bootstrapClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 1),
+		).To(Succeed())
+
+		By("Waiting for 1 BMHs to be Ready")
+		Eventually(
+			func() error {
+				bmhs := bmh.BareMetalHostList{}
+				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(1))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+		).Should(Succeed())
+
 	})
 
 })
