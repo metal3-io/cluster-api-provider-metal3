@@ -97,6 +97,15 @@ var _ = Describe("Remediation Pivoting", func() {
 		).Should(Succeed())
 	}
 
+	filterByProvisioningState := func(bmhs []bmh.BareMetalHost, state bmh.ProvisioningState) (result []bmh.BareMetalHost) {
+		for _, bmh := range bmhs {
+			if bmh.Status.Provisioning.State == state {
+				result = append(result, bmh)
+			}
+		}
+		return
+	}
+
 	// powerCycleBmh := func(client client.Client, host bmh.BareMetalHost) {
 	// 	helper, err := patch.NewHelper(&host, client)
 	// 	Expect(err).ToNot(HaveOccurred())
@@ -265,11 +274,26 @@ var _ = Describe("Remediation Pivoting", func() {
 		Expect(err).To(BeNil())
 		fmt.Printf("ctrlplane.spec: %#+v\n", ctrlplane.Spec)
 		// setting "2" errors out, cause it's an even numbe
-		ctrlplane.Spec.Replicas = pointer.Int32Ptr(1)
+
+		newReplicaCount := 1
+
+		ctrlplane.Spec.Replicas = pointer.Int32Ptr(int32(newReplicaCount))
 		Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
 
+		By("Waiting for 2 BMHs to be Ready")
+		Eventually(
+			func() error {
+				bmhs := bmh.BareMetalHostList{}
+				Expect(client.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+				Expect(filterByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+		).Should(Succeed())
+
 		annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
-		defer annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", nil)
+		defer annotateBmh(ctx, client, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
+
 	})
 
 })
