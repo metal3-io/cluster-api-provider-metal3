@@ -281,123 +281,129 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		}
 
-		By("Testing unhealthy annotation")
+		func() {
 
-		ctrlplane := kcp.KubeadmControlPlane{}
-		Expect(bootstrapClient.Get(ctx,
-			client.ObjectKey{Namespace: "metal3", Name: "test1"},
-			&ctrlplane)).To(Succeed())
-		helper, err := patch.NewHelper(&ctrlplane, bootstrapClient)
-		Expect(err).To(BeNil())
-		fmt.Printf("ctrlplane.spec: %#+v\n", ctrlplane.Spec)
-		// setting "2" errors out, cause it's an even numbe
+			By("Testing unhealthy annotation")
 
-		newReplicaCount := 1
+			ctrlplane := kcp.KubeadmControlPlane{}
+			Expect(bootstrapClient.Get(ctx,
+				client.ObjectKey{Namespace: "metal3", Name: "test1"},
+				&ctrlplane)).To(Succeed())
+			helper, err := patch.NewHelper(&ctrlplane, bootstrapClient)
+			Expect(err).To(BeNil())
+			fmt.Printf("ctrlplane.spec: %#+v\n", ctrlplane.Spec)
+			// setting "2" errors out, cause it's an even numbe
 
-		ctrlplane.Spec.Replicas = pointer.Int32Ptr(int32(newReplicaCount))
-		Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
+			newReplicaCount := 1
 
-		By("Waiting for 2 BMHs to be Ready")
-		Eventually(
-			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				fmt.Printf("Looking for %s BMH among %#+v", bmh.StateReady, bmhs.Items)
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
-				return nil
-			},
-			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-		).Should(Succeed())
+			ctrlplane.Spec.Replicas = pointer.Int32Ptr(int32(newReplicaCount))
+			Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
 
-		By("Annotating BMH as unhealthy")
-		annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
-		defer annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
+			By("Waiting for 2 BMHs to be Ready")
+			Eventually(
+				func() error {
+					bmhs := bmh.BareMetalHostList{}
+					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					fmt.Printf("Looking for %s BMH among %#+v", bmh.StateReady, bmhs.Items)
+					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
+					return nil
+				},
+				e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+			).Should(Succeed())
 
-		By("Deleting a worker machine")
-		machineName, err := metal3MachineToMachineName(workerM3Machine)
-		Expect(err).ToNot(HaveOccurred())
-		workerMachine := getMachine(client.ObjectKey{Namespace: namespace, Name: machineName})
-		Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed())
+			By("Annotating BMH as unhealthy")
+			annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
+			defer annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
 
-		By("Waiting for worker BMH to be in ready state")
-		Eventually(
-			func() error {
-				Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
-				fmt.Printf("workerBmh.status.provisioning.state: %s; expected %s\n", workerBmh.Status.Provisioning.State, bmh.StateReady)
-				Expect(workerBmh.Status.Provisioning.State).To(Equal(bmh.StateReady))
-				return nil
-			},
-			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-		).Should(Succeed())
+			By("Deleting a worker machine")
+			machineName, err := metal3MachineToMachineName(workerM3Machine)
+			Expect(err).ToNot(HaveOccurred())
+			workerMachine := getMachine(client.ObjectKey{Namespace: namespace, Name: machineName})
+			Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed())
 
-		By("Waiting for 2 BMHs to be Provisioned")
-		Eventually(
-			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(2))
-				return nil
-			},
-			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-		).Should(Succeed())
+			By("Waiting for worker BMH to be in ready state")
+			Eventually(
+				func() error {
+					Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
+					fmt.Printf("workerBmh.status.provisioning.state: %s; expected %s\n", workerBmh.Status.Provisioning.State, bmh.StateReady)
+					Expect(workerBmh.Status.Provisioning.State).To(Equal(bmh.StateReady))
+					return nil
+				},
+				e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+			).Should(Succeed())
 
-		By("Scaling up machine deployment")
-		Expect(scaleMachineDeployment(
-			ctx, bootstrapClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 2),
-		).To(Succeed())
+			By("Waiting for 2 BMHs to be Provisioned")
+			Eventually(
+				func() error {
+					bmhs := bmh.BareMetalHostList{}
+					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(2))
+					return nil
+				},
+				e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+			).Should(Succeed())
 
-		By("Verifying that none of the BMHs start provisioning")
-		Consistently(
-			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioning)).To(HaveLen(0))
-				return nil
-			},
-			e2eConfig.GetIntervals(specName, "monitor-provisioning")...,
-		)
+			By("Scaling up machine deployment")
+			Expect(scaleMachineDeployment(
+				ctx, bootstrapClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 2),
+			).To(Succeed())
 
-		By("Annotating BMH as healthy")
-		annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil)
+			By("Verifying that none of the BMHs start provisioning")
+			Consistently(
+				func() error {
+					bmhs := bmh.BareMetalHostList{}
+					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
+					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioning)).To(HaveLen(0))
+					return nil
+				},
+				e2eConfig.GetIntervals(specName, "monitor-provisioning")...,
+			)
 
-		By(fmt.Sprintf("Waiting for %d BMHs to be Provisioned", allMachinesCount-1))
-		Eventually(
-			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount - 1))
-				return nil
-			},
-			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-		)
+			By("Annotating BMH as healthy")
+			annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil)
 
-		By("Waiting for all machines to be Running")
-		Eventually(
-			func() error {
-				machines := clusterv1.MachineList{}
-				Expect(bootstrapClient.List(ctx, &machines, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
-				return nil
-			},
-			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-		)
+			By(fmt.Sprintf("Waiting for %d BMHs to be Provisioned", allMachinesCount-1))
+			Eventually(
+				func() error {
+					bmhs := bmh.BareMetalHostList{}
+					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount - 1))
+					return nil
+				},
+				e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+			)
 
-		By("Scaling down machine deployment")
-		Expect(scaleMachineDeployment(
-			ctx, bootstrapClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 1),
-		).To(Succeed())
+			By("Waiting for all machines to be Running")
+			Eventually(
+				func() error {
+					machines := clusterv1.MachineList{}
+					Expect(bootstrapClient.List(ctx, &machines, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
+					return nil
+				},
+				e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+			)
 
-		By("Waiting for 1 BMH to be Ready")
-		Eventually(
-			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(1))
-				return nil
-			},
-			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-		).Should(Succeed())
+			By("Scaling down machine deployment")
+			Expect(scaleMachineDeployment(
+				ctx, bootstrapClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 1),
+			).To(Succeed())
+
+			By("Waiting for 1 BMH to be Ready")
+			Eventually(
+				func() error {
+					bmhs := bmh.BareMetalHostList{}
+					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(1))
+					return nil
+				},
+				e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+			).Should(Succeed())
+		}()
+
+		By("Testing Metal3DataTemplate reference")
+
 	})
 })
 
