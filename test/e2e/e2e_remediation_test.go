@@ -296,11 +296,12 @@ var _ = Describe("Remediation Pivoting", func() {
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
 		).Should(Succeed())
 
-		By("Waiting for 2 BMHs to be Ready")
+		By("Annotating BMH as unhealthy")
 
 		annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", pointer.String(""))
 		defer annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
 
+		By("Deleting a worker machine")
 		machineName, err := metal3MachineToMachineName(workerM3Machine)
 		Expect(err).ToNot(HaveOccurred())
 		workerMachine := getMachine(client.ObjectKey{Namespace: namespace, Name: machineName})
@@ -310,6 +311,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		Eventually(
 			func() error {
 				Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
+				fmt.Printf("workerBmh.status.provisioning.state: %s; expected %s\n", workerBmh.Status.Provisioning.State, bmh.StateReady)
 				Expect(workerBmh.Status.Provisioning.State).To(Equal(bmh.StateReady))
 				return nil
 			},
