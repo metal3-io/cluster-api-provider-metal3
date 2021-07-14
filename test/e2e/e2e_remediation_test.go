@@ -171,6 +171,10 @@ var _ = Describe("Remediation Pivoting", func() {
 			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}).Cluster
 
+	})
+
+	FIt("Run test", func() {
+
 		By("Checking that rebooted node becomes Ready")
 		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		targetClient := targetCluster.GetClient()
@@ -421,7 +425,8 @@ var _ = Describe("Remediation Pivoting", func() {
 				TemplateReference: m3dataTemplateName,
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: newM3dataTemplateName,
+				Name:      newM3dataTemplateName,
+				Namespace: m3dataTemplate.Namespace,
 			},
 		}
 
@@ -451,7 +456,8 @@ var _ = Describe("Remediation Pivoting", func() {
 				},
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: newM3MachineTemplateName,
+				Name:      newM3MachineTemplateName,
+				Namespace: m3machineTemplate.Namespace,
 			},
 		}
 

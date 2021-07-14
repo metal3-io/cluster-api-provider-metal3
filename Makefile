@@ -116,10 +116,13 @@ $(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml
 	mkdir -p $(E2E_ENVSUBST_DIR)
 	$(ENVSUBST) < $^ > $@
 
+$(E2E_CONF_FILE_ENVSUBST): $(E2E_CONF_FILE)
+	mkdir -p $(E2E_ENVSUBST_DIR)
+	$(ENVSUBST) < $^ > $@
+
 ## Processes all files from templates/test, as well as e2e_conf file
 .PHONY: e2e-substitutions
-e2e-substitutions: $(ENVSUBST) $(subst $(E2E_TEMPLATES_DIR),$(E2E_ENVSUBST_DIR),$(wildcard $(E2E_TEMPLATES_DIR)/*.yaml))
-	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
+e2e-substitutions: $(E2E_CONF_FILE_ENVSUBST) $(subst $(E2E_TEMPLATES_DIR),$(E2E_ENVSUBST_DIR),$(wildcard $(E2E_TEMPLATES_DIR)/*.yaml))
 
 .PHONY: e2e-tests
 e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
