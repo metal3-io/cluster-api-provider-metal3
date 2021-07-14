@@ -13,6 +13,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo"
@@ -169,9 +170,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}).Cluster
-	})
 
-	It("Run test", func() {
 		By("Checking that rebooted node becomes Ready")
 		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		targetClient := targetCluster.GetClient()
@@ -187,7 +186,7 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		machines := &clusterv1.MachineList{}
 		Eventually(func() error {
-			if err := bootstrapClient.List(ctx, machines, byClusterOptions(clusterName, namespace)...); err != nil {
+			if err := bootstrapClient.List(ctx, machines, client.InNamespace(namespace)); err != nil {
 				return err
 			}
 
@@ -307,7 +306,7 @@ var _ = Describe("Remediation Pivoting", func() {
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
 					fmt.Printf("Listing BMHs\n")
-					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 					fmt.Printf("Looking for %s BMH among %#+v\n", bmh.StateReady, bmhs.Items)
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 					return nil
@@ -340,7 +339,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			Eventually(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
-					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(2))
 					return nil
 				},
@@ -356,7 +355,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			Consistently(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
-					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioning)).To(HaveLen(0))
 					return nil
@@ -371,7 +370,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			Eventually(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
-					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount - 1))
 					return nil
 				},
@@ -382,7 +381,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			Eventually(
 				func() error {
 					machines := clusterv1.MachineList{}
-					Expect(bootstrapClient.List(ctx, &machines, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
 					Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 					return nil
 				},
@@ -398,7 +397,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			Eventually(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
-					Expect(bootstrapClient.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...)).To(Succeed())
+					Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(1))
 					return nil
 				},
@@ -437,18 +436,16 @@ var _ = Describe("Remediation Pivoting", func() {
 		//         name: "test-new-m3dt"
 		//       image: "{{ m3mt.resources[0].spec.template.spec.image }}"
 
-		tmpDataTemplate := v1.ObjectReference{
-			Kind:      "Metal3DataTemplate",
-			Namespace: namespace,
-			Name:      newM3dataTemplateName,
-		}
-
 		newM3MachineTemplate := v1alpha4.Metal3MachineTemplate{
 			Spec: v1alpha4.Metal3MachineTemplateSpec{
 				Template: v1alpha4.Metal3MachineTemplateResource{
 					Spec: v1alpha4.Metal3MachineSpec{
-						Image:        m3machineTemplate.Spec.Template.Spec.Image,
-						DataTemplate: &tmpDataTemplate,
+						Image: m3machineTemplate.Spec.Template.Spec.Image,
+						DataTemplate: &v1.ObjectReference{
+							Kind:      "Metal3DataTemplate",
+							Namespace: namespace,
+							Name:      newM3dataTemplateName,
+						},
 					},
 				},
 			},
@@ -459,6 +456,30 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		Expect(bootstrapClient.Create(ctx, &newM3MachineTemplate)).To(Succeed(), "Failed to create new M3MachineTemplate")
 
+		deployment := clusterv1.MachineDeployment{}
+		bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: clusterName}, &deployment)
+
+		helper, err := patch.NewHelper(&deployment, bootstrapClient)
+		Expect(err).NotTo(HaveOccurred())
+
+		deployment.Spec.Template.Spec.InfrastructureRef = v1.ObjectReference{
+			Kind:      "Metal3MachineTemplate",
+			Namespace: namespace,
+			Name:      newM3MachineTemplateName,
+		}
+		deployment.Spec.Strategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{IntVal: 1}
+		Expect(helper.Patch(ctx, &deployment)).To(Succeed())
+
+		By("Waiting for 1 BMH to be Ready")
+		Eventually(
+			func() error {
+				bmhs := bmh.BareMetalHostList{}
+				Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
+				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(1))
+				return nil
+			},
+			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
+		).Should(Succeed())
 	})
 })
 
@@ -585,11 +606,10 @@ func listVms(state vmState) []string {
 	return lines[:i]
 }
 
-func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace, specName string) bmh.BareMetalHostList {
-
+func getAllBMH(ctx context.Context, c client.Client, clusterName, namespace, specName string) bmh.BareMetalHostList {
 	bmhs := bmh.BareMetalHostList{}
 	Eventually(func() error {
-		if err := client.List(ctx, &bmhs, byClusterOptions(clusterName, namespace)...); err != nil {
+		if err := c.List(ctx, &bmhs, client.InNamespace(namespace)); err != nil {
 			fmt.Println(err)
 			return err
 		}
@@ -604,9 +624,9 @@ func getAllBMH(ctx context.Context, client client.Client, clusterName, namespace
 	return bmhs
 }
 
-func getMetal3Machines(ctx context.Context, client client.Client, cluster, namespace string) (controlplane, workers []v1alpha4.Metal3Machine, err error) {
+func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) (controlplane, workers []v1alpha4.Metal3Machine, err error) {
 	allMachines := &v1alpha4.Metal3MachineList{}
-	if err = client.List(ctx, allMachines, byClusterOptions(cluster, namespace)...); err != nil {
+	if err = c.List(ctx, allMachines, client.InNamespace(namespace)); err != nil {
 		return
 	}
 	for _, machine := range allMachines.Items {
