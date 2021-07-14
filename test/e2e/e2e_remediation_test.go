@@ -283,7 +283,7 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		}
 
-		func() {
+		_ = func() {
 
 			By("Testing unhealthy annotation")
 
@@ -394,6 +394,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			).To(Succeed())
 
 			By("Waiting for 1 BMH to be Ready")
+			// fails
 			Eventually(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
@@ -403,7 +404,7 @@ var _ = Describe("Remediation Pivoting", func() {
 				},
 				e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
 			).Should(Succeed())
-		}()
+		}
 
 		By("Testing Metal3DataTemplate reference")
 
