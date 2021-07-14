@@ -107,8 +107,12 @@ var _ = FDescribe("Upgrade tests", func() {
 			})
 			targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 
+			managementClusterClient := bootstrapClusterProxy.GetClient()
+			managementClientSet := bootstrapClusterProxy.GetClientSet()
 			clientSet := targetCluster.GetClientSet()
-			clusterClient := targetCluster.GetClient()
+			// TODO: If we are to run upgrade tests after pivoting, we should
+			// use this instead of managementClusterClient
+			// clusterClient := targetCluster.GetClient()
 
 			// Upgrade control plane
 			// =====================
@@ -130,7 +134,7 @@ var _ = FDescribe("Upgrade tests", func() {
 			// ==============
 			By("Upgrading ironic image based containers")
 			getIronicDeployment := func() (*appsv1.Deployment, error) {
-				return clientSet.AppsV1().Deployments(namespace).Get(ironicDeployName, metav1.GetOptions{})
+				return managementClientSet.AppsV1().Deployments("capm3-system").Get(ironicDeployName, metav1.GetOptions{})
 			}
 			deploy, err := getIronicDeployment()
 			Expect(err).To(BeNil())
@@ -147,7 +151,7 @@ var _ = FDescribe("Upgrade tests", func() {
 					deploy.Spec.Template.Spec.Containers[i].Image = "quay.io/metal3-io/ironic:latest"
 				}
 			}
-			clientSet.AppsV1().Deployments(namespace).Update(deploy)
+			managementClientSet.AppsV1().Deployments("capm3-system").Update(deploy)
 
 			By("Waiting for ironic update to rollout")
 			Eventually(func() bool {
@@ -161,29 +165,29 @@ var _ = FDescribe("Upgrade tests", func() {
 			By("Creating new Metal3MachineTemplates")
 			m3mtControlplane := &capim3.Metal3MachineTemplate{}
 			newM3mt := &capim3.Metal3MachineTemplate{}
-			err = clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: "test1-controlplane"}, m3mtControlplane)
+			err = managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: "test1-controlplane"}, m3mtControlplane)
 			Expect(err).To(BeNil(), "Failed to get Metal3MachineTemplate")
 			newM3mt.Spec = *m3mtControlplane.Spec.DeepCopy()
 			newM3mt.SetName("test1-new-controlplane")
 			newM3mt.SetNamespace(namespace)
-			err = clusterClient.Create(ctx, newM3mt)
+			err = managementClusterClient.Create(ctx, newM3mt)
 			Expect(err).To(BeNil(), "Failed to create new Metal3MachineTemplate")
 			// Repeat for the workers
 			m3mtWorkers := &capim3.Metal3MachineTemplate{}
 			newM3mt = &capim3.Metal3MachineTemplate{}
-			err = clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: "test1-workers"}, m3mtWorkers)
+			err = managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: "test1-workers"}, m3mtWorkers)
 			Expect(err).To(BeNil(), "Failed to get Metal3MachineTemplate")
 			newM3mt.Spec = *m3mtWorkers.Spec.DeepCopy()
 			newM3mt.SetName("test1-new-workers")
 			newM3mt.SetNamespace(namespace)
-			err = clusterClient.Create(ctx, newM3mt)
+			err = managementClusterClient.Create(ctx, newM3mt)
 			Expect(err).To(BeNil(), "Failed to create new Metal3MachineTemplate")
 
 			// TODO: Would be nice to actually use a different VM image here
 			// instead of just setting the k8s version and template name...
 			By("Upgrading KubeadmControlPlane image")
 			kcp := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
-				Lister:      targetCluster.GetClient(),
+				Lister:      managementClusterClient,
 				ClusterName: "test1",
 				Namespace:   "metal3",
 			})
@@ -191,13 +195,13 @@ var _ = FDescribe("Upgrade tests", func() {
 				"version": "v1.21.2",
 				"infrastructureTemplate": {
 					"name": "test1-new-controlplane"}}}`)
-			err = clusterClient.Patch(ctx, kcp, client.RawPatch(types.MergePatchType, patch))
+			err = managementClusterClient.Patch(ctx, kcp, client.RawPatch(types.MergePatchType, patch))
 			Expect(err).To(BeNil(), "Failed to patch KubeadmControlPlane")
 
 			By("Waiting for the KubeadmControlPlane to upgrade")
 			getBmhList := func() (*bmo.BareMetalHostList, error) {
 				bmhs := &bmo.BareMetalHostList{}
-				err := clusterClient.List(ctx, bmhs, client.InNamespace(namespace))
+				err := managementClusterClient.List(ctx, bmhs, client.InNamespace(namespace))
 				return bmhs, err
 			}
 			Eventually(func() int {
@@ -221,7 +225,7 @@ var _ = FDescribe("Upgrade tests", func() {
 
 			By("Scaling up workers to 1")
 			machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
-				Lister:      targetCluster.GetClient(),
+				Lister:      managementClusterClient,
 				ClusterName: "test1",
 				Namespace:   "metal3",
 			})
@@ -229,7 +233,7 @@ var _ = FDescribe("Upgrade tests", func() {
 			machineDeploy := machineDeployments[0]
 
 			patch = []byte(`{"spec": {"replicas": 1}}`)
-			err = clusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
+			err = managementClusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
 			Expect(err).To(BeNil(), "Failed to patch workers MachineDeployment")
 
 			By("Waiting for the worker to join the cluster")
@@ -307,12 +311,12 @@ var _ = FDescribe("Upgrade tests", func() {
 						}
 					}
 				}}}`)
-			err = clusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
+			err = managementClusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
 			Expect(err).To(BeNil(), "Failed to patch workers MachineDeployment")
 
 			getBmhList = func() (*bmo.BareMetalHostList, error) {
 				bmhs := &bmo.BareMetalHostList{}
-				err := targetCluster.GetClient().List(ctx, bmhs, client.InNamespace(namespace))
+				err := managementClusterClient.List(ctx, bmhs, client.InNamespace(namespace))
 				return bmhs, err
 			}
 			Eventually(func() int {
@@ -330,7 +334,7 @@ var _ = FDescribe("Upgrade tests", func() {
 
 			By("Verifying Machines use new Kubernetes version")
 			machines := &clusterv1.MachineList{}
-			err = targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace))
+			err = managementClusterClient.List(ctx, machines, client.InNamespace(namespace))
 			Expect(err).To(BeNil(), "Failed to get Machines")
 
 			for _, machine := range machines.Items {
