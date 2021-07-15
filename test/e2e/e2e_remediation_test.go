@@ -47,105 +47,6 @@ var _ = Describe("Remediation Pivoting", func() {
 		controlPlaneMachineCount int64 = 3
 		workerMachineCount       int64 = 1
 	)
-
-	// functions defined here to use the local variables
-
-	assertNodeStatus := func(client client.Client, name client.ObjectKey, status v1.ConditionStatus) error {
-		node := &v1.Node{}
-		Expect(client.Get(ctx, name, node)).To(Succeed())
-		for _, condition := range node.Status.Conditions {
-			if condition.Type == v1.NodeReady {
-				// fmt.Printf("Node %s has status '%s', should have '%s'\n", name.Name, condition.Status, status)
-				if status == condition.Status {
-					return nil
-				} else {
-					return fmt.Errorf("Node %s has status '%s', should have '%s'", name.Name, condition.Status, status)
-				}
-			}
-		}
-		return fmt.Errorf("Node %s missing condition \"Ready\"", name.Name)
-	}
-
-	waitForVmsState := func(vmNames []string, state vmState) {
-		By(fmt.Sprintf("Waiting for VMs %#v to become '%s'", vmNames, state))
-		Eventually(func() {
-			vms := listVms(state)
-			Expect(vms).To(ContainElements(vmNames))
-		}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
-	}
-
-	waitForNodeStatus := func(client client.Client, name client.ObjectKey, status v1.ConditionStatus) {
-		By(fmt.Sprintf("Waiting for Node '%s' to have ready=%s status", name, status))
-		Eventually(
-			func() error { return assertNodeStatus(client, name, status) },
-			e2eConfig.GetIntervals(specName, "wait-vm-state")...,
-		).Should(Succeed())
-	}
-
-	monitorNodesStatus := func(c client.Client, namespace string, names []string, status v1.ConditionStatus) {
-		// TODO look int gomega 1.14 to use assertions in the func
-
-		By(fmt.Sprintf("Ensuring Nodes %#v consistently have ready=%s status", names, status))
-		Consistently(
-			func() error {
-				for _, node := range names {
-					if err := assertNodeStatus(c, client.ObjectKey{Namespace: namespace, Name: node}, status); err != nil {
-						return err
-					}
-				}
-				return nil
-			}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
-		).Should(Succeed())
-	}
-
-	filterBmhsByProvisioningState := func(bmhs []bmh.BareMetalHost, state bmh.ProvisioningState) (result []bmh.BareMetalHost) {
-		for _, bmh := range bmhs {
-			if bmh.Status.Provisioning.State == state {
-				result = append(result, bmh)
-			}
-		}
-		fmt.Printf("There are %d BMHs in state '%s'\n", len(result), state)
-		return
-	}
-
-	filterMachinesByPhase := func(machines []clusterv1.Machine, phase string) (result []clusterv1.Machine) {
-		for _, machine := range machines {
-			if machine.Status.Phase == phase {
-				result = append(result, machine)
-			}
-		}
-		fmt.Printf("There are %d machines in phase '%s'\n", len(result), phase)
-		return
-	}
-
-	filterM3DataByReference := func(datas []v1alpha4.Metal3Data, referenceName string) (result []v1alpha4.Metal3Data) {
-
-		for _, data := range datas {
-			if data.Spec.TemplateReference == referenceName {
-				result = append(result, data)
-			}
-		}
-		fmt.Printf("There are %d Metal3Data with reference '%s'\n", len(result), referenceName)
-		return
-	}
-
-	// powerCycleBmh := func(client client.Client, host bmh.BareMetalHost) {
-	// 	helper, err := patch.NewHelper(&host, client)
-	// 	Expect(err).ToNot(HaveOccurred())
-
-	// 	annotations := host.GetAnnotations()
-	// 	if annotations == nil {
-	// 		annotations = make(map[string]string)
-	// 	}
-	// 	annotations[poweroffAnnotation] = ""
-	// 	host.SetAnnotations(annotations)
-	// 	Expect(helper.Patch(ctx, &host)).To(Succeed())
-
-	// 	delete(annotations, poweroffAnnotation)
-	// 	host.SetAnnotations(annotations)
-	// 	Expect(helper.Patch(ctx, &host)).To(Succeed())
-	// }
-
 	BeforeEach(func() {
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(clusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. clusterctlConfigPath must be an existing file when calling %s spec", specName)
@@ -249,14 +150,14 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Marking a BMH for reboot")
 		annotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
 
-		waitForVmsState([]string{vmName}, shutoff)
+		waitForVmsState([]string{vmName}, shutoff, specName)
 
 		// Note: what is reported in the CLI as NotReady, is initially unknown status
 		// This call will wait for the actual "False" condition status
-		waitForNodeStatus(targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionUnknown)
-		waitForVmsState([]string{vmName}, running)
-		waitForNodeStatus(targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
-		monitorNodesStatus(targetClient, "defaul", []string{nodeName}, v1.ConditionTrue)
+		waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionUnknown, specName)
+		waitForVmsState([]string{vmName}, running, specName)
+		waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue, specName)
+		monitorNodesStatus(ctx, targetClient, "defaul", []string{nodeName}, v1.ConditionTrue, specName)
 
 		// power cycle
 
@@ -265,7 +166,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			for _, set := range machines {
 				Expect(annotateBmh(ctx, bootstrapClient, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
 			}
-			waitForVmsState(machines.getVmNames(), shutoff)
+			waitForVmsState(machines.getVmNames(), shutoff, specName)
 
 			// power on
 			By("Marking a BMH for power on")
@@ -274,11 +175,11 @@ var _ = Describe("Remediation Pivoting", func() {
 			}
 
 			// waitForVmState(vmName, running)
-			waitForVmsState(machines.getVmNames(), running)
+			waitForVmsState(machines.getVmNames(), running, specName)
 			for _, nodeName := range machines.getNodeNames() {
-				waitForNodeStatus(targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue)
+				waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue, specName)
 			}
-			monitorNodesStatus(targetClient, "default", machines.getNodeNames(), v1.ConditionTrue)
+			monitorNodesStatus(ctx, targetClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
 			return nil
 		}
 
@@ -313,8 +214,7 @@ var _ = Describe("Remediation Pivoting", func() {
 		defer annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil) // TODO delete before merging. This should be set as part of the test
 
 		By("Deleting a worker machine")
-		machineName, err := metal3MachineToMachineName(workerM3Machine)
-		Expect(err).ToNot(HaveOccurred())
+
 		workerMachine := getMachine(client.ObjectKey{Namespace: namespace, Name: machineName})
 		Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed(), "Failed to delete worker Machine")
 
@@ -363,7 +263,8 @@ var _ = Describe("Remediation Pivoting", func() {
 		By(fmt.Sprintf("Waiting for all-1 (%d)527 BMHs to be Provisioned", allMachinesCount-1))
 		Eventually(
 			func() error {
-				bmhs := bmh.BareMetalHostList{}
+
+				bmhs := getAllBMH(ctx, bootstrapClient, namespace, specName)
 				Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount - 1))
 				return nil
@@ -658,22 +559,11 @@ func listVms(state vmState) []string {
 	return lines[:i]
 }
 
-func getAllBMH(ctx context.Context, c client.Client, clusterName, namespace, specName string) bmh.BareMetalHostList {
+func getAllBMH(ctx context.Context, c client.Client, namespace, specName string) []bmh.BareMetalHost {
 	bmhs := bmh.BareMetalHostList{}
-	Eventually(func() error {
-		if err := c.List(ctx, &bmhs, client.InNamespace(namespace)); err != nil {
-			fmt.Println(err)
-			return err
-		}
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-bmh")...).Should(Succeed())
-
-	for _, item := range bmhs.Items {
-		fmt.Printf("bmh: %+v\n", item)
-		fmt.Printf("bmh annotations: %+v\n", item.GetAnnotations())
-	}
-
-	return bmhs
+	err := c.List(ctx, &bmhs, client.InNamespace(namespace))
+	Expect(err).NotTo(HaveOccurred())
+	return bmhs.Items
 }
 
 func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) (controlplane, workers []v1alpha4.Metal3Machine, err error) {
@@ -699,4 +589,83 @@ func byClusterOptions(name, namespace string) []client.ListOption {
 			clusterv1.ClusterLabelName: name,
 		},
 	}
+}
+
+func filterBmhsByProvisioningState(bmhs []bmh.BareMetalHost, state bmh.ProvisioningState) (result []bmh.BareMetalHost) {
+	for _, bmh := range bmhs {
+		if bmh.Status.Provisioning.State == state {
+			result = append(result, bmh)
+		}
+	}
+	fmt.Printf("There are %d BMHs in state '%s'\n", len(result), state)
+	return
+}
+
+func filterMachinesByPhase(machines []clusterv1.Machine, phase string) (result []clusterv1.Machine) {
+	for _, machine := range machines {
+		if machine.Status.Phase == phase {
+			result = append(result, machine)
+		}
+	}
+	fmt.Printf("There are %d machines in phase '%s'\n", len(result), phase)
+	return
+}
+
+func filterM3DataByReference(datas []v1alpha4.Metal3Data, referenceName string) (result []v1alpha4.Metal3Data) {
+
+	for _, data := range datas {
+		if data.Spec.TemplateReference == referenceName {
+			result = append(result, data)
+		}
+	}
+	fmt.Printf("There are %d Metal3Data with reference '%s'\n", len(result), referenceName)
+	return
+}
+
+func waitForVmsState(vmNames []string, state vmState, specName string) {
+	By(fmt.Sprintf("Waiting for VMs %#v to become '%s'", vmNames, state))
+	Eventually(func() {
+		vms := listVms(state)
+		Expect(vms).To(ContainElements(vmNames))
+	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
+}
+
+// functions defined here to use the local variables
+func monitorNodesStatus(ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
+	// TODO look int gomega 1.14 to use assertions in the func
+
+	By(fmt.Sprintf("Ensuring Nodes %#v consistently have ready=%s status", names, status))
+	Consistently(
+		func() error {
+			for _, node := range names {
+				if err := assertNodeStatus(ctx, c, client.ObjectKey{Namespace: namespace, Name: node}, status); err != nil {
+					return err
+				}
+			}
+			return nil
+		}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
+	).Should(Succeed())
+}
+
+func assertNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status v1.ConditionStatus) error {
+	node := &v1.Node{}
+	Expect(client.Get(ctx, name, node)).To(Succeed())
+	for _, condition := range node.Status.Conditions {
+		if condition.Type == v1.NodeReady {
+			if status == condition.Status {
+				return nil
+			} else {
+				return fmt.Errorf("Node %s has status '%s', should have '%s'", name.Name, condition.Status, status)
+			}
+		}
+	}
+	return fmt.Errorf("Node %s missing condition \"Ready\"", name.Name)
+}
+
+func waitForNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status v1.ConditionStatus, specName string) {
+	By(fmt.Sprintf("Waiting for Node '%s' to have ready=%s status", name, status))
+	Eventually(
+		func() error { return assertNodeStatus(ctx, client, name, status) },
+		e2eConfig.GetIntervals(specName, "wait-vm-state")...,
+	).Should(Succeed())
 }
