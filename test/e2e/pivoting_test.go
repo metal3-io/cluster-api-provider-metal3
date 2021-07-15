@@ -115,6 +115,9 @@ var _ = Describe("Doing Pivoting", func() {
 			_, err = targetClusterClient.CoreV1().Namespaces().Create(ironicNamespace)
 			Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
 
+			By("Configure Ironic Configmap")
+			configureIronicConfigmap(true)
+
 			By("Initialize Provider component in target cluster")
 			clusterctl.Init(context.TODO(), clusterctl.InitInput{
 				KubeconfigPath:          targetCluster.GetKubeconfigPath(),
@@ -125,9 +128,6 @@ var _ = Describe("Doing Pivoting", func() {
 				InfrastructureProviders: e2eConfig.InfrastructureProviders(),
 				LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting"),
 			})
-
-			By("Configure Ironic Configmap")
-			configureIronicConfigmap(true)
 
 			By("Install Ironic in the target cluster")
 			installIronic(targetCluster)
