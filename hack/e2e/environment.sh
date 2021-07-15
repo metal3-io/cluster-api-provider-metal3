@@ -24,6 +24,7 @@ export NUM_NODES="4"
 
 # needed for variable substitution in templates
 export IMAGE_CHECKSUM_TYPE="md5"
+export FORCE_REPO_UPDATE="${FORCE_REPO_UPDATE:-true}"
 
 # preserve the template, to be substituted based on value defined in e2e_test.go
 # shellcheck disable=SC2016

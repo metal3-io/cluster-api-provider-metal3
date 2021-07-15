@@ -67,6 +67,12 @@ providers:
 variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
   CNI: "./data/cni/calico/calico.yaml"
+  IRONIC_NAMESPACE: "${NAMESPACE}"
+  BMOPATH: "${BMOPATH}"
+  IRONIC_DATA_DIR: "${IRONIC_DATA_DIR}"
+  IRONIC_TLS_SETUP: "${IRONIC_TLS_SETUP}"
+  IRONIC_BASIC_AUTH: "${IRONIC_BASIC_AUTH}"
+  IRONIC_HOST: "172.22.0.2"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
