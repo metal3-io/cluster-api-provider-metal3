@@ -1,3 +1,0 @@
-- op: replace
-  path: "/metadata/annotations/cert-manager.io~1inject-ca-from"
-  value: capm3-system/capm3-baremetal-operator-serving-cert
