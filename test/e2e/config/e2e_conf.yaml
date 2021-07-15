@@ -25,8 +25,8 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
   - name: kubeadm
     type: BootstrapProvider
     versions:
@@ -37,8 +37,8 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
   - name: kubeadm
     type: ControlPlaneProvider
     versions:
@@ -49,13 +49,13 @@ providers:
         replacements:
           - old: "imagePullPolicy: Always"
             new: "imagePullPolicy: IfNotPresent"
-          - old: "--enable-leader-election"
-            new: "--enable-leader-election=false"
+          - old: "--leader-elect"
+            new: "--leader-elect=false"
   - name: metal3
     type: InfrastructureProvider
     versions:
     - name: ${CAPM3RELEASE}
-      value: "${PWD}/config"
+      value: "${PWD}/config/default"
     files:
     - sourcePath: "${PWD}/metadata.yaml"
       targetName: "metadata.yaml"

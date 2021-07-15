@@ -31,11 +31,10 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -114,14 +113,14 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test CreateSecret",
 		func(tc testCaseReconcile) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
 			if tc.m3m != nil {
 				objects = append(objects, tc.m3m)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -180,7 +179,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test CreateSecret",
 		func(tc testCaseCreateSecrets) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
@@ -202,7 +201,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.networkdataSecret != nil {
 				objects = append(objects, tc.networkdataSecret)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -593,11 +592,11 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test ReleaseLeases",
 		func(tc testCaseReleaseLeases) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -661,7 +660,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test GetAddressesFromPool",
 		func(tc testCaseGetAddressesFromPool) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			for _, poolName := range tc.ipClaims {
 				pool := &ipamv1.IPClaim{
 					ObjectMeta: metav1.ObjectMeta{
@@ -691,7 +690,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 				Spec: tc.m3dtSpec,
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, m3d,
 				klogr.New(),
 			)
@@ -997,7 +996,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test ReleaseAddressesFromPool",
 		func(tc testCaseReleaseAddressesFromPool) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			for _, poolName := range tc.ipClaims {
 				pool := &ipamv1.IPClaim{
 					ObjectMeta: metav1.ObjectMeta{
@@ -1026,7 +1025,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 				Spec: tc.m3dtSpec,
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, m3d,
 				klogr.New(),
 			)
@@ -1169,14 +1168,14 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test GetAddressFromPool",
 		func(tc testCaseGetAddressFromPool) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			if tc.ipAddress != nil {
 				objects = append(objects, tc.ipAddress)
 			}
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)
@@ -1369,11 +1368,11 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test releaseAddressFromPool",
 		func(tc testCaseReleaseAddressFromPool) {
-			objects := []runtime.Object{}
+			objects := []client.Object{}
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
 				klogr.New(),
 			)

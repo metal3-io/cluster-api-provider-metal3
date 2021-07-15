@@ -30,13 +30,12 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/klog/v2/klogr"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -77,14 +76,14 @@ var _ = Describe("Metal3Data manager", func() {
 				f := baremetal_mocks.NewMockManagerFactoryInterface(gomockCtrl)
 				m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
 
-				objects := []runtime.Object{}
+				objects := []client.Object{}
 				if tc.m3d != nil {
 					objects = append(objects, tc.m3d)
 				}
 				if tc.cluster != nil {
 					objects = append(objects, tc.cluster)
 				}
-				c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+				c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 				if tc.managerError {
 					f.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
@@ -115,9 +114,10 @@ var _ = Describe("Metal3Data manager", func() {
 				}
 
 				dataReconcile := &Metal3DataReconciler{
-					Client:         c,
-					ManagerFactory: f,
-					Log:            klogr.New(),
+					Client:           c,
+					ManagerFactory:   f,
+					Log:              klogr.New(),
+					WatchFilterValue: "",
 				}
 
 				req := reconcile.Request{
@@ -126,8 +126,8 @@ var _ = Describe("Metal3Data manager", func() {
 						Namespace: "myns",
 					},
 				}
-
-				result, err := dataReconcile.Reconcile(req)
+				ctx := context.Background()
+				result, err := dataReconcile.Reconcile(ctx, req)
 
 				if tc.expectError || tc.managerError || tc.reconcileNormalError {
 					Expect(err).To(HaveOccurred())
@@ -250,12 +250,13 @@ var _ = Describe("Metal3Data manager", func() {
 			func(tc reconcileNormalTestCase) {
 				gomockCtrl := gomock.NewController(GinkgoT())
 
-				c := fake.NewFakeClientWithScheme(setupScheme())
+				c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 				dataReconcile := &Metal3DataReconciler{
-					Client:         c,
-					ManagerFactory: baremetal.NewManagerFactory(c),
-					Log:            klogr.New(),
+					Client:           c,
+					ManagerFactory:   baremetal.NewManagerFactory(c),
+					Log:              klogr.New(),
+					WatchFilterValue: "",
 				}
 				m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
 
@@ -311,12 +312,13 @@ var _ = Describe("Metal3Data manager", func() {
 		func(tc reconcileDeleteTestCase) {
 			gomockCtrl := gomock.NewController(GinkgoT())
 
-			c := fake.NewFakeClientWithScheme(setupScheme())
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			dataReconcile := &Metal3DataReconciler{
-				Client:         c,
-				ManagerFactory: baremetal.NewManagerFactory(c),
-				Log:            klogr.New(),
+				Client:           c,
+				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Log:              klogr.New(),
+				WatchFilterValue: "",
 			}
 			m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
 
@@ -372,13 +374,11 @@ var _ = Describe("Metal3Data manager", func() {
 					OwnerReferences: tc.ownerRefs,
 				},
 			}
-			c := fake.NewFakeClientWithScheme(setupScheme(), ipClaim)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
 			r := Metal3DataReconciler{
 				Client: c,
 			}
-			obj := handler.MapObject{
-				Object: ipClaim,
-			}
+			obj := client.Object(ipClaim)
 			reqs := r.Metal3IPClaimToMetal3Data(obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},

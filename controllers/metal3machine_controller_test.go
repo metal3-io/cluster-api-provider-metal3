@@ -31,14 +31,13 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
 type reconcileNormalTestCase struct {
@@ -200,13 +199,14 @@ var _ = Describe("Metal3Machine manager", func() {
 		BeforeEach(func() {
 			gomockCtrl = gomock.NewController(GinkgoT())
 
-			c := fake.NewFakeClientWithScheme(setupScheme())
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			bmReconcile = &Metal3MachineReconciler{
 				Client:           c,
 				ManagerFactory:   baremetal.NewManagerFactory(c),
 				Log:              klogr.New(),
 				CapiClientGetter: nil,
+				WatchFilterValue: "",
 			}
 		})
 
@@ -289,13 +289,14 @@ var _ = Describe("Metal3Machine manager", func() {
 		BeforeEach(func() {
 			gomockCtrl = gomock.NewController(GinkgoT())
 
-			c := fake.NewFakeClientWithScheme(setupScheme())
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			bmReconcile = &Metal3MachineReconciler{
 				Client:           c,
 				ManagerFactory:   baremetal.NewManagerFactory(c),
 				Log:              klogr.New(),
 				CapiClientGetter: nil,
+				WatchFilterValue: "",
 			}
 		})
 
@@ -347,24 +348,22 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Metal3Cluster To Metal3Machines tests",
 		func(tc TestCaseMetal3ClusterToM3M) {
-			objects := []runtime.Object{
+			objects := []client.Object{
 				tc.Cluster,
 				tc.M3Cluster,
 				tc.Machine0,
 				tc.Machine1,
 				tc.Machine2,
 			}
-			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 			r := Metal3MachineReconciler{
-				Client: c,
-				Log:    klogr.New(),
+				Client:           c,
+				Log:              klogr.New(),
+				WatchFilterValue: "",
 			}
 
-			obj := handler.MapObject{
-				Object: tc.M3Cluster,
-			}
-
+			obj := client.Object(tc.M3Cluster)
 			reqs := r.Metal3ClusterToMetal3Machines(obj)
 
 			m3machineNames := make([]string, len(reqs))
@@ -424,9 +423,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("BareMetalHost To Metal3Machines tests",
 		func(tc TestCaseBMHToM3M) {
 			r := Metal3MachineReconciler{}
-			obj := handler.MapObject{
-				Object: tc.Host,
-			}
+			obj := client.Object(tc.Host)
 			reqs := r.BareMetalHostToMetal3Machines(obj)
 
 			if tc.ExpectRequest {
@@ -496,9 +493,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: infrav1alpha5.Metal3DataClaimSpec{},
 			}
-			obj := handler.MapObject{
-				Object: dataClaim,
-			}
+			obj := client.Object(dataClaim)
 			reqs := r.Metal3DataClaimToMetal3Machines(obj)
 
 			if tc.ExpectRequest {
@@ -573,19 +568,17 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Cluster To Metal3Machines tests",
 		func(tc TestCaseClusterToM3M) {
-			objects := []runtime.Object{
+			objects := []client.Object{
 				tc.Cluster,
 				tc.Machine,
 				tc.Machine1,
 				tc.M3Machine,
 			}
-			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			r := Metal3MachineReconciler{
 				Client: c,
 			}
-			obj := handler.MapObject{
-				Object: tc.Cluster,
-			}
+			obj := client.Object(tc.Cluster)
 			reqs := r.ClusterToMetal3Machines(obj)
 
 			if tc.ExpectRequest {
@@ -637,13 +630,11 @@ var _ = Describe("Metal3Machine manager", func() {
 					OwnerReferences: tc.ownerRefs,
 				},
 			}
-			c := fake.NewFakeClientWithScheme(setupScheme(), ipClaim)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
 			r := Metal3MachineReconciler{
 				Client: c,
 			}
-			obj := handler.MapObject{
-				Object: ipClaim,
-			}
+			obj := client.Object(ipClaim)
 			reqs := r.Metal3DataToMetal3Machines(obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},

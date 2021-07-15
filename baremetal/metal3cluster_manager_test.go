@@ -27,10 +27,9 @@ import (
 	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/klogr"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -73,7 +72,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		var fakeClient client.Client
 
 		BeforeEach(func() {
-			fakeClient = fakeclient.NewFakeClientWithScheme(setupScheme())
+			fakeClient = fakeclient.NewClientBuilder().WithScheme(setupScheme()).Build()
 		})
 
 		DescribeTable("Test NewClusterManager",
@@ -363,7 +362,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 })
 
 func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
-	objects := []runtime.Object{}
+	objects := []client.Object{}
 
 	if tc.Cluster != nil {
 		objects = append(objects, tc.Cluster)
@@ -371,7 +370,7 @@ func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
 	if tc.BMCluster != nil {
 		objects = append(objects, tc.BMCluster)
 	}
-	c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+	c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 	return &ClusterManager{
 		client:        c,
@@ -386,14 +385,14 @@ func descendantsSetup(tc descendantsTestCase) *ClusterManager {
 	bmCluster := newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
 		nil, nil,
 	)
-	objects := []runtime.Object{
+	objects := []client.Object{
 		cluster,
 		bmCluster,
 	}
 	for _, machine := range tc.Machines {
 		objects = append(objects, machine)
 	}
-	c := fakeclient.NewFakeClientWithScheme(setupScheme(), objects...)
+	c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 	return &ClusterManager{
 		client:        c,

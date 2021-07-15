@@ -21,8 +21,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
-	"k8s.io/klog/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/klog/v2/klogr"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -33,7 +33,7 @@ var _ = Describe("Manager factory testing", func() {
 	clusterLog := klogr.New()
 
 	BeforeEach(func() {
-		managerClient = fakeclient.NewFakeClientWithScheme(setupScheme())
+		managerClient = fakeclient.NewClientBuilder().WithScheme(setupScheme()).Build()
 		managerFactory = NewManagerFactory(managerClient)
 	})
 

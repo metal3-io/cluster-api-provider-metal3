@@ -34,9 +34,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	k8strings "k8s.io/utils/strings"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -58,6 +60,7 @@ type Metal3LabelSyncReconciler struct {
 	ManagerFactory   baremetal.ManagerFactoryInterface
 	Log              logr.Logger
 	CapiClientGetter baremetal.ClientGetter
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;create;update;patch;delete
@@ -69,8 +72,7 @@ type Metal3LabelSyncReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // Reconcile handles label sync events
-func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
+func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-label-sync", req.NamespacedName)
 
 	// We need to get the NodeRef from the CAPI Machine object:
@@ -166,7 +168,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, 
 	}
 	controllerLog.V(5).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
 
-	if util.IsPaused(cluster, metal3Cluster) {
+	if annotations.IsPaused(cluster, metal3Cluster) {
 		controllerLog.Info("Cluster and/or Metal3Cluster are currently paused. Remove pause to continue reconciliation.")
 		return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 	}
@@ -205,13 +207,13 @@ func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host
 	if err != nil {
 		return errors.Wrap(err, "error creating a remote client")
 	}
-	node, err := corev1Remote.Nodes().Get(machine.Status.NodeRef.Name, metav1.GetOptions{})
+	node, err := corev1Remote.Nodes().Get(ctx, machine.Status.NodeRef.Name, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	nodeLabelSyncSet := buildLabelSyncSet(prefixSet, node.Labels)
 	synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet, node)
-	_, err = corev1Remote.Nodes().Update(node)
+	_, err = corev1Remote.Nodes().Update(ctx, node, metav1.UpdateOptions{})
 	if err != nil {
 		return errors.Wrap(err, "unable to update the target node")
 	}
@@ -252,25 +254,24 @@ func synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet map[strin
 }
 
 // SetupWithManager will add watches for this controller
-func (r *Metal3LabelSyncReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bmh.BareMetalHost{}).
 		Watches(
 			&source.Kind{Type: &capm3.Metal3Cluster{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.Metal3ClusterToBareMetalHosts),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.Metal3ClusterToBareMetalHosts),
 		).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
 
 // Metal3ClusterToBareMetalHosts is a handler.ToRequestsFunc to be used to enqeue
 // requests for reconciliation of BareMetalHosts' label updates.
-func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o handler.MapObject) []ctrl.Request {
+func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.Object.(*capm3.Metal3Cluster)
+	c, ok := o.(*capm3.Metal3Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o.Object),
+		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o),
 			"failed to get BareMetalHost for Metal3Cluster",
 		)
 		return nil

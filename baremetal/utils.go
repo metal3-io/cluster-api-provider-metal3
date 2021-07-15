@@ -28,10 +28,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -70,7 +69,7 @@ func (e *NotFoundError) Error() string {
 	return "Object not found"
 }
 
-func patchIfFound(ctx context.Context, helper *patch.Helper, host runtime.Object) error {
+func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object) error {
 	err := helper.Patch(ctx, host)
 	if err != nil {
 		notFound := true
@@ -93,24 +92,24 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host runtime.Object
 	return err
 }
 
-func updateObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.UpdateOption) error {
-	err := cl.Update(ctx, obj.DeepCopyObject(), opts...)
+func updateObject(cl client.Client, ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+	err := cl.Update(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsConflict(err) {
 		return &RequeueAfterError{}
 	}
 	return err
 }
 
-func createObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.CreateOption) error {
-	err := cl.Create(ctx, obj.DeepCopyObject(), opts...)
+func createObject(cl client.Client, ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+	err := cl.Create(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsAlreadyExists(err) {
 		return &RequeueAfterError{}
 	}
 	return err
 }
 
-func deleteObject(cl client.Client, ctx context.Context, obj runtime.Object, opts ...client.DeleteOption) error {
-	err := cl.Delete(ctx, obj.DeepCopyObject(), opts...)
+func deleteObject(cl client.Client, ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	err := cl.Delete(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsNotFound(err) {
 		return nil
 	}

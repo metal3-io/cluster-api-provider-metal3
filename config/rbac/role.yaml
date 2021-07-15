@@ -176,38 +176,6 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
-  - metal3ipaddresses
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3ipaddresses/status
-  verbs:
-  - get
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3ipclaims
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3ipclaims/status
-  verbs:
-  - get
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - metal3machines
   verbs:
   - create
@@ -236,6 +204,39 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - ipam.metal3.io
+  resources:
+  - ipaddresses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ipam.metal3.io
+  resources:
+  - ipaddresses/status
+  verbs:
+  - get
+- apiGroups:
+  - ipam.metal3.io
+  resources:
+  - ipclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ipam.metal3.io
+  resources:
+  - ipclaims/status
+  verbs:
+  - get
   - watch
 - apiGroups:
   - metal3.io

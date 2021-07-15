@@ -18,7 +18,6 @@ package baremetal
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -42,8 +41,8 @@ import (
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
-	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -115,6 +114,7 @@ func NewMachineManager(client client.Client,
 	}, nil
 }
 
+// NewMachineSetManager returns a new helper for managing a machineset
 func NewMachineSetManager(client client.Client,
 	machine *capi.Machine, machinesetlist []*capi.MachineSet,
 	machineset *capi.MachineSet, machineLog logr.Logger) (*MachineManager, error) {
@@ -313,7 +313,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// A machine bootstrap not ready case is caught in the controller
 	// ReconcileNormal function
-	err = m.getUserData(ctx, host)
+	err = m.getUserDataSecretName(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
 			m.SetError("Failed to set the UserData for the Metal3Machine",
@@ -392,14 +392,11 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	return nil
 }
 
-// getUserData gets the UserData from the machine and exposes it as a secret
-// for the BareMetalHost. The UserData might already be in a secret with
+// getUserDataSecretName gets the UserDataSecretName from the machine and exposes it as a secret
+// for the BareMetalHost. The UserDataSecretName might already be in a secret with
 // CABPK v0.3.0+, but if it is in a different namespace than the BareMetalHost,
-// then we need to create the secret. Same as if the UserData is in the data
-// field.
-func (m *MachineManager) getUserData(ctx context.Context, host *bmh.BareMetalHost) error {
-	var err error
-	var decodedUserDataBytes []byte
+// then we need to create the secret.
+func (m *MachineManager) getUserDataSecretName(ctx context.Context, host *bmh.BareMetalHost) error {
 
 	if m.Metal3Machine.Status.UserData != nil {
 		return nil
@@ -416,60 +413,13 @@ func (m *MachineManager) getUserData(ctx context.Context, host *bmh.BareMetalHos
 			Namespace: m.Machine.Namespace,
 		}
 		return nil
-
-	} else if m.Machine.Spec.Bootstrap.Data == nil {
-		// If we do not have DataSecretName or Data then exit
-		return nil
-
-	}
-
-	// If we have Data, use it
-	decodedUserData := *m.Machine.Spec.Bootstrap.Data
-	// decode the base64 cloud-config
-	decodedUserDataBytes, err = base64.StdEncoding.DecodeString(decodedUserData)
-	if err != nil {
-		return err
-	}
-
-	err = m.createSecret(ctx, m.Metal3Machine.Name+"-user-data",
-		m.Metal3Machine.Namespace, map[string][]byte{
-			"userData": decodedUserDataBytes,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	m.Metal3Machine.Status.UserData = &corev1.SecretReference{
-		Name:      m.Metal3Machine.Name + "-user-data",
-		Namespace: host.Namespace,
-	}
-
-	return nil
-}
-
-// createSecret creates secret for bootstrap
-func (m *MachineManager) createSecret(ctx context.Context, name string,
-	namespace string, content map[string][]byte,
-) error {
-
-	err := createSecret(m.client, ctx, name, namespace,
-		m.Machine.Spec.ClusterName,
-		[]metav1.OwnerReference{{
-			Controller: pointer.BoolPtr(true),
-			APIVersion: m.Metal3Machine.APIVersion,
-			Kind:       m.Metal3Machine.Kind,
-			Name:       m.Metal3Machine.Name,
-			UID:        m.Metal3Machine.UID,
-		}}, content,
-	)
-
-	if err != nil {
-		if _, ok := err.(HasRequeueAfterError); !ok {
-			m.Log.Info("Unable to create secret for bootstrap")
+	} else if m.Machine.Spec.Bootstrap.ConfigRef != nil {
+		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
+			Name:      m.Machine.Spec.Bootstrap.ConfigRef.Name,
+			Namespace: m.Machine.Spec.Bootstrap.ConfigRef.Namespace,
 		}
-		return err
 	}
+
 	return nil
 }
 
@@ -630,10 +580,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		host.Spec.ConsumerRef = nil
 
-		// Delete created secret, if data was set without DataSecretName but with
-		// Data
-		if m.Machine.Spec.Bootstrap.DataSecretName == nil &&
-			m.Machine.Spec.Bootstrap.Data != nil {
+		// Delete created secret, if data was set without DataSecretName
+		if m.Machine.Spec.Bootstrap.DataSecretName == nil {
 			m.Log.Info("Deleting User data secret for machine")
 			if m.Metal3Machine.Status.UserData != nil {
 				err = deleteSecret(m.client, ctx, m.Metal3Machine.Status.UserData.Name,
@@ -1278,7 +1226,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		return errors.Wrap(err, "Error creating a remote client")
 	}
 
-	nodes, err := corev1Remote.Nodes().List(metav1.ListOptions{
+	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("metal3.io/uuid=%v", bmhID),
 	})
 	if err != nil {
@@ -1296,7 +1244,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 			continue
 		}
 		node.Spec.ProviderID = providerID
-		_, err = corev1Remote.Nodes().Update(&node)
+		_, err = corev1Remote.Nodes().Update(ctx, &node, metav1.UpdateOptions{})
 		if err != nil {
 			return errors.Wrap(err, "unable to update the target node")
 		}
