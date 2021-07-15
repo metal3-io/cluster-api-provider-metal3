@@ -62,7 +62,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				},
 			}
 
-			res, err := r.Reconcile(req)
+			res, err := r.Reconcile(context.TODO(), req)
 
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())

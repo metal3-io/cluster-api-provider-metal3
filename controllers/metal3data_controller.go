@@ -28,8 +28,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -54,8 +55,7 @@ type Metal3DataReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles Metal3Machine events
-func (r *Metal3DataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
-	ctx := context.Background()
+func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	metadataLog := r.Log.WithName(dataControllerName).WithValues("metal3-data", req.NamespacedName)
 
 	// Fetch the Metal3Data instance.
@@ -96,7 +96,7 @@ func (r *Metal3DataReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr 
 		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
 
 		// Return early if the Metadata or Cluster is paused.
-		if util.IsPaused(cluster, capm3Metadata) {
+		if annotations.IsPaused(cluster, capm3Metadata) {
 			metadataLog.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
@@ -151,18 +151,16 @@ func (r *Metal3DataReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		For(&capm3.Metal3Data{}).
 		Watches(
 			&source.Kind{Type: &ipamv1.IPClaim{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: handler.ToRequestsFunc(r.Metal3IPClaimToMetal3Data),
-			},
+			handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
 		).
 		Complete(r)
 }
 
 // Metal3IPClaimToMetal3Data will return a reconcile request for a Metal3Data if the event is for a
 // Metal3IPClaim and that Metal3IPClaim references a Metal3Data.
-func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj handler.MapObject) []ctrl.Request {
+func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj client.Object) []ctrl.Request {
 	requests := []ctrl.Request{}
-	if m3dc, ok := obj.Object.(*ipamv1.IPClaim); ok {
+	if m3dc, ok := obj.(*ipamv1.IPClaim); ok {
 		for _, ownerRef := range m3dc.OwnerReferences {
 			if ownerRef.Kind != "Metal3Data" {
 				continue

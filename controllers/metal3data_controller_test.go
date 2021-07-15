@@ -33,10 +33,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -127,7 +126,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				}
 
-				result, err := dataReconcile.Reconcile(req)
+				result, err := dataReconcile.Reconcile(context.TODO(), req)
 
 				if tc.expectError || tc.managerError || tc.reconcileNormalError {
 					Expect(err).To(HaveOccurred())
@@ -376,9 +375,8 @@ var _ = Describe("Metal3Data manager", func() {
 			r := Metal3DataReconciler{
 				Client: c,
 			}
-			obj := handler.MapObject{
-				Object: ipClaim,
-			}
+			obj := ipClaim
+
 			reqs := r.Metal3IPClaimToMetal3Data(obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},
