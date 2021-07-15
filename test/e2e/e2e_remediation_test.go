@@ -104,6 +104,7 @@ var _ = Describe("Remediation Pivoting", func() {
 				result = append(result, bmh)
 			}
 		}
+		fmt.Printf("There are %d BMHs in state '%s'\n", len(result), state)
 		return
 	}
 
@@ -113,30 +114,18 @@ var _ = Describe("Remediation Pivoting", func() {
 				result = append(result, machine)
 			}
 		}
+		fmt.Printf("There are %d machines in phase '%s'\n", len(result), phase)
 		return
 	}
 
 	filterM3DataByReference := func(datas []v1alpha4.Metal3Data, referenceName string) (result []v1alpha4.Metal3Data) {
-
-		//   - name: Check if one Metal3Data refers to the old template
-		//     k8s_info:
-		//       api_version: infrastructure.cluster.x-k8s.io/{{ CAPM3_VERSION }}
-		//       kind: Metal3Data
-		//       namespace: "{{ NAMESPACE }}"
-		//     register: m3data
-		//     retries: 5
-		//     delay: 5
-		//     vars:
-		//       query: "[? spec.templateReference=='{{ CLUSTER_NAME }}-workers-template'].metadata.name"
-		//     until:
-		//       - m3data is succeeded
-		//       - m3data.resources | json_query(query) | length == 1
 
 		for _, data := range datas {
 			if data.Spec.TemplateReference == referenceName {
 				result = append(result, data)
 			}
 		}
+		fmt.Printf("There are %d Metal3Data with reference '%s'\n", len(result), referenceName)
 		return
 	}
 
@@ -194,10 +183,6 @@ var _ = Describe("Remediation Pivoting", func() {
 			WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}).Cluster
-
-	})
-
-	FIt("Run test", func() {
 
 		By("Checking that rebooted node becomes Ready")
 		targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
@@ -321,9 +306,8 @@ var _ = Describe("Remediation Pivoting", func() {
 			Eventually(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
-					fmt.Printf("Listing BMHs\n")
 					Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-					fmt.Printf("Looking for %s BMH among %#+v\n", bmh.StateReady, bmhs.Items)
+					// fmt.Printf("Looking for %s BMH among %#+v\n", bmh.StateReady, bmhs.Items)
 					Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 					return nil
 				},
@@ -382,7 +366,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			By("Annotating BMH as healthy")
 			annotateBmh(ctx, bootstrapClient, workerBmh, "capi.metal3.io/unhealthy", nil)
 
-			By(fmt.Sprintf("Waiting for all-1 BMHs to be Provisioned", allMachinesCount-1))
+			By(fmt.Sprintf("Waiting for all-1 (%d)527 BMHs to be Provisioned", allMachinesCount-1))
 			Eventually(
 				func() error {
 					bmhs := bmh.BareMetalHostList{}
@@ -524,7 +508,7 @@ var _ = Describe("Remediation Pivoting", func() {
 
 		scaleControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, 3)
 
-		By(fmt.Sprintf("Waiting for all BMHs to be Provisioned", allMachinesCount-1))
+		By(fmt.Sprintf("Waiting for all-1 (%d) BMHs to be Provisioned", allMachinesCount-1))
 		Eventually(
 			func() error {
 				bmhs := bmh.BareMetalHostList{}
