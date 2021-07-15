@@ -160,38 +160,12 @@ var _ = Describe("Remediation Pivoting", func() {
 		monitorNodesStatus(ctx, targetClient, "defaul", []string{nodeName}, v1.ConditionTrue, specName)
 
 		// power cycle
-
-		powerCycle := func(machines machineSetSlice) error {
-			By(fmt.Sprintf("Power cycling %d machines", len(machines)))
-			for _, set := range machines {
-				Expect(annotateBmh(ctx, bootstrapClient, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
-			}
-			waitForVmsState(machines.getVmNames(), shutoff, specName)
-
-			// power on
-			By("Marking a BMH for power on")
-			for _, set := range machines {
-				Expect(annotateBmh(ctx, bootstrapClient, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
-			}
-
-			// waitForVmState(vmName, running)
-			waitForVmsState(machines.getVmNames(), running, specName)
-			for _, nodeName := range machines.getNodeNames() {
-				waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue, specName)
-			}
-			monitorNodesStatus(ctx, targetClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
-			return nil
-		}
-
-		powerCycle(machineSetSlice{
-			{
-				baremetalhost: &workerBmh,
-				metal3machine: &workerM3Machine,
-			},
-		})
-
-		powerCycle(controlMachineSets[:1])
-		powerCycle(controlMachineSets[1:3])
+		powerCycle(ctx, bootstrapClient, targetClient, machineSetSlice{{
+			baremetalhost: &workerBmh,
+			metal3machine: &workerM3Machine,
+		}}, specName)
+		powerCycle(ctx, bootstrapClient, targetClient, controlMachineSets[:1], specName)
+		powerCycle(ctx, bootstrapClient, targetClient, controlMachineSets[1:3], specName)
 
 		By("Testing unhealthy annotation")
 		newReplicaCount := 1
@@ -200,10 +174,8 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Waiting for 2 BMHs to be Ready")
 		Eventually(
 			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-				// fmt.Printf("Looking for %s BMH among %#+v\n", bmh.StateReady, bmhs.Items)
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
+				bmhs := getAllBMH(ctx, bootstrapClient, namespace, specName)
+				Expect(filterBmhsByProvisioningState(bmhs, bmh.StateReady)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
@@ -232,9 +204,8 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Waiting for 2 BMHs to be Provisioned")
 		Eventually(
 			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(2))
+				bmhs := getAllBMH(ctx, bootstrapClient, namespace, specName)
+				Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioned)).To(HaveLen(2))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
@@ -248,10 +219,9 @@ var _ = Describe("Remediation Pivoting", func() {
 		By("Verifying that none of the BMHs start provisioning")
 		Consistently(
 			func() error {
-				bmhs := bmh.BareMetalHostList{}
-				Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(3))
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioning)).To(HaveLen(0))
+				bmhs := getAllBMH(ctx, bootstrapClient, namespace, specName)
+				Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioned)).To(HaveLen(3))
+				Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioning)).To(HaveLen(0))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "monitor-provisioning")...,
@@ -265,8 +235,7 @@ var _ = Describe("Remediation Pivoting", func() {
 			func() error {
 
 				bmhs := getAllBMH(ctx, bootstrapClient, namespace, specName)
-				Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-				Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount - 1))
+				Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioned)).To(HaveLen(allMachinesCount - 1))
 				return nil
 			},
 			e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
@@ -581,16 +550,6 @@ func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 	return
 }
 
-// byClusterOptions returns a set of ListOptions that allows to identify all the objects belonging to a Cluster.
-func byClusterOptions(name, namespace string) []client.ListOption {
-	return []client.ListOption{
-		client.InNamespace(namespace),
-		client.MatchingLabels{
-			clusterv1.ClusterLabelName: name,
-		},
-	}
-}
-
 func filterBmhsByProvisioningState(bmhs []bmh.BareMetalHost, state bmh.ProvisioningState) (result []bmh.BareMetalHost) {
 	for _, bmh := range bmhs {
 		if bmh.Status.Provisioning.State == state {
@@ -668,4 +627,25 @@ func waitForNodeStatus(ctx context.Context, client client.Client, name client.Ob
 		func() error { return assertNodeStatus(ctx, client, name, status) },
 		e2eConfig.GetIntervals(specName, "wait-vm-state")...,
 	).Should(Succeed())
+}
+
+func powerCycle(ctx context.Context, c client.Client, workloadClient client.Client, machines machineSetSlice, specName string) {
+	By(fmt.Sprintf("Power cycling %d machines", len(machines)))
+	for _, set := range machines {
+		Expect(annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
+	}
+	waitForVmsState(machines.getVmNames(), shutoff, specName)
+
+	// power on
+	By("Marking a BMH for power on")
+	for _, set := range machines {
+		Expect(annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
+	}
+
+	// waitForVmState(vmName, running)
+	waitForVmsState(machines.getVmNames(), running, specName)
+	for _, nodeName := range machines.getNodeNames() {
+		waitForNodeStatus(ctx, workloadClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue, specName)
+	}
+	monitorNodesStatus(ctx, workloadClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
 }
