@@ -112,13 +112,13 @@ E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-i
 SKIP_CLEANUP ?= true
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
-$(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml
+$(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml $(ENVSUBST)
 	mkdir -p $(E2E_ENVSUBST_DIR)
-	$(ENVSUBST) < $^ > $@
+	$(ENVSUBST) < $< > $@
 
-$(E2E_CONF_FILE_ENVSUBST): $(E2E_CONF_FILE)
+$(E2E_CONF_FILE_ENVSUBST): $(E2E_CONF_FILE) $(ENVSUBST)
 	mkdir -p $(E2E_ENVSUBST_DIR)
-	$(ENVSUBST) < $^ > $@
+	$(ENVSUBST) < $< > $@
 
 ## Processes all files from templates/test, as well as e2e_conf file
 .PHONY: e2e-substitutions
