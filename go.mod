@@ -12,8 +12,8 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.0.0-20210416073321-c927d1d8da76
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0-00010101000000-000000000000
 	github.com/metal3-io/ip-address-manager/api v0.0.0-20210609163946-48b0ce9a1ac0
-	github.com/onsi/ginkgo v1.16.2
-	github.com/onsi/gomega v1.13.0
+	github.com/onsi/ginkgo v1.16.4
+	github.com/onsi/gomega v1.14.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/common v0.18.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect

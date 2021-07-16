@@ -62,5 +62,5 @@ source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 ${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests
 
 pushd ${M3_DEV_ENV_PATH} || exit 1
-make clean
+# make clean
 popd || exit 1

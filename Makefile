@@ -109,17 +109,20 @@ E2E_ENVSUBST_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_ENVSUBST_DIR)/$(notdir $(E2E_CONF_FILE))
 E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
 
-SKIP_CLEANUP ?= false
+SKIP_CLEANUP ?= true
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
-$(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml
+$(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml $(ENVSUBST)
 	mkdir -p $(E2E_ENVSUBST_DIR)
-	$(ENVSUBST) < $^ > $@
+	$(ENVSUBST) < $< > $@
+
+$(E2E_CONF_FILE_ENVSUBST): $(E2E_CONF_FILE) $(ENVSUBST)
+	mkdir -p $(E2E_ENVSUBST_DIR)
+	$(ENVSUBST) < $< > $@
 
 ## Processes all files from templates/test, as well as e2e_conf file
 .PHONY: e2e-substitutions
-e2e-substitutions: $(ENVSUBST) $(subst $(E2E_TEMPLATES_DIR),$(E2E_ENVSUBST_DIR),$(wildcard $(E2E_TEMPLATES_DIR)/*.yaml))
-	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
+e2e-substitutions: $(E2E_CONF_FILE_ENVSUBST) $(subst $(E2E_TEMPLATES_DIR),$(E2E_ENVSUBST_DIR),$(wildcard $(E2E_TEMPLATES_DIR)/*.yaml))
 
 .PHONY: e2e-tests
 e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
@@ -133,7 +136,17 @@ e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
-	rm $(E2E_CONF_FILE_ENVSUBST)
+
+e2e-tests-rerun:
+	./clean.sh
+	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
+		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
+		-ginkgo.focus="Run test" \
+		-e2e.artifacts-folder="$(ARTIFACTS)" \
+		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
+		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
+		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
+	
 
 ## --------------------------------------
 ## Binaries
