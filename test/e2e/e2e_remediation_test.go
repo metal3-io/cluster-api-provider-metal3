@@ -582,7 +582,7 @@ func filterM3DataByReference(datas []v1alpha4.Metal3Data, referenceName string) 
 }
 
 func waitForVmsState(vmNames []string, state vmState, specName string) {
-	By(fmt.Sprintf("Waiting for VMs %#v to become '%s'", vmNames, state))
+	By(fmt.Sprintf("Waiting for VMs %v to become '%s'", vmNames, state))
 	Eventually(func() {
 		vms := listVms(state)
 		Expect(vms).To(ContainElements(vmNames))
@@ -590,7 +590,7 @@ func waitForVmsState(vmNames []string, state vmState, specName string) {
 }
 
 func monitorNodesStatus(ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
-	By(fmt.Sprintf("Ensuring Nodes %#v consistently have ready=%s status", names, status))
+	By(fmt.Sprintf("Ensuring Nodes %v consistently have ready=%s status", names, status))
 	Consistently(
 		func() error {
 			for _, node := range names {
@@ -628,19 +628,24 @@ func waitForNodeStatus(ctx context.Context, client client.Client, name client.Ob
 
 func powerCycle(ctx context.Context, c client.Client, workloadClient client.Client, machines machineSetSlice, specName string) {
 	By(fmt.Sprintf("Power cycling %d machines", len(machines)))
+	By(fmt.Sprintf("Marking  %d BMHs for power off", len(machines)))
 	for _, set := range machines {
 		Expect(annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))).To(Succeed())
 	}
 	waitForVmsState(machines.getVmNames(), shutoff, specName)
 
 	// power on
-	By("Marking a BMH for power on")
+	By(fmt.Sprintf("Marking  %d BMHs for power on", len(machines)))
 	for _, set := range machines {
 		Expect(annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
 	}
 
 	waitForVmsState(machines.getVmNames(), running, specName)
+	for _, nodeName := range machines.getNodeNames() {
+		waitForNodeStatus(ctx, workloadClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue, specName)
+	}
+
 	Eventually(func() {
 		monitorNodesStatus(ctx, workloadClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
-	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
+	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 }
