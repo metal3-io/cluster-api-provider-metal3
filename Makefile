@@ -138,6 +138,7 @@ e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 
 e2e-tests-rerun:
+	./clean.sh
 	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
 		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		-ginkgo.focus="Run test" \

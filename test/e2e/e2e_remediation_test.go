@@ -589,10 +589,7 @@ func waitForVmsState(vmNames []string, state vmState, specName string) {
 	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
 }
 
-// functions defined here to use the local variables
 func monitorNodesStatus(ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
-	// TODO look int gomega 1.14 to use assertions in the func
-
 	By(fmt.Sprintf("Ensuring Nodes %#v consistently have ready=%s status", names, status))
 	Consistently(
 		func() error {
@@ -642,10 +639,8 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 		Expect(annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)).To(Succeed())
 	}
 
-	// waitForVmState(vmName, running)
 	waitForVmsState(machines.getVmNames(), running, specName)
-	for _, nodeName := range machines.getNodeNames() {
-		waitForNodeStatus(ctx, workloadClient, client.ObjectKey{Namespace: "default", Name: nodeName}, v1.ConditionTrue, specName)
-	}
-	monitorNodesStatus(ctx, workloadClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
+	Eventually(func() {
+		monitorNodesStatus(ctx, workloadClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
+	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
 }
