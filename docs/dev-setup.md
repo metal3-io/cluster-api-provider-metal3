@@ -302,18 +302,27 @@ instructions on launching a Minikube cluster.
 ### Deploy CAPI and CAPM3
 
 The following command will deploy the controllers from CAPI, CABPK and CAPM3 and
-the requested CRDs.
+the requested CRDs and creates BareMetalHosts custom resources. The provider
+uses the `BareMetalHost` custom resource defined by the `baremetal-operator`.
 
 ```sh
 make deploy
 ```
 
+When a `Metal3Machine` is created, the provider looks for an available
+`BareMetalHost` object to claim and then sets it to be provisioned to fulfill the
+request expressed by the `Metal3Machine`. There’s no requirement to actually run
+the `baremetal-operator` to test the reconciliation logic of the provider.
+
+Refer to the [baremetal-operator developer
+documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
+for instructions and tools for creating BareMetalHost objects.
+
 ### Run the Controller locally
 
-You will first need to scale down the controller deployment :
+You will first need to scale down the controller deployment:
 
 ```sh
-kubectl scale -n capm3-system deployment.v1.apps/capm3-baremetal-operator-controller-manager --replicas 0
 kubectl scale -n capm3-system deployment.v1.apps/capm3-controller-manager --replicas 0
 ```
 
@@ -330,14 +339,12 @@ controller is doing. You can also proceed to create/update/delete
 
 ### Deploy an example cluster
 
+Make sure you run `make deploy` and wait until all pods are in `running` state
+before deploying an example cluster with:
+
 ```sh
 make deploy-examples
 ```
-
-If you want to simulate the behavior of the metal3 baremetal operator, change
-`provisioning.state` of BareMetalHost resources to `provisioned` after the
-deployment of examples. Observe how a providerID is assigned to `machine` and
-`metal3machine` resources.
 
 ### Delete the example cluster
 

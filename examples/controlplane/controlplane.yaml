@@ -1,5 +1,5 @@
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
 metadata:
   name: ${CLUSTER_NAME}-controlplane
 spec:
@@ -7,10 +7,15 @@ spec:
     nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT:-"0s"}
     infrastructureRef:
       kind: Metal3MachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
       name: ${CLUSTER_NAME}-controlplane
+      namespace: ${NAMESPACE}
   replicas: 3
-  version: v1.21.2
+  rolloutStrategy:
+    rollingUpdate:
+      maxSurge: 1
+    type: RollingUpdate
+  version: ${KUBERNETES_VERSION}
   kubeadmConfigSpec:
     initConfiguration:
       nodeRegistration:
@@ -31,20 +36,24 @@ spec:
         kubeletExtraArgs:
           cloud-provider: baremetal
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-controlplane
 spec:
+  nodeReuse: false
   template:
     spec:
+      automatedCleaningMode: metadata
       image:
-        url: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
-        checksum: "97830b21ed272a3d854615beb54cf004"
+        checksum: ${IMAGE_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: ${IMAGE_FORMAT}
+        url: ${IMAGE_URL}
       dataTemplate:
         name: ${CLUSTER_NAME}-cp-metadata
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-cp-metadata
