@@ -81,6 +81,16 @@ var _ = FDescribe("Upgrade tests", func() {
 	})
 
 	Context("Upgrading KCP, Ironic and K8s", func() {
+
+		osType := strings.ToLower(os.Getenv("OS"))
+		Expect(osType).ToNot(Equal(""))
+		var flavorSuffix string
+		if osType == "centos" {
+			flavorSuffix = "-centos"
+		} else {
+			flavorSuffix = ""
+		}
+
 		// TODO: The cluster should be created and pivoting should be done before
 		// we start with the upgrade tests.
 		It("Should create a cluster with 3 control-plane and 0 worker nodes", func() {
@@ -93,7 +103,7 @@ var _ = FDescribe("Upgrade tests", func() {
 					ClusterctlConfigPath:     clusterctlConfigPath,
 					KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
 					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-					Flavor:                   "ha",
+					Flavor:                   "ha" + flavorSuffix,
 					Namespace:                namespace,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
