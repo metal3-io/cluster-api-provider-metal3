@@ -9,7 +9,7 @@ Kubernetes [Cluster API](https://github.com/kubernetes-sigs/cluster-api/).
 For more information about this actuator and related repositories, see
 [metal3.io](http://metal3.io/).
 
-## Compatibility with Cluster API
+## Compatibility with Cluster API.
 
 | CAPM3 version | Cluster API version | CAPM3 Release |
 |---------------|---------------------|---------------|
