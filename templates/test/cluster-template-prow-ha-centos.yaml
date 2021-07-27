@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -10,15 +10,15 @@ spec:
     services:
       cidrBlocks: ["${SERVICE_CIDR}"]
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
     kind: KubeadmControlPlane
     name: ${CLUSTER_NAME}
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     kind: Metal3Cluster
     name: ${CLUSTER_NAME}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Cluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -56,16 +56,18 @@ spec:
   prefix: ${EXTERNAL_SUBNET_V4_PREFIX}
   gateway: ${EXTERNAL_SUBNET_V4_HOST}
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
 kind: KubeadmControlPlane
 metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
-  infrastructureTemplate:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
-    kind: Metal3MachineTemplate
-    name: ${CLUSTER_NAME}-controlplane
+  machineTemplate:
+    nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT}
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+      kind: Metal3MachineTemplate
+      name: ${CLUSTER_NAME}-controlplane
   kubeadmConfigSpec:
     clusterConfiguration: {}
     joinConfiguration:
@@ -91,8 +93,6 @@ spec:
           provider-id: metal3://{{ ds.meta_data.uuid }}
           runtime-request-timeout: 5m
         name: '{{ ds.meta_data.name }}'
-
-
     files:
     - path: /usr/local/bin/retrieve.configuration.files.sh
       owner: root:root
@@ -221,14 +221,13 @@ spec:
       sshAuthorizedKeys:
       - ${SSH_PUB_KEY_CONTENT}
       sudo: ALL=(ALL) NOPASSWD:ALL
-  nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT}
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
   rolloutStrategy:
     rollingUpdate:
       maxSurge: 1
   version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-controlplane
@@ -244,7 +243,7 @@ spec:
         format: raw
         url: ${IMAGE_RAW_URL}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-controlplane-template
@@ -290,7 +289,7 @@ spec:
       dns:
       - 8.8.8.8
 ---
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: MachineDeployment
 metadata:
   labels:
@@ -313,18 +312,18 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
           kind: KubeadmConfigTemplate
           name: ${CLUSTER_NAME}-workers
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
         kind: Metal3MachineTemplate
         name: ${CLUSTER_NAME}-workers
       nodeDrainTimeout: 0s
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers
@@ -340,7 +339,7 @@ spec:
         format: raw
         url: ${IMAGE_RAW_URL}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers-template
@@ -386,7 +385,7 @@ spec:
       dns:
       - 8.8.8.8
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers

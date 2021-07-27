@@ -27,13 +27,12 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"k8s.io/klog/v2/klogr"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 )
 
 var _ = Describe("Metal3LabelSync controller", func() {
@@ -298,20 +297,18 @@ var _ = Describe("Metal3LabelSync controller", func() {
 
 	DescribeTable("Metal3Cluster To BareMetalHosts tests",
 		func(tc TestCaseMetal3ClusterToBMHs) {
-			objects := []runtime.Object{
+			objects := []client.Object{
 				tc.Cluster,
 				tc.M3Cluster,
 				tc.Machine,
 				tc.M3Machine,
 			}
-			c := fake.NewFakeClientWithScheme(setupScheme(), objects...)
+			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			r := Metal3LabelSyncReconciler{
 				Client: c,
 				Log:    klogr.New(),
 			}
-			obj := handler.MapObject{
-				Object: tc.M3Cluster,
-			}
+			obj := client.Object(tc.M3Cluster)
 			reqs := r.Metal3ClusterToBareMetalHosts(obj)
 			Expect(reflect.DeepEqual(reqs, tc.ExpectRequests)).To(Equal(true), "Expected %v but got %v", tc.ExpectRequests, reqs)
 		},

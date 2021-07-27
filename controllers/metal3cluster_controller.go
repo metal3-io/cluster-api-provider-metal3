@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -27,14 +28,19 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha3"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -45,9 +51,10 @@ const (
 
 // Metal3ClusterReconciler reconciles a Metal3Cluster object
 type Metal3ClusterReconciler struct {
-	Client         client.Client
-	ManagerFactory baremetal.ManagerFactoryInterface
-	Log            logr.Logger
+	Client           client.Client
+	ManagerFactory   baremetal.ManagerFactoryInterface
+	Log              logr.Logger
+	WatchFilterValue string
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3clusters,verbs=get;list;watch;create;update;patch;delete
@@ -56,9 +63,8 @@ type Metal3ClusterReconciler struct {
 
 // Reconcile reads that state of the cluster for a Metal3Cluster object and makes changes based on the state read
 // and what is in the Metal3Cluster.Spec
-func (r *Metal3ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 
-	ctx := context.Background()
 	clusterLog := log.Log.WithName(clusterControllerName).WithValues("metal3-cluster", req.NamespacedName)
 
 	// Fetch the Metal3Cluster instance
@@ -100,7 +106,7 @@ func (r *Metal3ClusterReconciler) Reconcile(req ctrl.Request) (_ ctrl.Result, re
 	clusterLog = clusterLog.WithValues("cluster", cluster.Name)
 
 	// Return early if BMCluster or Cluster is paused.
-	if util.IsPaused(cluster, metal3Cluster) {
+	if annotations.IsPaused(cluster, metal3Cluster) {
 		clusterLog.Info("reconciliation is paused for this object")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
@@ -167,16 +173,33 @@ func reconcileDelete(ctx context.Context,
 }
 
 // SetupWithManager will add watches for this controller
-func (r *Metal3ClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3Cluster{}).
+		For(
+			&capm3.Metal3Cluster{},
+			// Predicates can now be set on the for directly, so no need to use a generic event filter and worry about the kind
+			builder.WithPredicates(
+				predicate.Funcs{
+					// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
+					UpdateFunc: func(e event.UpdateEvent) bool {
+						oldCluster := e.ObjectOld.(*capm3.Metal3Cluster).DeepCopy()
+						newCluster := e.ObjectNew.(*capm3.Metal3Cluster).DeepCopy()
+						oldCluster.Status = capm3.Metal3ClusterStatus{}
+						newCluster.Status = capm3.Metal3ClusterStatus{}
+						oldCluster.ObjectMeta.ResourceVersion = ""
+						newCluster.ObjectMeta.ResourceVersion = ""
+						return !reflect.DeepEqual(oldCluster, newCluster)
+					},
+				},
+			),
+		).
+		// Watches can be defined with predicates in the builder directly now, no need to do `Build()` and then add the watch to the returned controller: https://github.com/kubernetes-sigs/cluster-api/blob/b00bd08d02311919645a4868861d0f9ca0df35ea/util/predicates/cluster_predicates.go#L147-L164
 		Watches(
 			&source.Kind{Type: &capi.Cluster{}},
-			&handler.EnqueueRequestsFromMapFunc{
-				ToRequests: util.ClusterToInfrastructureMapFunc(
-					capm3.GroupVersion.WithKind("Metal3Cluster"),
-				),
-			},
+			handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(capm3.GroupVersion.WithKind("Metal3Cluster"))),
+			// predicates.ClusterUnpaused will handle cluster unpaused logic
+			builder.WithPredicates(predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx))),
 		).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }

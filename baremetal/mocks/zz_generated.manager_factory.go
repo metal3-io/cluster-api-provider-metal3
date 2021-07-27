@@ -29,7 +29,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	v1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 // MockManagerFactoryInterface is a mock of ManagerFactoryInterface interface.
@@ -56,7 +56,7 @@ func (m *MockManagerFactoryInterface) EXPECT() *MockManagerFactoryInterfaceMockR
 }
 
 // NewClusterManager mocks base method.
-func (m *MockManagerFactoryInterface) NewClusterManager(cluster *v1alpha3.Cluster, metal3Cluster *v1alpha5.Metal3Cluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
+func (m *MockManagerFactoryInterface) NewClusterManager(cluster *v1alpha4.Cluster, metal3Cluster *v1alpha5.Metal3Cluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewClusterManager", cluster, metal3Cluster, clusterLog)
 	ret0, _ := ret[0].(baremetal.ClusterManagerInterface)
@@ -101,7 +101,7 @@ func (mr *MockManagerFactoryInterfaceMockRecorder) NewDataTemplateManager(arg0, 
 }
 
 // NewMachineManager mocks base method.
-func (m *MockManagerFactoryInterface) NewMachineManager(arg0 *v1alpha3.Cluster, arg1 *v1alpha5.Metal3Cluster, arg2 *v1alpha3.Machine, arg3 *v1alpha5.Metal3Machine, arg4 logr.Logger) (baremetal.MachineManagerInterface, error) {
+func (m *MockManagerFactoryInterface) NewMachineManager(arg0 *v1alpha4.Cluster, arg1 *v1alpha5.Metal3Cluster, arg2 *v1alpha4.Machine, arg3 *v1alpha5.Metal3Machine, arg4 logr.Logger) (baremetal.MachineManagerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewMachineManager", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(baremetal.MachineManagerInterface)

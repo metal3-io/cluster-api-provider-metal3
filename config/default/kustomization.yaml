@@ -1,12 +1,8 @@
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
+namePrefix: capm3-
 
-# Adds namespace to all resources.
-namespace: capm3-system
-
-resources:
-- namespace.yaml
+commonLabels:
+  cluster.x-k8s.io/provider: "infrastructure-metal3"
 
 bases:
-- ../rbac
-- ../manager
+- capm3
+- ../ipam
