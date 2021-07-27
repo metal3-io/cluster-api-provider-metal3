@@ -530,6 +530,7 @@ clean: ## Remove all generated files
 	$(MAKE) clean-bin
 	$(MAKE) clean-temporary
 	$(MAKE) clean-e2e
+	rm -rf "${HOME}/go/src/github.com/metal3-io"
 
 .PHONY: clean-bin
 clean-bin: ## Remove all generated binaries
