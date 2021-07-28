@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -115,8 +114,6 @@ func test_remediation() {
 	Eventually(
 		func() error {
 			Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
-			// TODO remove print
-			logf("workerBmh.status.provisioning.state: %s; expected %s", workerBmh.Status.Provisioning.State, bmh.StateReady)
 			Expect(workerBmh.Status.Provisioning.State).To(Equal(bmh.StateReady))
 			return nil
 		},
@@ -210,16 +207,6 @@ func test_remediation() {
 	newM3dataTemplateName := "test-new-m3dt"
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3dataTemplateName}, &m3dataTemplate)).To(Succeed())
 
-	// TODO remove
-	printM3data := func(comment string) {
-		datas := capm3.Metal3DataList{}
-		err := bootstrapClient.List(ctx, &datas, client.InNamespace(namespace))
-		if err != nil {
-			logf("error listing metal3data: %s", err)
-		}
-		fmt.Printf("metal3data %s: %+#v\n", comment, datas.Items)
-	}
-
 	newM3DataTemplate := m3dataTemplate.DeepCopy()
 	cleanObjectMeta(&newM3DataTemplate.ObjectMeta)
 
@@ -231,19 +218,8 @@ func test_remediation() {
 	newM3DataTemplate.ObjectMeta.Name = newM3dataTemplateName
 	newM3DataTemplate.ObjectMeta.Namespace = m3dataTemplate.Namespace
 
-	printM3data("before creating newM3DataTemplate")
-	logf("Create m3dt: %#+v", newM3DataTemplate)
-	if js, err := json.MarshalIndent(newM3DataTemplate, "", "  "); err == nil {
-		logf("Create m3dt(json): %s", js)
-	}
 	err = bootstrapClient.Create(ctx, newM3DataTemplate)
-	if err != nil {
-		logf("create machine3template failed: %v", err)
-	}
-	// TODO restore before merging
-	// Expect(err).NotTo(HaveOccurred())
-
-	printM3data("after creating newM3DataTemplate")
+	Expect(err).NotTo(HaveOccurred())
 
 	By("Creating a new Metal3MachineTemplate")
 	m3machineTemplate := capm3.Metal3MachineTemplate{}
@@ -257,13 +233,6 @@ func test_remediation() {
 	newM3MachineTemplate.Spec.Template.Spec.Image = m3machineTemplate.Spec.Template.Spec.Image
 	newM3MachineTemplate.Spec.Template.Spec.DataTemplate.Name = newM3dataTemplateName
 	newM3MachineTemplate.ObjectMeta.Name = newM3MachineTemplateName
-
-	// TODO Remove debug prints
-	logf("Old m3mt: %#+v", m3machineTemplate)
-	logf("Create m3mt: %#+v", newM3MachineTemplate)
-	if js, err := json.MarshalIndent(newM3MachineTemplate, "", "  "); err == nil {
-		logf("Create m3mt(json): %s", js)
-	}
 
 	Expect(bootstrapClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new M3MachineTemplate")
 
@@ -297,11 +266,14 @@ func test_remediation() {
 	By("Waiting for 1 Metal3Data to refer to the old template")
 	Eventually(
 		func() {
-			printM3data("waiting for old reference")
-
 			datas := capm3.Metal3DataList{}
 			Expect(bootstrapClient.List(ctx, &datas, client.InNamespace(namespace))).To(Succeed())
-			// problem: 'test1-workers-template' appears in spec.template.name, but not in Spec.TemplateReference
+
+			// TODO: filterM3DataByReference should check spec.TemplateReference according to remediation.yml
+			// However, when running the e2e test this field was empty.
+			// So the TODO is to make the test pass when looking for TemplateReference
+			// or prove that checking spec.template.name (as it does now and passes) is also ok.
+
 			filtered := filterM3DataByReference(datas.Items, m3dataTemplateName)
 			Expect(filtered).To(HaveLen(1))
 		},
@@ -487,15 +459,11 @@ func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 }
 func filterM3DataByReference(datas []capm3.Metal3Data, referenceName string) (result []capm3.Metal3Data) {
 
-	for i, data := range datas {
-		logf("m3data no. %d references %+#v, looking for %+#v. metal3data:\n%+#v", i, data.Spec.TemplateReference, referenceName, data)
-		// TODO: this should be spec.TemplateReference according to remediation.yml
+	for _, data := range datas {
 		if data.Spec.Template.Name == referenceName {
 			result = append(result, data)
 		}
 	}
-	// TODO remove print
-	fmt.Printf("There are %d Metal3Data with reference '%s'\n", len(result), referenceName)
 	return
 }
 
@@ -549,14 +517,14 @@ func waitForNodeStatus(ctx context.Context, client client.Client, name client.Ob
 func powerCycle(ctx context.Context, c client.Client, workloadClient client.Client, machines bmhToMachineSlice, specName string) {
 	Byf("Power cycling %d machines", len(machines))
 
-	logf("Marking  %d BMHs for power off", len(machines))
+	logf("Marking %d BMHs for power off", len(machines))
 	for _, set := range machines {
 		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))
 	}
 	waitForVmsState(machines.getVmNames(), shutoff, specName)
 
 	// power on
-	logf("Marking  %d BMHs for power on", len(machines))
+	logf("Marking %d BMHs for power on", len(machines))
 	for _, set := range machines {
 		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)
 	}

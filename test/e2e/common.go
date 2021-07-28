@@ -20,6 +20,7 @@ func Byf(format string, a ...interface{}) {
 }
 
 func Logf(format string, a ...interface{}) {
+// TODO delete after https://github.com/metal3-io/cluster-api-provider-metal3/pull/259 is merged
 	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
 }
 
