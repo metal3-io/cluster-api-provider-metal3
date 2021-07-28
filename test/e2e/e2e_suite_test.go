@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -141,7 +141,7 @@ func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
 	Expect(bmo.AddToScheme(sc)).To(Succeed())
-	Expect(v1alpha5.AddToScheme(sc)).To(Succeed())
+	Expect(capm3.AddToScheme(sc)).To(Succeed())
 
 	return sc
 }

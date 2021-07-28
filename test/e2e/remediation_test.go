@@ -7,17 +7,18 @@ import (
 	"os/exec"
 	"strings"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
-	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+
+	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
+	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,7 +44,7 @@ func test_remediation() {
 	Expect(controlM3Machines).To(HaveLen(int(controlPlaneMachineCount)))
 	Expect(workerM3Machines).To(HaveLen(int(workerMachineCount)))
 
-	getBmhFromM3Machine := func(m3Machine v1alpha4.Metal3Machine) (result bmh.BareMetalHost) {
+	getBmhFromM3Machine := func(m3Machine capm3.Metal3Machine) (result bmh.BareMetalHost) {
 		Expect(bootstrapClient.Get(ctx,
 			client.ObjectKey{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)},
 			&result)).To(Succeed())
@@ -204,14 +205,14 @@ func test_remediation() {
 	By("Testing Metal3DataTemplate reference")
 
 	By("Creating a new Metal3DataTemplate")
-	m3dataTemplate := v1alpha4.Metal3DataTemplate{}
+	m3dataTemplate := capm3.Metal3DataTemplate{}
 	m3dataTemplateName := fmt.Sprintf("%s-workers-template", clusterName)
 	newM3dataTemplateName := "test-new-m3dt"
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3dataTemplateName}, &m3dataTemplate)).To(Succeed())
 
 	// TODO remove
 	printM3data := func(comment string) {
-		datas := v1alpha4.Metal3DataList{}
+		datas := capm3.Metal3DataList{}
 		err := bootstrapClient.List(ctx, &datas, client.InNamespace(namespace))
 		if err != nil {
 			logf("error listing metal3data: %s", err)
@@ -245,7 +246,7 @@ func test_remediation() {
 	printM3data("after creating newM3DataTemplate")
 
 	By("Creating a new Metal3MachineTemplate")
-	m3machineTemplate := v1alpha4.Metal3MachineTemplate{}
+	m3machineTemplate := capm3.Metal3MachineTemplate{}
 	m3machineTemplateName := fmt.Sprintf("%s-workers", clusterName)
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
 	newM3MachineTemplateName := "test-new-m3mt"
@@ -298,7 +299,7 @@ func test_remediation() {
 		func() {
 			printM3data("waiting for old reference")
 
-			datas := v1alpha4.Metal3DataList{}
+			datas := capm3.Metal3DataList{}
 			Expect(bootstrapClient.List(ctx, &datas, client.InNamespace(namespace))).To(Succeed())
 			// problem: 'test1-workers-template' appears in spec.template.name, but not in Spec.TemplateReference
 			filtered := filterM3DataByReference(datas.Items, m3dataTemplateName)
@@ -335,7 +336,7 @@ func test_remediation() {
 
 type bmhToMachine struct {
 	baremetalhost *bmh.BareMetalHost
-	metal3machine *v1alpha4.Metal3Machine
+	metal3machine *capm3.Metal3Machine
 }
 type bmhToMachineSlice []bmhToMachine
 
@@ -416,7 +417,7 @@ func scaleMachineDeployment(ctx context.Context, client client.Client, name clie
 
 // metal3MachineToMachineName finds the releveant owner reference in Metal3Machine
 // and returns the name of corresponding Machine.
-func metal3MachineToMachineName(m3machine v1alpha4.Metal3Machine) (string, error) {
+func metal3MachineToMachineName(m3machine capm3.Metal3Machine) (string, error) {
 	ownerReferences := m3machine.GetOwnerReferences()
 	for _, reference := range ownerReferences {
 		if reference.Kind == "Machine" {
@@ -426,7 +427,7 @@ func metal3MachineToMachineName(m3machine v1alpha4.Metal3Machine) (string, error
 	return "", fmt.Errorf("metal3machine missing a \"Machine\" kind owner reference")
 }
 
-func metal3MachineToBmhName(m3machine v1alpha4.Metal3Machine) string {
+func metal3MachineToBmhName(m3machine capm3.Metal3Machine) string {
 	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
 }
 
@@ -471,9 +472,9 @@ func getAllBmhs(ctx context.Context, c client.Client, namespace, specName string
 	return bmhs.Items
 }
 
-func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) ([]v1alpha4.Metal3Machine, []v1alpha4.Metal3Machine) {
-	var controlplane, workers []v1alpha4.Metal3Machine
-	allMachines := &v1alpha4.Metal3MachineList{}
+func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) ([]capm3.Metal3Machine, []capm3.Metal3Machine) {
+	var controlplane, workers []capm3.Metal3Machine
+	allMachines := &capm3.Metal3MachineList{}
 	Expect(c.List(ctx, allMachines, client.InNamespace(namespace))).To(Succeed())
 	for _, machine := range allMachines.Items {
 		if strings.Contains(machine.ObjectMeta.Name, "workers") {
@@ -484,7 +485,7 @@ func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 	}
 	return controlplane, workers
 }
-func filterM3DataByReference(datas []v1alpha4.Metal3Data, referenceName string) (result []v1alpha4.Metal3Data) {
+func filterM3DataByReference(datas []capm3.Metal3Data, referenceName string) (result []capm3.Metal3Data) {
 
 	for i, data := range datas {
 		logf("m3data no. %d references %+#v, looking for %+#v. metal3data:\n%+#v", i, data.Spec.TemplateReference, referenceName, data)
