@@ -3685,7 +3685,7 @@ spec:
 # BEGIN ANSIBLE MANAGED BLOCK
 # for indentation
             - name: IP_AUTODETECTION_METHOD
-              value: "interface=enp2s0"
+              value: "interface=eth1"
 # END ANSIBLE MANAGED BLOCK
             # Disable file logging so `kubectl logs` works.
             - name: CALICO_DISABLE_FILE_LOGGING
