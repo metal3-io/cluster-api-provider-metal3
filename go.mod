@@ -3,8 +3,10 @@ module github.com/metal3-io/cluster-api-provider-metal3
 go 1.16
 
 require (
+	github.com/docker/docker v20.10.7+incompatible
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
+	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/metal3-io/baremetal-operator/apis v0.0.0-20210416073321-c927d1d8da76
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0-00010101000000-000000000000
 	github.com/metal3-io/ip-address-manager/api v0.0.0-20210609163946-48b0ce9a1ac0

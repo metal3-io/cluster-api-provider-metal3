@@ -15,24 +15,27 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
+var (
+	ctx                 = context.TODO()
+	specName            = "metal3"
+	namespace           = "metal3"
+	flavorSuffix        string
+	cluster             *clusterv1.Cluster
+	clusterName         = "test1"
+	clusterctlLogFolder string
+	cniFile             string
+)
 var _ = Describe("Workload cluster creation", func() {
-	var (
-		ctx                 = context.TODO()
-		specName            = "metal3"
-		namespace           = "metal3"
-		flavorSuffix        string
-		cluster             *clusterv1.Cluster
-		clusterName         = "test1"
-		clusterctlLogFolder string
-	)
 
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		if osType == "centos" {
 			flavorSuffix = "-centos"
+			cniFile = "/data/cni/calico/calico-centos.yaml"
 		} else {
 			flavorSuffix = ""
+			cniFile = "/data/cni/calico/calico.yaml"
 		}
 
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
@@ -68,12 +71,13 @@ var _ = Describe("Workload cluster creation", func() {
 					ControlPlaneMachineCount: pointer.Int64Ptr(3),
 					WorkerMachineCount:       pointer.Int64Ptr(1),
 				},
-				CNIManifestPath:              e2eTestsPath + "/data/cni/calico/calico.yaml",
+				CNIManifestPath:              e2eTestsPath + cniFile,
 				WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, result)
 			cluster = result.Cluster
+			pivoting()
 		})
 	})
 })
