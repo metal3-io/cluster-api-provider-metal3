@@ -47,25 +47,29 @@ A Cluster is a Cluster API core object representing a Kubernetes cluster.
 Example cluster:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Cluster
 metadata:
   name: cluster
+  namespace: metal3
 spec:
   clusterNetwork:
     services:
-      cidrBlocks: ["10.96.0.0/12"]
+      cidrBlocks:
+      - 10.96.0.0/12
     pods:
-      cidrBlocks: ["192.168.0.0/18"]
-    serviceDomain: "cluster.local"
+      cidrBlocks:
+      - 192.168.0.0/18
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     kind: Metal3Cluster
     name: m3cluster
+    namespace: metal3
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
     name: m3cluster-controlplane
+    namespace: metal3
 ```
 
 ## Metal3Cluster
@@ -83,10 +87,11 @@ the cluster on Baremetal. It currently has two specification fields :
 Example metal3cluster :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Cluster
 metadata:
   name: m3cluster
+  namespace: metal3
 spec:
  controlPlaneEndpoint:
    host: 192.168.111.249
@@ -104,36 +109,36 @@ For example:
 
 ```yaml
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha3
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
 metadata:
   name: m3cluster-controlplane
+  namespace: metal3
 spec:
-  replicas: 3
-  version: v1.17.0
   machineTemplate:
     infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
       kind: Metal3MachineTemplate
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
       name: m3cluster-controlplane
+      namespace: metal3
+    nodeDrainTimeout: 0s
+  replicas: 3
+  rolloutStrategy:
+    rollingUpdate:
+      maxSurge: 1
+    type: RollingUpdate
+  version: v1.21.2
   kubeadmConfigSpec:
-    initConfiguration:
-      nodeRegistration:
-        name: 'host0'
-        kubeletExtraArgs:
-          cloud-provider: baremetal
-    clusterConfiguration:
-      apiServer:
-        extraArgs:
-          cloud-provider: baremetal
-      controllerManager:
-        extraArgs:
-          cloud-provider: baremetal
     joinConfiguration:
       controlPlane: {}
       nodeRegistration:
-        name: 'host0'
+        name: '{{ ds.meta_data.name }}'
         kubeletExtraArgs:
-          cloud-provider: baremetal
+          node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+    initConfiguration:
+      nodeRegistration:
+        name: '{{ ds.meta_data.name }}'
+        kubeletExtraArgs:
+          node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
 ```
 
 ## KubeadmConfig
@@ -158,10 +163,11 @@ object (see below).
 Example KubeadmConfig:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
 kind: KubeadmConfig
 metadata:
   name: controlplane-0
+  namespace: metal3
 spec:
   initConfiguration:
     nodeRegistration:
@@ -169,35 +175,18 @@ spec:
       kubeletExtraArgs:
         node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
   preKubeadmCommands:
-    - apt update -y
-    - apt install net-tools -y
-    - apt install -y gcc linux-headers-$(uname -r)
-    - apt install -y keepalived
-    - systemctl start keepalived
-    - systemctl enable keepalived
-    - >-
-      apt install apt-transport-https ca-certificates curl gnupg-agent
-      software-properties-common -y
-    - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-    - >-
-      add-apt-repository "deb [arch=amd64]
-      https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-    - apt update -y
-    - apt install docker-ce docker-ce-cli containerd.io -y
-    - usermod -aG docker ubuntu
-    - >-
-      curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg
-      | apt-key add -
-    - >-
-      echo 'deb https://apt.kubernetes.io/ kubernetes-xenial main'
-      > /etc/apt/sources.list.d/kubernetes.list
-    - apt update
-    - apt install -y kubelet kubeadm kubectl
-    - systemctl enable --now kubelet
+    - netplan apply
+    - systemctl enable --now crio kubelet
+    - if (curl -sk --max-time 10 https://192.168.111.249:6443/healthz); then echo "keepalived
+      already running";else systemctl start keepalived; fi
+    - systemctl link /lib/systemd/system/monitor.keepalived.service
+    - systemctl enable monitor.keepalived.service
+    - systemctl start monitor.keepalived.service
   postKubeadmCommands:
-    - mkdir -p /home/ubuntu/.kube
-    - cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
-    - chown ubuntu:ubuntu /home/ubuntu/.kube/config
+    - mkdir -p /home/metal3/.kube
+    - cp /etc/kubernetes/admin.conf /home/metal3/.kube/config
+    - systemctl enable --now keepalived
+    - chown metal3:metal3 /home/metal3/.kube/config
   files:
       - path: /etc/keepalived/keepalived.conf
         content: |
@@ -211,10 +200,10 @@ spec:
               smtp_server localhost
               smtp_connect_timeout 30
           }
-          vrrp_instance VI_1 {
+          vrrp_instance VI_2 {
               state MASTER
               interface enp2s0
-              virtual_router_id 1
+              virtual_router_id 2
               priority 101
               advert_int 1
               virtual_ipaddress {
@@ -231,24 +220,29 @@ has a reference to a KubeadmConfig and a reference to a metal3machine.
 Example Machine:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Machine
 metadata:
   name: controlplane-0
+  namespace: metal3
   labels:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "cluster"
 spec:
-  version: 1.16
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
       kind: KubeadmConfig
       name: controlplane-0
+      namespace: metal3
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     kind: Metal3Machine
     name: controlplane-0
+    namespace: metal3
+  nodeDrainTimeout: 0s
+  providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
+  version: v1.21.2
 ```
 
 ## Metal3Machine
@@ -413,14 +407,18 @@ spec:
 ### Metal3Machine example
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Machine
 metadata:
   name: controlplane-0
+  namespace: metal3
 spec:
+  automatedCleaningMode: metadata
   image:
-    url: https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img
-    checksum: https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img.md5sum
+    checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img.md5sum
+    checksumType: md5
+    format: raw
+    url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img
   hostSelector:
     matchLabels:
       key1: value1
@@ -443,35 +441,42 @@ Metal3MachineTemplate.
 Example MachineDeployment:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: MachineDeployment
 metadata:
   name: md-0
+  namespace: metal3
   labels:
     cluster.x-k8s.io/cluster-name: cluster
     nodepool: nodepool-0
 spec:
+  clusterName: cluster
   replicas: 1
   selector:
     matchLabels:
       cluster.x-k8s.io/cluster-name: cluster
       nodepool: nodepool-0
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+    type: RollingUpdate
   template:
     metadata:
       labels:
         cluster.x-k8s.io/cluster-name: cluster
         nodepool: nodepool-0
     spec:
-      version: 1.16
       bootstrap:
         configRef:
           name: md-0
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
         kind: Metal3MachineTemplate
+      version: v1.21.2
 ```
 
 ## KubeadmConfigTemplate
@@ -481,10 +486,11 @@ This contains a template to generate KubeadmConfig.
 Example KubeadmConfigTemplate:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
 kind: KubeadmConfigTemplate
 metadata:
-  name: md-0
+  name: controlplane-0
+  namespace: metal3
 spec:
   template:
     spec:
@@ -494,26 +500,8 @@ spec:
           kubeletExtraArgs:
             node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
       preKubeadmCommands:
-        - apt update -y
-        - >-
-          apt install apt-transport-https ca-certificates curl gnupg-agent
-          software-properties-common -y
-        - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
-        - >-
-          add-apt-repository "deb [arch=amd64]
-          https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-        - apt update -y
-        - apt install docker-ce docker-ce-cli containerd.io -y
-        - usermod -aG docker ubuntu
-        - >-
-          curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg
-          | apt-key add -
-        - >-
-          echo 'deb https://apt.kubernetes.io/ kubernetes-xenial main'
-          > /etc/apt/sources.list.d/kubernetes.list
-        - apt update
-        - apt install -y kubelet kubeadm kubectl
-        - systemctl enable --now kubelet
+        - netplan apply
+        - systemctl enable --now crio kubelet
 ```
 
 ## Metal3MachineTemplate
@@ -549,18 +537,21 @@ When `spec.nodeReuse` field of metal3MachineTemplate is set to `True`, CAPM3 Mac
 Example Metal3MachineTemplate :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3MachineTemplate
 metadata:
-  name: md-0
+  name: m3mt-0
+  namespace: metal3
 spec:
   nodeReuse: false
   template:
     spec:
       automatedCleaningMode: metadata
       image:
-        url: https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img
-        checksum: https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-amd64.img.md5sum
+        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img.md5sum
+        checksumType: md5
+        format: raw
+        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.21.2-raw.img
       hostSelector:
         matchLabels:
           key1: value1
@@ -569,19 +560,19 @@ spec:
           operator: in
           values: {‘abc’, ‘123’, ‘value2’}
       dataTemplate:
-        Name: md-0-metadata
+        Name: m3mt-0-metadata
 ```
 
 ## Metal3DataTemplate
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3DataTemplate
 metadata:
   name: nodepool-1
   namespace: default
   ownerReferences:
-  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     controller: true
     kind: Metal3Cluster
     name: cluster-1
@@ -926,13 +917,13 @@ created from the old template object to the new one which uses the
 A new object would be created, a Metal3DataClaim type.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3DataClaim
 metadata:
   name: machine-1
   namespace: default
   ownerReferences:
-  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     controller: true
     kind: Metal3Machine
     name: machine-1
@@ -958,28 +949,31 @@ Metal3DataTemplate object and the associated secrets
 The Metal3Data object would be:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Data
 metadata:
   name: nodepool-1-0
   namespace: default
   ownerReferences:
-  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     controller: true
     kind: Metal3DataTemplate
     name: nodepool-1
 spec:
   templateReference: old-template
   index: 0
+  claim:
+    name: machine-1
+    namespace: metal3
   metaData:
     name: machine-1-metadata
-    namespace: default
+    namespace: metal3
   networkData:
-    name: machine-1-metadata
-    namespace: default
-  metal3Machine:
-    name: machine-1
-    namespace: default
+    name: machine-1-networkdata
+    namespace: metal3
+  template:
+    name: test1-workers-template
+    namespace: metal3
 status:
   ready: true
   error: false

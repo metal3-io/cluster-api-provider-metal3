@@ -2,37 +2,13 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: capi-controller-manager
-  namespace: capi-webhook-system
-spec:
-  template:
-    spec:
-      containers:
-        - name: manager
-          image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.3.16
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: capi-controller-manager
   namespace: capi-system
 spec:
   template:
     spec:
       containers:
         - name: manager
-          image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:v0.3.16
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: capi-kubeadm-bootstrap-controller-manager
-  namespace: capi-webhook-system
-spec:
-  template:
-    spec:
-      containers:
-        - name: manager
-          image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v0.3.16
+          image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:master
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -44,7 +20,7 @@ spec:
     spec:
       containers:
         - name: manager
-          image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v0.3.16
+          image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:master
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -56,28 +32,5 @@ spec:
     spec:
       containers:
         - name: manager
-          image: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:v0.3.16
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: capi-kubeadm-control-plane-controller-manager
-  namespace: capi-webhook-system
-spec:
-  template:
-    spec:
-      containers:
-        - name: manager
-          image: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:v0.3.16
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: capi-kubeadm-bootstrap-controller-manager
-  namespace: capi-webhook-system
-spec:
-  template:
-    spec:
-      containers:
-        - name: manager
-          image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:v0.3.16
+          image: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:master
+
