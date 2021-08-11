@@ -36,7 +36,6 @@ func pivoting() {
 	}
 
 	By("Create Ironic namespace")
-	targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 	targetClusterClientSet := targetCluster.GetClientSet()
 	ironicNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
