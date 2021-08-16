@@ -197,9 +197,9 @@ type NetworkDataLinkEthernet struct {
 
 // NetworkDataLinkBond represents a bond link object
 type NetworkDataLinkBond struct {
-	// +kubebuilder:validation:Enum="balance-rr";"active-backup";"balance-xor";"broadcast";"balance-tlb";"balance-alb";"802.1ad"
+	// +kubebuilder:validation:Enum="balance-rr";"active-backup";"balance-xor";"broadcast";"balance-tlb";"balance-alb";"802.3ad"
 	// BondMode is the mode of bond used. It can be one of
-	// balance-rr, active-backup, balance-xor, broadcast, balance-tlb, balance-alb, 802.1ad
+	// balance-rr, active-backup, balance-xor, broadcast, balance-tlb, balance-alb, 802.3ad
 	BondMode string `json:"bondMode"`
 
 	// Id is the ID of the interface (used for naming)

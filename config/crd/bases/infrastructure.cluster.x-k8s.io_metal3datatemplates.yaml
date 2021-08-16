@@ -322,7 +322,7 @@ spec:
                             bondMode:
                               description: BondMode is the mode of bond used. It can
                                 be one of balance-rr, active-backup, balance-xor,
-                                broadcast, balance-tlb, balance-alb, 802.1ad
+                                broadcast, balance-tlb, balance-alb, 802.3ad
                               enum:
                               - balance-rr
                               - active-backup
@@ -330,7 +330,7 @@ spec:
                               - broadcast
                               - balance-tlb
                               - balance-alb
-                              - 802.1ad
+                              - 802.3ad
                               type: string
                             id:
                               description: Id is the ID of the interface (used for
@@ -1152,7 +1152,7 @@ spec:
                             bondMode:
                               description: BondMode is the mode of bond used. It can
                                 be one of balance-rr, active-backup, balance-xor,
-                                broadcast, balance-tlb, balance-alb, 802.1ad
+                                broadcast, balance-tlb, balance-alb, 802.3ad
                               enum:
                               - balance-rr
                               - active-backup
@@ -1160,7 +1160,7 @@ spec:
                               - broadcast
                               - balance-tlb
                               - balance-alb
-                              - 802.1ad
+                              - 802.3ad
                               type: string
                             id:
                               description: Id is the ID of the interface (used for

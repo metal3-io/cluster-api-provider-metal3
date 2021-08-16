@@ -1748,7 +1748,7 @@ var _ = Describe("Metal3Data manager", func() {
 			links: infrav1alpha5.NetworkDataLink{
 				Bonds: []infrav1alpha5.NetworkDataLinkBond{
 					{
-						BondMode: "802.1ad",
+						BondMode: "802.3ad",
 						Id:       "bond0",
 						MTU:      1500,
 						MACAddress: &infrav1alpha5.NetworkLinkEthernetMac{
@@ -1764,7 +1764,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"id":                   "bond0",
 					"mtu":                  1500,
 					"ethernet_mac_address": "XX:XX:XX:XX:XX:XX",
-					"bond_mode":            "802.1ad",
+					"bond_mode":            "802.3ad",
 					"bond_links":           []string{"eth0"},
 				},
 			},
@@ -1773,7 +1773,7 @@ var _ = Describe("Metal3Data manager", func() {
 			links: infrav1alpha5.NetworkDataLink{
 				Bonds: []infrav1alpha5.NetworkDataLinkBond{
 					{
-						BondMode: "802.1ad",
+						BondMode: "802.3ad",
 						Id:       "bond0",
 						MTU:      1500,
 						MACAddress: &infrav1alpha5.NetworkLinkEthernetMac{
