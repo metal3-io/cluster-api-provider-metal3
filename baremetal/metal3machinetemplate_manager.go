@@ -15,6 +15,7 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
@@ -93,7 +94,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 				return errors.Wrapf(err, "failed to update metal3Machine: %s", m3m.Name)
 			}
 			if m3m.Spec.AutomatedCleaningMode == m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode {
-				m.Log.Info("Synchronized automatedCleaningMode field value between Metal3MachineTemplate %v/%v and Metal3MachineMachine %v/%v", m.Metal3MachineTemplate.Namespace, m.Metal3MachineTemplate.Name, m3m.Namespace, m3m.Name)
+				m.Log.Info("Synchronized automatedCleaningMode field value between ", "Metal3MachineTemplate", fmt.Sprintf("%v/%v", m.Metal3MachineTemplate.Namespace, m.Metal3MachineTemplate.Name), "Metal3Machine", fmt.Sprintf("%v/%v", m3m.Namespace, m3m.Name))
 			}
 
 		}
