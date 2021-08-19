@@ -182,8 +182,8 @@ spec:
         ONBOOT=yes
         USERCTL=no
         BOOTPROTO="static"
-        IPADDR={{ "{{ ds.meta_data.provisioningIP }}" }}
-        PREFIX={{ "{{ ds.meta_data.provisioningCIDR }}" }}
+        IPADDR={{ ds.meta_data.provisioningIP }}
+        PREFIX={{ ds.meta_data.provisioningCIDR }}
       path: /etc/sysconfig/network-scripts/ifcfg-ironicendpoint
       owner: root:root
       permissions: '0644'
@@ -431,8 +431,8 @@ spec:
           ONBOOT=yes
           USERCTL=no
           BOOTPROTO="static"
-          IPADDR={{ "{{ ds.meta_data.provisioningIP }}" }}
-          PREFIX={{ "{{ ds.meta_data.provisioningCIDR }}" }}
+          IPADDR={{ ds.meta_data.provisioningIP }}
+          PREFIX={{ ds.meta_data.provisioningCIDR }}
       - path: /etc/yum.repos.d/kubernetes.repo
         owner: root:root
         permissions: '0644'
