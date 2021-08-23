@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -16,6 +17,16 @@ import (
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
+}
+
+func Logf(format string, a ...interface{}) {
+	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
+}
+
+func LogFromFile(logFile string) {
+	data, err := ioutil.ReadFile(logFile)
+	Expect(err).To(BeNil(), "No log file found")
+	Logf(string(data))
 }
 
 func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
@@ -68,8 +79,4 @@ func downloadFile(filepath string, url string) error {
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	return err
-}
-
-func Logf(format string, a ...interface{}) {
-	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
 }

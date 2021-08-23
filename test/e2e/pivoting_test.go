@@ -56,6 +56,7 @@ func pivoting() {
 		InfrastructureProviders: e2eConfig.InfrastructureProviders(),
 		LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting"),
 	})
+	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting", "clusterctl-init.log"))
 
 	By("Configure Ironic Configmap")
 	configureIronicConfigmap(true)
@@ -97,6 +98,7 @@ func pivoting() {
 		ToKubeconfigPath:     targetCluster.GetKubeconfigPath(),
 		Namespace:            namespace,
 	})
+	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-bootstrap", "clusterctl-move.log"))
 
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    targetCluster.GetClient(),
