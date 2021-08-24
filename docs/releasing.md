@@ -43,7 +43,7 @@ You must have docker installed.
 
 For version v0.x.y:
 
-1. Create the release notes `make release-notes`. Copy the output and sort
+1. Run `make release-notes` to create the release notes . Copy the output and sort
    manually the items that need to be sorted.
 1. Create an annotated tag `git tag -a v0.x.y -m v0.x.y`. To use your GPG
    signature when pushing the tag, use `git tag -s [...]` instead
@@ -55,6 +55,7 @@ For version v0.x.y:
    that contains the elements listed above that have been created in the `out`
    folder
 1. Create a branch `release-0.x` for a minor release for backports and bug fixes.
+   This is not needed for patch releases.
 
 ### Permissions
 
@@ -86,3 +87,27 @@ CAPM3 and the released version should point to the release branch.
 If you just created a release branch (i.e. minor version release), you should
 modify the image for CAPM3 deployment in this branch to be tagged with the
 branch name. The image will then follow the branch.
+
+### Create a new tag for Ironic and BMO images
+
+After releasing v0.x.y version of CAPM3, create an annotated tag with `capm3`
+prefix + release version in [Ironic-image](https://github.com/metal3-io/ironic-image)
+and [Baremetal Operator](https://github.com/metal3-io/baremetal-operator.git) Github
+repositories. NB: origin should be the name of the remote pointing to
+Metal3 upstream repositories.
+
+```bash
+# Ironic
+git clone https://github.com/metal3-io/ironic-image.git
+cd ironic-image
+git tag capm3-v0.x.y
+git push origin capm3-v0.x.y
+
+# Baremetal Oprator
+git clone https://github.com/metal3-io/baremetal-operator.git
+cd baremetal-operator
+git tag capm3-v0.x.y
+git push origin capm3-v0.x.y
+```
+
+After this, both Ironic and BMO container images will be created automatically with `capm3-v0.x.y` tag in Quay.
