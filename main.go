@@ -47,17 +47,20 @@ import (
 )
 
 var (
-	myscheme                = runtime.NewScheme()
-	setupLog                = ctrl.Log.WithName("setup")
-	waitForMetal3Controller = false
-	metricsAddr             string
-	enableLeaderElection    bool
-	syncPeriod              time.Duration
-	webhookPort             int
-	webhookCertDir          string
-	healthAddr              string
-	watchNamespace          string
-	watchFilterValue        string
+	myscheme                    = runtime.NewScheme()
+	setupLog                    = ctrl.Log.WithName("setup")
+	waitForMetal3Controller     = false
+	metricsBindAddr             string
+	enableLeaderElection        bool
+	leaderElectionLeaseDuration time.Duration
+	leaderElectionRenewDeadline time.Duration
+	leaderElectionRetryPeriod   time.Duration
+	syncPeriod                  time.Duration
+	webhookPort                 int
+	webhookCertDir              string
+	healthAddr                  string
+	watchNamespace              string
+	watchFilterValue            string
 )
 
 func init() {
@@ -83,8 +86,11 @@ func main() {
 	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                 myscheme,
-		MetricsBindAddress:     metricsAddr,
+		MetricsBindAddress:     metricsBindAddr,
 		LeaderElection:         enableLeaderElection,
+		LeaseDuration:          &leaderElectionLeaseDuration,
+		RenewDeadline:          &leaderElectionRenewDeadline,
+		RetryPeriod:            &leaderElectionRetryPeriod,
 		LeaderElectionID:       "controller-leader-election-capm3",
 		SyncPeriod:             &syncPeriod,
 		Port:                   webhookPort,
@@ -122,7 +128,7 @@ func main() {
 
 func initFlags(fs *pflag.FlagSet) {
 	flag.StringVar(
-		&metricsAddr,
+		&metricsBindAddr,
 		"metrics-bind-addr",
 		"localhost:8080",
 		"The address the metric endpoint binds to.",
@@ -133,6 +139,27 @@ func initFlags(fs *pflag.FlagSet) {
 		"leader-elect",
 		false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.",
+	)
+
+	fs.DurationVar(
+		&leaderElectionLeaseDuration,
+		"leader-elect-lease-duration",
+		15*time.Second,
+		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)",
+	)
+
+	fs.DurationVar(
+		&leaderElectionRenewDeadline,
+		"leader-elect-renew-deadline",
+		10*time.Second,
+		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)",
+	)
+
+	fs.DurationVar(
+		&leaderElectionRetryPeriod,
+		"leader-elect-retry-period",
+		2*time.Second,
+		"Duration the LeaderElector clients should wait between tries of actions (duration string)",
 	)
 
 	flag.StringVar(
