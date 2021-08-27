@@ -23,7 +23,7 @@ func yamlContainKeyValue(yamlNodes []*yaml.Node, value string, keys ...string) (
 		}
 	}
 	if len(foundNode) == 0 {
-		return nil, errors.New("Cannot found the appropriated yaml node")
+		return nil, errors.New("Could not find the appropriate yaml node")
 	}
 	return foundNode, nil
 }
@@ -42,7 +42,7 @@ func yamlFindByValue(node *yaml.Node, values ...string) (*yaml.Node, error) {
 			return targetNode, nil
 		}
 	}
-	return nil, errors.New("Cannot found the appropriated yaml node")
+	return nil, errors.New("Could not find the appropriate yaml node")
 }
 
 func splitYAML(resources []byte) ([]*yaml.Node, error) {

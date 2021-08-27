@@ -69,3 +69,7 @@ func downloadFile(filepath string, url string) error {
 	_, err = io.Copy(out, resp.Body)
 	return err
 }
+
+func Logf(format string, a ...interface{}) {
+	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
+}
