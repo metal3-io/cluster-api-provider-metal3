@@ -7,6 +7,7 @@ require (
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/gorilla/mux v1.7.3 // indirect
+	github.com/jinzhu/copier v0.3.2
 	github.com/metal3-io/baremetal-operator/apis v0.0.0-20210416073321-c927d1d8da76
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0-00010101000000-000000000000
 	github.com/metal3-io/ip-address-manager/api v0.0.0-20210609163946-48b0ce9a1ac0
@@ -19,6 +20,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3
 	k8s.io/client-go v0.21.3
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-openapi v0.0.0-20210305164622-f622666832c1 // indirect
 	k8s.io/utils v0.0.0-20210722164352-7f3ee0f31471
