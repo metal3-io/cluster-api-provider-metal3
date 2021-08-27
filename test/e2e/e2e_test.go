@@ -6,8 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jinzhu/copier"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"gopkg.in/yaml.v3"
 
 	"k8s.io/utils/pointer"
 
@@ -28,14 +30,16 @@ var (
 var _ = Describe("Workload cluster creation", func() {
 
 	BeforeEach(func() {
+		cniFile = "/tmp/calico.yaml"
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
+
 		if osType == "centos" {
 			flavorSuffix = "-centos"
-			cniFile = "/data/cni/calico/calico-centos.yaml"
+			updateCalico(cniFile, "eth1")
 		} else {
 			flavorSuffix = ""
-			cniFile = "/data/cni/calico/calico.yaml"
+			updateCalico(cniFile, "enp2s0")
 		}
 
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
@@ -81,3 +85,64 @@ var _ = Describe("Workload cluster creation", func() {
 		})
 	})
 })
+
+func updateCalico(calicoYaml, calicoInterface string) {
+	// cniYaml, err := os.ReadFile("/tmp/calico.yaml.bk")\
+	err := downloadFile(calicoYaml, "https://docs.projectcalico.org/manifests/calico.yaml")
+	Expect(err).To(BeNil(), "Unable to download Calico manifest")
+	cniYaml, err := os.ReadFile(calicoYaml)
+	Expect(err).To(BeNil(), "Unable to read Calico manifest")
+	// TODO: Delete below
+	// podCIDR := "192.168.0.0/18"
+	podCIDR := os.Getenv("POD_CIDR")
+	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
+
+	yamlDocuments, err := splitYAML(cniYaml)
+	Expect(err).To(BeNil(), "Cannot unmarshal the calico yaml elements to golang objects")
+	// err = yaml.Unmarshal([]byte(cniYaml), yamlNode)
+
+	//TODO: check error
+	calicoNodes, err := yamlContainKeyValue(yamlDocuments, "calico-node", "metadata", "labels", "k8s-app")
+	Expect(err).To(BeNil())
+	// In this test, there should be only one document node that needs to be updated
+	calicoNode := calicoNodes[0]
+
+	calicoNodeSpecTemplateSpec, err := yamlFindByValue(calicoNode, "spec", "template", "spec", "containers")
+	Expect(err).To(BeNil())
+	// debugYaml, err2 := yaml.Marshal(calicoNodeSpecTemplateSpec)
+	// if err2 != nil {
+	// 	panic(err2)
+	// }
+	// fmt.Println(string(debugYaml))
+
+	calicoNodeContainers, err := yamlContainKeyValue(calicoNodeSpecTemplateSpec.Content, "calico-node", "name")
+	Expect(err).To(BeNil())
+
+	// In this test, there should be only one container in the yaml node that needs to be updated
+	calicoNodeContainer := calicoNodeContainers[0]
+	// debugYaml, err2 := yaml.Marshal(calicoNodeContainer)
+	// if err2 != nil {
+	// 	panic(err2)
+	// }
+	// fmt.Println(string(debugYaml))
+	calicoNodeContainerEnvs, err := yamlFindByValue(calicoNodeContainer, "env")
+	Expect(err).To(BeNil())
+	// debugYaml, err2 := yaml.Marshal(calicoNodeContainerEnvs)
+	// if err2 != nil {
+	// 	panic(err2)
+	// }
+	// fmt.Println(string(debugYaml))
+	addItem := &yaml.Node{}
+	copier.CopyWithOption(addItem, calicoNodeContainerEnvs.Content[0], copier.Option{IgnoreEmpty: true, DeepCopy: true})
+	addItem.Content[1].SetString("IP_AUTODETECTION_METHOD")
+	addItem.Content[3].SetString("interface=" + calicoInterface)
+	addItem.HeadComment = "Start section modified by CAPM3 e2e test framework"
+	addItem.FootComment = "End section modified by CAPM3 e2e test framework"
+	calicoNodeContainerEnvs.Content = append(calicoNodeContainerEnvs.Content, addItem)
+	yamlOut, err := printYaml(yamlDocuments)
+	Expect(err).To(BeNil())
+	// fmt.Println(string(yamlOut))
+
+	err = os.WriteFile(calicoYaml, yamlOut, 0664)
+	Expect(err).To(BeNil(), "Cannot print out the update to the file")
+}
