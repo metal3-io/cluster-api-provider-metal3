@@ -3,6 +3,7 @@ package e2e
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -45,14 +46,6 @@ func pivoting() {
 	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
 	Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
 
-	By("Configure Ironic Configmap")
-	configureIronicConfigmap(true)
-
-	By("Add labels to BMO CRDs")
-	labelBMOCRDs(nil)
-	By("Install BMO")
-	installIronicBMO(targetCluster, "false", "true")
-
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath:          targetCluster.GetKubeconfigPath(),
@@ -63,6 +56,14 @@ func pivoting() {
 		InfrastructureProviders: e2eConfig.InfrastructureProviders(),
 		LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting"),
 	})
+
+	By("Configure Ironic Configmap")
+	configureIronicConfigmap(true)
+
+	By("Add labels to BMO CRDs")
+	labelBMOCRDs(nil)
+	By("Install BMO")
+	installIronicBMO(targetCluster, "false", "true")
 
 	By("Install Ironic in the target cluster")
 	installIronicBMO(targetCluster, "true", "false")
@@ -196,9 +197,23 @@ func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO stri
 	cmd.Dir = path
 	cmd.Env = append(env, os.Environ()...)
 
+	outputPipe, er := cmd.StdoutPipe()
+	Expect(er).To(BeNil(), "Cannot get the stdout from the command")
+	errorPipe, er := cmd.StderrPipe()
+	Expect(er).To(BeNil(), "Cannot get the stderr from the command")
 	err := cmd.Start()
 	Expect(err).To(BeNil(), "Failed to deploy Ironic")
+	data, er := ioutil.ReadAll(outputPipe)
+	Expect(er).To(BeNil(), "Cannot get the stdout from the command")
+	if len(data) > 0 {
+		Logf("Output of the shell: %s\n", string(data))
+	}
+	errorData, er := ioutil.ReadAll(errorPipe)
+	Expect(er).To(BeNil(), "Cannot get the stderr from the command")
 	err = cmd.Wait()
+	if len(errorData) > 0 {
+		Logf("Error of the shell: %v\n", string(errorData))
+	}
 	Expect(err).To(BeNil(), "Failed to deploy Ironic")
 }
 
