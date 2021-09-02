@@ -72,7 +72,7 @@ providers:
 
 variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
-  CNI: "./data/cni/calico/calico.yaml"
+  CNI: "/tmp/calico.yaml"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
