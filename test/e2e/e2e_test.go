@@ -14,6 +14,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
@@ -26,6 +27,7 @@ var (
 	clusterName         = "test1"
 	clusterctlLogFolder string
 	cniFile             string
+	targetCluster       framework.ClusterProxy
 )
 var _ = Describe("Workload cluster creation", func() {
 
@@ -81,7 +83,9 @@ var _ = Describe("Workload cluster creation", func() {
 				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, result)
 			cluster = result.Cluster
+			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 			pivoting()
+			cert_rotation()
 		})
 	})
 })

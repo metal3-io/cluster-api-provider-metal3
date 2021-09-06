@@ -87,3 +87,4 @@ intervals:
   default/wait-service: ["10m", "10s"]
   default/wait-object-provisioned: ["10m", "10s"]
   default/wait-machine-running: ["10m", "10s"]
+  default/wait-pod-restart: ["4m", "10s"]
