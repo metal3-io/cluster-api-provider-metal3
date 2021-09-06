@@ -55,6 +55,7 @@ func pivoting() {
 		InfrastructureProviders: e2eConfig.InfrastructureProviders(),
 		LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting"),
 	})
+	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting", "clusterctl-init.log"))
 
 	By("Configure Ironic Configmap")
 	configureIronicConfigmap(true)
@@ -67,6 +68,8 @@ func pivoting() {
 	By("Install Ironic in the target cluster")
 	installIronicBMO(targetCluster, "true", "false")
 
+	By("Restore original BMO configmap")
+	restoreBMOConfigmap()
 	By("Reinstate Ironic Configmap")
 	configureIronicConfigmap(false)
 
@@ -94,6 +97,7 @@ func pivoting() {
 		ToKubeconfigPath:     targetCluster.GetKubeconfigPath(),
 		Namespace:            namespace,
 	})
+	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-bootstrap", "clusterctl-move.log"))
 
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    targetCluster.GetClient(),
@@ -171,6 +175,15 @@ func configureIronicConfigmap(isIronicDeployed bool) {
 		err := cmd.Run()
 		Expect(err).To(BeNil(), "Cannot run mv command")
 	}
+}
+
+func restoreBMOConfigmap() {
+	bmoPath := "BMOPATH"
+	bmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env", os.Getenv(bmoPath))
+	backupBmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env.orig", os.Getenv(bmoPath))
+	cmd := exec.Command("mv", backupBmoConfigmap, bmoConfigmap)
+	_ = cmd.Run()
+	// Accept the error of this cmd because there might be no backup file to restore
 }
 
 func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO string) {
