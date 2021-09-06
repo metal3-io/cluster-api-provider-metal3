@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -242,10 +243,11 @@ func removeIronicContainers() {
 	}
 	dockerClient, err := docker.NewClientWithOpts()
 	Expect(err).To(BeNil(), "Unable to get docker client")
-	removeOptions := dockerTypes.ContainerRemoveOptions{
-		Force: true,
-	}
+	removeOptions := dockerTypes.ContainerRemoveOptions{}
 	for _, container := range ironicContainerList {
+		d := 1 * time.Minute
+		err = dockerClient.ContainerStop(ctx, container, &d)
+		Expect(err).To(BeNil(), "Unable to stop the container %s: %v", container, err)
 		err = dockerClient.ContainerRemove(ctx, container, removeOptions)
 		Expect(err).To(BeNil(), "Unable to delete the container %s: %v", container, err)
 	}
