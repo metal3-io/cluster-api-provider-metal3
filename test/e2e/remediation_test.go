@@ -256,7 +256,7 @@ func test_remediation() {
 		func() error {
 			bmhs := getAllBmhs(ctx, bootstrapClient, namespace, specName)
 			filtered := filterBmhsByProvisioningState(bmhs, bmh.StateReady)
-			logf("There are %d BMHs in state %s", len(filtered), bmh.StateReady)
+			Logf("There are %d BMHs in state %s", len(filtered), bmh.StateReady)
 			Expect(filtered).To(HaveLen(2))
 			return nil
 		},
@@ -460,7 +460,8 @@ func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 func filterM3DataByReference(datas []capm3.Metal3Data, referenceName string) (result []capm3.Metal3Data) {
 
 	for _, data := range datas {
-		if data.Spec.Template.Name == referenceName {
+		// if data.Spec.Template.Name == referenceName {
+		if data.Spec.TemplateReference == referenceName {
 			result = append(result, data)
 		}
 	}
@@ -517,14 +518,14 @@ func waitForNodeStatus(ctx context.Context, client client.Client, name client.Ob
 func powerCycle(ctx context.Context, c client.Client, workloadClient client.Client, machines bmhToMachineSlice, specName string) {
 	Byf("Power cycling %d machines", len(machines))
 
-	logf("Marking %d BMHs for power off", len(machines))
+	Logf("Marking %d BMHs for power off", len(machines))
 	for _, set := range machines {
 		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))
 	}
 	waitForVmsState(machines.getVmNames(), shutoff, specName)
 
 	// power on
-	logf("Marking %d BMHs for power on", len(machines))
+	Logf("Marking %d BMHs for power on", len(machines))
 	for _, set := range machines {
 		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)
 	}

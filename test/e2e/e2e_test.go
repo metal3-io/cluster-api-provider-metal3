@@ -12,11 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-<<<<<<< refs/remotes/upstream/master
 	framework "sigs.k8s.io/cluster-api/test/framework"
-=======
-
->>>>>>> Bump to cluster-api/api/v1alpha4
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
