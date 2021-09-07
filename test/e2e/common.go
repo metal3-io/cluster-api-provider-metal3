@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,7 +23,7 @@ func Logf(format string, a ...interface{}) {
 }
 
 func LogFromFile(logFile string) {
-	data, err := ioutil.ReadFile(logFile)
+	data, err := os.ReadFile(logFile)
 	Expect(err).To(BeNil(), "No log file found")
 	Logf(string(data))
 }

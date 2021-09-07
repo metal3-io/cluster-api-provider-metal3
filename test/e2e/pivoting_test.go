@@ -3,7 +3,7 @@ package e2e
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -216,12 +216,12 @@ func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO stri
 	Expect(er).To(BeNil(), "Cannot get the stderr from the command")
 	err := cmd.Start()
 	Expect(err).To(BeNil(), "Failed to deploy Ironic")
-	data, er := ioutil.ReadAll(outputPipe)
+	data, er := io.ReadAll(outputPipe)
 	Expect(er).To(BeNil(), "Cannot get the stdout from the command")
 	if len(data) > 0 {
 		Logf("Output of the shell: %s\n", string(data))
 	}
-	errorData, er := ioutil.ReadAll(errorPipe)
+	errorData, er := io.ReadAll(errorPipe)
 	Expect(er).To(BeNil(), "Cannot get the stderr from the command")
 	err = cmd.Wait()
 	if len(errorData) > 0 {
