@@ -18,6 +18,8 @@ package v1alpha4
 
 import (
 	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
@@ -28,12 +30,33 @@ const (
 
 func (src *Metal3Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1alpha5.Metal3Cluster)
-	return Convert_v1alpha4_Metal3Cluster_To_v1alpha5_Metal3Cluster(src, dst, nil)
+	if err := Convert_v1alpha4_Metal3Cluster_To_v1alpha5_Metal3Cluster(src, dst, nil); err != nil {
+		return err
+	}
+	// Manually restore data.
+	restored := &v1alpha5.Metal3Cluster{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Status.Conditions = restored.Status.Conditions
+	return nil
 }
 
 func (dst *Metal3Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha5.Metal3Cluster)
-	return Convert_v1alpha5_Metal3Cluster_To_v1alpha4_Metal3Cluster(src, dst, nil)
+	if err := Convert_v1alpha5_Metal3Cluster_To_v1alpha4_Metal3Cluster(src, dst, nil); err != nil {
+		return err
+	}
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Status.Conditions was introduced in v1alpha5, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without losing information.
+func Convert_v1alpha5_Metal3ClusterStatus_To_v1alpha4_Metal3ClusterStatus(in *v1alpha5.Metal3ClusterStatus, out *Metal3ClusterStatus, s apiconversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3ClusterStatus_To_v1alpha4_Metal3ClusterStatus(in, out, s)
 }
 
 func (src *Metal3ClusterList) ConvertTo(dstRaw conversion.Hub) error {

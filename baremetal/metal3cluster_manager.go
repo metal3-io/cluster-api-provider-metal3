@@ -31,6 +31,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -142,11 +143,13 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	if err != nil {
 		s.Metal3Cluster.Status.Ready = false
 		s.setError("Invalid ControlPlaneEndpoint values", capierrors.InvalidConfigurationClusterError)
+		conditions.MarkFalse(s.Metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.ControlPlaneEndpointFailedReason, capi.ConditionSeverityError, err.Error())
 		return err
 	}
 
 	// Mark the metal3Cluster ready
 	s.Metal3Cluster.Status.Ready = true
+	conditions.MarkTrue(s.Metal3Cluster, capm3.BaremetalInfrastructureReadyCondition)
 	now := metav1.Now()
 	s.Metal3Cluster.Status.LastUpdated = &now
 	return nil
