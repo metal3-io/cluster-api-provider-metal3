@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/copier"
 	. "github.com/onsi/ginkgo"
@@ -53,6 +54,7 @@ var _ = Describe("Workload cluster creation", func() {
 	})
 
 	AfterEach(func() {
+		time.Sleep(180 * time.Minute)
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, cluster, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
@@ -80,10 +82,10 @@ var _ = Describe("Workload cluster creation", func() {
 				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, result)
 			cluster = result.Cluster
+			test_remediation()
 			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 			pivoting()
 			cert_rotation()
-			test_remediation()
 		})
 	})
 })
