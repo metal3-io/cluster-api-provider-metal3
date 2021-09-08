@@ -58,7 +58,7 @@ is performed on a specified number of fields on each CR. i.e. A controller
 Cluster, User provided Configuration
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Cluster
 metadata:
   name: test1
@@ -70,7 +70,7 @@ spec:
       cidrBlocks: ["192.168.0.0/18"]
     serviceDomain: "cluster.local"
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     kind: Metal3Cluster
     name: test1
 ```
@@ -78,7 +78,7 @@ spec:
 Cluster, after reconciliation
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Cluster
 metadata:
   name: test1
@@ -93,11 +93,12 @@ spec:
       cidrBlocks:
       - 10.96.0.0/12
   |----------------------------------------------------------------------------|
-  |# infrastructureRef comes from 'Metal3Cluster' and is added by 'CAPM3'   |
+  |# infrastructureRef comes from 'Metal3Cluster' and is added by 'CAPM3'      |
   | infrastructureRef:                                                         |
-  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4                      |
-  |  kind: Metal3Cluster                                                    |
+  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5                      |
+  |  kind: Metal3Cluster                                                       |
   |  name: test1                                                               |
+  |  namespace: metal3                                                         |
   |-----------------------------------------------------------------------------
 status:
   apiEndpoints:
@@ -115,7 +116,7 @@ status:
 Metal3Cluster, User provided Configuration for
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Cluster
 metadata:
   name: test1
@@ -127,7 +128,7 @@ spec:
 Metal3Cluster, after reconciliation
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Cluster
 metadata:
   name: test1
@@ -135,7 +136,7 @@ metadata:
   |----------------------------------------------------------------------------|
   |# ownerReferences refers to the linked Cluster and is added by 'CAPM3'      |
   |ownerReferences:                                                            |
-  |- apiVersion: cluster.x-k8s.io/v1alpha3                                     |
+  |- apiVersion: cluster.x-k8s.io/v1alpha4                                     |
   |  kind: Cluster                                                             |
   |  name: test1                                                               |
   |  uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d                                 |
@@ -157,7 +158,7 @@ status:
 Machine, User provided Configuration
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Machine
 metadata:
   name: test1-controlplane-0
@@ -168,11 +169,11 @@ spec:
   version: v1.17.0
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
       kind: KubeadmConfig
       name: test1-controlplane-0
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     kind: Metal3Machine
     name: test1-controlplane-0
 ```
@@ -180,7 +181,7 @@ spec:
 Machine, after reconciliation
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha3
+apiVersion: cluster.x-k8s.io/v1alpha4
 kind: Machine
 metadata:
   labels:
@@ -189,22 +190,23 @@ metadata:
   name: test1-controlplane-0
   namespace: metal3
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha3
+  - apiVersion: cluster.x-k8s.io/v1alpha4
     kind: Cluster
     name: test1
     uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d
 spec:
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
       kind: KubeadmConfig
       name: test1-controlplane-0
   |----------------------------------------------------------------------------|
-  |# data comes from 'KubeadmConfig.status.bootstrapData' & is added by 'CAPI' |
-  | data: <user data in Base64 format>                                         |
+  |# dataSecretName comes from Secret 'test1-controlplane-0'                   |
+  |# & is added by 'CAPI'                                                      |
+  | dataSecretName: test1-controlplane-0                                       |
   |----------------------------------------------------------------------------|
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
     kind: Metal3Machine
     name: test1-controlplane-0
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
@@ -232,7 +234,7 @@ status:
 Metal3Machine, User provided Configuration
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Machine
 metadata:
   name: test1-controlplane-0
@@ -245,14 +247,14 @@ spec:
 Metal3Machine, after reconciliation
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
 kind: Metal3Machine
 metadata:
   name: test1-controlplane-0
   namespace: metal3
   # ownerReferences refers to the linked Machine and is added by 'CAPM3'
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha3
+  - apiVersion: cluster.x-k8s.io/v1alpha4
     kind: Machine
     name: test1-controlplane-0
 spec:
@@ -262,10 +264,10 @@ spec:
     url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
   |----------------------------------------------------------------------------|
-  |# userData comes from 'Machine' and is added by 'CAPM3'                     |
-  |userData:                                                                   |
-  |  name: test1-controlplane-0-user-data                                      |
-  | namespace: metal3                                                          |
+  |# dataTemplate comes from CR 'dataTemplate' and is added by 'CAPM3'         |
+  |dataTemplate:                                                               |
+  |  name: test1-workers-template                                              |
+  |  namespace: metal3                                                         |
   |----------------------------------------------------------------------------|
 status:
   addresses:
@@ -313,18 +315,18 @@ spec:
     credentialsName: node-1-bmc-secret
   bootMACAddress: 00:b2:8c:ee:22:98
   |----------------------------------------------------------------------------|
-  |# consumerRef refers to the linked Metal3Machine is added by 'CAPM3'     |
+  |# consumerRef refers to the linked Metal3Machine is added by 'CAPM3'        |
   |consumerRef:                                                                |
-  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4                      |
-  |  kind: Metal3Machine                                                    |
+  |  apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5                      |
+  |  kind: Metal3Machine                                                       |
   |  name: test1-controlplane-0                                                |
   |  namespace: metal3                                                         |
-  |# Image comes from 'Metal3Machine' and is added by 'CAPM3'               |
+  |# Image comes from 'Metal3Machine' and is added by 'CAPM3'                  |
   |image:                                                                      |
   |  checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.md5sum|
   |  url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img            |
   |online: true                                                                |
-  |# UserData comes from 'Metal3Machine' and is added by 'CAPBK'            |
+  |# UserData comes from 'Metal3Machine' and is added by 'CAPBK'               |
   |userData:                                                                   |
   |  name: test1-controlplane-0-user-data                                      |
   |  namespace: metal3                                                         |
@@ -358,7 +360,7 @@ status:
 KubeadmConfig, user provided Configuration
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
 kind: KubeadmConfig
 metadata:
   name: test1-controlplane-0
@@ -376,13 +378,13 @@ spec:
 KubeadmConfig, after reconciliation
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha3
+apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
 kind: KubeadmConfig
 metadata:
   name: test1-controlplane-0
   namespace: metal3
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha3
+  - apiVersion: cluster.x-k8s.io/v1alpha4
     kind: Machine
     name: test1-controlplane-0
 spec:
