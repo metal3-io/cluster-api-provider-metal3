@@ -244,9 +244,9 @@ func test_remediation() {
 	Expect(err).NotTo(HaveOccurred())
 
 	deployment.Spec.Template.Spec.InfrastructureRef = v1.ObjectReference{
-		Kind:      "Metal3MachineTemplate",
-		Namespace: namespace,
-		Name:      newM3MachineTemplateName,
+		Kind:       "Metal3MachineTemplate",
+		APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha5",
+		Name:       newM3MachineTemplateName,
 	}
 	deployment.Spec.Strategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{IntVal: 1}
 	Expect(helper.Patch(ctx, &deployment)).To(Succeed())
