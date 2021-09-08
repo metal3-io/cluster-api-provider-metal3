@@ -230,7 +230,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	host.Annotations[bmh.PausedAnnotation] = PausedAnnotationKey
 
 	// Setting annotation with BMH status
-	newAnnotation, err := json.Marshal(&host.Status)
+	newAnnotation, err := json.Marshal(&host.Status.Provisioning)
 	if err != nil {
 		m.SetError("Failed to marshal the BareMetalHost status",
 			capierrors.UpdateMachineError,
