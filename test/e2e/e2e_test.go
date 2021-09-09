@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/jinzhu/copier"
 	. "github.com/onsi/ginkgo"
@@ -54,7 +53,6 @@ var _ = Describe("Workload cluster creation", func() {
 	})
 
 	AfterEach(func() {
-		time.Sleep(180 * time.Minute)
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, cluster, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 

@@ -76,7 +76,7 @@ func test_remediation() {
 	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: "default", Name: workerNodeName}, v1.ConditionUnknown, specName)
 	waitForVmsState([]string{vmName}, running, specName)
 	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: "default", Name: workerNodeName}, v1.ConditionTrue, specName)
-	monitorNodesStatus(ctx, targetClient, "defaul", []string{workerNodeName}, v1.ConditionTrue, specName)
+	monitorNodesStatusGlobalDSL(ctx, targetClient, "default", []string{workerNodeName}, v1.ConditionTrue, specName)
 
 	By("Power cycling worker node")
 	powerCycle(ctx, bootstrapClient, targetClient, bmhToMachineSlice{{
@@ -265,9 +265,9 @@ func test_remediation() {
 
 	By("Waiting for 1 Metal3Data to refer to the old template")
 	Eventually(
-		func() {
+		func(g Gomega) {
 			datas := capm3.Metal3DataList{}
-			Expect(bootstrapClient.List(ctx, &datas, client.InNamespace(namespace))).To(Succeed())
+			g.Expect(bootstrapClient.List(ctx, &datas, client.InNamespace(namespace))).To(Succeed())
 
 			// TODO: filterM3DataByReference should check spec.TemplateReference according to remediation.yml
 			// However, when running the e2e test this field was empty.
@@ -275,33 +275,30 @@ func test_remediation() {
 			// or prove that checking spec.template.name (as it does now and passes) is also ok.
 
 			filtered := filterM3DataByReference(datas.Items, m3dataTemplateName)
-			Expect(filtered).To(HaveLen(1))
+			g.Expect(filtered).To(HaveLen(1))
 		},
-		e2eConfig.GetIntervals(specName, "wait-deployment")...,
-	).Should(Succeed())
+		e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
 
 	By("Scaling up KCP to 3 replicas")
 	scaleControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, 3)
 
 	Byf("Waiting for all (%d) BMHs to be Provisioned", allMachinesCount-1)
 	Eventually(
-		func() {
+		func(g Gomega) {
 			bmhs := bmh.BareMetalHostList{}
-			Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount))
+			g.Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
+			g.Expect(filterBmhsByProvisioningState(bmhs.Items, bmh.StateProvisioned)).To(HaveLen(allMachinesCount))
 		},
-		e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-	).Should(Succeed())
+		e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Waiting for all machines to be Running")
 	Eventually(
-		func() {
+		func(g Gomega) {
 			machines := clusterv1.MachineList{}
-			Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
+			g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
 			Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 		},
-		e2eConfig.GetIntervals(specName, "wait-machine-remediation")...,
-	).Should(Succeed())
+		e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("PASSED!")
 }
@@ -470,13 +467,25 @@ func filterM3DataByReference(datas []capm3.Metal3Data, referenceName string) (re
 
 func waitForVmsState(vmNames []string, state vmState, specName string) {
 	Byf("Waiting for VMs %v to become '%s'", vmNames, state)
-	Eventually(func() {
-		vms := listVms(state)
-		Expect(vms).To(ContainElements(vmNames))
-	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(Succeed())
+	Eventually(func() []string {
+		return listVms(state)
+	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(ContainElements(vmNames))
 }
 
-func monitorNodesStatus(ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
+func monitorNodesStatus(g Gomega, ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
+	Byf("Ensuring Nodes %v consistently have ready=%s status", names, status)
+	g.Consistently(
+		func() error {
+			for _, node := range names {
+				if err := assertNodeStatus(ctx, c, client.ObjectKey{Namespace: namespace, Name: node}, status); err != nil {
+					return err
+				}
+			}
+			return nil
+		}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...).Should(Succeed())
+}
+
+func monitorNodesStatusGlobalDSL(ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
 	Byf("Ensuring Nodes %v consistently have ready=%s status", names, status)
 	Consistently(
 		func() error {
@@ -486,13 +495,14 @@ func monitorNodesStatus(ctx context.Context, c client.Client, namespace string, 
 				}
 			}
 			return nil
-		}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...,
-	).Should(Succeed())
+		}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...).Should(Succeed())
 }
 
 func assertNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status v1.ConditionStatus) error {
 	node := &v1.Node{}
-	Expect(client.Get(ctx, name, node)).To(Succeed())
+	if err := client.Get(ctx, name, node); err != nil {
+		return err
+	}
 	for _, condition := range node.Status.Conditions {
 		if condition.Type == v1.NodeReady {
 			if status == condition.Status {
@@ -536,8 +546,8 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 	}
 
 	By("waiting for nodes to consistently have Ready status")
-	Eventually(func() {
-		monitorNodesStatus(ctx, workloadClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
+	Eventually(func(g Gomega) {
+		monitorNodesStatus(g, ctx, workloadClient, "default", machines.getNodeNames(), v1.ConditionTrue, specName)
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 }
 
