@@ -47,6 +47,7 @@ type Metal3DataClaimStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3DataClaim"
 // Metal3DataClaim is the Schema for the metal3datas API
 type Metal3DataClaim struct {
 	metav1.TypeMeta   `json:",inline"`

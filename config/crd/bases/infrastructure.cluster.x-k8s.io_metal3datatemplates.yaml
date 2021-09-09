@@ -855,6 +855,10 @@ spec:
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
       type: string
+    - description: Time duration since creation of Metal3DataTemplate
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     name: v1alpha5
     schema:
       openAPIV3Schema:

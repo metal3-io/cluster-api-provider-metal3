@@ -171,7 +171,12 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1alpha5
+  - additionalPrinterColumns:
+    - description: Time duration since creation of Metal3Data
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha5
     schema:
       openAPIV3Schema:
         description: Metal3Data is the Schema for the metal3datas API
