@@ -12,13 +12,11 @@ settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
     "kind_cluster_name": "capm3",
-    "capi_version": "v0.4.3",
+    "capi_version": "v0.4.4",
     "cert_manager_version": "v1.5.0",
     "kubernetes_version": "v1.22.0",
     "enable_providers": [],
 }
-
-keys = ["DEPLOY_KERNEL_URL", "DEPLOY_RAMDISK_URL", "IRONIC_INSPECTOR_URL", "IRONIC_URL"]
 
 always_enable_providers = ["metal3"]
 providers = {}
@@ -128,13 +126,6 @@ def fixup_yaml_empty_arrays(yaml_str):
     yaml_str = yaml_str.replace("conditions: null", "conditions: []")
     return yaml_str.replace("storedVersions: null", "storedVersions: []")
 
-
-def validate_auth():
-    substitutions = settings.get("kustomize_substitutions", {})
-    missing = [k for k in keys if k not in substitutions]
-    if missing:
-        fail("missing kustomize_substitutions keys {} in tilt-setting.json".format(missing))
-
 tilt_helper_dockerfile_header = """
 # Tilt image
 FROM golang:1.16 as tilt-helper
@@ -229,17 +220,11 @@ def flavors():
     cfg = config.parse()
     worker_templates = cfg.get('templates-to-run', [])
 
-    substitutions = settings.get("kustomize_substitutions", {})
-    for key in keys:
-        if key[-4:] == "_B64":
-            substitutions[key[:-4]] = base64_decode(substitutions[key])
-
     for flavor in cfg.get("worker-flavors", []):
         if flavor not in worker_templates:
             worker_templates.append(flavor)
     for flavor in worker_templates:
-        deploy_worker_templates(flavor, substitutions)
-
+        deploy_worker_templates(flavor)
 
 def deploy_worker_templates(flavor, substitutions):
     # validate flavor exists
@@ -343,8 +328,6 @@ def kustomizesub(folder):
 ##############################
 # Actual work happens here
 ##############################
-
-validate_auth()
 
 include_user_tilt_files()
 

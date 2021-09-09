@@ -45,16 +45,6 @@ Once installed, you will need a tilt-settings.json. You can generate one using
 make tilt-settings
 ```
 
-This requires the following environment variables to be exported :
-
-* `DEPLOY_KERNEL_URL`
-* `DEPLOY_RAMDISK_URL`
-* `IRONIC_INSPECTOR_URL`
-* `IRONIC_URL`
-
-Those need to be set up accordingly with the
-[local Ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
-
 The tilt-settings file can be customized. Tilt will also consider everything
 under `tilt.d` directory.
 
