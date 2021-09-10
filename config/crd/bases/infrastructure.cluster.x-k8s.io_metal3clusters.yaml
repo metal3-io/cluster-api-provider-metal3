@@ -111,6 +111,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Time duration since creation of Metal3Cluster
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: metal3Cluster is Ready
       jsonPath: .status.ready
       name: Ready

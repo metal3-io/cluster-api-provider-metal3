@@ -371,6 +371,10 @@ spec:
     subresources:
       status: {}
   - additionalPrinterColumns:
+    - description: Time duration since creation of Metal3Machine
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
     - description: Provider ID
       jsonPath: .spec.providerID
       name: ProviderID
