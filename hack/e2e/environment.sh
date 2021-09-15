@@ -31,6 +31,11 @@ export CONTROL_PLANE_MACHINE_COUNT='${CONTROL_PLANE_MACHINE_COUNT}'
 # shellcheck disable=SC2016
 export WORKER_MACHINE_COUNT='${WORKER_MACHINE_COUNT}'
 
+# The e2e test framework would itself handle the cloning. It clones all the repos that are cloned in M3-DEV-ENV expect CAPM3.
+# It would use the local CAPM3 repo where the e2e test is running. 
+# Set this variable to false to avoid the dev-env to override what the test framework cloned. 
+export FORCE_REPO_UPDATE="false"
+
 os_check
 
 if [[ "${OS}" == ubuntu ]]; then
