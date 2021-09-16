@@ -350,10 +350,6 @@ set-manifest-pull-policy:
 ## Deploying
 ## --------------------------------------
 
-# Run against the configured Kubernetes cluster in ~/.kube/config
-run: generate fmt vet
-	go run ./main.go
-
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: generate-examples
 	kubectl apply -f examples/_out/cert-manager.yaml
