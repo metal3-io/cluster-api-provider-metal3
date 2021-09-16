@@ -246,7 +246,7 @@ func test_remediation() {
 	Eventually(func(g Gomega) {
 		machines := clusterv1.MachineList{}
 		g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
-		Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
+		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("PASSED!")
