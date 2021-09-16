@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -32,8 +31,6 @@ func LogFromFile(logFile string) {
 }
 
 func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
-	// Remove clusterctl apply log folder
-	time.Sleep(3 * time.Hour)
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := bootstrapClusterProxy.GetClient()
 
