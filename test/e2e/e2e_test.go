@@ -80,8 +80,8 @@ var _ = Describe("Workload cluster creation", func() {
 				WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 			}, result)
 			cluster = result.Cluster
-			test_remediation()
 			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+			test_remediation()
 			pivoting()
 			cert_rotation()
 		})
