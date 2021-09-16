@@ -13,21 +13,23 @@ import (
 
 	"k8s.io/utils/pointer"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	framework "sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 var (
-	ctx                 = context.TODO()
-	specName            = "metal3"
-	namespace           = "metal3"
-	flavorSuffix        string
-	cluster             *clusterv1.Cluster
-	clusterName         = "test1"
-	clusterctlLogFolder string
-	cniFile             string
-	targetCluster       framework.ClusterProxy
+	ctx                     = context.TODO()
+	specName                = "metal3"
+	namespace               = "metal3"
+	flavorSuffix            string
+	cluster                 *clusterv1.Cluster
+	clusterName             = "test1"
+	clusterctlLogFolder     string
+	cniFile                 string
+	controlplaneListOptions metav1.ListOptions
+	targetCluster           framework.ClusterProxy
 )
 var _ = Describe("Workload cluster creation", func() {
 
@@ -86,6 +88,7 @@ var _ = Describe("Workload cluster creation", func() {
 			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 			pivoting()
 			cert_rotation()
+			node_reuse()
 		})
 	})
 })
