@@ -1,3 +1,5 @@
+
+namePrefix: capm3-
 namespace: capi-webhook-system
 
 resources:
