@@ -1,5 +1,6 @@
 # Adds namespace to all resources.
 namespace: capm3-system
+namePrefix: capm3-
 
 resources:
   - namespace.yaml
