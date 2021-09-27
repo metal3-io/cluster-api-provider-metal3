@@ -128,7 +128,7 @@ spec:
       name: Cluster
       type: string
     - description: Control plane endpoint
-      jsonPath: .spec.controlPlaneEndpoint
+      jsonPath: .spec.controlPlaneEndpoint.host:.spec.controlPlaneEndpoint.port
       name: Endpoint
       type: string
     name: v1alpha5
