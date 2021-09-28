@@ -12,9 +12,9 @@ settings = {
     "deploy_cert_manager": True,
     "preload_images_for_kind": True,
     "kind_cluster_name": "capm3",
-    "capi_version": "v0.4.0",
-    "cert_manager_version": "v1.1.0",
-    "kubernetes_version": "v1.18.8",
+    "capi_version": "v0.4.3",
+    "cert_manager_version": "v1.5.0",
+    "kubernetes_version": "v1.22.0",
     "enable_providers": [],
 }
 
@@ -218,7 +218,7 @@ def enable_provider(name):
         os.environ.update(substitutions)
 
         # Apply the kustomized yaml for this provider
-        yaml = str(kustomizesub(context + "/config"))
+        yaml = str(kustomizesub(context + "/config/default"))
         k8s_yaml(blob(yaml))
 
 
