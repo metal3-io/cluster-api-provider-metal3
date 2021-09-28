@@ -239,7 +239,6 @@ func removeIronicContainers() {
 		"mariadb",
 		"ironic-endpoint-keepalived",
 		"ironic-log-watch",
-		"ironic-inspector-log-watch",
 	}
 	dockerClient, err := docker.NewClientWithOpts()
 	Expect(err).To(BeNil(), "Unable to get docker client")
