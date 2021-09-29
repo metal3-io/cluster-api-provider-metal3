@@ -862,21 +862,21 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 	if len(availableHostsWithNodeReuse) != 0 {
 		for _, host := range availableHostsWithNodeReuse {
 			// Build list of hosts in Ready state with nodeReuseLabelName
-			hostsInReadyStateWithNodeReuse := []*bmh.BareMetalHost{}
+			hostsInAvailableStateWithNodeReuse := []*bmh.BareMetalHost{}
 			// Build list of hosts in any other state than Ready state with nodeReuseLabelName
-			hostsInNotReadyStateWithNodeReuse := []*bmh.BareMetalHost{}
-			if host.Status.Provisioning.State == bmh.StateReady {
-				hostsInReadyStateWithNodeReuse = append(hostsInReadyStateWithNodeReuse, host)
+			hostsInNotAvailableStateWithNodeReuse := []*bmh.BareMetalHost{}
+			if host.Status.Provisioning.State == bmh.StateReady || host.Status.Provisioning.State == bmh.StateAvailable {
+				hostsInAvailableStateWithNodeReuse = append(hostsInAvailableStateWithNodeReuse, host)
 			} else {
-				hostsInNotReadyStateWithNodeReuse = append(hostsInNotReadyStateWithNodeReuse, host)
+				hostsInNotAvailableStateWithNodeReuse = append(hostsInNotAvailableStateWithNodeReuse, host)
 			}
 
 			// If host is found in `Ready` state, pick it
-			if len(hostsInReadyStateWithNodeReuse) != 0 {
-				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in Ready state", len(hostsInReadyStateWithNodeReuse)))
-				chosenHost = hostsInReadyStateWithNodeReuse[rand.Intn(len(hostsInReadyStateWithNodeReuse))]
-			} else if len(hostsInNotReadyStateWithNodeReuse) != 0 {
-				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in other state than Ready, requeuing", len(hostsInNotReadyStateWithNodeReuse)))
+			if len(hostsInAvailableStateWithNodeReuse) != 0 {
+				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in Ready state", len(hostsInAvailableStateWithNodeReuse)))
+				chosenHost = hostsInAvailableStateWithNodeReuse[rand.Intn(len(hostsInAvailableStateWithNodeReuse))]
+			} else if len(hostsInNotAvailableStateWithNodeReuse) != 0 {
+				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in other state than Ready, requeuing", len(hostsInNotAvailableStateWithNodeReuse)))
 				return nil, nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 			}
 		}
