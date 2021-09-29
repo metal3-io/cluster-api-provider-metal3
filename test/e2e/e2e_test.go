@@ -43,8 +43,6 @@ var _ = Describe("Workload cluster creation", func() {
 			flavorSuffix = ""
 			updateCalico(cniFile, "enp2s0")
 		}
-		// Quick fix to solve ipam nameprefix problem
-		replaceIpamCertAnnotation()
 
 		Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
 		Expect(clusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. clusterctlConfigPath must be an existing file when calling %s spec", specName)
@@ -91,16 +89,6 @@ var _ = Describe("Workload cluster creation", func() {
 		})
 	})
 })
-
-func replaceIpamCertAnnotation() {
-	filename := os.Getenv("PWD") + "/../../_artifacts/repository/infrastructure-metal3/v0.5.0/components.yaml"
-	component, err := os.ReadFile(filename)
-	Expect(err).To(BeNil(), "Unable to read infrastruture component")
-	org := "capm3-system/ipam-serving-cert"
-	dst := "capm3-system/capm3-ipam-serving-cert"
-	component = []byte(strings.Replace(string(component), org, dst, -1))
-	Expect(os.WriteFile(filename, component, 0666)).To(Succeed(), "Unable to write to file")
-}
 
 func updateCalico(calicoYaml, calicoInterface string) {
 	err := downloadFile(calicoYaml, "https://docs.projectcalico.org/manifests/calico.yaml")
