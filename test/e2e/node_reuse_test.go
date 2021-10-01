@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func node_reuse() {
+func nodeReuse() {
 	Logf("Starting node reuse tests")
 	var (
 		targetClusterClient      = targetCluster.GetClient()
@@ -508,7 +508,7 @@ func updateNodeReuse(nodeReuse bool, m3machineTemplateName string, clusterClient
 
 	// verify that nodereuse is true
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
-	Expect(m3machineTemplate.Spec.NodeReuse).To(BeTrue())
+	Expect(m3machineTemplate.Spec.NodeReuse).To(BeEquivalentTo(nodeReuse))
 }
 
 func pointMDtoM3mt(m3mtname, mdName string, clusterClient client.Client) {
