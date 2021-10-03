@@ -32,7 +32,8 @@ kubeconfig
 .ssh*
 
 # Example and binary output directory
-/out
+out
+releasenotes
 
 # vscode
 .vscode
