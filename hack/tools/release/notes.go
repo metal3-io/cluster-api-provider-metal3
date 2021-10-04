@@ -61,6 +61,15 @@ func main() {
 	os.Exit(run())
 }
 
+func latestTag() string {
+	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
+	out, err := cmd.Output()
+	if err != nil {
+		return firstCommit()
+	}
+	return string(bytes.TrimSpace(out))
+}
+
 func lastTag() string {
 	if fromTag != nil && *fromTag != "" {
 		return *fromTag
@@ -84,6 +93,7 @@ func firstCommit() string {
 
 func run() int {
 	lastTag := lastTag()
+	latestTag := latestTag()
 	cmd := exec.Command("git", "rev-list", lastTag+"..HEAD", "--merges", "--pretty=format:%B")
 
 	merges := map[string][]string{
@@ -174,8 +184,8 @@ func run() int {
 		}
 	}
 
-	fmt.Println("The image for this release is: `<ADD_IMAGE_HERE>`.")
-	fmt.Println("")
+	fmt.Printf("The image for this release is: %v\n", latestTag)
+	fmt.Printf("Baremetal-Operator and Ironic releases are capm3-%v\n", latestTag)
 	fmt.Println("_Thanks to all our contributors!_ 😊")
 
 	return 0

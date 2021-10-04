@@ -50,8 +50,6 @@ MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
-RELEASE_NOTES_BIN := bin/release-notes
-RELEASE_NOTES := $(TOOLS_DIR)/$(RELEASE_NOTES_BIN)
 ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 
@@ -179,10 +177,6 @@ $(ENVSUBST): ## Build envsubst from tools folder.
 
 .PHONY: $(ENVSUBST_BIN)
 $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
-
-
-$(RELEASE_NOTES) : $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(RELEASE_NOTES_BIN) ./release
 
 ## --------------------------------------
 ## Linting
@@ -376,25 +370,16 @@ delete-examples:
 ## Release
 ## --------------------------------------
 
-RELEASE_TAG := $(shell git describe --abbrev=0 2>/dev/null)
+RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 RELEASE_DIR := out
+RELEASE_NOTES_DIR := releasenotes
+PREVIOUS_TAG ?= $(shell git tag -l | grep -B 1 $(RELEASE_TAG) | head -n 1)
 
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
 
-.PHONY: release
-release: clean-release  ## Builds and push container images using the latest git tag for the commit.
-	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
-	# Push the release image to the staging bucket first.
-	#REGISTRY=$(STAGING_REGISTRY) TAG=$(RELEASE_TAG) \
-	#	$(MAKE) docker-build-all docker-push-all
-	# Set the manifest image to the production bucket.
-	MANIFEST_IMG=$(PROD_REGISTRY)/$(IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-		$(MAKE) set-manifest-image
-	PULL_POLICY=IfNotPresent $(MAKE) set-manifest-pull-policy
-
-	$(MAKE) release-manifests
-	$(MAKE) release-binaries
+$(RELEASE_NOTES_DIR):
+	mkdir -p $(RELEASE_NOTES_DIR)/
 
 .PHONY: release-manifests
 release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publish with a release
@@ -403,35 +388,15 @@ release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publis
 	cp examples/clusterctl-templates/clusterctl-cluster.yaml $(RELEASE_DIR)/cluster-template.yaml
 	cp examples/clusterctl-templates/example_variables.rc $(RELEASE_DIR)/example_variables.rc
 
-.PHONY: release-binaries
-release-binaries: ## Builds the binaries to publish with a release
-
-.PHONY: release-binary
-release-binary: $(RELEASE_DIR)
-	docker run \
-		--rm \
-		-e CGO_ENABLED=0 \
-		-e GOOS=$(GOOS) \
-		-e GOARCH=$(GOARCH) \
-		-v "$$(pwd):/workspace" \
-		-w /workspace \
-		golang:1.15.3 \
-		go build -a -ldflags '-extldflags "-static"' \
-		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY))-$(GOOS)-$(GOARCH) $(RELEASE_BINARY)
-
-.PHONY: release-staging
-release-staging: ## Builds and push container images to the staging bucket.
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-build-all docker-push-all release-tag-latest
-
-
-.PHONY: release-tag-latest
-release-tag-latest: ## Adds the latest tag to the last build tag.
-	## TODO(vincepri): Only do this when we're on master.
-	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):latest
-
 .PHONY: release-notes
-release-notes: $(RELEASE_NOTES)  ## Generates a release notes template to be used with a release.
-	$(RELEASE_NOTES)
+release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
+	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/releasenotes.md
+
+.PHONY: release
+release:
+	@if ! [ -z "$$(git status --porcelain)" ]; then echo "You have uncommitted changes"; exit 1; fi
+	$(MAKE) release-manifests
+	$(MAKE) release-notes
 
 ## --------------------------------------
 ## Development
