@@ -61,7 +61,8 @@ providers:
     type: InfrastructureProvider
     versions:
     - name: ${CAPM3RELEASE}
-      value: "${PWD}/config/default"
+      value: "file://${HOME}/.cluster-api/overrides/infrastructure-metal3/${CAPM3RELEASE}/infrastructure-components.yaml"
+      type: "url"
     files:
     - sourcePath: "${PWD}/metadata.yaml"
       targetName: "metadata.yaml"

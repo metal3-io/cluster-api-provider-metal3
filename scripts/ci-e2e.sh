@@ -24,6 +24,14 @@ function clone_repo() {
   fi
 }
 
+function clone_repos() {
+  mkdir -p "${M3PATH}"
+  pushd "${M3PATH}"
+  clone_repo "${BMOREPO}" "${BMOBRANCH}" "${BMOPATH}"
+  clone_repo "${IPAMREPO}" "${IPAMBRANCH}" "${IPAMPATH}"
+  popd
+}
+
 WORKING_DIR=/opt/metal3-dev-env
 sudo mkdir -p ${WORKING_DIR}
 sudo chown "${USER}":"${USER}" ${WORKING_DIR}
@@ -36,7 +44,17 @@ clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 cp "${REPO_ROOT}"/hack/e2e/environment.sh "${M3_DEV_ENV_PATH}/config_${USER}.sh"
 
 pushd ${M3_DEV_ENV_PATH}
-make
+# Golang needs to be installed before cloning the needed repos to the Go source directory.
+make install_requirements configure_host 
+# shellcheck disable=SC1091
+source lib/common.sh
+clone_repos
+# The old path ends with '/..', making cp to copy the content of the directory instead of the whole one.  
+REPO_ROOT=$(realpath "$REPO_ROOT") 
+# Copy the current CAPM3 repo to the Go source directory
+rm -rf "${M3PATH}/cluster-api-provider-metal3" # To avoid 'permission denied' error when overriding .git/
+cp -R "${REPO_ROOT}" "${M3PATH}/" 
+make launch_mgmt_cluster verify
 popd
 
 SSH_PUB_KEY_CONTENT=$(cat "$HOME/.ssh/id_rsa.pub")

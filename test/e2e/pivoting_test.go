@@ -56,6 +56,7 @@ func pivoting() {
 		InfrastructureProviders: e2eConfig.InfrastructureProviders(),
 		LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting"),
 	})
+
 	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting", "clusterctl-init.log"))
 
 	By("Configure Ironic Configmap")
