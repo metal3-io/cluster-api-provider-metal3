@@ -4,7 +4,7 @@ on:
     tags:
     - "v0.*.*"
 
-name: Main
+name: release
 
 jobs:
   build:
@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: checkout code
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Install go
         uses: actions/setup-go@v2
         with:
