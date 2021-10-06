@@ -25,11 +25,10 @@ export NUM_NODES=${NUM_NODES:-"4"}
 # needed for variable substitution in templates
 export IMAGE_CHECKSUM_TYPE="md5"
 
-# preserve the template, to be substituted based on value defined in e2e_test.go
 # shellcheck disable=SC2016
-export CONTROL_PLANE_MACHINE_COUNT='${CONTROL_PLANE_MACHINE_COUNT}'
+export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-3}
 # shellcheck disable=SC2016
-export WORKER_MACHINE_COUNT='${WORKER_MACHINE_COUNT}'
+export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-1}
 
 # The e2e test framework would itself handle the cloning. It clones all the repos that are cloned in M3-DEV-ENV expect CAPM3.
 # It would use the local CAPM3 repo where the e2e test is running. 

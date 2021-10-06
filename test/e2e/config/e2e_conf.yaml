@@ -73,6 +73,7 @@ providers:
 
 variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
+  UPGRADED_K8S_VERSION: "v1.22.1"
   CNI: "./data/cni/calico/calico.yaml"
 
 intervals:
@@ -87,5 +88,12 @@ intervals:
   default/wait-job: ["10m", "10s"]
   default/wait-service: ["10m", "10s"]
   default/wait-object-provisioned: ["10m", "10s"]
-  default/wait-machine-running: ["10m", "10s"]
+  default/wait-bmh-ready: ["25m", "20s"]
+  default/wait-bmh-deprovisioning: ["25m", "10s"]
+  default/wait-machine-deleting: ["7m", "2s"]
+  default/wait-bmh-deprovisioning-ready: ["7m", "2s"]
+  default/wait-bmh-ready-provisioning: ["5m", "2s"]
+  default/wait-machine-running: ["25m", "20s"]
+  default/wait-bmh-provisioned: ["25m", "20s"]
   default/wait-pod-restart: ["4m", "10s"]
+
