@@ -395,6 +395,7 @@ release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 .PHONY: release
 release:
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "You have uncommitted changes"; exit 1; fi
+	git checkout "${RELEASE_TAG}"
 	$(MAKE) release-manifests
 	$(MAKE) release-notes
 
