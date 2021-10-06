@@ -107,11 +107,11 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 	// if node is now associated, if getting the ID fails, we do not go further
 	if tc.GetBMHIDFails {
-		m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
+		m.EXPECT().GetProviderIDAndBMHID().Return("", nil, string(m3muid))
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil,
 			errors.New("Failed"),
 		)
-		m.EXPECT().SetProviderID(bmhuid).MaxTimes(0)
+		m.EXPECT().SetProviderID(providerID).MaxTimes(0)
 		m.EXPECT().SetError(gomock.Any(), gomock.Any())
 		return m
 	}
@@ -119,13 +119,13 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	// The ID is available (GetBaremetalHostID did not return nil)
 	if tc.BMHIDSet {
 		if tc.GetProviderIDFails {
-			m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
+			m.EXPECT().GetProviderIDAndBMHID().Return("", nil, string(m3muid))
 			m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
 				pointer.StringPtr(string(bmhuid)), nil,
 			)
 		} else {
 			m.EXPECT().GetProviderIDAndBMHID().Return(
-				providerID, pointer.StringPtr(string(bmhuid)),
+				providerID, pointer.StringPtr(string(bmhuid)), string(m3muid),
 			)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		}
@@ -133,26 +133,26 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if we fail to set it on the node, we do not go further
 		if tc.SetNodeProviderIDFails {
 			m.EXPECT().
-				SetNodeProviderID(context.TODO(), string(bmhuid), providerID, nil).
+				SetNodeProviderID(context.TODO(), string(bmhuid), &providerID, nil).
 				Return(errors.New("Failed"))
-			m.EXPECT().SetProviderID(string(bmhuid)).MaxTimes(0)
+			m.EXPECT().SetProviderID(providerID).MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			return m
 		}
 
 		// we successfully set it on the node
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), string(bmhuid), providerID, nil).
+			SetNodeProviderID(context.TODO(), string(bmhuid), &providerID, nil).
 			Return(nil)
 		m.EXPECT().SetProviderID(providerID)
 
 		// We did not get an id (got nil), so we'll requeue and not go further
 	} else {
-		m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
+		m.EXPECT().GetProviderIDAndBMHID().Return("", nil, string(m3muid))
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
 
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), bmhuid, providerID, nil).
+			SetNodeProviderID(context.TODO(), bmhuid, &providerID, nil).
 			MaxTimes(0)
 	}
 

@@ -56,13 +56,14 @@ const (
 	// reference what BareMetalHost it corresponds to.
 	HostAnnotation = "metal3.io/BareMetalHost"
 	// nodeReuseLabelName is the label set on BMH when node reuse feature is enabled.
-	nodeReuseLabelName  = "infrastructure.cluster.x-k8s.io/node-reuse"
-	requeueAfter        = time.Second * 30
-	bmRoleControlPlane  = "control-plane"
-	bmRoleNode          = "node"
-	PausedAnnotationKey = "metal3.io/capm3"
-	ProviderIDPrefix    = "metal3://"
-	ProviderLabelPrefix = "metal3.io/uuid"
+	nodeReuseLabelName     = "infrastructure.cluster.x-k8s.io/node-reuse"
+	requeueAfter           = time.Second * 30
+	bmRoleControlPlane     = "control-plane"
+	bmRoleNode             = "node"
+	PausedAnnotationKey    = "metal3.io/capm3"
+	ProviderIDPrefix       = "metal3://"
+	ProviderLabelKey       = "metal3.io/provideruid"
+	ProviderLabelLegacyKey = "metal3.io/uuid"
 )
 
 // MachineManagerInterface is an interface for a MachineManager
@@ -76,8 +77,8 @@ type MachineManagerInterface interface {
 	Delete(context.Context) error
 	Update(context.Context) error
 	HasAnnotation() bool
-	GetProviderIDAndBMHID() (string, *string)
-	SetNodeProviderID(context.Context, string, string, ClientGetter) error
+	GetProviderIDAndBMHID() (string, *string, string)
+	SetNodeProviderID(context.Context, string, *string, ClientGetter) error
 	SetProviderID(string)
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
@@ -1257,51 +1258,70 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 }
 
 // GetProviderIDAndBMHID returns providerID and bmhID
-func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
+func (m *MachineManager) GetProviderIDAndBMHID() (string, *string, string) {
 	providerID := m.Metal3Machine.Spec.ProviderID
+	m3mUID := string(m.Metal3Machine.GetUID())
 	if providerID == nil {
-		return "", nil
+		return "", nil, m3mUID
 	}
-	return *providerID, pointer.StringPtr(parseProviderID(*providerID))
+	return *providerID, pointer.StringPtr(parseProviderID(*providerID)), m3mUID
 }
 
 // ClientGetter prototype
 type ClientGetter func(ctx context.Context, c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
 
 // SetNodeProviderID sets the metal3 provider ID on the kubernetes node
-func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
-	if !m.Metal3Cluster.Spec.NoCloudProvider {
-		return nil
-	}
+func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID string, providerID *string, clientFactory ClientGetter) error {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
 	}
-
-	nodeLabel := fmt.Sprintf("%s=%v", ProviderLabelPrefix, bmhID)
+	provideruid := strings.TrimPrefix(*providerID, ProviderIDPrefix)
+	nodeLabel := fmt.Sprintf("%s=%v", ProviderLabelKey, provideruid)
 	nodes, nodesCount, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
 		m.Log.Info("error retrieving node, requeuing")
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
+
 	if nodesCount == 0 {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case
-		m.Log.Info("Target node is not found, requeuing")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		m.Log.Info("Target node with the given label is not found, trying legacy label")
+		nodeLabel := fmt.Sprintf("%s=%v", ProviderLabelLegacyKey, bmhID)
+		nodes, nodesCount, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
+		if err != nil || nodes == nil || nodesCount == 0 {
+			m.Log.Info("Target node with legacy label is not found")
+			return &RequeueAfterError{RequeueAfter: requeueAfter}
+		}
+		m.Log.Info("found nodes using legacy label format, updating providerID format accordingly")
+		*providerID = fmt.Sprintf("%s%s", ProviderIDPrefix, bmhID)
 	}
 	for _, node := range nodes.Items {
-		if node.Spec.ProviderID == providerID {
-			continue
+		if !m.Metal3Cluster.Spec.NoCloudProvider {
+			m.Log.Info("NoCloudProvider set to false on Metal3Cluster, accepting providerID on the node as the correct value.")
+			if node.Spec.ProviderID != "" {
+				*providerID = node.Spec.ProviderID
+			} else {
+				m.Log.Info("NoCloudProvider set to false on Metal3Cluster. But, no ProviderID found on the node")
+				return &RequeueAfterError{RequeueAfter: requeueAfter}
+			}
 		}
-		node.Spec.ProviderID = providerID
+		if node.Spec.ProviderID == "" {
+			m.Log.Info("missing providerID on node, setting value from node label")
+			node.Spec.ProviderID = *providerID
+		} else if node.Spec.ProviderID == *providerID {
+			// providerID already set with the correct value
+			continue
+		} else if node.Spec.ProviderID != *providerID {
+			return errors.New("providerID does not match label found on the node")
+		}
 		_, err = corev1Remote.Nodes().Update(ctx, &node, metav1.UpdateOptions{})
 		if err != nil {
-			return errors.Wrap(err, "unable to update the target node")
+			return errors.Wrap(err, "unable to update the target node with providerID")
 		}
 	}
 	m.Log.Info("ProviderID set on target node")
-
 	return nil
 }
 

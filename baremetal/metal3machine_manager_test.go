@@ -25,19 +25,17 @@ import (
 
 	"github.com/go-logr/logr"
 
+	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
-
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/pointer"
@@ -57,20 +55,17 @@ const (
 	kcpName                   = "kcp-pool1"
 )
 
-var Bmhuid = types.UID("4d25a2c2-46e4-11ec-81d3-0242ac130003")
-var ProviderID = fmt.Sprintf("metal3://%s", Bmhuid)
-
 var testImageDiskFormat = pointer.StringPtr("raw")
 
 func m3mSpec() *capm3.Metal3MachineSpec {
 	return &capm3.Metal3MachineSpec{
-		ProviderID: &ProviderID,
+		ProviderID: &providerID,
 	}
 }
 
 func m3mSpecAll() *capm3.Metal3MachineSpec {
 	return &capm3.Metal3MachineSpec{
-		ProviderID: &ProviderID,
+		ProviderID: &providerID,
 		UserData: &corev1.SecretReference{
 			Name:      "mym3machine-user-data",
 			Namespace: "myns",
@@ -1236,7 +1231,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				return
 			}
 
-			providerID := fmt.Sprintf("%s%s", ProviderIDPrefix, *bmhID)
+			providerID := fmt.Sprintf("%s%s", ProviderIDPrefix, provideruid)
 			Expect(*tc.M3Machine.Spec.ProviderID).To(Equal(providerID))
 		},
 		Entry("Set ProviderID, empty annotations", testCaseGetSetProviderID{
@@ -1262,7 +1257,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
 					Namespace: "myns",
-					UID:       Bmhuid,
+					UID:       bmhuid,
 				},
 				Status: bmh.BareMetalHostStatus{
 					Provisioning: bmh.ProvisionStatus{
@@ -1282,7 +1277,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
 					Namespace: "myns",
-					UID:       Bmhuid,
+					UID:       bmhuid,
 				},
 				Status: bmh.BareMetalHostStatus{
 					Provisioning: bmh.ProvisionStatus{
@@ -2116,7 +2111,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &m3m, logr.Discard())
 			Expect(err).NotTo(HaveOccurred())
 
-			providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
+			providerID, bmhID, _ := machineMgr.GetProviderIDAndBMHID()
 
 			if tc.providerID != nil {
 				Expect(providerID).To(Equal(*tc.providerID))
@@ -2129,8 +2124,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Empty providerID", testCaseGetProviderIDAndBMHID{}),
 		Entry("Provider ID set", testCaseGetProviderIDAndBMHID{
-			providerID:    pointer.StringPtr(ProviderID),
-			expectedBMHID: string(Bmhuid),
+			providerID:    pointer.StringPtr(providerID),
+			expectedBMHID: provideruid,
 		}),
 	)
 
@@ -2171,7 +2166,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
-					tc.ExpectedProviderID, mockCapiClientGetter,
+					&tc.ExpectedProviderID, mockCapiClientGetter,
 				)
 
 				if tc.ExpectedError {
@@ -2192,36 +2187,36 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Entry("Set target ProviderID, No matching node", testCaseSetNodePoviderID{
 				Node:               v1.Node{},
-				HostID:             string(Bmhuid),
+				HostID:             string(bmhuid),
 				ExpectedError:      true,
-				ExpectedProviderID: ProviderID,
+				ExpectedProviderID: provideruid,
 			}),
 			Entry("Set target ProviderID, matching node", testCaseSetNodePoviderID{
 				Node: v1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							ProviderLabelPrefix: string(bmhuid),
+							ProviderLabelKey: provideruid,
 						},
 					},
 				},
 				HostID:             string(bmhuid),
 				ExpectedError:      false,
-				ExpectedProviderID: fmt.Sprintf("%s%s", ProviderIDPrefix, string(bmhuid)),
+				ExpectedProviderID: fmt.Sprintf("%s%s", ProviderIDPrefix, provideruid),
 			}),
 			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
 				Node: v1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							ProviderLabelPrefix: string(Bmhuid),
+							ProviderLabelKey: provideruid,
 						},
 					},
 					Spec: v1.NodeSpec{
-						ProviderID: ProviderID,
+						ProviderID: providerID,
 					},
 				},
-				HostID:             string(Bmhuid),
+				HostID:             string(bmhuid),
 				ExpectedError:      false,
-				ExpectedProviderID: ProviderID,
+				ExpectedProviderID: providerID,
 			}),
 		)
 	})

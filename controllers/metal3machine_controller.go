@@ -237,8 +237,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			"failed to update BaremetalHost", errType,
 		)
 	}
-
-	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
+	providerID, bmhID, m3mUID := machineMgr.GetProviderIDAndBMHID()
 	if bmhID == nil {
 		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
 		if err != nil {
@@ -247,12 +246,14 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			)
 		}
 		if bmhID != nil {
-			providerID = fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix, *bmhID)
+			provideruid := baremetal.BuildProviderIDToNodes(*bmhID, m3mUID)
+			providerID = fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix, provideruid)
+
 		}
 	}
 	if bmhID != nil {
 		// Set the providerID on the node if no Cloud provider
-		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
+		err = machineMgr.SetNodeProviderID(ctx, *bmhID, &providerID, r.CapiClientGetter)
 		if err != nil {
 			return checkMachineError(machineMgr, err,
 				"failed to set the target node providerID", errType,

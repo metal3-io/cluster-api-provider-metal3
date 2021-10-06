@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"time"
 
@@ -47,10 +46,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
-
-var bmhuid = types.UID("63856098-4b80-11ec-81d3-0242ac130003")
-
-var providerID = fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix, bmhuid)
 
 var bootstrapDataSecretName = "testdatasecret"
 
@@ -88,6 +83,7 @@ func m3mMetaWithAnnotation() *metav1.ObjectMeta {
 		Name:            "abc",
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
+		UID:             m3muid,
 		Annotations: map[string]string{
 			baremetal.HostAnnotation: "testNameSpace/bmh-0",
 		},
@@ -240,11 +236,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 			}
 			if tc.CheckBMProviderID {
 				if tc.CheckBMProviderIDUnchanged {
-					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-						string(testBMHost.ObjectMeta.UID))))
+					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(providerID))
 				} else {
-					Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-						string(testBMHost.ObjectMeta.UID)))))
+					Expect(*testBMmachine.Spec.ProviderID).To(Equal(providerID))
 				}
 			}
 			if tc.CheckBootStrapReady {
@@ -529,6 +523,19 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
 					newBareMetalHost(nil, nil, nil, false),
 				},
+				TargetObjects: []runtime.Object{
+					&v1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "bmh-0",
+							Labels: map[string]string{
+								baremetal.ProviderLabelKey: provideruid,
+							},
+						},
+						Spec: v1.NodeSpec{
+							ProviderID: providerID,
+						},
+					},
+				},
 				ErrorExpected:       false,
 				RequeueExpected:     false,
 				ClusterInfraReady:   true,
@@ -557,6 +564,19 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
 					newBareMetalHost(nil, nil, nil, false),
 				},
+				TargetObjects: []runtime.Object{
+					&v1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "bmh-0",
+							Labels: map[string]string{
+								baremetal.ProviderLabelKey: provideruid,
+							},
+						},
+						Spec: v1.NodeSpec{
+							ProviderID: providerID,
+						},
+					},
+				},
 				ErrorExpected:              false,
 				RequeueExpected:            false,
 				ClusterInfraReady:          true,
@@ -566,8 +586,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMProviderIDUnchanged: true,
 			},
 		),
-		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
-		//Expected: No Error, Requeue expected
+		// Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
+		// Expected: No Error, Requeue expected
 		//		BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
 			TestCaseReconcile{
@@ -633,7 +653,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "bmh-0",
 							Labels: map[string]string{
-								baremetal.ProviderLabelPrefix: string(bmhuid),
+								baremetal.ProviderLabelKey: provideruid,
 							},
 						},
 						Spec: v1.NodeSpec{},

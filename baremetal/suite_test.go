@@ -22,19 +22,19 @@ import (
 	"path/filepath"
 	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -44,6 +44,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
+var m3muid = types.UID("11111111-9845-4321-1234-c74be387f57c")
+var bmhuid = types.UID("22222222-9845-4c48-9e49-c74be387f57c")
+var m3muidOctet = "11111111"
+var provideruid = fmt.Sprintf("%s_%s", bmhuid, m3muidOctet)
+var providerID = fmt.Sprintf("metal3://%s", provideruid)
+
 var cfg *rest.Config
 var k8sClient client.Client
 var testEnv *envtest.Environment
@@ -52,11 +58,7 @@ const (
 	clusterName       = "testCluster"
 	metal3ClusterName = "testmetal3Cluster"
 	namespaceName     = "testNameSpace"
-	m3muid            = "11111111-9845-4321-1234-c74be387f57c"
-	bmhuid            = "22222222-9845-4c48-9e49-c74be387f57c"
 )
-
-var provideruid = fmt.Sprintf("%s_11111111", bmhuid)
 
 func TestManagers(t *testing.T) {
 	RegisterFailHandler(Fail)

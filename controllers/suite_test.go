@@ -25,16 +25,21 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"fmt"
+
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
+
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
+
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -58,6 +63,12 @@ const (
 	metal3machineName = "testmetal3machine"
 	namespaceName     = "testNameSpace"
 )
+
+var m3muid = types.UID("33333333-9845-4321-1234-c74be387f57c")
+var bmhuid = types.UID("44444444-9845-4c48-9e49-c74be387f57c")
+var m3muidOctet = "33333333"
+var provideruid = fmt.Sprintf("%s_%s", bmhuid, m3muidOctet)
+var providerID = fmt.Sprintf("metal3://%s", provideruid)
 
 func init() {
 	klog.InitFlags(nil)

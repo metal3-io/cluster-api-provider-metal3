@@ -126,12 +126,13 @@ func (mr *MockMachineManagerInterfaceMockRecorder) GetBaremetalHostID(arg0 inter
 }
 
 // GetProviderIDAndBMHID mocks base method.
-func (m *MockMachineManagerInterface) GetProviderIDAndBMHID() (string, *string) {
+func (m *MockMachineManagerInterface) GetProviderIDAndBMHID() (string, *string, string) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProviderIDAndBMHID")
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(*string)
-	return ret0, ret1
+	ret2, _ := ret[2].(string)
+	return ret0, ret1, ret2
 }
 
 // GetProviderIDAndBMHID indicates an expected call of GetProviderIDAndBMHID.
@@ -221,7 +222,7 @@ func (mr *MockMachineManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
 }
 
 // SetNodeProviderID mocks base method.
-func (m *MockMachineManagerInterface) SetNodeProviderID(arg0 context.Context, arg1, arg2 string, arg3 baremetal.ClientGetter) error {
+func (m *MockMachineManagerInterface) SetNodeProviderID(arg0 context.Context, arg1 string, arg2 *string, arg3 baremetal.ClientGetter) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetNodeProviderID", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
