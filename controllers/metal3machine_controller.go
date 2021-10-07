@@ -46,7 +46,7 @@ const (
 	machineControllerName = "Metal3Machine-controller"
 )
 
-// Metal3MachineReconciler reconciles a Metal3Machine object
+// Metal3MachineReconciler reconciles a Metal3Machine object.
 type Metal3MachineReconciler struct {
 	Client           client.Client
 	ManagerFactory   baremetal.ManagerFactoryInterface
@@ -73,7 +73,7 @@ type Metal3MachineReconciler struct {
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts/status,verbs=get;update;patch
 
-// Reconcile handles Metal3Machine events
+// Reconcile handles Metal3Machine events.
 func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	machineLog := r.Log.WithName(machineControllerName).WithValues("metal3-machine", req.NamespacedName)
 
@@ -180,7 +180,6 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Machine *capm3.Metal3Machine, options ...patch.Option) error {
-
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(metal3Machine,
 		conditions.WithConditions(
@@ -285,7 +284,6 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
 ) (ctrl.Result, error) {
-
 	errType := capierrors.DeleteMachineError
 
 	// delete the machine
@@ -308,7 +306,7 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for this controller.
 func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3Machine{}).
@@ -421,7 +419,7 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o client.Object)
 func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj client.Object) []ctrl.Request {
 	if host, ok := obj.(*bmh.BareMetalHost); ok {
 		if host.Spec.ConsumerRef != nil &&
-			host.Spec.ConsumerRef.Kind == "Metal3Machine" &&
+			host.Spec.ConsumerRef.Kind == Metal3Machine &&
 			host.Spec.ConsumerRef.GroupVersionKind().Group == capm3.GroupVersion.Group {
 			return []ctrl.Request{
 				{
@@ -507,22 +505,18 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj client.Object) 
 	return requests
 }
 
-// setError sets the ErrorMessage and ErrorReason fields on the metal3machine
+// setErrorM3Machine sets the ErrorMessage and ErrorReason fields on the metal3machine.
 func setErrorM3Machine(m3m *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
-
 	m3m.Status.FailureMessage = pointer.StringPtr(message)
 	m3m.Status.FailureReason = &reason
-
 }
 
 // clearError removes the ErrorMessage from the metal3machine's Status if set.
 func clearErrorM3Machine(m3m *capm3.Metal3Machine) {
-
 	if m3m.Status.FailureMessage != nil || m3m.Status.FailureReason != nil {
 		m3m.Status.FailureMessage = nil
 		m3m.Status.FailureReason = nil
 	}
-
 }
 
 func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,
@@ -531,8 +525,9 @@ func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
-	if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-		return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	var hasReq baremetal.HasRequeueAfterError
+	if ok := errors.As(err, &hasReq); ok {
+		return ctrl.Result{Requeue: true, RequeueAfter: hasReq.GetRequeueAfter()}, nil
 	}
 	machineMgr.SetError(errMessage, errType)
 	return ctrl.Result{}, errors.Wrap(err, errMessage)

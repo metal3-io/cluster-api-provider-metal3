@@ -27,6 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const bmoPath = "BMOPATH"
+
 func pivoting() {
 	Logf("Starting pivoting tests")
 	By("Remove Ironic containers from the source cluster")
@@ -162,7 +164,6 @@ func pivoting() {
 }
 
 func configureIronicConfigmap(isIronicDeployed bool) {
-	bmoPath := "BMOPATH"
 	ironicDataDir := "IRONIC_DATA_DIR"
 	ironicConfigmap := fmt.Sprintf("%s/ironic-deployment/keepalived/ironic_bmo_configmap.env", os.Getenv(bmoPath))
 	newIronicConfigmap := fmt.Sprintf("%s/ironic_bmo_configmap.env", os.Getenv(ironicDataDir))
@@ -182,7 +183,6 @@ func configureIronicConfigmap(isIronicDeployed bool) {
 }
 
 func restoreBMOConfigmap() {
-	bmoPath := "BMOPATH"
 	bmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env", os.Getenv(bmoPath))
 	backupBmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env.orig", os.Getenv(bmoPath))
 	cmd := exec.Command("mv", backupBmoConfigmap, bmoConfigmap)
@@ -194,7 +194,6 @@ func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO stri
 	ironicTLSSetup := "IRONIC_TLS_SETUP"
 	ironicBasicAuth := "IRONIC_BASIC_AUTH"
 	ironicHost := os.Getenv("CLUSTER_PROVISIONING_IP")
-	bmoPath := "BMOPATH"
 	path := fmt.Sprintf("%s/tools/", os.Getenv(bmoPath))
 	args := []string{
 		isBMO,
@@ -305,7 +304,6 @@ func rePivoting() {
 		fmt.Printf("%s\n", stdoutStderr)
 		Expect(err).To(BeNil(), "Cannot run local ironic")
 	} else {
-
 		By("Configure Ironic Configmap")
 		configureIronicConfigmap(true)
 
@@ -390,5 +388,4 @@ func rePivoting() {
 	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Succeed())
 
 	By("RE-PIVOTING TEST PASSED!")
-
 }

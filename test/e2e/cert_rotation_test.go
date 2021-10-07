@@ -85,7 +85,6 @@ func certRotation() {
 		return errors.New("Ironic pod is not in running state")
 	}, e2eConfig.GetIntervals(specName, "wait-pod-restart")...).Should(BeNil())
 	By("CERTIFICATE ROTATION TESTS PASSED!")
-
 }
 
 func getDeployment(targetCluster framework.ClusterProxy, deploymentName string, namespace string) (*appv1.Deployment, error) {

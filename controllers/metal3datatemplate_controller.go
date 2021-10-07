@@ -39,7 +39,7 @@ const (
 	dataTemplateControllerName = "Metal3DataTemplate-controller"
 )
 
-// Metal3DataTemplateReconciler reconciles a Metal3DataTemplate object
+// Metal3DataTemplateReconciler reconciles a Metal3DataTemplate object.
 type Metal3DataTemplateReconciler struct {
 	Client           client.Client
 	ManagerFactory   baremetal.ManagerFactoryInterface
@@ -62,7 +62,7 @@ type Metal3DataTemplateReconciler struct {
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
-// Reconcile handles Metal3Machine events
+// Reconcile handles Metal3Machine events.
 func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
 
@@ -145,7 +145,6 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 	metadataMgr baremetal.DataTemplateManagerInterface,
 ) (ctrl.Result, error) {
-
 	allocationsNb, err := metadataMgr.UpdateDatas(ctx)
 	if err != nil {
 		return checkRequeueError(err, "Failed to recreate the status")
@@ -160,7 +159,7 @@ func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for this controller.
 func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3DataTemplate{}).
@@ -174,7 +173,7 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 
 // Metal3DataClaimToMetal3DataTemplate will return a reconcile request for a
 // Metal3DataTemplate if the event is for a
-// Metal3DataClaim and that Metal3DataClaim references a Metal3DataTemplate
+// Metal3DataClaim and that Metal3DataClaim references a Metal3DataTemplate.
 func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(obj client.Object) []ctrl.Request {
 	if m3dc, ok := obj.(*capm3.Metal3DataClaim); ok {
 		if m3dc.Spec.Template.Name != "" {
@@ -199,8 +198,9 @@ func checkRequeueError(err error, errMessage string) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
-	if requeueErr, ok := errors.Cause(err).(baremetal.HasRequeueAfterError); ok {
-		return ctrl.Result{Requeue: true, RequeueAfter: requeueErr.GetRequeueAfter()}, nil
+	var hasReq baremetal.HasRequeueAfterError
+	if ok := errors.As(err, &hasReq); ok {
+		return ctrl.Result{Requeue: true, RequeueAfter: hasReq.GetRequeueAfter()}, nil
 	}
 	return ctrl.Result{}, errors.Wrap(err, errMessage)
 }

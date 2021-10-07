@@ -29,12 +29,12 @@ const (
 	clonedFromGroupKind = capi.TemplateClonedFromGroupKindAnnotation
 )
 
-// TemplateManagerInterface is an interface for a TemplateManager
+// TemplateManagerInterface is an interface for a TemplateManager.
 type TemplateManagerInterface interface {
 	UpdateAutomatedCleaningMode(context.Context) error
 }
 
-// MachineTemplateManager is responsible for performing metal3MachineTemplate reconciliation
+// MachineTemplateManager is responsible for performing metal3MachineTemplate reconciliation.
 type MachineTemplateManager struct {
 	client client.Client
 
@@ -43,13 +43,12 @@ type MachineTemplateManager struct {
 	Log                   logr.Logger
 }
 
-// NewMachineTemplateManager returns a new helper for managing a metal3MachineTemplate
+// NewMachineTemplateManager returns a new helper for managing a metal3MachineTemplate.
 func NewMachineTemplateManager(client client.Client,
 	metal3MachineTemplate *capm3.Metal3MachineTemplate,
 
 	metal3MachineList *capm3.Metal3MachineList,
 	metal3MachineTemplateLog logr.Logger) (*MachineTemplateManager, error) {
-
 	return &MachineTemplateManager{
 		client: client,
 
@@ -91,7 +90,6 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 			// don't synchronize AutomatedCleaningMode between metal3MachineTemplate
 			// and metal3Machine if unset in metal3MachineTemplate.
 			if m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode != nil {
-
 				m3m.Spec.AutomatedCleaningMode = m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode
 
 				if err := m.client.Update(ctx, m3m); err != nil {

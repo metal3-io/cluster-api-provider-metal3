@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ClusterManagerInterface is an interface for a ClusterManager
+// ClusterManagerInterface is an interface for a ClusterManager.
 type ClusterManagerInterface interface {
 	Create(context.Context) error
 	Delete() error
@@ -45,7 +45,7 @@ type ClusterManagerInterface interface {
 	CountDescendants(context.Context) (int, error)
 }
 
-// ClusterManager is responsible for performing metal3 cluster reconciliation
+// ClusterManager is responsible for performing metal3 cluster reconciliation.
 type ClusterManager struct {
 	client client.Client
 
@@ -59,7 +59,6 @@ type ClusterManager struct {
 func NewClusterManager(client client.Client, cluster *capi.Cluster,
 	metal3Cluster *capm3.Metal3Cluster,
 	clusterLog logr.Logger) (ClusterManagerInterface, error) {
-
 	if metal3Cluster == nil {
 		return nil, errors.New("Metal3Cluster is required when creating a ClusterManager")
 	}
@@ -75,7 +74,7 @@ func NewClusterManager(client client.Client, cluster *capi.Cluster,
 	}, nil
 }
 
-// SetFinalizer sets finalizer
+// SetFinalizer sets finalizer.
 func (s *ClusterManager) SetFinalizer() {
 	// If the Metal3Cluster doesn't have finalizer, add it.
 	if !Contains(s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer) {
@@ -85,7 +84,7 @@ func (s *ClusterManager) SetFinalizer() {
 	}
 }
 
-// UnsetFinalizer unsets finalizer
+// UnsetFinalizer unsets finalizer.
 func (s *ClusterManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	s.Metal3Cluster.ObjectMeta.Finalizers = Filter(
@@ -95,24 +94,23 @@ func (s *ClusterManager) UnsetFinalizer() {
 
 // Create creates a cluster manager for the cluster.
 func (s *ClusterManager) Create(ctx context.Context) error {
-
 	config := s.Metal3Cluster.Spec
 	err := config.IsValid()
 	if err != nil {
-		// Should have been picked earlier. Do not requeue
+		// Should have been picked earlier. Do not requeue.
 		s.setError("Invalid Metal3Cluster provided", capierrors.InvalidConfigurationClusterError)
 		return err
 	}
 
-	// clear an error if one was previously set
+	// clear an error if one was previously set.
 	s.clearError()
 
 	return nil
 }
 
-// ControlPlaneEndpoint returns cluster controlplane endpoint
+// ControlPlaneEndpoint returns cluster controlplane endpoint.
 func (s *ClusterManager) ControlPlaneEndpoint() ([]capm3.APIEndpoint, error) {
-	//Get IP address from spec, which gets it from posted cr yaml
+	//Get IP address from spec, which gets it from posted cr yaml.
 	endPoint := s.Metal3Cluster.Spec.ControlPlaneEndpoint
 	var err error
 
@@ -129,14 +127,13 @@ func (s *ClusterManager) ControlPlaneEndpoint() ([]capm3.APIEndpoint, error) {
 	}, nil
 }
 
-// Delete function, no-op for now
+// Delete function, no-op for now.
 func (s *ClusterManager) Delete() error {
 	return nil
 }
 
 // UpdateClusterStatus updates a metal3Cluster object's status.
 func (s *ClusterManager) UpdateClusterStatus() error {
-
 	// Get APIEndpoints from  metal3Cluster Spec
 	_, err := s.ControlPlaneEndpoint()
 
@@ -147,7 +144,7 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 		return err
 	}
 
-	// Mark the metal3Cluster ready
+	// Mark the metal3Cluster ready.
 	s.Metal3Cluster.Status.Ready = true
 	conditions.MarkTrue(s.Metal3Cluster, capm3.BaremetalInfrastructureReadyCondition)
 	now := metav1.Now()
@@ -173,7 +170,7 @@ func (s *ClusterManager) clearError() {
 }
 
 // CountDescendants will return the number of descendants objects of the
-// metal3Cluster
+// metal3Cluster.
 func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
 	// Verify that no metal3machine depend on the metal3cluster
 	descendants, err := s.listDescendants(ctx)
@@ -197,7 +194,6 @@ func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
 // listDescendants returns a list of all Machines, for the cluster owning the
 // metal3Cluster.
 func (s *ClusterManager) listDescendants(ctx context.Context) (capi.MachineList, error) {
-
 	machines := capi.MachineList{}
 	cluster, err := util.GetOwnerCluster(ctx, s.client,
 		s.Metal3Cluster.ObjectMeta,

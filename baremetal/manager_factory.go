@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// ManagerFactoryInterface is a collection of new managers.
 type ManagerFactoryInterface interface {
 	NewClusterManager(cluster *capi.Cluster,
 		metal3Cluster *capm3.Metal3Cluster,
@@ -46,7 +47,7 @@ type ManagerFactoryInterface interface {
 	)
 }
 
-// ManagerFactory only contains a client
+// ManagerFactory only contains a client.
 type ManagerFactory struct {
 	client client.Client
 }
@@ -56,12 +57,12 @@ func NewManagerFactory(client client.Client) ManagerFactory {
 	return ManagerFactory{client: client}
 }
 
-// NewClusterManager creates a new ClusterManager
+// NewClusterManager creates a new ClusterManager.
 func (f ManagerFactory) NewClusterManager(cluster *capi.Cluster, capm3Cluster *capm3.Metal3Cluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	return NewClusterManager(f.client, cluster, capm3Cluster, clusterLog)
 }
 
-// NewMachineManager creates a new MachineManager
+// NewMachineManager creates a new MachineManager.
 func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
 	capm3Cluster *capm3.Metal3Cluster,
 	capiMachine *capi.Machine, capm3Machine *capm3.Metal3Machine,
@@ -70,24 +71,24 @@ func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
 		capm3Machine, machineLog)
 }
 
-// NewDataTemplateManager creates a new DataTemplateManager
+// NewDataTemplateManager creates a new DataTemplateManager.
 func (f ManagerFactory) NewDataTemplateManager(metadata *capm3.Metal3DataTemplate, metadataLog logr.Logger) (DataTemplateManagerInterface, error) {
 	return NewDataTemplateManager(f.client, metadata, metadataLog)
 }
 
-// NewDataManager creates a new DataManager
+// NewDataManager creates a new DataManager.
 func (f ManagerFactory) NewDataManager(metadata *capm3.Metal3Data, metadataLog logr.Logger) (DataManagerInterface, error) {
 	return NewDataManager(f.client, metadata, metadataLog)
 }
 
-// NewMachineTemplateManager creates a new Metal3MachineTemplateManager
+// NewMachineTemplateManager creates a new Metal3MachineTemplateManager.
 func (f ManagerFactory) NewMachineTemplateManager(capm3Template *capm3.Metal3MachineTemplate,
 	capm3MachineList *capm3.Metal3MachineList,
 	metadataLog logr.Logger) (TemplateManagerInterface, error) {
 	return NewMachineTemplateManager(f.client, capm3Template, capm3MachineList, metadataLog)
 }
 
-// NewRemediationManager creates a new RemediationManager
+// NewRemediationManager creates a new RemediationManager.
 func (f ManagerFactory) NewRemediationManager(remediation *capm3.Metal3Remediation,
 	metal3machine *capm3.Metal3Machine, machine *capi.Machine,
 	remediationLog logr.Logger) (RemediationManagerInterface, error) {

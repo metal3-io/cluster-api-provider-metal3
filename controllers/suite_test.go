@@ -323,7 +323,6 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 	spec *capm3.Metal3MachineSpec, status *capm3.Metal3MachineStatus,
 	pausedAnnotation bool,
 ) *capm3.Metal3Machine {
-
 	if meta == nil {
 		meta = &metav1.ObjectMeta{
 			Name:            name,
@@ -372,7 +371,6 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 	status *bmh.BareMetalHostStatus, Labels map[string]string, paused bool,
 ) *bmh.BareMetalHost {
-
 	if spec == nil {
 		spec = &bmh.BareMetalHostSpec{}
 	}
@@ -406,5 +404,4 @@ func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 	}
 
 	return bmh
-
 }

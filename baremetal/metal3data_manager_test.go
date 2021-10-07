@@ -219,9 +219,8 @@ var _ = Describe("Metal3Data manager", func() {
 					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
 				}
 				return
-			} else {
-				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(err).NotTo(HaveOccurred())
 			if tc.expectReady {
 				Expect(tc.m3d.Status.Ready).To(BeTrue())
 			} else {
@@ -1497,9 +1496,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
-			} else {
-				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(err).NotTo(HaveOccurred())
 			output := map[string][]interface{}{}
 			err = yaml.Unmarshal(result, output)
 			Expect(err).NotTo(HaveOccurred())
@@ -1708,9 +1706,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
-			} else {
-				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(tc.expectedOutput))
 		},
 		Entry("Ethernet, MAC from string", testCaseRenderNetworkLinks{
@@ -1866,9 +1863,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
-			} else {
-				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(tc.expectedOutput))
 		},
 		Entry("IPv4 network", testCaseRenderNetworkNetworks{
@@ -2343,9 +2339,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
-			} else {
-				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(tc.expectedMAC))
 		},
 		Entry("String", testCaseGetLinkMacAddress{
@@ -2429,9 +2424,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
-			} else {
-				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(err).NotTo(HaveOccurred())
 			var outputMap map[string]string
 			err = yaml.Unmarshal(resultBytes, &outputMap)
 			Expect(err).NotTo(HaveOccurred())

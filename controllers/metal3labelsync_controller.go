@@ -51,7 +51,10 @@ var (
 
 const (
 	labelSyncControllerName = "metal3-label-sync-controller"
-	PrefixAnnotationKey     = "metal3.io/metal3-label-sync-prefixes"
+	// PrefixAnnotationKey is prefix for annotation key.
+	PrefixAnnotationKey = "metal3.io/metal3-label-sync-prefixes"
+	// Metal3Machine is name of the Metal3 CRD.
+	Metal3Machine = "Metal3Machine"
 )
 
 // Metal3LabelSyncReconciler reconciles label updates to BareMetalHost objects with the corresponding K Node objects in the workload cluster.
@@ -71,7 +74,7 @@ type Metal3LabelSyncReconciler struct {
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
-// Reconcile handles label sync events
+// Reconcile handles label sync events.
 func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-label-sync", req.NamespacedName)
 
@@ -108,11 +111,10 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// ignore BMH with no ConsumerRef
 		return ctrl.Result{}, nil
 	}
-	if host.Spec.ConsumerRef.Kind != "Metal3Machine" &&
+	if host.Spec.ConsumerRef.Kind != Metal3Machine &&
 		host.Spec.ConsumerRef.GroupVersionKind().Group != capm3.GroupVersion.Group {
 		controllerLog.Info(fmt.Sprintf("Unknown GroupVersionKind in BareMetalHost Consumer Ref %v", host.Spec.ConsumerRef.GroupVersionKind()))
 		return ctrl.Result{}, nil
-
 	}
 	capm3Machine := &capm3.Metal3Machine{}
 	capm3MachineKey := client.ObjectKey{
@@ -196,11 +198,9 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controllerLog.Info("Finished synchronizing labels between BaremetalHost and Node")
 	// Always requeue to ensure label sync runs periodically for each BMH. This is necessary to catch any label updates to the Node that are synchronized through the BMH.
 	return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
-
 }
 
 func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmh.BareMetalHost, machine *capi.Machine, cluster *capi.Cluster, prefixSet map[string]struct{}) error {
-
 	hostLabelSyncSet := buildLabelSyncSet(prefixSet, host.Labels)
 	// Get the Node from the workload cluster
 	corev1Remote, err := r.CapiClientGetter(ctx, r.Client, cluster)
@@ -253,7 +253,7 @@ func synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet map[strin
 	}
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for this controller.
 func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bmh.BareMetalHost{}).
@@ -330,7 +330,8 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Objec
 	return result
 }
 
-// parsePrefixAnnotation parses a string for prefixes. The string must be in the format: `prefix-1,prefix-2,...` and each prefix must conform to the definition of a subdomain in DNS (RFC 1123).
+// parsePrefixAnnotation parses a string for prefixes. The string must be in the format: `prefix-1,prefix-2,...`
+// and each prefix must conform to the definition of a subdomain in DNS (RFC 1123).
 func parsePrefixAnnotation(prefixStr string) (map[string]struct{}, error) {
 	entries := strings.Split(prefixStr, ",")
 	prefixSet := make(map[string]struct{})
@@ -353,7 +354,7 @@ const dns1123LabelFmt string = "[a-z0-9]([-a-z0-9]*[a-z0-9])?"
 const dns1123SubdomainFmt string = dns1123LabelFmt + "(\\." + dns1123LabelFmt + ")*"
 const dns1123SubdomainErrorMsg string = "a DNS-1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character"
 
-// DNS1123SubdomainMaxLength is a subdomain's max length in DNS (RFC 1123)
+// DNS1123SubdomainMaxLength is a subdomain's max length in DNS (RFC 1123).
 const DNS1123SubdomainMaxLength int = 253
 
 var dns1123SubdomainRegexp = regexp.MustCompile("^" + dns1123SubdomainFmt + "$")

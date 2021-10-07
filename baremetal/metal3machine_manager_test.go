@@ -1459,9 +1459,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectedResult == nil {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
-				perr, ok := err.(*RequeueAfterError)
+				var requeueAfterErr *RequeueAfterError
+				ok := errors.As(err, &requeueAfterErr)
 				Expect(ok).To(BeTrue())
-				Expect(perr.Error()).To(Equal(tc.ExpectedResult.Error()))
+				Expect(requeueAfterErr.Error()).To(Equal(tc.ExpectedResult.Error()))
 			}
 
 			if tc.Host != nil {
@@ -2259,9 +2260,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				if tc.ExpectedError {
 					Expect(err).To(HaveOccurred())
 					return
-				} else {
-					Expect(err).NotTo(HaveOccurred())
 				}
+				Expect(err).NotTo(HaveOccurred())
 
 				ctx := context.Background()
 				// get the node
@@ -2336,9 +2336,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
 				return
-			} else {
-				Expect(err).NotTo(HaveOccurred())
 			}
+			Expect(err).NotTo(HaveOccurred())
 
 			// Expect the reference to the secret to be passed through
 			if tc.Machine.Spec.Bootstrap.DataSecretName != nil &&
@@ -2539,7 +2538,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			err = machineMgr.Associate(context.TODO())
 			if tc.ExpectRequeue {
-				_, ok := errors.Cause(err).(HasRequeueAfterError)
+				ok := errors.As(err, &hasRequeueAfterError)
 				fmt.Println(errors.Cause(err))
 				Expect(ok).To(BeTrue())
 			} else {
@@ -3234,7 +3233,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			ExpectRequeue: true,
 		}),
-		Entry("Shoudl requeue if Data claim with empty status", testCaseM3MetaData{
+		Entry("Should requeue if Data claim with empty status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
@@ -4184,9 +4183,10 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 })
 
-//-----------------
-// Helper functions
-//-----------------
+/*-----------------------------------
+---------Helper functions------------
+------------------------------------*/
+
 func setupSchemeMm() *runtime.Scheme {
 	s := runtime.NewScheme()
 	if err := capm3.AddToScheme(s); err != nil {
@@ -4288,11 +4288,9 @@ func newMetal3Machine(name string,
 	spec *capm3.Metal3MachineSpec,
 	status *capm3.Metal3MachineStatus,
 	objMeta *metav1.ObjectMeta) *capm3.Metal3Machine {
-
 	if name == "" {
 		return &capm3.Metal3Machine{}
 	}
-
 	if objMeta == nil {
 		objMeta = &metav1.ObjectMeta{
 			Name:      name,
@@ -4327,7 +4325,6 @@ func newBareMetalHost(name string,
 	powerOn bool,
 	autoCleanMode string,
 	clusterlabel bool) *bmh.BareMetalHost {
-
 	if name == "" {
 		return &bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
@@ -4356,9 +4353,8 @@ func newBareMetalHost(name string,
 		return &bmh.BareMetalHost{
 			ObjectMeta: *objMeta,
 		}
-	} else {
-		spec.AutomatedCleaningMode = bmh.AutomatedCleaningMode(autoCleanMode)
 	}
+	spec.AutomatedCleaningMode = bmh.AutomatedCleaningMode(autoCleanMode)
 
 	if status != nil {
 		status.Provisioning.State = state

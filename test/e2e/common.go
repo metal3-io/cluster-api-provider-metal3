@@ -67,8 +67,8 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	}
 }
 
+// downloadFile will download a url and store it in local filepath.
 func downloadFile(filepath string, url string) error {
-
 	// Get the data
 	resp, err := http.Get(url)
 	if err != nil {
@@ -88,6 +88,7 @@ func downloadFile(filepath string, url string) error {
 	return err
 }
 
+// filterBmhsByProvisioningState returns a filtered list of BaremetalHost objects in certain provisioning state.
 func filterBmhsByProvisioningState(bmhs []bmo.BareMetalHost, state bmo.ProvisioningState) (result []bmo.BareMetalHost) {
 	for _, bmh := range bmhs {
 		if bmh.Status.Provisioning.State == state {
@@ -97,6 +98,7 @@ func filterBmhsByProvisioningState(bmhs []bmo.BareMetalHost, state bmo.Provision
 	return
 }
 
+// filterMachinesByPhase returns a filtered list of CAPI machine objects in certain desired phase.
 func filterMachinesByPhase(machines []capi.Machine, phase string) (result []capi.Machine) {
 	for _, machine := range machines {
 		if machine.Status.Phase == phase {
@@ -106,6 +108,7 @@ func filterMachinesByPhase(machines []capi.Machine, phase string) (result []capi
 	return
 }
 
+// annotateBmh annotates BaremetalHost with a given key and value.
 func annotateBmh(ctx context.Context, client client.Client, host bmo.BareMetalHost, key string, value *string) {
 	helper, err := patch.NewHelper(&host, client)
 	Expect(err).NotTo(HaveOccurred())
@@ -122,7 +125,7 @@ func annotateBmh(ctx context.Context, client client.Client, host bmo.BareMetalHo
 	Expect(helper.Patch(ctx, &host)).To(Succeed())
 }
 
-// deleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if exists
+// deleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
 func deleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmo.BareMetalHost, nodeReuseLabelName string) {
 	helper, err := patch.NewHelper(&host, client)
 	Expect(err).NotTo(HaveOccurred())
@@ -135,6 +138,7 @@ func deleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, hos
 	Expect(helper.Patch(ctx, &host)).To(Succeed())
 }
 
+// scaleMachineDeployment scales up/down MachineDeployment object to desired replicas.
 func scaleMachineDeployment(ctx context.Context, clusterClient client.Client, clusterName, namespace string, newReplicas int) {
 	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
 		Lister:      clusterClient,
@@ -148,7 +152,8 @@ func scaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 	Expect(err).To(BeNil(), "Failed to patch workers MachineDeployment")
 }
 
-func scaleControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int) {
+// scaleKubeadmControlPlane scales up/down KubeadmControlPlane object to desired replicas.
+func scaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int) {
 	ctrlplane := kcp.KubeadmControlPlane{}
 	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
 	helper, err := patch.NewHelper(&ctrlplane, c)

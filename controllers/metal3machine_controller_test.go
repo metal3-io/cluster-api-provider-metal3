@@ -57,7 +57,6 @@ type reconcileNormalTestCase struct {
 func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	tc reconcileNormalTestCase,
 ) *baremetal_mocks.MockMachineManagerInterface {
-
 	m := baremetal_mocks.NewMockMachineManagerInterface(ctrl)
 
 	m.EXPECT().SetFinalizer()
@@ -100,9 +99,8 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			return m
-		} else {
-			m.EXPECT().Associate(context.TODO()).Return(nil)
 		}
+		m.EXPECT().Associate(context.TODO()).Return(nil)
 	}
 
 	m.EXPECT().SetConditionMetal3MachineToTrue(capm3.AssociateBMHCondition)
@@ -176,7 +174,6 @@ type reconcileDeleteTestCase struct {
 func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 	tc reconcileDeleteTestCase,
 ) *baremetal_mocks.MockMachineManagerInterface {
-
 	m := baremetal_mocks.NewMockMachineManagerInterface(ctrl)
 
 	if tc.DeleteFails {

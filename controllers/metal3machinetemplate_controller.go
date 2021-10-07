@@ -42,7 +42,7 @@ const (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines/status,verbs=get
 
-// Metal3MachineTemplateReconciler reconciles a Metal3MachineTemplate object
+// Metal3MachineTemplateReconciler reconciles a Metal3MachineTemplate object.
 type Metal3MachineTemplateReconciler struct {
 	Client           client.Client
 	ManagerFactory   baremetal.ManagerFactoryInterface
@@ -50,7 +50,7 @@ type Metal3MachineTemplateReconciler struct {
 	WatchFilterValue string
 }
 
-// Reconcile handles Metal3MachineTemplate events
+// Reconcile handles Metal3MachineTemplate events.
 func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	m3templateLog := r.Log.WithName(templateControllerName).WithValues("metal3-machine-template", req.NamespacedName)
 
@@ -104,7 +104,6 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 func (r *Metal3MachineTemplateReconciler) reconcileNormal(ctx context.Context,
 	templateMgr baremetal.TemplateManagerInterface,
 ) (ctrl.Result, error) {
-
 	// Find the Metal3Machines with clonedFromName annotation referencing
 	// to the same Metal3MachineTemplate
 	if err := templateMgr.UpdateAutomatedCleaningMode(ctx); err != nil {
@@ -115,7 +114,7 @@ func (r *Metal3MachineTemplateReconciler) reconcileNormal(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for Metal3MachineTemplate controller.
 func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3MachineTemplate{}).
@@ -127,7 +126,9 @@ func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, 
 		Complete(r)
 }
 
-func (m *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(o client.Object) []ctrl.Request {
+// Metal3MachinesToMetal3MachineTemplate is a handler.ToRequestsFunc to be used to enqeue
+// requests for reconciliation of Metal3MachineTemplates.
+func (r *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 	if m3m, ok := o.(*capm3.Metal3Machine); ok {
 		if m3m.Annotations[clonedFromGroupKind] == "" && m3m.Annotations[clonedFromGroupKind] != "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io" {
@@ -140,7 +141,7 @@ func (m *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(
 			},
 		})
 	} else {
-		m.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o),
+		r.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o),
 			"failed to get Metal3Machine for Metal3MachineTemplate",
 		)
 	}

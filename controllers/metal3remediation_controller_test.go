@@ -49,7 +49,6 @@ type reconcileNormalRemediationTestCase struct {
 
 func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	tc reconcileNormalRemediationTestCase) *baremetal_mocks.MockRemediationManagerInterface {
-
 	m := baremetal_mocks.NewMockRemediationManagerInterface(ctrl)
 
 	// If the test case expects us to apply the reboot annotation at some point
@@ -80,18 +79,16 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	if tc.GetUnhealthyHostFails {
 		m.EXPECT().GetUnhealthyHost(context.TODO()).Return(nil, nil, fmt.Errorf("can't find foo_bmh"))
 		return m
-	} else {
-		m.EXPECT().GetUnhealthyHost(context.TODO()).Return(bmh, nil, nil)
 	}
+	m.EXPECT().GetUnhealthyHost(context.TODO()).Return(bmh, nil, nil)
 
 	// If user has set bmh.Spec.Online to false, do not try to remediate the host and set remediation phase to failed
 	if tc.HostStatusOffline {
 		m.EXPECT().OnlineStatus(bmh).Return(false)
 		m.EXPECT().SetRemediationPhase(capm3.PhaseFailed)
 		return m
-	} else {
-		m.EXPECT().OnlineStatus(bmh).Return(true)
 	}
+	m.EXPECT().OnlineStatus(bmh).Return(true)
 
 	m.EXPECT().GetRemediationType().Return(capm3.RebootRemediationStrategy)
 	m.EXPECT().GetRemediationPhase().Return(tc.RemediationPhase).MinTimes(1)
@@ -109,9 +106,8 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 			// When there's no retrying to do, we don't do remediation and instead go to waiting phase
 			m.EXPECT().SetRemediationPhase(capm3.PhaseWaiting)
 			return m
-		} else {
-			m.EXPECT().RetryLimitIsSet().Return(true)
 		}
+		m.EXPECT().RetryLimitIsSet().Return(true)
 		m.EXPECT().HasReachRetryLimit().Return(false)
 	}
 

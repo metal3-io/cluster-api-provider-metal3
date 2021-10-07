@@ -37,7 +37,7 @@ type RequeueAfterError struct {
 	RequeueAfter time.Duration
 }
 
-// Error implements the error interface
+// Error implements the error interface.
 func (e *RequeueAfterError) Error() string {
 	return fmt.Sprintf("requeue in: %s", e.RequeueAfter)
 }

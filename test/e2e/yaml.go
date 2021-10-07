@@ -46,13 +46,12 @@ func yamlFindByValue(node *yaml.Node, values ...string) (*yaml.Node, error) {
 }
 
 func splitYAML(resources []byte) ([]*yaml.Node, error) {
-
 	dec := yaml.NewDecoder(bytes.NewReader(resources))
 	listDocument := []*yaml.Node{}
 	for {
 		var value yaml.Node
 		err := dec.Decode(&value)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
