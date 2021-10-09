@@ -1,4 +1,4 @@
-# Cluster API Provider for Managed Bare Metal Hardware
+# Cluster API Provider Metal3 for Managed Bare Metal Hardware
 
 [![Ubuntu V1alpha4 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_ubuntu/badge/icon?subject=Ubuntu%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a4_integration_test_ubuntu/)
 [![CentOS V1alpha4 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_centos/badge/icon?subject=CentOS%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a4_integration_test_centos/)
@@ -22,7 +22,7 @@ clusterctl in the [getting-started](docs/getting-started.md).
 
 **Note:** We have stopped supporting CAPM3 v1alpha3
 
-## Deploying the metal3 provider
+## Deploying the Metal3 provider
 
 The recommended method is using
 [Clusterctl](https://master.cluster-api.sigs.k8s.io/clusterctl/overview.html).
