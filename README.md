@@ -1,26 +1,27 @@
 # Cluster API Provider for Managed Bare Metal Hardware
 
-[![Ubuntu V1alpha4 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_ubuntu/badge/icon?subject=Ubuntu%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a4_integration_test_ubuntu/)
-[![CentOS V1alpha4 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_centos/badge/icon?subject=CentOS%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a4_integration_test_centos/)
+[![Ubuntu V1alpha5 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_ubuntu/badge/icon?subject=Ubuntu%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_ubuntu/)
+[![CentOS V1alpha5 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_centos/badge/icon?subject=CentOS%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_centos/)
 
-This repository contains a Machine actuator implementation for the
-Kubernetes [Cluster API](https://github.com/kubernetes-sigs/cluster-api/).
+Kubernetes-native declarative infrastructure for Metal3.
 
-For more information about this actuator and related repositories, see
-[metal3.io](http://metal3.io/).
+## What is the Cluster API Provider Metal3
+
+The [Cluster API](https://github.com/kubernetes-sigs/cluster-api/) brings declarative,
+Kubernetes-style APIs to cluster creation, configuration and management. The API
+itself is shared across multiple cloud providers. Cluster API Provider Metal3 is
+one of the providers for Cluster API and enables users to deploy a Cluster API based
+cluster on top of bare metal infrastructure using Metal3.
 
 ## Compatibility with Cluster API
 
 | CAPM3 version | Cluster API version | CAPM3 Release |
 |---------------|---------------------|---------------|
-| ~~v1alpha3~~  | ~~v1alpha3~~        | ~~v0.3.X~~    |
 | v1alpha4      | v1alpha3            | v0.4.X        |
 | v1alpha5      | v1alpha4            | v0.5.X        |
 
 You can find information on how to use this provider with Cluster API and
 clusterctl in the [getting-started](docs/getting-started.md).
-
-**Note:** We have stopped supporting CAPM3 v1alpha3
 
 ## Deploying the metal3 provider
 

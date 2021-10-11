@@ -1,7 +1,3 @@
-export DEPLOY_KERNEL_URL="${DEPLOY_KERNEL_URL}"
-export DEPLOY_RAMDISK_URL="${DEPLOY_RAMDISK_URL}"
-export IRONIC_URL="${IRONIC_URL}"
-export IRONIC_INSPECTOR_URL="${IRONIC_INSPECTOR_URL}"
 export POD_CIDR='"192.168.0.0/24"'
 export SERVICE_CIDR='"10.96.0.0/12"'
 export API_ENDPOINT_HOST="192.168.111.249"
@@ -10,9 +6,6 @@ export IMAGE_URL="http://192.168.0.1/ubuntu.qcow2"
 export IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"
 export IMAGE_CHECKSUM_TYPE="md5"
 export IMAGE_FORMAT="qcow2"
-export IRONIC_NO_CA_CERT=true
-export IRONIC_NO_BASIC_AUTH=true
-export IRONIC_INSPECTOR_NO_BASIC_AUTH=true
 export CTLPLANE_KUBEADM_EXTRA_CONFIG="
     preKubeadmCommands:
       - ip link set dev enp2s0 up
