@@ -66,10 +66,14 @@ providers:
     files:
     - sourcePath: "${PWD}/metadata.yaml"
       targetName: "metadata.yaml"
-    - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha.yaml"
-      targetName: "cluster-template-ha.yaml"
-    - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha-centos.yaml"
-      targetName: "cluster-template-ha-centos.yaml"
+    # In the future, we can use the two commented templates below if we can find a way to make the e2e test less dependant on the dev-env.
+    # If someone wants to run the e2e test with a custom template instead of the one from the dev-env, they can modify and use the two templates.
+    # - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha.yaml"
+    #   targetName: "cluster-template-ha.yaml"
+    # - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha-centos.yaml"
+    #   targetName: "cluster-template-ha-centos.yaml"
+    - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha-m3-dev-env.yaml"
+      targetName: "cluster-template-ha-m3-dev-env.yaml"
 
 variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
