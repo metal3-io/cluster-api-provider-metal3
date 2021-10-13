@@ -37,12 +37,11 @@ var _ = Describe("Workload cluster creation", func() {
 		cniFile = "/tmp/calico.yaml"
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
+		flavorSuffix = "-m3-dev-env"
 
 		if osType == "centos" {
-			flavorSuffix = "-centos"
 			updateCalico(cniFile, "eth1")
 		} else {
-			flavorSuffix = ""
 			updateCalico(cniFile, "enp2s0")
 		}
 
