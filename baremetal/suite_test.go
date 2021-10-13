@@ -63,6 +63,11 @@ var _ = BeforeSuite(func() {
 	done := make(chan interface{})
 
 	go func() {
+		// GinkgoRecover should be deferred at the top of any spawned goroutine that (may) call `Fail`
+		// Since Gomega assertions call fail, you should throw a `defer GinkgoRecover()` at the top of
+		// any goroutine that calls out to Gomega.
+		defer GinkgoRecover()
+
 		logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 		By("bootstrapping test environment")
 		testEnv = &envtest.Environment{
