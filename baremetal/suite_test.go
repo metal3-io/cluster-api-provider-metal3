@@ -64,7 +64,7 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
-		By("bootstrapping test environment")
+		By("bootstrapping test environment.")
 		testEnv = &envtest.Environment{
 			CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
 		}
