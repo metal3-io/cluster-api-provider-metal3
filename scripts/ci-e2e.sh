@@ -53,7 +53,7 @@ clone_repos
 REPO_ROOT=$(realpath "$REPO_ROOT") 
 # Copy the current CAPM3 repo to the Go source directory
 rm -rf "${M3PATH}/cluster-api-provider-metal3" # To avoid 'permission denied' error when overriding .git/
-cp -R "${REPO_ROOT}" "${M3PATH}/" 
+cp -R "${REPO_ROOT}" "${M3PATH}/cluster-api-provider-metal3/" 
 make launch_mgmt_cluster verify
 # Generate the cluster template from metal3-dev-env
 if [ -f "${PWD}/scripts/generate-template.sh"  ]; then
