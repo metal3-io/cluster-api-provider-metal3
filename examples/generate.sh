@@ -121,15 +121,15 @@ curl --fail -Ss -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github
 echo "Downloaded ${COMPONENTS_CERT_MANAGER_GENERATED_FILE}"
 
 # Generate Cluster API provider components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=master" | "$ENVSUBST" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/config/default/?ref=main" | "$ENVSUBST" > "${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CLUSTER_API_GENERATED_FILE}"
 
 # Generate Kubeadm Bootstrap Provider components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/default/?ref=master" | "$ENVSUBST" > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/bootstrap/kubeadm/config/default/?ref=main" | "$ENVSUBST" > "${COMPONENTS_KUBEADM_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_KUBEADM_GENERATED_FILE}"
 
 # Generate Kubeadm Controlplane components file.
-"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/default/?ref=master" | "$ENVSUBST" > "${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
+"$KUSTOMIZE" build "github.com/kubernetes-sigs/cluster-api/controlplane/kubeadm/config/default/?ref=main" | "$ENVSUBST" > "${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 echo "Generated ${COMPONENTS_CTRLPLANE_GENERATED_FILE}"
 
 # Generate METAL3 Infrastructure Provider components file.

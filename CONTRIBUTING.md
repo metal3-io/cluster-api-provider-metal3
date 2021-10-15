@@ -60,17 +60,17 @@ mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
 Cluster API maintains older versions through `release-X.Y` branches. We accept
 backports of bug fixes to the most recent
 release branch. For example, if the most recent branch is `release-0.2`, and the
-`master` branch is under active
-development for v0.3.0, a bug fix that merged to `master` that also affects
+`main` branch is under active
+development for v0.3.0, a bug fix that merged to `main` that also affects
 `v0.2.x` may be considered for backporting
 to `release-0.2`. We generally do not accept PRs against older release branches.
 
 ## Breaking Changes
 
-Breaking changes are generally allowed in the `master` branch, as this is the
+Breaking changes are generally allowed in the `main` branch, as this is the
 branch used to develop the next minor release of Cluster API.
 
-There may be times, however, when `master` is closed for breaking changes. This
+There may be times, however, when `main` is closed for breaking changes. This
 is likely to happen as we near the release of a new minor version.
 
 Breaking changes are not allowed in release branches, as these represent minor

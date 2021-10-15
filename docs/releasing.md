@@ -79,7 +79,7 @@ For each minor or major release, two jobs need to be created :
 ### Update Metal3-dev-env
 
 Metal3-dev-env variables need to be modified. After a major or minor release,
-the new minor version (that follows CAPI versioning) should point to master for
+the new minor version (that follows CAPI versioning) should point to main for
 CAPM3 and the released version should point to the release branch.
 
 ### Update the image of CAPM3 in the release branch

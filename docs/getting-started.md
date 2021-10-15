@@ -18,7 +18,7 @@ The pre-requisite for the deployment of CAPM3 are the following:
 ### Using clusterctl
 
 Please refer to
-[Clusterctl documentation](https://master.cluster-api.sigs.k8s.io/clusterctl/overview.html).
+[Clusterctl documentation](https://main.cluster-api.sigs.k8s.io/clusterctl/overview.html).
 Once the [Pre-requisites](#pre-requisites) are fulfilled, you can follow the
 normal clusterctl flow for the `init`, `config`, `upgrade`, `move` and `delete`
 workflow. Please refer to the [Pivoting Ironic](#pivoting-or-updating-ironic) section for
@@ -29,7 +29,7 @@ additional information on the `move` process.
 CAPM3 provides a cluster template. This requires some environment variables
 properly set. You can find an example file containing the environment variables
 `example_variables.rc`in the release or
-[here](https://github.com/metal3-io/cluster-api-provider-metal3/tree/master/examples/clusterctl-templates/example_variables.rc).
+[here](https://github.com/metal3-io/cluster-api-provider-metal3/tree/main/examples/clusterctl-templates/example_variables.rc).
 The examples provided there or below assume that you are deploying the target
 node using an off-the-shelf Ubuntu image (18.04), served locally in the
 metal3-dev-env. They must be adapted for any deployment.

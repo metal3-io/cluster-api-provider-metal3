@@ -1,7 +1,7 @@
 # Versioning
 
 Those guidelines are coming from
-[Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/master/VERSIONING.md)
+[Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/VERSIONING.md)
 as we try to follow closely the release process
 
 <!-- markdownlint-disable -->
@@ -46,11 +46,11 @@ that we follow.
 
 ## Branches
 
-Cluster API Provider Metal3 contains two types of branches: the *master*
+Cluster API Provider Metal3 contains two types of branches: the *main*
 branch and *release-X* branches.
 
-The *master* branch is where development happens.  All the latest and
-greatest code, including breaking changes, happen on master.
+The *main* branch is where development happens.  All the latest and
+greatest code, including breaking changes, happen on main.
 
 The *release-X* branches contain stable, backwards compatible code.  Every
 major (X) release, a new such branch is created.  It is from these
@@ -119,11 +119,11 @@ Refer to the [releasing document](./docs/releasing.md) for the exact steps.
 
 Try to avoid breaking changes.  They make life difficult for users, who
 have to rewrite their code when they eventually upgrade, and for
-maintainers/contributors, who have to deal with differences between master
+maintainers/contributors, who have to deal with differences between main
 and stable branches.
 
 That being said, we'll occasionally want to make breaking changes. They'll
-be merged onto master, and will then trigger a major release (see [Release
+be merged onto main, and will then trigger a major release (see [Release
 Process](#release-process)).  Because breaking changes induce a major
 revision, the maintainers may delay a particular breaking change until
 a later date when they are ready to make a major revision with a few
@@ -153,7 +153,7 @@ Development branches:
   changes (we still have to merge/manage multiple branches for development
   and stable)
 
-- can be confusing to contributors, who often expect master to have the
+- can be confusing to contributors, who often expect main to have the
   latest changes.
 
 ### Never break compatibility
