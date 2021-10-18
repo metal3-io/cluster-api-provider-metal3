@@ -11,9 +11,9 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
-    --volume "${PWD}:/workdir:ro,z" \
+    --volume "${PWD}:/capm3:ro,z" \
     --entrypoint sh \
-    --workdir /workdir \
+    --workdir /capm3 \
     docker.io/koalaman/shellcheck-alpine:stable \
-    /workdir/hack/shellcheck.sh "${@}"
+    /capm3/hack/shellcheck.sh "${@}"
 fi;

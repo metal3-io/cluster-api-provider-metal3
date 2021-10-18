@@ -11,9 +11,9 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
-    --volume "${PWD}:/workdir:ro,z" \
+    --volume "${PWD}:/capm3:ro,z" \
     --entrypoint sh \
-    --workdir /workdir \
+    --workdir /capm3 \
     docker.io/pipelinecomponents/markdownlint:latest \
-    /workdir/hack/markdownlint.sh "${@}"
+    /capm3/hack/markdownlint.sh "${@}"
 fi;
