@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v3"
-
 	"k8s.io/utils/pointer"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,7 +86,10 @@ var _ = Describe("Workload cluster creation", func() {
 			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 			pivoting()
 			cert_rotation()
-			node_reuse()
+			if false {
+				node_reuse()
+			}
+			upgrade_nodes()
 		})
 	})
 })

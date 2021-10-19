@@ -22,6 +22,13 @@ func Logf(format string, a ...interface{}) {
 	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
 }
 
+func checkError(err error) {
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)
+		os.Exit(1)
+	}
+}
+
 func LogFromFile(logFile string) {
 	data, err := os.ReadFile(logFile)
 	Expect(err).To(BeNil(), "No log file found")
