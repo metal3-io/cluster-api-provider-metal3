@@ -42,12 +42,6 @@ cat <<EOF > tilt-settings.json
 {
   "capi_version": "${CAPIRELEASE}",
   "cert_manager_version": "v1.5.0",
-  "kubernetes_version": "${KUBERNETES_VERSION:-v1.22.0}",
-  "kustomize_substitutions": {
-    "DEPLOY_KERNEL_URL": "${DEPLOY_KERNEL_URL}",
-    "DEPLOY_RAMDISK_URL": "${DEPLOY_RAMDISK_URL}",
-    "IRONIC_INSPECTOR_URL": "${IRONIC_INSPECTOR_URL}",
-    "IRONIC_URL": "${IRONIC_URL}"
-  }
+  "kubernetes_version": "${KUBERNETES_VERSION:-v1.22.0}"
 }
 EOF

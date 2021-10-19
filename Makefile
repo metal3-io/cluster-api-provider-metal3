@@ -344,6 +344,11 @@ set-manifest-pull-policy:
 ## Deploying
 ## --------------------------------------
 
+# Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
+deploy-bmo-cr:
+	kubectl apply -f ./examples/metal3crds/metal3.io_baremetalhosts.yaml
+	kubectl apply -f ./examples/metal3plane/hosts.yaml
+
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: generate-examples
 	kubectl apply -f examples/_out/cert-manager.yaml
@@ -470,6 +475,7 @@ tilt-settings:
 
 .PHONY: tilt-up
 tilt-up: $(ENVSUBST) $(KUSTOMIZE) kind-create ## start tilt and build kind cluster if needed
+	$(MAKE) deploy-bmo-cr
 	tilt up
 
 .PHONY: delete-cluster
