@@ -45,6 +45,7 @@ import (
 	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -82,6 +83,8 @@ type MachineManagerInterface interface {
 	DissociateM3Metadata(context.Context) error
 	AssociateM3Metadata(context.Context) error
 	SetError(string, capierrors.MachineStatusError)
+	SetConditionMetal3MachineToFalse(capi.ConditionType, string, capi.ConditionSeverity, string, ...interface{})
+	SetConditionMetal3MachineToTrue(capi.ConditionType)
 }
 
 // MachineManager is responsible for performing machine reconciliation
@@ -1143,6 +1146,14 @@ func (m *MachineManager) SetError(message string, reason capierrors.MachineStatu
 	m.Metal3Machine.Status.FailureReason = &reason
 }
 
+func (m *MachineManager) SetConditionMetal3MachineToFalse(t capi.ConditionType, reason string, severity capi.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+	conditions.MarkFalse(m.Metal3Machine, t, reason, severity, messageFormat, messageArgs)
+}
+
+func (m *MachineManager) SetConditionMetal3MachineToTrue(t capi.ConditionType) {
+	conditions.MarkTrue(m.Metal3Machine, t)
+}
+
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
 // nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
 // machine was updated.
@@ -1153,22 +1164,22 @@ func (m *MachineManager) clearError() {
 	}
 }
 
-// updateMachineStatus updates a machine object's status.
+// updateMachineStatus updates a Metal3Machine object's status.
 func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmh.BareMetalHost) error {
 	addrs := m.nodeAddresses(host)
 
-	machineCopy := m.Metal3Machine.DeepCopy()
-	machineCopy.Status.Addresses = addrs
+	metal3MachineOld := m.Metal3Machine.DeepCopy()
 
-	if equality.Semantic.DeepEqual(m.Machine.Status, machineCopy.Status) {
+	m.Metal3Machine.Status.Addresses = addrs
+	conditions.MarkTrue(m.Metal3Machine, capm3.AssociateBMHCondition)
+
+	if equality.Semantic.DeepEqual(m.Metal3Machine.Status, metal3MachineOld.Status) {
 		// Status did not change
 		return nil
 	}
 
 	now := metav1.Now()
 	m.Metal3Machine.Status.LastUpdated = &now
-	m.Metal3Machine.Status.Addresses = addrs
-
 	return nil
 }
 

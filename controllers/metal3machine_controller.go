@@ -33,6 +33,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,15 +86,14 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		return ctrl.Result{}, err
 	}
-	helper, err := patch.NewHelper(capm3Machine, r.Client)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
-	}
 	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
 	defer func() {
-		err := helper.Patch(ctx, capm3Machine)
+		helper, err := patch.NewHelper(capm3Machine, r.Client)
 		if err != nil {
-			machineLog.Info("failed to Patch capm3Machine")
+			machineLog.Error(err, "failed to init patch helper")
+		}
+		if err := patchMetal3Machine(ctx, helper, capm3Machine); err != nil {
+			machineLog.Error(err, "failed to Patch metal3Machine")
 		}
 	}()
 	//clear an error if one was previously set
@@ -137,6 +137,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Make sure infrastructure is ready
 	if !cluster.Status.InfrastructureReady {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
+		conditions.MarkFalse(capm3Machine, capm3.AssociateBMHCondition, capm3.WaitingForClusterInfrastructureReason, capi.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -190,6 +191,25 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return r.reconcileNormal(ctx, machineMgr)
 }
 
+func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Machine *capm3.Metal3Machine, options ...patch.Option) error {
+
+	// Always update the readyCondition by summarizing the state of other conditions.
+	conditions.SetSummary(metal3Machine,
+		conditions.WithConditions(
+			capm3.AssociateBMHCondition,
+		),
+	)
+
+	// Patch the object, ignoring conflicts on the conditions owned by this controller.
+	options = append(options,
+		patch.WithOwnedConditions{Conditions: []capi.ConditionType{
+			capi.ReadyCondition,
+			capm3.AssociateBMHCondition,
+		}},
+	)
+	return patchHelper.Patch(ctx, metal3Machine, options...)
+}
+
 func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
 ) (ctrl.Result, error) {
@@ -207,6 +227,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
 	if !machineMgr.IsBootstrapReady() {
+		machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.WaitingForBootstrapReadyReason, capi.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -217,11 +238,14 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		//Associate the baremetalhost hosting the machine
 		err := machineMgr.Associate(ctx)
 		if err != nil {
+			machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, capi.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to associate the Metal3Machine to a BaremetalHost", errType,
 			)
 		}
 	}
+	// Update Condition to reflect that we have an associated BMH
+	machineMgr.SetConditionMetal3MachineToTrue(capm3.AssociateBMHCondition)
 
 	// Make sure that the metadata is ready if any
 	err := machineMgr.AssociateM3Metadata(ctx)

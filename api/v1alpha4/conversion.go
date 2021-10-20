@@ -74,7 +74,12 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if err := Convert_v1alpha4_Metal3Machine_To_v1alpha5_Metal3Machine(src, dst, nil); err != nil {
 		return err
 	}
-
+	// Manually restore data.
+	restored := &v1alpha5.Metal3Machine{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Status.Conditions = restored.Status.Conditions
 	return nil
 }
 
@@ -83,8 +88,16 @@ func (dst *Metal3Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	if err := Convert_v1alpha5_Metal3Machine_To_v1alpha4_Metal3Machine(src, dst, nil); err != nil {
 		return err
 	}
-
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
 	return nil
+}
+
+// Status.Conditions was introduced in v1alpha5, thus requiring a custom conversion function; the values is going to be preserved in an annotation thus allowing roundtrip without losing information.
+func Convert_v1alpha5_Metal3MachineStatus_To_v1alpha4_Metal3MachineStatus(in *v1alpha5.Metal3MachineStatus, out *Metal3MachineStatus, s apiconversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3MachineStatus_To_v1alpha4_Metal3MachineStatus(in, out, s)
 }
 
 func (src *Metal3MachineList) ConvertTo(dstRaw conversion.Hub) error {

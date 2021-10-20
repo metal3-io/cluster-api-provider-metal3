@@ -25,3 +25,16 @@ const (
 	// ControlPlaneEndpointFailedReason is used to indicate that provided ControlPlaneEndpoint is invalid.
 	ControlPlaneEndpointFailedReason = "ControlPlaneEndpointFailed"
 )
+
+// Metal3Machine Conditions and Reasons.
+const (
+	// AssociateBMHCondition documents the status of associated the Metal3Machine with a BaremetalHost.
+	AssociateBMHCondition clusterv1.ConditionType = "AssociateBMH"
+
+	// WaitingForClusterInfrastructureReason used when waiting for cluster infrastructure to be ready before proceeding.
+	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
+	// WaitingForBootstrapReadyReason used when waiting for bootstrap to be ready before proceeding.
+	WaitingForBootstrapReadyReason = "WaitingForBootstrapReady"
+	// AssociateBMHFailedReason documents an error while associating Metal3Machine with a BaremetalHost.
+	AssociateBMHFailedReason = "AssociateBMHFailed"
+)

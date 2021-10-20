@@ -164,6 +164,10 @@ type Metal3MachineStatus struct {
 	// NetworkData is an object storing the reference to the secret containing the
 	// network data used to deploy the BareMetalHost.
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
+
+	// Conditions defines current service state of the Metal3Machine.
+	// +optional
+	Conditions capi.Conditions `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -193,6 +197,16 @@ type Metal3MachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3Machine `json:"items"`
+}
+
+// GetConditions returns the list of conditions for an Metal3Machine API object.
+func (c *Metal3Machine) GetConditions() capi.Conditions {
+	return c.Status.Conditions
+}
+
+// SetConditions will set the given conditions on an Metal3Machine object.
+func (c *Metal3Machine) SetConditions(conditions capi.Conditions) {
+	c.Status.Conditions = conditions
 }
 
 func init() {
