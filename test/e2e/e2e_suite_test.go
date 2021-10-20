@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	"github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -57,6 +57,8 @@ var (
 	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
 	bootstrapClusterProxy framework.ClusterProxy
 
+	osType string
+
 	kubeconfigPath string
 	e2eTestsPath   string
 )
@@ -68,6 +70,8 @@ func init() {
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", true, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&kubeconfigPath, "e2e.kubeconfig-path", os.Getenv("HOME")+"/.kube/config", "if e2e.use-existing-cluster is true, path to the kubeconfig file")
 	e2eTestsPath = getE2eTestsPath()
+
+	osType = strings.ToLower(os.Getenv("OS"))
 }
 
 func TestE2e(t *testing.T) {
@@ -136,8 +140,8 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	_ = v1alpha5.AddToScheme(sc)
-	Expect(bmo.AddToScheme(sc)).NotTo(HaveOccurred())
+	Expect(bmo.AddToScheme(sc)).To(Succeed())
+	Expect(capm3.AddToScheme(sc)).To(Succeed())
 
 	return sc
 }
@@ -211,4 +215,13 @@ func getE2eTestsPath() string {
 		log.Fatal(err)
 	}
 	return dir
+}
+
+func validateGlobals(specName string) {
+	Expect(e2eConfig).ToNot(BeNil(), "Invalid argument. e2eConfig can't be nil when calling %s spec", specName)
+	Expect(e2eConfig.Variables).To(HaveKey(KubernetesVersion))
+	Expect(clusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. clusterctlConfigPath must be an existing file when calling %s spec", specName)
+	Expect(bootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. bootstrapClusterProxy can't be nil when calling %s spec", specName)
+	Expect(osType).ToNot(Equal(""))
+	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid argument. artifactFolder can't be created for %s spec", specName)
 }
