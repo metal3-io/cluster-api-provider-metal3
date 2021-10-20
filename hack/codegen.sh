@@ -23,6 +23,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   config/webhook/*.yaml
   api/v1alpha4/zz_generated.*.go
   api/v1alpha5/zz_generated.*.go
+  api/v1beta1/zz_generated.*.go
   baremetal/mocks/zz_generated.*.go"
 
   # shellcheck disable=SC2086

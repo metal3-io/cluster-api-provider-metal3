@@ -11,7 +11,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1alpha5
+package v1beta1
 
 import (
 	"github.com/pkg/errors"
@@ -28,8 +28,8 @@ func (c *Metal3DataClaim) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1alpha5-metal3dataclaim,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,versions=v1alpha5,name=validation.metal3dataclaim.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1alpha5-metal3dataclaim,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,versions=v1alpha5,name=default.metal3dataclaim.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3dataclaim,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,versions=v1beta1,name=validation.metal3dataclaim.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3dataclaim,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,versions=v1beta1,name=default.metal3dataclaim.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var _ webhook.Defaulter = &Metal3DataClaim{}
 var _ webhook.Validator = &Metal3DataClaim{}

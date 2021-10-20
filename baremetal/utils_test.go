@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	//"k8s.io/apimachinery/pkg/runtime"

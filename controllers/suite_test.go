@@ -32,7 +32,7 @@ import (
 	"k8s.io/klog/v2/klogr"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -66,7 +66,7 @@ func init() {
 	// Register required object kinds with global scheme.
 	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
 	_ = clusterv1.AddToScheme(scheme.Scheme)
-	_ = infrav1alpha5.AddToScheme(scheme.Scheme)
+	_ = infrav1beta1.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
 	_ = v1.AddToScheme(scheme.Scheme)
 	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
@@ -77,7 +77,7 @@ func setupScheme() *runtime.Scheme {
 	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := infrav1alpha5.AddToScheme(s); err != nil {
+	if err := infrav1beta1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := ipamv1.AddToScheme(s); err != nil {
@@ -113,7 +113,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(cfg).ToNot(BeNil())
 
-		err = infrav1alpha5.AddToScheme(scheme.Scheme)
+		err = infrav1beta1.AddToScheme(scheme.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = apiextensionsv1.AddToScheme(scheme.Scheme)
@@ -145,7 +145,7 @@ func clusterPauseSpec() *clusterv1.ClusterSpec {
 			Name:       metal3ClusterName,
 			Namespace:  namespaceName,
 			Kind:       "Metal3Cluster",
-			APIVersion: infrav1alpha5.GroupVersion.String(),
+			APIVersion: infrav1beta1.GroupVersion.String(),
 		},
 	}
 }
@@ -161,9 +161,9 @@ func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 	}
 }
 
-func bmcSpec() *infrav1alpha5.Metal3ClusterSpec {
-	return &infrav1alpha5.Metal3ClusterSpec{
-		ControlPlaneEndpoint: infrav1alpha5.APIEndpoint{
+func bmcSpec() *infrav1beta1.Metal3ClusterSpec {
+	return &infrav1beta1.Metal3ClusterSpec{
+		ControlPlaneEndpoint: infrav1beta1.APIEndpoint{
 			Host: "192.168.111.249",
 			Port: 6443,
 		},
@@ -202,7 +202,7 @@ func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *cluster
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
 				Kind:       "Metal3Cluster",
-				APIVersion: infrav1alpha5.GroupVersion.String(),
+				APIVersion: infrav1beta1.GroupVersion.String(),
 			},
 		}
 	}
@@ -225,12 +225,12 @@ func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *cluster
 	}
 }
 
-func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1alpha5.Metal3ClusterSpec, status *infrav1alpha5.Metal3ClusterStatus, pausedAnnotation bool) *infrav1alpha5.Metal3Cluster {
+func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1beta1.Metal3ClusterSpec, status *infrav1beta1.Metal3ClusterStatus, pausedAnnotation bool) *infrav1beta1.Metal3Cluster {
 	if spec == nil {
-		spec = &infrav1alpha5.Metal3ClusterSpec{}
+		spec = &infrav1beta1.Metal3ClusterSpec{}
 	}
 	if status == nil {
-		status = &infrav1alpha5.Metal3ClusterStatus{}
+		status = &infrav1beta1.Metal3ClusterStatus{}
 	}
 	ownerRefs := []metav1.OwnerReference{}
 	if ownerRef != nil {
@@ -258,10 +258,10 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spe
 		}
 	}
 
-	return &infrav1alpha5.Metal3Cluster{
+	return &infrav1beta1.Metal3Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Cluster",
-			APIVersion: infrav1alpha5.GroupVersion.String(),
+			APIVersion: infrav1beta1.GroupVersion.String(),
 		},
 		ObjectMeta: *objMeta,
 		Spec:       *spec,
@@ -288,16 +288,16 @@ func newMachine(clusterName, machineName string, metal3machineName string) *clus
 			Name:       metal3machineName,
 			Namespace:  namespaceName,
 			Kind:       "Metal3Machine",
-			APIVersion: infrav1alpha5.GroupVersion.String(),
+			APIVersion: infrav1beta1.GroupVersion.String(),
 		}
 	}
 	return machine
 }
 
 func newMetal3Machine(name string, meta *metav1.ObjectMeta,
-	spec *infrav1alpha5.Metal3MachineSpec, status *infrav1alpha5.Metal3MachineStatus,
+	spec *infrav1beta1.Metal3MachineSpec, status *infrav1beta1.Metal3MachineStatus,
 	pausedAnnotation bool,
-) *infrav1alpha5.Metal3Machine {
+) *infrav1beta1.Metal3Machine {
 
 	if meta == nil {
 		meta = &metav1.ObjectMeta{
@@ -327,16 +327,16 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 
 	meta.Name = name
 	if spec == nil {
-		spec = &infrav1alpha5.Metal3MachineSpec{}
+		spec = &infrav1beta1.Metal3MachineSpec{}
 	}
 	if status == nil {
-		status = &infrav1alpha5.Metal3MachineStatus{}
+		status = &infrav1beta1.Metal3MachineStatus{}
 	}
 
-	return &infrav1alpha5.Metal3Machine{
+	return &infrav1beta1.Metal3Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Machine",
-			APIVersion: infrav1alpha5.GroupVersion.String(),
+			APIVersion: infrav1beta1.GroupVersion.String(),
 		},
 		ObjectMeta: *meta,
 		Spec:       *spec,

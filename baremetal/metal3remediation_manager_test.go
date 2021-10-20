@@ -22,7 +22,7 @@ import (
 
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2/klogr"
