@@ -209,7 +209,10 @@ def enable_provider(name):
         os.environ.update(substitutions)
 
         # Apply the kustomized yaml for this provider
-        yaml = str(kustomizesub(context + "/config/default"))
+        if name == "metal3-bmo":
+          yaml = str(kustomizesub(context + "/config"))
+        else:
+          yaml = str(kustomizesub(context + "/config/default"))
         k8s_yaml(blob(yaml))
 
 
