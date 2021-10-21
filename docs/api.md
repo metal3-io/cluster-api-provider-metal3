@@ -634,7 +634,7 @@ spec:
           mtu: 1500
           macAddress:
             string: "XX:XX:XX:XX:XX:XX"
-          bondMode: "802.1ad"
+          bondMode: "802.3ad"
           bondLinks:
             - enp1s0
             - enp2s0
@@ -797,7 +797,7 @@ The **links/bonds** object contains the following:
 
 The **links/bonds/bondMode** can be one of :
 
-* 802.1ad
+* 802.3ad
 * balance-rr
 * active-backup
 * balance-xor
