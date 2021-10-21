@@ -71,6 +71,7 @@ ALL_ARCH = amd64 arm arm64 ppc64le s390x
 MANIFEST_ROOT ?= config
 CRD_ROOT ?= $(MANIFEST_ROOT)/crd/bases
 METAL3_CRD_ROOT ?= $(MANIFEST_ROOT)/crd/metal3
+METAL3_BMH_CRS ?= $(ROOT_DIR)/examples/metal3plane/hosts.yaml
 WEBHOOK_ROOT ?= $(MANIFEST_ROOT)/webhook
 RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 
@@ -346,8 +347,8 @@ set-manifest-pull-policy:
 
 # Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
 deploy-bmo-cr:
-	kubectl apply -f ./examples/metal3crds/metal3.io_baremetalhosts.yaml
-	kubectl apply -f ./examples/metal3plane/hosts.yaml
+	kubectl apply -f examples/metal3crds/metal3.io_baremetalhosts.yaml
+	kubectl apply -f "${METAL3_BMH_CRS}"
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: generate-examples
