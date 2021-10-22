@@ -87,6 +87,21 @@ source "${REPO_ROOT}/hack/ensure-kubectl.sh"
 # shellcheck source=./hack/ensure-kustomize.sh
 source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
+# TODO delete after updating gerrit
+export TESTS_GROUP=${TESTS_GROUP:-"upgrade"}
+if [[ "${TESTS_GROUP}" == upgrade ]]; then
+  # shellcheck disable=SC1091
+  # shellcheck disable=SC1090
+  source "${M3_DEV_ENV_PATH}/scripts/feature_tests/upgrade/upgrade_vars.sh"
+elif [[ "${TESTS_GROUP}" == features ]]; then
+  # shellcheck disable=SC1091
+  # shellcheck disable=SC1090
+  source "${M3_DEV_ENV_PATH}/scripts/feature_tests/feature_test_vars.sh"
+  # shellcheck disable=SC1091
+  # shellcheck disable=SC1090
+  source "${M3_DEV_ENV_PATH}/scripts/feature_tests/node_reuse/node_reuse_vars.sh"
+fi
+
 # This will run the tests with env variabls defined in environment.sh
 # or exported by metal3-dev-env scripts
 ${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests

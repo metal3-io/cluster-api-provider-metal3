@@ -39,6 +39,9 @@ var (
 
 	// skipCleanup prevents cleanup of test resources e.g. for debug purposes.
 	skipCleanup bool
+
+	// select the group of tests to run
+	testsGroup string
 )
 
 // Test suite global vars.
@@ -67,6 +70,7 @@ func init() {
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", true, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&kubeconfigPath, "e2e.kubeconfig-path", os.Getenv("HOME")+"/.kube/config", "if e2e.use-existing-cluster is true, path to the kubeconfig file")
+	flag.StringVar(&testsGroup, "e2e.tests-group", "features", "select the group of tests to run")
 	e2eTestsPath = getE2eTestsPath()
 }
 

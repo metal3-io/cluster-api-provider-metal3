@@ -131,7 +131,8 @@ e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
-		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
+		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER) \
+		-e2e.tests-group=$(TESTS_GROUP) 
 	rm $(E2E_CONF_FILE_ENVSUBST)
 
 ## --------------------------------------

@@ -34,6 +34,7 @@ export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-1}
 # This template is used by default, but users can change to use the static templates by changing the flavor. 
 export NUM_OF_MASTER_REPLICAS=${CONTROL_PLANE_MACHINE_COUNT}
 export NUM_OF_WORKER_REPLICAS=${WORKER_MACHINE_COUNT}
+export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.22.0"}
 
 # The e2e test framework would itself handle the cloning. It clones all the repos that are cloned in M3-DEV-ENV expect CAPM3.
 # It would use the local CAPM3 repo where the e2e test is running. 
