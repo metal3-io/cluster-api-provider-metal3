@@ -45,17 +45,17 @@ func node_reuse() {
 	controlplaneNodes := getControlplaneNodes(clientSet)
 	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
 
-	By("Scale own machinedeployment to 0")
+	By("Scale down machinedeployment to 0")
 	scaleMachineDeployment(ctx, targetClusterClient, 1, 0)
 
-	Byf("Wait until the worker is scaled down and %d BMH(s) Ready", numberOfWorkerBmh)
+	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkerBmh)
 	Eventually(
 		func() int {
 			bmhs := bmo.BareMetalHostList{}
 			Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			filtered := filterBmhsByProvisioningState(bmhs.Items, bmo.StateReady)
+			filtered := filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)
 			return len(filtered)
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-ready")...,
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...,
 	).Should(Equal(numberOfWorkerBmh))
 
 	By("Get the provisioned BMH names and UUIDs")
@@ -115,7 +115,7 @@ func node_reuse() {
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning")...,
 	).Should(Equal(numberOfWorkerBmh), "Deprovisioning bmhs are not equal to %d", numberOfWorkerBmh)
 
-	By("Wait until above deprovisioning BMH is in Ready state again")
+	By("Wait until above deprovisioning BMH is in available state again")
 	Eventually(
 		func() error {
 			bmhs := bmo.BareMetalHostList{}
@@ -125,8 +125,8 @@ func node_reuse() {
 			if err != nil {
 				return err
 			}
-			if bmh.Status.Provisioning.State != bmo.StateReady {
-				return fmt.Errorf("The bmh [%s] is not ready yet", deprovisioning_bmh[0].Name)
+			if bmh.Status.Provisioning.State != bmo.StateAvailable {
+				return fmt.Errorf("The bmh [%s] is not available yet", deprovisioning_bmh[0].Name)
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-ready")...,
@@ -145,7 +145,7 @@ func node_reuse() {
 				return fmt.Errorf("The bmh [%s]  is not provisioning yet", deprovisioning_bmh[0].Name)
 			}
 			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-ready-provisioning")...,
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-available-provisioning")...,
 	).Should(Succeed())
 
 	Byf("Wait until two machines become running and updated with the new %s k8s version", upgradedK8sVersion)
@@ -215,13 +215,13 @@ func node_reuse() {
 				return err
 			}
 
-			readyBmhs := filterBmhsByProvisioningState(bmhs.Items, bmo.StateReady)
+			readyBmhs := filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)
 
 			if len(readyBmhs) != numberOfControleplaneBmh {
-				return fmt.Errorf("BMHs ready are not equal to %d", numberOfControleplaneBmh)
+				return fmt.Errorf("BMHs available are not equal to %d", numberOfControleplaneBmh)
 			}
 			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-ready")...,
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...,
 	).Should(Succeed())
 
 	By("Scale the worker up to 1 to start testing MachineDeployment")
@@ -232,7 +232,7 @@ func node_reuse() {
 		func() int {
 			bmhs := bmo.BareMetalHostList{}
 			Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			provisionedBmhs := filterBmhsByProvisioningState(bmhs.Items, bmo.StateReady)
+			provisionedBmhs := filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)
 			return len(provisionedBmhs)
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...,
 	).Should(Equal(2))
@@ -277,11 +277,11 @@ func node_reuse() {
 	m3machineTemplateName = fmt.Sprintf("%s-workers", clusterName)
 	updateNodeReuse(true, m3machineTemplateName, targetClusterClient)
 
-	By("List BMHs and mark all ready BMHs with unhealthy annotation")
+	By("List BMHs and mark all available BMHs with unhealthy annotation")
 	bmhs := bmo.BareMetalHostList{}
 	Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 	for _, item := range bmhs.Items {
-		if item.Status.Provisioning.State == bmo.StateReady {
+		if item.Status.Provisioning.State == bmo.StateAvailable {
 			annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", pointer.String(""))
 		}
 	}
@@ -319,7 +319,7 @@ func node_reuse() {
 		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning")...,
 	).Should(Equal(numberOfWorkerBmh), "Deprovisioning bmhs are not equal to %d", numberOfWorkerBmh)
 
-	By("Wait until the above deprovisioning BMH is in Ready state again")
+	By("Wait until the above deprovisioning BMH is in available state again")
 	Eventually(
 		func() error {
 			bmhs := bmo.BareMetalHostList{}
@@ -328,19 +328,19 @@ func node_reuse() {
 			if err != nil {
 				return err
 			}
-			if bmh.Status.Provisioning.State != bmo.StateReady {
-				return fmt.Errorf("The bmh [%s] is not ready yet", deprovisioning_bmh[0].Name)
+			if bmh.Status.Provisioning.State != bmo.StateAvailable {
+				return fmt.Errorf("The bmh [%s] is not available yet", deprovisioning_bmh[0].Name)
 			}
 			return nil
 		},
 		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-ready")...,
 	).Should(Succeed())
 
-	By("Unmark all the ready BMHs with unhealthy annotation")
+	By("Unmark all the available BMHs with unhealthy annotation")
 	bmhs = bmo.BareMetalHostList{}
 	Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 	for _, item := range bmhs.Items {
-		if item.Status.Provisioning.State == bmo.StateReady {
+		if item.Status.Provisioning.State == bmo.StateAvailable {
 			annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", nil)
 		}
 	}
@@ -359,7 +359,7 @@ func node_reuse() {
 			}
 			return nil
 		},
-		e2eConfig.GetIntervals(specName, "wait-bmh-ready-provisioning")...,
+		e2eConfig.GetIntervals(specName, "wait-bmh-available-provisioning")...,
 	).Should(Succeed())
 
 	Byf("Wait until worker machine becomes running and updated with new %s k8s version", upgradedK8sVersion)
