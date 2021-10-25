@@ -348,7 +348,8 @@ set-manifest-pull-policy:
 # Deploy the BaremetalHost CRDs and CRs (for testing purposes only)
 deploy-bmo-cr:
 	kubectl apply -f examples/metal3crds/metal3.io_baremetalhosts.yaml
-	kubectl apply -f "${METAL3_BMH_CRS}"
+##	ignore error when bmh resource creation is not run yet, relevant when metal3-dev-env uses tilt ephemeral cluster
+	kubectl apply -f "${METAL3_BMH_CRS}" || true
 
 # Deploy controller in the configured Kubernetes cluster in ~/.kube/config
 deploy: generate-examples
