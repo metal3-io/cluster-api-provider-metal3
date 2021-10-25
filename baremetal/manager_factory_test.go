@@ -22,7 +22,7 @@ import (
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"k8s.io/klog/v2/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )

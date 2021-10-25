@@ -25,7 +25,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	"sigs.k8s.io/cluster-api/api/v1alpha4"
+	"sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -878,7 +878,7 @@ func (in *Metal3MachineStatus) DeepCopyInto(out *Metal3MachineStatus) {
 	}
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make(v1alpha4.MachineAddresses, len(*in))
+		*out = make(v1beta1.MachineAddresses, len(*in))
 		copy(*out, *in)
 	}
 	if in.UserData != nil {

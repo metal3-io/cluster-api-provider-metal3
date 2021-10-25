@@ -14,10 +14,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	dockerTypes "github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
@@ -144,7 +144,7 @@ func pivoting() {
 
 	By("Check if machines become running.")
 	Eventually(func() error {
-		machines := &clusterv1.MachineList{}
+		machines := &capi.MachineList{}
 		if err := targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace)); err != nil {
 			return err
 		}

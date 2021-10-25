@@ -31,7 +31,7 @@ import (
 	v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	v1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
 	patch "sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -59,10 +59,10 @@ func (m *MockRemediationManagerInterface) EXPECT() *MockRemediationManagerInterf
 }
 
 // GetCapiMachine mocks base method.
-func (m *MockRemediationManagerInterface) GetCapiMachine(ctx context.Context) (*v1alpha4.Machine, error) {
+func (m *MockRemediationManagerInterface) GetCapiMachine(ctx context.Context) (*v1beta10.Machine, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCapiMachine", ctx)
-	ret0, _ := ret[0].(*v1alpha4.Machine)
+	ret0, _ := ret[0].(*v1beta10.Machine)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

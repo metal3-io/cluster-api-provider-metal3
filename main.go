@@ -41,7 +41,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	// +kubebuilder:scaffold:imports
 )
@@ -69,7 +69,7 @@ func init() {
 	_ = infrav1beta1.AddToScheme(myscheme)
 	_ = infrav1alpha5.AddToScheme(myscheme)
 	_ = infrav1alpha4.AddToScheme(myscheme)
-	_ = clusterv1.AddToScheme(myscheme)
+	_ = capi.AddToScheme(myscheme)
 	_ = bmoapis.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -174,7 +174,7 @@ func initFlags(fs *pflag.FlagSet) {
 		&watchFilterValue,
 		"watch-filter",
 		"",
-		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", capi.WatchLabel),
 	)
 
 	flag.DurationVar(

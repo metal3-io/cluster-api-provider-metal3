@@ -7,7 +7,7 @@ import (
 	"time"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -18,8 +18,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/kubernetes/pkg/util/taints"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -91,7 +91,7 @@ func node_reuse() {
 	By("Check if only a single machine is in Deleting state and no other new machines are in Provisioning")
 	Eventually(
 		func() error {
-			machines := &clusterv1.MachineList{}
+			machines := &capi.MachineList{}
 			err = targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace))
 			if err != nil {
 				Logf("Error:  %v", err)
@@ -99,8 +99,8 @@ func node_reuse() {
 			}
 			deleting_count := 0
 			for _, machine := range machines.Items {
-				Expect(machine.Status.GetTypedPhase() == clusterv1.MachinePhaseProvisioning).To(BeFalse()) // Ensure no machine is provisioning
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseDeleting {
+				Expect(machine.Status.GetTypedPhase() == capi.MachinePhaseProvisioning).To(BeFalse()) // Ensure no machine is provisioning
+				if machine.Status.GetTypedPhase() == capi.MachinePhaseDeleting {
 					deleting_count++
 				}
 			}
@@ -175,7 +175,7 @@ func node_reuse() {
 	Byf("Wait until two machines become running and updated with the new %s k8s version", upgradedK8sVersion)
 	Eventually(
 		func() error {
-			machines := &clusterv1.MachineList{}
+			machines := &capi.MachineList{}
 			err = targetClusterClient.List(ctx, machines, client.InNamespace(namespace))
 			if err != nil {
 				Logf("Error:  %v", err)
@@ -184,7 +184,7 @@ func node_reuse() {
 
 			running_upgraded_len := 0
 			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
+				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
 					running_upgraded_len++
 					Logf("Machine [%v] is upgraded to k8s version (%v) and in running state", machine.Name, upgradedK8sVersion)
 				}
@@ -203,7 +203,7 @@ func node_reuse() {
 	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
 	Eventually(
 		func() error {
-			machines := &clusterv1.MachineList{}
+			machines := &capi.MachineList{}
 			err = targetClusterClient.List(ctx, machines, client.InNamespace(namespace))
 			if err != nil {
 				Logf("Error:  %v", err)
@@ -212,7 +212,7 @@ func node_reuse() {
 
 			running_upgraded_len := 0
 			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
+				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
 					running_upgraded_len++
 					Logf("Machine [%v] is upgraded to k8s version (%v) and in running state", machine.Name, upgradedK8sVersion)
 				}
@@ -297,10 +297,10 @@ func node_reuse() {
 	Byf("Wait until %d more machine becomes running", numberOfWorkers)
 	Eventually(
 		func() int {
-			machines := &clusterv1.MachineList{}
+			machines := &capi.MachineList{}
 			Expect(targetClusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
 
-			runningMachines := filterMachinesByStatusPhase(machines.Items, clusterv1.MachinePhaseRunning)
+			runningMachines := filterMachinesByStatusPhase(machines.Items, capi.MachinePhaseRunning)
 			return len(runningMachines)
 		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
 	).Should(Equal(2))
@@ -422,11 +422,11 @@ func node_reuse() {
 	Byf("Wait until worker machine becomes running and updated with new %s k8s version", upgradedK8sVersion)
 	Eventually(
 		func() int {
-			machines := &clusterv1.MachineList{}
+			machines := &capi.MachineList{}
 			Expect(targetClusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
 			running_upgraded_len := 0
 			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
+				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
 					running_upgraded_len++
 					Logf("Machine [%v] is upgraded to (%v) and running", machine.Name, upgradedK8sVersion)
 				}
@@ -466,9 +466,9 @@ func node_reuse() {
 	Byf("Wait until all %d machine(s) become(s) running", numberOfAllBmh)
 	Eventually(
 		func() int {
-			machines := &clusterv1.MachineList{}
+			machines := &capi.MachineList{}
 			Expect(targetClusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-			runningMachines := filterMachinesByStatusPhase(machines.Items, clusterv1.MachinePhaseRunning)
+			runningMachines := filterMachinesByStatusPhase(machines.Items, capi.MachinePhaseRunning)
 			return len(runningMachines)
 		},
 		e2eConfig.GetIntervals(specName, "wait-machine-running")...,
@@ -529,7 +529,7 @@ func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint
 	return
 }
 
-func filterMachinesByStatusPhase(machines []clusterv1.Machine, phase clusterv1.MachinePhase) (result []clusterv1.Machine) {
+func filterMachinesByStatusPhase(machines []capi.Machine, phase capi.MachinePhase) (result []capi.Machine) {
 	for _, machine := range machines {
 		if machine.Status.GetTypedPhase() == phase {
 			result = append(result, machine)

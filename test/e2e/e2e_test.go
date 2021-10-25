@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -22,7 +22,7 @@ var (
 	specName                 = "metal3"
 	namespace                = "metal3"
 	flavorSuffix             string
-	cluster                  *clusterv1.Cluster
+	cluster                  *capi.Cluster
 	clusterName              = "test1"
 	clusterctlLogFolder      string
 	cniFile                  string

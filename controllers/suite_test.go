@@ -32,10 +32,10 @@ import (
 	"k8s.io/klog/v2/klogr"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -65,8 +65,8 @@ func init() {
 
 	// Register required object kinds with global scheme.
 	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
-	_ = clusterv1.AddToScheme(scheme.Scheme)
-	_ = infrav1beta1.AddToScheme(scheme.Scheme)
+	_ = capi.AddToScheme(scheme.Scheme)
+	_ = capm3.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
 	_ = v1.AddToScheme(scheme.Scheme)
 	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
@@ -74,10 +74,10 @@ func init() {
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(s); err != nil {
+	if err := capi.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := infrav1beta1.AddToScheme(s); err != nil {
+	if err := capm3.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := ipamv1.AddToScheme(s); err != nil {
@@ -113,7 +113,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(cfg).ToNot(BeNil())
 
-		err = infrav1beta1.AddToScheme(scheme.Scheme)
+		err = capm3.AddToScheme(scheme.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = apiextensionsv1.AddToScheme(scheme.Scheme)
@@ -138,14 +138,14 @@ var _ = AfterSuite(func() {
 
 var deletionTimestamp = metav1.Now()
 
-func clusterPauseSpec() *clusterv1.ClusterSpec {
-	return &clusterv1.ClusterSpec{
+func clusterPauseSpec() *capi.ClusterSpec {
+	return &capi.ClusterSpec{
 		Paused: true,
 		InfrastructureRef: &v1.ObjectReference{
 			Name:       metal3ClusterName,
 			Namespace:  namespaceName,
 			Kind:       "Metal3Cluster",
-			APIVersion: infrav1beta1.GroupVersion.String(),
+			APIVersion: capm3.GroupVersion.String(),
 		},
 	}
 }
@@ -156,14 +156,14 @@ func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
-			clusterv1.ClusterLabelName: clusterName,
+			capi.ClusterLabelName: clusterName,
 		},
 	}
 }
 
-func bmcSpec() *infrav1beta1.Metal3ClusterSpec {
-	return &infrav1beta1.Metal3ClusterSpec{
-		ControlPlaneEndpoint: infrav1beta1.APIEndpoint{
+func bmcSpec() *capm3.Metal3ClusterSpec {
+	return &capm3.Metal3ClusterSpec{
+		ControlPlaneEndpoint: capm3.APIEndpoint{
 			Host: "192.168.111.249",
 			Port: 6443,
 		},
@@ -173,7 +173,7 @@ func bmcSpec() *infrav1beta1.Metal3ClusterSpec {
 
 func bmcOwnerRef() *metav1.OwnerReference {
 	return &metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
+		APIVersion: capi.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       clusterName,
 	}
@@ -195,26 +195,26 @@ func getKey(objectName string) *client.ObjectKey {
 	}
 }
 
-func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *clusterv1.ClusterStatus) *clusterv1.Cluster {
+func newCluster(clusterName string, spec *capi.ClusterSpec, status *capi.ClusterStatus) *capi.Cluster {
 	if spec == nil {
-		spec = &clusterv1.ClusterSpec{
+		spec = &capi.ClusterSpec{
 			InfrastructureRef: &v1.ObjectReference{
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
 				Kind:       "Metal3Cluster",
-				APIVersion: infrav1beta1.GroupVersion.String(),
+				APIVersion: capm3.GroupVersion.String(),
 			},
 		}
 	}
 	if status == nil {
-		status = &clusterv1.ClusterStatus{
+		status = &capi.ClusterStatus{
 			InfrastructureReady: true,
 		}
 	}
-	return &clusterv1.Cluster{
+	return &capi.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: capi.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
@@ -225,12 +225,12 @@ func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *cluster
 	}
 }
 
-func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1beta1.Metal3ClusterSpec, status *infrav1beta1.Metal3ClusterStatus, pausedAnnotation bool) *infrav1beta1.Metal3Cluster {
+func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *capm3.Metal3ClusterSpec, status *capm3.Metal3ClusterStatus, pausedAnnotation bool) *capm3.Metal3Cluster {
 	if spec == nil {
-		spec = &infrav1beta1.Metal3ClusterSpec{}
+		spec = &capm3.Metal3ClusterSpec{}
 	}
 	if status == nil {
-		status = &infrav1beta1.Metal3ClusterStatus{}
+		status = &capm3.Metal3ClusterStatus{}
 	}
 	ownerRefs := []metav1.OwnerReference{}
 	if ownerRef != nil {
@@ -247,21 +247,21 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spe
 			Namespace: namespaceName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: clusterv1.GroupVersion.String(),
+					APIVersion: capi.GroupVersion.String(),
 					Kind:       "Cluster",
 					Name:       clusterName,
 				},
 			},
 			Annotations: map[string]string{
-				clusterv1.PausedAnnotation: "true",
+				capi.PausedAnnotation: "true",
 			},
 		}
 	}
 
-	return &infrav1beta1.Metal3Cluster{
+	return &capm3.Metal3Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Cluster",
-			APIVersion: infrav1beta1.GroupVersion.String(),
+			APIVersion: capm3.GroupVersion.String(),
 		},
 		ObjectMeta: *objMeta,
 		Spec:       *spec,
@@ -269,17 +269,17 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spe
 	}
 }
 
-func newMachine(clusterName, machineName string, metal3machineName string) *clusterv1.Machine {
-	machine := &clusterv1.Machine{
+func newMachine(clusterName, machineName string, metal3machineName string) *capi.Machine {
+	machine := &capi.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
-			APIVersion: clusterv1.GroupVersion.String(),
+			APIVersion: capi.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: namespaceName,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				capi.ClusterLabelName: clusterName,
 			},
 		},
 	}
@@ -288,16 +288,16 @@ func newMachine(clusterName, machineName string, metal3machineName string) *clus
 			Name:       metal3machineName,
 			Namespace:  namespaceName,
 			Kind:       "Metal3Machine",
-			APIVersion: infrav1beta1.GroupVersion.String(),
+			APIVersion: capm3.GroupVersion.String(),
 		}
 	}
 	return machine
 }
 
 func newMetal3Machine(name string, meta *metav1.ObjectMeta,
-	spec *infrav1beta1.Metal3MachineSpec, status *infrav1beta1.Metal3MachineStatus,
+	spec *capm3.Metal3MachineSpec, status *capm3.Metal3MachineStatus,
 	pausedAnnotation bool,
-) *infrav1beta1.Metal3Machine {
+) *capm3.Metal3Machine {
 
 	if meta == nil {
 		meta = &metav1.ObjectMeta{
@@ -314,29 +314,29 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 			Namespace: namespaceName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: clusterv1.GroupVersion.String(),
+					APIVersion: capi.GroupVersion.String(),
 					Kind:       "Machine",
 					Name:       machineName,
 				},
 			},
 			Annotations: map[string]string{
-				clusterv1.PausedAnnotation: "true",
+				capi.PausedAnnotation: "true",
 			},
 		}
 	}
 
 	meta.Name = name
 	if spec == nil {
-		spec = &infrav1beta1.Metal3MachineSpec{}
+		spec = &capm3.Metal3MachineSpec{}
 	}
 	if status == nil {
-		status = &infrav1beta1.Metal3MachineStatus{}
+		status = &capm3.Metal3MachineStatus{}
 	}
 
-	return &infrav1beta1.Metal3Machine{
+	return &capm3.Metal3Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Machine",
-			APIVersion: infrav1beta1.GroupVersion.String(),
+			APIVersion: capm3.GroupVersion.String(),
 		},
 		ObjectMeta: *meta,
 		Spec:       *spec,

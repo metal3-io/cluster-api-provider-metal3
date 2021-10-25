@@ -26,7 +26,7 @@ import (
 
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -74,7 +74,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(cfg).ToNot(BeNil())
 
-		err = infrav1beta1.AddToScheme(scheme.Scheme)
+		err = capm3.AddToScheme(scheme.Scheme)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = ipamv1.AddToScheme(scheme.Scheme)
@@ -105,7 +105,7 @@ var _ = AfterSuite(func() {
 })
 
 var bmcOwnerRef = &metav1.OwnerReference{
-	APIVersion: clusterv1.GroupVersion.String(),
+	APIVersion: capi.GroupVersion.String(),
 	Kind:       "Cluster",
 	Name:       clusterName,
 }
@@ -115,10 +115,10 @@ var bmcOwnerRef = &metav1.OwnerReference{
 //-----------------------------------
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(s); err != nil {
+	if err := capi.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := infrav1beta1.AddToScheme(s); err != nil {
+	if err := capm3.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := ipamv1.AddToScheme(s); err != nil {
@@ -133,8 +133,8 @@ func setupScheme() *runtime.Scheme {
 	return s
 }
 
-func newCluster(clusterName string) *clusterv1.Cluster {
-	return &clusterv1.Cluster{
+func newCluster(clusterName string) *capi.Cluster {
+	return &capi.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Cluster",
 		},
@@ -142,34 +142,34 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 			Name:      clusterName,
 			Namespace: namespaceName,
 		},
-		Spec: clusterv1.ClusterSpec{
+		Spec: capi.ClusterSpec{
 			InfrastructureRef: &v1.ObjectReference{
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
 				Kind:       "InfrastructureConfig",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha4",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 			},
 		},
-		Status: clusterv1.ClusterStatus{
+		Status: capi.ClusterStatus{
 			InfrastructureReady: true,
 		},
 	}
 }
 
 func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference,
-	spec *infrav1beta1.Metal3ClusterSpec, status *infrav1beta1.Metal3ClusterStatus) *infrav1beta1.Metal3Cluster {
+	spec *capm3.Metal3ClusterSpec, status *capm3.Metal3ClusterStatus) *capm3.Metal3Cluster {
 	if spec == nil {
-		spec = &infrav1beta1.Metal3ClusterSpec{}
+		spec = &capm3.Metal3ClusterSpec{}
 	}
 	if status == nil {
-		status = &infrav1beta1.Metal3ClusterStatus{}
+		status = &capm3.Metal3ClusterStatus{}
 	}
 	ownerRefs := []metav1.OwnerReference{}
 	if ownerRef != nil {
 		ownerRefs = []metav1.OwnerReference{*ownerRef}
 	}
 
-	return &infrav1beta1.Metal3Cluster{
+	return &capm3.Metal3Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Metal3Cluster",
 		},
