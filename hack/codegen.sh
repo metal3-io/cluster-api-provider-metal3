@@ -16,11 +16,13 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   config/crd/bases/*.yaml
   config/crd/patches/*.yaml
   config/default/*.yaml
+  config/default/capm3/*.yaml
   config/ipam/*.yaml
   config/manager/*.yaml
   config/rbac/*.yaml
   config/webhook/*.yaml
   api/v1alpha4/zz_generated.*.go
+  api/v1alpha5/zz_generated.*.go
   baremetal/mocks/zz_generated.*.go"
 
   # shellcheck disable=SC2086
