@@ -421,6 +421,96 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*Metal3Remediation)(nil), (*v1alpha5.Metal3Remediation)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3Remediation_To_v1alpha5_Metal3Remediation(a.(*Metal3Remediation), b.(*v1alpha5.Metal3Remediation), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3Remediation)(nil), (*Metal3Remediation)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3Remediation_To_v1alpha4_Metal3Remediation(a.(*v1alpha5.Metal3Remediation), b.(*Metal3Remediation), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationList)(nil), (*v1alpha5.Metal3RemediationList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationList_To_v1alpha5_Metal3RemediationList(a.(*Metal3RemediationList), b.(*v1alpha5.Metal3RemediationList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationList)(nil), (*Metal3RemediationList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationList_To_v1alpha4_Metal3RemediationList(a.(*v1alpha5.Metal3RemediationList), b.(*Metal3RemediationList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationSpec)(nil), (*v1alpha5.Metal3RemediationSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationSpec_To_v1alpha5_Metal3RemediationSpec(a.(*Metal3RemediationSpec), b.(*v1alpha5.Metal3RemediationSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationSpec)(nil), (*Metal3RemediationSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationSpec_To_v1alpha4_Metal3RemediationSpec(a.(*v1alpha5.Metal3RemediationSpec), b.(*Metal3RemediationSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationStatus)(nil), (*v1alpha5.Metal3RemediationStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationStatus_To_v1alpha5_Metal3RemediationStatus(a.(*Metal3RemediationStatus), b.(*v1alpha5.Metal3RemediationStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationStatus)(nil), (*Metal3RemediationStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationStatus_To_v1alpha4_Metal3RemediationStatus(a.(*v1alpha5.Metal3RemediationStatus), b.(*Metal3RemediationStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationTemplate)(nil), (*v1alpha5.Metal3RemediationTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationTemplate_To_v1alpha5_Metal3RemediationTemplate(a.(*Metal3RemediationTemplate), b.(*v1alpha5.Metal3RemediationTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationTemplate)(nil), (*Metal3RemediationTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationTemplate_To_v1alpha4_Metal3RemediationTemplate(a.(*v1alpha5.Metal3RemediationTemplate), b.(*Metal3RemediationTemplate), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationTemplateList)(nil), (*v1alpha5.Metal3RemediationTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationTemplateList_To_v1alpha5_Metal3RemediationTemplateList(a.(*Metal3RemediationTemplateList), b.(*v1alpha5.Metal3RemediationTemplateList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationTemplateList)(nil), (*Metal3RemediationTemplateList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationTemplateList_To_v1alpha4_Metal3RemediationTemplateList(a.(*v1alpha5.Metal3RemediationTemplateList), b.(*Metal3RemediationTemplateList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationTemplateResource)(nil), (*v1alpha5.Metal3RemediationTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationTemplateResource_To_v1alpha5_Metal3RemediationTemplateResource(a.(*Metal3RemediationTemplateResource), b.(*v1alpha5.Metal3RemediationTemplateResource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationTemplateResource)(nil), (*Metal3RemediationTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationTemplateResource_To_v1alpha4_Metal3RemediationTemplateResource(a.(*v1alpha5.Metal3RemediationTemplateResource), b.(*Metal3RemediationTemplateResource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationTemplateSpec)(nil), (*v1alpha5.Metal3RemediationTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationTemplateSpec_To_v1alpha5_Metal3RemediationTemplateSpec(a.(*Metal3RemediationTemplateSpec), b.(*v1alpha5.Metal3RemediationTemplateSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationTemplateSpec)(nil), (*Metal3RemediationTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationTemplateSpec_To_v1alpha4_Metal3RemediationTemplateSpec(a.(*v1alpha5.Metal3RemediationTemplateSpec), b.(*Metal3RemediationTemplateSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Metal3RemediationTemplateStatus)(nil), (*v1alpha5.Metal3RemediationTemplateStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_Metal3RemediationTemplateStatus_To_v1alpha5_Metal3RemediationTemplateStatus(a.(*Metal3RemediationTemplateStatus), b.(*v1alpha5.Metal3RemediationTemplateStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.Metal3RemediationTemplateStatus)(nil), (*Metal3RemediationTemplateStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_Metal3RemediationTemplateStatus_To_v1alpha4_Metal3RemediationTemplateStatus(a.(*v1alpha5.Metal3RemediationTemplateStatus), b.(*Metal3RemediationTemplateStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*NetworkData)(nil), (*v1alpha5.NetworkData)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha4_NetworkData_To_v1alpha5_NetworkData(a.(*NetworkData), b.(*v1alpha5.NetworkData), scope)
 	}); err != nil {
@@ -598,6 +688,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1alpha5.NetworkLinkEthernetMac)(nil), (*NetworkLinkEthernetMac)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha5_NetworkLinkEthernetMac_To_v1alpha4_NetworkLinkEthernetMac(a.(*v1alpha5.NetworkLinkEthernetMac), b.(*NetworkLinkEthernetMac), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*RemediationStrategy)(nil), (*v1alpha5.RemediationStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_RemediationStrategy_To_v1alpha5_RemediationStrategy(a.(*RemediationStrategy), b.(*v1alpha5.RemediationStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*v1alpha5.RemediationStrategy)(nil), (*RemediationStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha5_RemediationStrategy_To_v1alpha4_RemediationStrategy(a.(*v1alpha5.RemediationStrategy), b.(*RemediationStrategy), scope)
 	}); err != nil {
 		return err
 	}
@@ -1592,6 +1692,230 @@ func Convert_v1alpha5_Metal3MachineTemplateSpec_To_v1alpha4_Metal3MachineTemplat
 	return autoConvert_v1alpha5_Metal3MachineTemplateSpec_To_v1alpha4_Metal3MachineTemplateSpec(in, out, s)
 }
 
+func autoConvert_v1alpha4_Metal3Remediation_To_v1alpha5_Metal3Remediation(in *Metal3Remediation, out *v1alpha5.Metal3Remediation, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha4_Metal3RemediationSpec_To_v1alpha5_Metal3RemediationSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha4_Metal3RemediationStatus_To_v1alpha5_Metal3RemediationStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha4_Metal3Remediation_To_v1alpha5_Metal3Remediation is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3Remediation_To_v1alpha5_Metal3Remediation(in *Metal3Remediation, out *v1alpha5.Metal3Remediation, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3Remediation_To_v1alpha5_Metal3Remediation(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3Remediation_To_v1alpha4_Metal3Remediation(in *v1alpha5.Metal3Remediation, out *Metal3Remediation, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha5_Metal3RemediationSpec_To_v1alpha4_Metal3RemediationSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha5_Metal3RemediationStatus_To_v1alpha4_Metal3RemediationStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha5_Metal3Remediation_To_v1alpha4_Metal3Remediation is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3Remediation_To_v1alpha4_Metal3Remediation(in *v1alpha5.Metal3Remediation, out *Metal3Remediation, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3Remediation_To_v1alpha4_Metal3Remediation(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationList_To_v1alpha5_Metal3RemediationList(in *Metal3RemediationList, out *v1alpha5.Metal3RemediationList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]v1alpha5.Metal3Remediation)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationList_To_v1alpha5_Metal3RemediationList is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationList_To_v1alpha5_Metal3RemediationList(in *Metal3RemediationList, out *v1alpha5.Metal3RemediationList, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationList_To_v1alpha5_Metal3RemediationList(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationList_To_v1alpha4_Metal3RemediationList(in *v1alpha5.Metal3RemediationList, out *Metal3RemediationList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]Metal3Remediation)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationList_To_v1alpha4_Metal3RemediationList is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationList_To_v1alpha4_Metal3RemediationList(in *v1alpha5.Metal3RemediationList, out *Metal3RemediationList, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationList_To_v1alpha4_Metal3RemediationList(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationSpec_To_v1alpha5_Metal3RemediationSpec(in *Metal3RemediationSpec, out *v1alpha5.Metal3RemediationSpec, s conversion.Scope) error {
+	out.Strategy = (*v1alpha5.RemediationStrategy)(unsafe.Pointer(in.Strategy))
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationSpec_To_v1alpha5_Metal3RemediationSpec is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationSpec_To_v1alpha5_Metal3RemediationSpec(in *Metal3RemediationSpec, out *v1alpha5.Metal3RemediationSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationSpec_To_v1alpha5_Metal3RemediationSpec(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationSpec_To_v1alpha4_Metal3RemediationSpec(in *v1alpha5.Metal3RemediationSpec, out *Metal3RemediationSpec, s conversion.Scope) error {
+	out.Strategy = (*RemediationStrategy)(unsafe.Pointer(in.Strategy))
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationSpec_To_v1alpha4_Metal3RemediationSpec is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationSpec_To_v1alpha4_Metal3RemediationSpec(in *v1alpha5.Metal3RemediationSpec, out *Metal3RemediationSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationSpec_To_v1alpha4_Metal3RemediationSpec(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationStatus_To_v1alpha5_Metal3RemediationStatus(in *Metal3RemediationStatus, out *v1alpha5.Metal3RemediationStatus, s conversion.Scope) error {
+	out.Phase = in.Phase
+	out.RetryCount = in.RetryCount
+	out.LastRemediated = (*v1.Time)(unsafe.Pointer(in.LastRemediated))
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationStatus_To_v1alpha5_Metal3RemediationStatus is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationStatus_To_v1alpha5_Metal3RemediationStatus(in *Metal3RemediationStatus, out *v1alpha5.Metal3RemediationStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationStatus_To_v1alpha5_Metal3RemediationStatus(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationStatus_To_v1alpha4_Metal3RemediationStatus(in *v1alpha5.Metal3RemediationStatus, out *Metal3RemediationStatus, s conversion.Scope) error {
+	out.Phase = in.Phase
+	out.RetryCount = in.RetryCount
+	out.LastRemediated = (*v1.Time)(unsafe.Pointer(in.LastRemediated))
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationStatus_To_v1alpha4_Metal3RemediationStatus is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationStatus_To_v1alpha4_Metal3RemediationStatus(in *v1alpha5.Metal3RemediationStatus, out *Metal3RemediationStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationStatus_To_v1alpha4_Metal3RemediationStatus(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationTemplate_To_v1alpha5_Metal3RemediationTemplate(in *Metal3RemediationTemplate, out *v1alpha5.Metal3RemediationTemplate, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha4_Metal3RemediationTemplateSpec_To_v1alpha5_Metal3RemediationTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha4_Metal3RemediationTemplateStatus_To_v1alpha5_Metal3RemediationTemplateStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationTemplate_To_v1alpha5_Metal3RemediationTemplate is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationTemplate_To_v1alpha5_Metal3RemediationTemplate(in *Metal3RemediationTemplate, out *v1alpha5.Metal3RemediationTemplate, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationTemplate_To_v1alpha5_Metal3RemediationTemplate(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationTemplate_To_v1alpha4_Metal3RemediationTemplate(in *v1alpha5.Metal3RemediationTemplate, out *Metal3RemediationTemplate, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha5_Metal3RemediationTemplateSpec_To_v1alpha4_Metal3RemediationTemplateSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha5_Metal3RemediationTemplateStatus_To_v1alpha4_Metal3RemediationTemplateStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationTemplate_To_v1alpha4_Metal3RemediationTemplate is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationTemplate_To_v1alpha4_Metal3RemediationTemplate(in *v1alpha5.Metal3RemediationTemplate, out *Metal3RemediationTemplate, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationTemplate_To_v1alpha4_Metal3RemediationTemplate(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationTemplateList_To_v1alpha5_Metal3RemediationTemplateList(in *Metal3RemediationTemplateList, out *v1alpha5.Metal3RemediationTemplateList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]v1alpha5.Metal3RemediationTemplate)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationTemplateList_To_v1alpha5_Metal3RemediationTemplateList is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationTemplateList_To_v1alpha5_Metal3RemediationTemplateList(in *Metal3RemediationTemplateList, out *v1alpha5.Metal3RemediationTemplateList, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationTemplateList_To_v1alpha5_Metal3RemediationTemplateList(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationTemplateList_To_v1alpha4_Metal3RemediationTemplateList(in *v1alpha5.Metal3RemediationTemplateList, out *Metal3RemediationTemplateList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]Metal3RemediationTemplate)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationTemplateList_To_v1alpha4_Metal3RemediationTemplateList is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationTemplateList_To_v1alpha4_Metal3RemediationTemplateList(in *v1alpha5.Metal3RemediationTemplateList, out *Metal3RemediationTemplateList, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationTemplateList_To_v1alpha4_Metal3RemediationTemplateList(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationTemplateResource_To_v1alpha5_Metal3RemediationTemplateResource(in *Metal3RemediationTemplateResource, out *v1alpha5.Metal3RemediationTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1alpha4_Metal3RemediationSpec_To_v1alpha5_Metal3RemediationSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationTemplateResource_To_v1alpha5_Metal3RemediationTemplateResource is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationTemplateResource_To_v1alpha5_Metal3RemediationTemplateResource(in *Metal3RemediationTemplateResource, out *v1alpha5.Metal3RemediationTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationTemplateResource_To_v1alpha5_Metal3RemediationTemplateResource(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationTemplateResource_To_v1alpha4_Metal3RemediationTemplateResource(in *v1alpha5.Metal3RemediationTemplateResource, out *Metal3RemediationTemplateResource, s conversion.Scope) error {
+	if err := Convert_v1alpha5_Metal3RemediationSpec_To_v1alpha4_Metal3RemediationSpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationTemplateResource_To_v1alpha4_Metal3RemediationTemplateResource is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationTemplateResource_To_v1alpha4_Metal3RemediationTemplateResource(in *v1alpha5.Metal3RemediationTemplateResource, out *Metal3RemediationTemplateResource, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationTemplateResource_To_v1alpha4_Metal3RemediationTemplateResource(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationTemplateSpec_To_v1alpha5_Metal3RemediationTemplateSpec(in *Metal3RemediationTemplateSpec, out *v1alpha5.Metal3RemediationTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1alpha4_Metal3RemediationTemplateResource_To_v1alpha5_Metal3RemediationTemplateResource(&in.Template, &out.Template, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationTemplateSpec_To_v1alpha5_Metal3RemediationTemplateSpec is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationTemplateSpec_To_v1alpha5_Metal3RemediationTemplateSpec(in *Metal3RemediationTemplateSpec, out *v1alpha5.Metal3RemediationTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationTemplateSpec_To_v1alpha5_Metal3RemediationTemplateSpec(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationTemplateSpec_To_v1alpha4_Metal3RemediationTemplateSpec(in *v1alpha5.Metal3RemediationTemplateSpec, out *Metal3RemediationTemplateSpec, s conversion.Scope) error {
+	if err := Convert_v1alpha5_Metal3RemediationTemplateResource_To_v1alpha4_Metal3RemediationTemplateResource(&in.Template, &out.Template, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationTemplateSpec_To_v1alpha4_Metal3RemediationTemplateSpec is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationTemplateSpec_To_v1alpha4_Metal3RemediationTemplateSpec(in *v1alpha5.Metal3RemediationTemplateSpec, out *Metal3RemediationTemplateSpec, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationTemplateSpec_To_v1alpha4_Metal3RemediationTemplateSpec(in, out, s)
+}
+
+func autoConvert_v1alpha4_Metal3RemediationTemplateStatus_To_v1alpha5_Metal3RemediationTemplateStatus(in *Metal3RemediationTemplateStatus, out *v1alpha5.Metal3RemediationTemplateStatus, s conversion.Scope) error {
+	if err := Convert_v1alpha4_Metal3RemediationStatus_To_v1alpha5_Metal3RemediationStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha4_Metal3RemediationTemplateStatus_To_v1alpha5_Metal3RemediationTemplateStatus is an autogenerated conversion function.
+func Convert_v1alpha4_Metal3RemediationTemplateStatus_To_v1alpha5_Metal3RemediationTemplateStatus(in *Metal3RemediationTemplateStatus, out *v1alpha5.Metal3RemediationTemplateStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha4_Metal3RemediationTemplateStatus_To_v1alpha5_Metal3RemediationTemplateStatus(in, out, s)
+}
+
+func autoConvert_v1alpha5_Metal3RemediationTemplateStatus_To_v1alpha4_Metal3RemediationTemplateStatus(in *v1alpha5.Metal3RemediationTemplateStatus, out *Metal3RemediationTemplateStatus, s conversion.Scope) error {
+	if err := Convert_v1alpha5_Metal3RemediationStatus_To_v1alpha4_Metal3RemediationStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha5_Metal3RemediationTemplateStatus_To_v1alpha4_Metal3RemediationTemplateStatus is an autogenerated conversion function.
+func Convert_v1alpha5_Metal3RemediationTemplateStatus_To_v1alpha4_Metal3RemediationTemplateStatus(in *v1alpha5.Metal3RemediationTemplateStatus, out *Metal3RemediationTemplateStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha5_Metal3RemediationTemplateStatus_To_v1alpha4_Metal3RemediationTemplateStatus(in, out, s)
+}
+
 func autoConvert_v1alpha4_NetworkData_To_v1alpha5_NetworkData(in *NetworkData, out *v1alpha5.NetworkData, s conversion.Scope) error {
 	if err := Convert_v1alpha4_NetworkDataLink_To_v1alpha5_NetworkDataLink(&in.Links, &out.Links, s); err != nil {
 		return err
@@ -2060,4 +2384,28 @@ func autoConvert_v1alpha5_NetworkLinkEthernetMac_To_v1alpha4_NetworkLinkEthernet
 // Convert_v1alpha5_NetworkLinkEthernetMac_To_v1alpha4_NetworkLinkEthernetMac is an autogenerated conversion function.
 func Convert_v1alpha5_NetworkLinkEthernetMac_To_v1alpha4_NetworkLinkEthernetMac(in *v1alpha5.NetworkLinkEthernetMac, out *NetworkLinkEthernetMac, s conversion.Scope) error {
 	return autoConvert_v1alpha5_NetworkLinkEthernetMac_To_v1alpha4_NetworkLinkEthernetMac(in, out, s)
+}
+
+func autoConvert_v1alpha4_RemediationStrategy_To_v1alpha5_RemediationStrategy(in *RemediationStrategy, out *v1alpha5.RemediationStrategy, s conversion.Scope) error {
+	out.Type = v1alpha5.RemediationType(in.Type)
+	out.RetryLimit = in.RetryLimit
+	out.Timeout = (*v1.Duration)(unsafe.Pointer(in.Timeout))
+	return nil
+}
+
+// Convert_v1alpha4_RemediationStrategy_To_v1alpha5_RemediationStrategy is an autogenerated conversion function.
+func Convert_v1alpha4_RemediationStrategy_To_v1alpha5_RemediationStrategy(in *RemediationStrategy, out *v1alpha5.RemediationStrategy, s conversion.Scope) error {
+	return autoConvert_v1alpha4_RemediationStrategy_To_v1alpha5_RemediationStrategy(in, out, s)
+}
+
+func autoConvert_v1alpha5_RemediationStrategy_To_v1alpha4_RemediationStrategy(in *v1alpha5.RemediationStrategy, out *RemediationStrategy, s conversion.Scope) error {
+	out.Type = RemediationType(in.Type)
+	out.RetryLimit = in.RetryLimit
+	out.Timeout = (*v1.Duration)(unsafe.Pointer(in.Timeout))
+	return nil
+}
+
+// Convert_v1alpha5_RemediationStrategy_To_v1alpha4_RemediationStrategy is an autogenerated conversion function.
+func Convert_v1alpha5_RemediationStrategy_To_v1alpha4_RemediationStrategy(in *v1alpha5.RemediationStrategy, out *RemediationStrategy, s conversion.Scope) error {
+	return autoConvert_v1alpha5_RemediationStrategy_To_v1alpha4_RemediationStrategy(in, out, s)
 }

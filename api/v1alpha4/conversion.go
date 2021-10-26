@@ -185,3 +185,43 @@ func (dst *Metal3DataClaimList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1alpha5.Metal3DataClaimList)
 	return Convert_v1alpha5_Metal3DataClaimList_To_v1alpha4_Metal3DataClaimList(src, dst, nil)
 }
+
+func (src *Metal3Remediation) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1alpha5.Metal3Remediation)
+	return Convert_v1alpha4_Metal3Remediation_To_v1alpha5_Metal3Remediation(src, dst, nil)
+}
+
+func (dst *Metal3Remediation) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1alpha5.Metal3Remediation)
+	return Convert_v1alpha5_Metal3Remediation_To_v1alpha4_Metal3Remediation(src, dst, nil)
+}
+
+func (src *Metal3RemediationList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1alpha5.Metal3RemediationList)
+	return Convert_v1alpha4_Metal3RemediationList_To_v1alpha5_Metal3RemediationList(src, dst, nil)
+}
+
+func (dst *Metal3RemediationList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1alpha5.Metal3RemediationList)
+	return Convert_v1alpha5_Metal3RemediationList_To_v1alpha4_Metal3RemediationList(src, dst, nil)
+}
+
+func (src *Metal3RemediationTemplate) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1alpha5.Metal3RemediationTemplate)
+	return Convert_v1alpha4_Metal3RemediationTemplate_To_v1alpha5_Metal3RemediationTemplate(src, dst, nil)
+}
+
+func (dst *Metal3RemediationTemplate) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1alpha5.Metal3RemediationTemplate)
+	return Convert_v1alpha5_Metal3RemediationTemplate_To_v1alpha4_Metal3RemediationTemplate(src, dst, nil)
+}
+
+func (src *Metal3RemediationTemplateList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1alpha5.Metal3RemediationTemplateList)
+	return Convert_v1alpha4_Metal3RemediationTemplateList_To_v1alpha5_Metal3RemediationTemplateList(src, dst, nil)
+}
+
+func (dst *Metal3RemediationTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
+	src := srcRaw.(*v1alpha5.Metal3RemediationTemplateList)
+	return Convert_v1alpha5_Metal3RemediationTemplateList_To_v1alpha4_Metal3RemediationTemplateList(src, dst, nil)
+}

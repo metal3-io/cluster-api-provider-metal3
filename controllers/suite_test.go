@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -69,7 +68,7 @@ func init() {
 	_ = clusterv1.AddToScheme(scheme.Scheme)
 	_ = infrav1alpha5.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
-	_ = corev1.AddToScheme(scheme.Scheme)
+	_ = v1.AddToScheme(scheme.Scheme)
 	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
 }
 
@@ -84,7 +83,7 @@ func setupScheme() *runtime.Scheme {
 	if err := ipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := corev1.AddToScheme(s); err != nil {
+	if err := v1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := bmh.SchemeBuilder.AddToScheme(s); err != nil {
