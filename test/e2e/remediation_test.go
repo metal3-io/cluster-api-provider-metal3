@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -94,7 +95,11 @@ func test_remediation() {
 
 	Logf("Waiting for 2 BMHs to be Ready")
 	Eventually(func(g Gomega) error {
-		bmhs := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		if err != nil {
+			Logf("Error: %v", err)
+			return err
+		}
 		g.Expect(filterBmhsByProvisioningState(bmhs, bmh.StateAvailable)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
@@ -115,8 +120,15 @@ func test_remediation() {
 
 	Logf("Waiting for 2 BMHs to be Provisioned")
 	Eventually(func(g Gomega) error {
-		bmhs := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioned)).To(HaveLen(2))
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		if err != nil {
+			Logf("Error: %v", err)
+			return err
+		}
+		provisioningBMHs := filterBmhsByProvisioningState(bmhs, bmh.StateProvisioned)
+		if len(provisioningBMHs) != 2 {
+			return errors.New("Waiting for 2 BMHs to be Provisioned")
+		}
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
@@ -125,14 +137,22 @@ func test_remediation() {
 
 	By("Waiting for one BMH to start provisioning")
 	Eventually(func(g Gomega) error {
-		bmhs := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		if err != nil {
+			Logf("Error: %v", err)
+			return err
+		}
 		g.Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioning)).To(HaveLen(1))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
 
 	Logf("Verifying that only one BMH starts provisioning")
 	Consistently(func() error {
-		bmhs := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		if err != nil {
+			Logf("Error: %v", err)
+			return err
+		}
 		Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioned)).To(HaveLen(3))
 		Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioning)).To(HaveLen(1))
 		return nil
@@ -143,7 +163,11 @@ func test_remediation() {
 
 	Byf("Waiting for all (%d) BMHs to be Provisioned", allMachinesCount)
 	Eventually(func(g Gomega) error {
-		bmhs := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		if err != nil {
+			Logf("Error: %v", err)
+			return err
+		}
 		g.Expect(filterBmhsByProvisioningState(bmhs, bmh.StateProvisioned)).To(HaveLen(allMachinesCount))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
@@ -220,7 +244,11 @@ func test_remediation() {
 
 	By("Waiting for 2 BMHs to be Ready")
 	Eventually(func(g Gomega) error {
-		bmhs := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		if err != nil {
+			Logf("Error: %v", err)
+			return err
+		}
 		filtered := filterBmhsByProvisioningState(bmhs, bmh.StateAvailable)
 		Logf("There are %d BMHs in state %s", len(filtered), bmh.StateAvailable)
 		g.Expect(filtered).To(HaveLen(2))
@@ -351,10 +379,10 @@ func listVms(state vmState) []string {
 	return lines[:i]
 }
 
-func getAllBmhs(ctx context.Context, c client.Client, namespace, specName string) []bmh.BareMetalHost {
+func getAllBmhs(ctx context.Context, c client.Client, namespace, specName string) ([]bmh.BareMetalHost, error) {
 	bmhs := bmh.BareMetalHostList{}
-	Expect(c.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-	return bmhs.Items
+	err := c.List(ctx, &bmhs, client.InNamespace(namespace))
+	return bmhs.Items, err
 }
 
 func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) ([]capm3.Metal3Machine, []capm3.Metal3Machine) {

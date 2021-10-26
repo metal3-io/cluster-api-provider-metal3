@@ -47,3 +47,10 @@ if [[ "${OS}" == ubuntu ]]; then
 else
     export IMAGE_OS=${IMAGE_OS:-"Centos"}
 fi
+M3_DEV_ENV_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# shellcheck disable=SC1091
+# shellcheck disable=SC1090
+source "${M3_DEV_ENV_PATH}/scripts/feature_tests/feature_test_vars.sh"
+# shellcheck disable=SC1091
+# shellcheck disable=SC1090
+source "${M3_DEV_ENV_PATH}/scripts/feature_tests/node_reuse/node_reuse_vars.sh"
