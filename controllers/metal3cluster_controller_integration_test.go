@@ -17,7 +17,6 @@ import (
 	"reflect"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	capierrors "sigs.k8s.io/cluster-api/errors"

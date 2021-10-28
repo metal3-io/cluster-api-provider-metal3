@@ -94,7 +94,9 @@ testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
 
 .PHONY: test
 test: testprereqs fmt lint ## Run tests
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./controllers/... ./baremetal/... -coverprofile ./cover.out; cd api; go test -v ./... -coverprofile ./cover.out
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; \
+	go test -v ./controllers/... ./baremetal/... -coverprofile ./cover.out; cd api; \
+	go test -v ./... -coverprofile ./cover.out --timeout=10m
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests with capi e2e testing framework

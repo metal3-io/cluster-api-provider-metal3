@@ -22,7 +22,6 @@ import (
 	"strconv"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"

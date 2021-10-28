@@ -22,7 +22,6 @@ import (
 	"gopkg.in/yaml.v2"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"

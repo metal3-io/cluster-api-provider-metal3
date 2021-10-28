@@ -20,7 +20,6 @@ import (
 	"context"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
 	_ "github.com/go-logr/logr"
@@ -341,7 +340,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 			Expect(len(descendants.Items)).To(Equal(tc.ExpectedDescendants))
 		},
-		descendantsTestCases...,
+		descendantsTestCases,
 	)
 
 	DescribeTable("Test Count Descendants",
@@ -357,7 +356,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 			Expect(nbDescendants).To(Equal(tc.ExpectedDescendants))
 		},
-		descendantsTestCases...,
+		descendantsTestCases,
 	)
 })
 
