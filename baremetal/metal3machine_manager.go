@@ -63,7 +63,7 @@ const (
 	PausedAnnotationKey = "metal3.io/capm3"
 )
 
-// MachineManagerInterface is an interface for a ClusterManager
+// MachineManagerInterface is an interface for a MachineManager
 type MachineManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()

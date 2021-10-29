@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -45,8 +44,8 @@ func node_reuse() {
 	controlplaneNodes := getControlplaneNodes(clientSet)
 	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
 
-	By("Scale down machinedeployment to 0")
-	scaleMachineDeployment(ctx, targetClusterClient, 1, 0)
+	By("Scale own machinedeployment to 0")
+	scaleMachineDeployment(ctx, targetClusterClient, 0)
 
 	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkerBmh)
 	Eventually(
@@ -225,7 +224,7 @@ func node_reuse() {
 	).Should(Succeed())
 
 	By("Scale the worker up to 1 to start testing MachineDeployment")
-	scaleMachineDeployment(ctx, targetClusterClient, 0, 1)
+	scaleMachineDeployment(ctx, targetClusterClient, 1)
 
 	Byf("Wait until %d more bmh becomes provisioned", numberOfWorkerBmh)
 	Eventually(
@@ -456,30 +455,6 @@ func updateNodeReuse(nodeReuse bool, m3machineTemplateName string, clusterClient
 	Expect(m3machineTemplate.Spec.NodeReuse).To(BeTrue())
 }
 
-func scaleMachineDeployment(ctx context.Context, clusterClient client.Client, oldReplicas int, newReplicas int) {
-	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
-		Lister:      clusterClient,
-		ClusterName: clusterName,
-		Namespace:   namespace,
-	})
-	Expect(len(machineDeployments)).To(Equal(1), "Expected exactly 1 MachineDeployment")
-	machineDeploy := machineDeployments[0]
-	Expect(*machineDeploy.Spec.Replicas).To(Equal(int32(oldReplicas)), "Expect the exact old replicas (%v) of MachineDeployment", oldReplicas)
-	patch := []byte(fmt.Sprintf(`{"spec": {"replicas": %d}}`, newReplicas))
-	err := clusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
-	Expect(err).To(BeNil(), "Failed to patch workers MachineDeployment")
-}
-
-func scaleControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int) {
-	ctrlplane := kcp.KubeadmControlPlane{}
-	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
-	helper, err := patch.NewHelper(&ctrlplane, c)
-	Expect(err).To(BeNil(), "Failed to create new patch helper")
-
-	ctrlplane.Spec.Replicas = pointer.Int32Ptr(int32(newReplicaCount))
-	Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
-}
-
 func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint *corev1.Taint) {
 	for i := range nodes.Items {
 		newNode, changed, err := taints.RemoveTaint(&nodes.Items[i], taint)
@@ -489,31 +464,6 @@ func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint
 			Expect(err).To(BeNil(), "Failed to update nodes")
 		}
 	}
-}
-
-func annotateBmh(ctx context.Context, client client.Client, host bmo.BareMetalHost, key string, value *string) {
-	helper, err := patch.NewHelper(&host, client)
-	Expect(err).NotTo(HaveOccurred())
-	annotations := host.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-	if value == nil {
-		delete(annotations, key)
-	} else {
-		annotations[key] = *value
-	}
-	host.SetAnnotations(annotations)
-	Expect(helper.Patch(ctx, &host)).To(Succeed())
-}
-
-func filterBmhsByProvisioningState(bmhs []bmo.BareMetalHost, state bmo.ProvisioningState) (result []bmo.BareMetalHost) {
-	for _, bmh := range bmhs {
-		if bmh.Status.Provisioning.State == state {
-			result = append(result, bmh)
-		}
-	}
-	return
 }
 
 func filterMachinesByStatusPhase(machines []clusterv1.Machine, phase clusterv1.MachinePhase) (result []clusterv1.Machine) {
