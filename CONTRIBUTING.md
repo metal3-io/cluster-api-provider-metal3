@@ -1,4 +1,4 @@
-# How to Contribute
+# How to Contribute.
 
 Metal3 projects are [Apache 2.0 licensed](LICENSE) and accept contributions via
 GitHub pull requests. Those guidelines are the same as the
