@@ -1,0 +1,32 @@
+# Cluster API config used for upgrade testing.
+
+# Image is overriden in provider/container_name format
+# list of providers
+# cluster.x-k8s.io/provider: bootstrap-kubeadm
+# cluster.x-k8s.io/provider: cluster-api
+# cluster.x-k8s.io/provider: control-plane-kubeadm
+# cluster.x-k8s.io/provider: infrastructure-metal3
+providers:
+  - name: cluster-api
+    url: {{ .HOME }}/.cluster-api/dev-repository/cluster-api/{{.CAPIRELEASE}}/core-components.yaml
+    type: CoreProvider
+  - name: kubeadm
+    url: {{ .HOME }}/.cluster-api/dev-repository/bootstrap-kubeadm/{{.CAPIRELEASE}}/bootstrap-components.yaml
+    type: BootstrapProvider
+  - name: kubeadm
+    url: {{ .HOME }}/.cluster-api/dev-repository/control-plane-kubeadm/{{.CAPIRELEASE}}/control-plane-components.yaml
+    type: ControlPlaneProvider
+  - name: infrastructure-metal3
+    url: {{ .HOME }}/.cluster-api/overrides/infrastructure-metal3/{{.CAPM3RELEASE}}/infrastructure-components.yaml
+    type: InfrastructureProvider
+images:
+  cluster-api/cluster-api-controller:
+    tag: {{.CAPI_REL_TO_VERSION}}
+  control-plane-kubeadm/kubeadm-control-plane-controller:
+    tag: {{.CAPI_REL_TO_VERSION}}
+  bootstrap-kubeadm/kubeadm-bootstrap-controller:
+    tag: {{.CAPI_REL_TO_VERSION}}
+  infrastructure-metal3/manager:
+    tag: {{.CAPM3_REL_TO_VERSION}}
+
+{{template "clusterctl-vars.yaml" .}}

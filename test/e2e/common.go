@@ -34,6 +34,13 @@ func LogFromFile(logFile string) {
 	Logf(string(data))
 }
 
+func checkError(err error) {
+	if err != nil {
+		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)
+		os.Exit(1)
+	}
+}
+
 func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *capi.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := bootstrapClusterProxy.GetClient()

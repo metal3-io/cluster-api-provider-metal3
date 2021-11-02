@@ -1,0 +1,4 @@
+{
+  "providers": ["cluster-api","bootstrap-kubeadm","control-plane-kubeadm", "infrastructure-metal3"],
+  "provider_repos": ["{{.M3PATH}}/cluster-api-provider-metal3"]
+}

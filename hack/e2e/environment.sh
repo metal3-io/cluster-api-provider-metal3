@@ -54,3 +54,26 @@ source "${M3_DEV_ENV_PATH}/scripts/feature_tests/feature_test_vars.sh"
 # shellcheck disable=SC1091
 # shellcheck disable=SC1090
 source "${M3_DEV_ENV_PATH}/scripts/feature_tests/node_reuse/node_reuse_vars.sh"
+
+export CAPIRELEASE_HARDCODED="v0.4.99"
+
+function get_latest_capm3_release() {
+    clusterctl upgrade plan | grep infrastructure-metal3 | awk 'NR == 1 {print $5}'
+}
+
+# CAPM3 release version which we upgrade from.
+export CAPM3RELEASE="v0.5.0"
+CAPM3_REL_TO_VERSION="$(get_latest_capm3_release)" || true
+# CAPM3 release version which we upgrade to.
+export CAPM3_REL_TO_VERSION
+
+# Fetch latest release version of CAPI from the output of clusterctl command.
+function get_latest_capi_release() {
+    clusterctl upgrade plan | grep cluster-api | awk 'NR == 1 {print $5}'
+}
+
+# CAPI release version which we upgrade from.
+export CAPIRELEASE="v0.4.1"
+CAPI_REL_TO_VERSION="$(get_latest_capi_release)" || true
+# CAPI release version which we upgrade to.
+export CAPI_REL_TO_VERSION

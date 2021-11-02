@@ -106,4 +106,3 @@ intervals:
   default/wait-bmh-provisioned: ["50m", "20s"]
   default/wait-pod-restart: ["6m", "10s"]
   default/wait-patch: ["4m", "10s"]
-
