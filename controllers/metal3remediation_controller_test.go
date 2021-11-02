@@ -21,59 +21,41 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/gomega"
+
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
+
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type reconcileNormalRemediationTestCase struct {
-	ExpectError                    bool
-	ExpectRequeue                  bool
-	ExpectRebootRemediationApplied bool
-	ExpectToStartMachineDeletion   bool
-	GetUnhealthyHostFails          bool
-	HostStatusOffline              bool
-	RemediationPhase               string
-	IsLastRemediatedTimeNil        bool
-	IsRetryLimitZero               bool
-	IsTimeToRemediate              bool
+	ExpectError           bool
+	ExpectRequeue         bool
+	GetUnhealthyHostFails bool
+	HostStatusOffline     bool
+	RemediationPhase      string
+	IsFinalizerSet        bool
+	IsPowerOffRequested   bool
+	IsPoweredOn           bool
+	IsNodeBackedUp        bool
+	IsNodeDeleted         bool
+	IsTimedOut            bool
+	IsRetryLimitReached   bool
 }
 
 func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	tc reconcileNormalRemediationTestCase) *baremetal_mocks.MockRemediationManagerInterface {
 	m := baremetal_mocks.NewMockRemediationManagerInterface(ctrl)
-
-	// If the test case expects us to apply the reboot annotation at some point
-	// we expect these calls to be made to the remediation manager
-	if tc.ExpectRebootRemediationApplied {
-		m.EXPECT().SetRebootAnnotation(context.TODO())
-		m.EXPECT().SetLastRemediationTime(gomock.Any())
-		m.EXPECT().IncreaseRetryCount()
-	} else {
-		m.EXPECT().SetRebootAnnotation(context.TODO()).MaxTimes(0)
-		m.EXPECT().SetLastRemediationTime(gomock.Any()).MaxTimes(0)
-		m.EXPECT().IncreaseRetryCount().MaxTimes(0)
-	}
-
-	if tc.ExpectToStartMachineDeletion {
-		// Go to deleting remediation phase, hand over control of the Machine to CAPI
-		// and annotate the node as unhealthy.
-		m.EXPECT().SetRemediationPhase(infrav1.PhaseDeleting)
-		m.EXPECT().SetOwnerRemediatedConditionNew(context.TODO())
-		m.EXPECT().SetUnhealthyAnnotation(context.TODO())
-	} else {
-		m.EXPECT().SetRemediationPhase(infrav1.PhaseDeleting).MaxTimes(0)
-		m.EXPECT().SetOwnerRemediatedConditionNew(context.TODO()).MaxTimes(0)
-		m.EXPECT().SetUnhealthyAnnotation(context.TODO()).MaxTimes(0)
-	}
 
 	bmh := &bmov1alpha1.BareMetalHost{}
 	if tc.GetUnhealthyHostFails {
@@ -90,36 +72,97 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	}
 	m.EXPECT().OnlineStatus(bmh).Return(true)
 
+	expectGetNode := func() {
+		m.EXPECT().GetClusterClient(context.TODO())
+		if tc.IsNodeDeleted {
+			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(nil, &apierrors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound}})
+		} else {
+			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(&corev1.Node{}, nil)
+		}
+	}
+
 	m.EXPECT().GetRemediationType().Return(infrav1.RebootRemediationStrategy)
 	m.EXPECT().GetRemediationPhase().Return(tc.RemediationPhase).MinTimes(1)
 
-	if tc.RemediationPhase == infrav1.PhaseRunning {
-		if tc.IsLastRemediatedTimeNil {
-			// No remediation time has been set on the host, so make sure the reboot annotation is added
-			m.EXPECT().GetLastRemediatedTime().Return(nil)
-		} else {
-			m.EXPECT().GetLastRemediatedTime().Return(&metav1.Time{Time: time.Now()})
-		}
+	switch tc.RemediationPhase {
+	case "":
+		m.EXPECT().SetRemediationPhase(infrav1.PhaseRunning)
+		m.EXPECT().SetLastRemediationTime(gomock.Any())
 
-		if tc.IsRetryLimitZero {
-			m.EXPECT().RetryLimitIsSet().Return(false)
-			// When there's no retrying to do, we don't do remediation and instead go to waiting phase
-			m.EXPECT().SetRemediationPhase(infrav1.PhaseWaiting)
+	case infrav1.PhaseRunning:
+
+		expectGetNode()
+
+		m.EXPECT().HasFinalizer().Return(tc.IsFinalizerSet)
+		if !tc.IsFinalizerSet {
+			m.EXPECT().SetFinalizer().Return()
 			return m
 		}
-		m.EXPECT().RetryLimitIsSet().Return(true)
-		m.EXPECT().HasReachRetryLimit().Return(false)
-	}
 
-	if tc.RemediationPhase == infrav1.PhaseRunning || tc.RemediationPhase == infrav1.PhaseWaiting {
-		m.EXPECT().GetTimeout().Return(&metav1.Duration{Duration: time.Minute})
-		if tc.IsTimeToRemediate {
-			m.EXPECT().TimeToRemediate(time.Minute).Return(true, time.Duration(0))
-		} else {
-			m.EXPECT().TimeToRemediate(time.Minute).Return(false, time.Minute)
+		m.EXPECT().IsPowerOffRequested(context.TODO()).Return(tc.IsPowerOffRequested, nil)
+		if !tc.IsPowerOffRequested {
+			m.EXPECT().SetPowerOffAnnotation(context.TODO())
+			return m
+		}
+
+		m.EXPECT().IsPoweredOn(context.TODO()).Return(tc.IsPoweredOn, nil)
+		if tc.IsPoweredOn {
+			return m
+		}
+
+		if !tc.IsNodeDeleted {
+			m.EXPECT().SetNodeBackupAnnotations(gomock.Any(), gomock.Any()).Return(!tc.IsNodeBackedUp)
+			if !tc.IsNodeBackedUp {
+				return m
+			}
+			m.EXPECT().DeleteNode(context.TODO(), gomock.Any(), gomock.Any())
+			return m
+		}
+
+		m.EXPECT().SetRemediationPhase(infrav1.PhaseWaiting)
+		return m
+
+	case infrav1.PhaseWaiting:
+
+		expectGetNode()
+
+		m.EXPECT().IsPowerOffRequested(context.TODO()).Return(tc.IsPowerOffRequested, nil)
+		if tc.IsPowerOffRequested {
+			m.EXPECT().RemovePowerOffAnnotation(context.TODO())
+		}
+
+		m.EXPECT().IsPoweredOn(context.TODO()).Return(tc.IsPoweredOn, nil)
+		if !tc.IsPoweredOn {
+			return m
+		}
+
+		if !tc.IsNodeDeleted {
+			m.EXPECT().HasFinalizer().Return(tc.IsFinalizerSet)
+			if tc.IsFinalizerSet {
+				m.EXPECT().GetNodeBackupAnnotations().Return("{\"foo\":\"bar\"}", "")
+				m.EXPECT().UpdateNode(context.TODO(), gomock.Any(), gomock.Any())
+				m.EXPECT().RemoveNodeBackupAnnotations()
+				m.EXPECT().UnsetFinalizer()
+				return m
+			}
+		}
+
+		m.EXPECT().GetTimeout().Return(&metav1.Duration{Duration: time.Second})
+		m.EXPECT().TimeToRemediate(gomock.Any()).Return(tc.IsTimedOut, time.Second)
+		if tc.IsTimedOut {
+			m.EXPECT().RetryLimitIsSet().Return(true)
+			m.EXPECT().HasReachRetryLimit().Return(tc.IsRetryLimitReached)
+			if !tc.IsRetryLimitReached {
+				m.EXPECT().SetRemediationPhase(infrav1.PhaseRunning)
+				m.EXPECT().SetLastRemediationTime(gomock.Any())
+				m.EXPECT().IncreaseRetryCount()
+				return m
+			}
+			m.EXPECT().SetOwnerRemediatedConditionNew(context.TODO())
+			m.EXPECT().SetUnhealthyAnnotation(context.TODO())
+			m.EXPECT().SetRemediationPhase(infrav1.PhaseDeleting)
 		}
 	}
-
 	return m
 }
 
@@ -170,47 +213,150 @@ var _ = Describe("Metal3Remediation controller", func() {
 					ExpectRequeue:     false,
 					HostStatusOffline: true,
 				}),
-				Entry("Should attempt reboot remediation to BMH, then don't requeue, if LastRemediationTime is nil and no retry limit is set", reconcileNormalRemediationTestCase{
-					ExpectError:                    false,
-					ExpectRequeue:                  false,
-					ExpectRebootRemediationApplied: true,
-					RemediationPhase:               infrav1.PhaseRunning,
-					IsLastRemediatedTimeNil:        true,
-					IsRetryLimitZero:               true,
+				Entry("Should set last remediation time, and then requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    "",
+					IsFinalizerSet:      false,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      false,
+					IsNodeDeleted:       false,
+					IsTimedOut:          false,
 				}),
-				Entry("Should add reboot annotation to BMH if LastRemediationTime is nil and then requeue", reconcileNormalRemediationTestCase{
-					ExpectError:                    false,
-					ExpectRequeue:                  true,
-					ExpectRebootRemediationApplied: true,
-					RemediationPhase:               infrav1.PhaseRunning,
-					IsLastRemediatedTimeNil:        true,
+				Entry("Should set finalizer, last remediation time and retry count, and then requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseRunning,
+					IsFinalizerSet:      false,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      false,
+					IsNodeDeleted:       false,
+					IsTimedOut:          false,
 				}),
-				Entry("Should add reboot annotation to BMH if running remediation and it's time to remediate", reconcileNormalRemediationTestCase{
-					ExpectError:                    false,
-					ExpectRequeue:                  false,
-					ExpectRebootRemediationApplied: true,
-					RemediationPhase:               infrav1.PhaseRunning,
-					IsTimeToRemediate:              true,
+				Entry("Should request power off and then requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseRunning,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      false,
+					IsNodeDeleted:       false,
+					IsTimedOut:          false,
 				}),
-				Entry("Should requeue if running remediation but it's not time to remediate yet", reconcileNormalRemediationTestCase{
-					ExpectError:             false,
-					ExpectRequeue:           true,
-					RemediationPhase:        infrav1.PhaseRunning,
-					IsLastRemediatedTimeNil: false,
-					IsTimeToRemediate:       false,
+				Entry("Should requeue while still powered on", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseRunning,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: true,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      false,
+					IsNodeDeleted:       false,
+					IsTimedOut:          false,
 				}),
-				Entry("Should start Machine deletion (handover to CAPI) if in PhaseWaiting and it is time to remediate", reconcileNormalRemediationTestCase{
-					ExpectError:                  false,
-					ExpectRequeue:                false,
-					ExpectToStartMachineDeletion: true,
-					RemediationPhase:             infrav1.PhaseWaiting,
-					IsTimeToRemediate:            true,
+				Entry("Should backup node when powered off, and then requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseRunning,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: true,
+					IsPoweredOn:         false,
+					IsNodeBackedUp:      false,
+					IsNodeDeleted:       false,
+					IsTimedOut:          false,
 				}),
-				Entry("Should requeue if waiting but it's not time to remediate yet", reconcileNormalRemediationTestCase{
-					ExpectError:       false,
-					ExpectRequeue:     true,
-					RemediationPhase:  infrav1.PhaseWaiting,
-					IsTimeToRemediate: false,
+				Entry("Should delete node when backed up, and then requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseRunning,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: true,
+					IsPoweredOn:         false,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       false,
+					IsTimedOut:          false,
+				}),
+				Entry("Should request power on, and then requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: true,
+					IsPoweredOn:         false,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsTimedOut:          false,
+				}),
+				Entry("Should requeue while still powered off", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         false,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsTimedOut:          false,
+				}),
+				Entry("Should requeue until node exists if not timed out", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsTimedOut:          false,
+				}),
+				Entry("Should detect timeout and requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsTimedOut:          true,
+				}),
+				Entry("Should restore node and clean up and requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       false,
+					IsTimedOut:          false,
+				}),
+				Entry("Should check if retry limit is reached, and restart remediation if false, and then requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsTimedOut:          true,
+					IsRetryLimitReached: false,
+				}),
+				Entry("Should check if retry limit is reached, and trigger machine deletion if true, and don't requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       false,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsTimedOut:          true,
+					IsRetryLimitReached: true,
 				}),
 			)
 		})

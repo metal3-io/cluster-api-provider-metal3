@@ -19,6 +19,7 @@ package baremetal
 import (
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	capm3remote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -92,5 +93,5 @@ func (f ManagerFactory) NewMachineTemplateManager(capm3Template *infrav1.Metal3M
 func (f ManagerFactory) NewRemediationManager(remediation *infrav1.Metal3Remediation,
 	metal3machine *infrav1.Metal3Machine, machine *clusterv1.Machine,
 	remediationLog logr.Logger) (RemediationManagerInterface, error) {
-	return NewRemediationManager(f.client, remediation, metal3machine, machine, remediationLog)
+	return NewRemediationManager(f.client, capm3remote.NewClusterClient, remediation, metal3machine, machine, remediationLog)
 }

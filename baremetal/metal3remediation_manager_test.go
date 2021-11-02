@@ -25,8 +25,12 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	clientfake "k8s.io/client-go/kubernetes/fake"
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -51,7 +55,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 		DescribeTable("Test NewRemediationManager",
 			func(tc testCaseRemediationManager) {
-				_, err := NewRemediationManager(fakeClient,
+				_, err := NewRemediationManager(fakeClient, nil,
 					tc.Metal3Remediation,
 					tc.Metal3Machine,
 					tc.Machine,
@@ -80,7 +84,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test Finalizers",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -116,7 +120,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test if Retry Limit is set",
 		func(tc testCaseRetryLimitSet) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -176,7 +180,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test if Retry Limit is reached",
 		func(tc testCaseRetryLimitSet) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -238,15 +242,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 		}),
 	)
 
-	type testCaseEnsureRebootAnnotation struct {
+	type testCaseEnsureOnlineStatus struct {
 		Host              *bmov1alpha1.BareMetalHost
 		Metal3Remediation *infrav1.Metal3Remediation
 		ExpectTrue        bool
 	}
 
 	DescribeTable("Test OnlineStatus",
-		func(tc testCaseEnsureRebootAnnotation) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+		func(tc testCaseEnsureOnlineStatus) {
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -258,7 +262,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 				Expect(onlineStatus).To(BeFalse())
 			}
 		},
-		Entry(" Online field in spec is set to false", testCaseEnsureRebootAnnotation{
+		Entry(" Online field in spec is set to false", testCaseEnsureOnlineStatus{
 			Host: &bmov1alpha1.BareMetalHost{
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					Online: false,
@@ -266,7 +270,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			ExpectTrue: false,
 		}),
-		Entry(" Online field in spec is set to true", testCaseEnsureRebootAnnotation{
+		Entry(" Online field in spec is set to true", testCaseEnsureOnlineStatus{
 			Host: &bmov1alpha1.BareMetalHost{
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					Online: true,
@@ -289,7 +293,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
-			remediationMgr, err := NewRemediationManager(fakeClient, nil, tc.M3Machine, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, tc.M3Machine, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -377,7 +381,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	DescribeTable("Test SetUnhealthyAnnotation",
 		func(tc testCaseSetAnnotation) {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Host).Build()
-			remediationMgr, err := NewRemediationManager(fakeClient, nil, tc.M3Machine, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, tc.M3Machine, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -450,82 +454,6 @@ var _ = Describe("Metal3Remediation manager", func() {
 		}),
 	)
 
-	DescribeTable("Test SetRebootAnnotation",
-		func(tc testCaseSetAnnotation) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Host).Build()
-			remediationMgr, err := NewRemediationManager(fakeClient, nil, tc.M3Machine, nil,
-				logr.Discard(),
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			patchError := remediationMgr.SetRebootAnnotation(context.TODO())
-
-			if tc.ExpectTrue {
-				Expect(patchError).To(BeNil())
-			} else {
-				Expect(patchError).NotTo(BeNil())
-			}
-		},
-		Entry("Should set the reboot annotation", testCaseSetAnnotation{
-			M3Machine: &infrav1.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:            metal3machineName,
-					Namespace:       "myns",
-					OwnerReferences: []metav1.OwnerReference{},
-					Annotations: map[string]string{
-						HostAnnotation: "myns/" + baremetalhostName,
-					},
-				},
-			},
-			Host: &bmov1alpha1.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        baremetalhostName,
-					Namespace:   "myns",
-					Annotations: map[string]string{rebootAnnotation: ""},
-				},
-			},
-			ExpectTrue: true,
-		}),
-		Entry("Should not set the reboot annotation, annotation is empty", testCaseSetAnnotation{
-			M3Machine: &infrav1.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:            metal3machineName,
-					Namespace:       "myns",
-					OwnerReferences: []metav1.OwnerReference{},
-					Annotations:     map[string]string{},
-				},
-			},
-			Host: &bmov1alpha1.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        baremetalhostName,
-					Namespace:   "myns",
-					Annotations: map[string]string{rebootAnnotation: ""},
-				},
-			},
-			ExpectTrue: false,
-		}),
-		Entry("Should not set the reboot annotation because of wrong HostAnnotation", testCaseSetAnnotation{
-			M3Machine: &infrav1.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:            metal3machineName,
-					Namespace:       "myns",
-					OwnerReferences: []metav1.OwnerReference{},
-					Annotations: map[string]string{
-						HostAnnotation: "myns/wronghostname",
-					},
-				},
-			},
-			Host: &bmov1alpha1.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:        baremetalhostName,
-					Namespace:   "myns",
-					Annotations: map[string]string{rebootAnnotation: ""},
-				},
-			},
-			ExpectTrue: false,
-		}),
-	)
-
 	type testCaseGetRemediationType struct {
 		Metal3Remediation  *infrav1.Metal3Remediation
 		RemediationType    *infrav1.RemediationType
@@ -534,7 +462,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetRemediationType",
 		func(tc testCaseGetRemediationType) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -585,7 +513,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetLastRemediatedTime",
 		func(tc testCaseGetRemediatedTime) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -620,7 +548,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test TimeToRemediate",
 		func(tc testTimeToRemediate) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -695,7 +623,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetTimeout",
 		func(tc testCaseGetTimeout) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -731,7 +659,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test SetRemediationPhase",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -754,7 +682,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test SetLastRemediationTime",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -778,7 +706,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test IncreaseRetryCount",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -814,7 +742,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetRemediationPhase",
 		func(tc testCaseGetRemediationPhase) {
-			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -876,4 +804,189 @@ var _ = Describe("Metal3Remediation manager", func() {
 		}),
 	)
 
+	Describe("Test PowerOffAnnotation", func() {
+		bmhost := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "myhost",
+				Namespace: namespaceName,
+			},
+		}
+
+		m3machine := &infrav1.Metal3Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "mym3machine",
+				Namespace:       namespaceName,
+				OwnerReferences: []metav1.OwnerReference{},
+				Annotations: map[string]string{
+					HostAnnotation: namespaceName + "/myhost",
+				},
+			},
+		}
+
+		remediation := &infrav1.Metal3Remediation{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "myremediation",
+				Namespace: namespaceName,
+				UID:       "123",
+			},
+		}
+
+		It("should set and remove the power off annotation as requested", func() {
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(bmhost, m3machine, remediation).Build()
+
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, remediation, m3machine, nil,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			ensureNotExists := func() {
+				Expect(remediationMgr.IsPowerOffRequested(context.TODO())).To(BeFalse(), "IsPowerOffrequested should return false")
+				Expect(fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(bmhost), bmhost)).To(Succeed())
+				Expect(bmhost.ObjectMeta.Annotations).ToNot(HaveKey(remediationMgr.getPowerOffAnnotationKey()), "bmh should not have power off annotation")
+			}
+
+			ensureExists := func() {
+				Expect(remediationMgr.IsPowerOffRequested(context.TODO())).To(BeTrue(), "IsPowerOffrequested should return true")
+				Expect(fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(bmhost), bmhost)).To(Succeed())
+				Expect(bmhost.Annotations).To(HaveKeyWithValue(
+					And(
+						Equal(remediationMgr.getPowerOffAnnotationKey()),
+						HaveSuffix(string(remediation.UID)), // to ensure that powerOffAnnotation can be formatted with the UID
+					),
+					ContainSubstring(string(bmov1alpha1.RebootModeHard)),
+				), "bmh should have power off annotation")
+			}
+
+			ensureNotExists()
+
+			By("Setting annotation")
+			Expect(remediationMgr.SetPowerOffAnnotation(context.TODO())).To(Succeed(), "SetPowerOffAnnotation should succeed")
+			ensureExists()
+
+			By("Removing annotation")
+			Expect(remediationMgr.RemovePowerOffAnnotation(context.TODO())).To(Succeed(), "RemovePowerOffAnnotation should succeed")
+			ensureNotExists()
+		})
+	})
+
+	Describe("Test NodeBackupAnnotation", func() {
+		It("should set and remove the node backup annotation as requested", func() {
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+			m3Remediation := &infrav1.Metal3Remediation{}
+
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, m3Remediation, nil, nil,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			ensureNotExists := func() {
+				ann, lbl := remediationMgr.GetNodeBackupAnnotations()
+				Expect(ann).To(BeEmpty(), "there shouldn't be any node backup annotations")
+				Expect(lbl).To(BeEmpty(), "there shouldn't be any node backup labels")
+				Expect(m3Remediation.ObjectMeta.Annotations).ToNot(HaveKey(nodeAnnotationsBackupAnnotation), "bmh should not have node annotations backup annotation")
+				Expect(m3Remediation.ObjectMeta.Annotations).ToNot(HaveKey(nodeLabelsBackupAnnotation), "bmh should not have node labels backup annotation")
+			}
+
+			ensureExists := func() {
+				ann, lbl := remediationMgr.GetNodeBackupAnnotations()
+				Expect(ann).To(Equal("foo"), "there should be node backup annotations")
+				Expect(lbl).To(Equal("bar"), "there should be node backup labels")
+				Expect(m3Remediation.ObjectMeta.Annotations).To(HaveKeyWithValue(
+					nodeAnnotationsBackupAnnotation,
+					Equal("foo"),
+				), "remediation should have correct node annotations backup annotation")
+				Expect(m3Remediation.ObjectMeta.Annotations).To(HaveKeyWithValue(
+					nodeLabelsBackupAnnotation,
+					Equal("bar"),
+				), "remediation should have correct node labels backup annotation")
+			}
+
+			ensureNotExists()
+
+			By("Setting annotations")
+			Expect(remediationMgr.SetNodeBackupAnnotations("foo", "bar")).To(BeTrue(), "SetNodeBackupAnnotations should return true")
+			ensureExists()
+
+			By("Removing annotations")
+			remediationMgr.RemoveNodeBackupAnnotations()
+			ensureNotExists()
+		})
+	})
+
+	Describe("Test Nodes", func() {
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mycluster",
+			},
+		}
+		m3Remediation := &infrav1.Metal3Remediation{
+			ObjectMeta: metav1.ObjectMeta{
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: clusterv1.GroupVersion.String(),
+						Kind:       "Machine",
+						Name:       "mymachine",
+					},
+				},
+			},
+		}
+		capiMachine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mymachine",
+				Labels: map[string]string{
+					"cluster.x-k8s.io/cluster-name": "mycluster",
+				},
+			},
+			Status: clusterv1.MachineStatus{
+				NodeRef: &corev1.ObjectReference{
+					Name: "mynode",
+				},
+			},
+		}
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "mynode",
+			},
+		}
+
+		It("Should find, update and delete node", func() {
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(cluster, m3Remediation, capiMachine).Build()
+			corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
+				Name: node.Name,
+			}}).CoreV1()
+			clientGetter := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error) {
+				return corev1Client, nil
+			}
+			remediationMgr, err := NewRemediationManager(fakeClient, clientGetter, m3Remediation, nil, capiMachine,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("getting cluster client")
+			clusterClient, err := remediationMgr.GetClusterClient(context.TODO())
+			Expect(err).ToNot(HaveOccurred(), "should get cluster client")
+
+			By("Getting node")
+			node, err := remediationMgr.GetNode(context.TODO(), clusterClient)
+			Expect(err).ToNot(HaveOccurred(), "should find node without error")
+			Expect(node).ToNot(BeNil(), "node should not be nil")
+			Expect(node.GetName()).To(Equal("mynode"), "node should have correct name")
+
+			By("Updating node")
+			node.Annotations = make(map[string]string)
+			node.Annotations["foo"] = "bar"
+			Expect(remediationMgr.UpdateNode(context.TODO(), clusterClient, node)).To(Succeed(), "should update node without error")
+
+			newNode, err := corev1Client.Nodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred(), "should get updated node")
+			Expect(newNode.Annotations).To(HaveLen(1))
+			Expect(newNode.Annotations).To(HaveKeyWithValue("foo", "bar"))
+
+			By("Deleting node")
+			Expect(remediationMgr.DeleteNode(context.TODO(), clusterClient, node)).To(Succeed(), "should delete node without error")
+			_, err = corev1Client.Nodes().Get(context.TODO(), node.Name, metav1.GetOptions{})
+			Expect(apierrors.IsNotFound(err)).To(BeTrue(), "expected NotFound error")
+		})
+
+	})
 })
