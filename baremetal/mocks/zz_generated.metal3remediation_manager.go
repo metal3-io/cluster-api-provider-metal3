@@ -30,7 +30,9 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	v1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/api/core/v1"
+	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v11 "k8s.io/client-go/kubernetes/typed/core/v1"
 	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
 	patch "sigs.k8s.io/cluster-api/util/patch"
 )
@@ -58,6 +60,20 @@ func (m *MockRemediationManagerInterface) EXPECT() *MockRemediationManagerInterf
 	return m.recorder
 }
 
+// DeleteNode mocks base method.
+func (m *MockRemediationManagerInterface) DeleteNode(ctx context.Context, clusterClient v11.CoreV1Interface, node *v1.Node) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteNode", ctx, clusterClient, node)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteNode indicates an expected call of DeleteNode.
+func (mr *MockRemediationManagerInterfaceMockRecorder) DeleteNode(ctx, clusterClient, node interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteNode", reflect.TypeOf((*MockRemediationManagerInterface)(nil).DeleteNode), ctx, clusterClient, node)
+}
+
 // GetCapiMachine mocks base method.
 func (m *MockRemediationManagerInterface) GetCapiMachine(ctx context.Context) (*v1beta10.Machine, error) {
 	m.ctrl.T.Helper()
@@ -73,11 +89,26 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) GetCapiMachine(ctx interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCapiMachine", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetCapiMachine), ctx)
 }
 
+// GetClusterClient mocks base method.
+func (m *MockRemediationManagerInterface) GetClusterClient(ctx context.Context) (v11.CoreV1Interface, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterClient", ctx)
+	ret0, _ := ret[0].(v11.CoreV1Interface)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterClient indicates an expected call of GetClusterClient.
+func (mr *MockRemediationManagerInterfaceMockRecorder) GetClusterClient(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterClient", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetClusterClient), ctx)
+}
+
 // GetLastRemediatedTime mocks base method.
-func (m *MockRemediationManagerInterface) GetLastRemediatedTime() *v1.Time {
+func (m *MockRemediationManagerInterface) GetLastRemediatedTime() *v10.Time {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetLastRemediatedTime")
-	ret0, _ := ret[0].(*v1.Time)
+	ret0, _ := ret[0].(*v10.Time)
 	return ret0
 }
 
@@ -85,6 +116,36 @@ func (m *MockRemediationManagerInterface) GetLastRemediatedTime() *v1.Time {
 func (mr *MockRemediationManagerInterfaceMockRecorder) GetLastRemediatedTime() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastRemediatedTime", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetLastRemediatedTime))
+}
+
+// GetNode mocks base method.
+func (m *MockRemediationManagerInterface) GetNode(ctx context.Context, clusterClient v11.CoreV1Interface) (*v1.Node, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNode", ctx, clusterClient)
+	ret0, _ := ret[0].(*v1.Node)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNode indicates an expected call of GetNode.
+func (mr *MockRemediationManagerInterfaceMockRecorder) GetNode(ctx, clusterClient interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNode", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetNode), ctx, clusterClient)
+}
+
+// GetNodeBackupAnnotations mocks base method.
+func (m *MockRemediationManagerInterface) GetNodeBackupAnnotations() (string, string) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodeBackupAnnotations")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	return ret0, ret1
+}
+
+// GetNodeBackupAnnotations indicates an expected call of GetNodeBackupAnnotations.
+func (mr *MockRemediationManagerInterfaceMockRecorder) GetNodeBackupAnnotations() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodeBackupAnnotations", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetNodeBackupAnnotations))
 }
 
 // GetRemediationPhase mocks base method.
@@ -116,10 +177,10 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) GetRemediationType() *gom
 }
 
 // GetTimeout mocks base method.
-func (m *MockRemediationManagerInterface) GetTimeout() *v1.Duration {
+func (m *MockRemediationManagerInterface) GetTimeout() *v10.Duration {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTimeout")
-	ret0, _ := ret[0].(*v1.Duration)
+	ret0, _ := ret[0].(*v10.Duration)
 	return ret0
 }
 
@@ -143,6 +204,20 @@ func (m *MockRemediationManagerInterface) GetUnhealthyHost(ctx context.Context) 
 func (mr *MockRemediationManagerInterfaceMockRecorder) GetUnhealthyHost(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUnhealthyHost", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetUnhealthyHost), ctx)
+}
+
+// HasFinalizer mocks base method.
+func (m *MockRemediationManagerInterface) HasFinalizer() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasFinalizer")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// HasFinalizer indicates an expected call of HasFinalizer.
+func (mr *MockRemediationManagerInterfaceMockRecorder) HasFinalizer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasFinalizer", reflect.TypeOf((*MockRemediationManagerInterface)(nil).HasFinalizer))
 }
 
 // HasReachRetryLimit mocks base method.
@@ -171,6 +246,36 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) IncreaseRetryCount() *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncreaseRetryCount", reflect.TypeOf((*MockRemediationManagerInterface)(nil).IncreaseRetryCount))
 }
 
+// IsPowerOffRequested mocks base method.
+func (m *MockRemediationManagerInterface) IsPowerOffRequested(ctx context.Context) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsPowerOffRequested", ctx)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsPowerOffRequested indicates an expected call of IsPowerOffRequested.
+func (mr *MockRemediationManagerInterfaceMockRecorder) IsPowerOffRequested(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPowerOffRequested", reflect.TypeOf((*MockRemediationManagerInterface)(nil).IsPowerOffRequested), ctx)
+}
+
+// IsPoweredOn mocks base method.
+func (m *MockRemediationManagerInterface) IsPoweredOn(ctx context.Context) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsPoweredOn", ctx)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsPoweredOn indicates an expected call of IsPoweredOn.
+func (mr *MockRemediationManagerInterfaceMockRecorder) IsPoweredOn(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPoweredOn", reflect.TypeOf((*MockRemediationManagerInterface)(nil).IsPoweredOn), ctx)
+}
+
 // OnlineStatus mocks base method.
 func (m *MockRemediationManagerInterface) OnlineStatus(host *v1alpha1.BareMetalHost) bool {
 	m.ctrl.T.Helper()
@@ -183,6 +288,32 @@ func (m *MockRemediationManagerInterface) OnlineStatus(host *v1alpha1.BareMetalH
 func (mr *MockRemediationManagerInterfaceMockRecorder) OnlineStatus(host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnlineStatus", reflect.TypeOf((*MockRemediationManagerInterface)(nil).OnlineStatus), host)
+}
+
+// RemoveNodeBackupAnnotations mocks base method.
+func (m *MockRemediationManagerInterface) RemoveNodeBackupAnnotations() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "RemoveNodeBackupAnnotations")
+}
+
+// RemoveNodeBackupAnnotations indicates an expected call of RemoveNodeBackupAnnotations.
+func (mr *MockRemediationManagerInterfaceMockRecorder) RemoveNodeBackupAnnotations() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveNodeBackupAnnotations", reflect.TypeOf((*MockRemediationManagerInterface)(nil).RemoveNodeBackupAnnotations))
+}
+
+// RemovePowerOffAnnotation mocks base method.
+func (m *MockRemediationManagerInterface) RemovePowerOffAnnotation(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemovePowerOffAnnotation", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemovePowerOffAnnotation indicates an expected call of RemovePowerOffAnnotation.
+func (mr *MockRemediationManagerInterfaceMockRecorder) RemovePowerOffAnnotation(ctx interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePowerOffAnnotation", reflect.TypeOf((*MockRemediationManagerInterface)(nil).RemovePowerOffAnnotation), ctx)
 }
 
 // RetryLimitIsSet mocks base method.
@@ -212,7 +343,7 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) SetFinalizer() *gomock.Ca
 }
 
 // SetLastRemediationTime mocks base method.
-func (m *MockRemediationManagerInterface) SetLastRemediationTime(remediationTime *v1.Time) {
+func (m *MockRemediationManagerInterface) SetLastRemediationTime(remediationTime *v10.Time) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetLastRemediationTime", remediationTime)
 }
@@ -221,6 +352,20 @@ func (m *MockRemediationManagerInterface) SetLastRemediationTime(remediationTime
 func (mr *MockRemediationManagerInterfaceMockRecorder) SetLastRemediationTime(remediationTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLastRemediationTime", reflect.TypeOf((*MockRemediationManagerInterface)(nil).SetLastRemediationTime), remediationTime)
+}
+
+// SetNodeBackupAnnotations mocks base method.
+func (m *MockRemediationManagerInterface) SetNodeBackupAnnotations(annotations, labels string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetNodeBackupAnnotations", annotations, labels)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// SetNodeBackupAnnotations indicates an expected call of SetNodeBackupAnnotations.
+func (mr *MockRemediationManagerInterfaceMockRecorder) SetNodeBackupAnnotations(annotations, labels interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNodeBackupAnnotations", reflect.TypeOf((*MockRemediationManagerInterface)(nil).SetNodeBackupAnnotations), annotations, labels)
 }
 
 // SetOwnerRemediatedConditionNew mocks base method.
@@ -237,18 +382,18 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) SetOwnerRemediatedConditi
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetOwnerRemediatedConditionNew", reflect.TypeOf((*MockRemediationManagerInterface)(nil).SetOwnerRemediatedConditionNew), ctx)
 }
 
-// SetRebootAnnotation mocks base method.
-func (m *MockRemediationManagerInterface) SetRebootAnnotation(ctx context.Context) error {
+// SetPowerOffAnnotation mocks base method.
+func (m *MockRemediationManagerInterface) SetPowerOffAnnotation(ctx context.Context) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetRebootAnnotation", ctx)
+	ret := m.ctrl.Call(m, "SetPowerOffAnnotation", ctx)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SetRebootAnnotation indicates an expected call of SetRebootAnnotation.
-func (mr *MockRemediationManagerInterfaceMockRecorder) SetRebootAnnotation(ctx interface{}) *gomock.Call {
+// SetPowerOffAnnotation indicates an expected call of SetPowerOffAnnotation.
+func (mr *MockRemediationManagerInterfaceMockRecorder) SetPowerOffAnnotation(ctx interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetRebootAnnotation", reflect.TypeOf((*MockRemediationManagerInterface)(nil).SetRebootAnnotation), ctx)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetPowerOffAnnotation", reflect.TypeOf((*MockRemediationManagerInterface)(nil).SetPowerOffAnnotation), ctx)
 }
 
 // SetRemediationPhase mocks base method.
@@ -302,4 +447,18 @@ func (m *MockRemediationManagerInterface) UnsetFinalizer() {
 func (mr *MockRemediationManagerInterfaceMockRecorder) UnsetFinalizer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnsetFinalizer", reflect.TypeOf((*MockRemediationManagerInterface)(nil).UnsetFinalizer))
+}
+
+// UpdateNode mocks base method.
+func (m *MockRemediationManagerInterface) UpdateNode(ctx context.Context, clusterClient v11.CoreV1Interface, node *v1.Node) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNode", ctx, clusterClient, node)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNode indicates an expected call of UpdateNode.
+func (mr *MockRemediationManagerInterfaceMockRecorder) UpdateNode(ctx, clusterClient, node interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNode", reflect.TypeOf((*MockRemediationManagerInterface)(nil).UpdateNode), ctx, clusterClient, node)
 }
