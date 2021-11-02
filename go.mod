@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/docker/docker v20.10.7+incompatible
+	github.com/go-git/go-git/v5 v5.4.2
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.5.0
 	github.com/gorilla/mux v1.7.3 // indirect

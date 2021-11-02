@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func node_reuse() {
+func nodeReuse() {
 	var (
 		targetClusterClient      = targetCluster.GetClient()
 		clientSet                = targetCluster.GetClientSet()

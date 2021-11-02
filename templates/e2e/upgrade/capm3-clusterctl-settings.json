@@ -1,0 +1,7 @@
+{
+   "name": "infrastructure-metal3",
+   "config": {
+      "componentsFile": "infrastructure-components.yaml",
+      "nextVersion": "{{.CAPM3_REL_TO_VERSION}}"
+   }
+}
