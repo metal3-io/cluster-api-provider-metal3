@@ -27,6 +27,7 @@ import (
 	bmoapis "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1alpha4 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha4"
 	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	capm3remote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
@@ -65,6 +66,7 @@ var (
 func init() {
 	_ = scheme.AddToScheme(myscheme)
 	_ = ipamv1.AddToScheme(myscheme)
+	_ = infrav1beta1.AddToScheme(myscheme)
 	_ = infrav1alpha5.AddToScheme(myscheme)
 	_ = infrav1alpha4.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
@@ -315,42 +317,42 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 func setupWebhooks(mgr ctrl.Manager) {
 
-	if err := (&infrav1alpha5.Metal3Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Cluster")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha5.Metal3Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Machine")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha5.Metal3MachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3MachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3MachineTemplate")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha5.Metal3DataTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3DataTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataTemplate")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha5.Metal3Data{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3Data{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Data")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha5.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataClaim")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha5.Metal3Remediation{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3Remediation{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Remediation")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1alpha5.Metal3RemediationTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1beta1.Metal3RemediationTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3RemediationTemplate")
 		os.Exit(1)
 	}
