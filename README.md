@@ -26,7 +26,7 @@ clusterctl in the [getting-started](docs/getting-started.md).
 ## Deploying the metal3 provider
 
 The recommended method is using
-[Clusterctl](https://master.cluster-api.sigs.k8s.io/clusterctl/overview.html).
+[Clusterctl](https://main.cluster-api.sigs.k8s.io/clusterctl/overview.html).
 Please refer to the [getting-started](docs/getting-started.md) for the
 pre-requisites.
 
