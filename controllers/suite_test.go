@@ -366,7 +366,7 @@ func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bmh-0",
 			Namespace: namespaceName,
-			UID:       "54db7dd5-269a-4d94-a12a-c4eafcecb8e7",
+			UID:       bmhuid,
 		},
 		Spec:   *spec,
 		Status: *status,

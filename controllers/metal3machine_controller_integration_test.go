@@ -47,7 +47,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var providerID = fmt.Sprintf("%s/foo/bar", baremetal.ProviderIDPrefix)
+var bmhuid = types.UID("63856098-4b80-11ec-81d3-0242ac130003")
+
+var providerID = fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix, bmhuid)
 
 var bootstrapDataSecretName = "testdatasecret"
 
@@ -237,8 +239,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 			}
 			if tc.CheckBMProviderID {
 				if tc.CheckBMProviderIDUnchanged {
-					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-						string(testBMHost.ObjectMeta.UID)))))
+					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
+						string(testBMHost.ObjectMeta.UID))))
 				} else {
 					Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
 						string(testBMHost.ObjectMeta.UID)))))
@@ -542,7 +544,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
 						&capm3.Metal3MachineSpec{
-							ProviderID: pointer.StringPtr(fmt.Sprintf("%sabcd", baremetal.ProviderIDPrefix)),
+							ProviderID: pointer.StringPtr(providerID),
 							Image: capm3.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
@@ -630,7 +632,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "bmh-0",
 							Labels: map[string]string{
-								baremetal.ProviderLabelPrefix: "54db7dd5-269a-4d94-a12a-c4eafcecb8e7",
+								baremetal.ProviderLabelPrefix: string(bmhuid),
 							},
 						},
 						Spec: v1.NodeSpec{},

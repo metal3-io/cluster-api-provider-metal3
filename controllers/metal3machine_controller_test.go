@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -110,7 +110,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil,
 			errors.New("Failed"),
 		)
-		m.EXPECT().SetProviderID("abc").MaxTimes(0)
+		m.EXPECT().SetProviderID(bmhuid).MaxTimes(0)
 		m.EXPECT().SetError(gomock.Any(), gomock.Any())
 		return m
 	}
@@ -120,11 +120,11 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		if tc.GetProviderIDFails {
 			m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
-				pointer.StringPtr("abc"), nil,
+				pointer.StringPtr(string(bmhuid)), nil,
 			)
 		} else {
 			m.EXPECT().GetProviderIDAndBMHID().Return(
-				fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), pointer.StringPtr("abc"),
+				providerID, pointer.StringPtr(string(bmhuid)),
 			)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		}
@@ -132,18 +132,18 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if we fail to set it on the node, we do not go further
 		if tc.SetNodeProviderIDFails {
 			m.EXPECT().
-				SetNodeProviderID(context.TODO(), "abc", fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), nil).
+				SetNodeProviderID(context.TODO(), string(bmhuid), providerID, nil).
 				Return(errors.New("Failed"))
-			m.EXPECT().SetProviderID("abc").MaxTimes(0)
+			m.EXPECT().SetProviderID(string(bmhuid)).MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			return m
 		}
 
 		// we successfully set it on the node
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), "abc", fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), nil).
+			SetNodeProviderID(context.TODO(), string(bmhuid), providerID, nil).
 			Return(nil)
-		m.EXPECT().SetProviderID(fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix))
+		m.EXPECT().SetProviderID(providerID)
 
 		// We did not get an id (got nil), so we'll requeue and not go further
 	} else {
@@ -151,7 +151,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
 
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), "abc", fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), nil).
+			SetNodeProviderID(context.TODO(), bmhuid, providerID, nil).
 			MaxTimes(0)
 	}
 
