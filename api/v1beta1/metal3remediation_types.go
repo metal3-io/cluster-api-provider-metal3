@@ -49,12 +49,14 @@ const (
 // Metal3RemediationSpec defines the desired state of Metal3Remediation.
 type Metal3RemediationSpec struct {
 	// Strategy field defines remediation strategy.
+	// +optional
 	Strategy *RemediationStrategy `json:"strategy,omitempty"`
 }
 
 // RemediationStrategy describes how to remediate machines
 type RemediationStrategy struct {
 	// Type of remediation.
+	// +optional
 	Type RemediationType `json:"type,omitempty"`
 
 	// Sets maximum number of remediation retries.
@@ -98,10 +100,13 @@ type Metal3RemediationStatus struct {
 
 // Metal3Remediation is the Schema for the metal3remediations API
 type Metal3Remediation struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   Metal3RemediationSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec Metal3RemediationSpec `json:"spec,omitempty"`
+	// +optional
 	Status Metal3RemediationStatus `json:"status,omitempty"`
 }
 
@@ -110,6 +115,7 @@ type Metal3Remediation struct {
 // Metal3RemediationList contains a list of Metal3Remediation
 type Metal3RemediationList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3Remediation `json:"items"`
 }

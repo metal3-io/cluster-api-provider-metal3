@@ -30,17 +30,21 @@ const (
 // Metal3DataSpec defines the desired state of Metal3Data.
 type Metal3DataSpec struct {
 	// Index stores the index value of this instance in the Metal3DataTemplate.
+	// +optional
 	Index int `json:"index,omitempty"`
 
 	// TemplateReference refers to the Template the Metal3MachineTemplate refers to.
 	// It can be matched against the key or it may also point to the name of the template
 	// Metal3Data refers to
+	// +optional
 	TemplateReference string `json:"templateReference,omitempty"`
 
 	// MetaData points to the rendered MetaData secret.
+	// +optional
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
 	// NetworkData points to the rendered NetworkData secret.
+	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 
 	// DataClaim points to the Metal3DataClaim the Metal3Data was created for.
@@ -53,9 +57,11 @@ type Metal3DataSpec struct {
 // Metal3DataStatus defines the observed state of Metal3Data.
 type Metal3DataStatus struct {
 	// Ready is a flag set to True if the secrets were rendered properly
+	// +optional
 	Ready bool `json:"ready,omitempty"`
 
 	// ErrorMessage contains the error message
+	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
@@ -67,10 +73,13 @@ type Metal3DataStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3Data"
 // Metal3Data is the Schema for the metal3datas API
 type Metal3Data struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   Metal3DataSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec Metal3DataSpec `json:"spec,omitempty"`
+	// +optional
 	Status Metal3DataStatus `json:"status,omitempty"`
 }
 
@@ -79,6 +88,7 @@ type Metal3Data struct {
 // Metal3DataList contains a list of Metal3Data
 type Metal3DataList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3Data `json:"items"`
 }

@@ -32,7 +32,8 @@ const (
 type Metal3ClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
-	NoCloudProvider      bool        `json:"noCloudProvider,omitempty"`
+	// +optional
+	NoCloudProvider bool `json:"noCloudProvider,omitempty"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
@@ -90,10 +91,12 @@ type Metal3ClusterStatus struct {
 
 // Metal3Cluster is the Schema for the metal3clusters API
 type Metal3Cluster struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   Metal3ClusterSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec Metal3ClusterSpec `json:"spec,omitempty"`
+	// +optional
 	Status Metal3ClusterStatus `json:"status,omitempty"`
 }
 
@@ -102,6 +105,7 @@ type Metal3Cluster struct {
 // Metal3ClusterList contains a list of Metal3Cluster
 type Metal3ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3Cluster `json:"items"`
 }

@@ -36,9 +36,11 @@ type Metal3DataClaimSpec struct {
 // Metal3DataClaimStatus defines the observed state of Metal3DataClaim.
 type Metal3DataClaimStatus struct {
 	// RenderedData references the Metal3Data when ready
+	// +optional
 	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
 
 	// ErrorMessage contains the error message
+	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 
@@ -50,10 +52,13 @@ type Metal3DataClaimStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3DataClaim"
 // Metal3DataClaim is the Schema for the metal3datas API
 type Metal3DataClaim struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   Metal3DataClaimSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec Metal3DataClaimSpec `json:"spec,omitempty"`
+	// +optional
 	Status Metal3DataClaimStatus `json:"status,omitempty"`
 }
 
@@ -62,6 +67,7 @@ type Metal3DataClaim struct {
 // Metal3DataClaimList contains a list of Metal3DataClaim
 type Metal3DataClaimList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3DataClaim `json:"items"`
 }

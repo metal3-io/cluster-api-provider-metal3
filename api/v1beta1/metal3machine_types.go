@@ -43,30 +43,36 @@ type Metal3MachineSpec struct {
 	// UserData references the Secret that holds user data needed by the bare metal
 	// operator. The Namespace is optional; it will default to the metal3machine's
 	// namespace if not specified.
+	// +optional
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
 
 	// HostSelector specifies matching criteria for labels on BareMetalHosts.
 	// This is used to limit the set of BareMetalHost objects considered for
 	// claiming for a metal3machine.
+	// +optional
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
 
 	// MetadataTemplate is a reference to a Metal3DataTemplate object containing
 	// a template of metadata to be rendered. Metadata keys defined in the
 	// metadataTemplate take precedence over keys defined in metadata field.
+	// +optional
 	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
 
 	// MetaData is an object storing the reference to the secret containing the
 	// Metadata given by the user.
+	// +optional
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
 	// NetworkData is an object storing the reference to the secret containing the
 	// network data given by the user.
+	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 
 	// When set to disabled, automated cleaning of host disks will be skipped
 	// during provisioning and deprovisioning.
 	// +kubebuilder:default:=metadata
 	// +kubebuilder:validation:Enum:=metadata;disabled
+	// +optional
 	AutomatedCleaningMode string `json:"automatedCleaningMode,omitempty"`
 }
 
@@ -151,18 +157,22 @@ type Metal3MachineStatus struct {
 	// UserData references the Secret that holds user data needed by the bare metal
 	// operator. The Namespace is optional; it will default to the metal3machine's
 	// namespace if not specified.
+	// +optional
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
 
 	// RenderedData is a reference to a rendered Metal3Data object containing
 	// the references to metaData and networkData secrets.
+	// +optional
 	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
 
 	// MetaData is an object storing the reference to the secret containing the
 	// Metadata used to deploy the BareMetalHost.
+	// +optional
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
 	// NetworkData is an object storing the reference to the secret containing the
 	// network data used to deploy the BareMetalHost.
+	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 }
 
@@ -179,10 +189,13 @@ type Metal3MachineStatus struct {
 
 // Metal3Machine is the Schema for the metal3machines API
 type Metal3Machine struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   Metal3MachineSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec Metal3MachineSpec `json:"spec,omitempty"`
+	// +optional
 	Status Metal3MachineStatus `json:"status,omitempty"`
 }
 
@@ -191,6 +204,7 @@ type Metal3Machine struct {
 // Metal3MachineList contains a list of Metal3Machine
 type Metal3MachineList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3Machine `json:"items"`
 }

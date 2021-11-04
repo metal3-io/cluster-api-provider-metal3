@@ -39,9 +39,11 @@ type APIEndpoint struct {
 // claiming for a Machine.
 type HostSelector struct {
 	// Key/value pairs of labels that must exist on a chosen BareMetalHost
+	// +optional
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 
 	// Label match expressions that must be true on a chosen BareMetalHost
+	// +optional
 	MatchExpressions []HostSelectorRequirement `json:"matchExpressions,omitempty"`
 }
 
@@ -62,9 +64,11 @@ type Image struct {
 	// ChecksumType is the checksum algorithm for the image.
 	// e.g md5, sha256, sha512
 	// +kubebuilder:validation:Enum=md5;sha256;sha512
+	// +optional
 	ChecksumType *string `json:"checksumType,omitempty"`
 
 	//DiskFormat contains the image disk format
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk
+	// +optional
 	DiskFormat *string `json:"format,omitempty"`
 }
