@@ -1,7 +1,7 @@
 # Cluster API Provider Metal3 for Managed Bare Metal Hardware
 
-[![Ubuntu V1alpha5 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_ubuntu/badge/icon?subject=Ubuntu%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_ubuntu/)
-[![CentOS V1alpha5 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_centos/badge/icon?subject=CentOS%20E2E%20V1alpha5)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1a5_integration_test_centos/)
+[![Ubuntu V1beta1 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1b1_integration_test_ubuntu/badge/icon?subject=Ubuntu%20E2E%20V1beta1)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1b1_integration_test_ubuntu/)
+[![CentOS V1beta1 build status](https://jenkins.nordix.org/view/Airship/job/airship_master_v1b1_integration_test_centos/badge/icon?subject=CentOS%20E2E%20V1beta1)](https://jenkins.nordix.org/view/Airship/job/airship_master_v1b1_integration_test_centos/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
@@ -19,6 +19,7 @@ cluster on top of bare metal infrastructure using Metal3.
 |---------------|---------------------|---------------|
 | v1alpha4      | v1alpha3            | v0.4.X        |
 | v1alpha5      | v1alpha4            | v0.5.X        |
+| v1beta1       | v1beta1             | v1.0.X        |
 
 You can find information on how to use this provider with Cluster API and
 clusterctl in the [getting-started](docs/getting-started.md).

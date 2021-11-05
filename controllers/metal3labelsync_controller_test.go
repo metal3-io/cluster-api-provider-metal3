@@ -20,7 +20,7 @@ import (
 	"reflect"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -289,9 +289,9 @@ var _ = Describe("Metal3LabelSync controller", func() {
 	)
 	type TestCaseMetal3ClusterToBMHs struct {
 		Cluster        *capi.Cluster
-		M3Cluster      *infrav1beta1.Metal3Cluster
+		M3Cluster      *capm3.Metal3Cluster
 		Machine        *capi.Machine
-		M3Machine      *infrav1beta1.Metal3Machine
+		M3Machine      *capm3.Metal3Machine
 		ExpectRequests []ctrl.Request
 	}
 

@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	"github.com/pkg/errors"
@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -339,7 +339,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	type TestCaseMetal3ClusterToM3M struct {
 		Cluster       *capi.Cluster
-		M3Cluster     *infrav1beta1.Metal3Cluster
+		M3Cluster     *capm3.Metal3Cluster
 		Machine0      *capi.Machine
 		Machine1      *capi.Machine
 		Machine2      *capi.Machine
@@ -406,7 +406,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Metal3Cluster To Metal3Machines, No metal3Cluster, No reconciliation",
 			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster("my-other-cluster", nil, nil),
-				M3Cluster:     &infrav1beta1.Metal3Cluster{},
+				M3Cluster:     &capm3.Metal3Cluster{},
 				Machine0:      newMachine(clusterName, "my-machine-0", "my-metal3-machine-0"),
 				Machine1:      newMachine(clusterName, "my-machine-1", "my-metal3-machine-1"),
 				Machine2:      newMachine(clusterName, "my-machine-2", ""),
@@ -453,7 +453,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							Name:       "someothermachine",
 							Namespace:  "myns",
 							Kind:       "Metal3Machine",
-							APIVersion: infrav1beta1.GroupVersion.String(),
+							APIVersion: capm3.GroupVersion.String(),
 						},
 					},
 				},
@@ -487,11 +487,11 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.OwnerRef != nil {
 				ownerRefs = append(ownerRefs, *tc.OwnerRef)
 			}
-			dataClaim := &infrav1beta1.Metal3DataClaim{
+			dataClaim := &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: ownerRefs,
 				},
-				Spec: infrav1beta1.Metal3DataClaimSpec{},
+				Spec: capm3.Metal3DataClaimSpec{},
 			}
 			obj := client.Object(dataClaim)
 			reqs := r.Metal3DataClaimToMetal3Machines(obj)
@@ -520,7 +520,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
 					Kind:       "Metal3Machine",
-					APIVersion: infrav1beta1.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 				},
 				ExpectRequest: true,
 			},
@@ -530,7 +530,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
 					Kind:       "sdfousdf",
-					APIVersion: infrav1beta1.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 				},
 				ExpectRequest: false,
 			},
@@ -540,7 +540,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
 					Kind:       "Metal3Machine",
-					APIVersion: infrav1beta1.GroupVersion.Group + "/v1blah1",
+					APIVersion: capm3.GroupVersion.Group + "/v1blah1",
 				},
 				ExpectRequest: true,
 			},
@@ -550,7 +550,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
 					Kind:       "Metal3Machine",
-					APIVersion: "foo.bar/" + infrav1beta1.GroupVersion.Version,
+					APIVersion: "foo.bar/" + capm3.GroupVersion.Version,
 				},
 				ExpectRequest: false,
 			},
@@ -562,7 +562,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Machine       *capi.Machine
 		Machine1      *capi.Machine
 		Machine2      *capi.Machine
-		M3Machine     *infrav1beta1.Metal3Machine
+		M3Machine     *capm3.Metal3Machine
 		ExpectRequest bool
 	}
 
@@ -583,7 +583,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
-				req := infrav1beta1.Metal3Machine{}
+				req := capm3.Metal3Machine{}
 				err := c.Get(context.TODO(), reqs[0].NamespacedName, &req)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -624,7 +624,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("test Metal3DataToMetal3Machines",
 		func(tc testCaseMetal3DataToMetal3Machines) {
-			ipClaim := &infrav1beta1.Metal3Data{
+			ipClaim := &capm3.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace:       "myns",
 					OwnerReferences: tc.ownerRefs,
@@ -644,12 +644,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("OwnerRefs", testCaseMetal3DataToMetal3Machines{
 			ownerRefs: []metav1.OwnerReference{
 				{
-					APIVersion: infrav1beta1.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Kind:       "Metal3Machine",
 					Name:       "abc",
 				},
 				{
-					APIVersion: infrav1beta1.GroupVersion.String(),
+					APIVersion: capm3.GroupVersion.String(),
 					Kind:       "Metal3DataClaim",
 					Name:       "bcd",
 				},

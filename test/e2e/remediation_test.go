@@ -11,10 +11,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
@@ -174,7 +174,7 @@ func test_remediation() {
 
 	By("Waiting for all Machines to be Running")
 	Eventually(func(g Gomega) error {
-		machines := clusterv1.MachineList{}
+		machines := capi.MachineList{}
 		g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 		return nil
@@ -228,7 +228,7 @@ func test_remediation() {
 	Expect(bootstrapClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")
 
 	By("Pointing MachineDeployment to the new Metal3MachineTemplate")
-	deployment := clusterv1.MachineDeployment{}
+	deployment := capi.MachineDeployment{}
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: clusterName}, &deployment)).To(Succeed())
 
 	helper, err := patch.NewHelper(&deployment, bootstrapClient)
@@ -275,7 +275,7 @@ func test_remediation() {
 
 	Byf("Waiting for all %d machines to be Running", allMachinesCount)
 	Eventually(func(g Gomega) {
-		machines := clusterv1.MachineList{}
+		machines := capi.MachineList{}
 		g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
@@ -507,7 +507,7 @@ func cleanObjectMeta(om *metav1.ObjectMeta) {
 }
 
 // Get the machine object given its object name.
-func getMachine(ctx context.Context, c client.Client, name client.ObjectKey) (result clusterv1.Machine) {
+func getMachine(ctx context.Context, c client.Client, name client.ObjectKey) (result capi.Machine) {
 	Expect(c.Get(ctx, name, &result)).To(Succeed())
 	return
 }

@@ -13,8 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,7 +34,7 @@ func LogFromFile(logFile string) {
 	Logf(string(data))
 }
 
-func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
+func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *capi.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := bootstrapClusterProxy.GetClient()
 
@@ -95,7 +95,7 @@ func filterBmhsByProvisioningState(bmhs []bmo.BareMetalHost, state bmo.Provision
 	return
 }
 
-func filterMachinesByPhase(machines []clusterv1.Machine, phase string) (result []clusterv1.Machine) {
+func filterMachinesByPhase(machines []capi.Machine, phase string) (result []capi.Machine) {
 	for _, machine := range machines {
 		if machine.Status.Phase == phase {
 			result = append(result, machine)
