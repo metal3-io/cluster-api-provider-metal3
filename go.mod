@@ -23,7 +23,6 @@ require (
 	k8s.io/apimachinery v0.21.4
 	k8s.io/client-go v0.21.4
 	k8s.io/klog/v2 v2.9.0
-	k8s.io/kubernetes v1.13.0
 	k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a
 	sigs.k8s.io/cluster-api v0.4.4
 	sigs.k8s.io/cluster-api/test v0.4.4
