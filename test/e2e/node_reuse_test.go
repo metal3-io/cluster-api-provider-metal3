@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/kubernetes/pkg/util/taints"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -517,8 +516,7 @@ func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint
 	count = 0
 	for i := range nodes.Items {
 		Logf("Untainting node %v ...", nodes.Items[i].Name)
-		newNode, changed, err := taints.RemoveTaint(&nodes.Items[i], taint)
-		Expect(err).To(BeNil(), "Failed to remove taint")
+		newNode, changed := removeTaint(&nodes.Items[i], taint)
 		if changed {
 			node, err := clientSet.CoreV1().Nodes().Update(ctx, newNode, metav1.UpdateOptions{})
 			Expect(err).To(BeNil(), "Failed to update nodes")
@@ -527,6 +525,44 @@ func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint
 		}
 	}
 	return
+}
+
+func removeTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
+	newNode := node.DeepCopy()
+	nodeTaints := newNode.Spec.Taints
+	if len(nodeTaints) == 0 {
+		return newNode, false
+	}
+
+	if !taintExists(nodeTaints, taint) {
+		return newNode, false
+	}
+
+	newTaints, _ := deleteTaint(nodeTaints, taint)
+	newNode.Spec.Taints = newTaints
+	return newNode, true
+}
+
+func taintExists(taints []corev1.Taint, taintToFind *corev1.Taint) bool {
+	for _, taint := range taints {
+		if taint.MatchTaint(taintToFind) {
+			return true
+		}
+	}
+	return false
+}
+
+func deleteTaint(taints []corev1.Taint, taintToDelete *corev1.Taint) ([]corev1.Taint, bool) {
+	newTaints := []corev1.Taint{}
+	deleted := false
+	for i := range taints {
+		if taintToDelete.MatchTaint(&taints[i]) {
+			deleted = true
+			continue
+		}
+		newTaints = append(newTaints, taints[i])
+	}
+	return newTaints, deleted
 }
 
 func filterMachinesByStatusPhase(machines []capi.Machine, phase capi.MachinePhase) (result []capi.Machine) {
