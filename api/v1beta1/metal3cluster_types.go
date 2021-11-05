@@ -31,7 +31,8 @@ const (
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.
 type Metal3ClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
-	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint"`
+	// +optional
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
 	// +optional
 	NoCloudProvider bool `json:"noCloudProvider,omitempty"`
 }
@@ -75,6 +76,7 @@ type Metal3ClusterStatus struct {
 	// Baremetal case, it does not mean anything for now as no infrastructure
 	// steps need to be performed. Required by Cluster API. Set to True by the
 	// metal3Cluster controller after creation.
+	// +optional
 	Ready bool `json:"ready"`
 }
 

@@ -257,8 +257,6 @@ spec:
                 type: object
               noCloudProvider:
                 type: boolean
-            required:
-            - controlPlaneEndpoint
             type: object
           status:
             description: Metal3ClusterStatus defines the observed state of Metal3Cluster.
@@ -282,8 +280,6 @@ spec:
                   no infrastructure steps need to be performed. Required by Cluster
                   API. Set to True by the metal3Cluster controller after creation.
                 type: boolean
-            required:
-            - ready
             type: object
         type: object
     served: true
