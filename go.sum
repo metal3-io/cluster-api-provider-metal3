@@ -613,6 +613,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182aff
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/metal3-io/baremetal-operator/apis v0.0.0-20210928111743-2abb8f3d5aa5 h1:uHfY+J5/D5PZGGadb9L1wvs84s06H1/LnZCci/7b774=
 github.com/metal3-io/baremetal-operator/apis v0.0.0-20210928111743-2abb8f3d5aa5/go.mod h1:/pror7LknTgduckyCOm/EhnjFKIZy3mXQHr2GdaQ3kQ=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99 h1:kbichnyFyUKAAlkOq9cwV+zFwJAeuaND/NBzeNxqvJ8=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99/go.mod h1:/pror7LknTgduckyCOm/EhnjFKIZy3mXQHr2GdaQ3kQ=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20211018090204-6be1b3878f19 h1:nj2hnlMGQN8yXRBdCYYCbMd8PL1um94h3soT6qvmdDE=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20211018090204-6be1b3878f19/go.mod h1:UYLOC6zRN+8WM/3WtCvO2WvqNp+W6HI42L1VPkbzQFc=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
