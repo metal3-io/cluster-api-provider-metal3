@@ -1226,14 +1226,13 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		return errors.Wrap(err, "Error creating a remote client")
 	}
 
-	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("metal3.io/uuid=%v", bmhID),
-	})
+	nodeLabel := fmt.Sprintf("metal3.io/uuid=%v", bmhID)
+	nodes, nodesCount, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
-		m.Log.Info(fmt.Sprintf("error while accessing cluster: %v", err))
+		m.Log.Info("error retrieving node, requeuing")
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
-	if len(nodes.Items) == 0 {
+	if nodesCount == 0 {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case
 		m.Log.Info("Target node is not found, requeuing")
@@ -1619,4 +1618,24 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*capi.MachineSet, e
 		}
 	}
 	return nil, errors.New("MachineSet is not found")
+}
+
+// getNodesWithLabel gets kubernetes nodes with a given label
+func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string, clientFactory ClientGetter) (*corev1.NodeList, int, error) {
+	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
+	if err != nil {
+		return nil, 0, errors.Wrap(err, "Error creating a remote client")
+	}
+	nodesCount := 0
+	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{
+		LabelSelector: nodeLabel,
+	})
+	if err != nil {
+		m.Log.Info(fmt.Sprintf("error while retrieving nodes with label (%s): %v", nodeLabel, err))
+		return nil, 0, err
+	}
+	if nodes != nil {
+		nodesCount = len(nodes.Items)
+	}
+	return nodes, nodesCount, err
 }
