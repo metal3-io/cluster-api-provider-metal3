@@ -33,6 +33,9 @@ type Metal3ClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
+	// Determines if the cluster is not to be deployed with an external cloud provider.
+	// If set to true, CAPM3 will use node labels to set providerID on the kubernetes nodes.
+	// If set to false, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
 	// +optional
 	NoCloudProvider bool `json:"noCloudProvider,omitempty"`
 }
