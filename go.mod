@@ -9,7 +9,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.7.3 // indirect
 	github.com/jinzhu/copier v0.3.2
-	github.com/metal3-io/baremetal-operator/apis v0.0.0-20210928111743-2abb8f3d5aa5
+	github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0-20211015151901-0e880ce119c4
 	github.com/metal3-io/ip-address-manager/api v0.0.0-20211018090204-6be1b3878f19
 	github.com/onsi/ginkgo v1.16.4
