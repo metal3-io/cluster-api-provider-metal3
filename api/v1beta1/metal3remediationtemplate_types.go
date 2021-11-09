@@ -45,10 +45,13 @@ type Metal3RemediationTemplateStatus struct {
 
 // Metal3RemediationTemplate is the Schema for the metal3remediationtemplates API
 type Metal3RemediationTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   Metal3RemediationTemplateSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec Metal3RemediationTemplateSpec `json:"spec,omitempty"`
+	// +optional
 	Status Metal3RemediationTemplateStatus `json:"status,omitempty"`
 }
 
@@ -57,6 +60,7 @@ type Metal3RemediationTemplate struct {
 // Metal3RemediationTemplateList contains a list of Metal3RemediationTemplate
 type Metal3RemediationTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3RemediationTemplate `json:"items"`
 }

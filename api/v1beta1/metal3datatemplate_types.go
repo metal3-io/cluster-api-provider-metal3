@@ -32,13 +32,17 @@ type MetaDataIndex struct {
 	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// Offset is the offset to apply to the index when rendering it
+	// +optional
 	Offset int `json:"offset,omitempty"`
 	// +kubebuilder:default=1
 	// Step is the multiplier of the index
+	// +optional
 	Step int `json:"step,omitempty"`
 	// Prefix is the prefix string
+	// +optional
 	Prefix string `json:"prefix,omitempty"`
 	// Suffix is the suffix string
+	// +optional
 	Suffix string `json:"suffix,omitempty"`
 }
 
@@ -104,16 +108,20 @@ type MetaDataIPAddress struct {
 	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 	// Start is the first ip address that can be rendered
+	// +optional
 	Start *ipamv1.IPAddressStr `json:"start,omitempty"`
 	// End is the last IP address that can be rendered. It is used as a validation
 	// that the rendered IP is in bound.
+	// +optional
 	End *ipamv1.IPAddressStr `json:"end,omitempty"`
 	// Subnet is used to validate that the rendered IP is in bounds. In case the
 	// Start value is not given, it is derived from the subnet ip incremented by 1
 	// (`192.168.0.1` for `192.168.0.0/24`)
+	// +optional
 	Subnet *ipamv1.IPSubnetStr `json:"subnet,omitempty"`
 	// +kubebuilder:default=1
 	// Step is the step between the IP addresses rendered.
+	// +optional
 	Step int `json:"step,omitempty"`
 }
 
@@ -128,50 +136,63 @@ type FromPool struct {
 // MetaData represents a keyand value of the metadata
 type MetaData struct {
 	// Strings is the list of metadata items to be rendered from strings
+	// +optional
 	Strings []MetaDataString `json:"strings,omitempty"`
 
 	// ObjectNames is the list of metadata items to be rendered from the name
 	// of objects.
+	// +optional
 	ObjectNames []MetaDataObjectName `json:"objectNames,omitempty"`
 
 	// Indexes is the list of metadata items to be rendered from the index of the
 	// Metal3Data
+	// +optional
 	Indexes []MetaDataIndex `json:"indexes,omitempty"`
 
 	// Namespaces is the list of metadata items to be rendered from the namespace
+	// +optional
 	Namespaces []MetaDataNamespace `json:"namespaces,omitempty"`
 
 	// IPAddressesFromPool is the list of metadata items to be rendered as ip addresses.
+	// +optional
 	IPAddressesFromPool []FromPool `json:"ipAddressesFromIPPool,omitempty"`
 
 	// PrefixesFromPool is the list of metadata items to be rendered as network prefixes.
+	// +optional
 	PrefixesFromPool []FromPool `json:"prefixesFromIPPool,omitempty"`
 
 	// GatewaysFromPool is the list of metadata items to be rendered as gateway addresses.
+	// +optional
 	GatewaysFromPool []FromPool `json:"gatewaysFromIPPool,omitempty"`
 
 	// DNSServersFromPool is the list of metadata items to be rendered as dns servers.
+	// +optional
 	DNSServersFromPool []FromPool `json:"dnsServersFromIPPool,omitempty"`
 
 	// FromHostInterfaces is the list of metadata items to be rendered as MAC
 	// addresses of the host interfaces.
+	// +optional
 	FromHostInterfaces []MetaDataHostInterface `json:"fromHostInterfaces,omitempty"`
 
 	// FromLabels is the list of metadata items to be fetched from object labels
+	// +optional
 	FromLabels []MetaDataFromLabel `json:"fromLabels,omitempty"`
 
 	// FromAnnotations is the list of metadata items to be fetched from object
 	// Annotations
+	// +optional
 	FromAnnotations []MetaDataFromAnnotation `json:"fromAnnotations,omitempty"`
 }
 
 // NetworkLinkEthernetMac represents the Mac address content
 type NetworkLinkEthernetMac struct {
 	// String contains the MAC address given as a string
+	// +optional
 	String *string `json:"string,omitempty"`
 
 	// FromHostInterface contains the name of the interface in the BareMetalHost
 	// Introspection details from which to fetch the MAC address
+	// +optional
 	FromHostInterface *string `json:"fromHostInterface,omitempty"`
 }
 
@@ -188,6 +209,7 @@ type NetworkDataLinkEthernet struct {
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	// MTU is the MTU of the interface
+	// +optional
 	MTU int `json:"mtu,omitempty"`
 
 	// MACAddress is the MAC address of the interface, containing the object
@@ -208,6 +230,7 @@ type NetworkDataLinkBond struct {
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	// MTU is the MTU of the interface
+	// +optional
 	MTU int `json:"mtu,omitempty"`
 
 	// MACAddress is the MAC address of the interface, containing the object
@@ -230,6 +253,7 @@ type NetworkDataLinkVlan struct {
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	// MTU is the MTU of the interface
+	// +optional
 	MTU int `json:"mtu,omitempty"`
 
 	// MACAddress is the MAC address of the interface, containing the object
@@ -244,12 +268,15 @@ type NetworkDataLinkVlan struct {
 type NetworkDataLink struct {
 
 	// Ethernets contains a list of Ethernet links
+	// +optional
 	Ethernets []NetworkDataLinkEthernet `json:"ethernets,omitempty"`
 
 	//Bonds contains a list of Bond links
+	// +optional
 	Bonds []NetworkDataLinkBond `json:"bonds,omitempty"`
 
 	// Vlans contains a list of Vlan links
+	// +optional
 	Vlans []NetworkDataLinkVlan `json:"vlans,omitempty"`
 }
 
@@ -257,27 +284,33 @@ type NetworkDataLink struct {
 type NetworkDataService struct {
 
 	// DNS is a list of DNS services
+	// +optional
 	DNS []ipamv1.IPAddressStr `json:"dns,omitempty"`
 
 	//DNSFromIPPool is the name of the IPPool from which to get the DNS servers
+	// +optional
 	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
 }
 
 // NetworkDataServicev4 represents a service object
 type NetworkDataServicev4 struct {
 	// DNS is a list of IPv4 DNS services
+	// +optional
 	DNS []ipamv1.IPAddressv4Str `json:"dns,omitempty"`
 
 	//DNSFromIPPool is the name of the IPPool from which to get the DNS servers
+	// +optional
 	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
 }
 
 // NetworkDataServicev6 represents a service object
 type NetworkDataServicev6 struct {
 	// DNS is a list of IPv6 DNS services
+	// +optional
 	DNS []ipamv1.IPAddressv6Str `json:"dns,omitempty"`
 
 	//DNSFromIPPool is the name of the IPPool from which to get the DNS servers
+	// +optional
 	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
 }
 
@@ -286,9 +319,11 @@ type NetworkDataServicev6 struct {
 type NetworkGatewayv4 struct {
 
 	// String is the gateway given as a string
+	// +optional
 	String *ipamv1.IPAddressv4Str `json:"string,omitempty"`
 
 	// FromIPPool is the name of the IPPool to fetch the gateway from
+	// +optional
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 }
 
@@ -297,9 +332,11 @@ type NetworkGatewayv4 struct {
 type NetworkGatewayv6 struct {
 
 	// String is the gateway given as a string
+	// +optional
 	String *ipamv1.IPAddressv6Str `json:"string,omitempty"`
 
 	// FromIPPool is the name of the IPPool to fetch the gateway from
+	// +optional
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 }
 
@@ -310,12 +347,14 @@ type NetworkDataRoutev4 struct {
 
 	// +kubebuilder:validation:Maximum=32
 	// Prefix is the mask of the network as integer (max 32)
+	// +optional
 	Prefix int `json:"prefix,omitempty"`
 
 	// Gateway is the IPv4 address of the gateway
 	Gateway NetworkGatewayv4 `json:"gateway"`
 
 	//Services is a list of IPv4 services
+	// +optional
 	Services NetworkDataServicev4 `json:"services,omitempty"`
 }
 
@@ -326,12 +365,14 @@ type NetworkDataRoutev6 struct {
 
 	// +kubebuilder:validation:Maximum=128
 	// Prefix is the mask of the network as integer (max 128)
+	// +optional
 	Prefix int `json:"prefix,omitempty"`
 
 	// Gateway is the IPv6 address of the gateway
 	Gateway NetworkGatewayv6 `json:"gateway"`
 
 	//Services is a list of IPv6 services
+	// +optional
 	Services NetworkDataServicev6 `json:"services,omitempty"`
 }
 
@@ -348,6 +389,7 @@ type NetworkDataIPv4 struct {
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// Routes contains a list of IPv4 routes
+	// +optional
 	Routes []NetworkDataRoutev4 `json:"routes,omitempty"`
 }
 
@@ -364,6 +406,7 @@ type NetworkDataIPv6 struct {
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// Routes contains a list of IPv6 routes
+	// +optional
 	Routes []NetworkDataRoutev6 `json:"routes,omitempty"`
 }
 
@@ -377,6 +420,7 @@ type NetworkDataIPv4DHCP struct {
 	Link string `json:"link"`
 
 	// Routes contains a list of IPv4 routes
+	// +optional
 	Routes []NetworkDataRoutev4 `json:"routes,omitempty"`
 }
 
@@ -390,6 +434,7 @@ type NetworkDataIPv6DHCP struct {
 	Link string `json:"link"`
 
 	// Routes contains a list of IPv6 routes
+	// +optional
 	Routes []NetworkDataRoutev6 `json:"routes,omitempty"`
 }
 
@@ -397,30 +442,38 @@ type NetworkDataIPv6DHCP struct {
 type NetworkDataNetwork struct {
 
 	// IPv4 contains a list of IPv4 static allocations
+	// +optional
 	IPv4 []NetworkDataIPv4 `json:"ipv4,omitempty"`
 
 	// IPv4 contains a list of IPv6 static allocations
+	// +optional
 	IPv6 []NetworkDataIPv6 `json:"ipv6,omitempty"`
 
 	// IPv4 contains a list of IPv4 DHCP allocations
+	// +optional
 	IPv4DHCP []NetworkDataIPv4DHCP `json:"ipv4DHCP,omitempty"`
 
 	// IPv4 contains a list of IPv6 DHCP allocations
+	// +optional
 	IPv6DHCP []NetworkDataIPv6DHCP `json:"ipv6DHCP,omitempty"`
 
 	// IPv4 contains a list of IPv6 SLAAC allocations
+	// +optional
 	IPv6SLAAC []NetworkDataIPv6DHCP `json:"ipv6SLAAC,omitempty"`
 }
 
 // NetworkData represents a networkData object
 type NetworkData struct {
 	// Links is a structure containing lists of different types objects
+	// +optional
 	Links NetworkDataLink `json:"links,omitempty"`
 
 	//Networks  is a structure containing lists of different types objects
+	// +optional
 	Networks NetworkDataNetwork `json:"networks,omitempty"`
 
 	//Services  is a structure containing lists of different types objects
+	// +optional
 	Services NetworkDataService `json:"services,omitempty"`
 }
 
@@ -434,13 +487,16 @@ type Metal3DataTemplateSpec struct {
 	// TemplateReference refers to the Template the Metal3MachineTemplate refers to.
 	// It can be matched against the key or it may also point to the name of the template
 	// Metal3Data refers to
+	// +optional
 	TemplateReference string `json:"templateReference,omitempty"`
 
 	//MetaData contains the information needed to generate the metadata secret
+	// +optional
 	MetaData *MetaData `json:"metaData,omitempty"`
 
 	//NetworkData contains the information needed to generate the networkdata
 	// secret
+	// +optional
 	NetworkData *NetworkData `json:"networkData,omitempty"`
 }
 
@@ -451,6 +507,7 @@ type Metal3DataTemplateStatus struct {
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	//Indexes contains the map of Metal3Machine and index used
+	// +optional
 	Indexes map[string]int `json:"indexes,omitempty"`
 }
 
@@ -464,10 +521,13 @@ type Metal3DataTemplateStatus struct {
 
 // Metal3DataTemplate is the Schema for the metal3datatemplates API
 type Metal3DataTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   Metal3DataTemplateSpec   `json:"spec,omitempty"`
+	// +optional
+	Spec Metal3DataTemplateSpec `json:"spec,omitempty"`
+	// +optional
 	Status Metal3DataTemplateStatus `json:"status,omitempty"`
 }
 
@@ -476,6 +536,7 @@ type Metal3DataTemplate struct {
 // Metal3DataTemplateList contains a list of Metal3DataTemplate
 type Metal3DataTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3DataTemplate `json:"items"`
 }

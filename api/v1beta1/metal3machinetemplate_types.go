@@ -39,9 +39,11 @@ type Metal3MachineTemplateSpec struct {
 
 // Metal3MachineTemplate is the Schema for the metal3machinetemplates API
 type Metal3MachineTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +optional
 	Spec Metal3MachineTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -50,6 +52,7 @@ type Metal3MachineTemplate struct {
 // Metal3MachineTemplateList contains a list of Metal3MachineTemplate
 type Metal3MachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
+	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3MachineTemplate `json:"items"`
 }
