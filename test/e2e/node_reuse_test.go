@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
@@ -26,19 +27,19 @@ import (
 
 func node_reuse() {
 	var (
-		targetClusterClient          = targetCluster.GetClient()
-		clientSet                    = targetCluster.GetClientSet()
-		kubernetesVersion            = e2eConfig.GetVariable("KUBERNETES_VERSION")
-		upgradedK8sVersion           = e2eConfig.GetVariable("UPGRADED_K8S_VERSION")
-		numberOfControleplaneBmh int = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-		numberOfWorkerBmh        int = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-		numberOfAllBmh           int = numberOfControleplaneBmh + numberOfWorkerBmh
-		controlplaneTaint            = &corev1.Taint{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}
+		targetClusterClient      = targetCluster.GetClient()
+		clientSet                = targetCluster.GetClientSet()
+		kubernetesVersion        = e2eConfig.GetVariable("KUBERNETES_VERSION")
+		upgradedK8sVersion       = e2eConfig.GetVariable("UPGRADED_K8S_VERSION")
+		numberOfControlplane int = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+		numberOfWorkers      int = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+		numberOfAllBmh       int = numberOfControlplane + numberOfWorkers
+		controlplaneTaint        = &corev1.Taint{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}
 	)
 	Logf("KUBERNETES VERSION: %v", kubernetesVersion)
 	Logf("UPGRADED K8S VERSION: %v", upgradedK8sVersion)
-	Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControleplaneBmh)
-	Logf("NUMBER OF WORKER BMH: %v", numberOfWorkerBmh)
+	Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControlplane)
+	Logf("NUMBER OF WORKER BMH: %v", numberOfWorkers)
 
 	By("Untaint all CP nodes before scaling down machinedeployment")
 	controlplaneNodes := getControlplaneNodes(clientSet)
@@ -47,15 +48,22 @@ func node_reuse() {
 	By("Scale own machinedeployment to 0")
 	scaleMachineDeployment(ctx, targetClusterClient, 0)
 
-	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkerBmh)
+	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkers)
 	Eventually(
-		func() int {
+		func() error {
 			bmhs := bmo.BareMetalHostList{}
-			Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
+			err := targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))
+			if err != nil {
+				Logf("Error:  %v", err)
+				return err
+			}
 			filtered := filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)
-			return len(filtered)
+			if len(filtered) != numberOfWorkers {
+				return errors.New("Failed to scale down worker")
+			}
+			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...,
-	).Should(Equal(numberOfWorkerBmh))
+	).Should(Succeed())
 
 	By("Get the provisioned BMH names and UUIDs")
 	kcpBmhBeforeUpgrade := getProvisionedBmhNamesUuids(targetClusterClient)
@@ -103,22 +111,35 @@ func node_reuse() {
 		}, e2eConfig.GetIntervals(specName, "wait-machine-deleting")...,
 	).Should(Succeed())
 
-	Byf("Wait until %d BMH is in deprovisioning state", numberOfWorkerBmh)
+	Byf("Wait until 1 BMH is in deprovisioning state")
 	deprovisioning_bmh := []bmo.BareMetalHost{}
 	Eventually(
-		func() int {
+		func() error {
 			bmhs := bmo.BareMetalHostList{}
-			Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
+			err = targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))
+			if err != nil {
+				Logf("Error:  %v", err)
+				return err
+			}
+
 			deprovisioning_bmh = filterBmhsByProvisioningState(bmhs.Items, bmo.StateDeprovisioning)
-			return len(deprovisioning_bmh)
+
+			if len(deprovisioning_bmh) != 1 {
+				return errors.New("No bmh is in deprovisioning state")
+			}
+			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning")...,
-	).Should(Equal(numberOfWorkerBmh), "Deprovisioning bmhs are not equal to %d", numberOfWorkerBmh)
+	).Should(Succeed(), "No bmh is in deprovisioning state")
 
 	By("Wait until above deprovisioning BMH is in available state again")
 	Eventually(
 		func() error {
 			bmhs := bmo.BareMetalHostList{}
-			Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
+			err = targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))
+			if err != nil {
+				Logf("Error:  %v", err)
+				return err
+			}
 
 			bmh, err := getBmhByName(bmhs.Items, deprovisioning_bmh[0].Name)
 			if err != nil {
@@ -128,14 +149,18 @@ func node_reuse() {
 				return fmt.Errorf("The bmh [%s] is not available yet", deprovisioning_bmh[0].Name)
 			}
 			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-ready")...,
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-available")...,
 	).Should(Succeed())
 
 	By("Check if just deprovisioned BMH re-used for the next provisioning")
 	Eventually(
 		func() error {
 			bmhs := bmo.BareMetalHostList{}
-			Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
+			err = targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))
+			if err != nil {
+				Logf("Error:  %v", err)
+				return err
+			}
 			bmh, err := getBmhByName(bmhs.Items, deprovisioning_bmh[0].Name)
 			if err != nil {
 				return err
@@ -171,9 +196,33 @@ func node_reuse() {
 		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
 	).Should(Succeed())
 
-	By("Untaint all CP nodes after the upgrade of two controlplane nodes")
+	By("Untaint CP nodes after upgrade of two controlplane nodes")
 	controlplaneNodes = getControlplaneNodes(clientSet)
 	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
+
+	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
+	Eventually(
+		func() error {
+			machines := &clusterv1.MachineList{}
+			err = targetClusterClient.List(ctx, machines, client.InNamespace(namespace))
+			if err != nil {
+				Logf("Error:  %v", err)
+				return err
+			}
+
+			running_upgraded_len := 0
+			for _, machine := range machines.Items {
+				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
+					running_upgraded_len++
+					Logf("Machine [%v] is upgraded to k8s version (%v) and in running state", machine.Name, upgradedK8sVersion)
+				}
+			}
+			if running_upgraded_len != numberOfControlplane {
+				return errors.New("Waiting for two machines to be in running state")
+			}
+			return nil
+		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
+	).Should(Succeed())
 
 	By("Get the provisioned BMH names and UUIDs after upgrade")
 	kcpBmhAfterUpgrade := getProvisionedBmhNamesUuids(targetClusterClient)
@@ -193,17 +242,25 @@ func node_reuse() {
 			}
 		}
 	}`)
-	err = targetClusterClient.Patch(ctx, &ctrlplane, client.RawPatch(types.MergePatchType, patch))
-	Expect(err).To(BeNil(), "Failed to set up KCP maxSurge to 1")
+	Eventually(
+		func() error {
+			return targetClusterClient.Patch(ctx, &ctrlplane, client.RawPatch(types.MergePatchType, patch))
+		}, e2eConfig.GetIntervals(specName, "wait-patch")...,
+	).Should(Succeed(), "Failed to set up KCP maxSurge to 1")
+
+	By("Untaint all CP nodes")
+	// The rest of CP nodes may take time to be untaintable
+	// We have untainted the 2 first CPs
+	for untaintedNodeCount := 0; untaintedNodeCount < numberOfControlplane-2; {
+		controlplaneNodes = getControlplaneNodes(clientSet)
+		untaintedNodeCount = untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
+		time.Sleep(10 * time.Second)
+	}
 
 	By("Scale the controlplane down to 1")
 	scaleControlPlane(ctx, targetClusterClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 1)
 
-	By("Untaint all CP nodes")
-	controlplaneNodes = getControlplaneNodes(clientSet)
-	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
-
-	Byf("Wait until controlplane is scaled down and %d BMHs are Ready", numberOfControleplaneBmh)
+	Byf("Wait until controlplane is scaled down and %d BMHs are Available", numberOfControlplane)
 	Eventually(
 		func() error {
 			bmhs := bmo.BareMetalHostList{}
@@ -214,19 +271,20 @@ func node_reuse() {
 				return err
 			}
 
-			readyBmhs := filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)
-
-			if len(readyBmhs) != numberOfControleplaneBmh {
-				return fmt.Errorf("BMHs available are not equal to %d", numberOfControleplaneBmh)
+			availableBmhs := filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)
+			len := len(availableBmhs)
+			Logf("Available bmhs : %d", len)
+			if len != numberOfControlplane {
+				return fmt.Errorf("BMHs available are %d not equal to %d", len, numberOfControlplane)
 			}
 			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...,
+		}, e2eConfig.GetIntervals(specName, "wait-cp-available")...,
 	).Should(Succeed())
 
 	By("Scale the worker up to 1 to start testing MachineDeployment")
 	scaleMachineDeployment(ctx, targetClusterClient, 1)
 
-	Byf("Wait until %d more bmh becomes provisioned", numberOfWorkerBmh)
+	Byf("Wait until %d more bmh becomes provisioned", numberOfWorkers)
 	Eventually(
 		func() int {
 			bmhs := bmo.BareMetalHostList{}
@@ -236,7 +294,7 @@ func node_reuse() {
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...,
 	).Should(Equal(2))
 
-	Byf("Wait until %d more machine becomes running", numberOfWorkerBmh)
+	Byf("Wait until %d more machine becomes running", numberOfWorkers)
 	Eventually(
 		func() int {
 			machines := &clusterv1.MachineList{}
@@ -306,7 +364,7 @@ func node_reuse() {
 	err = targetClusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
 	Expect(err).To(BeNil(), "Failed to patch MachineDeployment")
 
-	Byf("Wait until %d BMH(s) in deprovisioning state", numberOfWorkerBmh)
+	Byf("Wait until %d BMH(s) in deprovisioning state", numberOfWorkers)
 	deprovisioning_bmh = []bmo.BareMetalHost{}
 	Eventually(
 		func() int {
@@ -316,7 +374,7 @@ func node_reuse() {
 			return len(deprovisioning_bmh)
 		},
 		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning")...,
-	).Should(Equal(numberOfWorkerBmh), "Deprovisioning bmhs are not equal to %d", numberOfWorkerBmh)
+	).Should(Equal(numberOfWorkers), "Deprovisioning bmhs are not equal to %d", numberOfWorkers)
 
 	By("Wait until the above deprovisioning BMH is in available state again")
 	Eventually(
@@ -332,7 +390,7 @@ func node_reuse() {
 			}
 			return nil
 		},
-		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-ready")...,
+		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-available")...,
 	).Should(Succeed())
 
 	By("Unmark all the available BMHs with unhealthy annotation")
@@ -455,15 +513,20 @@ func updateNodeReuse(nodeReuse bool, m3machineTemplateName string, clusterClient
 	Expect(m3machineTemplate.Spec.NodeReuse).To(BeTrue())
 }
 
-func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint *corev1.Taint) {
+func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint *corev1.Taint) (count int) {
+	count = 0
 	for i := range nodes.Items {
+		Logf("Untainting node %v ...", nodes.Items[i].Name)
 		newNode, changed, err := taints.RemoveTaint(&nodes.Items[i], taint)
 		Expect(err).To(BeNil(), "Failed to remove taint")
 		if changed {
-			_, err = clientSet.CoreV1().Nodes().Update(ctx, newNode, metav1.UpdateOptions{})
+			node, err := clientSet.CoreV1().Nodes().Update(ctx, newNode, metav1.UpdateOptions{})
 			Expect(err).To(BeNil(), "Failed to update nodes")
+			Logf("Node %v untainted", node.Name)
+			count++
 		}
 	}
+	return
 }
 
 func filterMachinesByStatusPhase(machines []clusterv1.Machine, phase clusterv1.MachinePhase) (result []clusterv1.Machine) {
