@@ -76,6 +76,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	// Bootstrap data not ready, we'll requeue, not call anything else
 	m.EXPECT().IsBootstrapReady().Return(!tc.BootstrapNotReady)
 	if tc.BootstrapNotReady {
+		m.EXPECT().SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.WaitingForBootstrapReadyReason, capi.ConditionSeverityInfo, "")
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
 		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
@@ -90,6 +91,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if associate fails, we do not go further
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
+			m.EXPECT().SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, capi.ConditionSeverityError, gomock.Any())
 			m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 			m.EXPECT().Update(context.TODO()).MaxTimes(0)
 			m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
@@ -101,6 +103,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		}
 	}
 
+	m.EXPECT().SetConditionMetal3MachineToTrue(capm3.AssociateBMHCondition)
 	m.EXPECT().AssociateM3Metadata(context.TODO()).Return(nil)
 	m.EXPECT().Update(context.TODO())
 
@@ -112,6 +115,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		)
 		m.EXPECT().SetProviderID(bmhuid).MaxTimes(0)
 		m.EXPECT().SetError(gomock.Any(), gomock.Any())
+		m.EXPECT().SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.MissingBMHReason, capi.ConditionSeverityError, gomock.Any())
 		return m
 	}
 
@@ -136,6 +140,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID(string(bmhuid)).MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
+			m.EXPECT().SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.SettingProviderIDOnNodeFailedReason, capi.ConditionSeverityError, gomock.Any())
 			return m
 		}
 

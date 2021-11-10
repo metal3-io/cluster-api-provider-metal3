@@ -42,6 +42,7 @@ import (
 	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -162,6 +163,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		ErrorReasonExpected        bool
 		ErrorReason                capierrors.MachineStatusError
 		ErrorType                  error
+		ConditionsExpected         capi.Conditions
 		ExpectedRequeueDuration    time.Duration
 		LabelExpected              bool
 		ClusterInfraReady          bool
@@ -227,6 +229,15 @@ var _ = Describe("Reconcile metal3machine", func() {
 			if tc.ErrorReasonExpected {
 				Expect(testBMmachine.Status.FailureReason).NotTo(BeNil())
 				Expect(tc.ErrorReason).To(Equal(*testBMmachine.Status.FailureReason))
+			}
+			for _, condExp := range tc.ConditionsExpected {
+				_ = c.Get(ctx, *getKey(metal3ClusterName), testBMmachine)
+				condGot := conditions.Get(testBMmachine, condExp.Type)
+				Expect(condGot).NotTo(BeNil())
+				Expect(condGot.Status).To(Equal(condExp.Status))
+				if condExp.Reason != "" {
+					Expect(condGot.Reason).To(Equal(condExp.Reason))
+				}
 			}
 			if tc.LabelExpected {
 				Expect(objMeta.Labels[capi.ClusterLabelName]).NotTo(BeNil())
@@ -324,7 +335,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine, Metal3Machine, Cluster. No Metal3Cluster. Cluster Infra not ready
-		//Expected: No Error. it should wait and not return error
+		//Expected: No Error. it should wait and not return error. Condition AssociateBMHCondition should be false with WaitingForClusterInfrastructureReason.
 		Entry("Should not return an error when owner Cluster infrastructure is not ready",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -337,6 +348,44 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ErrorExpected:     false,
 				RequeueExpected:   false,
 				ClusterInfraReady: false,
+				ConditionsExpected: capi.Conditions{
+					capi.Condition{
+						Type:   capm3.AssociateBMHCondition,
+						Status: v1.ConditionFalse,
+						Reason: capm3.WaitingForClusterInfrastructureReason,
+					},
+					capi.Condition{
+						Type:   capi.ReadyCondition,
+						Status: v1.ConditionFalse,
+					},
+				},
+			},
+		),
+		//Given: Machine, Metal3Machine, Cluster, Metal3Cluster. Bootstrap is not Ready.
+		//Expected: No Error. Condition AssociateBMHCondition should be false with WaitingForBootstrapReadyReason.
+		Entry("Should not return an error when machine bootstrap data is not ready",
+			TestCaseReconcile{
+				Objects: []client.Object{
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
+					metal3machineWithOwnerRefs(),
+					machineWithInfra(),
+				},
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBootStrapReady: false,
+				ConditionsExpected: capi.Conditions{
+					capi.Condition{
+						Type:   capm3.AssociateBMHCondition,
+						Status: v1.ConditionFalse,
+						Reason: capm3.WaitingForBootstrapReadyReason,
+					},
+					capi.Condition{
+						Type:   capi.ReadyCondition,
+						Status: v1.ConditionFalse,
+					},
+				},
 			},
 		),
 		//Given: Machine, Metal3Machine, Cluster. No Metal3Cluster. Cluster Infra ready
@@ -534,6 +583,20 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMFinalizer:    true,
 				CheckBMProviderID:   true,
 				CheckBootStrapReady: true,
+				ConditionsExpected: capi.Conditions{
+					capi.Condition{
+						Type:   capm3.AssociateBMHCondition,
+						Status: v1.ConditionTrue,
+					},
+					capi.Condition{
+						Type:   capm3.KubernetesNodeReadyCondition,
+						Status: v1.ConditionTrue,
+					},
+					capi.Condition{
+						Type:   capi.ReadyCondition,
+						Status: v1.ConditionTrue,
+					},
+				},
 			},
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, provider ID set), BMH (provisioned)
@@ -563,6 +626,20 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMProviderID:          true,
 				CheckBootStrapReady:        true,
 				CheckBMProviderIDUnchanged: true,
+				ConditionsExpected: capi.Conditions{
+					capi.Condition{
+						Type:   capm3.AssociateBMHCondition,
+						Status: v1.ConditionTrue,
+					},
+					capi.Condition{
+						Type:   capm3.KubernetesNodeReadyCondition,
+						Status: v1.ConditionTrue,
+					},
+					capi.Condition{
+						Type:   capi.ReadyCondition,
+						Status: v1.ConditionTrue,
+					},
+				},
 			},
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
@@ -613,6 +690,21 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMFinalizer:        true,
 				CheckBMProviderID:       false,
 				CheckBootStrapReady:     true,
+				ConditionsExpected: capi.Conditions{
+					capi.Condition{
+						Type:   capm3.AssociateBMHCondition,
+						Status: v1.ConditionTrue,
+					},
+					capi.Condition{
+						Type:   capm3.KubernetesNodeReadyCondition,
+						Status: v1.ConditionFalse,
+						Reason: capm3.SettingProviderIDOnNodeFailedReason,
+					},
+					capi.Condition{
+						Type:   capi.ReadyCondition,
+						Status: v1.ConditionFalse,
+					},
+				},
 			},
 		),
 		//Given: metal3machine with annotation to a BMH provisioned, machine with
