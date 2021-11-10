@@ -239,10 +239,10 @@ var _ = Describe("Reconcile metal3machine", func() {
 			}
 			if tc.CheckBMProviderID {
 				if tc.CheckBMProviderIDUnchanged {
-					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-						string(testBMHost.ObjectMeta.UID))))
+					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
+						string(testBMHost.ObjectMeta.UID)))))
 				} else {
-					Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("metal3://%s",
+					Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
 						string(testBMHost.ObjectMeta.UID)))))
 				}
 			}
@@ -544,7 +544,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
 						&capm3.Metal3MachineSpec{
-							ProviderID: pointer.StringPtr(providerID),
+							ProviderID: pointer.StringPtr(fmt.Sprintf("%sabcd", baremetal.ProviderIDPrefix)),
 							Image: capm3.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
@@ -632,7 +632,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "bmh-0",
 							Labels: map[string]string{
-								baremetal.ProviderLabelPrefix: string(bmhuid),
+								baremetal.ProviderLabelPrefix: "54db7dd5-269a-4d94-a12a-c4eafcecb8e7",
 							},
 						},
 						Spec: v1.NodeSpec{},

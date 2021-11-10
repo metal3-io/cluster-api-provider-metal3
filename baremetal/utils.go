@@ -308,5 +308,5 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 }
 
 func parseProviderID(providerID string) string {
-	return strings.TrimPrefix(providerID, "metal3://")
+	return strings.TrimPrefix(providerID, ProviderIDPrefix)
 }
