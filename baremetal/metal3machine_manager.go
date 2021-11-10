@@ -61,6 +61,8 @@ const (
 	bmRoleControlPlane  = "control-plane"
 	bmRoleNode          = "node"
 	PausedAnnotationKey = "metal3.io/capm3"
+	ProviderIDPrefix    = "metal3://"
+	ProviderLabelPrefix = "metal3.io/uuid"
 )
 
 // MachineManagerInterface is an interface for a MachineManager
@@ -1226,7 +1228,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		return errors.Wrap(err, "Error creating a remote client")
 	}
 
-	nodeLabel := fmt.Sprintf("metal3.io/uuid=%v", bmhID)
+	nodeLabel := fmt.Sprintf("%s=%v", ProviderLabelPrefix, bmhID)
 	nodes, nodesCount, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
 		m.Log.Info("error retrieving node, requeuing")
