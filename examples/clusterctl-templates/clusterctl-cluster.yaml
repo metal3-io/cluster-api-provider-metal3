@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -12,17 +12,17 @@ spec:
       cidrBlocks:
       - 192.168.0.0/18
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: Metal3Cluster
     name: ${CLUSTER_NAME}
     namespace: ${NAMESPACE}
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: ${CLUSTER_NAME}
     namespace: ${NAMESPACE}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3Cluster
 metadata:
   name: ${CLUSTER_NAME}
@@ -34,14 +34,14 @@ spec:
   noCloudProvider: true
 ---
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: Metal3MachineTemplate
       name: ${CLUSTER_NAME}-controlplane
       namespace: ${NAMESPACE}
@@ -66,7 +66,7 @@ spec:
           node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
 ${CTLPLANE_KUBEADM_EXTRA_CONFIG}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-controlplane
@@ -84,7 +84,7 @@ spec:
         format: ${IMAGE_FORMAT}
         url: ${IMAGE_URL}
 ---
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
   name: ${CLUSTER_NAME}
@@ -111,14 +111,14 @@ spec:
       bootstrap:
         configRef:
           name: ${CLUSTER_NAME}-workers
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: ${CLUSTER_NAME}-workers
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers
@@ -136,7 +136,7 @@ spec:
         format: ${IMAGE_FORMAT}
         url: ${IMAGE_URL}
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers
