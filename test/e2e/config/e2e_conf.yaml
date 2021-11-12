@@ -83,9 +83,9 @@ variables:
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
-  default/wait-cluster: ["20m", "10s"]
-  default/wait-control-plane: ["30m", "10s"]
-  default/wait-worker-nodes: ["30m", "10s"]
+  default/wait-cluster: ["30m", "20s"]
+  default/wait-control-plane: ["40m", "20s"]
+  default/wait-worker-nodes: ["30m", "20s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["50m", "10s"]
   default/wait-machine-remediation: ["30m", "10s"]
