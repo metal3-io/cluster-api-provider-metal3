@@ -22,7 +22,7 @@ BareMetalHost exposes those different fields that are secret references:
 * **networkData** : for a cloud-init network data in a secret with the key
   `networkData`
 
-For the metaData, soome values are set by default to maintain compatibility:
+For the metaData, some values are set by default to maintain compatibility:
 
 * **uuid**: This is the BareMetalHost UID
 * **metal3-namespace**: the name of the BareMetalHost
