@@ -39,6 +39,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -86,18 +87,19 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
-		Scheme:                 myscheme,
-		MetricsBindAddress:     metricsBindAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaseDuration:          &leaderElectionLeaseDuration,
-		RenewDeadline:          &leaderElectionRenewDeadline,
-		RetryPeriod:            &leaderElectionRetryPeriod,
-		LeaderElectionID:       "controller-leader-election-capm3",
-		SyncPeriod:             &syncPeriod,
-		Port:                   webhookPort,
-		CertDir:                webhookCertDir,
-		HealthProbeBindAddress: healthAddr,
-		Namespace:              watchNamespace,
+		Scheme:                     myscheme,
+		MetricsBindAddress:         metricsBindAddr,
+		LeaseDuration:              &leaderElectionLeaseDuration,
+		RenewDeadline:              &leaderElectionRenewDeadline,
+		RetryPeriod:                &leaderElectionRetryPeriod,
+		LeaderElection:             enableLeaderElection,
+		LeaderElectionID:           "controller-leader-election-capm3",
+		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+		SyncPeriod:                 &syncPeriod,
+		Port:                       webhookPort,
+		CertDir:                    webhookCertDir,
+		HealthProbeBindAddress:     healthAddr,
+		Namespace:                  watchNamespace,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
