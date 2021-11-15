@@ -58,7 +58,7 @@ type Metal3DataSpec struct {
 type Metal3DataStatus struct {
 	// Ready is a flag set to True if the secrets were rendered properly
 	// +optional
-	Ready bool `json:"ready,omitempty"`
+	Ready bool `json:"ready"`
 
 	// ErrorMessage contains the error message
 	// +optional
