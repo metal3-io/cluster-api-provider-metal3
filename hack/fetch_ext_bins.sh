@@ -26,17 +26,17 @@ if [[ -n "${TRACE}" ]]; then
   set -x
 fi
 
-k8s_version=1.19.2
-goarch=amd64
-goos="unknown"
+k8s_version=1.22.0
+arch=amd64
+os="unknown"
 
 if [[ "${OSTYPE}" == "linux"* ]]; then
-  goos="linux"
+  os="linux"
 elif [[ "${OSTYPE}" == "darwin"* ]]; then
-  goos="darwin"
+  os="darwin"
 fi
 
-if [[ "$goos" == "unknown" ]]; then
+if [[ "$os" == "unknown" ]]; then
   echo "OS '$OSTYPE' not supported. Aborting." >&2
   exit 1
 fi
@@ -58,9 +58,7 @@ function header_text {
   echo "$header$*$reset"
 }
 
-tmp_root=/tmp
-
-kb_root_dir=${tmp_root}/kubebuilder
+kb_root_dir="/tmp/kubebuilder"
 
 # Skip fetching and untaring the tools by setting the SKIP_FETCH_TOOLS variable
 # in your environment to any value:
@@ -71,42 +69,30 @@ kb_root_dir=${tmp_root}/kubebuilder
 # machine, but rebuild the kubebuilder and kubebuilder-bin binaries.
 SKIP_FETCH_TOOLS=${SKIP_FETCH_TOOLS:-""}
 
-function prepare_staging_dir {
-  header_text "preparing staging dir"
-
-  if [[ -z "${SKIP_FETCH_TOOLS}" ]]; then
-    rm -rf "${kb_root_dir}"
-  else
-    rm -f "${kb_root_dir}/bin/kubebuilder"
-    rm -f "${kb_root_dir}/bin/kubebuilder-gen"
-    rm -f "${kb_root_dir}/bin/vendor.tar.gz"
-  fi
-}
-
-# fetch k8s API gen tools and make it available under kb_root_dir/bin.
+# Download the tarball containing  etcd, k8s API server and
+# kubelet binaries and store them under kb_root_dir/bin.
 function fetch_tools {
   if [[ -n "$SKIP_FETCH_TOOLS" ]]; then
     return 0
   fi
 
-  header_text "fetching tools"
-  kb_tools_archive_name="kubebuilder-tools-${k8s_version}-${goos}-${goarch}.tar.gz"
-  kb_tools_download_url="https://storage.googleapis.com/kubebuilder-tools/${kb_tools_archive_name}"
+  mkdir -p "${kb_root_dir}"
+  header_text "fetching binaries"
+  kb_tools_archive_name="envtest-bins.tar.gz"
+  kb_tools_download_url=https://go.kubebuilder.io/test-tools/"${k8s_version}"/"${os}"/"${arch}"
+  kb_tools_archive_path="/tmp/${kb_tools_archive_name}"
 
-  kb_tools_archive_path="${tmp_root}/${kb_tools_archive_name}"
   if [[ ! -f ${kb_tools_archive_path} ]]; then
-    curl -fsL ${kb_tools_download_url} -o "${kb_tools_archive_path}"
+    curl -sSLo "${kb_tools_archive_path}" "${kb_tools_download_url}"
   fi
-  tar -zvxf "${kb_tools_archive_path}" -C "${tmp_root}/"
+  tar -C "${kb_root_dir}/" --strip-components=1 -zvxf "${kb_tools_archive_path}"
   rm "${kb_tools_archive_path}"
 }
 
 function setup_envs {
   header_text "setting up env vars"
-
-  # Setup env vars
-  export PATH=${kb_root_dir}/bin:$PATH
-  export TEST_ASSET_KUBECTL=${kb_root_dir}/bin/kubectl
-  export TEST_ASSET_KUBE_APISERVER=${kb_root_dir}/bin/kube-apiserver
-  export TEST_ASSET_ETCD=${kb_root_dir}/bin/etcd
+  # Export binaries path"
+  export PATH="${kb_root_dir}/bin:$PATH"
+  export SKIP_FETCH_TOOLS=1
+  export KUBEBUILDER_ASSETS="${kb_root_dir}/bin/"
 }

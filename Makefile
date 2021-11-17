@@ -89,11 +89,12 @@ help:  ## Display this help
 ## Testing
 ## --------------------------------------
 
-.PHONY: testprereqs
-testprereqs: $(KUBEBUILDER) $(KUSTOMIZE)
+.PHONY: unit
+unit: ## Run unit test
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./controllers/... ./baremetal/... -coverprofile ./cover.out; cd api; go test -v ./... -coverprofile ./cover.out
 
 .PHONY: test
-test: testprereqs fmt lint ## Run tests
+test: fmt lint ## Run tests
 	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./controllers/... ./baremetal/... -coverprofile ./cover.out; cd api; go test -v ./... -coverprofile ./cover.out
 
 .PHONY: test-e2e
@@ -212,8 +213,11 @@ manifest-lint:
 .PHONY: modules
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
+	go mod verify
 	cd $(TOOLS_DIR); go mod tidy
+	cd $(TOOLS_DIR); go mod verify
 	cd api; go mod tidy
+	cd api; go mod verify
 
 .PHONY: generate
 generate: ## Generate code
