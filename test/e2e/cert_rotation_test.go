@@ -20,7 +20,7 @@ import (
 )
 
 func cert_rotation() {
-	Logf("Start the certificate rotation test")
+	Logf("Starting certificate rotation tests")
 	By("Check if Ironic pod is running")
 	targetClusterClientSet := targetCluster.GetClientSet()
 	ironicNamespace := os.Getenv("NAMEPREFIX") + "-system"
@@ -84,7 +84,7 @@ func cert_rotation() {
 		}
 		return errors.New("Ironic pod is not in running state")
 	}, e2eConfig.GetIntervals(specName, "wait-pod-restart")...).Should(BeNil())
-	By("PASSED!")
+	By("CERTIFICATE ROTATION TESTS PASSED!")
 
 }
 

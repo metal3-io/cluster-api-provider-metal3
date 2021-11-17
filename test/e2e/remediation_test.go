@@ -40,6 +40,7 @@ const (
 const defaultNamespace = "default"
 
 func test_remediation() {
+	Logf("Starting remediation tests")
 	bootstrapClient := bootstrapClusterProxy.GetClient()
 	targetClient := targetCluster.GetClient()
 	allMachinesCount := int(controlPlaneMachineCount + workerMachineCount)
@@ -280,7 +281,7 @@ func test_remediation() {
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
-	By("PASSED!")
+	By("REMEDIATION TESTS PASSED!")
 }
 
 type bmhToMachine struct {
