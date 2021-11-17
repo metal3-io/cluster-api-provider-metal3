@@ -2,14 +2,10 @@
 
 [[ -f bin/kubebuilder ]] && exit 0
 
-version=2.2.0
-arch=amd64
+# kubebuilder version
+kb_version=3.2.0
 
 mkdir -p ./bin
-curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_${version}_linux_${arch}.tar.gz"
-
-tar -zxvf kubebuilder_${version}_linux_${arch}.tar.gz
-mv kubebuilder_${version}_linux_${arch}/bin/* bin
-
-rm kubebuilder_${version}_linux_${arch}.tar.gz
-rm -r kubebuilder_${version}_linux_${arch}
+cd ./bin || exit
+curl -L -o kubebuilder "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${kb_version}/kubebuilder_$(go env GOOS)_$(go env GOARCH)"
+chmod +x kubebuilder
