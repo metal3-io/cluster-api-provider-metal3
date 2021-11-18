@@ -139,9 +139,3 @@ echo "Generated ${COMPONENTS_METAL3_GENERATED_FILE}"
 # Generate a single provider components file.
 "$KUSTOMIZE" build "${SOURCE_DIR}/provider-components" | "$ENVSUBST" > "${PROVIDER_COMPONENTS_GENERATED_FILE}"
 echo "Generated ${PROVIDER_COMPONENTS_GENERATED_FILE}"
-# The following sed makes sure the cert-manager ca inject annotation also contains
-# capm3 namePrefix for ipam-serving cert. This is a bug which has been there since
-# we use two levels of kustomization one on IPAM and then again on IPAM components
-# in CAPM3. The following is a quick fix, later once we solve it in IPAM kustomization
-# the following line would be removed
-sed -i 's/capm3-system\/ipam-serving-cert/capm3-system\/capm3-ipam-serving-cert/g' "${PROVIDER_COMPONENTS_GENERATED_FILE}"
