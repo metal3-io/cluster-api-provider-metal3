@@ -8,5 +8,5 @@ spec:
     spec:
       containers:
       # Change the value of image field below to your controller image URL
-      - image: quay.io/metal3-io/cluster-api-provider-metal3:main
+      - image: quay.io/metal3-io/cluster-api-provider-metal3:release-0.5
         name: manager
