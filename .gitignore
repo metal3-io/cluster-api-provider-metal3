@@ -57,3 +57,5 @@ test/e2e/_out
 /tilt.d
 tilt-settings.json
 tilt_config.json
+
+github/
