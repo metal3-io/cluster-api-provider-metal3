@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"time"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
@@ -44,7 +43,7 @@ func node_reuse() {
 	controlplaneNodes := getControlplaneNodes(clientSet)
 	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
 
-	By("Scale own machinedeployment to 0")
+	By("Scale down machinedeployment to 0")
 	scaleMachineDeployment(ctx, targetClusterClient, 0)
 
 	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkers)
@@ -172,6 +171,7 @@ func node_reuse() {
 	).Should(Succeed())
 
 	Byf("Wait until two machines become running and updated with the new %s k8s version", upgradedK8sVersion)
+	upgradedMachines := []capi.Machine{}
 	Eventually(
 		func() error {
 			machines := &capi.MachineList{}
@@ -180,26 +180,24 @@ func node_reuse() {
 				Logf("Error:  %v", err)
 				return err
 			}
-
-			running_upgraded_len := 0
+			controlplaneNodes = getControlplaneNodes(clientSet)
 			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
-					running_upgraded_len++
+				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion &&
+					isNewUpgradedMachine(upgradedMachines, machine) {
+					upgradedMachines = append(upgradedMachines, machine)
 					Logf("Machine [%v] is upgraded to k8s version (%v) and in running state", machine.Name, upgradedK8sVersion)
+					untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
 				}
 			}
-			if running_upgraded_len != 2 {
+			if len(upgradedMachines) != 2 {
 				return errors.New("Waiting for two machines to be in running state")
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
 	).Should(Succeed())
 
-	By("Untaint CP nodes after upgrade of two controlplane nodes")
-	controlplaneNodes = getControlplaneNodes(clientSet)
-	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
-
 	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
+	upgradedMachines = []capi.Machine{}
 	Eventually(
 		func() error {
 			machines := &capi.MachineList{}
@@ -209,14 +207,16 @@ func node_reuse() {
 				return err
 			}
 
-			running_upgraded_len := 0
+			controlplaneNodes = getControlplaneNodes(clientSet)
 			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
-					running_upgraded_len++
+				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion &&
+					isNewUpgradedMachine(upgradedMachines, machine) {
+					upgradedMachines = append(upgradedMachines, machine)
 					Logf("Machine [%v] is upgraded to k8s version (%v) and in running state", machine.Name, upgradedK8sVersion)
+					untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
 				}
 			}
-			if running_upgraded_len != numberOfControlplane {
+			if len(upgradedMachines) != numberOfControlplane {
 				return errors.New("Waiting for two machines to be in running state")
 			}
 			return nil
@@ -247,19 +247,11 @@ func node_reuse() {
 		}, e2eConfig.GetIntervals(specName, "wait-patch")...,
 	).Should(Succeed(), "Failed to set up KCP maxSurge to 1")
 
-	By("Untaint all CP nodes")
-	// The rest of CP nodes may take time to be untaintable
-	// We have untainted the 2 first CPs
-	for untaintedNodeCount := 0; untaintedNodeCount < numberOfControlplane-2; {
-		controlplaneNodes = getControlplaneNodes(clientSet)
-		untaintedNodeCount = untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
-		time.Sleep(10 * time.Second)
-	}
-
 	By("Scale the controlplane down to 1")
 	scaleControlPlane(ctx, targetClusterClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 1)
 
 	Byf("Wait until controlplane is scaled down and %d BMHs are Available", numberOfControlplane)
+	numberOfAvailableBmhs := -1
 	Eventually(
 		func() error {
 			bmhs := bmo.BareMetalHostList{}
@@ -271,10 +263,12 @@ func node_reuse() {
 			}
 
 			availableBmhs := filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)
-			len := len(availableBmhs)
-			Logf("Available bmhs : %d", len)
-			if len != numberOfControlplane {
-				return fmt.Errorf("BMHs available are %d not equal to %d", len, numberOfControlplane)
+			if numberOfAvailableBmhs != len(availableBmhs) {
+				numberOfAvailableBmhs = len(availableBmhs)
+				Logf("Available bmhs : %d", numberOfAvailableBmhs)
+			}
+			if numberOfAvailableBmhs != numberOfControlplane {
+				return fmt.Errorf("BMHs available are %d not equal to %d", numberOfAvailableBmhs, numberOfControlplane)
 			}
 			return nil
 		}, e2eConfig.GetIntervals(specName, "wait-cp-available")...,
@@ -419,18 +413,19 @@ func node_reuse() {
 	).Should(Succeed())
 
 	Byf("Wait until worker machine becomes running and updated with new %s k8s version", upgradedK8sVersion)
+	upgradedMachines = []capi.Machine{}
 	Eventually(
 		func() int {
 			machines := &capi.MachineList{}
 			Expect(targetClusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-			running_upgraded_len := 0
 			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
-					running_upgraded_len++
+				if machine.Status.GetTypedPhase() == capi.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion &&
+					isNewUpgradedMachine(upgradedMachines, machine) {
+					upgradedMachines = append(upgradedMachines, machine)
 					Logf("Machine [%v] is upgraded to (%v) and running", machine.Name, upgradedK8sVersion)
 				}
 			}
-			return running_upgraded_len
+			return len(upgradedMachines)
 		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
 	).Should(Equal(2))
 
@@ -581,4 +576,12 @@ func getBmhByName(bmhs []bmo.BareMetalHost, name string) (bmo.BareMetalHost, err
 		}
 	}
 	return bmo.BareMetalHost{}, errors.New("Not found")
+}
+func isNewUpgradedMachine(runningMachines []capi.Machine, machine capi.Machine) bool {
+	for _, m := range runningMachines {
+		if m.Name == machine.Name {
+			return false
+		}
+	}
+	return true
 }
