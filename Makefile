@@ -419,8 +419,10 @@ release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 
 .PHONY: release
 release:
+	@if [ -z "${RELEASE_TAG}" ]; then echo "RELEASE_TAG is not set"; exit 1; fi
 	@if ! [ -z "$$(git status --porcelain)" ]; then echo "You have uncommitted changes"; exit 1; fi
 	git checkout "${RELEASE_TAG}"
+	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(RELEASE_TAG) $(MAKE) set-manifest-image
 	$(MAKE) release-manifests
 	$(MAKE) release-notes
 
