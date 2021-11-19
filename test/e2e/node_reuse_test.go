@@ -331,9 +331,9 @@ func node_reuse() {
 	bmhs := bmo.BareMetalHostList{}
 	Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 	for _, item := range bmhs.Items {
-		if item.Status.Provisioning.State == bmo.StateAvailable {
-			annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", pointer.String(""))
-		}
+		// if item.Status.Provisioning.State == bmo.StateAvailable {
+		annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", pointer.String(""))
+		//}
 	}
 
 	Byf("Upgrade the MachineDeployment k8s version from %s to %s ", kubernetesVersion, upgradedK8sVersion)
@@ -390,9 +390,9 @@ func node_reuse() {
 	bmhs = bmo.BareMetalHostList{}
 	Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 	for _, item := range bmhs.Items {
-		if item.Status.Provisioning.State == bmo.StateAvailable {
-			annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", nil)
-		}
+		//if item.Status.Provisioning.State == bmo.StateAvailable {
+		annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", nil)
+		//}
 	}
 
 	By("Check if just deprovisioned BMH re-used for next provisioning")
