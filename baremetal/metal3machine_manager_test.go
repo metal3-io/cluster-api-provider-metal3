@@ -55,7 +55,7 @@ const (
 	kcpName                   = "kcp-pool1"
 )
 
-var ProviderID = "metal3://12345ID6789"
+var ProviderID = fmt.Sprintf("%s12345ID6789", ProviderIDPrefix)
 
 var testImageDiskFormat = pointer.StringPtr("raw")
 
@@ -1233,7 +1233,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				return
 			}
 
-			providerID := fmt.Sprintf("metal3://%s", *bmhID)
+			providerID := fmt.Sprintf("%s%s", ProviderIDPrefix, *bmhID)
 			Expect(*tc.M3Machine.Spec.ProviderID).To(Equal(providerID))
 		},
 		Entry("Set ProviderID, empty annotations", testCaseGetSetProviderID{
@@ -2126,7 +2126,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Empty providerID", testCaseGetProviderIDAndBMHID{}),
 		Entry("Provider ID set", testCaseGetProviderIDAndBMHID{
-			providerID:    pointer.StringPtr("metal3://abcd"),
+			providerID:    pointer.StringPtr(fmt.Sprintf("%sabcd", ProviderIDPrefix)),
 			expectedBMHID: "abcd",
 		}),
 	)
@@ -2191,34 +2191,34 @@ var _ = Describe("Metal3Machine manager", func() {
 				Node:               v1.Node{},
 				HostID:             "abcd",
 				ExpectedError:      true,
-				ExpectedProviderID: "metal3://abcd",
+				ExpectedProviderID: fmt.Sprintf("%sabcd", ProviderIDPrefix),
 			}),
 			Entry("Set target ProviderID, matching node", testCaseSetNodePoviderID{
 				Node: v1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"metal3.io/uuid": "abcd",
+							ProviderLabelPrefix: "abcd",
 						},
 					},
 				},
 				HostID:             "abcd",
 				ExpectedError:      false,
-				ExpectedProviderID: "metal3://abcd",
+				ExpectedProviderID: fmt.Sprintf("%sabcd", ProviderIDPrefix),
 			}),
 			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
 				Node: v1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
-							"metal3.io/uuid": "abcd",
+							ProviderLabelPrefix: "abcd",
 						},
 					},
 					Spec: v1.NodeSpec{
-						ProviderID: "metal3://abcd",
+						ProviderID: fmt.Sprintf("%sabcd", ProviderIDPrefix),
 					},
 				},
 				HostID:             "abcd",
 				ExpectedError:      false,
-				ExpectedProviderID: "metal3://abcd",
+				ExpectedProviderID: fmt.Sprintf("%sabcd", ProviderIDPrefix),
 			}),
 		)
 	})

@@ -247,7 +247,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			)
 		}
 		if bmhID != nil {
-			providerID = fmt.Sprintf("metal3://%s", *bmhID)
+			providerID = fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix, *bmhID)
 		}
 	}
 	if bmhID != nil {

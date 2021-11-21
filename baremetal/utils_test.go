@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -736,7 +737,7 @@ var _ = Describe("Metal3 manager utils", func() {
 	)
 
 	It("Parses the providerID properly", func() {
-		Expect(parseProviderID("metal3://abcd")).To(Equal("abcd"))
+		Expect(parseProviderID(fmt.Sprintf("%sabcd", ProviderIDPrefix))).To(Equal("abcd"))
 		Expect(parseProviderID("foo://abcd")).To(Equal("foo://abcd"))
 	})
 })

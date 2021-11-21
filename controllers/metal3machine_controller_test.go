@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -124,7 +124,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			)
 		} else {
 			m.EXPECT().GetProviderIDAndBMHID().Return(
-				"metal3://abc", pointer.StringPtr("abc"),
+				fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), pointer.StringPtr("abc"),
 			)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		}
@@ -132,7 +132,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if we fail to set it on the node, we do not go further
 		if tc.SetNodeProviderIDFails {
 			m.EXPECT().
-				SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
+				SetNodeProviderID(context.TODO(), "abc", fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), nil).
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID("abc").MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
@@ -141,9 +141,9 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 		// we successfully set it on the node
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
+			SetNodeProviderID(context.TODO(), "abc", fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), nil).
 			Return(nil)
-		m.EXPECT().SetProviderID("metal3://abc")
+		m.EXPECT().SetProviderID(fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix))
 
 		// We did not get an id (got nil), so we'll requeue and not go further
 	} else {
@@ -151,7 +151,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
 
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
+			SetNodeProviderID(context.TODO(), "abc", fmt.Sprintf("%sabc", baremetal.ProviderIDPrefix), nil).
 			MaxTimes(0)
 	}
 
