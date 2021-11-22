@@ -65,6 +65,19 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	}
 }
 
+// deleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if exists
+func deleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmo.BareMetalHost, nodeReuseLabelName string) {
+	helper, err := patch.NewHelper(&host, client)
+	Expect(err).NotTo(HaveOccurred())
+	labels := host.GetLabels()
+	if labels != nil {
+		if _, ok := labels[nodeReuseLabelName]; ok {
+			delete(host.Labels, nodeReuseLabelName)
+		}
+	}
+	Expect(helper.Patch(ctx, &host)).To(Succeed())
+}
+
 func downloadFile(filepath string, url string) error {
 
 	// Get the data

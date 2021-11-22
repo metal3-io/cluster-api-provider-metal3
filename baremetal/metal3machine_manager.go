@@ -1,12 +1,9 @@
 /*
 Copyright 2021 The Kubernetes Authors.
-
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
-
     http://www.apache.org/licenses/LICENSE-2.0
-
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -558,24 +555,34 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 					// Fetch KubeadmControlPlane name for controlplane machine
 					m.Log.Info("Fetch KubeadmControlPlane name")
 					kcpName, err := m.getKubeadmControlPlaneName(ctx)
-					if err != nil {
-						return err
+					if apierrors.IsNotFound(err) || !m.Cluster.DeletionTimestamp.IsZero() {
+						m.Log.Info("Cluster is being deleted, following normal cluster deletion workflow")
+					} else {
+						if err != nil {
+							fmt.Println("inside error kcp case")
+							return err
+						}
+						m.Log.Info("Fetched KubeadmControlPlane name:", "kubeadmcontrolplane", kcpName)
+						// Set the nodeReuseLabelName to KubeadmControlPlane name on the host
+						m.Log.Info("Setting nodeReuseLabelName in BaremetalHost to fetched KubeadmControlPlane name", "host", host.Name)
+						host.Labels[nodeReuseLabelName] = kcpName
 					}
-					m.Log.Info("Fetched KubeadmControlPlane name:", "kubeadmcontrolplane", kcpName)
-					// Set the nodeReuseLabelName to KubeadmControlPlane name on the host
-					m.Log.Info("Setting nodeReuseLabelName in BaremetalHost to fetched KubeadmControlPlane name")
-					host.Labels[nodeReuseLabelName] = kcpName
 				} else {
 					// Fetch MachineDeployment name for worker machine
 					m.Log.Info("Fetch MachineDeployment name")
 					mdName, err := m.getMachineDeploymentName(ctx)
-					if err != nil {
-						return err
+					if apierrors.IsNotFound(err) || !m.Cluster.DeletionTimestamp.IsZero() {
+						m.Log.Info("Cluster is being deleted, following normal cluster deletion workflow")
+					} else {
+						if err != nil {
+							fmt.Println("inside error md case")
+							return err
+						}
+						m.Log.Info("Fetched MachineDeployment name:", "machinedeployment", mdName)
+						// Set the nodeReuseLabelName to MachineDeployment name
+						m.Log.Info("Setting nodeReuseLabelName in BaremetalHost to fetched MachineDeployment name", "host", host.Name)
+						host.Labels[nodeReuseLabelName] = mdName
 					}
-					m.Log.Info("Fetched MachineDeployment name:", "machinedeployment", mdName)
-					// Set the nodeReuseLabelName to MachineDeployment name
-					m.Log.Info("Setting nodeReuseLabelName in BaremetalHost to fetched MachineDeployment name")
-					host.Labels[nodeReuseLabelName] = mdName
 				}
 			}
 		}
@@ -838,10 +845,20 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 		}
 
 		if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
-			if m.nodeReuseLabelExists(ctx, &host) && m.nodeReuseLabelMatches(ctx, &host) {
-				m.Log.Info("Found host with matching nodeReuseLabelName", "host", host.Name)
-				availableHostsWithNodeReuse = append(availableHostsWithNodeReuse, &hosts.Items[i])
+			fmt.Println("checking first if label exists")
+			m.Log.Info("on host", "host", host.Name)
+			if m.nodeReuseLabelExists(ctx, &host) {
+				fmt.Println("inside node reuse label exists")
+				m.Log.Info("node reuse label exist on host, now checking if it matches", "host", host.Name)
+				if m.nodeReuseLabelMatches(ctx, &host) {
+					fmt.Println("inside node reuse label matches")
+					m.Log.Info("node reuse label matches on host", "host", host.Name)
+					m.Log.Info("Found host with matching nodeReuseLabelName so adding it to availableHostsWithNodeReuse list", "host", host.Name)
+					availableHostsWithNodeReuse = append(availableHostsWithNodeReuse, &hosts.Items[i])
+				}
 			} else if !m.nodeReuseLabelExists(ctx, &host) {
+				fmt.Println("we are here because node reuse label does not exist on host")
+				m.Log.Info("node reuse label does not exist on host", "host", host.Name)
 				m.Log.Info("Host matched hostSelector for Metal3Machine", "host", host.Name)
 				availableHosts = append(availableHosts, &hosts.Items[i])
 			}
@@ -922,27 +939,39 @@ func (m *MachineManager) nodeReuseLabelMatches(ctx context.Context, host *bmh.Ba
 	}
 	if m.isControlPlane() {
 		kcp, err := m.getKubeadmControlPlaneName(ctx)
+		fmt.Printf("this is kcp name while checking node reuse label matches: %s", kcp)
 		if err != nil {
+			m.Log.Info("can not get kcp name to do label match", "host", host.Name)
 			return false
 		}
 		if host.Labels[nodeReuseLabelName] == "" {
+			m.Log.Info("nodeReuseLabel on the host is empty", "host", host.Name)
 			return false
 		}
 		if host.Labels[nodeReuseLabelName] != kcp {
+			fmt.Printf("this is condition when kcp name %s is not same as host node reuse label %s", kcp, host.Labels[nodeReuseLabelName])
+			m.Log.Info("nodeReuseLabel on the host does not match kcp name", "host", host.Name, "kubeadmcontrolplane", kcp)
 			return false
 		}
+		m.Log.Info("nodeReuseLabel on the host matches kcp name", "host", host.Name, "kubeadmcontrolplane", kcp)
 		return true
 	} else {
 		md, err := m.getMachineDeploymentName(ctx)
+		fmt.Printf("this is md name while checking node reuse label matches: %s", md)
 		if err != nil {
+			m.Log.Info("can not get md name to do label match", "host", host.Name)
 			return false
 		}
 		if host.Labels[nodeReuseLabelName] == "" {
+			m.Log.Info("nodeReuseLabel on the host is empty", "host", host.Name)
 			return false
 		}
 		if host.Labels[nodeReuseLabelName] != md {
+			fmt.Printf("this is condition when md name %s is not same as host node reuse label %s", md, host.Labels[nodeReuseLabelName])
+			m.Log.Info("nodeReuseLabel on the host does not match md name", "host", host.Name, "machinedeployment", md)
 			return false
 		}
+		m.Log.Info("nodeReuseLabel on the host matches md name", "host", host.Name, "machinedeployment", md)
 		return true
 	}
 }
@@ -951,13 +980,17 @@ func (m *MachineManager) nodeReuseLabelMatches(ctx context.Context, host *bmh.Ba
 func (m *MachineManager) nodeReuseLabelExists(ctx context.Context, host *bmh.BareMetalHost) bool {
 
 	if host == nil {
+		m.Log.Info("no host found")
 		return false
 	}
+	fmt.Printf("host labels %s ", host.Labels)
 	if host.Labels == nil {
+		m.Log.Info("host does not have any labels", "host", host.Name)
 		return false
 	}
 	_, ok := host.Labels[nodeReuseLabelName]
-	m.Log.Info("nodeReuseLabelName exists on the host")
+	fmt.Printf("this is host labels nodereuse labelname: %s", host.Labels[nodeReuseLabelName])
+	m.Log.Info("nodeReuseLabelName exists on the host", "host", host.Name)
 	return ok
 }
 

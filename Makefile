@@ -361,6 +361,10 @@ set-manifest-pull-policy:
 ## Deploying
 ## --------------------------------------
 
+# Run against the configured Kubernetes cluster in ~/.kube/config
+run: generate fmt vet
+	go run ./main.go
+
 # Deploy the BaremetalHost CRDs
 deploy-bmo-crd:
 	kubectl apply -f examples/metal3crds/metal3.io_baremetalhosts.yaml

@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -25,6 +24,7 @@ import (
 )
 
 func node_reuse() {
+	Logf("Starting node reuse tests")
 	var (
 		targetClusterClient      = targetCluster.GetClient()
 		clientSet                = targetCluster.GetClientSet()
@@ -44,7 +44,7 @@ func node_reuse() {
 	controlplaneNodes := getControlplaneNodes(clientSet)
 	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
 
-	By("Scale own machinedeployment to 0")
+	By("Scale down MachineDeployment to 0")
 	scaleMachineDeployment(ctx, targetClusterClient, 0)
 
 	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkers)
@@ -280,6 +280,21 @@ func node_reuse() {
 		}, e2eConfig.GetIntervals(specName, "wait-cp-available")...,
 	).Should(Succeed())
 
+	By("Get MachineDeployment")
+	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
+		Lister:      targetClusterClient,
+		ClusterName: clusterName,
+		Namespace:   namespace,
+	})
+	Expect(len(machineDeployments)).To(Equal(1), "Expected exactly 1 MachineDeployment")
+	machineDeploy := machineDeployments[0]
+
+	By("Get Metal3MachineTemplate name for MachineDeployment")
+	m3machineTemplateName = fmt.Sprintf("%s-workers", clusterName)
+
+	By("Point to proper Metal3MachineTemplate in MachineDeployment")
+	pointMDtoM3mt(m3machineTemplateName, machineDeploy.Name, targetClusterClient)
+
 	By("Scale the worker up to 1 to start testing MachineDeployment")
 	scaleMachineDeployment(ctx, targetClusterClient, 1)
 
@@ -308,14 +323,6 @@ func node_reuse() {
 	mdBmhBeforeUpgrade := getProvisionedBmhNamesUuids(targetClusterClient)
 
 	By("Update maxSurge/maxUnavailable fields to 0/1 in MachineDeployment test case")
-	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
-		Lister:      targetClusterClient,
-		ClusterName: clusterName,
-		Namespace:   namespace,
-	})
-	Expect(len(machineDeployments)).To(Equal(1), "Expected exactly 1 MachineDeployment")
-	machineDeploy := machineDeployments[0]
-
 	patch = []byte(`{
 		"spec": {
 			"strategy": {
@@ -330,15 +337,16 @@ func node_reuse() {
 	Expect(err).To(BeNil(), "Failed to patch MachineDeployment")
 
 	By("Update Metal3MachineTemplate nodeReuse field to 'True'")
-	m3machineTemplateName = fmt.Sprintf("%s-workers", clusterName)
 	updateNodeReuse(true, m3machineTemplateName, targetClusterClient)
 
-	By("List BMHs and mark all available BMHs with unhealthy annotation")
+	By("List BMHs, remove nodeReuse label from all BMHs")
 	bmhs := bmo.BareMetalHostList{}
 	Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 	for _, item := range bmhs.Items {
 		if item.Status.Provisioning.State == bmo.StateAvailable {
-			annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", pointer.String(""))
+			// We make sure that all available BMHs are choosable by removing nodeReuse label
+			// set on them while testing KCP node reuse scenario previously.
+			deleteNodeReuseLabelFromHost(ctx, targetClusterClient, item, "infrastructure.cluster.x-k8s.io/node-reuse")
 		}
 	}
 
@@ -391,15 +399,6 @@ func node_reuse() {
 		},
 		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-available")...,
 	).Should(Succeed())
-
-	By("Unmark all the available BMHs with unhealthy annotation")
-	bmhs = bmo.BareMetalHostList{}
-	Expect(targetClusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-	for _, item := range bmhs.Items {
-		if item.Status.Provisioning.State == bmo.StateAvailable {
-			annotateBmh(ctx, targetClusterClient, item, "capi.metal3.io/unhealthy", nil)
-		}
-	}
 
 	By("Check if just deprovisioned BMH re-used for next provisioning")
 	Eventually(
@@ -473,7 +472,7 @@ func node_reuse() {
 		e2eConfig.GetIntervals(specName, "wait-machine-running")...,
 	).Should(Equal(numberOfAllBmh))
 
-	By("NODE_REUSE PASSED!")
+	By("Node reuse tests PASSED!")
 }
 
 func getControlplaneNodes(clientSet *kubernetes.Clientset) *corev1.NodeList {
@@ -509,7 +508,20 @@ func updateNodeReuse(nodeReuse bool, m3machineTemplateName string, clusterClient
 
 	// verify that nodereuse is true
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
-	Expect(m3machineTemplate.Spec.NodeReuse).To(BeTrue())
+	Expect(m3machineTemplate.Spec.NodeReuse).To(BeEquivalentTo(nodeReuse))
+}
+
+func pointMDtoM3mt(m3mtname, mdName string, clusterClient client.Client) {
+	md := capi.MachineDeployment{}
+	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: mdName}, &md)).To(Succeed())
+	helper, err := patch.NewHelper(&md, clusterClient)
+	Expect(err).NotTo(HaveOccurred())
+	md.Spec.Template.Spec.InfrastructureRef.Name = m3mtname
+	Expect(helper.Patch(ctx, &md)).To(Succeed())
+
+	// verify that MachineDeployment is pointing to exact m3mt where nodeReuse is enabled
+	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: mdName}, &md)).To(Succeed())
+	Expect(md.Spec.Template.Spec.InfrastructureRef.Name).To(BeEquivalentTo(fmt.Sprintf("%s-workers", clusterName)))
 }
 
 func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint *corev1.Taint) (count int) {
