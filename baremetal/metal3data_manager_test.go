@@ -19,11 +19,11 @@ package baremetal
 import (
 	"context"
 
-	"gopkg.in/yaml.v2"
-
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
@@ -43,16 +43,18 @@ var (
 	testObjectMeta = metav1.ObjectMeta{
 		Name:      "abc",
 		Namespace: "myns",
+		UID:       bmhuid,
 	}
 	testObjectMetaWithOR = metav1.ObjectMeta{
 		Name:      "abc",
 		Namespace: "myns",
+
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				Name:       "abc",
 				Kind:       "Metal3Machine",
 				APIVersion: capm3.GroupVersion.String(),
-				UID:        "a7241a39-4730-44c4-9d81-e70f27a4ce89",
+				UID:        m3muid,
 			},
 		},
 	}
@@ -445,6 +447,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "myns",
+					UID:       m3muid,
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "abc",
@@ -471,7 +474,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta,
 			},
 			expectReady:         true,
-			expectedMetadata:    pointer.StringPtr("String-1: String-1\n"),
+			expectedMetadata:    pointer.StringPtr(fmt.Sprintf("String-1: String-1\nprovideruid: %s\n", provideruid)),
 			expectedNetworkData: pointer.StringPtr("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
@@ -2454,6 +2457,10 @@ var _ = Describe("Metal3Data manager", func() {
 								Key:   "String-1",
 								Value: "String-1",
 							},
+							{
+								Key:   "provideruid",
+								Value: fmt.Sprintf("%s_11111111", bmhuid),
+							},
 						},
 						ObjectNames: []capm3.MetaDataObjectName{
 							{
@@ -2598,6 +2605,7 @@ var _ = Describe("Metal3Data manager", func() {
 						"M3M":   "Metal3MachineLabel",
 						"Empty": "",
 					},
+					UID: m3muid,
 					Annotations: map[string]string{
 						"M3M":   "Metal3MachineAnnotation",
 						"Empty": "",
@@ -2624,6 +2632,7 @@ var _ = Describe("Metal3Data manager", func() {
 					Annotations: map[string]string{
 						"BMH": "BMHAnnotation",
 					},
+					UID: bmhuid,
 				},
 				Status: bmo.BareMetalHostStatus{
 					HardwareDetails: &bmo.HardwareDetails{
@@ -2656,6 +2665,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectedMetaData: map[string]string{
 				"String-1":     "String-1",
+				"provideruid":  fmt.Sprintf("%s_11111111", bmhuid),
 				"ObjectName-1": "machine-abc",
 				"ObjectName-2": "metal3machine-abc",
 				"ObjectName-3": "bmh-abc",

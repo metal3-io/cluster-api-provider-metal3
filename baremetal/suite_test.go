@@ -18,11 +18,11 @@ package baremetal
 
 import (
 	"context"
-	"path/filepath"
-	"testing"
-
+	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"path/filepath"
+	"testing"
 
 	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -51,7 +51,11 @@ const (
 	clusterName       = "testCluster"
 	metal3ClusterName = "testmetal3Cluster"
 	namespaceName     = "testNameSpace"
+	m3muid            = "11111111-9845-4321-1234-c74be387f57c"
+	bmhuid            = "22222222-9845-4c48-9e49-c74be387f57c"
 )
+
+var provideruid = fmt.Sprintf("%s_11111111", bmhuid)
 
 func TestManagers(t *testing.T) {
 	RegisterFailHandler(Fail)
