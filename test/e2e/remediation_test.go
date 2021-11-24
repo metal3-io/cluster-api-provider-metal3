@@ -277,6 +277,7 @@ func test_remediation() {
 	Eventually(func(g Gomega) {
 		machines := capi.MachineList{}
 		g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
+		reprovisionFailedMachine(g, bootstrapClient, &machines)
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
@@ -294,6 +295,14 @@ func (btm bmhToMachine) String() string {
 		btm.baremetalhost.GetName(),
 		btm.metal3machine.GetName(),
 	)
+}
+
+func reprovisionFailedMachine(g Gomega, bootstrapClient client.Client, machines *capi.MachineList) {
+	for _, machine := range machines.Items {
+		if machine.Status.Phase == "Failed" {
+			g.Expect(bootstrapClient.Delete(ctx, &machine, &client.DeleteOptions{})).Should(Succeed())
+		}
+	}
 }
 
 func (btms bmhToMachineSlice) getBMHs() (hosts []bmh.BareMetalHost) {
