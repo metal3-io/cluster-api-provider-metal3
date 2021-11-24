@@ -191,7 +191,6 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 				// When machine is still unhealthy after remediation, setting of OwnerRemediatedCondition
 				// moves control to CAPI machine controller. The owning controller will do
 				// preflight checks and handles the Machine deletion
-				// capiMachine, err := remediationMgr.GetCapiMachine(ctx)
 
 				err = remediationMgr.SetOwnerRemediatedConditionNew(ctx)
 				if err != nil {
