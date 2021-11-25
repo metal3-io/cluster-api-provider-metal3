@@ -36,7 +36,21 @@ func cert_rotation() {
 
 		return errors.New("Ironic pod is not in running state")
 	}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(BeNil())
-
+	By("Get containers number of restart before cert changes")
+	Logf("Get the current number of time containers were restarted")
+	containerNumRestart := make(map[string]int32)
+	containerNumRestart["ironic-api"] = 0
+	containerNumRestart["ironic-conductor"] = 0
+	containerNumRestart["mariadb"] = 0
+	Expect(err).To(BeNil())
+	ironicPod, err := getPodFromDeployment(targetCluster, ironicDeployment, ironicNamespace)
+	Expect(err).To(BeNil())
+	for _, container := range ironicPod.Status.ContainerStatuses {
+		if _, exist := containerNumRestart[container.Name]; exist {
+			containerNumRestart[container.Name] = container.RestartCount
+			Logf("%s has %v restart", container.Name, container.RestartCount)
+		}
+	}
 	By("Force the cert-manager to regenerate the certificate by deleting the secrets")
 
 	secretList := []string{
@@ -51,16 +65,17 @@ func cert_rotation() {
 
 	By("Wait for containers in the ironic pod to be restarted")
 	Logf("Get the current number of time containers were restarted")
-	containerNumRestart := make(map[string]int32)
+	containerNumRestart = make(map[string]int32)
 	containerNumRestart["ironic-api"] = 0
 	containerNumRestart["ironic-conductor"] = 0
 	containerNumRestart["mariadb"] = 0
 	Expect(err).To(BeNil())
-	ironicPod, err := getPodFromDeployment(targetCluster, ironicDeployment, ironicNamespace)
+	ironicPod, err = getPodFromDeployment(targetCluster, ironicDeployment, ironicNamespace)
 	Expect(err).To(BeNil())
 	for _, container := range ironicPod.Status.ContainerStatuses {
 		if _, exist := containerNumRestart[container.Name]; exist {
 			containerNumRestart[container.Name] = container.RestartCount
+			Logf("%s has %v restart", container.Name, container.RestartCount)
 		}
 	}
 	Logf("Wait until containers successfully restarted after renewing certs")
