@@ -38,7 +38,7 @@ func cert_rotation() {
 		return errors.New("Ironic pod is not in running state")
 	}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(BeNil())
 
-	time.Sleep(2 * time.Minute)
+	time.Sleep(5 * time.Minute)
 
 	By("Get the current number of time containers were restarted")
 	containerNumRestart := make(map[string]int32)
