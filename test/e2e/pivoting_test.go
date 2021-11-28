@@ -17,7 +17,7 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 
 	dockerTypes "github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
@@ -28,6 +28,7 @@ import (
 )
 
 func pivoting() {
+	Logf("Starting pivoting tests")
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 	if ephemeralCluster == "kind" {
@@ -144,7 +145,7 @@ func pivoting() {
 
 	By("Check if machines become running.")
 	Eventually(func() error {
-		machines := &clusterv1.MachineList{}
+		machines := &capi.MachineList{}
 		if err := targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace)); err != nil {
 			return err
 		}
@@ -156,7 +157,7 @@ func pivoting() {
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(BeNil())
 
-	By("PASSED!")
+	By("PIVOTING TESTS PASSED!")
 }
 
 func configureIronicConfigmap(isIronicDeployed bool) {
