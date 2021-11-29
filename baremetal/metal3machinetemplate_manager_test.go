@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2/klogr"
+	utils "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -35,7 +36,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 	type testCaseUpdate struct {
 		M3MachineTemplate *capm3.Metal3MachineTemplate
 		M3MachineList     *capm3.Metal3MachineList
-		ExpectedValue     string
+		ExpectedValue     *string
 	}
 
 	DescribeTable("Test UpdateAutomatedCleaningMode",
@@ -66,7 +67,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 			}
 		},
 		Entry("Disk cleaning disabled", testCaseUpdate{
-			ExpectedValue: "disabled",
+			ExpectedValue: utils.StringPtr("disabled"),
 			M3MachineTemplate: &capm3.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capm3.GroupVersion.String(),
@@ -79,7 +80,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: capm3.Metal3MachineTemplateSpec{
 					Template: capm3.Metal3MachineTemplateResource{
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "disabled",
+							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},
 				},
@@ -102,7 +103,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "metadata",
+							AutomatedCleaningMode: utils.StringPtr("metadata"),
 						},
 					},
 					{
@@ -116,7 +117,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "metadata",
+							AutomatedCleaningMode: utils.StringPtr("metadata"),
 						},
 					},
 					{
@@ -130,14 +131,14 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "metadata",
+							AutomatedCleaningMode: utils.StringPtr("metadata"),
 						},
 					},
 				},
 			},
 		}),
 		Entry("Disk cleaning enabled", testCaseUpdate{
-			ExpectedValue: "metadata",
+			ExpectedValue: utils.StringPtr("metadata"),
 			M3MachineTemplate: &capm3.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capm3.GroupVersion.String(),
@@ -150,7 +151,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: capm3.Metal3MachineTemplateSpec{
 					Template: capm3.Metal3MachineTemplateResource{
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "metadata",
+							AutomatedCleaningMode: utils.StringPtr("metadata"),
 						},
 					},
 				},
@@ -173,7 +174,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "disabled",
+							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},
 					{
@@ -187,7 +188,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "disabled",
+							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},
 					{
@@ -201,14 +202,14 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "disabled",
+							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},
 				},
 			},
 		}),
 		Entry("Don't synchronize M3Machines which are not part of the M3MTemplate ", testCaseUpdate{
-			ExpectedValue: "metadata",
+			ExpectedValue: utils.StringPtr("metadata"),
 			M3MachineTemplate: &capm3.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capm3.GroupVersion.String(),
@@ -221,7 +222,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: capm3.Metal3MachineTemplateSpec{
 					Template: capm3.Metal3MachineTemplateResource{
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "disabled",
+							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},
 				},
@@ -244,7 +245,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: "metadata",
+							AutomatedCleaningMode: utils.StringPtr("metadata"),
 						},
 					},
 				},

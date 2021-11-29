@@ -1526,7 +1526,7 @@ func autoConvert_v1alpha4_Metal3MachineSpec_To_v1alpha5_Metal3MachineSpec(in *Me
 	out.DataTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.DataTemplate))
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
-	out.AutomatedCleaningMode = in.AutomatedCleaningMode
+	out.AutomatedCleaningMode = (*string)(unsafe.Pointer(in.AutomatedCleaningMode))
 	return nil
 }
 
@@ -1547,7 +1547,7 @@ func autoConvert_v1alpha5_Metal3MachineSpec_To_v1alpha4_Metal3MachineSpec(in *v1
 	out.DataTemplate = (*corev1.ObjectReference)(unsafe.Pointer(in.DataTemplate))
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
-	out.AutomatedCleaningMode = in.AutomatedCleaningMode
+	out.AutomatedCleaningMode = (*string)(unsafe.Pointer(in.AutomatedCleaningMode))
 	return nil
 }
 

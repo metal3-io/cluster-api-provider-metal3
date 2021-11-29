@@ -77,7 +77,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 
 	matchedM3Machines := []*capm3.Metal3Machine{}
 
-	// Collect metal3Machines genrated from one single metal3MachineTemplate
+	// Fetch metal3Machines belonging to the same metal3MachineTemplate
 	for i := range m3ms.Items {
 		m3m := &m3ms.Items[i]
 
@@ -88,15 +88,18 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 
 	if len(matchedM3Machines) > 0 {
 		for _, m3m := range matchedM3Machines {
-			m3m.Spec.AutomatedCleaningMode = m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode
+			// don't synchronize AutomatedCleaningMode between metal3MachineTemplate
+			// and metal3Machine if unset in metal3Machine.
+			if m3m.Spec.AutomatedCleaningMode != nil {
 
-			if err := m.client.Update(ctx, m3m); err != nil {
-				return errors.Wrapf(err, "failed to update metal3Machine: %s", m3m.Name)
-			}
-			if m3m.Spec.AutomatedCleaningMode == m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode {
-				m.Log.Info("Synchronized automatedCleaningMode field value between ", "Metal3MachineTemplate", fmt.Sprintf("%v/%v", m.Metal3MachineTemplate.Namespace, m.Metal3MachineTemplate.Name), "Metal3Machine", fmt.Sprintf("%v/%v", m3m.Namespace, m3m.Name))
-			}
+				m3m.Spec.AutomatedCleaningMode = m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode
 
+				if err := m.client.Update(ctx, m3m); err != nil {
+					return errors.Wrapf(err, "failed to update metal3Machine: %s", m3m.Name)
+				}
+
+				m.Log.Info("Synchronized automatedCleaningMode between ", "Metal3MachineTemplate", fmt.Sprintf("%v/%v", m.Metal3MachineTemplate.Namespace, m.Metal3MachineTemplate.Name), "Metal3Machine", fmt.Sprintf("%v/%v", m3m.Namespace, m3m.Name))
+			}
 		}
 	}
 	return nil
