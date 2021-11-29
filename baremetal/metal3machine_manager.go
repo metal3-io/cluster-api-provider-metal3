@@ -1048,8 +1048,10 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmh.BareMetalHos
 		}
 	}
 	// Set automatedCleaningMode from metal3Machine.spec.automatedCleaningMode.
-	if host.Spec.AutomatedCleaningMode != bmh.AutomatedCleaningMode(m.Metal3Machine.Spec.AutomatedCleaningMode) {
-		host.Spec.AutomatedCleaningMode = bmh.AutomatedCleaningMode(m.Metal3Machine.Spec.AutomatedCleaningMode)
+	if m.Metal3Machine.Spec.AutomatedCleaningMode != nil {
+		if bmh.AutomatedCleaningMode(host.Spec.AutomatedCleaningMode) != bmh.AutomatedCleaningMode(*m.Metal3Machine.Spec.AutomatedCleaningMode) {
+			host.Spec.AutomatedCleaningMode = bmh.AutomatedCleaningMode(*m.Metal3Machine.Spec.AutomatedCleaningMode)
+		}
 	}
 
 	host.Spec.Online = true

@@ -132,7 +132,7 @@ var _ = Describe("Metal3 manager utils", func() {
 		},
 		Spec: capm3.Metal3MachineSpec{
 			ProviderID:            pointer.StringPtr("abcdef"),
-			AutomatedCleaningMode: "metadata",
+			AutomatedCleaningMode: pointer.StringPtr("metadata"),
 		},
 		Status: capm3.Metal3MachineStatus{
 			Ready: true,

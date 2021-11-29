@@ -62,7 +62,6 @@ spec:
             description: Metal3MachineSpec defines the desired state of Metal3Machine
             properties:
               automatedCleaningMode:
-                default: metadata
                 description: When set to disabled, automated cleaning of host disks
                   will be skipped during provisioning and deprovisioning.
                 enum:
@@ -412,7 +411,6 @@ spec:
             description: Metal3MachineSpec defines the desired state of Metal3Machine
             properties:
               automatedCleaningMode:
-                default: metadata
                 description: When set to disabled, automated cleaning of host disks
                   will be skipped during provisioning and deprovisioning.
                 enum:
