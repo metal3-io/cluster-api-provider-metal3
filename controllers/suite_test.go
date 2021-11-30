@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -30,9 +32,11 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -124,7 +128,19 @@ var _ = BeforeSuite(func() {
 		k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(k8sClient).ToNot(BeNil())
+		k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+			Scheme: scheme.Scheme,
+		})
+		Expect(err).ToNot(HaveOccurred())
 
+		if err := (&Metal3ClusterReconciler{
+			Client:           k8sManager.GetClient(),
+			ManagerFactory:   baremetal.NewManagerFactory(k8sManager.GetClient()),
+			Log:              klogr.New(),
+			WatchFilterValue: "",
+		}).SetupWithManager(context.Background(), k8sManager); err != nil {
+			panic(fmt.Sprintf("Failed to start Metal3ClusterReconciler: %v", err))
+		}
 		close(done)
 	}()
 	Eventually(done, 60).Should(BeClosed())
