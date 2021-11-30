@@ -565,7 +565,7 @@ func deleteTaint(taints []corev1.Taint, taintToDelete *corev1.Taint) ([]corev1.T
 	return newTaints, deleted
 }
 
-func filterMachinesByStatusPhase(machines []capi.Machine, phase capi.MachinePhase) (result []capi.Machine) {
+func filterMachinesByStatusPhase(machines []clusterv1.Machine, phase clusterv1.MachinePhase) (result []clusterv1.Machine) {
 	for _, machine := range machines {
 		if machine.Status.GetTypedPhase() == phase {
 			result = append(result, machine)
