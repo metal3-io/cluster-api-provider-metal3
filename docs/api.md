@@ -291,7 +291,7 @@ The fields are:
 
 * **automatedCleaningMode** -- An interface to enable or disable Ironic automated cleaning during provisioning
   or deprovisioning of a host. When set to `disabled`, automated cleaning will be skipped, where
-  `metadata`(default) value enables it. It is recommended to tune the cleaning via metal3MachineTemplate rather than
+  `metadata` value enables it. It is recommended to tune the cleaning via metal3MachineTemplate rather than
   metal3Machine. When `spec.template.spec.automatedCleaningMode` field of metal3MachineTemplate
   is updated, metal3MachineTemplate controller will update all the metal3Machines (generated from the metal3MachineTemplate)
   and eventually BareMetalHosts with the same value.
