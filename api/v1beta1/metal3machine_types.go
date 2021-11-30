@@ -70,10 +70,9 @@ type Metal3MachineSpec struct {
 
 	// When set to disabled, automated cleaning of host disks will be skipped
 	// during provisioning and deprovisioning.
-	// +kubebuilder:default:=metadata
 	// +kubebuilder:validation:Enum:=metadata;disabled
 	// +optional
-	AutomatedCleaningMode string `json:"automatedCleaningMode,omitempty"`
+	AutomatedCleaningMode *string `json:"automatedCleaningMode,omitempty"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The

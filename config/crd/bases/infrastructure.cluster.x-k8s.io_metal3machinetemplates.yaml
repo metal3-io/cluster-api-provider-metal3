@@ -59,7 +59,6 @@ spec:
                       of the machine.
                     properties:
                       automatedCleaningMode:
-                        default: metadata
                         description: When set to disabled, automated cleaning of host
                           disks will be skipped during provisioning and deprovisioning.
                         enum:
@@ -267,7 +266,6 @@ spec:
                       of the machine.
                     properties:
                       automatedCleaningMode:
-                        default: metadata
                         description: When set to disabled, automated cleaning of host
                           disks will be skipped during provisioning and deprovisioning.
                         enum:
@@ -476,7 +474,6 @@ spec:
                       of the machine.
                     properties:
                       automatedCleaningMode:
-                        default: metadata
                         description: When set to disabled, automated cleaning of host
                           disks will be skipped during provisioning and deprovisioning.
                         enum:
