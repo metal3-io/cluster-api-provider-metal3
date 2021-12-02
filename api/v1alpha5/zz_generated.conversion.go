@@ -30,6 +30,7 @@ import (
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	selection "k8s.io/apimachinery/pkg/selection"
+	v1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
@@ -1579,7 +1580,7 @@ func autoConvert_v1beta1_Metal3MachineStatus_To_v1alpha5_Metal3MachineStatus(in 
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
 	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Addresses = *(*apiv1beta1.MachineAddresses)(unsafe.Pointer(&in.Addresses))
+	out.Addresses = *(*v1alpha4.MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
 	out.Ready = in.Ready
 	out.UserData = (*corev1.SecretReference)(unsafe.Pointer(in.UserData))
