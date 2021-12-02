@@ -1590,11 +1590,11 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*capi.MachineSet, e
 	m.Log.Info("Fetching MachineSet name")
 	// Get list of MachineSets
 	machineSets := &capi.MachineSetList{}
-	if m.isControlPlane() {
-		return nil, errors.New("Machine is controlplane, MachineSet can not be associated with it")
-	}
 	if m.Machine == nil {
 		return nil, errors.New("Could not find corresponding machine object")
+	}
+	if m.isControlPlane() {
+		return nil, errors.New("Machine is controlplane, MachineSet can not be associated with it")
 	}
 	if m.Machine.ObjectMeta.OwnerReferences == nil {
 		return nil, errors.New("Machine owner reference is not populated")
