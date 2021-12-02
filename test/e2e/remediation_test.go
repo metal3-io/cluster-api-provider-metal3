@@ -75,10 +75,8 @@ func test_remediation() {
 	Logf("Marking a BMH '%s' for reboot", workerBmh.GetName())
 	annotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
 	waitForVmsState([]string{vmName}, shutoff, specName)
-	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: defaultNamespace, Name: workerNodeName}, v1.ConditionUnknown, specName)
 	waitForVmsState([]string{vmName}, running, specName)
 	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: defaultNamespace, Name: workerNodeName}, v1.ConditionTrue, specName)
-	monitorNodesStatusGlobalConsistently(ctx, targetClient, defaultNamespace, []string{workerNodeName}, v1.ConditionTrue, specName)
 
 	By("Power cycling worker node")
 	powerCycle(ctx, bootstrapClient, targetClient, bmhToMachineSlice{{
@@ -421,20 +419,6 @@ func waitForVmsState(vmNames []string, state vmState, specName string) {
 func monitorNodesStatus(g Gomega, ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
 	Byf("Ensuring Nodes %v consistently have ready=%s status", names, status)
 	g.Consistently(
-		func() error {
-			for _, node := range names {
-				if err := assertNodeStatus(ctx, c, client.ObjectKey{Namespace: namespace, Name: node}, status); err != nil {
-					return err
-				}
-			}
-			return nil
-		}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...).Should(Succeed())
-}
-
-// monitorNodesStatusGlobalConsistently call Consistently instead of g.Consistently
-func monitorNodesStatusGlobalConsistently(ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
-	Byf("Ensuring Nodes %v consistently have ready=%s status", names, status)
-	Consistently(
 		func() error {
 			for _, node := range names {
 				if err := assertNodeStatus(ctx, c, client.ObjectKey{Namespace: namespace, Name: node}, status); err != nil {
