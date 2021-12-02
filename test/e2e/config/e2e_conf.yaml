@@ -80,6 +80,10 @@ variables:
   UPGRADED_K8S_VERSION: "${UPGRADED_K8S_VERSION}"
   CNI: "./data/cni/calico/calico.yaml"
   APIVersion: "infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}"
+  NAMEPREFIX: "${NAMEPREFIX:-baremetal-operator}"
+  IRONIC_NAMESPACE: "${IRONIC_NAMESPACE:-baremetal-operator-system}"
+  CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
+  IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-master}"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
