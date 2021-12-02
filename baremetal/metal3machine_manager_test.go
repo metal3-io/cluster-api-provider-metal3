@@ -3517,7 +3517,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
-
 			machineSetObjects := capi.MachineSetList{}
 
 			for ms := range machineSetObjects.Items {
@@ -3539,6 +3538,35 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			expectError: false,
 		}),
+		Entry("Should not find the Machineset and error when machine is a controlplane", testCaseGetMachineSet{
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"cluster.x-k8s.io/control-plane": ""},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: capi.GroupVersion.String(),
+							Kind:       "MachineSet",
+							Name:       "test1",
+						},
+					},
+				},
+			},
+			MachineSets:        machineSetsList(),
+			expectedMachineSet: nil,
+			expectError:        true,
+		}),
+		Entry("Should not find the expected Machineset and error when machine is nil", testCaseGetMachineSet{
+			Machine: nil,
+			MachineSets: []*capi.MachineSet{
+				{
+					TypeMeta:   metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{},
+				},
+			},
+			expectedMachineSet: nil,
+			expectError:        true,
+		}),
+
 		Entry("Should not find the expected Machineset, one of the MachineSets has different API version, second has different name", testCaseGetMachineSet{
 			Machine: machineOwnerRefToMachineSet(),
 			MachineSets: []*capi.MachineSet{
