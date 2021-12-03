@@ -100,7 +100,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should return en error when cluster is not found",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
 				},
 				ErrorExpected:       true,
 				ErrorReasonExpected: true,
@@ -112,7 +112,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should not return an error if OwnerRef is not set on Metal3Cluster",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					newMetal3Cluster(metal3ClusterName, nil, nil, nil, false),
+					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
@@ -123,7 +123,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should return an error if APIEndpoint is not set",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), nil, nil, false),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), nil, nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected: true,
@@ -138,7 +138,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should not return an error when mandatory fields are provided",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
@@ -153,7 +153,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
 					newCluster(clusterName, clusterPauseSpec(), nil),
-					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: true,
@@ -167,7 +167,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
 					newCluster(clusterName, nil, nil),
-					newMetal3Cluster(metal3ClusterName, nil, nil, nil, true),
+					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, true),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: true,
@@ -212,7 +212,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 						Spec: *bmcSpec(),
 					},
 					newCluster(clusterName, nil, nil),
-					newMachine(clusterName, machineName, ""),
+					newMachine(clusterName, machineName, "", ""),
 				},
 				ErrorExpected:   false,
 				RequeueExpected: true,
