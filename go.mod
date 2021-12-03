@@ -33,3 +33,5 @@ require (
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1
+
+require github.com/opencontainers/image-spec v1.0.2 // indirect
