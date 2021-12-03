@@ -21,6 +21,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
@@ -49,7 +50,7 @@ func upgradeComponents() {
 	CAPM3PATH := e2eConfig.GetVariable("CAPM3PATH")
 	Logf("CAPM3PATH: %v", CAPM3PATH)
 	pwd, err := os.Getwd()
-	checkError(err)
+	Expect(err).To(BeNil())
 	Logf("PWD:", pwd)
 	gopath := os.Getenv("GOPATH")
 	if gopath == "" {
@@ -64,11 +65,11 @@ func upgradeComponents() {
 	By("Backup secrets for re-use when pods are re-created during the upgrade process")
 	NAMEPREFIX := "baremetal-operator"
 	secrets, err := clientSet.CoreV1().Secrets(fmt.Sprintf("%v-system", NAMEPREFIX)).List(ctx, metav1.ListOptions{})
-	checkError(err)
+	Expect(err).To(BeNil())
 
 	By("Cleanup - remove existing next versions of controlplane components CRDs")
 	home, err := os.UserHomeDir()
-	checkError(err)
+	Expect(err).To(BeNil())
 	working_dir := fmt.Sprintf("%v/.cluster-api/dev-repository", home)
 
 	// folder dev-repository does not exist
@@ -80,7 +81,7 @@ func upgradeComponents() {
 	}
 	for _, path := range paths {
 		err = os.RemoveAll(fmt.Sprintf("%s/%s", working_dir, path))
-		checkError(err)
+		Expect(err).To(BeNil())
 	}
 
 	By("Generate clusterctl configuration file")
@@ -146,10 +147,10 @@ func upgradeComponents() {
 	templates := template.Must(template.New("clusterctl-upgrade-test.yaml").ParseFiles(clusterctlUpgradeTestTemplate, clusterctlVarsTemplate))
 	// Create a file to store the template output
 	clusterctlFile, err := os.Create(fmt.Sprintf("%s/.cluster-api/clusterctl.yaml", home))
-	checkError(err)
+	Expect(err).To(BeNil())
 	// Execute the templates and write the output to the created file
 	err = templates.Execute(clusterctlFile, templateVars)
-	checkError(err)
+	Expect(err).To(BeNil())
 	clusterctlFile.Close()
 
 	By("Get clusterctl repo")
@@ -158,7 +159,7 @@ func upgradeComponents() {
 			URL:           "https://github.com/kubernetes-sigs/cluster-api.git",
 			ReferenceName: plumbing.ReferenceName(fmt.Sprintf("refs/tags/%s", CAPI_REL_TO_VERSION)),
 		})
-		checkError(err)
+		Expect(err).To(BeNil())
 	}
 
 	type src_dest struct {
@@ -181,9 +182,9 @@ func upgradeComponents() {
 	for _, item := range items {
 		templates := template.Must(template.New(filepath.Base(item.src)).ParseFiles(item.src))
 		settingsFile, err := os.Create(item.dest)
-		checkError(err)
+		Expect(err).To(BeNil())
 		err = templates.Execute(settingsFile, templateVars)
-		checkError(err)
+		Expect(err).To(BeNil())
 		settingsFile.Close()
 	}
 
@@ -191,7 +192,7 @@ func upgradeComponents() {
 	cmd := exec.Command("make", "clusterctl")
 	cmd.Dir = "/tmp/cluster-api-clone/"
 	err = cmd.Run()
-	checkError(err)
+	Expect(err).To(BeNil())
 
 	By("Copy clusterctl to /usr/local/bin")
 	copy("/tmp/cluster-api-clone/bin/clusterctl", "/usr/local/bin/clusterctl")
@@ -201,7 +202,7 @@ func upgradeComponents() {
 	cmd.Dir = "/tmp/cluster-api-clone/"
 	output, err := cmd.CombinedOutput()
 	Logf("output: %v", string(output))
-	checkError(err)
+	Expect(err).To(BeNil())
 
 	By("Create folder structure for next version controlplane components")
 	working_dir = filepath.Join(home, "/.cluster-api/")
@@ -220,7 +221,7 @@ func upgradeComponents() {
 		if os.IsExist(err) {
 			Logf("%v Already exists", path)
 		} else {
-			checkError(err)
+			Expect(err).To(BeNil())
 		}
 	}
 
@@ -264,7 +265,7 @@ func upgradeComponents() {
 	}
 	for _, path := range paths {
 		err = os.RemoveAll(fmt.Sprintf("%s/dev-repository/%s", working_dir, path))
-		checkError(err)
+		Expect(err).To(BeNil())
 	}
 
 	By("Create next version controller CRDs")
@@ -339,28 +340,41 @@ func upgradeComponents() {
 	for _, item := range template_items {
 		r, _ := regexp.Compile(item.regexp)
 		data, err := ioutil.ReadFile(filepath.Join(working_dir, item.path))
-		checkError(err)
+		Expect(err).To(BeNil())
 		replacedData := r.ReplaceAllString(string(data), item.replace)
 		err = ioutil.WriteFile(filepath.Join(working_dir, item.path), []byte(replacedData), 0644)
-		checkError(err)
+		Expect(err).To(BeNil())
 
 	}
 
 	By("Perform upgrade on the target cluster")
-	upgradeInput := clusterctl.UpgradeManagementClusterAndWaitInput{
-		ClusterProxy:         targetCluster,
+	upgradeInput := clusterctl.UpgradeInput{
+		KubeconfigPath:       targetCluster.GetKubeconfigPath(),
 		LogFolder:            filepath.Join(artifactFolder, "/upgrade"),
 		ClusterctlConfigPath: fmt.Sprintf("%s/.cluster-api/clusterctl.yaml", home),
 		Contract:             "v1alpha4",
 	}
-	clusterctl.UpgradeManagementClusterAndWait(ctx, upgradeInput, "25m", "10s")
+
+	Upgrade(ctx, upgradeInput)
+	Logf("Waiting for provider controllers to be running")
+	controllersDeployments := framework.GetControllerDeployments(ctx, framework.GetControllerDeploymentsInput{
+		Lister:            targetClusterClient,
+		ExcludeNamespaces: []string{"capi-webhook-system"}, // this namespace has been dropped in v1alpha4; this ensures we are not waiting for deployments being deleted as part of the upgrade process
+	})
+	Expect(controllersDeployments).ToNot(BeEmpty(), "The list of controller deployments should not be empty")
+	for _, deployment := range controllersDeployments {
+		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
+			Getter:     targetClusterClient,
+			Deployment: deployment,
+		}, "25m", "10s")
+	}
 
 	By("Restore secrets to fill missing secret fields after performing target cluster upgrade")
 	for _, item := range secrets.Items {
 		_, err = clientSet.CoreV1().Secrets(fmt.Sprintf("%v-system", NAMEPREFIX)).Update(ctx, &item, metav1.UpdateOptions{})
 	}
 	if err != nil {
-		checkError(err)
+		Expect(err).To(BeNil())
 	}
 
 	By("Perform upgrade on the source cluster")
@@ -395,7 +409,7 @@ func upgradeComponents() {
 	for _, item := range crds_items {
 		crd := &apiextensionsv1.CustomResourceDefinition{}
 		err = targetClusterClient.Get(ctx, types.NamespacedName{Namespace: "", Name: item.name}, crd)
-		checkError(err)
+		Expect(err).To(BeNil())
 		for _, version := range crd.Spec.Versions {
 			if version.Name == "v1alpha4" {
 				Expect(strings.Contains(version.Schema.OpenAPIV3Schema.Description, item.search)).To(BeTrue(), "CRD was not updated")
@@ -405,7 +419,7 @@ func upgradeComponents() {
 	By("Verify upgraded API resource for Metal3Clusters")
 	crd := &apiextensionsv1.CustomResourceDefinition{}
 	err = targetClusterClient.Get(ctx, types.NamespacedName{Namespace: "", Name: "metal3clusters.infrastructure.cluster.x-k8s.io"}, crd)
-	checkError(err)
+	Expect(err).To(BeNil())
 	found := false
 	for _, shortName := range crd.Spec.Names.ShortNames {
 		Logf("shortName: %v", shortName)
@@ -418,9 +432,9 @@ func upgradeComponents() {
 
 func copy(src string, dst string) {
 	data, err := ioutil.ReadFile(src)
-	checkError(err)
+	Expect(err).To(BeNil())
 	err = ioutil.WriteFile(dst, data, 0644)
-	checkError(err)
+	Expect(err).To(BeNil())
 }
 
 // Upgrade calls clusterctl upgrade apply with the list of providers defined in the local repository.
