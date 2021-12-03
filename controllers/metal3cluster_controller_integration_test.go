@@ -16,6 +16,8 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/go-logr/logr"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -26,8 +28,6 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
-
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -52,7 +52,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			r := &Metal3ClusterReconciler{
 				Client:           c,
 				ManagerFactory:   baremetal.NewManagerFactory(c),
-				Log:              klogr.New(),
+				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
 

@@ -11,7 +11,7 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   cp -r . /tmp/unit
   cp -r /usr/local/kubebuilder/bin /tmp/unit/hack/tools
   cd /tmp/unit
-  make unit
+  make unit-cover-verbose
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \

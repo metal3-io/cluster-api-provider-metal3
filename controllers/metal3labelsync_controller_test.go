@@ -20,6 +20,8 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/go-logr/logr"
+
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
@@ -31,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -310,7 +311,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			r := Metal3LabelSyncReconciler{
 				Client: c,
-				Log:    klogr.New(),
+				Log:    logr.Discard(),
 			}
 			obj := client.Object(tc.M3Cluster)
 			reqs := r.Metal3ClusterToBareMetalHosts(obj)
@@ -408,7 +409,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				mlsReconcile := &Metal3LabelSyncReconciler{
 					Client:         c,
 					ManagerFactory: baremetal.NewManagerFactory(c),
-					Log:            klogr.New(),
+					Log:            logr.Discard(),
 					CapiClientGetter: func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
 						clientcorev1.CoreV1Interface, error,
 					) {
@@ -539,7 +540,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				mlsReconcile := &Metal3LabelSyncReconciler{
 					Client:         c,
 					ManagerFactory: baremetal.NewManagerFactory(c),
-					Log:            klogr.New(),
+					Log:            logr.Discard(),
 					CapiClientGetter: func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
 						clientcorev1.CoreV1Interface, error,
 					) {

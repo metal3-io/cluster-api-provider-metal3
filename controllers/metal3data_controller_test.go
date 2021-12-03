@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -31,7 +33,6 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -116,7 +117,7 @@ var _ = Describe("Metal3Data manager", func() {
 				dataReconcile := &Metal3DataReconciler{
 					Client:           c,
 					ManagerFactory:   f,
-					Log:              klogr.New(),
+					Log:              logr.Discard(),
 					WatchFilterValue: "",
 				}
 
@@ -255,7 +256,7 @@ var _ = Describe("Metal3Data manager", func() {
 				dataReconcile := &Metal3DataReconciler{
 					Client:           c,
 					ManagerFactory:   baremetal.NewManagerFactory(c),
-					Log:              klogr.New(),
+					Log:              logr.Discard(),
 					WatchFilterValue: "",
 				}
 				m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
@@ -317,7 +318,7 @@ var _ = Describe("Metal3Data manager", func() {
 			dataReconcile := &Metal3DataReconciler{
 				Client:           c,
 				ManagerFactory:   baremetal.NewManagerFactory(c),
-				Log:              klogr.New(),
+				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
 			m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)

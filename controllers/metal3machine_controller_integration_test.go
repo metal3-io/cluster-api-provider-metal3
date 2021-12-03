@@ -22,6 +22,8 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/go-logr/logr"
+
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -39,7 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -191,7 +192,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			r := &Metal3MachineReconciler{
 				Client:           c,
 				ManagerFactory:   baremetal.NewManagerFactory(c),
-				Log:              klogr.New(),
+				Log:              logr.Discard(),
 				CapiClientGetter: mockCapiClientGetter,
 				WatchFilterValue: "",
 			}
