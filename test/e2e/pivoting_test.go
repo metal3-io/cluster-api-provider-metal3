@@ -28,6 +28,7 @@ import (
 )
 
 func pivoting() {
+	Logf("Starting pivoting tests")
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 	if ephemeralCluster == "kind" {
@@ -156,7 +157,7 @@ func pivoting() {
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(BeNil())
 
-	By("PASSED!")
+	By("PIVOTING TESTS PASSED!")
 }
 
 func configureIronicConfigmap(isIronicDeployed bool) {
