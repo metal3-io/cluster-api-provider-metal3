@@ -36,12 +36,12 @@ function get_latest_release() {
 }
 
 CAPIRELEASEPATH="${CAPIRELEASEPATH:-https://api.github.com/repos/${CAPI_BASE_URL:-kubernetes-sigs/cluster-api}/releases}"
-export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v0.4.")}"
+export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.0.")}"
 
 cat <<EOF > tilt-settings.json
 {
   "capi_version": "${CAPIRELEASE}",
-  "cert_manager_version": "v1.5.0",
-  "kubernetes_version": "${KUBERNETES_VERSION:-v1.22.0}"
+  "cert_manager_version": "v1.5.3",
+  "kubernetes_version": "${KUBERNETES_VERSION:-v1.22.3}"
 }
 EOF
