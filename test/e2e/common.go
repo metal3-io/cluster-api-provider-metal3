@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
 	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -34,7 +34,7 @@ func LogFromFile(logFile string) {
 	Logf(string(data))
 }
 
-func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
+func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *capi.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := bootstrapClusterProxy.GetClient()
 
@@ -95,7 +95,7 @@ func filterBmhsByProvisioningState(bmhs []bmo.BareMetalHost, state bmo.Provision
 	return
 }
 
-func filterMachinesByPhase(machines []clusterv1.Machine, phase string) (result []clusterv1.Machine) {
+func filterMachinesByPhase(machines []capi.Machine, phase string) (result []capi.Machine) {
 	for _, machine := range machines {
 		if machine.Status.Phase == phase {
 			result = append(result, machine)
@@ -117,6 +117,19 @@ func annotateBmh(ctx context.Context, client client.Client, host bmo.BareMetalHo
 		annotations[key] = *value
 	}
 	host.SetAnnotations(annotations)
+	Expect(helper.Patch(ctx, &host)).To(Succeed())
+}
+
+// deleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if exists
+func deleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmo.BareMetalHost, nodeReuseLabelName string) {
+	helper, err := patch.NewHelper(&host, client)
+	Expect(err).NotTo(HaveOccurred())
+	labels := host.GetLabels()
+	if labels != nil {
+		if _, ok := labels[nodeReuseLabelName]; ok {
+			delete(host.Labels, nodeReuseLabelName)
+		}
+	}
 	Expect(helper.Patch(ctx, &host)).To(Succeed())
 }
 
