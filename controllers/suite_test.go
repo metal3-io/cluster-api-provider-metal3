@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -68,7 +68,7 @@ func init() {
 	_ = capi.AddToScheme(scheme.Scheme)
 	_ = capm3.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
-	_ = v1.AddToScheme(scheme.Scheme)
+	_ = corev1.AddToScheme(scheme.Scheme)
 	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
 }
 
@@ -83,7 +83,7 @@ func setupScheme() *runtime.Scheme {
 	if err := ipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := v1.AddToScheme(s); err != nil {
+	if err := corev1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := bmh.SchemeBuilder.AddToScheme(s); err != nil {
@@ -141,7 +141,7 @@ var deletionTimestamp = metav1.Now()
 func clusterPauseSpec() *capi.ClusterSpec {
 	return &capi.ClusterSpec{
 		Paused: true,
-		InfrastructureRef: &v1.ObjectReference{
+		InfrastructureRef: &corev1.ObjectReference{
 			Name:       metal3ClusterName,
 			Namespace:  namespaceName,
 			Kind:       "Metal3Cluster",
@@ -198,7 +198,7 @@ func getKey(objectName string) *client.ObjectKey {
 func newCluster(clusterName string, spec *capi.ClusterSpec, status *capi.ClusterStatus) *capi.Cluster {
 	if spec == nil {
 		spec = &capi.ClusterSpec{
-			InfrastructureRef: &v1.ObjectReference{
+			InfrastructureRef: &corev1.ObjectReference{
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
 				Kind:       "Metal3Cluster",
@@ -225,7 +225,7 @@ func newCluster(clusterName string, spec *capi.ClusterSpec, status *capi.Cluster
 	}
 }
 
-func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *capm3.Metal3ClusterSpec, status *capm3.Metal3ClusterStatus, pausedAnnotation bool) *capm3.Metal3Cluster {
+func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *capm3.Metal3ClusterSpec, status *capm3.Metal3ClusterStatus, annotation map[string]string, pausedAnnotation bool) *capm3.Metal3Cluster {
 	if spec == nil {
 		spec = &capm3.Metal3ClusterSpec{}
 	}
@@ -257,6 +257,9 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spe
 			},
 		}
 	}
+	if annotation != nil {
+		objMeta.Annotations = annotation
+	}
 
 	return &capm3.Metal3Cluster{
 		TypeMeta: metav1.TypeMeta{
@@ -269,7 +272,7 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spe
 	}
 }
 
-func newMachine(clusterName, machineName string, metal3machineName string) *capi.Machine {
+func newMachine(clusterName, machineName string, metal3machineName string, nodeRefName string) *capi.Machine {
 	machine := &capi.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
@@ -284,11 +287,18 @@ func newMachine(clusterName, machineName string, metal3machineName string) *capi
 		},
 	}
 	if metal3machineName != "" {
-		machine.Spec.InfrastructureRef = v1.ObjectReference{
+		machine.Spec.ClusterName = clusterName
+		machine.Spec.InfrastructureRef = corev1.ObjectReference{
 			Name:       metal3machineName,
 			Namespace:  namespaceName,
 			Kind:       "Metal3Machine",
 			APIVersion: capm3.GroupVersion.String(),
+		}
+	}
+	if nodeRefName != "" {
+		machine.Status.NodeRef = &corev1.ObjectReference{
+			Kind: "Node",
+			Name: nodeRefName,
 		}
 	}
 	return machine
@@ -345,7 +355,7 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 }
 
 func newBareMetalHost(spec *bmh.BareMetalHostSpec,
-	status *bmh.BareMetalHostStatus,
+	status *bmh.BareMetalHostStatus, Labels map[string]string, paused bool,
 ) *bmh.BareMetalHost {
 
 	if spec == nil {
@@ -358,7 +368,7 @@ func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 			},
 		}
 	}
-	return &bmh.BareMetalHost{
+	bmh := &bmh.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalHost",
 			APIVersion: bmh.GroupVersion.String(),
@@ -371,5 +381,15 @@ func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 		Spec:   *spec,
 		Status: *status,
 	}
+	if Labels != nil {
+		bmh.ObjectMeta.Labels = Labels
+	}
+	if paused {
+		bmh.ObjectMeta.Annotations = map[string]string{
+			"baremetalhost.metal3.io/paused": "",
+		}
+	}
+
+	return bmh
 
 }

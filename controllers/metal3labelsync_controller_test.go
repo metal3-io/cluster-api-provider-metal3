@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"reflect"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -28,11 +29,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	clientfake "k8s.io/client-go/kubernetes/fake"
+	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var _ = Describe("Metal3LabelSync controller", func() {
@@ -315,8 +319,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		Entry("Metal3Cluster To BareMetalHost",
 			TestCaseMetal3ClusterToBMHs{
 				Cluster:   newCluster(clusterName, nil, nil),
-				M3Cluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, false),
-				Machine:   newMachine(clusterName, machineName, metal3machineName),
+				M3Cluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
+				Machine:   newMachine(clusterName, machineName, metal3machineName, ""),
 				M3Machine: newMetal3Machine(metal3machineName, m3mObjectMeta(), nil, nil, false),
 				ExpectRequests: []ctrl.Request{
 					{
@@ -329,6 +333,238 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			},
 		),
 	)
+	Describe("Test labelsync Reconcile functions", func() {
+		Labels := map[string]string{
+			"foo.metal3.io/bar": "blue",
+		}
+		metal3MachineSpec := bmh.BareMetalHostSpec{
+			ConsumerRef: &corev1.ObjectReference{
+				Name:       metal3machineName,
+				Namespace:  namespaceName,
+				Kind:       "Metal3Machine",
+				APIVersion: capm3.GroupVersion.String(),
+			},
+		}
+		notMetal3MachineSpec := bmh.BareMetalHostSpec{
+			ConsumerRef: &corev1.ObjectReference{
+				Name:       metal3machineName,
+				Namespace:  namespaceName,
+				Kind:       "notMetal3Machine",
+				APIVersion: "not" + capm3.GroupVersion.String(),
+			},
+		}
+		annotation := map[string]string{
+			"metal3.io/metal3-label-sync-prefixes": "foo.metal3.io",
+		}
+		incorrectAnnotation := map[string]string{
+			"metal3.io/incorrect-metal3-label-sync-prefixes": "incorrect",
+		}
+		nodeName := "testNode"
+		cluserCapiSpec := capi.ClusterSpec{
+			Paused: true,
+			InfrastructureRef: &corev1.ObjectReference{
+				Name:       metal3ClusterName,
+				Namespace:  namespaceName,
+				Kind:       "Metal3Cluster",
+				APIVersion: capm3.GroupVersion.String(),
+			},
+		}
+		type testCaseReconcile struct {
+			host            *bmh.BareMetalHost
+			machine         *capi.Machine
+			metal3Machine   *capm3.Metal3Machine
+			cluster         *capi.Cluster
+			metal3Cluster   *capm3.Metal3Cluster
+			expectError     bool
+			expectRequeue   bool
+			expectLabelsync map[string]string
+			debug           bool
+		}
+		DescribeTable("Test reconcile",
+
+			func(tc testCaseReconcile) {
+
+				objects := []client.Object{}
+				if tc.host != nil {
+					objects = append(objects, tc.host)
+				}
+				if tc.cluster != nil {
+					objects = append(objects, tc.cluster)
+				}
+				if tc.metal3Cluster != nil {
+					objects = append(objects, tc.metal3Cluster)
+				}
+				if tc.machine != nil {
+					objects = append(objects, tc.machine)
+				}
+				if tc.metal3Machine != nil {
+					objects = append(objects, tc.metal3Machine)
+				}
+
+				c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				}}).CoreV1()
+				mlsReconcile := &Metal3LabelSyncReconciler{
+					Client:         c,
+					ManagerFactory: baremetal.NewManagerFactory(c),
+					Log:            klogr.New(),
+					CapiClientGetter: func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
+						clientcorev1.CoreV1Interface, error,
+					) {
+						return corev1Client, nil
+					},
+					WatchFilterValue: "",
+				}
+				req := reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      "bmh-0",
+						Namespace: namespaceName,
+					},
+				}
+				result, err := mlsReconcile.Reconcile(context.TODO(), req)
+
+				if tc.expectError {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+				}
+				if tc.expectRequeue {
+					Expect(result.Requeue || result.RequeueAfter > 0).To(BeTrue())
+				} else {
+					Expect(result.Requeue || result.RequeueAfter > 0).To(BeFalse())
+				}
+
+				node, _ := corev1Client.Nodes().Get(context.TODO(), "testNode", metav1.GetOptions{})
+				Expect(node.Labels).To(Equal(tc.expectLabelsync))
+			},
+			Entry("Baremetal host not found", testCaseReconcile{
+				expectError:   false,
+				expectRequeue: false,
+			}),
+			Entry("Paused Baremetal", testCaseReconcile{
+				host:          newBareMetalHost(nil, nil, nil, true),
+				expectRequeue: true,
+			}),
+			Entry("Baremetal host with no ConsumerRef", testCaseReconcile{
+				host: newBareMetalHost(nil, nil, nil, false),
+			}),
+			Entry("Unknown API version in BareMetalHost ConsumerRef", testCaseReconcile{
+				host: newBareMetalHost(&notMetal3MachineSpec, nil, Labels, false),
+			}),
+			Entry("Could not find associated Metal3Machine", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				expectRequeue: true,
+			}),
+			Entry("Could not find Machine object", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				expectError:   true,
+			}),
+			Entry("Could not find Node Ref", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				machine:       newMachine(clusterName, machineName, metal3machineName, ""),
+				expectRequeue: true,
+			}),
+			Entry("Error fetching cluster", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				machine:       newMachine(clusterName, machineName, metal3machineName, nodeName),
+				expectError:   true,
+				expectRequeue: true,
+			}),
+			Entry("Error fetching Metal3Cluster", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				machine:       newMachine(clusterName, machineName, metal3machineName, nodeName),
+				cluster:       newCluster(clusterName, nil, nil),
+				expectError:   true,
+				expectRequeue: true,
+			}),
+			Entry("Cluster is paused", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				machine:       newMachine(clusterName, machineName, metal3machineName, nodeName),
+				cluster:       newCluster(clusterName, &cluserCapiSpec, nil),
+				metal3Cluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, annotation, false),
+				expectRequeue: true,
+			}),
+			Entry("Nil annotations", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				machine:       newMachine(clusterName, machineName, metal3machineName, nodeName),
+				cluster:       newCluster(clusterName, nil, nil),
+				metal3Cluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
+			}),
+			Entry("No annotation for the prefixes found on Metal3Cluster", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				machine:       newMachine(clusterName, machineName, metal3machineName, nodeName),
+				cluster:       newCluster(clusterName, nil, nil),
+				metal3Cluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, incorrectAnnotation, false),
+			}),
+			Entry("No errors", testCaseReconcile{
+				host:          newBareMetalHost(&metal3MachineSpec, nil, Labels, false),
+				machine:       newMachine(clusterName, machineName, metal3machineName, nodeName),
+				debug:         true,
+				metal3Machine: newMetal3Machine(metal3machineName, m3mObjectMetaWithOwnerRef(), nil, nil, false),
+				cluster:       newCluster(clusterName, nil, nil),
+				metal3Cluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, annotation, false),
+				expectRequeue: true,
+				expectLabelsync: map[string]string{
+					"foo.metal3.io/bar": "blue",
+				},
+			}),
+		)
+		type TestCaseReconcileBMHLabels struct {
+			PrefixSet   map[string]struct{}
+			Host        *bmh.BareMetalHost
+			Machine     *capi.Machine
+			Cluster     *capi.Cluster
+			ExpectError bool
+		}
+
+		DescribeTable("Test reconcileBMHLabels",
+			func(tc TestCaseReconcileBMHLabels) {
+				objects := []client.Object{
+					tc.Host,
+					tc.Cluster,
+					tc.Machine,
+				}
+				c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
+					Name: nodeName,
+				}}).CoreV1()
+				mlsReconcile := &Metal3LabelSyncReconciler{
+					Client:         c,
+					ManagerFactory: baremetal.NewManagerFactory(c),
+					Log:            klogr.New(),
+					CapiClientGetter: func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
+						clientcorev1.CoreV1Interface, error,
+					) {
+						return corev1Client, nil
+					},
+					WatchFilterValue: "",
+				}
+				err := mlsReconcile.reconcileBMHLabels(context.TODO(), tc.Host, tc.Machine, tc.Cluster, tc.PrefixSet)
+
+				if tc.ExpectError {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+				}
+			},
+			Entry("No errors", TestCaseReconcileBMHLabels{
+				PrefixSet: map[string]struct{}{
+					"foo.metal3.io": {},
+				},
+				Host:    newBareMetalHost(nil, nil, Labels, false),
+				Machine: newMachine(clusterName, machineName, metal3machineName, nodeName),
+				Cluster: newCluster(clusterName, nil, nil),
+			}),
+		)
+	})
 })
 
 func m3mObjectMeta() *metav1.ObjectMeta {
