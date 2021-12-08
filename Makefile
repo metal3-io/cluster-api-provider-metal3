@@ -273,6 +273,13 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		DataTemplateManagerInterface
 
 	$(MOCKGEN) \
+	  -destination=./baremetal/mocks/zz_generated.metal3machinetemplate_manager.go \
+	  -source=./baremetal/metal3machinetemplate_manager.go \
+		-package=baremetal_mocks \
+		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
+		TemplateManagerInterface
+
+	$(MOCKGEN) \
 	  -destination=./baremetal/mocks/zz_generated.metal3data_manager.go \
 	  -source=./baremetal/metal3data_manager.go \
 		-package=baremetal_mocks \
@@ -297,7 +304,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		--input-dirs=./api/v1alpha4 \
 		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-	
+
 	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha5 \
 		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
