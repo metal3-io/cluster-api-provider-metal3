@@ -19,8 +19,8 @@ import (
 	framework "sigs.k8s.io/cluster-api/test/framework"
 )
 
-func cert_rotation() {
-	Logf("Starting certificate rotation tests")
+func certRotation() {
+	Logf("Start the certificate rotation test")
 	By("Check if Ironic pod is running")
 	targetClusterClientSet := targetCluster.GetClientSet()
 	ironicNamespace := os.Getenv("NAMEPREFIX") + "-system"
