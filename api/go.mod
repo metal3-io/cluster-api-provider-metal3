@@ -8,11 +8,11 @@ require (
 	github.com/onsi/gomega v1.16.0
 	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
-	k8s.io/api v0.22.2
-	k8s.io/apimachinery v0.22.2
-	k8s.io/client-go v0.22.2
+	k8s.io/api v0.23.0
+	k8s.io/apimachinery v0.23.0
+	k8s.io/client-go v0.23.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
-	sigs.k8s.io/cluster-api v1.0.1
+	sigs.k8s.io/cluster-api v1.0.2
 	sigs.k8s.io/controller-runtime v0.10.3
 
 )
@@ -61,4 +61,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.0.2
