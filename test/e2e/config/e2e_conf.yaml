@@ -89,7 +89,7 @@ intervals:
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["50m", "10s"]
   default/wait-machine-remediation: ["30m", "10s"]
-  default/wait-vm-state: ["10m", "100ms"]
+  default/wait-vm-state: ["20m", "100ms"]
   default/monitor-vm-state: ["1m", "500ms"]
   default/monitor-provisioning: ["5m", "500ms"]
   default/wait-deployment: ["10m", "10s"]

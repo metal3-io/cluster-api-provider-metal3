@@ -39,7 +39,7 @@ const (
 
 const defaultNamespace = "default"
 
-func test_remediation() {
+func remediation() {
 	Logf("Starting remediation tests")
 	bootstrapClient := bootstrapClusterProxy.GetClient()
 	targetClient := targetCluster.GetClient()
