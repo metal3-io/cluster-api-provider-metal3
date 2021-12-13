@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -32,7 +34,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -204,7 +205,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			bmReconcile = &Metal3MachineReconciler{
 				Client:           c,
 				ManagerFactory:   baremetal.NewManagerFactory(c),
-				Log:              klogr.New(),
+				Log:              logr.Discard(),
 				CapiClientGetter: nil,
 				WatchFilterValue: "",
 			}
@@ -294,7 +295,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			bmReconcile = &Metal3MachineReconciler{
 				Client:           c,
 				ManagerFactory:   baremetal.NewManagerFactory(c),
-				Log:              klogr.New(),
+				Log:              logr.Discard(),
 				CapiClientGetter: nil,
 				WatchFilterValue: "",
 			}
@@ -359,7 +360,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			r := Metal3MachineReconciler{
 				Client:           c,
-				Log:              klogr.New(),
+				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
 

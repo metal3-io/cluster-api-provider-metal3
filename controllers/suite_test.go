@@ -20,21 +20,21 @@ import (
 	"path/filepath"
 	"testing"
 
+	"k8s.io/klog/v2/klogr"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
-
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -92,7 +92,7 @@ func setupScheme() *runtime.Scheme {
 
 	return s
 }
-func TestAPIs(t *testing.T) {
+func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	RunSpecs(t, "Controller Suite")

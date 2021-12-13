@@ -23,6 +23,8 @@ import (
 	"log"
 	"time"
 
+	"github.com/go-logr/logr"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -38,7 +40,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -351,7 +352,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test Finalizers",
 		func(bmMachine capm3.Metal3Machine) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -378,7 +379,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test SetProviderID",
 		func(bmMachine capm3.Metal3Machine) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -406,7 +407,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test IsProvisioned",
 		func(tc testCaseProvisioned) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -455,7 +456,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test BootstrapReady",
 		func(tc testCaseBootstrapReady) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, &tc.Machine, nil,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -480,7 +481,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test setting and clearing errors",
 		func(bmMachine capm3.Metal3Machine) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -619,7 +620,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			func(tc testCaseChooseHost) {
 				c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Hosts...).Build()
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-					tc.M3Machine, klogr.New(),
+					tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -745,7 +746,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		func(tc testCaseSetPauseAnnotation) {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host, tc.M3Machine).Build()
 
-			machineMgr, err := NewMachineManager(c, nil, nil, nil, tc.M3Machine, klogr.New())
+			machineMgr, err := NewMachineManager(c, nil, nil, nil, tc.M3Machine, logr.Discard())
 			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.SetPauseAnnotation(context.TODO())
@@ -848,7 +849,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test Remove BMH Pause Annotation",
 		func(tc testCaseRemovePauseAnnotation) {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host, tc.M3Machine, tc.Cluster).Build()
-			machineMgr, err := NewMachineManager(c, tc.Cluster, nil, nil, tc.M3Machine, klogr.New())
+			machineMgr, err := NewMachineManager(c, tc.Cluster, nil, nil, tc.M3Machine, logr.Discard())
 			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.RemovePauseAnnotation(context.TODO())
@@ -948,7 +949,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			machine := newMachine("machine1", "", infrastructureRef)
 
 			machineMgr, err := NewMachineManager(c, nil, nil, machine, m3mconfig,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1037,7 +1038,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			machine := newMachine("machine1", "", infrastructureRef)
 
 			machineMgr, err := NewMachineManager(c, nil, nil, machine, m3mconfig,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1115,7 +1116,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Test Exists function",
 			func(tc testCaseExists) {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-					tc.M3Machine, klogr.New(),
+					tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1167,7 +1168,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Test GetHost",
 			func(tc testCaseGetHost) {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-					tc.M3Machine, klogr.New(),
+					tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1217,7 +1218,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		func(tc testCaseGetSetProviderID) {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-				tc.M3Machine, klogr.New(),
+				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1312,7 +1313,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Test small functions",
 			func(tc testCaseSmallFunctions) {
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-					tc.M3Machine, klogr.New(),
+					tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1370,7 +1371,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		func(tc testCaseEnsureAnnotation) {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.M3Machine).Build()
 			machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine,
-				tc.M3Machine, klogr.New(),
+				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1466,7 +1467,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-				tc.M3Machine, klogr.New(),
+				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1822,7 +1823,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(&tc.M3Machine).Build()
 
 				machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-					&tc.M3Machine, klogr.New(),
+					&tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -2040,7 +2041,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 				c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).Build()
 				machineMgr, err := NewMachineManager(c, nil, nil, &tc.Machine,
-					&tc.M3Machine, klogr.New(),
+					&tc.M3Machine, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -2112,7 +2113,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			}
 
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &m3m, klogr.New())
+			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &m3m, logr.Discard())
 			Expect(err).NotTo(HaveOccurred())
 
 			providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
@@ -2165,7 +2166,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
 						&capm3.Metal3ClusterSpec{NoCloudProvider: true}, nil,
 					),
-					&capi.Machine{}, &capm3.Metal3Machine{}, klogr.New(),
+					&capi.Machine{}, &capm3.Metal3Machine{}, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -2245,7 +2246,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-				tc.M3Machine, klogr.New(),
+				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2450,7 +2451,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-				tc.M3Machine, klogr.New(),
+				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2647,7 +2648,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-				tc.M3Machine, klogr.New(),
+				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2690,7 +2691,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test FindOwnerRef",
 		func(tc testCaseFindOwnerRef) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2806,7 +2807,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test DeleteOwnerRef",
 		func(tc testCaseOwnerRef) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2880,7 +2881,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	DescribeTable("Test SetOwnerRef",
 		func(tc testCaseOwnerRef) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2961,7 +2962,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.M3Machine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -3074,7 +3075,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.M3Machine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -3259,7 +3260,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine, tc.M3Machine,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -3350,7 +3351,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
 
 			machineMgr, err := NewMachineManager(c, nil, nil, nil,
-				nil, klogr.New(),
+				nil, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -3398,7 +3399,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			machineMgr, err := NewMachineManager(c, nil, nil, tc.Machine,
-				nil, klogr.New(),
+				nil, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -3479,7 +3480,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			machineMgr, err := NewMachineSetManager(c, tc.Machine,
-				tc.MachineSets, tc.expectedMachineSet, klogr.New(),
+				tc.MachineSets, tc.expectedMachineSet, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -3532,7 +3533,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			machineMgr, err := NewMachineSetManager(c, tc.Machine,
-				tc.MachineSets, nil, klogr.New(),
+				tc.MachineSets, nil, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 

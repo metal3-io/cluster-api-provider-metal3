@@ -19,13 +19,14 @@ package baremetal
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog/v2/klogr"
 	utils "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -47,7 +48,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithRuntimeObjects(objects...).Build()
 			templateMgr, err := NewMachineTemplateManager(c, tc.M3MachineTemplate,
-				tc.M3MachineList, klogr.New(),
+				tc.M3MachineList, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			err = templateMgr.UpdateAutomatedCleaningMode(context.TODO())

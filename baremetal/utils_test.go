@@ -33,9 +33,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	//fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -483,7 +483,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 
 			result, err := fetchM3DataTemplate(context.TODO(), tc.TemplateRef, c,
-				klogr.New(), tc.ClusterName,
+				logr.Discard(), tc.ClusterName,
 			)
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
@@ -573,7 +573,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			result, err := fetchM3Data(context.TODO(), c, klogr.New(), tc.Name,
+			result, err := fetchM3Data(context.TODO(), c, logr.Discard(), tc.Name,
 				tc.Namespace,
 			)
 			if tc.ExpectError || tc.ExpectRequeue {
@@ -631,7 +631,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			result, err := getM3Machine(context.TODO(), c, klogr.New(), tc.Name,
+			result, err := getM3Machine(context.TODO(), c, logr.Discard(), tc.Name,
 				tc.Namespace, tc.DataTemplate, false,
 			)
 			if tc.ExpectError || tc.ExpectRequeue {

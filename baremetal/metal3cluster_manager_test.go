@@ -19,6 +19,8 @@ package baremetal
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -27,7 +29,6 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -78,7 +79,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		DescribeTable("Test NewClusterManager",
 			func(tc testCaseBMClusterManager) {
 				_, err := NewClusterManager(fakeClient, tc.Cluster, tc.BMCluster,
-					klogr.New(),
+					logr.Discard(),
 				)
 				if tc.ExpectSuccess {
 					Expect(err).NotTo(HaveOccurred())
@@ -376,7 +377,7 @@ func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
 		client:        c,
 		Metal3Cluster: tc.BMCluster,
 		Cluster:       tc.Cluster,
-		Log:           klogr.New(),
+		Log:           logr.Discard(),
 	}, nil
 }
 
@@ -398,6 +399,6 @@ func descendantsSetup(tc descendantsTestCase) *ClusterManager {
 		client:        c,
 		Metal3Cluster: bmCluster,
 		Cluster:       cluster,
-		Log:           klogr.New(),
+		Log:           logr.Discard(),
 	}
 }

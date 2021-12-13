@@ -18,8 +18,9 @@ package baremetal
 
 import (
 	"context"
-	"fmt"
 	"strconv"
+
+	"github.com/go-logr/logr"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -28,7 +29,6 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -40,7 +40,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	DescribeTable("Test Finalizers",
 		func(template *capm3.Metal3DataTemplate) {
 			templateMgr, err := NewDataTemplateManager(nil, template,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -73,7 +73,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	DescribeTable("Test SetClusterOwnerRef",
 		func(tc testCaseSetClusterOwnerRef) {
 			templateMgr, err := NewDataTemplateManager(nil, tc.template,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			err = templateMgr.SetClusterOwnerRef(tc.cluster)
@@ -156,7 +156,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -269,7 +269,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -463,7 +463,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template2,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -477,7 +477,6 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			dataObjects := capm3.Metal3DataList{}
 			opts := &client.ListOptions{}
 			err = c.List(context.TODO(), &dataObjects, opts)
-			fmt.Printf("%v", dataObjects)
 			Expect(err).NotTo(HaveOccurred())
 			if tc.dataObject != nil {
 				Expect(len(dataObjects.Items)).To(Equal(2))
@@ -639,7 +638,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -787,7 +786,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(c, tc.template,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 

@@ -91,11 +91,29 @@ help:  ## Display this help
 
 .PHONY: unit
 unit: ## Run unit test
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./controllers/... ./baremetal/... -coverprofile ./cover.out; cd api; go test -v ./... -coverprofile ./cover.out
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; \
+	go test ./controllers/... ./baremetal/... \
+		-ginkgo.noColor=$(GINKGO_NOCOLOR) \
+		$(GO_TEST_FLAGS) \
+		$(GINKGO_TEST_FLAGS) \
+		-coverprofile ./cover.out; \
+	cd api; \
+	go test ./... \
+		$(GO_TEST_FLAGS) \
+		-coverprofile ./cover.out
+
+unit-cover: unit
+	go tool cover -func=./api/cover.out; \
+	go tool cover -func=./cover.out
+
+unit-verbose: ## Run unit test
+	GO_TEST_FLAGS=-v GINKGO_TEST_FLAGS=-ginkgo.v $(MAKE) unit
+
+unit-cover-verbose:
+	GO_TEST_FLAGS=-v GINKGO_TEST_FLAGS=-ginkgo.v $(MAKE) unit-cover
 
 .PHONY: test
-test: fmt lint ## Run tests
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; go test -v ./controllers/... ./baremetal/... -coverprofile ./cover.out; cd api; go test -v ./... -coverprofile ./cover.out
+test: fmt lint unit ## Run tests
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests with capi e2e testing framework

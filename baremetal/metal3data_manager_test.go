@@ -19,7 +19,10 @@ package baremetal
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+
 	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -32,7 +35,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -67,7 +69,7 @@ var _ = Describe("Metal3Data manager", func() {
 	DescribeTable("Test Finalizers",
 		func(data *capm3.Metal3Data) {
 			machineMgr, err := NewDataManager(nil, data,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -94,7 +96,7 @@ var _ = Describe("Metal3Data manager", func() {
 	It("Test error handling", func() {
 		data := &capm3.Metal3Data{}
 		dataMgr, err := NewDataManager(nil, data,
-			klogr.New(),
+			logr.Discard(),
 		)
 		Expect(err).NotTo(HaveOccurred())
 		dataMgr.setError(context.TODO(), "This is an error")
@@ -124,7 +126,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			err = dataMgr.Reconcile(context.TODO())
@@ -205,7 +207,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			err = dataMgr.createSecrets(context.TODO())
@@ -601,7 +603,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			err = dataMgr.ReleaseLeases(context.TODO())
@@ -695,7 +697,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, m3d,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			poolAddresses, err := dataMgr.getAddressesFromPool(context.TODO(), m3dt)
@@ -1030,7 +1032,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, m3d,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -1180,7 +1182,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			poolAddresses, requeue, err := dataMgr.getAddressFromPool(
@@ -1377,7 +1379,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, tc.m3d,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 			poolAddresses, requeue, err := dataMgr.releaseAddressFromPool(
@@ -3000,7 +3002,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 
 			machineMgr, err := NewDataManager(c, tc.Data,
-				klogr.New(),
+				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
 
