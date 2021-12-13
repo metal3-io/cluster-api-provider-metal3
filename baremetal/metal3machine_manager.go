@@ -274,6 +274,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// load and validate the config
 	if m.Metal3Machine == nil {
+		m.Log.Info("Metal3Machine is nil")
 		// Should have been picked earlier. Do not requeue
 		return nil
 	}
@@ -281,6 +282,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	config := m.Metal3Machine.Spec
 	err := config.IsValid()
 	if err != nil {
+		m.Log.Info(fmt.Sprintf("Metal3machine config %v is not valid, error is %v", config, err))
 		// Should have been picked earlier. Do not requeue
 		m.SetError(err.Error(), capierrors.InvalidConfigurationMachineError)
 		return nil
@@ -292,6 +294,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
+		m.Log.Info(fmt.Sprintf("Failed to get host %v for m3m %v, setting an error %v", host, m.Metal3Machine.Name, err))
 		m.SetError("Failed to get the BaremetalHost for the Metal3Machine",
 			capierrors.CreateMachineError,
 		)
@@ -300,9 +303,11 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// no BMH found, trying to choose from available ones
 	if host == nil {
+		m.Log.Info("Inside host nil during associate")
 		host, helper, err = m.chooseHost(ctx)
 		if err != nil {
 			if _, ok := err.(HasRequeueAfterError); !ok {
+				m.Log.Info(fmt.Sprintf("Failed to choose host %v for m3m %v, setting an error %v", host, m.Metal3Machine.Name, err))
 				m.SetError("Failed to pick a BaremetalHost for the Metal3Machine",
 					capierrors.CreateMachineError,
 				)
@@ -323,6 +328,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err = m.getUserDataSecretName(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.Log.Info("Failed to get userdatasecret name")
 			m.SetError("Failed to set the UserData for the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
@@ -333,6 +339,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err = m.setHostLabel(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.Log.Info("Failed to setHostLabel")
 			m.SetError("Failed to set the Cluster label in the BareMetalHost",
 				capierrors.CreateMachineError,
 			)
@@ -343,6 +350,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err = m.setHostConsumerRef(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.Log.Info("Failed to setHostConsumerRef")
 			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
@@ -388,6 +396,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
 		if _, ok := err.(HasRequeueAfterError); !ok {
+			m.Log.Info("Failed to ensureAnnotation")
 			m.SetError("Failed to annotate the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
@@ -399,6 +408,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		// Requeue to get the DataTemplate output. We need to requeue to trigger the
 		// wait on the Metal3DataTemplate
 		if err := m.WaitForM3Metadata(ctx); err != nil {
+			m.Log.Info("Failed to WaitForM3Metadata")
 			return err
 		}
 
@@ -406,6 +416,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		// specs
 		host, helper, err = m.getHost(ctx)
 		if err != nil {
+			m.Log.Info("Failed to getHost inside m.Metal3Machine.Spec.DataTemplate is not nil")
 			m.SetError("Failed to get the BaremetalHost for the Metal3Machine",
 				capierrors.CreateMachineError,
 			)
@@ -414,6 +425,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 		if err = m.setHostSpec(ctx, host); err != nil {
 			if _, ok := err.(HasRequeueAfterError); !ok {
+				m.Log.Info(fmt.Sprintf("Failed to setHostSpec in host %v inside m.Metal3Machine.Spec.DataTemplate is not nil", host.Name))
 				m.SetError("Failed to set the BaremetalHost Specs",
 					capierrors.CreateMachineError,
 				)
@@ -424,6 +436,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		// Update the BMH object.
 		err = helper.Patch(ctx, host)
 		if err != nil {
+			m.Log.Info(fmt.Sprintf("Failed to update bmh object %v inside m.Metal3Machine.Spec.DataTemplate is not nil", host.Name))
 			if aggr, ok := err.(kerrors.Aggregate); ok {
 				for _, kerr := range aggr.Errors() {
 					if apierrors.IsConflict(kerr) {

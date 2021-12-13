@@ -2,7 +2,7 @@
 
 set -o nounset
 set -o pipefail
-set -o errexit
+# set -o errexit
 set -x
 
 REPO_ROOT=$(dirname "$(realpath "${BASH_SOURCE[0]}")")/..
@@ -89,8 +89,9 @@ source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
 # This will run the tests with env variabls defined in environment.sh
 # or exported by metal3-dev-env scripts
-${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests
+# ${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests
+SKIP_CLEANUP=true ${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests || sleep infinity
 
-pushd ${M3_DEV_ENV_PATH} || exit 1
-make clean
-popd || exit 1
+# pushd ${M3_DEV_ENV_PATH} || exit 1
+# make clean
+# popd || exit 1
