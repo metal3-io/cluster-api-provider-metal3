@@ -84,6 +84,7 @@ var _ = Describe("Workload cluster creation", func() {
 			remediation()
 			pivoting()
 			certRotation()
+			upgradeIronic()
 			nodeReuse()
 			rePivoting()
 		})
