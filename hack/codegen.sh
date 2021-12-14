@@ -39,6 +39,6 @@ else
     --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-metal3:rw,z" \
     --entrypoint sh \
     --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
-    docker.io/golang:1.16 \
+    docker.io/golang:1.17 \
     /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/codegen.sh
 fi;
