@@ -9,7 +9,6 @@ if [ "${IS_CONTAINER}" != "false" ]; then
   export XDG_CACHE_HOME=/tmp/.cache
   mkdir /tmp/unit
   cp -r . /tmp/unit
-  cp -r /usr/local/kubebuilder/bin /tmp/unit/hack/tools
   cd /tmp/unit
   make unit
 else
@@ -18,6 +17,6 @@ else
     --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-metal3:ro,z" \
     --entrypoint sh \
     --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
-    quay.io/metal3-io/capm3-unit:main \
+    docker.io/golang:1.16 \
     /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/unit.sh "${@}"
 fi;
