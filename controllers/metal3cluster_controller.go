@@ -40,7 +40,7 @@ import (
 
 const (
 	clusterControllerName = "Metal3Cluster-controller"
-	requeueAfter          = time.Second * 30
+	requeueAfter          = time.Second * 60
 )
 
 // Metal3ClusterReconciler reconciles a Metal3Cluster object
