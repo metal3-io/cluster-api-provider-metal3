@@ -5,7 +5,7 @@ go 1.16
 require (
 	github.com/containerd/containerd v1.5.8 // indirect
 	github.com/docker/docker v20.10.7+incompatible
-	github.com/go-logr/logr v1.2.0
+	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.6.0
 	github.com/jinzhu/copier v0.3.2
 	github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99
@@ -17,15 +17,15 @@ require (
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
-	k8s.io/api v0.23.0
-	k8s.io/apiextensions-apiserver v0.23.0
-	k8s.io/apimachinery v0.23.0
-	k8s.io/client-go v0.23.0
-	k8s.io/klog/v2 v2.30.0
+	k8s.io/api v0.22.2
+	k8s.io/apiextensions-apiserver v0.22.2
+	k8s.io/apimachinery v0.22.2
+	k8s.io/client-go v0.22.2
+	k8s.io/klog/v2 v2.9.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/cluster-api v1.0.2
 	sigs.k8s.io/cluster-api/test v1.0.2
-	sigs.k8s.io/controller-runtime v0.11.0
+	sigs.k8s.io/controller-runtime v0.10.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
