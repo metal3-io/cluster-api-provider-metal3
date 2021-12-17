@@ -84,6 +84,7 @@ variables:
   IRONIC_NAMESPACE: "${IRONIC_NAMESPACE:-baremetal-operator-system}"
   CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-master}"
+  MARIADB_IMAGE_TAG: "${MARIADB_IMAGE_TAG:-main}"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
