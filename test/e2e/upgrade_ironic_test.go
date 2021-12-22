@@ -10,6 +10,7 @@ import (
 )
 
 func upgradeIronic() {
+	Logf("Starting ironic containers upgrade tests")
 	var (
 		namePrefix        = e2eConfig.GetVariable("NAMEPREFIX")
 		clientSet         = targetCluster.GetClientSet()
@@ -17,6 +18,7 @@ func upgradeIronic() {
 		ironicDeployName  = namePrefix + "-ironic"
 		containerRegistry = e2eConfig.GetVariable("CONTAINER_REGISTRY")
 		ironicImageTag    = e2eConfig.GetVariable("IRONIC_IMAGE_TAG")
+		mariadbImageTag   = e2eConfig.GetVariable("MARIADB_IMAGE_TAG")
 	)
 
 	Logf("namePrefix %v", namePrefix)
@@ -24,6 +26,7 @@ func upgradeIronic() {
 	Logf("ironicDeployName %v", ironicDeployName)
 	Logf("containerRegistry %v", containerRegistry)
 	Logf("ironicImageTag %v", ironicImageTag)
+	Logf("mariadbImageTag %v", mariadbImageTag)
 
 	By("Upgrading ironic image based containers")
 	deploy, err := getIronicDeployment(clientSet, ironicDeployName, ironicNamespace)
@@ -31,13 +34,15 @@ func upgradeIronic() {
 	for i, container := range deploy.Spec.Template.Spec.Containers {
 		switch container.Name {
 		case
-			"mariadb",
 			"ironic-api",
 			"ironic-dnsmasq",
 			"ironic-conductor",
 			"ironic-log-watch",
 			"ironic-inspector":
 			deploy.Spec.Template.Spec.Containers[i].Image = containerRegistry + "/metal3-io/ironic:" + ironicImageTag
+		case
+			"mariadb":
+			deploy.Spec.Template.Spec.Containers[i].Image = containerRegistry + "/metal3-io/mariadb:" + mariadbImageTag
 		}
 	}
 
@@ -50,6 +55,8 @@ func upgradeIronic() {
 	},
 		e2eConfig.GetIntervals(specName, "wait-deployment")...,
 	).Should(Equal(true))
+
+	By("IRONIC CONTAINERS UPGRADE TESTS PASSED!")
 }
 
 func getIronicDeployment(clientSet *kubernetes.Clientset, ironicDeployName string, ironicNamespace string) (*appsv1.Deployment, error) {
