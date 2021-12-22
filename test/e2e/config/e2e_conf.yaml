@@ -15,54 +15,52 @@ images:
     loadBehavior: mustLoad
 
 providers:
-  - name: cluster-api
-    type: CoreProvider
-    versions:
-      - name: ${CAPIRELEASE}
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPIRELEASE}/core-components.yaml"
-        type: "url"
-        files:
-        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
-  - name: kubeadm
-    type: BootstrapProvider
-    versions:
-      - name: ${CAPIRELEASE}
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPIRELEASE}/bootstrap-components.yaml"
-        type: "url"
-        files:
-        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
-  - name: kubeadm
-    type: ControlPlaneProvider
-    versions:
-      - name: ${CAPIRELEASE}
-        # Use manifest from source files
-        value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPIRELEASE}/control-plane-components.yaml"
-        type: "url"
-        files:
-        - sourcePath: "../data/shared/v1beta1/metadata.yaml"
-        replacements:
-          - old: "imagePullPolicy: Always"
-            new: "imagePullPolicy: IfNotPresent"
-          - old: "--leader-elect"
-            new: "--leader-elect=false"
-  - name: metal3
-    type: InfrastructureProvider
-    versions:
-    - name: ${CAPM3RELEASE}
-      value: "file://${HOME}/.cluster-api/overrides/infrastructure-metal3/${CAPM3RELEASE}/infrastructure-components.yaml"
-      type: "url"
+- name: cluster-api
+  type: CoreProvider
+  versions:
+  - name: v1.1.0
+    # Use manifest from source files
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-beta.1/core-components.yaml"
+    type: "url"
+    contract: v1beta1
+    files:
+      - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
+- name: kubeadm
+  type: BootstrapProvider
+  versions:
+  - name: v1.1.0
+    # Use manifest from source files
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-beta.1/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta1
+    files:
+      - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
+- name: kubeadm
+  type: ControlPlaneProvider
+  versions:
+  - name: v1.1.0
+    # Use manifest from source files
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-beta.1/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta1
+    files:
+      - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    replacements:
+      - old: "--leader-elect"
+        new: "--leader-elect=false"
+- name: metal3
+  type: InfrastructureProvider
+  versions:
+  - name: v1.0.0
+    value: "file://${HOME}/.cluster-api/overrides/infrastructure-metal3/v1.0.0/infrastructure-components.yaml"
+    type: "url"
+    contract: v1beta1
     files:
     - sourcePath: "${PWD}/metadata.yaml"
       targetName: "metadata.yaml"
@@ -84,6 +82,9 @@ variables:
   IRONIC_NAMESPACE: "${IRONIC_NAMESPACE:-baremetal-operator-system}"
   CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-master}"
+  CAPIRELEASE: "${CAPIRELEASE}"
+  CAPM3RELEASE: "${CAPM3RELEASE}"
+  CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
