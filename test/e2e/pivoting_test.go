@@ -49,12 +49,16 @@ func pivoting() {
 
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
-		KubeconfigPath:          targetCluster.GetKubeconfigPath(),
-		ClusterctlConfigPath:    clusterctlConfigPath,
-		CoreProvider:            config.ClusterAPIProviderName,
-		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName},
-		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName},
-		InfrastructureProviders: e2eConfig.InfrastructureProviders(),
+		KubeconfigPath: targetCluster.GetKubeconfigPath(),
+		// TODO (furkat), to uplift CAPI to v1.1.0-beta.1 pre-release
+		// in pivoting tests we are pointing to overrides folder as ClusterctlConfigPath.
+		// We have to revert this to point to e2e ClusterctlConfigPath once there is an
+		// actual latest release with v1.1.X tag.
+		ClusterctlConfigPath:    os.Getenv("CONFIG_FILE_PATH"),
+		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
+		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
+		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
+		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
 		LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting"),
 	})
 
