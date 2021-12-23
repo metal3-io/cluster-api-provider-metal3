@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v3"
+
+	"regexp"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -86,10 +89,18 @@ var _ = Describe("Workload cluster creation", func() {
 })
 
 func updateCalico(calicoYaml, calicoInterface string) {
-	err := downloadFile(calicoYaml, "https://docs.projectcalico.org/manifests/calico.yaml")
+	calicoManifestURL := fmt.Sprintf("https://docs.projectcalico.org/archive/%s/manifests/calico.yaml", os.Getenv("CALICO_MINOR_RELEASE"))
+	err := downloadFile(calicoYaml, calicoManifestURL)
 	Expect(err).To(BeNil(), "Unable to download Calico manifest")
 	cniYaml, err := os.ReadFile(calicoYaml)
 	Expect(err).To(BeNil(), "Unable to read Calico manifest")
+
+	Logf("Replace the calico version with the pinned one")
+	regex := regexp.MustCompile("image: docker.io/calico/(.+):v(.+)$")
+	replacement := fmt.Sprintf("image: docker.io/calico/\\1:%s", os.Getenv("CALICO_PATCH_RELEASE"))
+	cniYaml = []byte(regex.ReplaceAllString(string(cniYaml), replacement))
+
+	Logf("Replace the default CIDR with the one set in $POD_CIDR")
 	podCIDR := os.Getenv("POD_CIDR")
 	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
 
