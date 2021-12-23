@@ -48,7 +48,7 @@ provider:
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install cert-manager for Baremetal Operator,
   but since step 1 already does it, we skip it here and only install the operator. Depending on
-  whether you want TLS, or basic-auth enabled, kustomize paths may differ. Check operator [dev-setup doc](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
+  whether you want TLS, or basic-auth enabled, kustomize paths may differ. Check operator [dev-setup doc](https://github.com/metal3-io/baremetal-operator/blob/main/docs/dev-setup.md)
   for more info.
 
     ```shell
@@ -58,9 +58,9 @@ provider:
     ```
 
 1. Install Ironic. There are a couple of ways to do it.
-    - Run within a Kubernetes cluster as a pod, refer to [deploy.sh](https://github.com/metal3-io/baremetal-operator/blob/master/tools/deploy.sh)
+    - Run within a Kubernetes cluster as a pod, refer to [deploy.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/deploy.sh)
       script.
-    - Outside of a Kubernetes cluster as a container. Please refer to [run_local_ironic.sh](https://github.com/metal3-io/baremetal-operator/blob/master/tools/run_local_ironic.sh).
+    - Outside of a Kubernetes cluster as a container. Please refer to [run_local_ironic.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/run_local_ironic.sh).
 
 Please refer to the [getting-started](docs/getting-started.md) for more info.
 

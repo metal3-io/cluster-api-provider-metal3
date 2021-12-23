@@ -32,7 +32,7 @@ export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-1}
 
 # These two variables below are required to render the cluster template dynamically from the metal3-dev-env.
 # This template is used by default, but users can change to use the static templates by changing the flavor.
-export NUM_OF_MASTER_REPLICAS=${CONTROL_PLANE_MACHINE_COUNT}
+export NUM_OF_CONTROLPLANE_REPLICAS=${CONTROL_PLANE_MACHINE_COUNT}
 export NUM_OF_WORKER_REPLICAS=${WORKER_MACHINE_COUNT}
 
 # The e2e test framework would itself handle the cloning. It clones all the repos that are cloned in M3-DEV-ENV expect CAPM3.

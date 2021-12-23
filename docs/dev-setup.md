@@ -60,7 +60,7 @@ latest code of CAPM3.
 Tilt can be used in Metal3-dev-env, as long as the
 03_launch_mgmt_cluster.sh script is **NOT** run. In that case Ironic needs to
 be deployed locally first, following the
-[local Ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
+[local Ironic setup](https://github.com/metal3-io/baremetal-operator/blob/main/docs/dev-setup.md#running-a-local-instance-of-ironic)
 
 By default, the Cluster API components deployed by Tilt have experimental
 features turned off. If you would like to enable these features, add
@@ -161,7 +161,7 @@ This requires the following environment variables to be exported :
 * `IRONIC_URL`
 
 Those need to be set up accordingly with the
-[local Ironic setup](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md#running-a-local-instance-of-ironic)
+[local Ironic setup](https://github.com/metal3-io/baremetal-operator/blob/main/docs/dev-setup.md#running-a-local-instance-of-ironic)
 
 The cluster-api management components that are deployed are configured at the
 `/config` folder of each repository respectively. Making changes to those files
@@ -305,7 +305,7 @@ request expressed by the `Metal3Machine`. There’s no requirement to actually r
 the `baremetal-operator` to test the reconciliation logic of the provider.
 
 Refer to the [baremetal-operator developer
-documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/dev-setup.md)
+documentation](https://github.com/metal3-io/baremetal-operator/blob/main/docs/dev-setup.md)
 for instructions and tools for creating BareMetalHost objects.
 
 ### Run the Controller locally
