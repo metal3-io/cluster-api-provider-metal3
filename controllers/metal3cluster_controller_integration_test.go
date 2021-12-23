@@ -22,7 +22,10 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util/conditions"
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
@@ -42,6 +45,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		RequeueExpected     bool
 		ErrorReasonExpected bool
 		ErrorReason         capierrors.ClusterStatusError
+		ConditionsExpected  clusterv1.Conditions
 	}
 
 	DescribeTable("Reconcile tests metal3Cluster",
@@ -64,6 +68,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			}
 			ctx := context.Background()
 			res, err := r.Reconcile(ctx, req)
+			_ = c.Get(ctx, *getKey(metal3ClusterName), testclstr)
 
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
@@ -81,9 +86,16 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				Expect(res.Requeue).To(BeFalse())
 			}
 			if tc.ErrorReasonExpected {
-				_ = c.Get(context.TODO(), *getKey(metal3ClusterName), testclstr)
 				Expect(testclstr.Status.FailureReason).NotTo(BeNil())
 				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.FailureReason))
+			}
+			for _, condExp := range tc.ConditionsExpected {
+				condGot := conditions.Get(testclstr, condExp.Type)
+				Expect(condGot).NotTo(BeNil())
+				Expect(condGot.Status).To(Equal(condExp.Status))
+				if condExp.Reason != "" {
+					Expect(condGot.Reason).To(Equal(condExp.Reason))
+				}
 			}
 		},
 		// Given cluster, but no metal3cluster resource
@@ -143,6 +155,16 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
+						Type:   capm3.BaremetalInfrastructureReadyCondition,
+						Status: corev1.ConditionTrue,
+					},
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 		),
 

@@ -32,6 +32,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -79,14 +80,13 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	helper, err := patch.NewHelper(metal3Cluster, r.Client)
+	patchHelper, err := patch.NewHelper(metal3Cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
 	// Always patch metal3Cluster when exiting this function so we can persist any metal3Cluster changes.
 	defer func() {
-		err := helper.Patch(ctx, metal3Cluster)
-		if err != nil {
+		if err := patchMetal3Cluster(ctx, patchHelper, metal3Cluster); err != nil {
 			clusterLog.Error(err, "failed to Patch metal3Cluster")
 		}
 	}()
@@ -97,6 +97,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		error := capierrors.InvalidConfigurationClusterError
 		metal3Cluster.Status.FailureReason = &error
 		metal3Cluster.Status.FailureMessage = pointer.StringPtr("Unable to get owner cluster")
+		conditions.MarkFalse(metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.InternalFailureReason, capi.ConditionSeverityError, err.Error())
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
@@ -130,6 +131,26 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle non-deleted clusters
 	return reconcileNormal(ctx, clusterMgr)
+}
+
+func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cluster *capm3.Metal3Cluster, options ...patch.Option) error {
+
+	// Always update the readyCondition by summarizing the state of other conditions.
+	conditions.SetSummary(metal3Cluster,
+		conditions.WithConditions(
+			capm3.BaremetalInfrastructureReadyCondition,
+		),
+	)
+
+	// Patch the object, ignoring conflicts on the conditions owned by this controller.
+	options = append(options,
+		patch.WithOwnedConditions{Conditions: []capi.ConditionType{
+			capi.ReadyCondition,
+			capm3.BaremetalInfrastructureReadyCondition,
+		}},
+		patch.WithStatusObservedGeneration{},
+	)
+	return patchHelper.Patch(ctx, metal3Cluster, options...)
 }
 
 func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {

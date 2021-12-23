@@ -28,6 +28,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -194,6 +195,35 @@ func (m *MockMachineManagerInterface) RemovePauseAnnotation(arg0 context.Context
 func (mr *MockMachineManagerInterfaceMockRecorder) RemovePauseAnnotation(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePauseAnnotation", reflect.TypeOf((*MockMachineManagerInterface)(nil).RemovePauseAnnotation), arg0)
+}
+
+// SetConditionMetal3MachineToFalse mocks base method.
+func (m *MockMachineManagerInterface) SetConditionMetal3MachineToFalse(arg0 v1beta1.ConditionType, arg1 string, arg2 v1beta1.ConditionSeverity, arg3 string, arg4 ...interface{}) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2, arg3}
+	for _, a := range arg4 {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "SetConditionMetal3MachineToFalse", varargs...)
+}
+
+// SetConditionMetal3MachineToFalse indicates an expected call of SetConditionMetal3MachineToFalse.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetConditionMetal3MachineToFalse(arg0, arg1, arg2, arg3 interface{}, arg4 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2, arg3}, arg4...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConditionMetal3MachineToFalse", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetConditionMetal3MachineToFalse), varargs...)
+}
+
+// SetConditionMetal3MachineToTrue mocks base method.
+func (m *MockMachineManagerInterface) SetConditionMetal3MachineToTrue(arg0 v1beta1.ConditionType) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetConditionMetal3MachineToTrue", arg0)
+}
+
+// SetConditionMetal3MachineToTrue indicates an expected call of SetConditionMetal3MachineToTrue.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetConditionMetal3MachineToTrue(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConditionMetal3MachineToTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetConditionMetal3MachineToTrue), arg0)
 }
 
 // SetError mocks base method.
