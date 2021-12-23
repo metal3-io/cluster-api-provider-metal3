@@ -13,7 +13,7 @@ as we try to follow closely the release process
 - The cadence is subject to change if necessary, refer to the
   [Milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) page
   for up-to-date information.
-- The _master_ branch is where development happens, this might include breaking
+- The _main_ branch is where development happens, this might include breaking
   changes.
 - The _release-X_ branches contain stable, backward compatible code. A new
   _release-X_ branch is created at every major (X) release.
