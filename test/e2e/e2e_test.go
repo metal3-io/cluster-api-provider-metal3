@@ -14,7 +14,6 @@ import (
 
 	"regexp"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -29,7 +28,6 @@ var (
 	clusterName              = "test1"
 	clusterctlLogFolder      string
 	cniFile                  string
-	controlplaneListOptions  metav1.ListOptions
 	targetCluster            framework.ClusterProxy
 	controlPlaneMachineCount int64
 	workerMachineCount       int64
