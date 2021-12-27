@@ -236,20 +236,6 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 
 	errType := capierrors.CreateMachineError
 
-	// Check if the metal3machine was associated with a baremetalhost
-	if !machineMgr.HasAnnotation() {
-		//Associate the baremetalhost hosting the machine
-		err := machineMgr.Associate(ctx)
-		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, capi.ConditionSeverityError, err.Error())
-			return checkMachineError(machineMgr, err,
-				"failed to associate the Metal3Machine to a BaremetalHost", errType,
-			)
-		}
-	}
-	// Update Condition to reflect that we have an associated BMH
-	machineMgr.SetConditionMetal3MachineToTrue(capm3.AssociateBMHCondition)
-
 	// Make sure that the metadata is ready if any
 	err := machineMgr.AssociateM3Metadata(ctx)
 	if err != nil {
@@ -258,12 +244,41 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		)
 	}
 
-	err = machineMgr.Update(ctx)
-	if err != nil {
-		return checkMachineError(machineMgr, err,
-			"failed to update BaremetalHost", errType,
-		)
+	// Check if the metal3machine was associated with a baremetalhost
+	if !machineMgr.HasAnnotation() {
+		//Associate the baremetalhost hosting the machine
+		err = machineMgr.Associate(ctx)
+		if err != nil {
+			machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, capi.ConditionSeverityError, err.Error())
+			return checkMachineError(machineMgr, err,
+				"failed to associate the Metal3Machine to a BaremetalHost", errType,
+			)
+		} else {
+			err := machineMgr.Update(ctx)
+			if err != nil {
+				return checkMachineError(machineMgr, err,
+					"failed to update BaremetalHost", errType,
+				)
+			}
+		}
 	}
+	// Update Condition to reflect that we have an associated BMH
+	machineMgr.SetConditionMetal3MachineToTrue(capm3.AssociateBMHCondition)
+
+	// Make sure that the metadata is ready if any
+	// err = machineMgr.AssociateM3Metadata(ctx)
+	// if err != nil {
+	// 	return checkMachineError(machineMgr, err,
+	// 		"Failed to get the Metal3Metadata", errType,
+	// 	)
+	// }
+
+	// err = machineMgr.Update(ctx)
+	// if err != nil {
+	// 	return checkMachineError(machineMgr, err,
+	// 		"failed to update BaremetalHost", errType,
+	// 	)
+	// }
 
 	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
 	if bmhID == nil {
