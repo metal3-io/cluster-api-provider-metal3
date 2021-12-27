@@ -81,12 +81,6 @@ var _ = Describe("Workload cluster creation", func() {
 			}, result)
 			cluster = result.Cluster
 			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-			remediation()
-			pivoting()
-			upgradeIronic()
-			certRotation()
-			nodeReuse()
-			rePivoting()
 		})
 	})
 })

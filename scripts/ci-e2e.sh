@@ -2,7 +2,6 @@
 
 set -o nounset
 set -o pipefail
-set -o errexit
 set -x
 
 REPO_ROOT=$(dirname "$(realpath "${BASH_SOURCE[0]}")")/..
@@ -12,9 +11,9 @@ function clone_repo() {
   local REPO_URL="$1"
   local REPO_BRANCH="$2"
   local REPO_PATH="$3"
-  if [[ -d "${REPO_PATH}" ]]; then
-    rm -rf "${REPO_PATH}"
-  fi
+  # if [[ -d "${REPO_PATH}" ]]; then
+  #   rm -rf "${REPO_PATH}"
+  # fi
   if [ ! -d "${REPO_PATH}" ] ; then
     git clone "${REPO_URL}" "${REPO_PATH}"
     pushd "${REPO_PATH}"
@@ -89,8 +88,8 @@ source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 
 # This will run the tests with env variabls defined in environment.sh
 # or exported by metal3-dev-env scripts
-${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests
+SKIP_CLEANUP=true ${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests
 
-pushd ${M3_DEV_ENV_PATH} || exit 1
-make clean
-popd || exit 1
+# pushd ${M3_DEV_ENV_PATH} || exit 1
+# make clean
+# popd || exit 1
