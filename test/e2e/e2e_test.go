@@ -94,7 +94,7 @@ func updateCalico(calicoYaml, calicoInterface string) {
 	Expect(err).To(BeNil(), "Unable to read Calico manifest")
 
 	Logf("Replace the calico version with the pinned one")
-	regex := regexp.MustCompile("image: docker.io/calico/(.+):v(.+)$")
+	regex := regexp.MustCompile("image: docker.io/calico/(.+):v(.+)")
 	replacement := fmt.Sprintf("image: docker.io/calico/\\1:%s", os.Getenv("CALICO_PATCH_RELEASE"))
 	cniYaml = []byte(regex.ReplaceAllString(string(cniYaml), replacement))
 
