@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/containerd/containerd v1.5.8 // indirect
-	github.com/docker/docker v20.10.7+incompatible
+	github.com/docker/docker v20.10.11+incompatible // indirect
 	github.com/go-logr/logr v1.2.0
 	github.com/golang/mock v1.6.0
 	github.com/jinzhu/copier v0.3.2
@@ -24,7 +24,7 @@ require (
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
 	sigs.k8s.io/cluster-api v1.1.0-beta.1
-	sigs.k8s.io/cluster-api/test v1.1.0-beta.1
+	sigs.k8s.io/cluster-api/test v0.0.0
 	sigs.k8s.io/controller-runtime v0.11.0
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -32,6 +32,8 @@ require (
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.0-beta.1
+
+replace sigs.k8s.io/cluster-api/test => github.com/Nordix/cluster-api/test v1.0.1-0.20211231095929-d78f9ff5b037
 
 require (
 	cloud.google.com/go v0.93.3 // indirect
