@@ -89,6 +89,7 @@ source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 # This will run the tests with env variabls defined in environment.sh
 # or exported by metal3-dev-env scripts
 SKIP_CLEANUP=true ${M3_DEV_ENV_PATH}/scripts/run_command.sh make e2e-tests
+sleep infinity
 
 # pushd ${M3_DEV_ENV_PATH} || exit 1
 # make clean
