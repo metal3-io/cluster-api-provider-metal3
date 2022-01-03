@@ -95,7 +95,7 @@ func updateCalico(calicoYaml, calicoInterface string) {
 
 	Logf("Replace the calico version with the pinned one")
 	regex := regexp.MustCompile("image: docker.io/calico/(.+):v(.+)")
-	replacement := fmt.Sprintf("image: docker.io/calico/\\1:%s", os.Getenv("CALICO_PATCH_RELEASE"))
+	replacement := fmt.Sprintf("image: docker.io/calico/$1:%s", os.Getenv("CALICO_PATCH_RELEASE"))
 	cniYaml = []byte(regex.ReplaceAllString(string(cniYaml), replacement))
 
 	Logf("Replace the default CIDR with the one set in $POD_CIDR")
