@@ -278,59 +278,23 @@ func m3mObjectMetaNoAnnotations() *metav1.ObjectMeta {
 	}
 }
 
-// func machineOwnerRefToMachineSet() *capi.Machine {
-// 	return &capi.Machine{
-// 		ObjectMeta: metav1.ObjectMeta{
-// 			OwnerReferences: []metav1.OwnerReference{
-// 				{
-// 					APIVersion: capi.GroupVersion.String(),
-// 					Kind:       "MachineSet",
-// 					Name:       "ms-test1",
-// 				},
-// 			},
-// 		},
-// 	}
-// }
-
-// func machineSetsList() []*capi.MachineSetList {
-// 	return []*capi.MachineSetList{
-// 		{
-// 			TypeMeta: metav1.TypeMeta{
-// 				APIVersion: capi.GroupVersion.String(),
-// 				Kind:       "MachineSet",
-// 			},
-// 			ListMeta: metav1.ListMeta{},
-// 			Items: []capi.MachineSet{
-// 				{
-// 					TypeMeta: metav1.TypeMeta{},
-// 					ObjectMeta: metav1.ObjectMeta{
-// 						Name: "test1",
-// 						OwnerReferences: []metav1.OwnerReference{
-// 							{
-// 								APIVersion: capi.GroupVersion.String(),
-// 								Kind:       "MachineDeployment",
-// 								Name:       "test1",
-// 							},
-// 						},
-// 					},
-// 				},
-// 				{
-// 					TypeMeta: metav1.TypeMeta{},
-// 					ObjectMeta: metav1.ObjectMeta{
-// 						Name: "test2",
-// 					},
-// 				},
-// 				{
-// 					TypeMeta: metav1.TypeMeta{},
-// 					ObjectMeta: metav1.ObjectMeta{
-// 						Name: "test3",
-// 					},
-// 				},
-
-// 			},
-// 		},
-// 	}
-// }
+func machineOwnedByMachineSet() *capi.Machine {
+	return &capi.Machine{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: capi.GroupVersion.String(),
+			Kind:       "Machine",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: capi.GroupVersion.String(),
+					Kind:       "MachineSet",
+					Name:       "ms-test1",
+				},
+			},
+		},
+	}
+}
 
 func bmhPowerStatus() *bmh.BareMetalHostStatus {
 	return &bmh.BareMetalHostStatus{
@@ -3462,63 +3426,176 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 	)
 
-	// type testCaseGetMachineDeploymentName struct {
-	// 	Machine            *capi.Machine
-	// 	MachineSets        []*capi.MachineSet
-	// 	expectedMachineSet *capi.MachineSet
-	// 	expectedMD         bool
-	// 	expectedMDName     string
-	// 	expectError        bool
-	// }
-	// DescribeTable("Test GetMachineDeploymentName",
-	// 	func(tc testCaseGetMachineDeploymentName) {
-	// 		objects := []client.Object{}
-	// 		if tc.expectedMachineSet != nil {
-	// 			objects = append(objects, tc.expectedMachineSet)
-	// 		}
-	// 		for _, ms := range tc.MachineSets {
-	// 			objects = append(objects, ms)
-	// 		}
-	// 		c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
-	// 		machineMgr, err := NewMachineSetManager(c, tc.Machine,
-	// 			tc.MachineSets, tc.expectedMachineSet, logr.Discard(),
-	// 		)
-	// 		Expect(err).NotTo(HaveOccurred())
+	type testCaseGetMachineDeploymentName struct {
+		Machine            *capi.Machine
+		MachineSetList     *capi.MachineSetList
+		expectedMachineSet *capi.MachineSet
+		expectedMD         bool
+		expectedMDName     string
+		expectError        bool
+	}
+	DescribeTable("Test GetMachineDeploymentName",
+		func(tc testCaseGetMachineDeploymentName) {
+			objects := []client.Object{}
+			if tc.Machine != nil {
+				objects = append(objects, tc.Machine)
+			}
+			if tc.MachineSetList != nil {
+				for i := range tc.MachineSetList.Items {
+					objects = append(objects, &tc.MachineSetList.DeepCopy().Items[i])
+				}
+			}
+			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			machineMgr, err := NewMachineSetManager(c, tc.Machine,
+				tc.MachineSetList, logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
 
-	// 		result, err := machineMgr.getMachineDeploymentName(context.TODO())
-	// 		if tc.expectError {
-	// 			Expect(err).To(HaveOccurred())
-	// 		} else {
-	// 			Expect(err).NotTo(HaveOccurred())
-	// 		}
-	// 		machineSetObjects := machineSetsList()
-	// 		for ms := range machineSetObjects {
-	// 			tc.expectedMachineSet = machineSetObjects[ms]
-	// 			Expect(result).To(Equal(tc.expectedMachineSet))
-	// 		}
-	// 		if tc.expectedMD {
-	// 			Expect(result).To(Equal(tc.expectedMDName))
-	// 		}
-	// 	},
-	// 	Entry("Should find the expected MachineDeployment name", testCaseGetMachineDeploymentName{
-	// 		Machine:     machineOwnerRefToMachineSet(),
-	// 		MachineSets: machineSetsList(),
-	// 		expectedMachineSet: &capi.MachineSet{
-	// 			ObjectMeta: metav1.ObjectMeta{
-	// 				OwnerReferences: []metav1.OwnerReference{
-	// 					{
-	// 						APIVersion: capi.GroupVersion.String(),
-	// 						Kind:       "MachineDeployment",
-	// 						Name:       "test1",
-	// 					},
-	// 				},
-	// 			},
-	// 		},
-	// 		expectError:    false,
-	// 		expectedMD:     true,
-	// 		expectedMDName: "md-test1",
-	// 	}),
-	// )
+			result, err := machineMgr.getMachineDeploymentName(context.TODO())
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+				Expect(tc.expectedMachineSet).To(BeNil())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+			if tc.expectedMD {
+				Expect(result).To(Equal(tc.expectedMDName))
+			} else {
+				Expect(tc.expectedMDName).To(BeEmpty())
+			}
+		},
+		Entry("Should find the expected MachineDeployment name", testCaseGetMachineDeploymentName{
+			Machine: machineOwnedByMachineSet(),
+			MachineSetList: &capi.MachineSetList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: capi.GroupVersion.String(),
+					Kind:       "MachineSet",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []capi.MachineSet{
+					{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: capi.GroupVersion.String(),
+							Kind:       "MachineSet",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "ms-test1",
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: capi.GroupVersion.String(),
+									Kind:       "MachineDeployment",
+									Name:       "test1",
+								},
+							},
+						},
+					},
+					{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test2",
+						},
+					},
+					{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test3",
+						},
+					},
+				},
+			},
+			expectedMachineSet: &capi.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "ms-test1",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: capi.GroupVersion.String(),
+							Kind:       "MachineDeployment",
+							Name:       "test1",
+						},
+					},
+				},
+			},
+			expectError:    false,
+			expectedMD:     true,
+			expectedMDName: "md-test1",
+		}),
+		Entry("Should not find the expected MachineDeployment name, MachineSet OwnerRef Kind is not correct", testCaseGetMachineDeploymentName{
+			Machine: machineOwnedByMachineSet(),
+			MachineSetList: &capi.MachineSetList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: capi.GroupVersion.String(),
+					Kind:       "MachineSet",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []capi.MachineSet{
+					{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: capi.GroupVersion.String(),
+							Kind:       "MachineSet",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "ms-test1",
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: capi.GroupVersion.String(),
+									Kind:       "WrongMachineSetOwnerRefKind",
+									Name:       "test1",
+								},
+							},
+						},
+					},
+					{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test2",
+						},
+					},
+				},
+			},
+			expectedMachineSet: nil,
+			expectError:        true,
+			expectedMD:         false,
+			expectedMDName:     "",
+		}),
+		Entry("Should not find the expected MachineDeployment name, MachineSet OwnerRef APIVersion is not correct", testCaseGetMachineDeploymentName{
+			Machine: machineOwnedByMachineSet(),
+			MachineSetList: &capi.MachineSetList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: capi.GroupVersion.String(),
+					Kind:       "MachineSet",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []capi.MachineSet{
+					{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: capi.GroupVersion.String(),
+							Kind:       "MachineSet",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "ms-test1",
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: capm3.GroupVersion.String(),
+									Kind:       "MachineDeployment",
+									Name:       "test1",
+								},
+							},
+						},
+					},
+					{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test2",
+						},
+					},
+				},
+			},
+			expectedMachineSet: nil,
+			expectError:        true,
+			expectedMD:         false,
+			expectedMDName:     "",
+		}),
+	)
 
 	type testCaseGetMachineSet struct {
 		Machine            *capi.Machine
@@ -3550,52 +3627,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(tc.expectedMachineSet).To(BeNil())
 			} else {
-				for i := range tc.MachineSetList.Items {
-					foundMS := &tc.MachineSetList.Items[i]
-					key := client.ObjectKey{
-						Name:      foundMS.Name,
-						Namespace: foundMS.Namespace,
-					}
-					err = c.Get(context.TODO(), key, foundMS)
-					Expect(err).NotTo(HaveOccurred())
-					//tc.expectedMachineSet = foundMS
-					Expect(result.Name).To(Equal(tc.expectedMachineSet.Name))
-					//Expect(result).To(Equal(tc.expectedMachineSet))
-				}
-				// Expect(tc.expectedMachineSet).NotTo(BeNil())
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result.Name).To(Equal(tc.expectedMachineSet.Name))
 			}
-
-			// if tc.ExpectSecretStatus {
-			// 	Expect(tc.M3Machine.Status.MetaData).NotTo(BeNil())
-			// 	Expect(tc.M3Machine.Status.NetworkData).NotTo(BeNil())
-			// } else {
-			// 	Expect(tc.M3Machine.Status.MetaData).To(BeNil())
-			// 	Expect(tc.M3Machine.Status.NetworkData).To(BeNil())
-			// }
-
-			// // get list of Metal3Data objects
-			// msObjects := capi.MachineSetList{}
-			// opts := &client.ListOptions{}
-			// err = c.List(context.TODO(), &msObjects, opts)
-			// Expect(err).NotTo(HaveOccurred())
-
 		},
 		Entry("Should find the expected Machineset", testCaseGetMachineSet{
-			Machine: &capi.Machine{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
-					Kind:       "Machine",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							APIVersion: capi.GroupVersion.String(),
-							Kind:       "MachineSet",
-							Name:       "ms-test1",
-						},
-					},
-				},
-			},
+			Machine: machineOwnedByMachineSet(),
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
@@ -3779,65 +3816,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectedMachineSet: nil,
 			expectError:        true,
 		}),
-		// Entry("Should not find the expected Machineset and error when machine is nil", testCaseGetMachineSet{
-		// 	Machine: nil,
-		// 	MachineSets: []*capi.MachineSet{
-		// 		{
-		// 			TypeMeta:   metav1.TypeMeta{},
-		// 			ObjectMeta: metav1.ObjectMeta{},
-		// 		},
-		// 	},
-		// 	expectedMachineSet: nil,
-		// 	expectError:        true,
-		// }),
-
-		// Entry("Should not find the expected Machineset, one of the MachineSets has different API version, second has different name", testCaseGetMachineSet{
-		// 	Machine: machineOwnerRefToMachineSet(),
-		// 	MachineSets: []*capi.MachineSet{
-		// 		{
-		// 			TypeMeta: metav1.TypeMeta{
-		// 				APIVersion: capi.GroupVersion.String(),
-		// 				Kind:       "MachineSet",
-		// 			},
-		// 			ObjectMeta: metav1.ObjectMeta{
-		// 				Name: "",
-		// 			},
-		// 		},
-		// 		{
-		// 			TypeMeta: metav1.TypeMeta{
-		// 				APIVersion: capi.GroupVersion.String(),
-		// 				Kind:       "MachineSet",
-		// 			},
-		// 			ObjectMeta: metav1.ObjectMeta{
-		// 				Name: "test3",
-		// 			},
-		// 		},
-		// 	},
-		// 	expectedMachineSet: nil,
-		// 	expectError:        true,
-		// }),
-		// Entry("Should not find the expected Machineset, one of the MachineSets is empty, second has different Kind", testCaseGetMachineSet{
-		// 	Machine: machineOwnerRefToMachineSet(),
-		// 	MachineSets: []*capi.MachineSet{
-		// 		{
-		// 			TypeMeta:   metav1.TypeMeta{},
-		// 			ObjectMeta: metav1.ObjectMeta{},
-		// 		},
-		// 		{
-		// 			TypeMeta: metav1.TypeMeta{
-		// 				APIVersion: capi.GroupVersion.String(),
-		// 				Kind:       "KubeadmControlPlane",
-		// 			},
-		// 			ObjectMeta: metav1.ObjectMeta{
-		// 				Name: "test1",
-		// 			},
-		// 		},
-		// 	},
-		// 	expectedMachineSet: nil,
-		// 	expectError:        true,
-		// }),
 	)
-
 })
 
 //-----------------
