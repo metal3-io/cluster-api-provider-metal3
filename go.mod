@@ -33,7 +33,7 @@ replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.0-beta.1
 
-replace sigs.k8s.io/cluster-api/test => github.com/Nordix/cluster-api/test v1.0.1-0.20211231095929-d78f9ff5b037
+replace sigs.k8s.io/cluster-api/test => github.com/Nordix/cluster-api/test v1.0.1-0.20220103075312-aceb96667b7b
 
 require (
 	cloud.google.com/go v0.93.3 // indirect
