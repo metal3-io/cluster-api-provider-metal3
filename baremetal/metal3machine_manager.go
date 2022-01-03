@@ -95,10 +95,12 @@ type MachineManager struct {
 
 	Cluster               *capi.Cluster
 	Metal3Cluster         *capm3.Metal3Cluster
+	MachineList           *capi.MachineList
 	Machine               *capi.Machine
 	Metal3Machine         *capm3.Metal3Machine
 	Metal3MachineTemplate *capm3.Metal3MachineTemplate
-	MachineSetList        []*capi.MachineSet
+	MachineSet            *capi.MachineSet
+	MachineSetList        *capi.MachineSetList
 	Log                   logr.Logger
 }
 
@@ -121,13 +123,13 @@ func NewMachineManager(client client.Client,
 
 // NewMachineSetManager returns a new helper for managing a machineset
 func NewMachineSetManager(client client.Client,
-	machine *capi.Machine, machinesetlist []*capi.MachineSet,
-	machineset *capi.MachineSet, machineLog logr.Logger) (*MachineManager, error) {
+	machine *capi.Machine, machineSetList *capi.MachineSetList,
+	machineLog logr.Logger) (*MachineManager, error) {
 
 	return &MachineManager{
 		client:         client,
 		Machine:        machine,
-		MachineSetList: machinesetlist,
+		MachineSetList: machineSetList,
 		Log:            machineLog,
 	}, nil
 }
