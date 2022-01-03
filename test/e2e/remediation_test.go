@@ -92,7 +92,7 @@ func remediation() {
 	newReplicaCount := 1
 	scaleControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
 
-	Logf("Waiting for 2 BMHs to be Ready")
+	Logf("Waiting for 2 BMHs to be in Available state")
 	Eventually(func(g Gomega) error {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
 		if err != nil {
@@ -110,7 +110,7 @@ func remediation() {
 	workerMachine := getMachine(ctx, bootstrapClient, client.ObjectKey{Namespace: namespace, Name: workerMachineName})
 	Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed(), "Failed to delete worker Machine")
 
-	Logf("Waiting for worker BMH to be in ready state")
+	Logf("Waiting for worker BMH to be in Available state")
 	Eventually(func(g Gomega) error {
 		g.Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
 		g.Expect(workerBmh.Status.Provisioning.State).To(Equal(bmh.StateAvailable))
@@ -182,7 +182,7 @@ func remediation() {
 	By("Scaling machine deployment down to 1")
 	scaleMachineDeployment(ctx, bootstrapClient, 1)
 
-	By("Waiting for 2 BMHs to be Ready")
+	By("Waiting for 2 BMHs to be in Available state")
 	Eventually(func(g Gomega) error {
 		bmhs := bmh.BareMetalHostList{}
 		g.Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
@@ -241,7 +241,7 @@ func remediation() {
 	deployment.Spec.Strategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{IntVal: 1}
 	Expect(helper.Patch(ctx, &deployment)).To(Succeed())
 
-	By("Waiting for 2 BMHs to be Ready")
+	By("Waiting for 2 BMHs to be in Available state")
 	Eventually(func(g Gomega) error {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
 		if err != nil {
