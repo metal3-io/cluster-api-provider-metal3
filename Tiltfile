@@ -154,6 +154,7 @@ def enable_provider(name):
     name = p.get("name", name)
     context = p.get("context")
     go_main = p.get("go_main")
+    label = p.get("label", name)
 
     # Prefix each live reload dependency with context. For example, for if the context is
     # test/infra/docker and main.go is listed as a dep, the result is test/infra/docker/main.go. This adjustment is
@@ -165,9 +166,10 @@ def enable_provider(name):
     # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
     # manager_build_path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/manager.
     local_resource(
-        name + "_manager",
+        label.lower() + "_binary",
         cmd = "cd " + context + ';mkdir -p .tiltbuild;CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags \'-extldflags "-static"\' -o .tiltbuild/manager ' + go_main,
         deps = live_reload_deps,
+        labels = [label, "ALL.binaries"],
     )
 
     additional_docker_helper_commands = p.get("additional_docker_helper_commands", "")
@@ -214,7 +216,21 @@ def enable_provider(name):
         else:
           yaml = str(kustomizesub(context + "/config/default"))
         k8s_yaml(blob(yaml))
+        get_controller_name(name)
+    else:
+        get_controller_name(name)
 
+def get_controller_name(name):
+    p = providers.get(name)
+    name = p.get("name", name)
+    label = p.get("label", name)
+    manager_name = p.get("manager_name")
+    if manager_name:
+        k8s_resource(
+            workload = manager_name,
+            new_name = label.lower() + "_controller",
+            labels = [label, "ALL.controllers"],
+        )
 
 # run worker clusters specified from 'tilt up' or in 'tilt_config.json'
 def flavors():

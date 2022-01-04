@@ -3,7 +3,15 @@
     "config": {
         "image": "quay.io/metal3-io/cluster-api-provider-metal3",
         "live_reload_deps": [
-            "api", "baremetal", "config", "controllers", "go.mod", "go.sum", "main.go"
-        ]
+            "api",
+            "baremetal",
+            "config",
+            "controllers",
+            "go.mod",
+            "go.sum",
+            "main.go"
+        ],
+        "label": "CAPM3",
+        "manager_name": "capm3-controller-manager"
     }
 }
