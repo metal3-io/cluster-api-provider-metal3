@@ -76,7 +76,7 @@ providers:
 variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
   UPGRADED_K8S_VERSION: "${UPGRADED_K8S_VERSION}"
-  CNI: "./data/cni/calico/calico.yaml"
+  CNI: "${HOME}/tmp/calico.yaml"
   APIVersion: "infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}"
   NAMEPREFIX: "${NAMEPREFIX:-baremetal-operator}"
   IRONIC_NAMESPACE: "${IRONIC_NAMESPACE:-baremetal-operator-system}"
