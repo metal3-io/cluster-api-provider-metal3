@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3
 go 1.17
 
 require (
-	github.com/containerd/containerd v1.5.8 // indirect
+	github.com/containerd/containerd v1.5.9 // indirect
 	github.com/docker/docker v20.10.11+incompatible
 	github.com/go-logr/logr v1.2.0
 	github.com/golang/mock v1.6.0
