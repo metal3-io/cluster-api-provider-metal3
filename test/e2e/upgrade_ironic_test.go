@@ -34,6 +34,9 @@ func upgradeIronic() {
 	for i, container := range deploy.Spec.Template.Spec.Containers {
 		switch container.Name {
 		case
+			// TODO(dtantsur): remove api and conductor once
+			// they're fully replaced by the all-in-one ironic
+			"ironic",
 			"ironic-api",
 			"ironic-dnsmasq",
 			"ironic-conductor",
