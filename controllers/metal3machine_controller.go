@@ -115,20 +115,8 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
-		machineLog.Info("Metal3Machine's owner Machine is missing cluster label or cluster does not exist")
-		setErrorM3Machine(capm3Machine,
-			"Metal3Machine's owner Machine is missing cluster label or cluster does not exist",
-			capierrors.InvalidConfigurationMachineError,
-		)
-
-		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine is missing label or the cluster does not exist")
-	}
-	if cluster == nil {
-		setErrorM3Machine(capm3Machine, fmt.Sprintf(
-			"The machine is NOT associated with a cluster using the label %s: <name of cluster>",
-			capi.ClusterLabelName,
-		), capierrors.InvalidConfigurationMachineError)
-		machineLog.Info(fmt.Sprintf("Please associate this machine with a cluster using the label %s: <name of cluster>", capi.ClusterLabelName))
+		setErrorM3Machine(capm3Machine, "", "")
+		machineLog.Info("Machine is missing cluster label or cluster does not exist")
 		return ctrl.Result{}, nil
 	}
 
