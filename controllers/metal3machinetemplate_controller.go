@@ -86,7 +86,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	// Return early if the Metal3MachineTemplate is paused.
-	if annotations.HasPausedAnnotation(metal3MachineTemplate) {
+	if annotations.HasPaused(metal3MachineTemplate) {
 		m3templateLog.Info("Metal3MachineTemplate is currently paused. Remove pause annotation to continue reconciliation.")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
