@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"os"
 	"strings"
 	"time"
 
@@ -64,6 +65,10 @@ const (
 	PausedAnnotationKey = "metal3.io/capm3"
 	ProviderIDPrefix    = "metal3://"
 	ProviderLabelPrefix = "metal3.io/uuid"
+)
+
+var (
+	Capm3FastTrack = os.Getenv("CAPM3_FAST_TRACK")
 )
 
 // MachineManagerInterface is an interface for a MachineManager
@@ -535,8 +540,29 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.NetworkData = nil
 			bmhUpdated = true
 		}
-		if host.Spec.Online {
+
+		//	Change bmh's online status to on/off  based on AutomatedCleaningMode and Capm3FastTrack values
+		//	AutomatedCleaningMode |	Capm3FastTrack|   BMH
+		//		disabled				false 			turn off
+		//		disabled				true 			turn off
+		//		metadata				false 			turn off
+		//		metadata				true 			turn on
+
+		onlineStatus := host.Spec.Online
+		if Capm3FastTrack == "" {
+			Capm3FastTrack = "false"
+			m.Log.Info("Capm3FastTrack is not set, setting it to default value false")
+		}
+		if host.Spec.AutomatedCleaningMode == "disabled" {
 			host.Spec.Online = false
+		} else if Capm3FastTrack == "true" {
+			host.Spec.Online = true
+		} else if Capm3FastTrack == "false" {
+			host.Spec.Online = false
+		}
+		m.Log.Info(fmt.Sprintf("Host %v AutomatedCleaningMode is %v, setting Online field to %v", host.Name, host.Spec.AutomatedCleaningMode, host.Spec.Online))
+
+		if onlineStatus != host.Spec.Online {
 			bmhUpdated = true
 		}
 

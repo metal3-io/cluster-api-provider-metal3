@@ -30,6 +30,9 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: metadata.namespace
+        envFrom:
+          - configMapRef:
+              name: capm3fasttrack-configmap
         ports:
         - containerPort: 9440
           name: healthz
@@ -47,3 +50,4 @@ spec:
       tolerations:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master
+
