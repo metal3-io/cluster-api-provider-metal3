@@ -51,7 +51,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 	DescribeTable("Build Label Sync Set",
 		func(tc TestCaseBuildLabelSyncSet) {
 			got := buildLabelSyncSet(tc.PrefixSet, tc.Labels)
-			Expect(reflect.DeepEqual(got, tc.ExpectedResult)).To(Equal(true), "Expected %v but got %v", tc.ExpectedResult, got)
+			Expect(reflect.DeepEqual(got, tc.ExpectedResult)).To(Equal(true),
+				"Expected %v but got %v", tc.ExpectedResult, got)
 		},
 		Entry("Single label case", TestCaseBuildLabelSyncSet{
 			PrefixSet: map[string]struct{}{
@@ -129,7 +130,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(reflect.DeepEqual(prefixSet, tc.ExpectedResult)).To(Equal(true), "Expected %v but got %v", tc.ExpectedResult, prefixSet)
+				Expect(reflect.DeepEqual(prefixSet, tc.ExpectedResult)).To(Equal(true),
+					"Expected %v but got %v", tc.ExpectedResult, prefixSet)
 			}
 		},
 		Entry("Parse single prefix", TestCaseParsePrefixAnnotation{
@@ -177,7 +179,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			hostLabelSyncSet := buildLabelSyncSet(tc.PrefixSet, tc.Host.Labels)
 			nodeLabelSyncSet := buildLabelSyncSet(tc.PrefixSet, tc.Node.Labels)
 			synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet, tc.Node)
-			Expect(reflect.DeepEqual(tc.Node.Labels, tc.ExpectedResult)).To(Equal(true), "Expected %v but got %v", tc.ExpectedResult, tc.Node.Labels)
+			Expect(reflect.DeepEqual(tc.Node.Labels, tc.ExpectedResult)).To(Equal(true),
+				"Expected %v but got %v", tc.ExpectedResult, tc.Node.Labels)
 		},
 		Entry("Label exists, do nothing", TestCaseSynchronizeLabelSyncSetsOnNode{
 			PrefixSet: map[string]struct{}{
@@ -308,14 +311,15 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				tc.Machine,
 				tc.M3Machine,
 			}
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			r := Metal3LabelSyncReconciler{
-				Client: c,
+				Client: fakeClient,
 				Log:    logr.Discard(),
 			}
 			obj := client.Object(tc.M3Cluster)
 			reqs := r.Metal3ClusterToBareMetalHosts(obj)
-			Expect(reflect.DeepEqual(reqs, tc.ExpectRequests)).To(Equal(true), "Expected %v but got %v", tc.ExpectRequests, reqs)
+			Expect(reflect.DeepEqual(reqs, tc.ExpectRequests)).To(Equal(true),
+				"Expected %v but got %v", tc.ExpectRequests, reqs)
 		},
 		Entry("Metal3Cluster To BareMetalHost",
 			TestCaseMetal3ClusterToBMHs{
@@ -402,15 +406,15 @@ var _ = Describe("Metal3LabelSync controller", func() {
 					objects = append(objects, tc.metal3Machine)
 				}
 
-				c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 				corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
 					Name: nodeName,
 				}}).CoreV1()
-				mlsReconcile := &Metal3LabelSyncReconciler{
-					Client:         c,
-					ManagerFactory: baremetal.NewManagerFactory(c),
+				r := &Metal3LabelSyncReconciler{
+					Client:         fakeClient,
+					ManagerFactory: baremetal.NewManagerFactory(fakeClient),
 					Log:            logr.Discard(),
-					CapiClientGetter: func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
+					CapiClientGetter: func(ctx context.Context, client client.Client, cluster *capi.Cluster) (
 						clientcorev1.CoreV1Interface, error,
 					) {
 						return corev1Client, nil
@@ -423,7 +427,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 						Namespace: namespaceName,
 					},
 				}
-				result, err := mlsReconcile.Reconcile(context.TODO(), req)
+				result, err := r.Reconcile(context.TODO(), req)
 
 				if tc.expectError {
 					Expect(err).To(HaveOccurred())
@@ -533,22 +537,23 @@ var _ = Describe("Metal3LabelSync controller", func() {
 					tc.Cluster,
 					tc.Machine,
 				}
-				c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 				corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
 					Name: nodeName,
 				}}).CoreV1()
-				mlsReconcile := &Metal3LabelSyncReconciler{
-					Client:         c,
-					ManagerFactory: baremetal.NewManagerFactory(c),
+				r := &Metal3LabelSyncReconciler{
+					Client:         fakeClient,
+					ManagerFactory: baremetal.NewManagerFactory(fakeClient),
 					Log:            logr.Discard(),
-					CapiClientGetter: func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
+					CapiClientGetter: func(ctx context.Context, client client.Client, cluster *capi.Cluster) (
 						clientcorev1.CoreV1Interface, error,
 					) {
 						return corev1Client, nil
 					},
 					WatchFilterValue: "",
 				}
-				err := mlsReconcile.reconcileBMHLabels(context.TODO(), tc.Host, tc.Machine, tc.Cluster, tc.PrefixSet)
+				err := r.reconcileBMHLabels(context.TODO(),
+					tc.Host, tc.Machine, tc.Cluster, tc.PrefixSet)
 
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())

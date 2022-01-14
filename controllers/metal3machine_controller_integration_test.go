@@ -184,7 +184,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			testBMmachine := &capm3.Metal3Machine{}
 			testBMHost := &bmh.BareMetalHost{}
 
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {
@@ -192,8 +192,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 			}
 
 			r := &Metal3MachineReconciler{
-				Client:           c,
-				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Client:           fakeClient,
+				ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 				Log:              logr.Discard(),
 				CapiClientGetter: mockCapiClientGetter,
 				WatchFilterValue: "",
@@ -207,11 +207,11 @@ var _ = Describe("Reconcile metal3machine", func() {
 			}
 			ctx := context.Background()
 			res, err := r.Reconcile(ctx, req)
-			_ = c.Get(context.TODO(), *getKey(machineName), testmachine)
+			_ = fakeClient.Get(context.TODO(), *getKey(machineName), testmachine)
 			objMeta := testmachine.ObjectMeta
-			_ = c.Get(context.TODO(), *getKey(clusterName), testcluster)
-			_ = c.Get(context.TODO(), *getKey(metal3machineName), testBMmachine)
-			_ = c.Get(context.TODO(), *getKey("bmh-0"), testBMHost)
+			_ = fakeClient.Get(context.TODO(), *getKey(clusterName), testcluster)
+			_ = fakeClient.Get(context.TODO(), *getKey(metal3machineName), testBMmachine)
+			_ = fakeClient.Get(context.TODO(), *getKey("bmh-0"), testBMHost)
 
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
@@ -232,7 +232,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Expect(tc.ErrorReason).To(Equal(*testBMmachine.Status.FailureReason))
 			}
 			for _, condExp := range tc.ConditionsExpected {
-				_ = c.Get(ctx, *getKey(metal3ClusterName), testBMmachine)
+				_ = fakeClient.Get(ctx, *getKey(metal3ClusterName), testBMmachine)
 				condGot := conditions.Get(testBMmachine, condExp.Type)
 				Expect(condGot).NotTo(BeNil())
 				Expect(condGot.Status).To(Equal(condExp.Status))
