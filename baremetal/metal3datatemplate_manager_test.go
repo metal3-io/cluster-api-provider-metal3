@@ -31,7 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var timeNow = metav1.Now()
@@ -154,8 +154,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.indexes {
 				objects = append(objects, address)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
-			templateMgr, err := NewDataTemplateManager(c, tc.template,
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -267,8 +267,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, claim := range tc.dataClaims {
 				objects = append(objects, claim)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
-			templateMgr, err := NewDataTemplateManager(c, tc.template,
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -291,7 +291,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			// get list of Metal3Data objects
 			dataObjects := capm3.Metal3DataClaimList{}
 			opts := &client.ListOptions{}
-			err = c.List(context.TODO(), &dataObjects, opts)
+			err = fakeClient.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Iterate over the Metal3Data objects to find all indexes and objects
@@ -461,8 +461,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			if tc.dataObject != nil {
 				objects = append(objects, tc.dataObject)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
-			templateMgr, err := NewDataTemplateManager(c, tc.template2,
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template2,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -476,7 +476,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 			dataObjects := capm3.Metal3DataList{}
 			opts := &client.ListOptions{}
-			err = c.List(context.TODO(), &dataObjects, opts)
+			err = fakeClient.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
 			if tc.dataObject != nil {
 				Expect(len(dataObjects.Items)).To(Equal(2))
@@ -495,7 +495,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					result := templateMgr.dataObjectBelongsToTemplate(*tc.dataObject)
 					Expect(result).To(BeTrue())
 					dataClaimIndex := tc.template1.Status.Indexes[tc.dataClaim.ObjectMeta.Name]
-					Expect(tc.dataObject.ObjectMeta.Name).To(Equal(tc.template1.ObjectMeta.Name + "-" + strconv.Itoa(dataClaimIndex)))
+					Expect(tc.dataObject.ObjectMeta.Name).To(Equal(
+						tc.template1.ObjectMeta.Name + "-" + strconv.Itoa(dataClaimIndex)))
 				} else {
 					result := templateMgr.dataObjectBelongsToTemplate(*tc.dataObject)
 					Expect(result).To(BeFalse())
@@ -636,8 +637,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
-			templateMgr, err := NewDataTemplateManager(c, tc.template,
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -658,7 +659,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			// get list of Metal3Data objects
 			dataObjects := capm3.Metal3DataList{}
 			opts := &client.ListOptions{}
-			err = c.List(context.TODO(), &dataObjects, opts)
+			err = fakeClient.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(len(tc.expectedDatas)).To(Equal(len(dataObjects.Items)))
@@ -784,8 +785,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
-			templateMgr, err := NewDataTemplateManager(c, tc.template,
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -800,7 +801,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			// get list of Metal3Data objects
 			dataObjects := capm3.Metal3DataList{}
 			opts := &client.ListOptions{}
-			err = c.List(context.TODO(), &dataObjects, opts)
+			err = fakeClient.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(dataObjects.Items)).To(Equal(0))
 

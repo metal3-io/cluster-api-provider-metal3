@@ -157,14 +157,13 @@ var _ = Describe("Metal3 manager utils", func() {
 	DescribeTable("Test patchIfFound",
 		func(tc testCasePatch) {
 			var err error
-			c := k8sClient
 
 			// Create the object in the API
 			if tc.CreateObject {
-				err = c.Create(context.TODO(), tc.ExistingObject)
+				err = k8sClient.Create(context.TODO(), tc.ExistingObject)
 				Expect(err).NotTo(HaveOccurred())
 				m3m := capm3.Metal3Machine{}
-				err = c.Get(context.TODO(),
+				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.ExistingObject.Name,
 						Namespace: tc.ExistingObject.Namespace,
@@ -180,7 +179,7 @@ var _ = Describe("Metal3 manager utils", func() {
 
 			// Create the helper, and the object reference
 			obj := tc.TestObject.DeepCopy()
-			helper, err := patch.NewHelper(tc.ExistingObject, c)
+			helper, err := patch.NewHelper(tc.ExistingObject, k8sClient)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Run function
@@ -197,7 +196,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				if tc.CreateObject {
 					// verify that the object was updated
 					savedObject := capm3.Metal3Machine{}
-					err = c.Get(context.TODO(),
+					err = k8sClient.Get(context.TODO(),
 						client.ObjectKey{
 							Name:      tc.TestObject.Name,
 							Namespace: tc.TestObject.Namespace,
@@ -212,7 +211,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 
 			// Delete the object from API
-			err = c.Delete(context.TODO(), tc.ExistingObject)
+			err = k8sClient.Delete(context.TODO(), tc.ExistingObject)
 			if err != nil {
 				Expect(apierrors.IsNotFound(err)).To(BeTrue())
 			}
@@ -239,12 +238,11 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test Update",
 		func(tc testCaseUpdate) {
-			c := k8sClient
 			if tc.ExistingObject != nil {
-				err := c.Create(context.TODO(), tc.ExistingObject)
+				err := k8sClient.Create(context.TODO(), tc.ExistingObject)
 				Expect(err).NotTo(HaveOccurred())
 				m3m := capm3.Metal3Machine{}
-				err = c.Get(context.TODO(),
+				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.ExistingObject.Name,
 						Namespace: tc.ExistingObject.Namespace,
@@ -255,7 +253,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				tc.TestObject.ObjectMeta = m3m.ObjectMeta
 			}
 			obj := tc.TestObject.DeepCopy()
-			err := updateObject(c, context.TODO(), obj)
+			err := updateObject(k8sClient, context.TODO(), obj)
 			if tc.ExpectedError {
 				Expect(err).To(HaveOccurred())
 				Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
@@ -264,7 +262,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(obj.Spec).To(Equal(tc.TestObject.Spec))
 				Expect(obj.Status).To(Equal(tc.TestObject.Status))
 				savedObject := capm3.Metal3Machine{}
-				err = c.Get(context.TODO(),
+				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.TestObject.Name,
 						Namespace: tc.TestObject.Namespace,
@@ -274,11 +272,11 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedObject.Spec).To(Equal(tc.TestObject.Spec))
 				Expect(savedObject.ResourceVersion).NotTo(Equal(tc.TestObject.ResourceVersion))
-				err := updateObject(c, context.TODO(), obj)
+				err := updateObject(k8sClient, context.TODO(), obj)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
 			}
-			err = c.Delete(context.TODO(), tc.TestObject)
+			err = k8sClient.Delete(context.TODO(), tc.TestObject)
 			if err != nil {
 				Expect(apierrors.IsNotFound(err)).To(BeTrue())
 			}
@@ -297,13 +295,12 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test Create",
 		func(tc testCaseUpdate) {
-			c := k8sClient
 			if tc.ExistingObject != nil {
-				err := c.Create(context.TODO(), tc.ExistingObject)
+				err := k8sClient.Create(context.TODO(), tc.ExistingObject)
 				Expect(err).NotTo(HaveOccurred())
 			}
 			obj := tc.TestObject.DeepCopy()
-			err := createObject(c, context.TODO(), obj)
+			err := createObject(k8sClient, context.TODO(), obj)
 			if tc.ExpectedError {
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
@@ -312,7 +309,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(obj.Spec).To(Equal(tc.TestObject.Spec))
 				Expect(obj.Status).To(Equal(tc.TestObject.Status))
 				savedObject := capm3.Metal3Machine{}
-				err = c.Get(context.TODO(),
+				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.TestObject.Name,
 						Namespace: tc.TestObject.Namespace,
@@ -322,7 +319,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedObject.Spec).To(Equal(tc.TestObject.Spec))
 			}
-			err = c.Delete(context.TODO(), tc.TestObject)
+			err = k8sClient.Delete(context.TODO(), tc.TestObject)
 			if err != nil {
 				Expect(apierrors.IsNotFound(err)).To(BeTrue())
 			}
@@ -341,9 +338,8 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test checkSecretExists",
 		func(secretExists bool) {
-			c := k8sClient
 			if secretExists {
-				err := c.Create(context.TODO(), &corev1.Secret{
+				err := k8sClient.Create(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
 						Namespace: "myns",
@@ -351,10 +347,10 @@ var _ = Describe("Metal3 manager utils", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 			}
-			_, err := checkSecretExists(c, context.TODO(), "abc", "myns")
+			_, err := checkSecretExists(k8sClient, context.TODO(), "abc", "myns")
 			if secretExists {
 				Expect(err).NotTo(HaveOccurred())
-				err = c.Delete(context.TODO(), &corev1.Secret{
+				err = k8sClient.Delete(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
 						Namespace: "myns",
@@ -372,9 +368,8 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test createSecret",
 		func(secretExists bool) {
-			c := k8sClient
 			if secretExists {
-				err := c.Create(context.TODO(), &corev1.Secret{
+				err := k8sClient.Create(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
 						Namespace: "myns",
@@ -403,12 +398,12 @@ var _ = Describe("Metal3 manager utils", func() {
 			content := map[string][]byte{
 				"abc": []byte("def"),
 			}
-			err := createSecret(c, context.TODO(), "abc", "myns", "ghi",
+			err := createSecret(k8sClient, context.TODO(), "abc", "myns", "ghi",
 				ownerRef, content,
 			)
 			Expect(err).NotTo(HaveOccurred())
 			savedSecret := corev1.Secret{}
-			err = c.Get(context.TODO(),
+			err = k8sClient.Get(context.TODO(),
 				client.ObjectKey{
 					Name:      "abc",
 					Namespace: "myns",
@@ -422,7 +417,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			Expect(savedSecret.ObjectMeta.OwnerReferences).To(Equal(ownerRef))
 			Expect(savedSecret.Data).To(Equal(content))
 
-			err = c.Delete(context.TODO(), &corev1.Secret{
+			err = k8sClient.Delete(context.TODO(), &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "myns",
@@ -436,9 +431,8 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test deleteSecret",
 		func(secretExists bool) {
-			c := k8sClient
 			if secretExists {
-				err := c.Create(context.TODO(), &corev1.Secret{
+				err := k8sClient.Create(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:       "abc",
 						Namespace:  "myns",
@@ -448,10 +442,10 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			err := deleteSecret(c, context.TODO(), "abc", "myns")
+			err := deleteSecret(k8sClient, context.TODO(), "abc", "myns")
 			Expect(err).NotTo(HaveOccurred())
 			savedSecret := corev1.Secret{}
-			err = c.Get(context.TODO(),
+			err = k8sClient.Get(context.TODO(),
 				client.ObjectKey{
 					Name:      "abc",
 					Namespace: "myns",
@@ -476,13 +470,12 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test fetchM3DataTemplate",
 		func(tc testCaseFetchM3DataTemplate) {
-			c := k8sClient
 			if tc.DataTemplate != nil {
-				err := c.Create(context.TODO(), tc.DataTemplate)
+				err := k8sClient.Create(context.TODO(), tc.DataTemplate)
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			result, err := fetchM3DataTemplate(context.TODO(), tc.TemplateRef, c,
+			result, err := fetchM3DataTemplate(context.TODO(), tc.TemplateRef, k8sClient,
 				logr.Discard(), tc.ClusterName,
 			)
 			if tc.ExpectError || tc.ExpectRequeue {
@@ -501,7 +494,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				}
 			}
 			if tc.DataTemplate != nil {
-				err = c.Delete(context.TODO(), tc.DataTemplate)
+				err = k8sClient.Delete(context.TODO(), tc.DataTemplate)
 				Expect(err).NotTo(HaveOccurred())
 			}
 		},
@@ -567,13 +560,12 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test fetchM3Data",
 		func(tc testCaseFetchM3Data) {
-			c := k8sClient
 			if tc.Data != nil {
-				err := c.Create(context.TODO(), tc.Data)
+				err := k8sClient.Create(context.TODO(), tc.Data)
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			result, err := fetchM3Data(context.TODO(), c, logr.Discard(), tc.Name,
+			result, err := fetchM3Data(context.TODO(), k8sClient, logr.Discard(), tc.Name,
 				tc.Namespace,
 			)
 			if tc.ExpectError || tc.ExpectRequeue {
@@ -592,7 +584,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				}
 			}
 			if tc.Data != nil {
-				err = c.Delete(context.TODO(), tc.Data)
+				err = k8sClient.Delete(context.TODO(), tc.Data)
 				Expect(err).NotTo(HaveOccurred())
 			}
 		},
@@ -625,13 +617,12 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	DescribeTable("Test getM3Machine",
 		func(tc testCaseGetM3Machine) {
-			c := k8sClient
 			if tc.Machine != nil {
-				err := c.Create(context.TODO(), tc.Machine)
+				err := k8sClient.Create(context.TODO(), tc.Machine)
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			result, err := getM3Machine(context.TODO(), c, logr.Discard(), tc.Name,
+			result, err := getM3Machine(context.TODO(), k8sClient, logr.Discard(), tc.Name,
 				tc.Namespace, tc.DataTemplate, false,
 			)
 			if tc.ExpectError || tc.ExpectRequeue {
@@ -650,7 +641,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				}
 			}
 			if tc.Machine != nil {
-				err = c.Delete(context.TODO(), tc.Machine)
+				err = k8sClient.Delete(context.TODO(), tc.Machine)
 				Expect(err).NotTo(HaveOccurred())
 			}
 		},

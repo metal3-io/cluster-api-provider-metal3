@@ -33,7 +33,7 @@ import (
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func bmcSpec() *capm3.Metal3ClusterSpec {
@@ -73,7 +73,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		var fakeClient client.Client
 
 		BeforeEach(func() {
-			fakeClient = fakeclient.NewClientBuilder().WithScheme(setupScheme()).Build()
+			fakeClient = fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 		})
 
 		DescribeTable("Test NewClusterManager",
@@ -371,10 +371,10 @@ func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
 	if tc.BMCluster != nil {
 		objects = append(objects, tc.BMCluster)
 	}
-	c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 	return &ClusterManager{
-		client:        c,
+		client:        fakeClient,
 		Metal3Cluster: tc.BMCluster,
 		Cluster:       tc.Cluster,
 		Log:           logr.Discard(),
@@ -393,10 +393,10 @@ func descendantsSetup(tc descendantsTestCase) *ClusterManager {
 	for _, machine := range tc.Machines {
 		objects = append(objects, machine)
 	}
-	c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+	fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 	return &ClusterManager{
-		client:        c,
+		client:        fakeClient,
 		Metal3Cluster: bmCluster,
 		Cluster:       cluster,
 		Log:           logr.Discard(),

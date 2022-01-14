@@ -58,7 +58,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	DescribeTable("Test Reconcile",
 		func(tc testCaseReconcile) {
 			gomockCtrl := gomock.NewController(GinkgoT())
-			f := baremetal_mocks.NewMockManagerFactoryInterface(gomockCtrl)
+			mf := baremetal_mocks.NewMockManagerFactoryInterface(gomockCtrl)
 			m := baremetal_mocks.NewMockDataTemplateManagerInterface(gomockCtrl)
 
 			objects := []client.Object{}
@@ -68,12 +68,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			if tc.cluster != nil {
 				objects = append(objects, tc.cluster)
 			}
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 			if tc.managerError {
-				f.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
+				mf.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
 			} else if tc.expectManager {
-				f.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(m, nil)
+				mf.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(m, nil)
 			}
 			if tc.expectManager {
 				if tc.setOwnerRefError {
@@ -101,9 +101,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				}
 			}
 
-			dataTemplateReconcile := &Metal3DataTemplateReconciler{
-				Client:           c,
-				ManagerFactory:   f,
+			r := &Metal3DataTemplateReconciler{
+				Client:           fakeClient,
+				ManagerFactory:   mf,
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
@@ -115,7 +115,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			}
 			ctx := context.Background()
-			result, err := dataTemplateReconcile.Reconcile(ctx, req)
+			result, err := r.Reconcile(ctx, req)
 
 			if tc.expectError || tc.managerError || tc.reconcileNormalError {
 				Expect(err).To(HaveOccurred())
@@ -219,11 +219,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		func(tc reconcileNormalTestCase) {
 			gomockCtrl := gomock.NewController(GinkgoT())
 
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
-			dataTemplateReconcile := &Metal3DataTemplateReconciler{
-				Client:           c,
-				ManagerFactory:   baremetal.NewManagerFactory(c),
+			r := &Metal3DataTemplateReconciler{
+				Client:           fakeClient,
+				ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
@@ -237,7 +237,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
 			}
 
-			res, err := dataTemplateReconcile.reconcileNormal(context.TODO(), m)
+			res, err := r.reconcileNormal(context.TODO(), m)
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -273,11 +273,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		func(tc reconcileDeleteTestCase) {
 			gomockCtrl := gomock.NewController(GinkgoT())
 
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
-			dataTemplateReconcile := &Metal3DataTemplateReconciler{
-				Client:           c,
-				ManagerFactory:   baremetal.NewManagerFactory(c),
+			r := &Metal3DataTemplateReconciler{
+				Client:           fakeClient,
+				ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
@@ -292,7 +292,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
 			}
 
-			res, err := dataTemplateReconcile.reconcileDelete(context.TODO(), m)
+			res, err := r.reconcileDelete(context.TODO(), m)
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -345,7 +345,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						"Expected namespace %s, found %s", tc.DataClaim.Namespace, req.NamespacedName.Namespace)
 				} else {
 					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Spec.Template.Namespace),
-						"Expected namespace %s, found %s", tc.DataClaim.Spec.Template.Namespace, req.NamespacedName.Namespace)
+						"Expected namespace %s, found %s", tc.DataClaim.Spec.Template.Namespace,
+						req.NamespacedName.Namespace)
 				}
 
 			} else {
