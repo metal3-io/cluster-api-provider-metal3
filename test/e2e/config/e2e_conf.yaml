@@ -85,7 +85,7 @@ variables:
   MARIADB_IMAGE_TAG: "${MARIADB_IMAGE_TAG:-main}"
   CAPIRELEASE: "${CAPIRELEASE}"
   CAPM3RELEASE: "${CAPM3RELEASE}"
-  CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
+  CONFIG_FILE_PATH: "${HOME}/.cluster-api/clusterctl.yaml"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
