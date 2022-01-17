@@ -46,7 +46,7 @@ func pivoting() {
 	}
 	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
 	Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
-
+	Logf("os.Getenv: %v", os.Getenv("CONFIG_FILE_PATH"))
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath: targetCluster.GetKubeconfigPath(),
