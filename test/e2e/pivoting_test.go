@@ -46,7 +46,7 @@ func pivoting() {
 	}
 	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
 	Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
-	Logf("os.Getenv: %v", os.Getenv("CONFIG_FILE_PATH"))
+	Logf("os.Getenv: %v", e2eConfig.GetVariable("CONFIG_FILE_PATH"))
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath: targetCluster.GetKubeconfigPath(),
@@ -54,7 +54,7 @@ func pivoting() {
 		// in pivoting tests we are pointing to overrides folder as ClusterctlConfigPath.
 		// We have to revert this to point to e2e ClusterctlConfigPath once there is an
 		// actual latest release with v1.1.X tag.
-		ClusterctlConfigPath:    os.Getenv("CONFIG_FILE_PATH"),
+		ClusterctlConfigPath:    e2eConfig.GetVariable("CONFIG_FILE_PATH"),
 		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
 		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
 		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
