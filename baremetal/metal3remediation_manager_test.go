@@ -51,7 +51,10 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 		DescribeTable("Test NewRemediationManager",
 			func(tc testCaseRemediationManager) {
-				_, err := NewRemediationManager(fakeClient, tc.Metal3Remediation, tc.Metal3Machine, tc.Machine,
+				_, err := NewRemediationManager(fakeClient,
+					tc.Metal3Remediation,
+					tc.Metal3Machine,
+					tc.Machine,
 					logr.Discard(),
 				)
 				if tc.ExpectSuccess {
@@ -288,9 +291,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 				},
 			}
 
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
-			remediationMgr, err := NewRemediationManager(c, nil, tc.M3Machine, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, tc.M3Machine, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
