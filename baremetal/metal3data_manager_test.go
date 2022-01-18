@@ -124,8 +124,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.m3m != nil {
 				objects = append(objects, tc.m3m)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
-			dataMgr, err := NewDataManager(c, tc.m3d,
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -205,8 +205,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.networkdataSecret != nil {
 				objects = append(objects, tc.networkdataSecret)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
-			dataMgr, err := NewDataManager(c, tc.m3d,
+			faskeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(faskeClient, tc.m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -229,7 +229,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			if tc.expectedMetadata != nil {
 				tmpSecret := corev1.Secret{}
-				err = c.Get(context.TODO(),
+				err = faskeClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      "abc-metadata",
 						Namespace: "myns",
@@ -241,7 +241,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			if tc.expectedNetworkData != nil {
 				tmpSecret := corev1.Secret{}
-				err = c.Get(context.TODO(),
+				err = faskeClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      "abc-networkdata",
 						Namespace: "myns",
@@ -475,9 +475,16 @@ var _ = Describe("Metal3Data manager", func() {
 			bmh: &bmo.BareMetalHost{
 				ObjectMeta: testObjectMeta,
 			},
-			expectReady:         true,
-			expectedMetadata:    pointer.StringPtr(fmt.Sprintf("String-1: String-1\nprovideruid: %s\n", provideruid)),
-			expectedNetworkData: pointer.StringPtr("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
+			expectReady:      true,
+			expectedMetadata: pointer.StringPtr(fmt.Sprintf("String-1: String-1\nprovideruid: %s\n", provideruid)),
+			expectedNetworkData: pointer.StringPtr("" +
+				"links:\n" +
+				"- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n" +
+				"  id: eth0\n" +
+				"  mtu: 1500\n" +
+				"  type: phy\n" +
+				"networks: []\n" +
+				"services: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
@@ -601,8 +608,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
-			dataMgr, err := NewDataManager(c, tc.m3d,
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -695,8 +702,8 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 				Spec: tc.m3dtSpec,
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
-			dataMgr, err := NewDataManager(c, m3d,
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -1030,8 +1037,8 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 				Spec: tc.m3dtSpec,
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
-			dataMgr, err := NewDataManager(c, m3d,
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -1180,8 +1187,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
-			dataMgr, err := NewDataManager(c, tc.m3d,
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -1377,8 +1384,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
-			dataMgr, err := NewDataManager(c, tc.m3d,
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -2991,17 +2998,17 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test getM3Machine",
 		func(tc testCaseGetM3Machine) {
-			c := k8sClient
+			fakeClient := k8sClient
 			if tc.Machine != nil {
-				err := c.Create(context.TODO(), tc.Machine)
+				err := fakeClient.Create(context.TODO(), tc.Machine)
 				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.DataClaim != nil {
-				err := c.Create(context.TODO(), tc.DataClaim)
+				err := fakeClient.Create(context.TODO(), tc.DataClaim)
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			machineMgr, err := NewDataManager(c, tc.Data,
+			machineMgr, err := NewDataManager(fakeClient, tc.Data,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -3023,11 +3030,11 @@ var _ = Describe("Metal3Data manager", func() {
 				}
 			}
 			if tc.Machine != nil {
-				err = c.Delete(context.TODO(), tc.Machine)
+				err = fakeClient.Delete(context.TODO(), tc.Machine)
 				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.DataClaim != nil {
-				err = c.Delete(context.TODO(), tc.DataClaim)
+				err = fakeClient.Delete(context.TODO(), tc.DataClaim)
 				Expect(err).NotTo(HaveOccurred())
 			}
 		},
