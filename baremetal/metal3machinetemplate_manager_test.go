@@ -46,8 +46,8 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				tc.M3MachineTemplate,
 				tc.M3MachineList,
 			}
-			c := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithRuntimeObjects(objects...).Build()
-			templateMgr, err := NewMachineTemplateManager(c, tc.M3MachineTemplate,
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithRuntimeObjects(objects...).Build()
+			templateMgr, err := NewMachineTemplateManager(fakeClient, tc.M3MachineTemplate,
 				tc.M3MachineList, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -62,7 +62,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					Namespace: m3m.Namespace,
 				}
 				updatedM3M := capm3.Metal3Machine{}
-				err = c.Get(context.TODO(), key, &updatedM3M)
+				err = fakeClient.Get(context.TODO(), key, &updatedM3M)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(updatedM3M.Spec.AutomatedCleaningMode).To(Equal(tc.ExpectedValue))
 			}
