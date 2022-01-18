@@ -132,7 +132,7 @@ func remediation() {
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Scaling up machine deployment to 3 replicas")
-	scaleMachineDeployment(ctx, bootstrapClient, 3)
+	scaleMachineDeployment(ctx, bootstrapClient, clusterName, namespace, 3)
 
 	By("Waiting for one BMH to start provisioning")
 	Eventually(func(g Gomega) error {
@@ -180,7 +180,7 @@ func remediation() {
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
 
 	By("Scaling machine deployment down to 1")
-	scaleMachineDeployment(ctx, bootstrapClient, 1)
+	scaleMachineDeployment(ctx, bootstrapClient, clusterName, namespace, 1)
 
 	By("Waiting for 2 BMHs to be in Available state")
 	Eventually(func(g Gomega) error {
