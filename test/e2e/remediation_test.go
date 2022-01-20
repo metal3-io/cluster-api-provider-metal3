@@ -41,6 +41,7 @@ const defaultNamespace = "default"
 
 func remediation() {
 	Logf("Starting remediation tests")
+
 	bootstrapClient := bootstrapClusterProxy.GetClient()
 	targetClient := targetCluster.GetClient()
 	allMachinesCount := int(controlPlaneMachineCount + workerMachineCount)
@@ -88,7 +89,7 @@ func remediation() {
 	By("Power cycling 2 control plane nodes")
 	powerCycle(ctx, bootstrapClient, targetClient, bmhsAndMachines[1:3], specName)
 
-	By("Testing unhealthy annotation")
+	By("Testing unhealthy and inspection annotations")
 	newReplicaCount := 1
 	scaleControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
 
@@ -103,6 +104,10 @@ func remediation() {
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
+	// Calling an inspection tests here for now until we have a parallelism enabled in e2e framework.
+	inspection()
+
+	Logf("Start checking unhealthy annotation")
 	Logf("Annotating BMH as unhealthy")
 	annotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, pointer.String(""))
 
@@ -178,6 +183,8 @@ func remediation() {
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
+
+	By("UNHEALTHY ANNOTATION CHECK PASSED!")
 
 	By("Scaling machine deployment down to 1")
 	scaleMachineDeployment(ctx, bootstrapClient, clusterName, namespace, 1)
