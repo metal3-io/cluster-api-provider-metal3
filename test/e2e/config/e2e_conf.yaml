@@ -105,6 +105,7 @@ intervals:
   default/wait-cp-available: ["50m", "30s"]
   default/wait-bmh-deprovisioning: ["50m", "10s"]
   default/wait-bmh-available: ["50m", "20s"]
+  default/wait-bmh-inspecting: ["10m", "2s"]
   default/wait-machine-deleting: ["7m", "2s"]
   default/wait-bmh-deprovisioning-available: ["7m", "500ms"]
   default/wait-bmh-available-provisioning: ["5m", "2s"]
