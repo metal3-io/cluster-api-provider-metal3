@@ -4,9 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
 func upgradeIronic() {
@@ -29,7 +27,7 @@ func upgradeIronic() {
 	Logf("mariadbImageTag %v", mariadbImageTag)
 
 	By("Upgrading ironic image based containers")
-	deploy, err := getIronicDeployment(clientSet, ironicDeployName, ironicNamespace)
+	deploy, err := clientSet.AppsV1().Deployments(ironicNamespace).Get(ctx, ironicDeployName, metav1.GetOptions{})
 	Expect(err).To(BeNil())
 	for i, container := range deploy.Spec.Template.Spec.Containers {
 		switch container.Name {
@@ -51,30 +49,10 @@ func upgradeIronic() {
 
 	By("Waiting for ironic update to rollout")
 	Eventually(func() bool {
-		return deploymentRolledOut(clientSet, ironicDeployName, ironicNamespace, deploy.Status.ObservedGeneration+1)
+		return deploymentRolledOut(ctx, clientSet, ironicDeployName, ironicNamespace, deploy.Status.ObservedGeneration+1)
 	},
 		e2eConfig.GetIntervals(specName, "wait-deployment")...,
 	).Should(Equal(true))
 
 	By("IRONIC CONTAINERS UPGRADE TESTS PASSED!")
-}
-
-func getIronicDeployment(clientSet *kubernetes.Clientset, ironicDeployName string, ironicNamespace string) (*appsv1.Deployment, error) {
-	return clientSet.AppsV1().Deployments(ironicNamespace).Get(ctx, ironicDeployName, metav1.GetOptions{})
-}
-
-func deploymentRolledOut(clientSet *kubernetes.Clientset, ironicDeployName string, ironicNamespace string, desiredGeneration int64) bool {
-	deploy, err := getIronicDeployment(clientSet, ironicDeployName, ironicNamespace)
-	Expect(err).To(BeNil())
-	if deploy != nil {
-		// When the number of replicas is equal to the number of available and updated
-		// replicas, we know that only "new" pods are running. When we also
-		// have the desired number of replicas and a new enough generation, we
-		// know that the rollout is complete.
-		return (deploy.Status.UpdatedReplicas == *deploy.Spec.Replicas) &&
-			(deploy.Status.AvailableReplicas == *deploy.Spec.Replicas) &&
-			(deploy.Status.Replicas == *deploy.Spec.Replicas) &&
-			(deploy.Status.ObservedGeneration >= desiredGeneration)
-	}
-	return false
 }

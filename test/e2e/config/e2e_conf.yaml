@@ -83,6 +83,7 @@ variables:
   CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-main}"
   MARIADB_IMAGE_TAG: "${MARIADB_IMAGE_TAG:-main}"
+  UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
   CAPIRELEASE: "${CAPIRELEASE}"
   CAPM3RELEASE: "${CAPM3RELEASE}"
   CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
@@ -111,4 +112,3 @@ intervals:
   default/wait-machine-running: ["50m", "20s"]
   default/wait-bmh-provisioned: ["50m", "20s"]
   default/wait-pod-restart: ["6m", "10s"]
-

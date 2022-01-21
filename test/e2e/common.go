@@ -11,7 +11,9 @@ import (
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -154,4 +156,20 @@ func scaleControlPlane(ctx context.Context, c client.Client, name client.ObjectK
 
 	ctrlplane.Spec.Replicas = pointer.Int32Ptr(int32(newReplicaCount))
 	Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
+}
+
+func deploymentRolledOut(ctx context.Context, clientSet *kubernetes.Clientset, name string, namespace string, desiredGeneration int64) bool {
+	deploy, err := clientSet.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	Expect(err).To(BeNil())
+	if deploy != nil {
+		// When the number of replicas is equal to the number of available and updated
+		// replicas, we know that only "new" pods are running. When we also
+		// have the desired number of replicas and a new enough generation, we
+		// know that the rollout is complete.
+		return (deploy.Status.UpdatedReplicas == *deploy.Spec.Replicas) &&
+			(deploy.Status.AvailableReplicas == *deploy.Spec.Replicas) &&
+			(deploy.Status.Replicas == *deploy.Spec.Replicas) &&
+			(deploy.Status.ObservedGeneration >= desiredGeneration)
+	}
+	return false
 }
