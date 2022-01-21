@@ -36,7 +36,7 @@ func LogFromFile(logFile string) {
 
 func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *capi.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
-	client := bootstrapClusterProxy.GetClient()
+	client := clusterProxy.GetClient()
 
 	// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
@@ -44,7 +44,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 		Lister:    client,
 		Namespace: namespace,
-		LogPath:   filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "resources"),
+		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
 	})
 
 	if !skipCleanup {
@@ -55,7 +55,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
 			Client:    client,
 			Namespace: namespace,
-		}, e2eConfig.GetIntervals(specName, "wait-delete-cluster")...)
+		}, intervalsGetter(specName, "wait-delete-cluster")...)
 
 		By(fmt.Sprintf("Deleting namespace used for hosting the %q test spec", specName))
 		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
@@ -133,7 +133,7 @@ func deleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, hos
 	Expect(helper.Patch(ctx, &host)).To(Succeed())
 }
 
-func scaleMachineDeployment(ctx context.Context, clusterClient client.Client, newReplicas int) {
+func scaleMachineDeployment(ctx context.Context, clusterClient client.Client, clusterName, namespace string, newReplicas int) {
 	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
 		Lister:      clusterClient,
 		ClusterName: clusterName,
