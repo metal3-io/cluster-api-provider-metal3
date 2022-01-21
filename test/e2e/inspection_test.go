@@ -23,7 +23,6 @@ func inspection() {
 
 	bootstrapClient := bootstrapClusterProxy.GetClient()
 
-	Logf("Request inspection for all Available BMHs via API")
 	availableBMHList := bmo.BareMetalHostList{}
 	Expect(bootstrapClient.List(ctx, &availableBMHList, client.InNamespace(namespace))).To(Succeed())
 	Logf("Request inspection for all Available BMHs via API")
