@@ -14,9 +14,9 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
   "${CONTAINER_RUNTIME}" run --rm \
     --env IS_CONTAINER=TRUE \
-    --volume "${PWD}:/go/src/github.com/metal3-io/cluster-api-provider-metal3:ro,z" \
+    --volume "${PWD}:/capm3:ro,z" \
     --entrypoint sh \
-    --workdir /go/src/github.com/metal3-io/cluster-api-provider-metal3 \
+    --workdir /capm3 \
     docker.io/golang:1.17 \
-    /go/src/github.com/metal3-io/cluster-api-provider-metal3/hack/govet.sh
+    /capm3/hack/govet.sh
 fi;
