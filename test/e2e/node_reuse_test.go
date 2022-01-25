@@ -58,7 +58,7 @@ func nodeReuse() {
 	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
 
 	By("Scale down MachineDeployment to 0")
-	scaleMachineDeployment(ctx, targetClusterClient, clusterName, namespace,0)
+	scaleMachineDeployment(ctx, targetClusterClient, clusterName, namespace, 0)
 
 	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkers)
 	Eventually(
