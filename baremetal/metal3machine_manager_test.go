@@ -3469,7 +3469,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
-					Kind:       "MachineSet",
+					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []capi.MachineSet{
@@ -3524,7 +3524,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
-					Kind:       "MachineSet",
+					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []capi.MachineSet{
@@ -3562,7 +3562,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
-					Kind:       "MachineSet",
+					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []capi.MachineSet{
@@ -3636,7 +3636,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
-					Kind:       "MachineSet",
+					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []capi.MachineSet{
@@ -3714,7 +3714,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
-					Kind:       "MachineSet",
+					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []capi.MachineSet{
@@ -3752,7 +3752,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
-					Kind:       "MachineSet",
+					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []capi.MachineSet{
@@ -3790,7 +3790,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			MachineSetList: &capi.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: capi.GroupVersion.String(),
-					Kind:       "MachineSet",
+					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
 				Items: []capi.MachineSet{
