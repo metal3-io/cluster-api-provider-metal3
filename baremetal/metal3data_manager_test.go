@@ -476,7 +476,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta,
 			},
 			expectReady:         true,
-			expectedMetadata:    pointer.StringPtr(fmt.Sprintf("String-1: String-1\nprovideruid: %s\n", provideruid)),
+			expectedMetadata:    pointer.StringPtr("String-1: String-1\n"),
 			expectedNetworkData: pointer.StringPtr("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
