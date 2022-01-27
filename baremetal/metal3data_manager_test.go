@@ -21,8 +21,6 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -2453,10 +2451,6 @@ var _ = Describe("Metal3Data manager", func() {
 								Key:   "String-1",
 								Value: "String-1",
 							},
-							{
-								Key:   "provideruid",
-								Value: fmt.Sprintf("%s_11111111", bmhuid),
-							},
 						},
 						ObjectNames: []capm3.MetaDataObjectName{
 							{
@@ -2661,7 +2655,6 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectedMetaData: map[string]string{
 				"String-1":     "String-1",
-				"provideruid":  fmt.Sprintf("%s_11111111", bmhuid),
 				"ObjectName-1": "machine-abc",
 				"ObjectName-2": "metal3machine-abc",
 				"ObjectName-3": "bmh-abc",
