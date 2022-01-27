@@ -91,7 +91,7 @@ type MachineManagerInterface interface {
 	Update(context.Context) error
 	HasAnnotation() bool
 	GetProviderIDAndBMHID() (string, *string)
-	SetNodeProviderID(context.Context, string, string, ClientGetter) error
+	SetNodeProviderID(context.Context, string, *string, ClientGetter) error
 	SetProviderID(string)
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
@@ -1317,7 +1317,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 type ClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error)
 
 // SetNodeProviderID sets the metal3 provider ID on the kubernetes node.
-func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
+func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID string, providerID *string, clientFactory ClientGetter) error {
 	if !m.Metal3Cluster.Spec.NoCloudProvider {
 		return nil
 	}
@@ -1325,7 +1325,6 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
 	}
-
 	nodeLabel := fmt.Sprintf("%s=%v", ProviderLabelPrefix, bmhID)
 	nodes, nodesCount, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
@@ -1338,20 +1337,66 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		m.Log.Info("Target node is not found, requeuing")
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
+	var nodeVar corev1.Node
 	for _, node := range nodes.Items {
-		node := node
-		if node.Spec.ProviderID == providerID {
+		if node.Spec.ProviderID == "" {
+			m.Log.Info("missing node providerID, setting value from label")
+			node.Spec.ProviderID = *providerID
+		} else if node.Spec.ProviderID == *providerID {
+			m.Log.Info("node providerID and label match")
 			continue
+		} else if node.Spec.ProviderID != *providerID {
+			matchingNodeProviderID, err := m.verifyNodeProviderID(node.Spec.ProviderID, bmhID)
+			if err != nil || matchingNodeProviderID == nil {
+				return errors.Wrap(err, "Found invalid node providerID")
+			}
+			*providerID = *matchingNodeProviderID
+			m.Log.Info("node providerID and label do not match, using directly set node providerID")
 		}
-		node.Spec.ProviderID = providerID
-		_, err = corev1Remote.Nodes().Update(ctx, &node, metav1.UpdateOptions{})
+		nodeVar = node
+		_, err = corev1Remote.Nodes().Update(ctx, &nodeVar, metav1.UpdateOptions{})
 		if err != nil {
-			return errors.Wrap(err, "unable to update the target node")
+			return errors.Wrap(err, "unable to update the target node with providerID")
 		}
 	}
 	m.Log.Info("ProviderID set on target node")
-
 	return nil
+}
+
+// getBmhNameFromM3Machine retrieves bmhName from m3m annotations.
+func (m *MachineManager) getBmhNameFromM3Machine() (string, error) {
+	annotationValue := m.Metal3Machine.ObjectMeta.GetAnnotations()[HostAnnotation]
+	valueParts := strings.Split(annotationValue, "/")
+	if (len(valueParts) < 2) || (valueParts[0] != m.Metal3Machine.GetNamespace()) {
+		m.Log.Info("getBmhNameFromM3Machine: annotation value: ", annotationValue)
+		errMessage := fmt.Sprintf("unable to retrieve bmh name from metal3machine: %s , using annotation: %s", m.Metal3Machine.GetName(), annotationValue)
+		return "", errors.New(errMessage)
+	}
+	bmhName := valueParts[1]
+	return bmhName, nil
+}
+
+// verifyNodeProviderID verifies if providerID is in correct format.
+func (m *MachineManager) verifyNodeProviderID(providerIDOnNode, bmhUID string) (*string, error) {
+	namespace := m.Metal3Machine.GetNamespace()
+	m3mName := m.Metal3Machine.GetName()
+	bmhName, err := m.getBmhNameFromM3Machine()
+	if err != nil {
+		return nil, errors.New("`unable to retrieve BMH from Metal3Cluster")
+	}
+	bmhidd := bmhUID
+	if strings.Contains(bmhUID, ProviderIDPrefix) {
+		bmhidd = strings.TrimPrefix(bmhUID, ProviderIDPrefix)
+	}
+	providerIDnew := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
+	providerIDLegacy := fmt.Sprintf("metal3://%s", bmhidd)
+	if providerIDOnNode == providerIDnew {
+		return pointer.StringPtr(providerIDOnNode), nil
+	}
+	if providerIDOnNode == providerIDLegacy {
+		return pointer.StringPtr(providerIDOnNode), nil
+	}
+	return nil, errors.New("providerID does not match any valid format")
 }
 
 // SetProviderID sets the metal3 provider ID on the Metal3Machine.
@@ -1723,17 +1768,25 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 }
 
 // getNodesWithLabel gets kubernetes nodes with a given label.
+// Or without a label if NoCloudProvider is set to false on Metal3Cluster.
 func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string, clientFactory ClientGetter) (*corev1.NodeList, int, error) {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "Error creating a remote client")
 	}
 	nodesCount := 0
-	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{
+	filter := metav1.ListOptions{
 		LabelSelector: nodeLabel,
-	})
+	}
+	// Since NoCloudProvider is set to false, labels do not have relevance
+	// to retrieve nodes. Therefore, retrieve all nodes so that providerID
+	// value comparison is done
+	if !m.Metal3Cluster.Spec.NoCloudProvider {
+		filter = metav1.ListOptions{}
+	}
+	nodes, err := corev1Remote.Nodes().List(ctx, filter)
 	if err != nil {
-		m.Log.Info(fmt.Sprintf("error while retrieving nodes with label (%s): %v", nodeLabel, err))
+		m.Log.Info(fmt.Sprintf("error while retrieving nodes: %v", err))
 		return nil, 0, err
 	}
 	if nodes != nil {

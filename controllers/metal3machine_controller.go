@@ -253,10 +253,13 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			"failed to update BaremetalHost", errType,
 		)
 	}
-
+	// GetProviderIDAndBMHID gives wrong bmh (metal3://uuid)
+	// GetBaremetalHostID should instead be used as it gives the correct bmh (uuid)
+	// issue: fails comparison when noCloudProvider=false
+	// Task: update GetProviderIDAndBMHID to return just the bmh
 	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
 	if bmhID == nil {
-		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
+		bmhID, err := machineMgr.GetBaremetalHostID(ctx)
 		if err != nil {
 			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.MissingBMHReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
@@ -269,13 +272,14 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	}
 	if bmhID != nil {
 		// Set the providerID on the node if no Cloud provider
-		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
+		err = machineMgr.SetNodeProviderID(ctx, *bmhID, &providerID, r.CapiClientGetter)
 		if err != nil {
 			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to set the target node providerID", errType,
 			)
 		}
+		r.Log.Info("ZZx: Back from setNodeProviderID for: ", providerID)
 		// Make sure Spec.ProviderID is set and mark the capm3Machine ready
 		machineMgr.SetProviderID(providerID)
 	}

@@ -2253,7 +2253,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
-					tc.ExpectedProviderID, m,
+					&tc.ExpectedProviderID, m,
 				)
 
 				if tc.ExpectedError {
