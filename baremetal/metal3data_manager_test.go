@@ -474,16 +474,9 @@ var _ = Describe("Metal3Data manager", func() {
 			bmh: &bmo.BareMetalHost{
 				ObjectMeta: testObjectMeta,
 			},
-			expectReady:      true,
-			expectedMetadata: pointer.StringPtr(fmt.Sprintf("String-1: String-1\nprovideruid: %s\n", provideruid)),
-			expectedNetworkData: pointer.StringPtr("" +
-				"links:\n" +
-				"- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n" +
-				"  id: eth0\n" +
-				"  mtu: 1500\n" +
-				"  type: phy\n" +
-				"networks: []\n" +
-				"services: []\n"),
+			expectReady:         true,
+			expectedMetadata:    pointer.StringPtr("String-1: String-1\n"),
+			expectedNetworkData: pointer.StringPtr("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
 			m3d: &capm3.Metal3Data{
