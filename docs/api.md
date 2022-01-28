@@ -126,7 +126,7 @@ spec:
     rollingUpdate:
       maxSurge: 1
     type: RollingUpdate
-  version: v1.22.0
+  version: v1.23.3
   kubeadmConfigSpec:
     joinConfiguration:
       controlPlane: {}
@@ -242,7 +242,7 @@ spec:
     namespace: metal3
   nodeDrainTimeout: 0s
   providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
-  version: v1.22.0
+  version: v1.23.3
 ```
 
 ## Metal3Machine
@@ -415,10 +415,10 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   image:
-    checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.22.0-raw.img.md5sum
+    checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.23.3-raw.img.md5sum
     checksumType: md5
     format: raw
-    url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.22.0-raw.img
+    url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.23.3-raw.img
   hostSelector:
     matchLabels:
       key1: value1
@@ -476,7 +476,7 @@ spec:
         name: md-0
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
         kind: Metal3MachineTemplate
-      version: v1.22.0
+      version: v1.23.3
 ```
 
 ## KubeadmConfigTemplate
@@ -548,10 +548,10 @@ spec:
     spec:
       automatedCleaningMode: metadata
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.22.0-raw.img.md5sum
+        checksum: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.23.3-raw.img.md5sum
         checksumType: md5
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.22.0-raw.img
+        url: http://172.22.0.1/images/UBUNTU_20.04_NODE_IMAGE_K8S_v1.23.3-raw.img
       hostSelector:
         matchLabels:
           key1: value1

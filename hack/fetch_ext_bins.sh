@@ -26,7 +26,7 @@ if [[ -n "${TRACE}" ]]; then
   set -x
 fi
 
-k8s_version=1.22.0
+k8s_version=1.23.3
 arch=amd64
 os="unknown"
 
