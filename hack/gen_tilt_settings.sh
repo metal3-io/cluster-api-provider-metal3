@@ -25,7 +25,13 @@ function get_latest_release() {
     release="$(curl -H "Authorization: token ${GITHUB_TOKEN}" -sL "${1}")" || ( set -x && exit 1 )
   fi
   # This gets the latest release as vx.y.z , ignoring any version with a suffix starting with - , for example -rc0
-  release_tag="$(echo "$release" | jq -r "[.[].tag_name | select( startswith(\"${2:-""}\")) | select(contains(\"-\")==false)] | max ")"
+  # Uncomment the following line and delete the next line when we have a proper CAPI 1.1.x release. Using pre-release for time being
+  # release_tag="$(echo "$release" | jq -r "[.[].tag_name | select( startswith(\"${2:-""}\")) | select(contains(\"-\")==false)] | max ")"
+  release_tags_unsorted="$(echo "$release" | jq -r "[.[].tag_name | select( startswith(\"${2:-""}\"))]" \
+    | cut -sf2 -d\"  | tr '.' ' ' )"
+  release_tags_sorted="$(echo "$release_tags_unsorted" | sort -n +1 +2 )"
+  release_tag="$(echo "$release_tags_sorted" | tail -n 1 | tr ' ' '.')"
+
   if [[ "$release_tag" == "null" ]]; then
     set -x
     exit 1
@@ -36,7 +42,7 @@ function get_latest_release() {
 }
 
 CAPIRELEASEPATH="${CAPIRELEASEPATH:-https://api.github.com/repos/${CAPI_BASE_URL:-kubernetes-sigs/cluster-api}/releases}"
-export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.0.")}"
+export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.1.")}"
 
 cat <<EOF > tilt-settings.json
 {
