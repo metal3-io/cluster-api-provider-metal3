@@ -69,4 +69,24 @@ var _ = Describe("Manager factory testing", func() {
 		)
 		Expect(err).NotTo(HaveOccurred())
 	})
+
+	It("returns a DataTemplate manager", func() {
+		_, err := managerFactory.NewDataTemplateManager(&capm3.Metal3DataTemplate{}, clusterLog)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("returns a Data manager", func() {
+		_, err := managerFactory.NewDataManager(&capm3.Metal3Data{}, clusterLog)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("returns a MachineTemplate manager", func() {
+		_, err := managerFactory.NewMachineTemplateManager(&capm3.Metal3MachineTemplate{}, &capm3.Metal3MachineList{}, clusterLog)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("returns a Remediation manager", func() {
+		_, err := managerFactory.NewRemediationManager(&capm3.Metal3Remediation{}, &capm3.Metal3Machine{}, &capi.Machine{}, clusterLog)
+		Expect(err).NotTo(HaveOccurred())
+	})
 })
