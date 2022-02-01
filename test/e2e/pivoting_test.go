@@ -235,11 +235,9 @@ func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO stri
 
 func removeIronicContainers() {
 	ironicContainerList := []string{
-		"ironic-api",
-		"ironic-conductor",
+		"ironic",
 		"ironic-inspector",
 		"dnsmasq",
-		"mariadb",
 		"ironic-endpoint-keepalived",
 		"ironic-log-watch",
 	}
