@@ -50,7 +50,7 @@ func pivoting() {
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath: targetCluster.GetKubeconfigPath(),
-		// TODO (furkat), to uplift CAPI to v1.1.0-beta.1 pre-release
+		// TODO (furkat), to uplift CAPI to v1.1.0-rc.0 pre-release
 		// in pivoting tests we are pointing to overrides folder as ClusterctlConfigPath.
 		// We have to revert this to point to e2e ClusterctlConfigPath once there is an
 		// actual latest release with v1.1.X tag.
