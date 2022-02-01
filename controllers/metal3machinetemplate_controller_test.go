@@ -60,8 +60,8 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 	var testReconciler *Metal3MachineTemplateReconciler
 	var fakeClientBuilder *fake.ClientBuilder
 	var fakeClient client.WithWatch
-	var fakeM3MTemplateManager *baremetal_mocks.MockTemplateManagerInterface
-	var fakeManagerFactory *baremetal_mocks.MockManagerFactoryInterface
+	var m *baremetal_mocks.MockTemplateManagerInterface
+	var mf *baremetal_mocks.MockManagerFactoryInterface
 	var objects []client.Object
 	templateMgrErrorMsg := "failed to create helper for managing the templateMgr"
 	defaultTestRequest := ctrl.Request{
@@ -72,45 +72,45 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 	}
 
 	DescribeTable("Metal3MachineTemplate Reconcile test",
-		func(testCase reconcileTemplateTestCase) {
+		func(tc reconcileTemplateTestCase) {
 			mockController = gomock.NewController(GinkgoT())
-			fakeM3MTemplateManager = baremetal_mocks.NewMockTemplateManagerInterface(mockController)
-			fakeManagerFactory = baremetal_mocks.NewMockManagerFactoryInterface(mockController)
+			m = baremetal_mocks.NewMockTemplateManagerInterface(mockController)
+			mf = baremetal_mocks.NewMockManagerFactoryInterface(mockController)
 			fakeClientBuilder = fake.NewClientBuilder()
 			objects = []client.Object{}
 
-			if testCase.m3mTemplateCantBeFound {
+			if tc.m3mTemplateCantBeFound {
 				fakeClient = fakeClientBuilder.WithScheme(setupScheme()).Build()
 			} else {
-				if testCase.common.m3mTemplate != nil {
-					objects = append(objects, testCase.common.m3mTemplate)
+				if tc.common.m3mTemplate != nil {
+					objects = append(objects, tc.common.m3mTemplate)
 				}
 				fakeClient = fakeClientBuilder.WithScheme(setupScheme()).WithObjects(objects...).Build()
 			}
 
 			testReconciler = &Metal3MachineTemplateReconciler{
 				Client:           fakeClient,
-				ManagerFactory:   fakeManagerFactory,
+				ManagerFactory:   mf,
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
 
-			if testCase.failedToCreateMachineTemplateManager {
-				fakeManagerFactory.EXPECT().NewMachineTemplateManager(gomock.Any(), gomock.Any(),
-					gomock.Any()).Return(fakeM3MTemplateManager, errors.New(""))
-			} else if testCase.m3mTemplateIsPaused {
-				fakeManagerFactory.EXPECT().NewMachineTemplateManager(gomock.Any(), gomock.Any(),
-					gomock.Any()).Return(fakeM3MTemplateManager, nil)
-			} else if testCase.common.shouldUpdateAutomatedCleaningMode {
-				fakeManagerFactory.EXPECT().NewMachineTemplateManager(gomock.Any(), gomock.Any(),
-					gomock.Any()).Return(fakeM3MTemplateManager, nil)
-				fakeM3MTemplateManager.EXPECT().UpdateAutomatedCleaningMode(context.TODO()).Return(
+			if tc.failedToCreateMachineTemplateManager {
+				mf.EXPECT().NewMachineTemplateManager(gomock.Any(), gomock.Any(),
+					gomock.Any()).Return(m, errors.New(""))
+			} else if tc.m3mTemplateIsPaused {
+				mf.EXPECT().NewMachineTemplateManager(gomock.Any(), gomock.Any(),
+					gomock.Any()).Return(m, nil)
+			} else if tc.common.shouldUpdateAutomatedCleaningMode {
+				mf.EXPECT().NewMachineTemplateManager(gomock.Any(), gomock.Any(),
+					gomock.Any()).Return(m, nil)
+				m.EXPECT().UpdateAutomatedCleaningMode(context.TODO()).Return(
 					nil)
 			}
 
-			result, err := testReconciler.Reconcile(context.TODO(), testCase.common.testRequest)
-			Expect(result).To(Equal(testCase.common.expectedResult))
-			evaluateM3MTemplateTestError(testCase.common.expectedError, err)
+			result, err := testReconciler.Reconcile(context.TODO(), tc.common.testRequest)
+			Expect(result).To(Equal(tc.common.expectedResult))
+			evaluateM3MTemplateTestError(tc.common.expectedError, err)
 			mockController.Finish()
 		},
 		Entry("M3MTemplate haven't been found",
@@ -166,33 +166,33 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 	)
 
 	DescribeTable("Metal3MachineTemplate reconcileNormal test",
-		func(testCase reconcileTemplateNormalTestCase) {
+		func(tc reconcileTemplateNormalTestCase) {
 			mockController = gomock.NewController(GinkgoT())
-			fakeM3MTemplateManager = baremetal_mocks.NewMockTemplateManagerInterface(mockController)
-			fakeManagerFactory = baremetal_mocks.NewMockManagerFactoryInterface(mockController)
+			m = baremetal_mocks.NewMockTemplateManagerInterface(mockController)
+			mf = baremetal_mocks.NewMockManagerFactoryInterface(mockController)
 			fakeClientBuilder = fake.NewClientBuilder()
 			objects = []client.Object{}
-			objects = append(objects, testCase.common.m3mTemplate)
+			objects = append(objects, tc.common.m3mTemplate)
 			fakeClient = fakeClientBuilder.WithScheme(setupScheme()).WithObjects(objects...).Build()
 
-			if testCase.failedUpdateAutomatedCleaningMode {
-				fakeM3MTemplateManager.EXPECT().UpdateAutomatedCleaningMode(context.TODO()).Return(
+			if tc.failedUpdateAutomatedCleaningMode {
+				m.EXPECT().UpdateAutomatedCleaningMode(context.TODO()).Return(
 					errors.New(""))
-			} else if testCase.common.shouldUpdateAutomatedCleaningMode {
-				fakeM3MTemplateManager.EXPECT().UpdateAutomatedCleaningMode(context.TODO()).Return(
+			} else if tc.common.shouldUpdateAutomatedCleaningMode {
+				m.EXPECT().UpdateAutomatedCleaningMode(context.TODO()).Return(
 					nil)
 			}
 
 			testReconciler = &Metal3MachineTemplateReconciler{
 				Client:           fakeClient,
-				ManagerFactory:   fakeManagerFactory,
+				ManagerFactory:   mf,
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
 
-			result, err := testReconciler.reconcileNormal(context.TODO(), fakeM3MTemplateManager)
-			Expect(result).To(Equal(testCase.common.expectedResult))
-			evaluateM3MTemplateTestError(testCase.common.expectedError, err)
+			result, err := testReconciler.reconcileNormal(context.TODO(), m)
+			Expect(result).To(Equal(tc.common.expectedResult))
+			evaluateM3MTemplateTestError(tc.common.expectedError, err)
 			mockController.Finish()
 		},
 		Entry("updateAutomatedCleaningMode should Fail",

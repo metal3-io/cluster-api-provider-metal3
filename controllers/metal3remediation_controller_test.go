@@ -136,11 +136,11 @@ var _ = Describe("Metal3Remediation controller", func() {
 
 			BeforeEach(func() {
 				ctrl = gomock.NewController(GinkgoT())
-				c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 				remReconcile = &Metal3RemediationReconciler{
-					Client:         c,
-					ManagerFactory: baremetal.NewManagerFactory(c),
+					Client:         fakeClient,
+					ManagerFactory: baremetal.NewManagerFactory(fakeClient),
 					Log:            logr.Discard(),
 				}
 			})

@@ -51,11 +51,11 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 	DescribeTable("Reconcile tests metal3Cluster",
 		func(tc TestCaseReconcileBMC) {
 			testclstr := &capm3.Metal3Cluster{}
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 
 			r := &Metal3ClusterReconciler{
-				Client:           c,
-				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Client:           fakeClient,
+				ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
@@ -68,7 +68,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			}
 			ctx := context.Background()
 			res, err := r.Reconcile(ctx, req)
-			_ = c.Get(ctx, *getKey(metal3ClusterName), testclstr)
+			_ = fakeClient.Get(ctx, *getKey(metal3ClusterName), testclstr)
 
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())

@@ -77,7 +77,8 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	// Bootstrap data not ready, we'll requeue, not call anything else
 	m.EXPECT().IsBootstrapReady().Return(!tc.BootstrapNotReady)
 	if tc.BootstrapNotReady {
-		m.EXPECT().SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.WaitingForBootstrapReadyReason, capi.ConditionSeverityInfo, "")
+		m.EXPECT().SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition,
+			capm3.WaitingForBootstrapReadyReason, capi.ConditionSeverityInfo, "")
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
 		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
@@ -141,7 +142,8 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID(string(bmhuid)).MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
-			m.EXPECT().SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.SettingProviderIDOnNodeFailedReason, capi.ConditionSeverityError, gomock.Any())
+			m.EXPECT().SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition,
+				capm3.SettingProviderIDOnNodeFailedReason, capi.ConditionSeverityError, gomock.Any())
 			return m
 		}
 
@@ -205,11 +207,11 @@ var _ = Describe("Metal3Machine manager", func() {
 		BeforeEach(func() {
 			gomockCtrl = gomock.NewController(GinkgoT())
 
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			bmReconcile = &Metal3MachineReconciler{
-				Client:           c,
-				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Client:           fakeClient,
+				ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 				Log:              logr.Discard(),
 				CapiClientGetter: nil,
 				WatchFilterValue: "",
@@ -295,11 +297,11 @@ var _ = Describe("Metal3Machine manager", func() {
 		BeforeEach(func() {
 			gomockCtrl = gomock.NewController(GinkgoT())
 
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			bmReconcile = &Metal3MachineReconciler{
-				Client:           c,
-				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Client:           fakeClient,
+				ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 				Log:              logr.Discard(),
 				CapiClientGetter: nil,
 				WatchFilterValue: "",
@@ -361,10 +363,10 @@ var _ = Describe("Metal3Machine manager", func() {
 				tc.Machine1,
 				tc.Machine2,
 			}
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 			r := Metal3MachineReconciler{
-				Client:           c,
+				Client:           fakeClient,
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
@@ -580,9 +582,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				tc.Machine1,
 				tc.M3Machine,
 			}
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			r := Metal3MachineReconciler{
-				Client: c,
+				Client: fakeClient,
 			}
 			obj := client.Object(tc.Cluster)
 			reqs := r.ClusterToMetal3Machines(obj)
@@ -590,7 +592,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
 				req := capm3.Metal3Machine{}
-				err := c.Get(context.TODO(), reqs[0].NamespacedName, &req)
+				err := fakeClient.Get(context.TODO(), reqs[0].NamespacedName, &req)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(req.Labels[capi.ClusterLabelName]).To(Equal(tc.Cluster.Name),
@@ -636,9 +638,9 @@ var _ = Describe("Metal3Machine manager", func() {
 					OwnerReferences: tc.ownerRefs,
 				},
 			}
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
 			r := Metal3MachineReconciler{
-				Client: c,
+				Client: fakeClient,
 			}
 			obj := client.Object(ipClaim)
 			reqs := r.Metal3DataToMetal3Machines(obj)

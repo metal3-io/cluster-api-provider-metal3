@@ -29,7 +29,7 @@ import (
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 type testCaseRemediationManager struct {
@@ -44,14 +44,17 @@ var _ = Describe("Metal3Remediation manager", func() {
 	var fakeClient client.Client
 
 	BeforeEach(func() {
-		fakeClient = fakeclient.NewClientBuilder().WithScheme(setupScheme()).Build()
+		fakeClient = fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 	})
 
 	Describe("Test New Remediation Manager", func() {
 
 		DescribeTable("Test NewRemediationManager",
 			func(tc testCaseRemediationManager) {
-				_, err := NewRemediationManager(fakeClient, tc.Metal3Remediation, tc.Metal3Machine, tc.Machine,
+				_, err := NewRemediationManager(fakeClient,
+					tc.Metal3Remediation,
+					tc.Metal3Machine,
+					tc.Machine,
 					logr.Discard(),
 				)
 				if tc.ExpectSuccess {
@@ -288,9 +291,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 				},
 			}
 
-			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
-			remediationMgr, err := NewRemediationManager(c, nil, tc.M3Machine, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, tc.M3Machine, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())

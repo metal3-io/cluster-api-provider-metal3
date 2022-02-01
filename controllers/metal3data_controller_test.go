@@ -74,7 +74,7 @@ var _ = Describe("Metal3Data manager", func() {
 		DescribeTable("Test Reconcile",
 			func(tc testCaseReconcile) {
 				gomockCtrl := gomock.NewController(GinkgoT())
-				f := baremetal_mocks.NewMockManagerFactoryInterface(gomockCtrl)
+				mf := baremetal_mocks.NewMockManagerFactoryInterface(gomockCtrl)
 				m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
 
 				objects := []client.Object{}
@@ -84,14 +84,14 @@ var _ = Describe("Metal3Data manager", func() {
 				if tc.cluster != nil {
 					objects = append(objects, tc.cluster)
 				}
-				c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 				if tc.managerError {
-					f.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
+					mf.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
 				} else if tc.expectManager {
-					f.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).Return(m, nil)
+					mf.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).Return(m, nil)
 				} else {
-					f.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).MaxTimes(0)
+					mf.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).MaxTimes(0)
 				}
 				if tc.m3d != nil && !tc.m3d.DeletionTimestamp.IsZero() {
 					if tc.releaseLeasesRequeue {
@@ -115,8 +115,8 @@ var _ = Describe("Metal3Data manager", func() {
 				}
 
 				dataReconcile := &Metal3DataReconciler{
-					Client:           c,
-					ManagerFactory:   f,
+					Client:           fakeClient,
+					ManagerFactory:   mf,
 					Log:              logr.Discard(),
 					WatchFilterValue: "",
 				}
@@ -251,11 +251,11 @@ var _ = Describe("Metal3Data manager", func() {
 			func(tc reconcileNormalTestCase) {
 				gomockCtrl := gomock.NewController(GinkgoT())
 
-				c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 				dataReconcile := &Metal3DataReconciler{
-					Client:           c,
-					ManagerFactory:   baremetal.NewManagerFactory(c),
+					Client:           fakeClient,
+					ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 					Log:              logr.Discard(),
 					WatchFilterValue: "",
 				}
@@ -313,11 +313,11 @@ var _ = Describe("Metal3Data manager", func() {
 		func(tc reconcileDeleteTestCase) {
 			gomockCtrl := gomock.NewController(GinkgoT())
 
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 
 			dataReconcile := &Metal3DataReconciler{
-				Client:           c,
-				ManagerFactory:   baremetal.NewManagerFactory(c),
+				Client:           fakeClient,
+				ManagerFactory:   baremetal.NewManagerFactory(fakeClient),
 				Log:              logr.Discard(),
 				WatchFilterValue: "",
 			}
@@ -375,12 +375,12 @@ var _ = Describe("Metal3Data manager", func() {
 					OwnerReferences: tc.ownerRefs,
 				},
 			}
-			c := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
-			r := Metal3DataReconciler{
-				Client: c,
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
+			m3DataReconciler := Metal3DataReconciler{
+				Client: fakeClient,
 			}
 			obj := client.Object(ipClaim)
-			reqs := r.Metal3IPClaimToMetal3Data(obj)
+			reqs := m3DataReconciler.Metal3IPClaimToMetal3Data(obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},
 		Entry("No OwnerRefs", testCaseMetal3IPClaimToMetal3Data{
