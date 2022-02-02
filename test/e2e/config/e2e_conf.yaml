@@ -20,7 +20,7 @@ providers:
   versions:
   - name: v1.1.0
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-rc.0/core-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/core-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -33,7 +33,7 @@ providers:
   versions:
   - name: v1.1.0
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-rc.0/bootstrap-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -46,7 +46,7 @@ providers:
   versions:
   - name: v1.1.0
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0-rc.0/control-plane-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -85,7 +85,6 @@ variables:
   MARIADB_IMAGE_TAG: "${MARIADB_IMAGE_TAG:-main}"
   CAPIRELEASE: "${CAPIRELEASE}"
   CAPM3RELEASE: "${CAPM3RELEASE}"
-  CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]
