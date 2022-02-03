@@ -51,10 +51,10 @@ func pivoting() {
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath:          targetCluster.GetKubeconfigPath(),
 		ClusterctlConfigPath:    clusterctlConfigPath,
-		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
-		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
-		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
-		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
+		CoreProvider:            config.ClusterAPIProviderName,
+		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName},
+		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName},
+		InfrastructureProviders: e2eConfig.InfrastructureProviders(),
 		LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting"),
 	})
 
