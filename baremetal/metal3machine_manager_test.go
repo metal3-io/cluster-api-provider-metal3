@@ -2971,28 +2971,28 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 		},
-		Entry("No Spec", testCaseM3MetaData{
+		Entry("Should return nil if No Spec available", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, nil, nil),
 		}),
-		Entry("MetaData and NetworkData set in spec", testCaseM3MetaData{
+		Entry("MetaData and NetworkData should be set in spec", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				MetaData:    &corev1.SecretReference{Name: "abcd"},
 				NetworkData: &corev1.SecretReference{Name: "defg"},
 			}, nil, nil),
 		}),
-		Entry("RenderedData set in status", testCaseM3MetaData{
+		Entry("RenderedData should be set in status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd"},
 			}, nil),
 		}),
-		Entry("DataClaim does not exist yet", testCaseM3MetaData{
+		Entry("Should expect DataClaim if it does not exist yet", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine:     newMachine("myName", "myName", nil),
 			expectClaim: true,
 		}),
-		Entry("DataClaim exists", testCaseM3MetaData{
+		Entry("Should not be an error if DataClaim exists", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
@@ -3012,7 +3012,15 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			expectClaim: true,
 		}),
-		Entry("DataClaim ready", testCaseM3MetaData{
+		Entry("Should not be an error if DataClaim is empty", testCaseM3MetaData{
+			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
+				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+			}, nil, nil),
+			Machine:     newMachine("myName", "myName", nil),
+			DataClaim:   &capm3.Metal3DataClaim{},
+			expectClaim: true,
+		}),
+		Entry("Should expect claim if DataClaim ready", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
@@ -3096,18 +3104,18 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(tc.M3Machine.Status.NetworkData).To(BeNil())
 			}
 		},
-		Entry("No Spec", testCaseM3MetaData{
+		Entry("Should return nil if Data Spec is empty", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, nil, nil),
 			Machine:   nil,
 		}),
-		Entry("No Data template", testCaseM3MetaData{
+		Entry("Should requeue if there is no Data template", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
 			Machine:       newMachine("myName", "myName", nil),
 			ExpectRequeue: true,
 		}),
-		Entry("Data claim without status", testCaseM3MetaData{
+		Entry("Should requeue if Data claim without status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
@@ -3120,7 +3128,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			ExpectRequeue: true,
 		}),
-		Entry("Data claim with empty status", testCaseM3MetaData{
+		Entry("Shoudl requeue if Data claim with empty status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
@@ -3136,7 +3144,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			ExpectRequeue: true,
 		}),
-		Entry("Data does not exist", testCaseM3MetaData{
+		Entry("Should requeue if Data does not exist", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
@@ -3162,7 +3170,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectRequeue:    true,
 			ExpectDataStatus: true,
 		}),
-		Entry("M3M status set, Data does not exist", testCaseM3MetaData{
+		Entry("Should requeue if M3M status set but Data does not exist", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
 			}, nil),
@@ -3170,7 +3178,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectRequeue:    true,
 			ExpectDataStatus: true,
 		}),
-		Entry("Data not ready", testCaseM3MetaData{
+		Entry("Should requeue if Data is not ready", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
 			}, nil),
@@ -3184,7 +3192,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectRequeue:    true,
 			ExpectDataStatus: true,
 		}),
-		Entry("Data ready, no secrets", testCaseM3MetaData{
+		Entry("Should not error if Data is ready but no secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
 			}, nil),
@@ -3201,7 +3209,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectDataStatus:   true,
 			ExpectSecretStatus: true,
 		}),
-		Entry("Data ready with secrets", testCaseM3MetaData{
+		Entry("Should not error if Data is ready with secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
 			}, nil),
@@ -3274,14 +3282,14 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsNotFound(err)).To(BeTrue())
 		},
-		Entry("No Spec", testCaseM3MetaData{
+		Entry("Should return nil if No Spec", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
 				MetaData:    &corev1.SecretReference{Name: "abcd"},
 				NetworkData: &corev1.SecretReference{Name: "defg"},
 			}, nil),
 			Machine: newMachine("myName", "myName", nil),
 		}),
-		Entry("MetaData and NetworkData set in spec and status", testCaseM3MetaData{
+		Entry("MetaData and NetworkData should be set in spec and status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				MetaData:    &corev1.SecretReference{Name: "abcd"},
 				NetworkData: &corev1.SecretReference{Name: "defg"},
@@ -3292,7 +3300,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Machine:            newMachine("myName", "myName", nil),
 			ExpectSecretStatus: true,
 		}),
-		Entry("DataClaim not found", testCaseM3MetaData{
+		Entry("Should return nil if DataClaim not found", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name:      "abc",
@@ -3301,7 +3309,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
 		}),
-		Entry("DataClaim found", testCaseM3MetaData{
+		Entry("Should not error if DataClaim found", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name:      "abcd",
@@ -3316,6 +3324,186 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 		}),
+		Entry("Should return nil if DataClaim is empty", testCaseM3MetaData{
+			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name:      "abc",
+					Namespace: "myns",
+				},
+			}, nil, nil),
+			Machine:   newMachine("myName", "myName", nil),
+			DataClaim: &capm3.Metal3DataClaim{},
+		}),
+	)
+
+	type testCaseNodeReuseLabelMatches struct {
+		Machine                  *capi.Machine
+		Host                     *bmh.BareMetalHost
+		expectNodeReuseLabelName string
+		expectNodeReuseLabel     bool
+		expectMatch              bool
+	}
+	DescribeTable("Test NodeReuseLabelMatches",
+		func(tc testCaseNodeReuseLabelMatches) {
+			objects := []client.Object{}
+			if tc.Machine != nil {
+				objects = append(objects, tc.Machine)
+			}
+			if tc.Host != nil {
+				objects = append(objects, tc.Host)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+
+			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
+				nil, logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			check := machineMgr.nodeReuseLabelMatches(context.TODO(), tc.Host)
+			if tc.expectNodeReuseLabel {
+				Expect(tc.Host.Labels[nodeReuseLabelName]).To(Equal(tc.expectNodeReuseLabelName))
+			}
+			if tc.expectMatch {
+				Expect(check).To(BeTrue())
+			} else {
+				Expect(check).To(BeFalse())
+			}
+		},
+		Entry("Should return false if host is nil", testCaseNodeReuseLabelMatches{
+			Host:        nil,
+			expectMatch: false,
+		}),
+		Entry("Should return false if host labels is nil", testCaseNodeReuseLabelMatches{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: nil,
+				},
+			},
+			expectMatch: false,
+		}),
+		Entry("Should match, if machine is controlplane  and nodeReuseLabelName matches KubeadmControlPlane name on the host", testCaseNodeReuseLabelMatches{
+			Machine: &capi.Machine{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: ctplanev1.GroupVersion.String(),
+							Kind:       "KubeadmControlPlane",
+							Name:       "test1",
+						},
+					},
+					Labels: map[string]string{
+						capi.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "kcp-test1",
+					Labels: map[string]string{
+						nodeReuseLabelName: "kcp-test1",
+						"foo":              "bar",
+					},
+				},
+			},
+			expectNodeReuseLabel:     true,
+			expectNodeReuseLabelName: "kcp-test1",
+			expectMatch:              true,
+		}),
+		Entry("Should return false if nodeReuseLabelName is empty for host", testCaseNodeReuseLabelMatches{
+			Machine: &capi.Machine{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: ctplanev1.GroupVersion.String(),
+							Kind:       "KubeadmControlPlane",
+							Name:       "test1",
+						},
+					},
+					Labels: map[string]string{
+						capi.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "kcp-test1",
+					Labels: map[string]string{
+						nodeReuseLabelName: "",
+					},
+				},
+			},
+			expectNodeReuseLabel: false,
+			expectMatch:          false,
+		}),
+		Entry("Should return false if nodeReuseLabelName on the host does not match with KubeadmControlPlane name", testCaseNodeReuseLabelMatches{
+			Machine: &capi.Machine{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: ctplanev1.GroupVersion.String(),
+							Kind:       "KubeadmControlPlane",
+							Name:       "test1",
+						},
+					},
+					Labels: map[string]string{
+						capi.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "kcp-test1",
+					Labels: map[string]string{
+						nodeReuseLabelName: "abc",
+					},
+				},
+			},
+			expectNodeReuseLabel: false,
+			expectMatch:          false,
+		}),
+		Entry("Should return false if nodeReuseLabelName on host is empty and machine is not owned by KubeadmControlPlane", testCaseNodeReuseLabelMatches{
+			Machine: &capi.Machine{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						capi.MachineControlPlaneLabelName: "",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "md-test1",
+					Labels: map[string]string{
+						nodeReuseLabelName: "",
+					},
+				},
+			},
+			expectNodeReuseLabel: false,
+			expectMatch:          false,
+		}),
+		Entry("Should return false if nodeReuseLabelName on the host does not match with MachineDeployment name", testCaseNodeReuseLabelMatches{
+			Machine: &capi.Machine{
+				TypeMeta: metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						capi.MachineDeploymentLabelName: "cluster.x-k8s.io/deployment-name",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "md-test1",
+					Labels: map[string]string{
+						nodeReuseLabelName: "abc",
+					},
+				},
+			},
+			expectNodeReuseLabel: false,
+			expectMatch:          false,
+		}),
 	)
 
 	type testCaseNodeReuseLabelExists struct {
@@ -3324,7 +3512,11 @@ var _ = Describe("Metal3Machine manager", func() {
 	}
 	DescribeTable("Test NodeReuseLabelExists",
 		func(tc testCaseNodeReuseLabelExists) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
+			objects := []client.Object{}
+			if tc.Host != nil {
+				objects = append(objects, tc.Host)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil,
 				nil, logr.Discard(),
@@ -3354,6 +3546,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{},
+				},
+			},
+			expectNodeReuseLabel: false,
+		}),
+		Entry("Should return false if host is nil", testCaseNodeReuseLabelExists{
+			Host:                 nil,
+			expectNodeReuseLabel: false,
+		}),
+		Entry("Should return false if host Labels is nil", testCaseNodeReuseLabelExists{
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: nil,
 				},
 			},
 			expectNodeReuseLabel: false,
@@ -3431,6 +3635,18 @@ var _ = Describe("Metal3Machine manager", func() {
 							Name:       "test1",
 						},
 					},
+				},
+			},
+			expectError: true,
+		}),
+		Entry("Should not find the expected kcp and error when machine is nil", testCaseGetKubeadmControlPlaneName{
+			Machine:     nil,
+			expectError: true,
+		}),
+		Entry("Should give an error if Machine.ObjectMeta.OwnerReferences is nil", testCaseGetKubeadmControlPlaneName{
+			Machine: &capi.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: nil,
 				},
 			},
 			expectError: true,
@@ -3591,6 +3807,38 @@ var _ = Describe("Metal3Machine manager", func() {
 									Name:       "test1",
 								},
 							},
+						},
+					},
+					{
+						TypeMeta: metav1.TypeMeta{},
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "test2",
+						},
+					},
+				},
+			},
+			expectedMachineSet: nil,
+			expectError:        true,
+			expectedMD:         false,
+			expectedMDName:     "",
+		}),
+		Entry("Should not find the expected MachineDeployment name, MachineSet OwnerRef is empty", testCaseGetMachineDeploymentName{
+			Machine: machineOwnedByMachineSet(),
+			MachineSetList: &capi.MachineSetList{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: capi.GroupVersion.String(),
+					Kind:       "MachineSetList",
+				},
+				ListMeta: metav1.ListMeta{},
+				Items: []capi.MachineSet{
+					{
+						TypeMeta: metav1.TypeMeta{
+							APIVersion: capi.GroupVersion.String(),
+							Kind:       "MachineSet",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            "ms-test1",
+							OwnerReferences: []metav1.OwnerReference{},
 						},
 					},
 					{
