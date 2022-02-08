@@ -302,11 +302,6 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		ManagerFactoryInterface
 
 	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha4 \
-		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-
-	$(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha5 \
 		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
