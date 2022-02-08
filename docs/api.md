@@ -61,7 +61,7 @@ spec:
       cidrBlocks:
       - 192.168.0.0/18
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: Metal3Cluster
     name: m3cluster
     namespace: metal3
@@ -87,7 +87,7 @@ the cluster on Baremetal. It currently has two specification fields :
 Example metal3cluster :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3Cluster
 metadata:
   name: m3cluster
@@ -116,7 +116,7 @@ metadata:
 spec:
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: Metal3MachineTemplate
       name: m3cluster-controlplane
       namespace: metal3
@@ -236,7 +236,7 @@ spec:
       name: controlplane-0
       namespace: metal3
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: Metal3Machine
     name: controlplane-0
     namespace: metal3
@@ -407,7 +407,7 @@ spec:
 ### Metal3Machine example
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3Machine
 metadata:
   name: controlplane-0
@@ -474,7 +474,7 @@ spec:
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
       version: v1.23.3
 ```
@@ -537,7 +537,7 @@ When `spec.nodeReuse` field of metal3MachineTemplate is set to `True`, CAPM3 Mac
 Example Metal3MachineTemplate :
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3MachineTemplate
 metadata:
   name: m3mt-0
@@ -566,13 +566,13 @@ spec:
 ## Metal3DataTemplate
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3DataTemplate
 metadata:
   name: nodepool-1
   namespace: default
   ownerReferences:
-  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     controller: true
     kind: Metal3Cluster
     name: cluster-1
@@ -917,13 +917,13 @@ created from the old template object to the new one which uses the
 A new object would be created, a Metal3DataClaim type.
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3DataClaim
 metadata:
   name: machine-1
   namespace: default
   ownerReferences:
-  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     controller: true
     kind: Metal3Machine
     name: machine-1
@@ -949,13 +949,13 @@ Metal3DataTemplate object and the associated secrets
 The Metal3Data object would be:
 
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3Data
 metadata:
   name: nodepool-1-0
   namespace: default
   ownerReferences:
-  - apiVersion: infrastructure.cluster.x-k8s.io/v1alpha5
+  - apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     controller: true
     kind: Metal3DataTemplate
     name: nodepool-1
