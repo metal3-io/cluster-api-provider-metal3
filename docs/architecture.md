@@ -58,7 +58,7 @@ is performed on a specified number of fields on each CR. i.e. A controller
 Cluster, User provided Configuration
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: test1
@@ -78,7 +78,7 @@ spec:
 Cluster, after reconciliation
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: test1
@@ -136,7 +136,7 @@ metadata:
   |----------------------------------------------------------------------------|
   |# ownerReferences refers to the linked Cluster and is added by 'CAPM3'      |
   |ownerReferences:                                                            |
-  |- apiVersion: cluster.x-k8s.io/v1alpha4                                     |
+  |- apiVersion: cluster.x-k8s.io/v1beta1                                     |
   |  kind: Cluster                                                             |
   |  name: test1                                                               |
   |  uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d                                 |
@@ -158,7 +158,7 @@ status:
 Machine, User provided Configuration
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Machine
 metadata:
   name: test1-controlplane-0
@@ -169,7 +169,7 @@ spec:
   version: v1.17.0
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
       kind: KubeadmConfig
       name: test1-controlplane-0
   infrastructureRef:
@@ -181,7 +181,7 @@ spec:
 Machine, after reconciliation
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Machine
 metadata:
   labels:
@@ -190,14 +190,14 @@ metadata:
   name: test1-controlplane-0
   namespace: metal3
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha4
+  - apiVersion: cluster.x-k8s.io/v1beta1
     kind: Cluster
     name: test1
     uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d
 spec:
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
       kind: KubeadmConfig
       name: test1-controlplane-0
   |----------------------------------------------------------------------------|
@@ -254,7 +254,7 @@ metadata:
   namespace: metal3
   # ownerReferences refers to the linked Machine and is added by 'CAPM3'
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha4
+  - apiVersion: cluster.x-k8s.io/v1beta1
     kind: Machine
     name: test1-controlplane-0
 spec:
@@ -360,7 +360,7 @@ status:
 KubeadmConfig, user provided Configuration
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfig
 metadata:
   name: test1-controlplane-0
@@ -378,13 +378,13 @@ spec:
 KubeadmConfig, after reconciliation
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfig
 metadata:
   name: test1-controlplane-0
   namespace: metal3
   ownerReferences:
-  - apiVersion: cluster.x-k8s.io/v1alpha4
+  - apiVersion: cluster.x-k8s.io/v1beta1
     kind: Machine
     name: test1-controlplane-0
 spec:

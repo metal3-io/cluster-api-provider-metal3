@@ -47,7 +47,7 @@ A Cluster is a Cluster API core object representing a Kubernetes cluster.
 Example cluster:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
   name: cluster
@@ -67,7 +67,7 @@ spec:
     namespace: metal3
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     name: m3cluster-controlplane
     namespace: metal3
 ```
@@ -109,7 +109,7 @@ For example:
 
 ```yaml
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: m3cluster-controlplane
   namespace: metal3
@@ -163,7 +163,7 @@ object (see below).
 Example KubeadmConfig:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfig
 metadata:
   name: controlplane-0
@@ -220,7 +220,7 @@ has a reference to a KubeadmConfig and a reference to a metal3machine.
 Example Machine:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: Machine
 metadata:
   name: controlplane-0
@@ -231,7 +231,7 @@ metadata:
 spec:
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
       kind: KubeadmConfig
       name: controlplane-0
       namespace: metal3
@@ -441,7 +441,7 @@ Metal3MachineTemplate.
 Example MachineDeployment:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1alpha4
+apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineDeployment
 metadata:
   name: md-0
@@ -470,7 +470,7 @@ spec:
       bootstrap:
         configRef:
           name: md-0
-          apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: md-0
@@ -486,7 +486,7 @@ This contains a template to generate KubeadmConfig.
 Example KubeadmConfigTemplate:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
   name: controlplane-0
