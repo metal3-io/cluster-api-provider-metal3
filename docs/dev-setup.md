@@ -8,7 +8,7 @@ during development.
 ### Install kustomize
 
 ```bash
-./hack/tools/install_kustomize.sh
+./hack/ensure-kustomize.sh
 ```
 
 ### Install kubebuilder

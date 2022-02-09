@@ -187,8 +187,8 @@ $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kubebuilder.sh
 
 .PHONY: $(KUSTOMIZE)
-$(KUSTOMIZE): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); ./install_kustomize.sh
+$(KUSTOMIZE): # Download kustomize using hack script into tools folder.
+	hack/ensure-kustomize.sh
 
 $(ENVSUBST): ## Build envsubst from tools folder.
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*

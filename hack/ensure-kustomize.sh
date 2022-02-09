@@ -18,21 +18,28 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-GOPATH_BIN="$(go env GOPATH)/bin/"
-MINIMUM_KUSTOMIZE_VERSION=v3.5.5
+KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+BIN_ROOT="${KUBE_ROOT}/hack/tools/bin"
+MINIMUM_KUSTOMIZE_VERSION=4.4.1
+
+goarch="$(go env GOARCH)"
+goos="$(go env GOOS)"
 
 # Ensure the kustomize tool exists and is a viable version, or installs it
 verify_kustomize_version() {
 
   # If kustomize is not available on the path, get it
-  if ! [ -x "$(command -v kustomize)" ]; then
+  if ! [ -x "$(command -v "$BIN_ROOT"/kustomize)" ]; then
     if [[ "${OSTYPE}" == "linux-gnu" ]]; then
       echo 'kustomize not found, installing'
-      if ! [ -d "${GOPATH_BIN}" ]; then
-        mkdir -p "${GOPATH_BIN}"
+      if ! [ -d "${BIN_ROOT}" ]; then
+        mkdir -p "${BIN_ROOT}"
       fi
-      curl --fail -SsL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F${MINIMUM_KUSTOMIZE_VERSION}/kustomize_${MINIMUM_KUSTOMIZE_VERSION}_linux_amd64.tar.gz | tar -xz -C "${GOPATH_BIN}"
-      chmod +x "${GOPATH_BIN}/kustomize"
+      archive_name="kustomize-v${MINIMUM_KUSTOMIZE_VERSION}.tar.gz"
+      curl -sLo "${BIN_ROOT}/${archive_name}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${goos}_${goarch}.tar.gz"
+      tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
+      chmod +x "${BIN_ROOT}/kustomize"
+      rm "${BIN_ROOT}/${archive_name}"
     else
       echo "Missing required binary in path: kustomize"
       return 2
@@ -40,7 +47,7 @@ verify_kustomize_version() {
   fi
 
   local kustomize_version
-  kustomize_version=$(kustomize version)
+  kustomize_version=$("$BIN_ROOT"/kustomize version)
   if [[ "${MINIMUM_KUSTOMIZE_VERSION}" != $(echo -e "${MINIMUM_KUSTOMIZE_VERSION}\n${kustomize_version}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
     cat <<EOF
 Detected kustomize version: ${kustomize_version}.
