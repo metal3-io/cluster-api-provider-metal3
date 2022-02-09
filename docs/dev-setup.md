@@ -54,6 +54,15 @@ Then start Tilt:
 make tilt-up
 ```
 
+The Tilt dashboard can be accessed at <http://127.0.0.1:10350>. If tilt is running remotely, it can be accessed using ssh tunneling. An example of ```~/.ssh/config```  is show below.
+
+```bash
+Host tiltvm
+  HostName <SERVER_IP>
+  LocalForward 10350 127.0.0.1:10350
+  User ubuntu
+```
+
 Changes in the go code will trigger an update of the images running to run the
 latest code of CAPM3.
 
