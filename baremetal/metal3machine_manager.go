@@ -484,6 +484,11 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	// clear an error if one was previously set
 	m.clearError()
 
+	if Capm3FastTrack == "" {
+		Capm3FastTrack = "false"
+		m.Log.Info("Capm3FastTrack is not set, setting it to default value false")
+	}
+
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
 		return err
@@ -549,10 +554,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		//		metadata				true 			turn on
 
 		onlineStatus := host.Spec.Online
-		if Capm3FastTrack == "" {
-			Capm3FastTrack = "false"
-			m.Log.Info("Capm3FastTrack is not set, setting it to default value false")
-		}
+
 		if host.Spec.AutomatedCleaningMode == "disabled" {
 			host.Spec.Online = false
 		} else if Capm3FastTrack == "true" {

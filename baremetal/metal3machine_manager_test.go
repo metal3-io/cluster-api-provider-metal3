@@ -145,6 +145,7 @@ func bmhSpec() *bmh.BareMetalHostSpec {
 		Image: &bmh.Image{
 			URL: "myimage",
 		},
+		Online: true,
 	}
 }
 
@@ -174,6 +175,7 @@ func bmhSpecSomeImg() *bmh.BareMetalHostSpec {
 		MetaData:    &corev1.SecretReference{},
 		NetworkData: &corev1.SecretReference{},
 		UserData:    &corev1.SecretReference{},
+		Online:      true,
 	}
 }
 
@@ -1426,7 +1428,6 @@ var _ = Describe("Metal3Machine manager", func() {
 		NodeReuseEnabled                bool
 		MachineIsControlPlane           bool
 		MachineIsNotControlPlane        bool
-		CheckBMHOnlineStatus            bool
 		ExpectedBMHOnlineStatus         bool
 		capm3fasttrack                  string
 	}
@@ -1443,9 +1444,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.BMCSecret != nil {
 				objects = append(objects, tc.BMCSecret)
 			}
-			if tc.CheckBMHOnlineStatus {
-				Capm3FastTrack = tc.capm3fasttrack
-			}
+
+			Capm3FastTrack = tc.capm3fasttrack
 
 			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 
@@ -1561,7 +1561,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(m3mTemplate.Spec.NodeReuse).To(BeTrue())
 			}
-			if tc.CheckBMHOnlineStatus {
+
+			if tc.Host != nil {
 				savedbmh := bmh.BareMetalHost{}
 				err = fakeClient.Get(context.TODO(),
 					client.ObjectKey{
@@ -1571,9 +1572,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					&savedbmh,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				if tc.capm3fasttrack != "" {
-					Expect(Capm3FastTrack).To(Equal(tc.capm3fasttrack))
-				} else if tc.capm3fasttrack == "" {
+				if tc.capm3fasttrack == "" {
 					Expect(Capm3FastTrack).To(Equal("false"))
 				}
 				Expect(savedbmh.Spec.Online).To(Equal(tc.ExpectedBMHOnlineStatus))
@@ -1587,9 +1586,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedConsumerRef: consumerRef(),
-			ExpectedResult:      &RequeueAfterError{},
-			Secret:              newSecret(),
+			ExpectedConsumerRef:     consumerRef(),
+			ExpectedResult:          &RequeueAfterError{},
+			Secret:                  newSecret(),
+			ExpectedBMHOnlineStatus: false,
 		}),
 		Entry("No Host status, deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(), bmh.StateNone,
@@ -1599,9 +1599,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedConsumerRef: consumerRef(),
-			ExpectedResult:      &RequeueAfterError{},
-			Secret:              newSecret(),
+			ExpectedConsumerRef:     consumerRef(),
+			ExpectedResult:          &RequeueAfterError{},
+			Secret:                  newSecret(),
+			ExpectedBMHOnlineStatus: false,
 		}),
 		Entry("No Host status, no deprovisioning needed", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
@@ -1714,8 +1715,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
 					m3mObjectMetaWithValidAnnotations(),
 				),
-				ExpectedConsumerRef: consumerRefSome(),
-				Secret:              newSecret(),
+				ExpectedConsumerRef:     consumerRefSome(),
+				Secret:                  newSecret(),
+				ExpectedBMHOnlineStatus: true,
 			},
 		),
 		Entry("No consumer ref, so this is a no-op", testCaseDelete{
@@ -1797,8 +1799,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatusNil(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			Secret:              newSecret(),
-			ExpectedConsumerRef: consumerRefSome(),
+			Secret:                  newSecret(),
+			ExpectedConsumerRef:     consumerRefSome(),
+			capm3fasttrack:          "false",
+			ExpectedBMHOnlineStatus: true,
 		}),
 		Entry("Capm3FastTrack is set to false, AutomatedCleaning mode is set to metadata, set bmh online field to false", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
@@ -1811,7 +1815,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "false",
-			CheckBMHOnlineStatus:    true,
 			ExpectedBMHOnlineStatus: false,
 		}),
 		Entry("Capm3FastTrack is set to true, AutomatedCleaning mode is set to metadata, set bmh online field to true", testCaseDelete{
@@ -1825,7 +1828,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "true",
-			CheckBMHOnlineStatus:    true,
 			ExpectedBMHOnlineStatus: true,
 		}),
 		Entry("Capm3FastTrack is set to false, AutomatedCleaning mode is set to disabled, set bmh online field to false", testCaseDelete{
@@ -1839,7 +1841,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "false",
-			CheckBMHOnlineStatus:    true,
 			ExpectedBMHOnlineStatus: false,
 		}),
 		Entry("Capm3FastTrack is set to true, AutomatedCleaning mode is set to disabled, set bmh online field to false", testCaseDelete{
@@ -1853,7 +1854,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "true",
 			Secret:                  newSecret(),
-			CheckBMHOnlineStatus:    true,
 			ExpectedBMHOnlineStatus: false,
 		}),
 		Entry("Capm3FastTrack is empty, AutomatedCleaning mode is set to disabled, set bmh online field to false", testCaseDelete{
@@ -1867,7 +1867,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
-			CheckBMHOnlineStatus:    true,
 			ExpectedBMHOnlineStatus: false,
 		}),
 		Entry("Capm3FastTrack is empty, AutomatedCleaning mode is set to metadata, set bmh online field to false", testCaseDelete{
@@ -1881,7 +1880,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
-			CheckBMHOnlineStatus:    true,
 			ExpectedBMHOnlineStatus: false,
 		}),
 	)

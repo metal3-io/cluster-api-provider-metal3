@@ -62,7 +62,6 @@ var (
 	healthAddr                  string
 	watchNamespace              string
 	watchFilterValue            string
-	capm3fastTrack              string
 )
 
 func init() {
@@ -206,13 +205,6 @@ func initFlags(fs *pflag.FlagSet) {
 		"health-addr",
 		":9440",
 		"The address the health endpoint binds to.",
-	)
-
-	flag.StringVar(
-		&capm3fastTrack,
-		"Capm3FastTrack",
-		baremetal.Capm3FastTrack,
-		"The value of Capm3FastTrack env variable.",
 	)
 }
 
