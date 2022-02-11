@@ -648,8 +648,10 @@ github.com/mattn/go-shellwords v1.0.3/go.mod h1:3xCvwCdWdlDJUrvuMn7Wuy9eWs4pE8vq
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 h1:I0XW9+e1XWDxdcEniV4rQAIOPUGDq67JSCiRCgGCZLI=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99 h1:kbichnyFyUKAAlkOq9cwV+zFwJAeuaND/NBzeNxqvJ8=
-github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99/go.mod h1:/pror7LknTgduckyCOm/EhnjFKIZy3mXQHr2GdaQ3kQ=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20220209171559-d3bcdd79e511 h1:oQdS5x9VXBh6bPjROofSdQoUOmtL1kLeAyUTBRmdHxk=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20220209171559-d3bcdd79e511/go.mod h1:Kyik+ziiZLez6p4ZUwT0iO6T8F7YygaHVhCBx//KhLI=
+github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511 h1:+DOZI8DuQEH1wtwsqIcdX/vcZhExpUY5xH/+nBqAwps=
+github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511/go.mod h1:/PSTQInIZmfuOmAp/pSgZAs4txs6T49woC0MYIa4QzE=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20211018090204-6be1b3878f19 h1:nj2hnlMGQN8yXRBdCYYCbMd8PL1um94h3soT6qvmdDE=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20211018090204-6be1b3878f19/go.mod h1:UYLOC6zRN+8WM/3WtCvO2WvqNp+W6HI42L1VPkbzQFc=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
