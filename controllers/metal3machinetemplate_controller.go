@@ -21,15 +21,21 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
+	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
 	templateControllerName = "Metal3MachineTemplate-controller"
+	clonedFromGroupKind    = capi.TemplateClonedFromGroupKindAnnotation
+	clonedFromName         = capi.TemplateClonedFromNameAnnotation
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -113,6 +119,30 @@ func (r *Metal3MachineTemplateReconciler) reconcileNormal(ctx context.Context,
 func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3MachineTemplate{}).
+		Watches(
+			&source.Kind{Type: &capm3.Metal3Machine{}},
+			handler.EnqueueRequestsFromMapFunc(r.Metal3MachinesToMetal3MachineTemplate),
+		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
+}
+
+func (m *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(o client.Object) []ctrl.Request {
+	result := []ctrl.Request{}
+	if m3m, ok := o.(*capm3.Metal3Machine); ok {
+		if m3m.Annotations[clonedFromGroupKind] == "" && m3m.Annotations[clonedFromGroupKind] != "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io" {
+			return nil
+		}
+		result = append(result, ctrl.Request{
+			NamespacedName: types.NamespacedName{
+				Name:      m3m.Annotations[clonedFromName],
+				Namespace: m3m.Namespace,
+			},
+		})
+	} else {
+		m.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o),
+			"failed to get Metal3Machine for Metal3MachineTemplate",
+		)
+	}
+	return result
 }
