@@ -18,9 +18,9 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v1.1.0
+  - name: v1.1.1
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/core-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.1/core-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -31,9 +31,9 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v1.1.0
+  - name: v1.1.1
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/bootstrap-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.1/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -44,9 +44,9 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v1.1.0
+  - name: v1.1.1
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/control-plane-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.1/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -57,8 +57,8 @@ providers:
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: v1.0.0
-    value: "file://${HOME}/.cluster-api/overrides/infrastructure-metal3/v1.0.0/infrastructure-components.yaml"
+  - name: v1.1.0
+    value: "file://${HOME}/.cluster-api/overrides/infrastructure-metal3/v1.1.0/infrastructure-components.yaml"
     type: "url"
     contract: v1beta1
     files:
