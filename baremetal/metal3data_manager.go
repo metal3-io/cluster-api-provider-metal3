@@ -143,12 +143,13 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return err
 	}
 	if m3m == nil {
-		return errors.New("Unexpected error getching Metal3Machine")
+		return errors.New("Unexpected error getting Metal3Machine")
 	}
 	m.Log.Info("Fetched Metal3Machine")
 
 	// If the MetaData is given as part of Metal3DataTemplate
 	if m3dt.Spec.MetaData != nil {
+		m.Log.Info("Metadata is part of Metal3DataTemplate")
 		// If the secret name is unset, set it
 		if m.Data.Spec.MetaData == nil || m.Data.Spec.MetaData.Name == "" {
 			m.Data.Spec.MetaData = &corev1.SecretReference{
@@ -174,6 +175,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 
 	// If the NetworkData is given as part of Metal3DataTemplate
 	if m3dt.Spec.NetworkData != nil {
+		m.Log.Info("NetworkData is part of Metal3DataTemplate")
 		// If the secret name is unset, set it
 		if m.Data.Spec.NetworkData == nil || m.Data.Spec.NetworkData.Name == "" {
 			m.Data.Spec.NetworkData = &corev1.SecretReference{
@@ -323,6 +325,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	addresses := make(map[string]addressFromPool)
 	if m3dt.Spec.MetaData != nil {
 		for _, pool := range m3dt.Spec.MetaData.IPAddressesFromPool {
+			m.Log.Info("Fetch IPAddresses from IPPool", "Pool Name", pool.Name)
+			m.Log.Info("IP Addresses", "IP Address", pool.Key)
 			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
 			requeue = requeue || itemRequeue
 			if err != nil {
@@ -330,6 +334,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			}
 		}
 		for _, pool := range m3dt.Spec.MetaData.PrefixesFromPool {
+			m.Log.Info("Fetch Prefixes from IPPool ", "Pool Name", pool.Name)
+			m.Log.Info("Prefixes", "Prefix", pool.Key)
 			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
 			requeue = requeue || itemRequeue
 			if err != nil {
@@ -337,6 +343,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			}
 		}
 		for _, pool := range m3dt.Spec.MetaData.GatewaysFromPool {
+			m.Log.Info("Fetch Gateways from IPPool ", "Pool Name", pool.Name)
+			m.Log.Info("Gateways", "Gateway", pool.Key)
 			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
 			requeue = requeue || itemRequeue
 			if err != nil {
@@ -344,6 +352,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			}
 		}
 		for _, pool := range m3dt.Spec.MetaData.DNSServersFromPool {
+			m.Log.Info("Fetch DNSServers from IPPool ", "Pool Name", pool.Name)
+			m.Log.Info("DNSServers ", "DNSServer", pool.Key)
 			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
 			requeue = requeue || itemRequeue
 			if err != nil {
@@ -353,6 +363,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	}
 	if m3dt.Spec.NetworkData != nil {
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
+			m.Log.Info("Fetch network data from IPPool for IPv4", "Pool Name", network.IPAddressFromIPPool)
 			addresses, itemRequeue, err = m.getAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
 			requeue = requeue || itemRequeue
 			if err != nil {
@@ -361,6 +372,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			// network.IPAddressFromIPPool
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
+					m.Log.Info("Fetch Route Gateway from IPPool for IPv4", "Pool Name", route.Gateway.FromIPPool)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -368,6 +380,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 					}
 				}
 				if route.Services.DNSFromIPPool != nil {
+					m.Log.Info("Fetch DNS from IPPool for IPv4", "Pool Name", route.Services.DNSFromIPPool)
+					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -378,6 +392,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 		}
 
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6 {
+			m.Log.Info("Fetch network data from IPPool for IPv6", "IPPool", network.IPAddressFromIPPool)
 			addresses, itemRequeue, err = m.getAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
 			requeue = requeue || itemRequeue
 			if err != nil {
@@ -385,6 +400,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			}
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
+					m.Log.Info("Fetch Route Gateway from IPPool for IPv6", "Pool Name", route.Gateway.FromIPPool)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -392,6 +408,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 					}
 				}
 				if route.Services.DNSFromIPPool != nil {
+					m.Log.Info("Fetch DNS from IPPool for IPv6", "Pool Name", route.Services.DNSFromIPPool)
+					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -404,6 +422,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4DHCP {
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
+					m.Log.Info("Fetch Route Gateway from IPPool for IPv4DHCP", "Pool Name", route.Gateway.FromIPPool)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -411,6 +430,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 					}
 				}
 				if route.Services.DNSFromIPPool != nil {
+					m.Log.Info("Fetch DNS from IPPool for IPv4DHCP", "Pool Name", route.Services.DNSFromIPPool)
+					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -423,6 +444,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6DHCP {
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
+					m.Log.Info("Fetch Network Gateway from IPPool for IPv6DHCP", "Pool Name", route.Gateway.FromIPPool)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -430,6 +452,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 					}
 				}
 				if route.Services.DNSFromIPPool != nil {
+					m.Log.Info("Fetch DNS from IPPool for IPv6DHCP", "Pool Name", route.Services.DNSFromIPPool)
+					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -442,6 +466,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6SLAAC {
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
+					m.Log.Info("Fetch Gateway from IPPool for IPv6SLAAC", "Pool Name", route.Gateway.FromIPPool)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -449,6 +474,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 					}
 				}
 				if route.Services.DNSFromIPPool != nil {
+					m.Log.Info("Fetch DNS from IPPool for IPv6SAAC", "Pool Name", route.Services.DNSFromIPPool)
+					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
 					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
 					requeue = requeue || itemRequeue
 					if err != nil {
@@ -458,6 +485,8 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			}
 		}
 		if m3dt.Spec.NetworkData.Services.DNSFromIPPool != nil {
+			m.Log.Info("Fetch DNS from IPPool")
+			m.Log.Info("DNS Entries", "DNS", m3dt.Spec.NetworkData.Services.DNS)
 			addresses, itemRequeue, err = m.getAddressFromPool(ctx, *m3dt.Spec.NetworkData.Services.DNSFromIPPool, addresses)
 			requeue = requeue || itemRequeue
 			if err != nil {
