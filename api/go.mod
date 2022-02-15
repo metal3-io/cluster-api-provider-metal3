@@ -63,3 +63,5 @@ require (
 )
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.1
+
+replace github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
