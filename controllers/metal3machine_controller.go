@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -98,7 +98,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			machineLog.Error(err, "failed to Patch metal3Machine")
 		}
 	}()
-	//clear an error if one was previously set
+	// clear an error if one was previously set
 	clearErrorM3Machine(capm3Machine)
 
 	// Fetch the Machine.
@@ -127,7 +127,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Make sure infrastructure is ready
 	if !cluster.Status.InfrastructureReady {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
-		conditions.MarkFalse(capm3Machine, capm3.AssociateBMHCondition, capm3.WaitingForClusterInfrastructureReason, capi.ConditionSeverityInfo, "")
+		conditions.MarkFalse(capm3Machine, capm3.AssociateBMHCondition, capm3.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -192,8 +192,8 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []capi.ConditionType{
-			capi.ReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
 			capm3.AssociateBMHCondition,
 			capm3.KubernetesNodeReadyCondition,
 		}},
@@ -219,7 +219,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
 	if !machineMgr.IsBootstrapReady() {
-		machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.WaitingForBootstrapReadyReason, capi.ConditionSeverityInfo, "")
+		machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.WaitingForBootstrapReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -227,10 +227,10 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 
 	// Check if the metal3machine was associated with a baremetalhost
 	if !machineMgr.HasAnnotation() {
-		//Associate the baremetalhost hosting the machine
+		// Associate the baremetalhost hosting the machine
 		err := machineMgr.Associate(ctx)
 		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, capi.ConditionSeverityError, err.Error())
+			machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to associate the Metal3Machine to a BaremetalHost", errType,
 			)
@@ -258,7 +258,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if bmhID == nil {
 		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
 		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.MissingBMHReason, capi.ConditionSeverityError, err.Error())
+			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.MissingBMHReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to get the providerID for the metal3machine", errType,
 			)
@@ -271,7 +271,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		// Set the providerID on the node if no Cloud provider
 		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
 		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.SettingProviderIDOnNodeFailedReason, capi.ConditionSeverityError, err.Error())
+			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to set the target node providerID", errType,
 			)
@@ -314,11 +314,11 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		For(&capm3.Metal3Machine{}).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &capi.Machine{}},
+			&source.Kind{Type: &clusterv1.Machine{}},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(capm3.GroupVersion.WithKind("Metal3Machine"))),
 		).
 		Watches(
-			&source.Kind{Type: &capi.Cluster{}},
+			&source.Kind{Type: &clusterv1.Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToMetal3Machines),
 		).
 		Watches(
@@ -344,7 +344,7 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 // requests for reconciliation of Metal3Machines.
 func (r *Metal3MachineReconciler) ClusterToMetal3Machines(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.(*capi.Cluster)
+	c, ok := o.(*clusterv1.Cluster)
 
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o),
@@ -353,8 +353,8 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(o client.Object) []ctr
 		return nil
 	}
 
-	labels := map[string]string{capi.ClusterLabelName: c.Name}
-	capiMachineList := &capi.MachineList{}
+	labels := map[string]string{clusterv1.ClusterLabelName: c.Name}
+	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace),
 		client.MatchingLabels(labels),
 	); err != nil {
@@ -397,8 +397,8 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o client.Object)
 		return result
 	}
 
-	labels := map[string]string{capi.ClusterLabelName: cluster.Name}
-	capiMachineList := &capi.MachineList{}
+	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Metal3Machines")
 		return nil

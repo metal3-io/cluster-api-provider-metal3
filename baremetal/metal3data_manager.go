@@ -35,7 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -127,7 +127,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[capi.ClusterLabelName],
+		m.Log, m.Data.Labels[clusterv1.ClusterLabelName],
 	)
 	if err != nil {
 		return err
@@ -251,7 +251,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return err
 		}
 		if err := createSecret(ctx, m.client, m.Data.Spec.MetaData.Name,
-			m.Data.Namespace, m3dt.Labels[capi.ClusterLabelName],
+			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterLabelName],
 			ownerRefs, map[string][]byte{"metaData": metadata},
 		); err != nil {
 			return err
@@ -266,7 +266,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return err
 		}
 		if err := createSecret(ctx, m.client, m.Data.Spec.NetworkData.Name,
-			m.Data.Namespace, m3dt.Labels[capi.ClusterLabelName],
+			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterLabelName],
 			ownerRefs, map[string][]byte{"networkData": networkData},
 		); err != nil {
 			return err
@@ -288,7 +288,7 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[capi.ClusterLabelName],
+		m.Log, m.Data.Labels[clusterv1.ClusterLabelName],
 	)
 	if err != nil {
 		return err
@@ -1093,7 +1093,7 @@ func getLinkMacAddress(mac *capm3.NetworkLinkEthernetMac, bmh *bmo.BareMetalHost
 
 // renderMetaData renders the MetaData items.
 func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
-	m3m *capm3.Metal3Machine, machine *capi.Machine, bmh *bmo.BareMetalHost,
+	m3m *capm3.Metal3Machine, machine *clusterv1.Machine, bmh *bmo.BareMetalHost,
 	poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.MetaData == nil {
@@ -1210,7 +1210,7 @@ func getBMHMacByName(name string, bmh *bmo.BareMetalHost) (string, error) {
 			return nics.MAC, nil
 		}
 	}
-	return "", errors.New(fmt.Sprintf("Nic name not found %v", name))
+	return "", fmt.Errorf("nic name not found %v", name)
 }
 
 func (m *DataManager) getM3Machine(ctx context.Context, m3dt *capm3.Metal3DataTemplate) (*capm3.Metal3Machine, error) {

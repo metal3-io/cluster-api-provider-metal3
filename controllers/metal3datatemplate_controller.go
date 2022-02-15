@@ -25,7 +25,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -87,7 +87,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}()
 
-	cluster := &capi.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	key := client.ObjectKey{
 		Name:      capm3DataTemplate.Spec.ClusterName,
 		Namespace: capm3DataTemplate.Namespace,

@@ -15,8 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
-	kcp "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -36,7 +36,7 @@ func LogFromFile(logFile string) {
 	Logf(string(data))
 }
 
-func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *capi.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
+func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := clusterProxy.GetClient()
 
@@ -70,7 +70,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 // downloadFile will download a url and store it in local filepath.
 func downloadFile(filepath string, url string) error {
 	// Get the data
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:noctx // NB: as we're just implementing an external interface we won't be able to get a context here.
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,7 @@ func filterBmhsByProvisioningState(bmhs []bmo.BareMetalHost, state bmo.Provision
 }
 
 // filterMachinesByPhase returns a filtered list of CAPI machine objects in certain desired phase.
-func filterMachinesByPhase(machines []capi.Machine, phase string) (result []capi.Machine) {
+func filterMachinesByPhase(machines []clusterv1.Machine, phase string) (result []clusterv1.Machine) {
 	for _, machine := range machines {
 		if machine.Status.Phase == phase {
 			result = append(result, machine)
@@ -154,7 +154,7 @@ func scaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 
 // scaleKubeadmControlPlane scales up/down KubeadmControlPlane object to desired replicas.
 func scaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int) {
-	ctrlplane := kcp.KubeadmControlPlane{}
+	ctrlplane := controlplanev1.KubeadmControlPlane{}
 	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
 	helper, err := patch.NewHelper(&ctrlplane, c)
 	Expect(err).To(BeNil(), "Failed to create new patch helper")

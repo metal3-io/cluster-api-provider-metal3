@@ -22,7 +22,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -34,8 +34,8 @@ import (
 
 const (
 	templateControllerName = "Metal3MachineTemplate-controller"
-	clonedFromGroupKind    = capi.TemplateClonedFromGroupKindAnnotation
-	clonedFromName         = capi.TemplateClonedFromNameAnnotation
+	clonedFromGroupKind    = clusterv1.TemplateClonedFromGroupKindAnnotation
+	clonedFromName         = clusterv1.TemplateClonedFromNameAnnotation
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,verbs=get;list;watch;create;update;patch;delete

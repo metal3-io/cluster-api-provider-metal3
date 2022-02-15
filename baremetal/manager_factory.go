@@ -19,17 +19,17 @@ package baremetal
 import (
 	"github.com/go-logr/logr"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ManagerFactoryInterface is a collection of new managers.
 type ManagerFactoryInterface interface {
-	NewClusterManager(cluster *capi.Cluster,
+	NewClusterManager(cluster *clusterv1.Cluster,
 		metal3Cluster *capm3.Metal3Cluster,
 		clusterLog logr.Logger,
 	) (ClusterManagerInterface, error)
-	NewMachineManager(*capi.Cluster, *capm3.Metal3Cluster, *capi.Machine,
+	NewMachineManager(*clusterv1.Cluster, *capm3.Metal3Cluster, *clusterv1.Machine,
 		*capm3.Metal3Machine, logr.Logger,
 	) (MachineManagerInterface, error)
 	NewDataTemplateManager(*capm3.Metal3DataTemplate, logr.Logger) (
@@ -42,7 +42,7 @@ type ManagerFactoryInterface interface {
 		capm3MachineList *capm3.Metal3MachineList,
 		metadataLog logr.Logger,
 	) (TemplateManagerInterface, error)
-	NewRemediationManager(*capm3.Metal3Remediation, *capm3.Metal3Machine, *capi.Machine, logr.Logger) (
+	NewRemediationManager(*capm3.Metal3Remediation, *capm3.Metal3Machine, *clusterv1.Machine, logr.Logger) (
 		RemediationManagerInterface, error,
 	)
 }
@@ -58,14 +58,14 @@ func NewManagerFactory(client client.Client) ManagerFactory {
 }
 
 // NewClusterManager creates a new ClusterManager.
-func (f ManagerFactory) NewClusterManager(cluster *capi.Cluster, capm3Cluster *capm3.Metal3Cluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
+func (f ManagerFactory) NewClusterManager(cluster *clusterv1.Cluster, capm3Cluster *capm3.Metal3Cluster, clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	return NewClusterManager(f.client, cluster, capm3Cluster, clusterLog)
 }
 
 // NewMachineManager creates a new MachineManager.
-func (f ManagerFactory) NewMachineManager(capiCluster *capi.Cluster,
+func (f ManagerFactory) NewMachineManager(capiCluster *clusterv1.Cluster,
 	capm3Cluster *capm3.Metal3Cluster,
-	capiMachine *capi.Machine, capm3Machine *capm3.Metal3Machine,
+	capiMachine *clusterv1.Machine, capm3Machine *capm3.Metal3Machine,
 	machineLog logr.Logger) (MachineManagerInterface, error) {
 	return NewMachineManager(f.client, capiCluster, capm3Cluster, capiMachine,
 		capm3Machine, machineLog)
@@ -90,7 +90,7 @@ func (f ManagerFactory) NewMachineTemplateManager(capm3Template *capm3.Metal3Mac
 
 // NewRemediationManager creates a new RemediationManager.
 func (f ManagerFactory) NewRemediationManager(remediation *capm3.Metal3Remediation,
-	metal3machine *capm3.Metal3Machine, machine *capi.Machine,
+	metal3machine *capm3.Metal3Machine, machine *clusterv1.Machine,
 	remediationLog logr.Logger) (RemediationManagerInterface, error) {
 	return NewRemediationManager(f.client, remediation, metal3machine, machine, remediationLog)
 }

@@ -12,9 +12,9 @@ import (
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
@@ -77,7 +77,7 @@ func remediation() {
 	annotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
 	waitForVmsState([]string{vmName}, shutoff, specName)
 	waitForVmsState([]string{vmName}, running, specName)
-	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: defaultNamespace, Name: workerNodeName}, v1.ConditionTrue, specName)
+	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: defaultNamespace, Name: workerNodeName}, corev1.ConditionTrue, specName)
 
 	By("Power cycling worker node")
 	powerCycle(ctx, bootstrapClient, targetClient, bmhToMachineSlice{{
@@ -178,7 +178,7 @@ func remediation() {
 
 	By("Waiting for all Machines to be Running")
 	Eventually(func(g Gomega) error {
-		machines := capi.MachineList{}
+		machines := clusterv1.MachineList{}
 		g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 		return nil
@@ -234,13 +234,13 @@ func remediation() {
 	Expect(bootstrapClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")
 
 	By("Pointing MachineDeployment to the new Metal3MachineTemplate")
-	deployment := capi.MachineDeployment{}
+	deployment := clusterv1.MachineDeployment{}
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: clusterName}, &deployment)).To(Succeed())
 
 	helper, err := patch.NewHelper(&deployment, bootstrapClient)
 	Expect(err).NotTo(HaveOccurred())
 
-	deployment.Spec.Template.Spec.InfrastructureRef = v1.ObjectReference{
+	deployment.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
 		Kind:       "Metal3MachineTemplate",
 		APIVersion: e2eConfig.GetVariable("APIVersion"),
 		Name:       newM3MachineTemplateName,
@@ -281,7 +281,7 @@ func remediation() {
 
 	Byf("Waiting for all %d machines to be Running", allMachinesCount)
 	Eventually(func(g Gomega) {
-		machines := capi.MachineList{}
+		machines := clusterv1.MachineList{}
 		g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
@@ -423,7 +423,7 @@ func waitForVmsState(vmNames []string, state vmState, specName string) {
 	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(ContainElements(vmNames))
 }
 
-func monitorNodesStatus(ctx context.Context, g Gomega, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
+func monitorNodesStatus(ctx context.Context, g Gomega, c client.Client, namespace string, names []string, status corev1.ConditionStatus, specName string) {
 	Byf("Ensuring Nodes %v consistently have ready=%s status", names, status)
 	g.Consistently(
 		func() error {
@@ -436,24 +436,23 @@ func monitorNodesStatus(ctx context.Context, g Gomega, c client.Client, namespac
 		}, e2eConfig.GetIntervals(specName, "monitor-vm-state")...).Should(Succeed())
 }
 
-func assertNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status v1.ConditionStatus) error {
-	node := &v1.Node{}
+func assertNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status corev1.ConditionStatus) error {
+	node := &corev1.Node{}
 	if err := client.Get(ctx, name, node); err != nil {
 		return err
 	}
 	for _, condition := range node.Status.Conditions {
-		if condition.Type == v1.NodeReady {
+		if condition.Type == corev1.NodeReady {
 			if status == condition.Status {
 				return nil
-			} else {
-				return fmt.Errorf("Node %s has status '%s', should have '%s'", name.Name, condition.Status, status)
 			}
+			return fmt.Errorf("Node %s has status '%s', should have '%s'", name.Name, condition.Status, status)
 		}
 	}
 	return fmt.Errorf("Node %s missing condition \"Ready\"", name.Name)
 }
 
-func waitForNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status v1.ConditionStatus, specName string) {
+func waitForNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status corev1.ConditionStatus, specName string) {
 	Byf("Waiting for Node '%s' to have ready=%s status", name, status)
 	Eventually(
 		func() error { return assertNodeStatus(ctx, client, name, status) },
@@ -479,12 +478,12 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 
 	waitForVmsState(machines.getVMNames(), running, specName)
 	for _, nodeName := range machines.getNodeNames() {
-		waitForNodeStatus(ctx, workloadClient, client.ObjectKey{Namespace: defaultNamespace, Name: nodeName}, v1.ConditionTrue, specName)
+		waitForNodeStatus(ctx, workloadClient, client.ObjectKey{Namespace: defaultNamespace, Name: nodeName}, corev1.ConditionTrue, specName)
 	}
 
 	By("waiting for nodes to consistently have Ready status")
 	Eventually(func(g Gomega) {
-		monitorNodesStatus(ctx, g, workloadClient, defaultNamespace, machines.getNodeNames(), v1.ConditionTrue, specName)
+		monitorNodesStatus(ctx, g, workloadClient, defaultNamespace, machines.getNodeNames(), corev1.ConditionTrue, specName)
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 }
 
@@ -498,7 +497,7 @@ func cleanObjectMeta(om *metav1.ObjectMeta) {
 }
 
 // Get the machine object given its object name.
-func getMachine(ctx context.Context, c client.Client, name client.ObjectKey) (result capi.Machine) {
+func getMachine(ctx context.Context, c client.Client, name client.ObjectKey) (result clusterv1.Machine) {
 	Expect(c.Get(ctx, name, &result)).To(Succeed())
 	return
 }

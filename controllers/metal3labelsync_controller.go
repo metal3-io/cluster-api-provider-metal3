@@ -34,7 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	k8strings "k8s.io/utils/strings"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -146,7 +146,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Fetch the Cluster
-	cluster := &capi.Cluster{}
+	cluster := &clusterv1.Cluster{}
 	clusterKey := client.ObjectKey{
 		Name:      capiMachine.Spec.ClusterName,
 		Namespace: capiMachine.Namespace,
@@ -200,7 +200,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 }
 
-func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmh.BareMetalHost, machine *capi.Machine, cluster *capi.Cluster, prefixSet map[string]struct{}) error {
+func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmh.BareMetalHost, machine *clusterv1.Machine, cluster *clusterv1.Cluster, prefixSet map[string]struct{}) error {
 	hostLabelSyncSet := buildLabelSyncSet(prefixSet, host.Labels)
 	// Get the Node from the workload cluster
 	corev1Remote, err := r.CapiClientGetter(ctx, r.Client, cluster)
@@ -286,8 +286,8 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Objec
 		return nil
 	}
 
-	labels := map[string]string{capi.ClusterLabelName: cluster.Name}
-	capiMachineList := &capi.MachineList{}
+	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Machines")
 		return nil
@@ -337,11 +337,11 @@ func parsePrefixAnnotation(prefixStr string) (map[string]struct{}, error) {
 	prefixSet := make(map[string]struct{})
 	for _, prefix := range entries {
 		prefix = strings.TrimSpace(prefix)
-		if len(prefix) == 0 {
+		if prefix == "" {
 			// ignore empty prefix string (e.g. `, ,`)
 			continue
 		} else if err := IsDNS1123Subdomain(prefix); err != nil {
-			return nil, errors.New(fmt.Sprintf("invalid prefix (%v): %v", prefix, err))
+			return nil, fmt.Errorf("invalid prefix (%v): %w", prefix, err)
 		}
 		prefixSet[prefix] = struct{}{}
 	}
@@ -363,7 +363,7 @@ var dns1123SubdomainRegexp = regexp.MustCompile("^" + dns1123SubdomainFmt + "$")
 // subdomain in DNS (RFC 1123).
 func IsDNS1123Subdomain(value string) error {
 	if len(value) > DNS1123SubdomainMaxLength {
-		return errors.New(fmt.Sprintf("%v must be no more than %d characters", value, DNS1123SubdomainMaxLength))
+		return fmt.Errorf("%v must be no more than %d characters", value, DNS1123SubdomainMaxLength)
 	}
 	if !dns1123SubdomainRegexp.MatchString(value) {
 		return errors.New(RegexError(dns1123SubdomainErrorMsg, dns1123SubdomainFmt, "example.com"))

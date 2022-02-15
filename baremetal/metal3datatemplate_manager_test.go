@@ -29,7 +29,7 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -65,7 +65,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	)
 
 	type testCaseSetClusterOwnerRef struct {
-		cluster     *capi.Cluster
+		cluster     *clusterv1.Cluster
 		template    *capm3.Metal3DataTemplate
 		expectError bool
 	}
@@ -95,7 +95,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Name: "abc",
 				},
 			},
-			cluster: &capi.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc-cluster",
 				},
@@ -112,7 +112,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			cluster: &capi.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc-cluster",
 				},
@@ -132,7 +132,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			cluster: &capi.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "abc-cluster",
 				},

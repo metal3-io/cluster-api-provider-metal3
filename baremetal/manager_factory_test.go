@@ -22,7 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -42,7 +42,7 @@ var _ = Describe("Manager factory testing", func() {
 	})
 
 	It("returns a cluster manager", func() {
-		_, err := managerFactory.NewClusterManager(&capi.Cluster{},
+		_, err := managerFactory.NewClusterManager(&clusterv1.Cluster{},
 			&capm3.Metal3Cluster{}, clusterLog,
 		)
 		Expect(err).NotTo(HaveOccurred())
@@ -56,15 +56,15 @@ var _ = Describe("Manager factory testing", func() {
 	})
 
 	It("fails to return a cluster manager with nil m3cluster", func() {
-		_, err := managerFactory.NewClusterManager(&capi.Cluster{}, nil,
+		_, err := managerFactory.NewClusterManager(&clusterv1.Cluster{}, nil,
 			clusterLog,
 		)
 		Expect(err).To(HaveOccurred())
 	})
 
 	It("returns a metal3 machine manager", func() {
-		_, err := managerFactory.NewMachineManager(&capi.Cluster{},
-			&capm3.Metal3Cluster{}, &capi.Machine{}, &capm3.Metal3Machine{},
+		_, err := managerFactory.NewMachineManager(&clusterv1.Cluster{},
+			&capm3.Metal3Cluster{}, &clusterv1.Machine{}, &capm3.Metal3Machine{},
 			clusterLog,
 		)
 		Expect(err).NotTo(HaveOccurred())
@@ -86,7 +86,7 @@ var _ = Describe("Manager factory testing", func() {
 	})
 
 	It("returns a Remediation manager", func() {
-		_, err := managerFactory.NewRemediationManager(&capm3.Metal3Remediation{}, &capm3.Metal3Machine{}, &capi.Machine{}, clusterLog)
+		_, err := managerFactory.NewRemediationManager(&capm3.Metal3Remediation{}, &capm3.Metal3Machine{}, &clusterv1.Machine{}, clusterLog)
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

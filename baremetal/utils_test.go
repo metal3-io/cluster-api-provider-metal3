@@ -34,7 +34,7 @@ import (
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -410,7 +410,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedSecret.ObjectMeta.Labels).To(Equal(map[string]string{
-				capi.ClusterLabelName: "ghi",
+				clusterv1.ClusterLabelName: "ghi",
 			}))
 			Expect(savedSecret.ObjectMeta.OwnerReferences).To(Equal(ownerRef))
 			Expect(savedSecret.Data).To(Equal(content))

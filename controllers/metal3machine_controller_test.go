@@ -35,7 +35,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -77,7 +77,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	m.EXPECT().IsBootstrapReady().Return(!tc.BootstrapNotReady)
 	if tc.BootstrapNotReady {
 		m.EXPECT().SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition,
-			capm3.WaitingForBootstrapReadyReason, capi.ConditionSeverityInfo, "")
+			capm3.WaitingForBootstrapReadyReason, clusterv1.ConditionSeverityInfo, "")
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
 		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
@@ -92,7 +92,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if associate fails, we do not go further
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
-			m.EXPECT().SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, capi.ConditionSeverityError, gomock.Any())
+			m.EXPECT().SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, clusterv1.ConditionSeverityError, gomock.Any())
 			m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 			m.EXPECT().Update(context.TODO()).MaxTimes(0)
 			m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
@@ -115,7 +115,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		)
 		m.EXPECT().SetProviderID(bmhuid).MaxTimes(0)
 		m.EXPECT().SetError(gomock.Any(), gomock.Any())
-		m.EXPECT().SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.MissingBMHReason, capi.ConditionSeverityError, gomock.Any())
+		m.EXPECT().SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.MissingBMHReason, clusterv1.ConditionSeverityError, gomock.Any())
 		return m
 	}
 
@@ -141,7 +141,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			m.EXPECT().SetProviderID(string(bmhuid)).MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			m.EXPECT().SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition,
-				capm3.SettingProviderIDOnNodeFailedReason, capi.ConditionSeverityError, gomock.Any())
+				capm3.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, gomock.Any())
 			return m
 		}
 
@@ -343,11 +343,11 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type TestCaseMetal3ClusterToM3M struct {
-		Cluster       *capi.Cluster
+		Cluster       *clusterv1.Cluster
 		M3Cluster     *capm3.Metal3Cluster
-		Machine0      *capi.Machine
-		Machine1      *capi.Machine
-		Machine2      *capi.Machine
+		Machine0      *clusterv1.Machine
+		Machine1      *clusterv1.Machine
+		Machine2      *clusterv1.Machine
 		ExpectRequest bool
 	}
 
@@ -385,7 +385,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
 			}
 		},
-		//Given correct resources, metal3Machines reconcile
+		// Given correct resources, metal3Machines reconcile
 		Entry("Metal3Cluster To Metal3Machines, associated Metal3Machine Reconcile",
 			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
@@ -396,7 +396,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequest: true,
 			},
 		),
-		//No owner cluster, no reconciliation
+		// No owner cluster, no reconciliation
 		Entry("Metal3Cluster To Metal3Machines, No owner Cluster, No reconciliation",
 			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster("my-other-cluster", nil, nil),
@@ -407,7 +407,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequest: false,
 			},
 		),
-		//No metal3 cluster, no reconciliation
+		// No metal3 cluster, no reconciliation
 		Entry("Metal3Cluster To Metal3Machines, No metal3Cluster, No reconciliation",
 			TestCaseMetal3ClusterToM3M{
 				Cluster:       newCluster("my-other-cluster", nil, nil),
@@ -445,7 +445,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			}
 		},
-		//Given machine, but no metal3machine resource
+		// Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines",
 			TestCaseBMHToM3M{
 				Host: &bmh.BareMetalHost{
@@ -465,7 +465,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequest: true,
 			},
 		),
-		//Given machine, but no metal3machine resource
+		// Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines, no ConsumerRef",
 			TestCaseBMHToM3M{
 				Host: &bmh.BareMetalHost{
@@ -563,10 +563,10 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type TestCaseClusterToM3M struct {
-		Cluster       *capi.Cluster
-		Machine       *capi.Machine
-		Machine1      *capi.Machine
-		Machine2      *capi.Machine
+		Cluster       *clusterv1.Cluster
+		Machine       *clusterv1.Machine
+		Machine1      *clusterv1.Machine
+		Machine2      *clusterv1.Machine
 		M3Machine     *capm3.Metal3Machine
 		ExpectRequest bool
 	}
@@ -592,14 +592,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				err := fakeClient.Get(context.TODO(), reqs[0].NamespacedName, &req)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(req.Labels[capi.ClusterLabelName]).To(Equal(tc.Cluster.Name),
-					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[capi.ClusterLabelName])
+				Expect(req.Labels[clusterv1.ClusterLabelName]).To(Equal(tc.Cluster.Name),
+					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[clusterv1.ClusterLabelName])
 			} else {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
 
 			}
 		},
-		//Given Cluster, Machine with metal3machine resource, metal3Machine reconcile
+		// Given Cluster, Machine with metal3machine resource, metal3Machine reconcile
 		Entry("Cluster To Metal3Machines, associated Machine Reconciles",
 			TestCaseClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),
@@ -610,7 +610,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 		),
 
-		//Given Cluster, Machine without metal3Machine resource, no reconciliation
+		// Given Cluster, Machine without metal3Machine resource, no reconciliation
 		Entry("Cluster To Metal3Machines, no metal3Machine, no Reconciliation",
 			TestCaseClusterToM3M{
 				Cluster:       newCluster(clusterName, nil, nil),

@@ -28,7 +28,7 @@ import (
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -49,14 +49,14 @@ type ClusterManagerInterface interface {
 type ClusterManager struct {
 	client client.Client
 
-	Cluster       *capi.Cluster
+	Cluster       *clusterv1.Cluster
 	Metal3Cluster *capm3.Metal3Cluster
 	Log           logr.Logger
 	// name string
 }
 
 // NewClusterManager returns a new helper for managing a cluster with a given name.
-func NewClusterManager(client client.Client, cluster *capi.Cluster,
+func NewClusterManager(client client.Client, cluster *clusterv1.Cluster,
 	metal3Cluster *capm3.Metal3Cluster,
 	clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	if metal3Cluster == nil {
@@ -110,7 +110,7 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 
 // ControlPlaneEndpoint returns cluster controlplane endpoint.
 func (s *ClusterManager) ControlPlaneEndpoint() ([]capm3.APIEndpoint, error) {
-	//Get IP address from spec, which gets it from posted cr yaml.
+	// Get IP address from spec, which gets it from posted cr yaml.
 	endPoint := s.Metal3Cluster.Spec.ControlPlaneEndpoint
 	var err error
 
@@ -140,7 +140,7 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	if err != nil {
 		s.Metal3Cluster.Status.Ready = false
 		s.setError("Invalid ControlPlaneEndpoint values", capierrors.InvalidConfigurationClusterError)
-		conditions.MarkFalse(s.Metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.ControlPlaneEndpointFailedReason, capi.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.Metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.ControlPlaneEndpointFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 
@@ -193,8 +193,8 @@ func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
 
 // listDescendants returns a list of all Machines, for the cluster owning the
 // metal3Cluster.
-func (s *ClusterManager) listDescendants(ctx context.Context) (capi.MachineList, error) {
-	machines := capi.MachineList{}
+func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1.MachineList, error) {
+	machines := clusterv1.MachineList{}
 	cluster, err := util.GetOwnerCluster(ctx, s.client,
 		s.Metal3Cluster.ObjectMeta,
 	)
@@ -205,7 +205,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (capi.MachineList,
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels(map[string]string{
-			capi.ClusterLabelName: cluster.Name,
+			clusterv1.ClusterLabelName: cluster.Name,
 		}),
 	}
 

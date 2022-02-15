@@ -33,7 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -296,9 +296,9 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}),
 	)
 	type TestCaseMetal3ClusterToBMHs struct {
-		Cluster        *capi.Cluster
+		Cluster        *clusterv1.Cluster
 		M3Cluster      *capm3.Metal3Cluster
-		Machine        *capi.Machine
+		Machine        *clusterv1.Machine
 		M3Machine      *capm3.Metal3Machine
 		ExpectRequests []ctrl.Request
 	}
@@ -365,7 +365,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			"metal3.io/incorrect-metal3-label-sync-prefixes": "incorrect",
 		}
 		nodeName := "testNode"
-		cluserCapiSpec := capi.ClusterSpec{
+		cluserCapiSpec := clusterv1.ClusterSpec{
 			Paused: true,
 			InfrastructureRef: &corev1.ObjectReference{
 				Name:       metal3ClusterName,
@@ -376,9 +376,9 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}
 		type testCaseReconcile struct {
 			host            *bmh.BareMetalHost
-			machine         *capi.Machine
+			machine         *clusterv1.Machine
 			metal3Machine   *capm3.Metal3Machine
-			cluster         *capi.Cluster
+			cluster         *clusterv1.Cluster
 			metal3Cluster   *capm3.Metal3Cluster
 			expectError     bool
 			expectRequeue   bool
@@ -414,7 +414,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 					Client:         fakeClient,
 					ManagerFactory: baremetal.NewManagerFactory(fakeClient),
 					Log:            logr.Discard(),
-					CapiClientGetter: func(ctx context.Context, client client.Client, cluster *capi.Cluster) (
+					CapiClientGetter: func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
 						clientcorev1.CoreV1Interface, error,
 					) {
 						return corev1Client, nil
@@ -525,8 +525,8 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		type TestCaseReconcileBMHLabels struct {
 			PrefixSet   map[string]struct{}
 			Host        *bmh.BareMetalHost
-			Machine     *capi.Machine
-			Cluster     *capi.Cluster
+			Machine     *clusterv1.Machine
+			Cluster     *clusterv1.Cluster
 			ExpectError bool
 		}
 
@@ -545,7 +545,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 					Client:         fakeClient,
 					ManagerFactory: baremetal.NewManagerFactory(fakeClient),
 					Log:            logr.Discard(),
-					CapiClientGetter: func(ctx context.Context, client client.Client, cluster *capi.Cluster) (
+					CapiClientGetter: func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
 						clientcorev1.CoreV1Interface, error,
 					) {
 						return corev1Client, nil
@@ -579,7 +579,7 @@ func m3mObjectMeta() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
-			capi.ClusterLabelName: clusterName,
+			clusterv1.ClusterLabelName: clusterName,
 		},
 		Annotations: map[string]string{
 			baremetal.HostAnnotation: "myns/myhost",

@@ -33,7 +33,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -49,7 +49,7 @@ var (
 		Name:      "abc",
 		Namespace: "myns",
 		Labels: map[string]string{
-			capi.ClusterLabelName: "abc",
+			clusterv1.ClusterLabelName: "abc",
 		},
 	}
 )
@@ -63,7 +63,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue        bool
 			expectManager        bool
 			m3d                  *capm3.Metal3Data
-			cluster              *capi.Cluster
+			cluster              *clusterv1.Cluster
 			managerError         bool
 			reconcileNormal      bool
 			reconcileNormalError bool
@@ -159,7 +159,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      "abc",
 						Namespace: "myns",
 						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
+							clusterv1.ClusterLabelName: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 					},
@@ -172,7 +172,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      "abc",
 						Namespace: "myns",
 						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
+							clusterv1.ClusterLabelName: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 					},
@@ -187,7 +187,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      "abc",
 						Namespace: "myns",
 						Labels: map[string]string{
-							capi.ClusterLabelName: "abc",
+							clusterv1.ClusterLabelName: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 					},
@@ -200,9 +200,9 @@ var _ = Describe("Metal3Data manager", func() {
 				m3d: &capm3.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
-				cluster: &capi.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: testObjectMeta,
-					Spec: capi.ClusterSpec{
+					Spec: clusterv1.ClusterSpec{
 						Paused: true,
 					},
 				},
@@ -212,7 +212,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m3d: &capm3.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
-				cluster: &capi.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: testObjectMeta,
 				},
 				managerError: true,
@@ -221,7 +221,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m3d: &capm3.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
-				cluster: &capi.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: testObjectMeta,
 				},
 				reconcileNormal:      true,
@@ -232,7 +232,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m3d: &capm3.Metal3Data{
 					ObjectMeta: testObjectMetaWithLabel,
 				},
-				cluster: &capi.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: testObjectMeta,
 				},
 				reconcileNormal: true,

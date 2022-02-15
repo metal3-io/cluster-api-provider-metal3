@@ -34,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -168,7 +168,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3dt                *capm3.Metal3DataTemplate
 		m3m                 *capm3.Metal3Machine
 		dataClaim           *capm3.Metal3DataClaim
-		machine             *capi.Machine
+		machine             *clusterv1.Machine
 		bmh                 *bmo.BareMetalHost
 		metadataSecret      *corev1.Secret
 		networkdataSecret   *corev1.Secret
@@ -451,7 +451,7 @@ var _ = Describe("Metal3Data manager", func() {
 						{
 							Name:       "abc",
 							Kind:       "Machine",
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 					},
 					Annotations: map[string]string{
@@ -466,7 +466,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMetaWithOR,
 				Spec:       capm3.Metal3DataClaimSpec{},
 			},
-			machine: &capi.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: testObjectMeta,
 			},
 			bmh: &bmo.BareMetalHost{
@@ -566,7 +566,7 @@ var _ = Describe("Metal3Data manager", func() {
 						{
 							Name:       "abc",
 							Kind:       "Machine",
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 					},
 				},
@@ -574,7 +574,7 @@ var _ = Describe("Metal3Data manager", func() {
 					DataTemplate: testObjectReference,
 				},
 			},
-			machine: &capi.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: testObjectMeta,
 			},
 			dataClaim: &capm3.Metal3DataClaim{
@@ -2400,7 +2400,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3d              *capm3.Metal3Data
 		m3dt             *capm3.Metal3DataTemplate
 		m3m              *capm3.Metal3Machine
-		machine          *capi.Machine
+		machine          *clusterv1.Machine
 		bmh              *bmo.BareMetalHost
 		poolAddresses    map[string]addressFromPool
 		expectedMetaData map[string]string
@@ -2602,7 +2602,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			machine: &capi.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "machine-abc",
 					Labels: map[string]string{
