@@ -48,8 +48,6 @@ const (
 	capimachine   = "machine"
 )
 
-var reqAfter *RequeueAfterError
-
 // DataManagerInterface is an interface for a DataManager.
 type DataManagerInterface interface {
 	SetFinalizer()
@@ -108,7 +106,7 @@ func (m *DataManager) Reconcile(ctx context.Context) error {
 	m.clearError(ctx)
 
 	if err := m.createSecrets(ctx); err != nil {
-		if ok := errors.As(err, &reqAfter); ok {
+		if ok := errors.As(err, &hasRequeueAfterError); ok {
 			return err
 		}
 		m.setError(ctx, errors.Cause(err).Error())
@@ -653,7 +651,7 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		m.Data.Namespace,
 	)
 	if err != nil {
-		if ok := errors.As(err, &reqAfter); !ok {
+		if ok := errors.As(err, &hasRequeueAfterError); !ok {
 			return addresses, false, err
 		}
 		// Create the claim
@@ -682,7 +680,7 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 
 		err = createObject(ctx, m.client, ipClaim)
 		if err != nil {
-			if ok := errors.As(err, &reqAfter); !ok {
+			if ok := errors.As(err, &hasRequeueAfterError); !ok {
 				return addresses, false, err
 			}
 		}
@@ -746,7 +744,7 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName strin
 		m.Data.Namespace,
 	)
 	if err != nil {
-		if ok := errors.As(err, &reqAfter); !ok {
+		if ok := errors.As(err, &hasRequeueAfterError); !ok {
 			return addresses, false, err
 		}
 		addresses[poolName] = true

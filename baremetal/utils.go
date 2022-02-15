@@ -75,7 +75,6 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object)
 		notFound := true
 		var aggr kerrors.Aggregate
 		if ok := errors.As(err, &aggr); ok {
-			// if aggr, ok := err.(kerrors.Aggregate); ok {
 			for _, kerr := range aggr.Errors() {
 				if !apierrors.IsNotFound(kerr) {
 					notFound = false

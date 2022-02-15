@@ -35,8 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var notFoundErr *NotFoundError
-
 // DataTemplateManagerInterface is an interface for a DataTemplateManager.
 type DataTemplateManagerInterface interface {
 	SetFinalizer()
@@ -357,8 +355,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	// HasRequeueAfterError), then requeue to retrigger the reconciliation with
 	// the new state
 	if err := createObject(ctx, m.client, dataObject); err != nil {
-		var reqAfter *RequeueAfterError
-		if ok := errors.As(err, &reqAfter); !ok {
+		if ok := errors.As(err, &requeueAfterError); !ok {
 			dataClaim.Status.ErrorMessage = pointer.StringPtr("Failed to create associated Metal3Data object")
 		}
 		return indexes, err

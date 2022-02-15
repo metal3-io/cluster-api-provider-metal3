@@ -198,9 +198,8 @@ func checkRequeueError(err error, errMessage string) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
-	var hasReq baremetal.HasRequeueAfterError
-	if ok := errors.As(err, &hasReq); ok {
-		return ctrl.Result{Requeue: true, RequeueAfter: hasReq.GetRequeueAfter()}, nil
+	if ok := errors.As(err, &hasRequeueAfterError); ok {
+		return ctrl.Result{Requeue: true, RequeueAfter: hasRequeueAfterError.GetRequeueAfter()}, nil
 	}
 	return ctrl.Result{}, errors.Wrap(err, errMessage)
 }

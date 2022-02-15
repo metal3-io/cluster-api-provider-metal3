@@ -72,9 +72,10 @@ const (
 
 var (
 	// Capm3FastTrack is the variable fetched from the CAPM3_FAST_TRACK environment variable.
-	Capm3FastTrack = os.Getenv("CAPM3_FAST_TRACK")
-	// MachineManagerInterface is an interface for a MachineManager.
-	hasRequeueAfterError *RequeueAfterError
+	Capm3FastTrack       = os.Getenv("CAPM3_FAST_TRACK")
+	hasRequeueAfterError HasRequeueAfterError
+	notFoundErr          *NotFoundError
+	requeueAfterError    *RequeueAfterError
 )
 
 // MachineManagerInterface is an interface for a MachineManager.

@@ -46,6 +46,8 @@ const (
 	machineControllerName = "Metal3Machine-controller"
 )
 
+var hasRequeueAfterError baremetal.HasRequeueAfterError
+
 // Metal3MachineReconciler reconciles a Metal3Machine object.
 type Metal3MachineReconciler struct {
 	Client           client.Client
@@ -525,9 +527,8 @@ func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
-	var hasReq baremetal.HasRequeueAfterError
-	if ok := errors.As(err, &hasReq); ok {
-		return ctrl.Result{Requeue: true, RequeueAfter: hasReq.GetRequeueAfter()}, nil
+	if ok := errors.As(err, &hasRequeueAfterError); ok {
+		return ctrl.Result{Requeue: true, RequeueAfter: hasRequeueAfterError.GetRequeueAfter()}, nil
 	}
 	machineMgr.SetError(errMessage, errType)
 	return ctrl.Result{}, errors.Wrap(err, errMessage)

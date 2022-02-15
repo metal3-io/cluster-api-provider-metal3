@@ -1459,10 +1459,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectedResult == nil {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
-				var requeueAfterErr *RequeueAfterError
-				ok := errors.As(err, &requeueAfterErr)
+				ok := errors.As(err, &requeueAfterError)
 				Expect(ok).To(BeTrue())
-				Expect(requeueAfterErr.Error()).To(Equal(tc.ExpectedResult.Error()))
+				Expect(requeueAfterError.Error()).To(Equal(tc.ExpectedResult.Error()))
 			}
 
 			if tc.Host != nil {
