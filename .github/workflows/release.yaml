@@ -2,7 +2,7 @@ on:
   push:
     # Sequence of patterns matched against refs/tags
     tags:
-    - "v0.*.*"
+    - "v*"
 
 name: release
 
