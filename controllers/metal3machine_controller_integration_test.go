@@ -175,6 +175,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		CheckBootStrapReady        bool
 		CheckBMHostCleaned         bool
 		CheckBMHostProvisioned     bool
+		ExpectedOnlineStatus       bool
 	}
 
 	DescribeTable("Reconcile tests",
@@ -265,8 +266,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 			}
 			if tc.CheckBMHostCleaned {
 				Expect(testBMHost.Spec.Image).To(BeNil())
-				Expect(testBMHost.Spec.Online).To(BeFalse())
 				Expect(testBMHost.Spec.UserData).To(BeNil())
+				Expect(testBMHost.Spec.Online).To(Equal(tc.ExpectedOnlineStatus))
 			}
 			if tc.CheckBMHostProvisioned {
 				Expect(testBMHost.Spec.Image.URL).Should(BeEquivalentTo(testBMmachine.Spec.Image.URL))
@@ -778,7 +779,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 							Kind:       "Metal3Machine",
 							APIVersion: capm3.GroupVersion.String(),
 						},
-						Online: true,
+						Online:                true,
+						AutomatedCleaningMode: "metadata",
 					}, &bmh.BareMetalHostStatus{}, nil, false),
 				},
 				ErrorExpected:           false,
@@ -786,6 +788,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ExpectedRequeueDuration: time.Second * 0,
 				ClusterInfraReady:       true,
 				CheckBMHostCleaned:      true,
+				ExpectedOnlineStatus:    false,
 			},
 		),
 	)

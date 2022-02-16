@@ -4,5 +4,10 @@ kind: Kustomization
 resources:
   - manager.yaml
 
+configMapGenerator:
+- name: capm3fasttrack-configmap
+  literals:
+  - CAPM3_FAST_TRACK=${CAPM3_FAST_TRACK:='false'}
+
 generatorOptions:
  disableNameSuffixHash: true
