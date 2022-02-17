@@ -367,6 +367,7 @@ spec:
                             - qcow2
                             - vdi
                             - vmdk
+                            - live-iso
                             type: string
                           url:
                             description: URL is a location of an image to deploy.
@@ -575,6 +576,7 @@ spec:
                             - qcow2
                             - vdi
                             - vmdk
+                            - live-iso
                             type: string
                           url:
                             description: URL is a location of an image to deploy.
