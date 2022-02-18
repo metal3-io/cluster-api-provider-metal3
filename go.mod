@@ -11,7 +11,7 @@ require (
 	github.com/jinzhu/copier v0.3.2
 	github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0-20211015151901-0e880ce119c4
-	github.com/metal3-io/ip-address-manager/api v0.0.0-20220203134753-f57cb5214075
+	github.com/metal3-io/ip-address-manager/api v0.0.0-20220218143845-45c86dc10798
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.15.0
 	github.com/pkg/errors v0.9.1
