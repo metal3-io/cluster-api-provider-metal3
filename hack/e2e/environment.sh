@@ -43,9 +43,9 @@ export FORCE_REPO_UPDATE="false"
 os_check
 
 if [[ "${OS}" == ubuntu ]]; then
-    export IMAGE_OS=${IMAGE_OS:-"Ubuntu"}
+    export IMAGE_OS=${IMAGE_OS:-"ubuntu"}
 else
-    export IMAGE_OS=${IMAGE_OS:-"Centos"}
+    export IMAGE_OS=${IMAGE_OS:-"centos"}
 fi
 M3_DEV_ENV_PATH="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # shellcheck disable=SC1091
