@@ -20,7 +20,7 @@ import (
 	"context"
 	"strings"
 
-	// comment for go-lint
+	// comment for go-lint.
 	"github.com/go-logr/logr"
 
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	// metal3SecretType defines the type of secret created by metal3
+	// metal3SecretType defines the type of secret created by metal3.
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 )
 
@@ -60,11 +60,11 @@ func Contains(list []string, strToSearch string) bool {
 	return false
 }
 
-// NotFoundError represents that an object was not found
+// NotFoundError represents that an object was not found.
 type NotFoundError struct {
 }
 
-// Error implements the error interface
+// Error implements the error interface.
 func (e *NotFoundError) Error() string {
 	return "Object not found"
 }
@@ -73,7 +73,8 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object)
 	err := helper.Patch(ctx, host)
 	if err != nil {
 		notFound := true
-		if aggr, ok := err.(kerrors.Aggregate); ok {
+		var aggr kerrors.Aggregate
+		if ok := errors.As(err, &aggr); ok {
 			for _, kerr := range aggr.Errors() {
 				if !apierrors.IsNotFound(kerr) {
 					notFound = false
@@ -92,7 +93,7 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object)
 	return err
 }
 
-func updateObject(cl client.Client, ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+func updateObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.UpdateOption) error {
 	err := cl.Update(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsConflict(err) {
 		return &RequeueAfterError{}
@@ -100,7 +101,7 @@ func updateObject(cl client.Client, ctx context.Context, obj client.Object, opts
 	return err
 }
 
-func createObject(cl client.Client, ctx context.Context, obj client.Object, opts ...client.CreateOption) error {
+func createObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.CreateOption) error {
 	err := cl.Create(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsAlreadyExists(err) {
 		return &RequeueAfterError{}
@@ -108,7 +109,7 @@ func createObject(cl client.Client, ctx context.Context, obj client.Object, opts
 	return err
 }
 
-func deleteObject(cl client.Client, ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+func deleteObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.DeleteOption) error {
 	err := cl.Delete(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsNotFound(err) {
 		return nil
@@ -116,7 +117,7 @@ func deleteObject(cl client.Client, ctx context.Context, obj client.Object, opts
 	return err
 }
 
-func createSecret(cl client.Client, ctx context.Context, name string,
+func createSecret(ctx context.Context, cl client.Client, name string,
 	namespace string, clusterName string,
 	ownerRefs []metav1.OwnerReference, content map[string][]byte,
 ) error {
@@ -137,21 +138,21 @@ func createSecret(cl client.Client, ctx context.Context, name string,
 		Type: metal3SecretType,
 	}
 
-	secret, err := checkSecretExists(cl, ctx, name, namespace)
+	secret, err := checkSecretExists(ctx, cl, name, namespace)
 	if err == nil {
-		// Update the secret with user data
+		// Update the secret with user data.
 		secret.ObjectMeta.Labels = bootstrapSecret.ObjectMeta.Labels
 		secret.ObjectMeta.OwnerReferences = bootstrapSecret.ObjectMeta.OwnerReferences
 		bootstrapSecret.ObjectMeta = secret.ObjectMeta
-		return updateObject(cl, ctx, bootstrapSecret)
+		return updateObject(ctx, cl, bootstrapSecret)
 	} else if apierrors.IsNotFound(err) {
-		// Create the secret with user data
-		return createObject(cl, ctx, bootstrapSecret)
+		// Create the secret with user data.
+		return createObject(ctx, cl, bootstrapSecret)
 	}
 	return err
 }
 
-func checkSecretExists(cl client.Client, ctx context.Context, name string,
+func checkSecretExists(ctx context.Context, cl client.Client, name string,
 	namespace string,
 ) (corev1.Secret, error) {
 	tmpBootstrapSecret := corev1.Secret{}
@@ -163,21 +164,21 @@ func checkSecretExists(cl client.Client, ctx context.Context, name string,
 	return tmpBootstrapSecret, err
 }
 
-func deleteSecret(cl client.Client, ctx context.Context, name string,
+func deleteSecret(ctx context.Context, cl client.Client, name string,
 	namespace string,
 ) error {
-	tmpBootstrapSecret, err := checkSecretExists(cl, ctx, name, namespace)
+	tmpBootstrapSecret, err := checkSecretExists(ctx, cl, name, namespace)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	} else if err == nil {
 		//unset the finalizers (remove all since we do not expect anything else
-		// to control that object)
+		// to control that object).
 		tmpBootstrapSecret.Finalizers = []string{}
-		err = updateObject(cl, ctx, &tmpBootstrapSecret)
+		err = updateObject(ctx, cl, &tmpBootstrapSecret)
 		if err != nil {
 			return err
 		}
-		// Delete the secret with metadata
+		// Delete the secret with metadata.
 		err = cl.Delete(ctx, &tmpBootstrapSecret)
 		if err != nil && !apierrors.IsNotFound(err) {
 			return err
@@ -186,13 +187,12 @@ func deleteSecret(cl client.Client, ctx context.Context, name string,
 	return nil
 }
 
-// fetchMetadata fetches the Metal3DataTemplate object
+// fetchMetadata fetches the Metal3DataTemplate object.
 func fetchM3DataTemplate(ctx context.Context,
 	templateRef *corev1.ObjectReference, cl client.Client, mLog logr.Logger,
 	clusterName string,
 ) (*capm3.Metal3DataTemplate, error) {
-
-	// If the user did not specify a DataTemplate, just keep going
+	// If the user did not specify a DataTemplate, just keep going.
 	if templateRef == nil {
 		return nil, nil
 	}
@@ -210,13 +210,12 @@ func fetchM3DataTemplate(ctx context.Context,
 		if apierrors.IsNotFound(err) {
 			mLog.Info("Metadata not found, requeuing")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
-		} else {
-			err := errors.Wrap(err, "Failed to get metadata")
-			return nil, err
 		}
+		err := errors.Wrap(err, "Failed to get metadata")
+		return nil, err
 	}
 
-	// Verify that this Metal3Data belongs to the correct cluster
+	// Verify that this Metal3Data belongs to the correct cluster.
 	if clusterName != metal3DataTemplate.Spec.ClusterName {
 		return nil, errors.New("Metal3DataTemplate associated with another cluster")
 	}
@@ -227,28 +226,27 @@ func fetchM3DataTemplate(ctx context.Context,
 func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string,
 ) (*capm3.Metal3DataClaim, error) {
-	// Fetch the Metal3Data
-	m3Data := &capm3.Metal3DataClaim{}
-	metal3DataName := types.NamespacedName{
+	// Fetch the Metal3DataClaim.
+	m3DataClaim := &capm3.Metal3DataClaim{}
+	metal3DataClaimName := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
 	}
-	if err := cl.Get(ctx, metal3DataName, m3Data); err != nil {
+	if err := cl.Get(ctx, metal3DataClaimName, m3DataClaim); err != nil {
 		if apierrors.IsNotFound(err) {
 			mLog.Info("Data Claim not found")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
-		} else {
-			err := errors.Wrap(err, "Failed to get metadata")
-			return nil, err
 		}
+		err := errors.Wrap(err, "Failed to get metadata claim")
+		return nil, err
 	}
-	return m3Data, nil
+	return m3DataClaim, nil
 }
 
 func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string,
 ) (*capm3.Metal3Data, error) {
-	// Fetch the Metal3Data
+	// Fetch the Metal3Data.
 	m3Data := &capm3.Metal3Data{}
 	metal3DataName := types.NamespacedName{
 		Namespace: namespace,
@@ -258,10 +256,9 @@ func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 		if apierrors.IsNotFound(err) {
 			mLog.Info("Rendered data not found, requeuing")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
-		} else {
-			err := errors.Wrap(err, "Failed to get metadata")
-			return nil, err
 		}
+		err := errors.Wrap(err, "Failed to get metadata")
+		return nil, err
 	}
 	return m3Data, nil
 }
@@ -270,8 +267,7 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string, dataTemplate *capm3.Metal3DataTemplate,
 	requeueifNotFound bool,
 ) (*capm3.Metal3Machine, error) {
-
-	// Get the Metal3Machine
+	// Get the Metal3Machine.
 	tmpM3Machine := &capm3.Metal3Machine{}
 	key := client.ObjectKey{
 		Name:      name,
@@ -284,16 +280,15 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 				return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 			}
 			return nil, nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 
 	if dataTemplate == nil {
 		return tmpM3Machine, nil
 	}
 
-	// Verify that the Metal3Machine fulfills the conditions
+	// Verify that the Metal3Machine fulfills the conditions.
 	if tmpM3Machine.Spec.DataTemplate == nil {
 		return nil, nil
 	}

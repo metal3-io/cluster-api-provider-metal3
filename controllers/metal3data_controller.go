@@ -43,7 +43,7 @@ const (
 	dataControllerName = "Metal3Data-controller"
 )
 
-// Metal3DataReconciler reconciles a Metal3Data object
+// Metal3DataReconciler reconciles a Metal3Data object.
 type Metal3DataReconciler struct {
 	Client           client.Client
 	ManagerFactory   baremetal.ManagerFactoryInterface
@@ -56,7 +56,7 @@ type Metal3DataReconciler struct {
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
-// Reconcile handles Metal3Machine events
+// Reconcile handles Metal3Machine events.
 func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	metadataLog := r.Log.WithName(dataControllerName).WithValues("metal3-data", req.NamespacedName)
 
@@ -122,7 +122,6 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 	metadataMgr baremetal.DataManagerInterface,
 ) (ctrl.Result, error) {
-
 	// If the Metal3Data doesn't have finalizer, add it.
 	metadataMgr.SetFinalizer()
 
@@ -136,7 +135,6 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 	metadataMgr baremetal.DataManagerInterface,
 ) (ctrl.Result, error) {
-
 	err := metadataMgr.ReleaseLeases(ctx)
 	if err != nil {
 		return checkRequeueError(err, "Failed to release IP address leases")
@@ -147,7 +145,7 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for this controller.
 func (r *Metal3DataReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3Data{}).

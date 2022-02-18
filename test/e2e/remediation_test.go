@@ -70,7 +70,7 @@ func remediation() {
 	workerMachineName, err := metal3MachineToMachineName(workerM3Machine)
 	Expect(err).ToNot(HaveOccurred())
 	workerNodeName := workerMachineName
-	vmName := bmhToVmName(workerBmh)
+	vmName := bmhToVMName(workerBmh)
 
 	By("Checking that rebooted node becomes Ready")
 	Logf("Marking a BMH '%s' for reboot", workerBmh.GetName())
@@ -91,7 +91,7 @@ func remediation() {
 
 	By("Testing unhealthy and inspection annotations")
 	newReplicaCount := 1
-	scaleControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
+	scaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
 
 	Logf("Waiting for 2 BMHs to be in Available state")
 	Eventually(func(g Gomega) error {
@@ -270,7 +270,7 @@ func remediation() {
 	}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
 
 	By("Scaling up KCP to 3 replicas")
-	scaleControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, 3)
+	scaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, 3)
 
 	Byf("Waiting for all %d BMHs to be Provisioned", allMachinesCount)
 	Eventually(func(g Gomega) {
@@ -311,9 +311,9 @@ func (btms bmhToMachineSlice) getBMHs() (hosts []bmo.BareMetalHost) {
 	return
 }
 
-func (btms bmhToMachineSlice) getVmNames() (names []string) {
+func (btms bmhToMachineSlice) getVMNames() (names []string) {
 	for _, host := range btms.getBMHs() {
-		names = append(names, bmhToVmName(host))
+		names = append(names, bmhToVMName(host))
 	}
 	return
 }
@@ -350,12 +350,12 @@ func metal3MachineToBmhName(m3machine capm3.Metal3Machine) string {
 	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
 }
 
-// Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object
-func bmhToVmName(host bmo.BareMetalHost) string {
+// Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object.
+func bmhToVMName(host bmo.BareMetalHost) string {
 	return strings.ReplaceAll(host.Name, "-", "_")
 }
 
-// listVms returns the names of libvirt VMs having given state
+// listVms returns the names of libvirt VMs having given state.
 func listVms(state vmState) []string {
 	var flag string
 	switch state {
@@ -406,8 +406,8 @@ func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 
 	return controlplane, workers
 }
-func filterM3DataByReference(datas []capm3.Metal3Data, referenceName string) (result []capm3.Metal3Data) {
 
+func filterM3DataByReference(datas []capm3.Metal3Data, referenceName string) (result []capm3.Metal3Data) {
 	for _, data := range datas {
 		if data.Spec.TemplateReference == referenceName {
 			result = append(result, data)
@@ -423,7 +423,7 @@ func waitForVmsState(vmNames []string, state vmState, specName string) {
 	}, e2eConfig.GetIntervals(specName, "wait-vm-state")...).Should(ContainElements(vmNames))
 }
 
-func monitorNodesStatus(g Gomega, ctx context.Context, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
+func monitorNodesStatus(ctx context.Context, g Gomega, c client.Client, namespace string, names []string, status v1.ConditionStatus, specName string) {
 	Byf("Ensuring Nodes %v consistently have ready=%s status", names, status)
 	g.Consistently(
 		func() error {
@@ -459,10 +459,9 @@ func waitForNodeStatus(ctx context.Context, client client.Client, name client.Ob
 		func() error { return assertNodeStatus(ctx, client, name, status) },
 		e2eConfig.GetIntervals(specName, "wait-vm-state")...,
 	).Should(Succeed())
-
 }
 
-// powerCycle tests the poweroff annotation be turning given machines off and on
+// powerCycle tests the poweroff annotation be turning given machines off and on.
 func powerCycle(ctx context.Context, c client.Client, workloadClient client.Client, machines bmhToMachineSlice, specName string) {
 	Byf("Power cycling %d machines", len(machines))
 
@@ -470,7 +469,7 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 	for _, set := range machines {
 		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))
 	}
-	waitForVmsState(machines.getVmNames(), shutoff, specName)
+	waitForVmsState(machines.getVMNames(), shutoff, specName)
 
 	// power on
 	Logf("Marking %d BMHs for power on", len(machines))
@@ -478,18 +477,18 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)
 	}
 
-	waitForVmsState(machines.getVmNames(), running, specName)
+	waitForVmsState(machines.getVMNames(), running, specName)
 	for _, nodeName := range machines.getNodeNames() {
 		waitForNodeStatus(ctx, workloadClient, client.ObjectKey{Namespace: defaultNamespace, Name: nodeName}, v1.ConditionTrue, specName)
 	}
 
 	By("waiting for nodes to consistently have Ready status")
 	Eventually(func(g Gomega) {
-		monitorNodesStatus(g, ctx, workloadClient, defaultNamespace, machines.getNodeNames(), v1.ConditionTrue, specName)
+		monitorNodesStatus(ctx, g, workloadClient, defaultNamespace, machines.getNodeNames(), v1.ConditionTrue, specName)
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 }
 
-// cleanObjectMeta clears object meta after copying from the original object
+// cleanObjectMeta clears object meta after copying from the original object.
 func cleanObjectMeta(om *metav1.ObjectMeta) {
 	om.UID = ""
 	om.Finalizers = nil

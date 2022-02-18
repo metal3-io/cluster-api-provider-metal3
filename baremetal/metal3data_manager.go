@@ -41,9 +41,14 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const providerIDKey = "provideruid"
+const (
+	providerIDKey = "provideruid"
+	m3machine     = "metal3machine"
+	host          = "baremetalhost"
+	capimachine   = "machine"
+)
 
-// DataManagerInterface is an interface for a DataManager
+// DataManagerInterface is an interface for a DataManager.
 type DataManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
@@ -51,17 +56,16 @@ type DataManagerInterface interface {
 	ReleaseLeases(ctx context.Context) error
 }
 
-// DataManager is responsible for performing machine reconciliation
+// DataManager is responsible for performing machine reconciliation.
 type DataManager struct {
 	client client.Client
 	Data   *capm3.Metal3Data
 	Log    logr.Logger
 }
 
-// NewDataManager returns a new helper for managing a Metal3Data object
+// NewDataManager returns a new helper for managing a Metal3Data object.
 func NewDataManager(client client.Client,
 	data *capm3.Metal3Data, dataLog logr.Logger) (*DataManager, error) {
-
 	return &DataManager{
 		client: client,
 		Data:   data,
@@ -69,7 +73,7 @@ func NewDataManager(client client.Client,
 	}, nil
 }
 
-// SetFinalizer sets finalizer
+// SetFinalizer sets finalizer.
 func (m *DataManager) SetFinalizer() {
 	// If the Metal3Data doesn't have finalizer, add it.
 	if !Contains(m.Data.Finalizers, capm3.DataFinalizer) {
@@ -79,7 +83,7 @@ func (m *DataManager) SetFinalizer() {
 	}
 }
 
-// UnsetFinalizer unsets finalizer
+// UnsetFinalizer unsets finalizer.
 func (m *DataManager) UnsetFinalizer() {
 	// Remove the finalizer.
 	m.Data.Finalizers = Filter(m.Data.Finalizers,
@@ -87,19 +91,22 @@ func (m *DataManager) UnsetFinalizer() {
 	)
 }
 
+// clearError clears error message from Metal3Data status.
 func (m *DataManager) clearError(ctx context.Context) {
 	m.Data.Status.ErrorMessage = nil
 }
 
+// setError sets error message to Metal3Data status.
 func (m *DataManager) setError(ctx context.Context, msg string) {
 	m.Data.Status.ErrorMessage = &msg
 }
 
+// Reconcile handles Metal3Data events.
 func (m *DataManager) Reconcile(ctx context.Context) error {
 	m.clearError(ctx)
 
 	if err := m.createSecrets(ctx); err != nil {
-		if _, ok := errors.Cause(err).(HasRequeueAfterError); ok {
+		if ok := errors.As(err, &hasRequeueAfterError); ok {
 			return err
 		}
 		m.setError(ctx, errors.Cause(err).Error())
@@ -154,7 +161,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		// Try to fetch the secret. If it exists, we do not modify it, to be able
 		// to reprovision a node in the exact same state.
 		m.Log.Info("Checking if secret exists", "secret", m.Data.Spec.MetaData.Name)
-		_, metaDataErr = checkSecretExists(m.client, ctx, m.Data.Spec.MetaData.Name,
+		_, metaDataErr = checkSecretExists(ctx, m.client, m.Data.Spec.MetaData.Name,
 			m.Data.Namespace,
 		)
 
@@ -179,7 +186,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		// Try to fetch the secret. If it exists, we do not modify it, to be able
 		// to reprovision a node in the exact same state.
 		m.Log.Info("Checking if secret exists", "secret", m.Data.Spec.NetworkData.Name)
-		_, networkDataErr = checkSecretExists(m.client, ctx, m.Data.Spec.NetworkData.Name,
+		_, networkDataErr = checkSecretExists(ctx, m.client, m.Data.Spec.NetworkData.Name,
 			m.Data.Namespace,
 		)
 		if networkDataErr != nil && !apierrors.IsNotFound(networkDataErr) {
@@ -244,7 +251,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if err := createSecret(m.client, ctx, m.Data.Spec.MetaData.Name,
+		if err := createSecret(ctx, m.client, m.Data.Spec.MetaData.Name,
 			m.Data.Namespace, m3dt.Labels[capi.ClusterLabelName],
 			ownerRefs, map[string][]byte{"metaData": metadata},
 		); err != nil {
@@ -259,7 +266,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if err := createSecret(m.client, ctx, m.Data.Spec.NetworkData.Name,
+		if err := createSecret(ctx, m.client, m.Data.Spec.NetworkData.Name,
 			m.Data.Namespace, m3dt.Labels[capi.ClusterLabelName],
 			ownerRefs, map[string][]byte{"networkData": networkData},
 		); err != nil {
@@ -295,7 +302,7 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 	return m.releaseAddressesFromPool(ctx, *m3dt)
 }
 
-// addressFromPool contains the elements coming from an IPPool
+// addressFromPool contains the elements coming from an IPPool.
 type addressFromPool struct {
 	address    ipamv1.IPAddressStr
 	prefix     int
@@ -307,7 +314,7 @@ type addressFromPool struct {
 // set the Ownerreference if not set, and check if the Metal3IPAddress has been
 // allocated. If not, it will requeue once all IPPools were fetched. If all have
 // been allocated it will return a map containing the IPPool name and the address,
-// prefix and gateway from that IPPool
+// prefix and gateway from that IPPool.
 func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	m3dt capm3.Metal3DataTemplate,
 ) (map[string]addressFromPool, error) {
@@ -465,7 +472,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	return addresses, nil
 }
 
-// releaseAddressesFromPool removes the OwnerReference on the IPPool objects
+// releaseAddressesFromPool removes the OwnerReference on the IPPool objects.
 func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 	m3dt capm3.Metal3DataTemplate,
 ) error {
@@ -630,7 +637,6 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 	addresses map[string]addressFromPool,
 ) (map[string]addressFromPool, bool, error) {
-
 	if addresses == nil {
 		addresses = make(map[string]addressFromPool)
 	}
@@ -645,7 +651,7 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		m.Data.Namespace,
 	)
 	if err != nil {
-		if _, ok := err.(HasRequeueAfterError); !ok {
+		if ok := errors.As(err, &hasRequeueAfterError); !ok {
 			return addresses, false, err
 		}
 		// Create the claim
@@ -672,9 +678,9 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 			},
 		}
 
-		err = createObject(m.client, ctx, ipClaim)
+		err = createObject(ctx, m.client, ipClaim)
 		if err != nil {
-			if _, ok := err.(HasRequeueAfterError); !ok {
+			if ok := errors.As(err, &hasRequeueAfterError); !ok {
 				return addresses, false, err
 			}
 		}
@@ -722,11 +728,10 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 }
 
 // releaseAddressFromPool removes the owner reference on existing referenced
-// Metal3IPPool objects
+// Metal3IPPool objects.
 func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName string,
 	addresses map[string]bool,
 ) (map[string]bool, bool, error) {
-
 	if addresses == nil {
 		addresses = make(map[string]bool)
 	}
@@ -739,14 +744,14 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName strin
 		m.Data.Namespace,
 	)
 	if err != nil {
-		if _, ok := err.(HasRequeueAfterError); !ok {
+		if ok := errors.As(err, &hasRequeueAfterError); !ok {
 			return addresses, false, err
 		}
 		addresses[poolName] = true
 		return addresses, false, nil
 	}
 
-	err = deleteObject(m.client, ctx, ipClaim)
+	err = deleteObject(ctx, m.client, ipClaim)
 	if err != nil {
 		return addresses, false, err
 	}
@@ -756,7 +761,7 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName strin
 }
 
 // renderNetworkData renders the networkData into an object that will be
-// marshalled into the secret
+// marshalled into the secret.
 func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	bmh *bmo.BareMetalHost, poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
@@ -787,7 +792,7 @@ func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	return yaml.Marshal(networkData)
 }
 
-// renderNetworkServices renders the services
+// renderNetworkServices renders the services.
 func renderNetworkServices(services capm3.NetworkDataService, poolAddresses map[string]addressFromPool) ([]interface{}, error) {
 	data := []interface{}{}
 
@@ -814,13 +819,13 @@ func renderNetworkServices(services capm3.NetworkDataService, poolAddresses map[
 	return data, nil
 }
 
-// renderNetworkLinks renders the different types of links
+// renderNetworkLinks renders the different types of links.
 func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHost) ([]interface{}, error) {
 	data := []interface{}{}
 
 	// Ethernet links
 	for _, link := range networkLinks.Ethernets {
-		mac_address, err := getLinkMacAddress(link.MACAddress, bmh)
+		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
 		if err != nil {
 			return nil, err
 		}
@@ -828,13 +833,13 @@ func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHo
 			"type":                 link.Type,
 			"id":                   link.Id,
 			"mtu":                  link.MTU,
-			"ethernet_mac_address": mac_address,
+			"ethernet_mac_address": macAddress,
 		})
 	}
 
 	// Bond links
 	for _, link := range networkLinks.Bonds {
-		mac_address, err := getLinkMacAddress(link.MACAddress, bmh)
+		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
 		if err != nil {
 			return nil, err
 		}
@@ -842,7 +847,7 @@ func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHo
 			"type":                 "bond",
 			"id":                   link.Id,
 			"mtu":                  link.MTU,
-			"ethernet_mac_address": mac_address,
+			"ethernet_mac_address": macAddress,
 			"bond_mode":            link.BondMode,
 			"bond_links":           link.BondLinks,
 		})
@@ -850,7 +855,7 @@ func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHo
 
 	// Vlan links
 	for _, link := range networkLinks.Vlans {
-		mac_address, err := getLinkMacAddress(link.MACAddress, bmh)
+		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
 		if err != nil {
 			return nil, err
 		}
@@ -858,7 +863,7 @@ func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHo
 			"type":             "vlan",
 			"id":               link.Id,
 			"mtu":              link.MTU,
-			"vlan_mac_address": mac_address,
+			"vlan_mac_address": macAddress,
 			"vlan_id":          link.VlanID,
 			"vlan_link":        link.VlanLink,
 		})
@@ -867,7 +872,7 @@ func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHo
 	return data, nil
 }
 
-// renderNetworkNetworks renders the different types of network
+// renderNetworkNetworks renders the different types of network.
 func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 	m3d *capm3.Metal3Data, poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
@@ -962,7 +967,7 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 	return data, nil
 }
 
-// getRoutesv4 returns the IPv4 routes
+// getRoutesv4 returns the IPv4 routes.
 func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
 	poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
@@ -1008,7 +1013,7 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
 	return routes, nil
 }
 
-// getRoutesv6 returns the IPv6 routes
+// getRoutesv6 returns the IPv6 routes.
 func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6,
 	poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
@@ -1054,7 +1059,7 @@ func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6,
 	return routes, nil
 }
 
-// translateMask transforms a mask given as integer into a dotted-notation string
+// translateMask transforms a mask given as integer into a dotted-notation string.
 func translateMask(maskInt int, ipv4 bool) interface{} {
 	if ipv4 {
 		// Get the mask by concatenating the IPv4 prefix of net package and the mask
@@ -1062,33 +1067,32 @@ func translateMask(maskInt int, ipv4 bool) interface{} {
 			[]byte(net.CIDRMask(maskInt, 32))...,
 		)).String()
 		return ipamv1.IPAddressv4Str(address)
-	} else {
-		// get the mask
-		address := net.IP(net.CIDRMask(maskInt, 128)).String()
-		return ipamv1.IPAddressv6Str(address)
 	}
+	// get the mask
+	address := net.IP(net.CIDRMask(maskInt, 128)).String()
+	return ipamv1.IPAddressv6Str(address)
 }
 
-// getLinkMacAddress returns the mac address
+// getLinkMacAddress returns the mac address.
 func getLinkMacAddress(mac *capm3.NetworkLinkEthernetMac, bmh *bmo.BareMetalHost) (
 	string, error,
 ) {
-	mac_address := ""
+	macAddress := ""
 	var err error
 
 	// if a string was given
 	if mac.String != nil {
-		mac_address = *mac.String
+		macAddress = *mac.String
 
 		// Otherwise fetch the mac from the interface name
 	} else if mac.FromHostInterface != nil {
-		mac_address, err = getBMHMacByName(*mac.FromHostInterface, bmh)
+		macAddress, err = getBMHMacByName(*mac.FromHostInterface, bmh)
 	}
 
-	return mac_address, err
+	return macAddress, err
 }
 
-// renderMetaData renders the MetaData items
+// renderMetaData renders the MetaData items.
 func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	m3m *capm3.Metal3Machine, machine *capi.Machine, bmh *bmo.BareMetalHost,
 	poolAddresses map[string]addressFromPool,
@@ -1150,11 +1154,11 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	// Object names
 	for _, entry := range m3dt.Spec.MetaData.ObjectNames {
 		switch strings.ToLower(entry.Object) {
-		case "metal3machine":
+		case m3machine:
 			metadata[entry.Key] = m3m.Name
-		case "machine":
+		case capimachine:
 			metadata[entry.Key] = machine.Name
-		case "baremetalhost":
+		case host:
 			metadata[entry.Key] = bmh.Name
 		default:
 			return nil, errors.New("Unknown object type")
@@ -1164,11 +1168,11 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	// Labels
 	for _, entry := range m3dt.Spec.MetaData.FromLabels {
 		switch strings.ToLower(entry.Object) {
-		case "metal3machine":
+		case m3machine:
 			metadata[entry.Key] = m3m.Labels[entry.Label]
-		case "machine":
+		case capimachine:
 			metadata[entry.Key] = machine.Labels[entry.Label]
-		case "baremetalhost":
+		case host:
 			metadata[entry.Key] = bmh.Labels[entry.Label]
 		default:
 			return nil, errors.New("Unknown object type")
@@ -1178,11 +1182,11 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	// Annotations
 	for _, entry := range m3dt.Spec.MetaData.FromAnnotations {
 		switch strings.ToLower(entry.Object) {
-		case "metal3machine":
+		case m3machine:
 			metadata[entry.Key] = m3m.Annotations[entry.Annotation]
-		case "machine":
+		case capimachine:
 			metadata[entry.Key] = machine.Annotations[entry.Annotation]
-		case "baremetalhost":
+		case host:
 			metadata[entry.Key] = bmh.Annotations[entry.Annotation]
 		default:
 			return nil, errors.New("Unknown object type")
@@ -1203,7 +1207,7 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	return yaml.Marshal(metadata)
 }
 
-// getBMHMacByName returns the mac address of the interface matching the name
+// getBMHMacByName returns the mac address of the interface matching the name.
 func getBMHMacByName(name string, bmh *bmo.BareMetalHost) (string, error) {
 	if bmh == nil || bmh.Status.HardwareDetails == nil || bmh.Status.HardwareDetails.NIC == nil {
 		return "", errors.New("Nics list not populated")
@@ -1270,10 +1274,9 @@ func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 		if apierrors.IsNotFound(err) {
 			mLog.Info("Address claim not found, requeuing")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
-		} else {
-			err := errors.Wrap(err, "Failed to get address claim")
-			return nil, err
 		}
+		err := errors.Wrap(err, "Failed to get address claim")
+		return nil, err
 	}
 	return metal3IPClaim, nil
 }

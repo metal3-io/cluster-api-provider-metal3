@@ -41,7 +41,7 @@ const (
 	rebootAnnotation = "reboot.metal3.io"
 )
 
-// RemediationManagerInterface is an interface for a RemediationManager
+// RemediationManagerInterface is an interface for a RemediationManager.
 type RemediationManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
@@ -63,7 +63,7 @@ type RemediationManagerInterface interface {
 	GetCapiMachine(ctx context.Context) (*capi.Machine, error)
 }
 
-// RemediationManager is responsible for performing remediation reconciliation
+// RemediationManager is responsible for performing remediation reconciliation.
 type RemediationManager struct {
 	Client            client.Client
 	Metal3Remediation *capm3.Metal3Remediation
@@ -72,11 +72,10 @@ type RemediationManager struct {
 	Log               logr.Logger
 }
 
-// NewRemediationManager returns a new helper for managing a Metal3Remediation object
+// NewRemediationManager returns a new helper for managing a Metal3Remediation object.
 func NewRemediationManager(client client.Client,
 	metal3remediation *capm3.Metal3Remediation, metal3Machine *capm3.Metal3Machine, machine *capi.Machine,
 	remediationLog logr.Logger) (*RemediationManager, error) {
-
 	return &RemediationManager{
 		Client:            client,
 		Metal3Remediation: metal3remediation,
@@ -86,7 +85,7 @@ func NewRemediationManager(client client.Client,
 	}, nil
 }
 
-// SetFinalizer sets finalizer
+// SetFinalizer sets finalizer.
 func (r *RemediationManager) SetFinalizer() {
 	// If the Metal3Remediation doesn't have finalizer, add it.
 	if !Contains(r.Metal3Remediation.Finalizers, capm3.RemediationFinalizer) {
@@ -96,7 +95,7 @@ func (r *RemediationManager) SetFinalizer() {
 	}
 }
 
-// UnsetFinalizer unsets finalizer
+// UnsetFinalizer unsets finalizer.
 func (r *RemediationManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	r.Metal3Remediation.Finalizers = Filter(r.Metal3Remediation.Finalizers,
@@ -104,8 +103,8 @@ func (r *RemediationManager) UnsetFinalizer() {
 	)
 }
 
-// timeToRemediate checks if it is time to execute a next remediation step
-// and returns seconds to next remediation time
+// TimeToRemediate checks if it is time to execute a next remediation step
+// and returns seconds to next remediation time.
 func (r *RemediationManager) TimeToRemediate(timeout time.Duration) (bool, time.Duration) {
 	now := time.Now()
 
@@ -123,7 +122,7 @@ func (r *RemediationManager) TimeToRemediate(timeout time.Duration) (bool, time.
 	return false, nextRemediation
 }
 
-// SetRebootAnnotation sets reboot annotation on unhealthy host
+// SetRebootAnnotation sets reboot annotation on unhealthy host.
 func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
@@ -146,7 +145,7 @@ func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 	return helper.Patch(ctx, host)
 }
 
-// SetUnhealthyAnnotation sets capm3.UnhealthyAnnotation on unhealthy host
+// SetUnhealthyAnnotation sets capm3.UnhealthyAnnotation on unhealthy host.
 func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
@@ -161,7 +160,7 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 	return helper.Patch(ctx, host)
 }
 
-// getUnhealthyHost gets the associated host for unhealthy machine. Returns nil if not found. Assumes the
+// GetUnhealthyHost gets the associated host for unhealthy machine. Returns nil if not found. Assumes the
 // host is in the same namespace as the unhealthy machine.
 func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmh.BareMetalHost, *patch.Helper, error) {
 	host, err := getUnhealthyHost(ctx, r.Metal3Machine, r.Client, r.Log)
@@ -206,58 +205,60 @@ func getUnhealthyHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl cl
 	return &host, nil
 }
 
-// onlineStatus returns hosts Online field value
+// OnlineStatus returns hosts Online field value.
 func (r *RemediationManager) OnlineStatus(host *bmh.BareMetalHost) bool {
 	return host.Spec.Online
 }
 
-// getRemediationType return type of remediation strategy
+// GetRemediationType return type of remediation strategy.
 func (r *RemediationManager) GetRemediationType() capm3.RemediationType {
 	return r.Metal3Remediation.Spec.Strategy.Type
 }
 
-// retryLimitIsSet returns true if retryLimit is set, false if not
+// RetryLimitIsSet returns true if retryLimit is set, false if not.
 func (r *RemediationManager) RetryLimitIsSet() bool {
 	return r.Metal3Remediation.Spec.Strategy.RetryLimit > 0
 }
 
-// HasReachRetryLimit returns true if retryLimit is reached
+// HasReachRetryLimit returns true if retryLimit is reached.
 func (r *RemediationManager) HasReachRetryLimit() bool {
 	return r.Metal3Remediation.Spec.Strategy.RetryLimit == r.Metal3Remediation.Status.RetryCount
 }
 
-// SetRemediationPhase setting the state of the remediation
+// SetRemediationPhase setting the state of the remediation.
 func (r *RemediationManager) SetRemediationPhase(phase string) {
 	r.Log.Info("Switching remediation phase", "remediationPhase", phase)
 	r.Metal3Remediation.Status.Phase = phase
 }
 
-// GetRemediationPhase returns current status of the remediation
+// GetRemediationPhase returns current status of the remediation.
 func (r *RemediationManager) GetRemediationPhase() string {
 	return r.Metal3Remediation.Status.Phase
 }
 
-// GetLastRemediatedTime returns last remediation time
+// GetLastRemediatedTime returns last remediation time.
 func (r *RemediationManager) GetLastRemediatedTime() *metav1.Time {
 	return r.Metal3Remediation.Status.LastRemediated
 }
 
-// SetLastRemediationTime setting last remediation timestamp on Status
+// SetLastRemediationTime setting last remediation timestamp on Status.
 func (r *RemediationManager) SetLastRemediationTime(remediationTime *metav1.Time) {
 	r.Log.Info("Last remediation time", "remediationTime", remediationTime)
 	r.Metal3Remediation.Status.LastRemediated = remediationTime
 }
 
-// GetTimeout returns timeout duration from remediation request Spec
+// GetTimeout returns timeout duration from remediation request Spec.
 func (r *RemediationManager) GetTimeout() *metav1.Duration {
 	return r.Metal3Remediation.Spec.Strategy.Timeout
 }
 
-// IncreaseRetryCount increases the retry count on Status
+// IncreaseRetryCount increases the retry count on Status.
 func (r *RemediationManager) IncreaseRetryCount() {
 	r.Metal3Remediation.Status.RetryCount++
 }
 
+// SetOwnerRemediatedConditionNew sets MachineOwnerRemediatedCondition on CAPI machine object
+// that have failed a healthcheck.
 func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context) error {
 	capiMachine, err := r.GetCapiMachine(ctx)
 	if err != nil {
@@ -279,6 +280,7 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 	return nil
 }
 
+// GetCapiMachine returns CAPI machine object owning the current resource.
 func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*capi.Machine, error) {
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, r.Metal3Remediation.ObjectMeta)
 	if err != nil {

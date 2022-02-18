@@ -246,7 +246,6 @@ func setupChecks(mgr ctrl.Manager) {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
-
 	if err := (&controllers.Metal3MachineReconciler{
 		Client:           mgr.GetClient(),
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
@@ -318,7 +317,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-
 	if err := (&infrav1beta1.Metal3Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Cluster")
 		os.Exit(1)

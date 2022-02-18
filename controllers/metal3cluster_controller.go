@@ -51,7 +51,7 @@ const (
 	requeueAfter          = time.Second * 30
 )
 
-// Metal3ClusterReconciler reconciles a Metal3Cluster object
+// Metal3ClusterReconciler reconciles a Metal3Cluster object.
 type Metal3ClusterReconciler struct {
 	Client           client.Client
 	ManagerFactory   baremetal.ManagerFactoryInterface
@@ -64,9 +64,8 @@ type Metal3ClusterReconciler struct {
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 
 // Reconcile reads that state of the cluster for a Metal3Cluster object and makes changes based on the state read
-// and what is in the Metal3Cluster.Spec
+// and what is in the Metal3Cluster.Spec.
 func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-
 	clusterLog := log.Log.WithName(clusterControllerName).WithValues("metal3-cluster", req.NamespacedName)
 
 	// Fetch the Metal3Cluster instance
@@ -134,7 +133,6 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cluster *capm3.Metal3Cluster, options ...patch.Option) error {
-
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(metal3Cluster,
 		conditions.WithConditions(
@@ -172,7 +170,6 @@ func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInt
 
 func reconcileDelete(ctx context.Context,
 	clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
-
 	// Verify that no metal3machine depend on the metal3cluster
 	descendants, err := clusterMgr.CountDescendants(ctx)
 	if err != nil {
@@ -194,7 +191,7 @@ func reconcileDelete(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-// SetupWithManager will add watches for this controller
+// SetupWithManager will add watches for this controller.
 func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(capm3.GroupVersion.WithKind("Metal3Cluster"))
 	return ctrl.NewControllerManagedBy(mgr).

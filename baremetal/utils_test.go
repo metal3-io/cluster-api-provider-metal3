@@ -28,11 +28,9 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	//"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	//fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -253,7 +251,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				tc.TestObject.ObjectMeta = m3m.ObjectMeta
 			}
 			obj := tc.TestObject.DeepCopy()
-			err := updateObject(k8sClient, context.TODO(), obj)
+			err := updateObject(context.TODO(), k8sClient, obj)
 			if tc.ExpectedError {
 				Expect(err).To(HaveOccurred())
 				Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
@@ -272,7 +270,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(savedObject.Spec).To(Equal(tc.TestObject.Spec))
 				Expect(savedObject.ResourceVersion).NotTo(Equal(tc.TestObject.ResourceVersion))
-				err := updateObject(k8sClient, context.TODO(), obj)
+				err := updateObject(context.TODO(), k8sClient, obj)
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
 			}
@@ -300,7 +298,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			obj := tc.TestObject.DeepCopy()
-			err := createObject(k8sClient, context.TODO(), obj)
+			err := createObject(context.TODO(), k8sClient, obj)
 			if tc.ExpectedError {
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
@@ -347,7 +345,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				})
 				Expect(err).NotTo(HaveOccurred())
 			}
-			_, err := checkSecretExists(k8sClient, context.TODO(), "abc", "myns")
+			_, err := checkSecretExists(context.TODO(), k8sClient, "abc", "myns")
 			if secretExists {
 				Expect(err).NotTo(HaveOccurred())
 				err = k8sClient.Delete(context.TODO(), &corev1.Secret{
@@ -398,7 +396,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			content := map[string][]byte{
 				"abc": []byte("def"),
 			}
-			err := createSecret(k8sClient, context.TODO(), "abc", "myns", "ghi",
+			err := createSecret(context.TODO(), k8sClient, "abc", "myns", "ghi",
 				ownerRef, content,
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -442,7 +440,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			err := deleteSecret(k8sClient, context.TODO(), "abc", "myns")
+			err := deleteSecret(context.TODO(), k8sClient, "abc", "myns")
 			Expect(err).NotTo(HaveOccurred())
 			savedSecret := corev1.Secret{}
 			err = k8sClient.Get(context.TODO(),

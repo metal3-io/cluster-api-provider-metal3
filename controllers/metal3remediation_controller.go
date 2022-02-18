@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// Metal3RemediationReconciler reconciles a Metal3Remediation object
+// Metal3RemediationReconciler reconciles a Metal3Remediation object.
 type Metal3RemediationReconciler struct {
 	client.Client
 	ManagerFactory baremetal.ManagerFactoryInterface
@@ -44,6 +44,7 @@ type Metal3RemediationReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3remediations/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;create;update;patch;delete
 
+// Reconcile handles Metal3Remediation events.
 func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	remediationLog := r.Log.WithValues("metal3remediation", req.NamespacedName)
 
@@ -117,7 +118,6 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 	remediationMgr baremetal.RemediationManagerInterface,
 ) (ctrl.Result, error) {
-
 	// If host is gone, exit early
 	host, _, err := remediationMgr.GetUnhealthyHost(ctx)
 	if err != nil {
@@ -179,7 +179,6 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 					// Not yet time to remediate, requeue
 					return ctrl.Result{RequeueAfter: nextRemediation}, nil
 				}
-
 			} else {
 				remediationMgr.SetRemediationPhase(capm3.PhaseWaiting)
 			}
@@ -212,7 +211,6 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 				return ctrl.Result{RequeueAfter: nextCheck}, nil
 			}
 		default:
-
 		}
 	}
 	return ctrl.Result{}, nil
@@ -224,6 +222,7 @@ func (r *Metal3RemediationReconciler) reconcileDelete(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
+// SetupWithManager will add watches for Metal3Remediation controller.
 func (r *Metal3RemediationReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&capm3.Metal3Remediation{}).

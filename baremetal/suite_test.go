@@ -115,9 +115,10 @@ var bmcOwnerRef = &metav1.OwnerReference{
 	Name:       clusterName,
 }
 
-//-----------------------------------
-//------ Helper functions -----------
-//-----------------------------------
+/*-----------------------------------
+---------Helper functions------------
+------------------------------------*/
+
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
 	if err := capi.AddToScheme(s); err != nil {

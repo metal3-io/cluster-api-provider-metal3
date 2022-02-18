@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// DataTemplateManagerInterface is an interface for a DataTemplateManager
+// DataTemplateManagerInterface is an interface for a DataTemplateManager.
 type DataTemplateManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
@@ -43,17 +43,16 @@ type DataTemplateManagerInterface interface {
 	UpdateDatas(context.Context) (int, error)
 }
 
-// DataTemplateManager is responsible for performing machine reconciliation
+// DataTemplateManager is responsible for performing machine reconciliation.
 type DataTemplateManager struct {
 	client       client.Client
 	DataTemplate *capm3.Metal3DataTemplate
 	Log          logr.Logger
 }
 
-// NewDataTemplateManager returns a new helper for managing a dataTemplate object
+// NewDataTemplateManager returns a new helper for managing a dataTemplate object.
 func NewDataTemplateManager(client client.Client,
 	dataTemplate *capm3.Metal3DataTemplate, dataTemplateLog logr.Logger) (*DataTemplateManager, error) {
-
 	return &DataTemplateManager{
 		client:       client,
 		DataTemplate: dataTemplate,
@@ -61,7 +60,7 @@ func NewDataTemplateManager(client client.Client,
 	}, nil
 }
 
-// SetFinalizer sets finalizer
+// SetFinalizer sets finalizer.
 func (m *DataTemplateManager) SetFinalizer() {
 	// If the Metal3Machine doesn't have finalizer, add it.
 	if !Contains(m.DataTemplate.Finalizers, capm3.DataTemplateFinalizer) {
@@ -71,7 +70,7 @@ func (m *DataTemplateManager) SetFinalizer() {
 	}
 }
 
-// UnsetFinalizer unsets finalizer
+// UnsetFinalizer unsets finalizer.
 func (m *DataTemplateManager) UnsetFinalizer() {
 	// Remove the finalizer.
 	m.DataTemplate.Finalizers = Filter(m.DataTemplate.Finalizers,
@@ -79,6 +78,7 @@ func (m *DataTemplateManager) UnsetFinalizer() {
 	)
 }
 
+// SetClusterOwnerRef sets ownerRef.
 func (m *DataTemplateManager) SetClusterOwnerRef(cluster *capi.Cluster) error {
 	// Verify that the owner reference is there, if not add it and update object,
 	// if error requeue.
@@ -88,7 +88,7 @@ func (m *DataTemplateManager) SetClusterOwnerRef(cluster *capi.Cluster) error {
 	_, err := findOwnerRefFromList(m.DataTemplate.OwnerReferences,
 		cluster.TypeMeta, cluster.ObjectMeta)
 	if err != nil {
-		if _, ok := err.(*NotFoundError); !ok {
+		if ok := errors.As(err, &notFoundErr); !ok {
 			return err
 		}
 		m.DataTemplate.OwnerReferences, err = setOwnerRefInList(
@@ -102,9 +102,8 @@ func (m *DataTemplateManager) SetClusterOwnerRef(cluster *capi.Cluster) error {
 	return nil
 }
 
-// RecreateStatus recreates the status if empty
+// RecreateStatus recreates the status if empty.
 func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, error) {
-
 	m.Log.Info("Fetching Metal3Data objects")
 
 	//start from empty maps
@@ -126,7 +125,6 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, e
 
 	// Iterate over the Metal3Data objects to find all indexes and objects
 	for _, dataObject := range dataObjects.Items {
-
 		// If DataTemplate does not point to this object, discard
 		if dataObject.Spec.Template.Name == "" {
 			continue
@@ -171,9 +169,8 @@ func (m *DataTemplateManager) updateStatusTimestamp() {
 }
 
 // UpdateDatas manages the claims and creates or deletes Metal3Data accordingly.
-// It returns the number of current allocations
+// It returns the number of current allocations.
 func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
-
 	indexes, err := m.getIndexes(ctx)
 	if err != nil {
 		return 0, err
@@ -214,7 +211,6 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
 func (m *DataTemplateManager) updateData(ctx context.Context,
 	dataClaim *capm3.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
-
 	helper, err := patch.NewHelper(dataClaim, m.client)
 	if err != nil {
 		return indexes, errors.Wrap(err, "failed to init patch helper")
@@ -246,7 +242,6 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 func (m *DataTemplateManager) createData(ctx context.Context,
 	dataClaim *capm3.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
-
 	var dataName string
 
 	if !Contains(dataClaim.Finalizers, capm3.DataClaimFinalizer) {
@@ -359,8 +354,8 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	// Create the Metal3Data object. If we get a conflict (that will set
 	// HasRequeueAfterError), then requeue to retrigger the reconciliation with
 	// the new state
-	if err := createObject(m.client, ctx, dataObject); err != nil {
-		if _, ok := err.(*RequeueAfterError); !ok {
+	if err := createObject(ctx, m.client, dataObject); err != nil {
+		if ok := errors.As(err, &requeueAfterError); !ok {
 			dataClaim.Status.ErrorMessage = pointer.StringPtr("Failed to create associated Metal3Data object")
 		}
 		return indexes, err
@@ -377,7 +372,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	return indexes, nil
 }
 
-// DeleteDatas deletes old secrets
+// DeleteDatas deletes old secrets.
 func (m *DataTemplateManager) deleteData(ctx context.Context,
 	dataClaim *capm3.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
@@ -412,7 +407,6 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 				return indexes, err
 			}
 		}
-
 	}
 	dataClaim.Status.RenderedData = nil
 	dataClaim.Finalizers = Filter(dataClaim.Finalizers,
