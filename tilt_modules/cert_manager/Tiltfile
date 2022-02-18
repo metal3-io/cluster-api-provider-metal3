@@ -48,7 +48,7 @@ def deploy_cert_manager(registry="quay.io/jetstack", version="v1.5.3", load_to_k
     # Applying the same manifest twice to the same cluster kubectl get stuck with older versions of kubernetes/cert-manager.
     # https://github.com/jetstack/cert-manager/issues/3121
     print("Installing cert-manager")
-    local("kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/{}/cert-manager.yaml".format(version), quiet=silent, echo_off=silent)
+    local("kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/{}/cert-manager.yaml".format(version), quiet=silent, echo_off=silent)
 
     # verifies cert-manager is properly working (https://cert-manager.io/docs/installation/kubernetes/#verifying-the-installation)
     # 1. wait for the cert-manager to be running

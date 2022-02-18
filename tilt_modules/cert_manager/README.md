@@ -22,6 +22,6 @@ have to pull the images over the network each time.
 The full list of parameters accepted by `deploy_cert_manager` includes:
 
 - `registry` from which images should be pulled, defaults to `quay.io/jetstack`
-- `version` of cert-manager to install, defaults to `v1.15.0`
+- `version` of cert-manager to install, defaults to `v1.5.3`
 - `load_to_kind` (see above), defaults to `False`
 - `kind_cluster_name`, defaults to `kind`
