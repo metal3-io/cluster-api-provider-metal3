@@ -614,6 +614,8 @@ github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99 
 github.com/metal3-io/baremetal-operator/apis v0.0.0-20211105090508-c38de6aabf99/go.mod h1:/pror7LknTgduckyCOm/EhnjFKIZy3mXQHr2GdaQ3kQ=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220203134753-f57cb5214075 h1:EWB2/ih3DQZx2Qx7lijwftQYwyp8j/shFEyjwQ2mvUQ=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220203134753-f57cb5214075/go.mod h1:U/2Blqi/tVSF+BS1EHFux7AErGADFaHG4bwn7/g0WyU=
+github.com/metal3-io/ip-address-manager/api v0.0.0-20220218143845-45c86dc10798 h1:9jjtYnebpt0MGFpnyZPaFqvGlwjBMno8z+p5wWQTGqM=
+github.com/metal3-io/ip-address-manager/api v0.0.0-20220218143845-45c86dc10798/go.mod h1:U/2Blqi/tVSF+BS1EHFux7AErGADFaHG4bwn7/g0WyU=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/miekg/pkcs11 v1.0.3/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/mistifyio/go-zfs v2.1.2-0.20190413222219-f784269be439+incompatible/go.mod h1:8AuVvqP/mXw1px98n46wfvcGfQ4ci2FwoAjKYxuo3Z4=
