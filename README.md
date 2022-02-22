@@ -107,12 +107,12 @@ To trigger e2e test on a PR, use the following phrases:
 
 On main branch:
 
-- **/test-v1b1-e2e** runs v1b1 e2e tests on Ubuntu
+- **/test-v1b1-ubuntu-e2e** runs v1b1 e2e tests on Ubuntu
 - **/test-v1b1-centos-e2e** runs v1b1 e2e tests on CentOS
 
 Release-0.5 branch:
 
-- **/test-v1a5-e2e** runs v1a5 e2e tests on Ubuntu
+- **/test-v1a5-ubuntu-e2e** runs v1a5 e2e tests on Ubuntu
 - **/test-v1a5-centos-e2e** runs v1a5 e2e tests on CentOS
 
 More info about e2e test can be found [here](docs/e2e-test.md)
