@@ -287,11 +287,6 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha5 \
-		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
-
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 	cd api; ../$(CONTROLLER_GEN) \

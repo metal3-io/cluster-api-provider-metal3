@@ -80,7 +80,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: capm3.Metal3MachineTemplateSpec{
 					Template: capm3.Metal3MachineTemplateResource{
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("disabled"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
 						},
 					},
 				},
@@ -99,11 +99,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io",
+								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("metadata"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
 						},
 					},
 					{
@@ -113,11 +113,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io",
+								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("metadata"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
 						},
 					},
 					{
@@ -127,11 +127,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io",
+								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("metadata"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
 						},
 					},
 				},
@@ -151,7 +151,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: capm3.Metal3MachineTemplateSpec{
 					Template: capm3.Metal3MachineTemplateResource{
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("metadata"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
 						},
 					},
 				},
@@ -170,11 +170,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io",
+								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("disabled"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
 						},
 					},
 					{
@@ -184,11 +184,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io",
+								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("disabled"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
 						},
 					},
 					{
@@ -198,11 +198,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io",
+								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("disabled"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
 						},
 					},
 				},
@@ -241,11 +241,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "xyz",
-								"cluster.x-k8s.io/cloned-from-groupkind": "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io",
+								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
 							},
 						},
 						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr("metadata"),
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
 						},
 					},
 				},
