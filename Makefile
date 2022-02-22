@@ -123,26 +123,39 @@ test-e2e: ## Run e2e tests with capi e2e testing framework
 GINKGO_NOCOLOR ?= false
 ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
-E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/templates/test
-E2E_ENVSUBST_DIR ?= $(ROOT_DIR)/test/e2e/_out
-E2E_CONF_FILE_ENVSUBST ?= $(E2E_ENVSUBST_DIR)/$(notdir $(E2E_CONF_FILE))
+E2E_OUT_DIR ?= $(ROOT_DIR)/test/e2e/_out
+E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
 E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
 
 SKIP_CLEANUP ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
-$(E2E_ENVSUBST_DIR)/%.yaml: $(E2E_TEMPLATES_DIR)/%.yaml
-	mkdir -p $(E2E_ENVSUBST_DIR)
-	$(ENVSUBST) < $^ > $@
+# Exported to the cluster templates
+SSH_PUB_KEY_CONTENT=$(file < ${HOME}/.ssh/id_rsa.pub)
+export SSH_PUB_KEY_CONTENT
 
-## Processes all files from templates/test, as well as e2e_conf file
+## Processes e2e_conf file
 .PHONY: e2e-substitutions
-e2e-substitutions: $(ENVSUBST) $(subst $(E2E_TEMPLATES_DIR),$(E2E_ENVSUBST_DIR),$(wildcard $(E2E_TEMPLATES_DIR)/*.yaml))
+e2e-substitutions: $(ENVSUBST)
+	mkdir -p $(E2E_OUT_DIR)
 	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
+
+## --------------------------------------
+## Templates
+## --------------------------------------
+E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/test/e2e/data/infrastructure-metal3
+.PHONY: cluster-templates
+cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu > $(E2E_OUT_DIR)/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos > $(E2E_OUT_DIR)/cluster-template-centos.yaml
+
+## --------------------------------------
+## E2E Testing
+## --------------------------------------
 
 .PHONY: e2e-tests
 e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
-e2e-tests: e2e-substitutions ## This target should be called from scripts/ci-e2e.sh
+e2e-tests: e2e-substitutions cluster-templates ## This target should be called from scripts/ci-e2e.sh
 	for image in $(E2E_CONTAINERS); do \
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
@@ -559,8 +572,7 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 	rm -f examples/provider-components/provider-components-*.yaml
 
 clean-e2e:
-	rm -f $(E2E_CONF_FILE_ENVSUBST)
-	rm -rf $(E2E_ENVSUBST_DIR)
+	rm -rf $(E2E_OUT_DIR)
 
 .PHONY: verify
 verify: verify-boilerplate verify-modules

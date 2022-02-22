@@ -1,0 +1,121 @@
+---
+apiVersion: cluster.x-k8s.io/${CAPI_VERSION}
+kind: MachineDeployment
+metadata:
+  labels:
+    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+    nodepool: nodepool-0
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  replicas: ${WORKER_MACHINE_COUNT}
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+      nodepool: nodepool-0
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+        nodepool: nodepool-0
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_NAME}-workers
+      clusterName: ${CLUSTER_NAME}
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+        kind: Metal3MachineTemplate
+        name: ${CLUSTER_NAME}-workers
+      nodeDrainTimeout: 0s
+      version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3MachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      dataTemplate:
+        name: ${CLUSTER_NAME}-workers-template
+      image:
+        checksum: ${IMAGE_RAW_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: raw
+        url: ${IMAGE_RAW_URL}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3DataTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers-template
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  metaData:
+    ipAddressesFromIPPool:
+    - key: provisioningIP
+      name: provisioning-pool
+    objectNames:
+    - key: name
+      object: machine
+    - key: local-hostname
+      object: machine
+    - key: local_hostname
+      object: machine
+    prefixesFromIPPool:
+    - key: provisioningCIDR
+      name: provisioning-pool
+  networkData:
+    links:
+      ethernets:
+      - id: enp1s0
+        macAddress:
+          fromHostInterface: enp1s0
+        type: phy
+      - id: enp2s0
+        macAddress:
+          fromHostInterface: enp2s0
+        type: phy
+    networks:
+      ipv4:
+      - id: baremetalv4
+        ipAddressFromIPPool: baremetalv4-pool
+        link: enp2s0
+        routes:
+        - gateway:
+            fromIPPool: baremetalv4-pool
+          network: 0.0.0.0
+          prefix: 0
+    services:
+      dns:
+      - 8.8.8.8
+---
+apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            cgroup-driver: systemd
+            container-runtime: remote
+            container-runtime-endpoint: unix:///var/run/crio/crio.sock
+            feature-gates: AllAlpha=false
+            node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+            provider-id: metal3://{{ ds.meta_data.uuid }}
+            runtime-request-timeout: 5m
+          name: '{{ ds.meta_data.name }}'
+      users:
+      - name: metal3
+        sshAuthorizedKeys:
+        - ${SSH_PUB_KEY_CONTENT}
+        sudo: ALL=(ALL) NOPASSWD:ALL

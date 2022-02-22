@@ -20,7 +20,6 @@ var (
 	ctx                      = context.TODO()
 	specName                 = "metal3"
 	namespace                = "metal3"
-	flavorSuffix             string
 	cluster                  *capi.Cluster
 	clusterName              = "test1"
 	clusterctlLogFolder      string
@@ -34,8 +33,6 @@ var _ = Describe("Workload cluster creation", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
-		flavorSuffix = "-m3-dev-env"
-
 		validateGlobals(specName)
 
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
@@ -59,7 +56,7 @@ var _ = Describe("Workload cluster creation", func() {
 					ClusterctlConfigPath:     clusterctlConfigPath,
 					KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
 					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-					Flavor:                   "ha" + flavorSuffix,
+					Flavor:                   osType,
 					Namespace:                namespace,
 					ClusterName:              clusterName,
 					KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),

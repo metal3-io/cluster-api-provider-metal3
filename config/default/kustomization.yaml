@@ -2,6 +2,6 @@
 commonLabels:
   cluster.x-k8s.io/provider: "infrastructure-metal3"
 
-bases:
+resources:
 - capm3
 - ../ipam

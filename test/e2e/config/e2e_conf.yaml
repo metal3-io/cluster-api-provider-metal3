@@ -62,16 +62,12 @@ providers:
     type: "url"
     contract: v1beta1
     files:
-    - sourcePath: "${PWD}/metadata.yaml"
+    - sourcePath: "../../../metadata.yaml"
       targetName: "metadata.yaml"
-    # In the future, we can use the two commented templates below if we can find a way to make the e2e test less dependant on the dev-env.
-    # If someone wants to run the e2e test with a custom template instead of the one from the dev-env, they can modify and use the two templates.
-    # - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha.yaml"
-    #   targetName: "cluster-template-ha.yaml"
-    # - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha-centos.yaml"
-    #   targetName: "cluster-template-ha-centos.yaml"
-    - sourcePath: "${PWD}/test/e2e/_out/cluster-template-prow-ha-m3-dev-env.yaml"
-      targetName: "cluster-template-ha-m3-dev-env.yaml"
+    - sourcePath: "../_out/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/cluster-template-centos.yaml"
+      targetName: "cluster-template-centos.yaml"
 
 variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
@@ -87,7 +83,8 @@ variables:
   CAPIRELEASE: "${CAPIRELEASE}"
   CAPM3RELEASE: "${CAPM3RELEASE}"
   CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
-
+  # Default vars for the template, those values could be overridden by the env-vars.
+  SERVICE_CIDR: "10.96.0.0/12"
 intervals:
   default/wait-controllers: ["3m", "10s"]
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created

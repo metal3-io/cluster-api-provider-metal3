@@ -1,0 +1,27 @@
+---
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
+metadata:
+  name: provisioning-pool
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  namePrefix: ${CLUSTER_NAME}-prov
+  pools:
+    - start: ${PROVISIONING_POOL_RANGE_START}
+      end: ${PROVISIONING_POOL_RANGE_END}
+  prefix: ${PROVISIONING_CIDR}
+---
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
+metadata:
+  name: baremetalv4-pool
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  namePrefix: ${CLUSTER_NAME}-bmv4
+  pools:
+    - start: ${BAREMETALV4_POOL_RANGE_START}
+      end: ${BAREMETALV4_POOL_RANGE_END}
+  prefix: ${EXTERNAL_SUBNET_V4_PREFIX}
+  gateway: ${EXTERNAL_SUBNET_V4_HOST}
