@@ -131,7 +131,7 @@ func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, 
 func (r *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 	if m3m, ok := o.(*capm3.Metal3Machine); ok {
-		if m3m.Annotations[clonedFromGroupKind] == "" && m3m.Annotations[clonedFromGroupKind] != "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io" {
+		if m3m.Annotations[clonedFromGroupKind] == "" && m3m.Annotations[clonedFromGroupKind] != capm3.ClonedFromGroupKind {
 			return nil
 		}
 		result = append(result, ctrl.Request{
