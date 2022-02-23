@@ -59,6 +59,8 @@ func pivoting() {
 	})
 
 	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting", "clusterctl-init.log"))
+	Logf("clusterctlConfigPath: %v", clusterctlConfigPath)
+	printImages(targetCluster)
 
 	By("Configure Ironic Configmap")
 	configureIronicConfigmap(true)

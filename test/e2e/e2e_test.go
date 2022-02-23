@@ -73,8 +73,6 @@ var _ = Describe("Workload cluster creation", func() {
 			}, result)
 			cluster = result.Cluster
 			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-			Logf("clusterctlConfigPath: %v", clusterctlConfigPath)
-			printImages(targetCluster)
 			remediation()
 			pivoting()
 			upgradeBMO()
