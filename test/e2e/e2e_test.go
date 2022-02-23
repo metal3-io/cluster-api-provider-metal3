@@ -73,6 +73,8 @@ var _ = Describe("Workload cluster creation", func() {
 			}, result)
 			cluster = result.Cluster
 			targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+			Logf("clusterctlConfigPath: %v", clusterctlConfigPath)
+			printImages(targetCluster)
 			remediation()
 			pivoting()
 			upgradeBMO()
@@ -83,3 +85,24 @@ var _ = Describe("Workload cluster creation", func() {
 		})
 	})
 })
+
+func printImages(clusterProxy framework.ClusterProxy) {
+	pods, err := clusterProxy.GetClientSet().CoreV1().Pods("").List(ctx, metav1.ListOptions{})
+	Expect(err).To(BeNil())
+	var images []string
+	for _, pod := range pods.Items {
+		for _, c := range pod.Spec.Containers {
+			exist := false
+			for _, i := range images {
+				if i == c.Image {
+					exist = true
+					break
+				}
+			}
+			if !exist {
+				images = append(images, c.Image)
+				Logf("%v", c.Image)
+			}
+		}
+	}
+}

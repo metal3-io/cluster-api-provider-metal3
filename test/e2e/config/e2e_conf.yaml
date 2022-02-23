@@ -58,8 +58,7 @@ providers:
   type: InfrastructureProvider
   versions:
   - name: v1.1.0
-    value: "file://${HOME}/.cluster-api/overrides/infrastructure-metal3/v1.1.0/infrastructure-components.yaml"
-    type: "url"
+    value: "${PWD}/config/default"
     contract: v1beta1
     files:
     - sourcePath: "${PWD}/metadata.yaml"
