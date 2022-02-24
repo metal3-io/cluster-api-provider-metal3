@@ -27,13 +27,13 @@ The recommended method is using
 [Clusterctl](https://main.cluster-api.sigs.k8s.io/clusterctl/overview.html).
 
 Starting from `v0.5.0` release of Cluster API Provider Metal3, Baremetal Operator is decoupled
-from Cluster API Provider Metal3 deployments when deployed via `clusterctl`. For that reason,
+from Cluster API Provider Metal3 deployments when deployed via `clusterctl`. For this reason,
 Baremetal Operator will not be installed when initializing the Metal3 provider with clusterctl,
 and its CRDs and controller need to be manually installed. Example flow of installing Metal3
 provider:
 
 1. Install Cluster API core, bootstrap and control-plane providers. This will also install
-  a cert-manager if it is not already installed. To have more verbose logs you can use the -v flag
+  cert-manager if it is not already installed. To have more verbose logs you can use the -v flag
   when running the clusterctl and set the level of the logging verbose with a positive integer number, ie. -v5.
 
     ```shell
@@ -65,9 +65,9 @@ provider:
     ```
 
 1. Install Ironic. There are a couple of ways to do it.
-    - Run within a Kubernetes cluster as a pod, refer to [deploy.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/deploy.sh)
+    - Run within a Kubernetes cluster as a pod, refer to the [deploy.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/deploy.sh)
       script.
-    - Outside of a Kubernetes cluster as a container. Please refer to [run_local_ironic.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/run_local_ironic.sh) script.
+    - Outside of a Kubernetes cluster as a container. Please refer to the [run_local_ironic.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/run_local_ironic.sh) script.
 
 Please refer to the [getting-started](docs/getting-started.md) for more info.
 
@@ -76,8 +76,8 @@ Please refer to the [getting-started](docs/getting-started.md) for more info.
 Starting from `v0.5.0` release of Cluster API Provider Metal3, Baremetal Operator is decoupled
 from Cluster API Provider Metal3 deployments when deployed via `clusterctl`. For that reason,
 when performing `clusterctl move`, custom objects outside of the Cluster API chain or not part
-of CAPM3 will not be pivoted to a target cluster. An example of those objects is BareMetalHost, it's
-secret and configMap which are reconciled by Baremetal Operator. To ensure that those objects are
+of CAPM3 will not be pivoted to a target cluster. An example of those objects is BareMetalHost, or
+user created ConfigMaps and Secrets which are reconciled by Baremetal Operator. To ensure that those objects are
 also pivoted as part of `clusterctl move`, `clusterctl.cluster.x-k8s.io` label needs to be set
 on the BareMetalHost CRD before pivoting. If there are other CRDs also need to be pivoted to the
 target cluster, the same label needs to be set on them.
