@@ -27,7 +27,10 @@ import (
 const (
 	// MachineFinalizer allows ReconcileMetal3Machine to clean up resources associated with Metal3Machine before
 	// removing it from the apiserver.
-	MachineFinalizer = "metal3machine.infrastructure.cluster.x-k8s.io"
+	MachineFinalizer     = "metal3machine.infrastructure.cluster.x-k8s.io"
+	CleaningModeDisabled = "disabled"
+	CleaningModeMetadata = "metadata"
+	ClonedFromGroupKind  = "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io"
 )
 
 // Metal3MachineSpec defines the desired state of Metal3Machine

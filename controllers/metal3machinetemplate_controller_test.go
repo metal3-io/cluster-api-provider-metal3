@@ -27,8 +27,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	utils "k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -63,6 +66,8 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 	var m *baremetal_mocks.MockTemplateManagerInterface
 	var mf *baremetal_mocks.MockManagerFactoryInterface
 	var objects []client.Object
+	namespace := "foo"
+	name := "abc"
 	templateMgrErrorMsg := "failed to create helper for managing the templateMgr"
 	defaultTestRequest := ctrl.Request{
 		NamespacedName: types.NamespacedName{
@@ -70,7 +75,98 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 			Namespace: namespaceName,
 		},
 	}
+	type TestCaseM3MtoM3MT struct {
+		M3Machine     *capm3.Metal3Machine
+		M3MTemplate   *capm3.Metal3MachineTemplate
+		ExpectRequest bool
+	}
+	DescribeTable("Metal3Machine To Metal3MachineTemplate tests",
+		func(tc TestCaseM3MtoM3MT) {
+			r := Metal3MachineTemplateReconciler{}
+			obj := client.Object(tc.M3Machine)
+			reqs := r.Metal3MachinesToMetal3MachineTemplate(obj)
 
+			if tc.ExpectRequest {
+				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+				Expect(tc.M3Machine.Annotations[clonedFromName]).To(Equal(tc.M3MTemplate.Name))
+				Expect(tc.M3Machine.Annotations[clonedFromGroupKind]).To(Equal(capm3.ClonedFromGroupKind))
+				Expect(tc.M3Machine.Namespace).To(Equal(tc.M3MTemplate.Namespace))
+			} else {
+				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+			}
+		},
+		Entry("Reconciliation should not be requested due to missing reference to a template",
+			TestCaseM3MtoM3MT{
+				M3Machine: &capm3.Metal3Machine{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-1",
+						Namespace: "bar",
+						Annotations: map[string]string{
+							baremetal.HostAnnotation: "myns/myhost",
+						},
+					},
+					Spec: capm3.Metal3MachineSpec{
+						AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+					},
+				},
+				M3MTemplate: &capm3.Metal3MachineTemplate{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: capm3.GroupVersion.String(),
+						Kind:       "Metal3MachineTemplate",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      name,
+						Namespace: namespace,
+					},
+					Spec: capm3.Metal3MachineTemplateSpec{
+						Template: capm3.Metal3MachineTemplateResource{
+							Spec: capm3.Metal3MachineSpec{
+								AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+							},
+						},
+					},
+				},
+				ExpectRequest: false,
+			},
+		),
+		Entry("Reconciliation should be requested",
+			TestCaseM3MtoM3MT{
+				M3Machine: &capm3.Metal3Machine{
+					TypeMeta: metav1.TypeMeta{},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-1",
+						Namespace: namespace,
+						Annotations: map[string]string{
+							"cluster.x-k8s.io/cloned-from-name":      name,
+							"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+						},
+					},
+					Spec: capm3.Metal3MachineSpec{
+						AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+					},
+				},
+				M3MTemplate: &capm3.Metal3MachineTemplate{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: capm3.GroupVersion.String(),
+						Kind:       "Metal3MachineTemplate",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      name,
+						Namespace: namespace,
+					},
+					Spec: capm3.Metal3MachineTemplateSpec{
+						Template: capm3.Metal3MachineTemplateResource{
+							Spec: capm3.Metal3MachineSpec{
+								AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+							},
+						},
+					},
+				},
+				ExpectRequest: true,
+			},
+		),
+	)
 	DescribeTable("Metal3MachineTemplate Reconcile test",
 		func(tc reconcileTemplateTestCase) {
 			mockController = gomock.NewController(GinkgoT())
