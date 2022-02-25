@@ -353,11 +353,10 @@ include_user_tilt_files()
 load("ext://cert_manager", "deploy_cert_manager")
 
 if settings.get("deploy_cert_manager"):
-    deploy_cert_manager()
+    deploy_cert_manager(version=settings.get("cert_manager_version"))
 
 deploy_capi()
 
 enable_providers()
 
 flavors()
-
