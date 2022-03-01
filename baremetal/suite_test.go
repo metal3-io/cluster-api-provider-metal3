@@ -18,7 +18,6 @@ package baremetal
 
 import (
 	"context"
-	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -55,8 +54,6 @@ const (
 	m3muid            = "11111111-9845-4321-1234-c74be387f57c"
 	bmhuid            = "22222222-9845-4c48-9e49-c74be387f57c"
 )
-
-var provideruid = fmt.Sprintf("%s_11111111", bmhuid)
 
 func TestManagers(t *testing.T) {
 	RegisterFailHandler(Fail)

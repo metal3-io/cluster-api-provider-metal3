@@ -42,10 +42,9 @@ import (
 )
 
 const (
-	providerIDKey = "provideruid"
-	m3machine     = "metal3machine"
-	host          = "baremetalhost"
-	capimachine   = "machine"
+	m3machine   = "metal3machine"
+	host        = "baremetalhost"
+	capimachine = "machine"
 )
 
 // DataManagerInterface is an interface for a DataManager.
@@ -1198,12 +1197,6 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 		metadata[entry.Key] = entry.Value
 	}
 
-	// set provideruid field
-	bmhUID := string(bmh.GetUID())
-	m3mUID := string(m3m.GetUID())
-	provideruid := BuildProviderIDToNodes(bmhUID, m3mUID)
-	metadata[providerIDKey] = provideruid
-
 	return yaml.Marshal(metadata)
 }
 
@@ -1279,12 +1272,4 @@ func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 		return nil, err
 	}
 	return metal3IPClaim, nil
-}
-
-// BuildProviderIDToNodes generates providerID by combining bmhuid and m3muid.
-func BuildProviderIDToNodes(bmhuid string, m3muid string) string {
-	parts := strings.Split(m3muid, "-")
-	firstBlock := parts[0]
-	provideruid := fmt.Sprintf("%s_%s", bmhuid, firstBlock)
-	return provideruid
 }
