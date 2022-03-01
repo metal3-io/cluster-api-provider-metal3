@@ -55,7 +55,7 @@ func nodeReuse() {
 
 	By("Untaint all CP nodes before scaling down machinedeployment")
 	controlplaneNodes := getControlplaneNodes(clientSet)
-	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
+	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaint)
 
 	By("Scale down MachineDeployment to 0")
 	scaleMachineDeployment(ctx, targetClusterClient, clusterName, namespace, 0)
@@ -206,7 +206,7 @@ func nodeReuse() {
 
 	By("Untaint CP nodes after upgrade of two controlplane nodes")
 	controlplaneNodes = getControlplaneNodes(clientSet)
-	untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
+	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaint)
 
 	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
 	Eventually(
@@ -258,7 +258,7 @@ func nodeReuse() {
 	// We have untainted the 2 first CPs
 	for untaintedNodeCount := 0; untaintedNodeCount < numberOfControlplane-2; {
 		controlplaneNodes = getControlplaneNodes(clientSet)
-		untaintedNodeCount = untaintNodes(clientSet, controlplaneNodes, controlplaneTaint)
+		untaintedNodeCount = untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaint)
 		time.Sleep(10 * time.Second)
 	}
 
@@ -503,15 +503,15 @@ func updateBootImage(m3machineTemplateName string, clusterClient client.Client, 
 	Expect(helper.Patch(ctx, &m3machineTemplate)).To(Succeed())
 }
 
-func untaintNodes(clientSet *kubernetes.Clientset, nodes *corev1.NodeList, taint *corev1.Taint) (count int) {
+func untaintNodes(targetClusterClient client.Client, nodes *corev1.NodeList, taint *corev1.Taint) (count int) {
 	count = 0
 	for i := range nodes.Items {
 		Logf("Untainting node %v ...", nodes.Items[i].Name)
 		newNode, changed := removeTaint(&nodes.Items[i], taint)
 		if changed {
-			node, err := clientSet.CoreV1().Nodes().Update(ctx, newNode, metav1.UpdateOptions{})
-			Expect(err).To(BeNil(), "Failed to update nodes")
-			Logf("Node %v untainted", node.Name)
+			patchHelper, err := patch.NewHelper(&nodes.Items[i], targetClusterClient)
+			Expect(err).To(BeNil())
+			Expect(patchHelper.Patch(ctx, newNode)).To(Succeed(), "Failed to patch node")
 			count++
 		}
 	}
