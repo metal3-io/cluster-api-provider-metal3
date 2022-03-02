@@ -1,0 +1,117 @@
+apiVersion: cluster.x-k8s.io/${CAPI_VERSION}
+kind: Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["${POD_CIDR}"]
+    services:
+      cidrBlocks: ["${SERVICE_CIDR}"]
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/${CAPI_VERSION}
+    kind: KubeadmControlPlane
+    name: ${CLUSTER_NAME}
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+    kind: Metal3Cluster
+    name: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3Cluster
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  controlPlaneEndpoint:
+    host: ${CLUSTER_APIENDPOINT_HOST}
+    port: ${CLUSTER_APIENDPOINT_PORT}
+  noCloudProvider: true
+---
+apiVersion: controlplane.cluster.x-k8s.io/${CAPI_VERSION}
+kind: KubeadmControlPlane
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  machineTemplate:
+    nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT}
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+      kind: Metal3MachineTemplate
+      name: ${CLUSTER_NAME}-controlplane
+  kubeadmConfigSpec:
+    clusterConfiguration: {}
+    users:
+    - name: ${IMAGE_USERNAME}
+      sshAuthorizedKeys:
+      - ${SSH_PUB_KEY_CONTENT}
+      sudo: ALL=(ALL) NOPASSWD:ALL
+  replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+  rolloutStrategy:
+    rollingUpdate:
+      maxSurge: 1
+  version: ${KUBERNETES_VERSION}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3MachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-controlplane
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      dataTemplate:
+        name: ${CLUSTER_NAME}-controlplane-template
+      image:
+        checksum: ${IMAGE_RAW_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: raw
+        url: ${IMAGE_RAW_URL}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3DataTemplate
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-template
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  metaData:
+    ipAddressesFromIPPool:
+    - key: provisioningIP
+      name: provisioning-pool
+    objectNames:
+    - key: name
+      object: machine
+    - key: local-hostname
+      object: machine
+    - key: local_hostname
+      object: machine
+    prefixesFromIPPool:
+    - key: provisioningCIDR
+      name: provisioning-pool
+  networkData:
+    links:
+      ethernets:
+      - id: enp1s0
+        macAddress:
+          fromHostInterface: enp1s0
+        type: phy
+      - id: enp2s0
+        macAddress:
+          fromHostInterface: enp2s0
+        type: phy
+    networks:
+      ipv4:
+      - id: baremetalv4
+        ipAddressFromIPPool: baremetalv4-pool
+        link: enp2s0
+        routes:
+        - gateway:
+            fromIPPool: baremetalv4-pool
+          network: 0.0.0.0
+          prefix: 0
+    services:
+      dns:
+      - 8.8.8.8

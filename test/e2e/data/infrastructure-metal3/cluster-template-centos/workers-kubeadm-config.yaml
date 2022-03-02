@@ -1,0 +1,74 @@
+---
+apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      files:
+      - content: |
+          #!/bin/bash
+          set -e
+          url="$1"
+          dst="$2"
+          filename="$(basename $url)"
+          tmpfile="/tmp/$filename"
+          curl -sSL -w "%{http_code}" "$url" | sed "s:/usr/bin:/usr/local/bin:g" > /tmp/"$filename"
+          http_status=$(cat "$tmpfile" | tail -n 1)
+          if [ "$http_status" != "200" ]; then
+            echo "Error: unable to retrieve $filename file";
+            exit 1;
+          else
+            cat "$tmpfile"| sed '$d' > "$dst";
+          fi
+        owner: root:root
+        path: /usr/local/bin/retrieve.configuration.files.sh
+        permissions: "0755"
+      - content: |
+          BOOTPROTO=none
+          DEVICE=eth0
+          ONBOOT=yes
+          TYPE=Ethernet
+          USERCTL=no
+          BRIDGE=${CLUSTER_PROVISIONING_INTERFACE}
+        path: /etc/sysconfig/network-scripts/ifcfg-eth0
+        owner: root:root
+        permissions: '0644'
+      - path: /etc/sysconfig/network-scripts/ifcfg-ironicendpoint
+        owner: root:root
+        permissions: '0644'
+        content: |
+          TYPE=Bridge
+          DEVICE=${CLUSTER_PROVISIONING_INTERFACE}
+          ONBOOT=yes
+          USERCTL=no
+          BOOTPROTO="static"
+          IPADDR={{ ds.meta_data.provisioningIP }}
+          PREFIX={{ ds.meta_data.provisioningCIDR }}
+      - path: /etc/yum.repos.d/kubernetes.repo
+        owner: root:root
+        permissions: '0644'
+        content: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=0
+          gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      - path : /etc/containers/registries.conf
+        owner: root:root
+        permissions: '0644'
+        content: |
+          [registries.search]
+          registries = ['docker.io']
+
+          [registries.insecure]
+          registries = ['${REGISTRY}']
+      preKubeadmCommands:
+      - systemctl restart NetworkManager.service
+      - nmcli connection load /etc/sysconfig/network-scripts/ifcfg-eth0
+      - nmcli connection up filename /etc/sysconfig/network-scripts/ifcfg-eth0
+      - systemctl enable --now crio kubelet

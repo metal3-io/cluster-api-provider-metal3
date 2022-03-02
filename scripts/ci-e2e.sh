@@ -55,18 +55,6 @@ REPO_ROOT=$(realpath "$REPO_ROOT")
 rm -rf "${M3PATH}/cluster-api-provider-metal3" # To avoid 'permission denied' error when overriding .git/
 cp -R "${REPO_ROOT}" "${M3PATH}/cluster-api-provider-metal3/" 
 make launch_mgmt_cluster verify
-# Generate the cluster template from metal3-dev-env
-if [ -f "${PWD}/scripts/generate-template.sh"  ]; then
-  ./scripts/generate-template.sh
-  DEV_ENV_CLUSTER_TEMPLATE="${REPO_ROOT}/templates/test/cluster-template-prow-ha-m3-dev-env.yaml"
-  TEMPLATE_DIR_SRC="vm-setup/roles/v1aX_integration_test/files/manifests/"
-  echo -n > "${DEV_ENV_CLUSTER_TEMPLATE}"
-  # shellcheck disable=SC2045
-  for file in $(ls -d ${TEMPLATE_DIR_SRC}*); do
-    echo "---" >> "${DEV_ENV_CLUSTER_TEMPLATE}"
-    cat "$file" >> "${DEV_ENV_CLUSTER_TEMPLATE}"
-  done
-fi
 popd
 
 SSH_PUB_KEY_CONTENT=$(cat "$HOME/.ssh/id_rsa.pub")

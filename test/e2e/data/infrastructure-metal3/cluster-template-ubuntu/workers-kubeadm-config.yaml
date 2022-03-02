@@ -1,0 +1,32 @@
+---
+apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      files:
+      - content: |
+          network:
+            version: 2
+            renderer: networkd
+            bridges:
+              ${CLUSTER_PROVISIONING_INTERFACE}:
+                interfaces: [enp1s0]
+                addresses:
+                - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
+        owner: root:root
+        path: /etc/netplan/52-ironicendpoint.yaml
+        permissions: "0644"
+      - content: |
+          [registries.search]
+          registries = ['docker.io']
+
+          [registries.insecure]
+          registries = ['${REGISTRY}']
+        path: /etc/containers/registries.conf
+      preKubeadmCommands:
+      - netplan apply
+      - systemctl enable --now crio kubelet
