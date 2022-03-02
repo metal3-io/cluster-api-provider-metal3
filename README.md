@@ -62,6 +62,7 @@ provider:
 
     ```shell
     git clone https://github.com/metal3-io/baremetal-operator.git
+    kubectl create namespace baremetal-operator-system
     cd baremetal-operator
     kustomize build config/default | kubectl apply -f -
     ```
