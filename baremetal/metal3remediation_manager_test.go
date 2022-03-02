@@ -15,6 +15,7 @@ package baremetal
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 
@@ -334,7 +335,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			ExpectPresent: false,
 		}),
-		Entry("Should not find the host, annotation not present", testCaseGetUnhealthyHost{
+		Entry("Should not find the host, annotation is empty", testCaseGetUnhealthyHost{
 			M3Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
@@ -344,6 +345,188 @@ var _ = Describe("Metal3Remediation manager", func() {
 				},
 			},
 			ExpectPresent: false,
+		}),
+		Entry("Should not find the host, annotation is nil", testCaseGetUnhealthyHost{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations:     nil,
+				},
+			},
+			ExpectPresent: false,
+		}),
+		Entry("Should not find the host, could not parse annotation value", testCaseGetUnhealthyHost{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						HostAnnotation: "myns/wronghostname/wronghostname",
+					},
+				},
+			},
+			ExpectPresent: false,
+		}),
+	)
+
+	type testCaseSetAnnotation struct {
+		Host       *bmh.BareMetalHost
+		M3Machine  *capm3.Metal3Machine
+		ExpectTrue bool
+	}
+
+	DescribeTable("Test SetUnhealthyAnnotation",
+		func(tc testCaseSetAnnotation) {
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Host).Build()
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, tc.M3Machine, nil,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			patchError := remediationMgr.SetUnhealthyAnnotation(context.TODO())
+
+			if tc.ExpectTrue {
+				Expect(patchError).To(BeNil())
+			} else {
+				Expect(patchError).NotTo(BeNil())
+			}
+		},
+		Entry("Should set the unhealthy annotation", testCaseSetAnnotation{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "myhost",
+					Namespace:   "myns",
+					Annotations: map[string]string{capm3.UnhealthyAnnotation: ""},
+				},
+			},
+			ExpectTrue: true,
+		}),
+		Entry("Should not set the unhealthy annotation, annotation is empty", testCaseSetAnnotation{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations:     map[string]string{},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "myhost",
+					Namespace:   "myns",
+					Annotations: map[string]string{capm3.UnhealthyAnnotation: ""},
+				},
+			},
+			ExpectTrue: false,
+		}),
+		Entry("Should not set the unhealthy annotation because of wrong HostAnnotation", testCaseSetAnnotation{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						HostAnnotation: "myns/wronghostname",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "myhost",
+					Namespace:   "myns",
+					Annotations: map[string]string{capm3.UnhealthyAnnotation: ""},
+				},
+			},
+			ExpectTrue: false,
+		}),
+	)
+
+	DescribeTable("Test SetRebootAnnotation",
+		func(tc testCaseSetAnnotation) {
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Host).Build()
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, tc.M3Machine, nil,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			patchError := remediationMgr.SetRebootAnnotation(context.TODO())
+
+			if tc.ExpectTrue {
+				Expect(patchError).To(BeNil())
+			} else {
+				Expect(patchError).NotTo(BeNil())
+			}
+		},
+		Entry("Should set the reboot annotation", testCaseSetAnnotation{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						HostAnnotation: "myns/myhost",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "myhost",
+					Namespace:   "myns",
+					Annotations: map[string]string{rebootAnnotation: ""},
+				},
+			},
+			ExpectTrue: true,
+		}),
+		Entry("Should not set the reboot annotation, annotation is empty", testCaseSetAnnotation{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations:     map[string]string{},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "myhost",
+					Namespace:   "myns",
+					Annotations: map[string]string{rebootAnnotation: ""},
+				},
+			},
+			ExpectTrue: false,
+		}),
+		Entry("Should not set the reboot annotation because of wrong HostAnnotation", testCaseSetAnnotation{
+			M3Machine: &capm3.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "mym3machine",
+					Namespace:       "myns",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						HostAnnotation: "myns/wronghostname",
+					},
+				},
+			},
+			Host: &bmh.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "myhost",
+					Namespace:   "myns",
+					Annotations: map[string]string{rebootAnnotation: ""},
+				},
+			},
+			ExpectTrue: false,
 		}),
 	)
 
@@ -428,6 +611,81 @@ var _ = Describe("Metal3Remediation manager", func() {
 		}),
 	)
 
+	type testTimeToRemediate struct {
+		Metal3Remediation *capm3.Metal3Remediation
+		ExpectTrue        bool
+	}
+
+	DescribeTable("Test TimeToRemediate",
+		func(tc testTimeToRemediate) {
+			remediationMgr, err := NewRemediationManager(nil, tc.Metal3Remediation, nil, nil,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			okToRemediate, nextRemediation := remediationMgr.TimeToRemediate(remediationMgr.GetTimeout().Duration)
+			if tc.ExpectTrue {
+				Expect(okToRemediate).To(BeTrue())
+				Expect(nextRemediation).To(Equal(time.Duration(0)))
+
+			} else {
+				Expect(okToRemediate).To(BeFalse())
+				Expect(nextRemediation).NotTo(Equal(time.Duration(0)))
+			}
+
+		},
+		Entry("Time to remediate reached", testTimeToRemediate{
+			Metal3Remediation: &capm3.Metal3Remediation{
+				Spec: capm3.Metal3RemediationSpec{
+					Strategy: &capm3.RemediationStrategy{
+						Type:       "",
+						RetryLimit: 1,
+						Timeout:    &metav1.Duration{Duration: 600 * time.Second},
+					},
+				},
+				Status: capm3.Metal3RemediationStatus{
+					Phase:          "",
+					RetryCount:     1,
+					LastRemediated: &metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
+				},
+			},
+			ExpectTrue: true,
+		}),
+		Entry("Time to remediate is not reached because of LastRemediated is nil", testTimeToRemediate{
+			Metal3Remediation: &capm3.Metal3Remediation{
+				Spec: capm3.Metal3RemediationSpec{
+					Strategy: &capm3.RemediationStrategy{
+						Type:       "",
+						RetryLimit: 1,
+						Timeout:    &metav1.Duration{Duration: 600 * time.Second},
+					},
+				},
+				Status: capm3.Metal3RemediationStatus{
+					Phase:          "",
+					RetryCount:     1,
+					LastRemediated: nil,
+				},
+			},
+			ExpectTrue: false,
+		}),
+		Entry("Time to remediate is not reached, LastRemediated + Timeout is greater than current time", testTimeToRemediate{
+			Metal3Remediation: &capm3.Metal3Remediation{
+				Spec: capm3.Metal3RemediationSpec{
+					Strategy: &capm3.RemediationStrategy{
+						Type:       "",
+						RetryLimit: 1,
+						Timeout:    &metav1.Duration{Duration: 600 * time.Second},
+					},
+				},
+				Status: capm3.Metal3RemediationStatus{
+					Phase:          "",
+					RetryCount:     1,
+					LastRemediated: &metav1.Time{Time: time.Now()},
+				},
+			},
+			ExpectTrue: false,
+		}),
+	)
+
 	type testCaseGetTimeout struct {
 		Metal3Remediation *capm3.Metal3Remediation
 		TimeoutSet        bool
@@ -455,7 +713,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			TimeoutSet: false,
 		}),
-		Entry("Timeout is not set", testCaseGetTimeout{
+		Entry("Timeout is set", testCaseGetTimeout{
 			Metal3Remediation: &capm3.Metal3Remediation{
 				Spec: capm3.Metal3RemediationSpec{
 					Strategy: &capm3.RemediationStrategy{
