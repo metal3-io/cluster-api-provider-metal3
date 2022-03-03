@@ -184,7 +184,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-0",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Index:    0,
@@ -195,24 +195,24 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "bbc-1",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Index: 1,
 						Template: corev1.ObjectReference{
 							Name:      "bbc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Claim: corev1.ObjectReference{
 							Name:      "bbc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-2",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Index:    2,
@@ -223,12 +223,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-3",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Index: 3,
 						Template: corev1.ObjectReference{
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Claim: corev1.ObjectReference{},
 					},
@@ -245,7 +245,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	var templateMeta = metav1.ObjectMeta{
 		Name:      "abc",
-		Namespace: "myns",
+		Namespace: namespaceName,
 	}
 
 	type testCaseUpdateDatas struct {
@@ -317,67 +317,67 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abcd",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abcd",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 					Status: infrav1alpha5.Metal3DataClaimStatus{
 						RenderedData: &corev1.ObjectReference{
 							Name:      "abc-2",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abce",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 					Status: infrav1alpha5.Metal3DataClaimStatus{
 						RenderedData: &corev1.ObjectReference{
 							Name:      "abc-2",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 				},
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:              "abcf",
-						Namespace:         "myns",
+						Namespace:         namespaceName,
 						DeletionTimestamp: &timeNow,
 					},
 					Spec: infrav1alpha5.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 					Status: infrav1alpha5.Metal3DataClaimStatus{
 						RenderedData: &corev1.ObjectReference{
 							Name:      "abc-3",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 				},
@@ -386,16 +386,16 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-0",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Claim: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Index: 0,
 					},
@@ -403,16 +403,16 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-1",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Claim: corev1.ObjectReference{
 							Name:      "abce",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Index: 1,
 					},
@@ -420,16 +420,16 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-3",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Claim: corev1.ObjectReference{
 							Name:      "abcf",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Index: 3,
 					},
@@ -514,7 +514,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template2: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc1",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataTemplateSpec{
 					TemplateReference: "abc",
@@ -537,7 +537,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template2: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc1",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataTemplateSpec{},
 				Status: infrav1alpha5.Metal3DataTemplateStatus{
@@ -553,7 +553,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template1: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "template1",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataTemplateSpec{},
 			},
@@ -561,7 +561,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template2: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "template2",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataTemplateSpec{
 					TemplateReference: "template1",
@@ -580,7 +580,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template1: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "template1",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataTemplateSpec{},
 			},
@@ -588,7 +588,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template2: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "template2",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataTemplateSpec{
 					TemplateReference: "template1",
@@ -603,7 +603,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			dataObject: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataSpec{
 					Index: 0,
@@ -749,7 +749,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-0",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: infrav1alpha5.Metal3DataSpec{
 						Index: 0,

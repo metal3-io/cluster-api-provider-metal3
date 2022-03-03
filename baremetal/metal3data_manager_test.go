@@ -43,12 +43,12 @@ import (
 var (
 	testObjectMeta = metav1.ObjectMeta{
 		Name:      "abc",
-		Namespace: "myns",
+		Namespace: namespaceName,
 		UID:       bmhuid,
 	}
 	testObjectMetaWithOR = metav1.ObjectMeta{
 		Name:      "abc",
-		Namespace: "myns",
+		Namespace: namespaceName,
 
 		OwnerReferences: []metav1.OwnerReference{
 			{
@@ -231,7 +231,7 @@ var _ = Describe("Metal3Data manager", func() {
 				err = c.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      "abc-metadata",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					&tmpSecret,
 				)
@@ -243,7 +243,7 @@ var _ = Describe("Metal3Data manager", func() {
 				err = c.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      "abc-networkdata",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					&tmpSecret,
 				)
@@ -390,7 +390,7 @@ var _ = Describe("Metal3Data manager", func() {
 			metadataSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-metadata",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Data: map[string][]byte{
 					"metaData": []byte("Hello"),
@@ -399,7 +399,7 @@ var _ = Describe("Metal3Data manager", func() {
 			networkdataSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-networkdata",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Data: map[string][]byte{
 					"networkData": []byte("Bye"),
@@ -447,7 +447,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3m: &infrav1alpha5.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 					UID:       m3muid,
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -457,7 +457,7 @@ var _ = Describe("Metal3Data manager", func() {
 						},
 					},
 					Annotations: map[string]string{
-						"metal3.io/BareMetalHost": "myns/abc",
+						"metal3.io/BareMetalHost": namespaceName + "/abc",
 					},
 				},
 				Spec: infrav1alpha5.Metal3MachineSpec{
@@ -563,7 +563,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3m: &infrav1alpha5.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "abc",
@@ -624,7 +624,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataSpec{
 					Template: corev1.ObjectReference{
@@ -638,7 +638,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataSpec{
 					Template: corev1.ObjectReference{
@@ -649,7 +649,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3dt: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 		}),
@@ -669,7 +669,7 @@ var _ = Describe("Metal3Data manager", func() {
 				pool := &ipamv1.IPClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-" + poolName,
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference,
@@ -680,7 +680,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d := &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
@@ -690,7 +690,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3dt := infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: tc.m3dtSpec,
 			}
@@ -1005,7 +1005,7 @@ var _ = Describe("Metal3Data manager", func() {
 				pool := &ipamv1.IPClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc-" + poolName,
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference,
@@ -1016,7 +1016,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d := &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
@@ -1220,7 +1220,7 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("Already processed", testCaseGetAddressFromPool{
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1235,7 +1235,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1249,7 +1249,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1259,7 +1259,7 @@ var _ = Describe("Metal3Data manager", func() {
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			expectRequeue: true,
@@ -1268,7 +1268,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1278,7 +1278,7 @@ var _ = Describe("Metal3Data manager", func() {
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Status: ipamv1.IPClaimStatus{
 					ErrorMessage: pointer.StringPtr("Error happened"),
@@ -1291,7 +1291,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1301,12 +1301,12 @@ var _ = Describe("Metal3Data manager", func() {
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.11",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},
@@ -1316,7 +1316,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1333,12 +1333,12 @@ var _ = Describe("Metal3Data manager", func() {
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.10",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},
@@ -1346,7 +1346,7 @@ var _ = Describe("Metal3Data manager", func() {
 			ipAddress: &ipamv1.IPAddress{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-192.168.0.10",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: ipamv1.IPAddressSpec{
 					Address: ipamv1.IPAddressStr("192.168.0.10"),
@@ -1411,7 +1411,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1426,7 +1426,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName: "abc",
@@ -1441,7 +1441,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			poolName:      "abc",
@@ -1454,7 +1454,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
@@ -1465,7 +1465,7 @@ var _ = Describe("Metal3Data manager", func() {
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			expectedAddresses: map[string]bool{
@@ -2441,7 +2441,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataSpec{
 					Index: 2,
@@ -2669,7 +2669,7 @@ var _ = Describe("Metal3Data manager", func() {
 				"ObjectName-1": "machine-abc",
 				"ObjectName-2": "metal3machine-abc",
 				"ObjectName-3": "bmh-abc",
-				"Namespace-1":  "myns",
+				"Namespace-1":  namespaceName,
 				"Index-1":      "abc14def",
 				"Index-2":      "2",
 				"Address-1":    "192.168.0.14",
@@ -2737,7 +2737,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataSpec{
 					Index: 2,
@@ -2764,7 +2764,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataSpec{
 					Index: 2,
@@ -2791,7 +2791,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataSpec{
 					Index: 2,
@@ -3123,7 +3123,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Spec: infrav1alpha5.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abcd",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},

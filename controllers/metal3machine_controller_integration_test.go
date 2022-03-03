@@ -88,7 +88,7 @@ func m3mMetaWithAnnotation() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Annotations: map[string]string{
-			baremetal.HostAnnotation: "testNameSpace/bmh-0",
+			baremetal.HostAnnotation: namespaceName + "/bmh-0",
 		},
 	}
 }
@@ -100,7 +100,7 @@ func m3mMetaWithAnnotationDeletion() *metav1.ObjectMeta {
 		DeletionTimestamp: &deletionTimestamp,
 		OwnerReferences:   m3mOwnerRefs(),
 		Annotations: map[string]string{
-			baremetal.HostAnnotation: "testNameSpace/bmh-0",
+			baremetal.HostAnnotation: namespaceName + "/bmh-0",
 		},
 	}
 }

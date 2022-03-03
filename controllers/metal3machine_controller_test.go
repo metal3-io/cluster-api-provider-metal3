@@ -446,12 +446,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: &bmh.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: bmh.BareMetalHostSpec{
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       "someothermachine",
-							Namespace:  "myns",
+							Namespace:  namespaceName,
 							Kind:       "Metal3Machine",
 							APIVersion: infrav1alpha5.GroupVersion.String(),
 						},
@@ -466,7 +466,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: &bmh.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: bmh.BareMetalHostSpec{},
 				},
@@ -626,7 +626,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		func(tc testCaseMetal3DataToMetal3Machines) {
 			ipClaim := &infrav1alpha5.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace:       "myns",
+					Namespace:       namespaceName,
 					OwnerReferences: tc.ownerRefs,
 				},
 			}
@@ -663,7 +663,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				{
 					NamespacedName: types.NamespacedName{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},
