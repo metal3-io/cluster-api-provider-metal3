@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -474,7 +475,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta,
 			},
 			expectReady:         true,
-			expectedMetadata:    pointer.StringPtr("String-1: String-1\n"),
+			expectedMetadata:    pointer.StringPtr(fmt.Sprintf("String-1: String-1\nproviderid: %s\n", providerid)),
 			expectedNetworkData: pointer.StringPtr("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
@@ -2448,7 +2449,8 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			m3dt: &infrav1alpha5.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
+					Name:      "datatemplate-abc",
+					Namespace: namespaceName,
 				},
 				Spec: infrav1alpha5.Metal3DataTemplateSpec{
 					MetaData: &infrav1alpha5.MetaData{
@@ -2596,7 +2598,8 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			m3m: &infrav1alpha5.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "metal3machine-abc",
+					Name:      "metal3machine-abc",
+					Namespace: namespaceName,
 					Labels: map[string]string{
 						"M3M":   "Metal3MachineLabel",
 						"Empty": "",
@@ -2621,7 +2624,8 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			bmh: &bmo.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "bmh-abc",
+					Name:      "bmh-abc",
+					Namespace: namespaceName,
 					Labels: map[string]string{
 						"BMH": "BMHLabel",
 					},
@@ -2661,6 +2665,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectedMetaData: map[string]string{
 				"String-1":     "String-1",
+				"providerid":   fmt.Sprintf("%s/%s/%s", namespaceName, bmhuid, m3muid),
 				"ObjectName-1": "machine-abc",
 				"ObjectName-2": "metal3machine-abc",
 				"ObjectName-3": "bmh-abc",
