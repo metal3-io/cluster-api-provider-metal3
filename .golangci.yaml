@@ -25,6 +25,7 @@ linters:
     - gosimple
     - govet
     - importas
+    - gosec
     - ineffassign
     - misspell
     - nakedret
@@ -110,6 +111,9 @@ issues:
     - path: test/e2e
       linters:
         - golint
+    - path: test/e2e
+      linters:
+        - gosec
     - path: _test\.go
       linters:
         - unused
