@@ -17,8 +17,8 @@ func inspection() {
 	Logf("Starting inspection tests")
 
 	var (
-		numberOfWorkers       int = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-		numberOfAvailableBMHs int = 2 * numberOfWorkers
+		numberOfWorkers       = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+		numberOfAvailableBMHs = 2 * numberOfWorkers
 	)
 
 	bootstrapClient := bootstrapClusterProxy.GetClient()

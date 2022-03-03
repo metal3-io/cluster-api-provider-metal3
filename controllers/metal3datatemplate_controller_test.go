@@ -33,7 +33,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -47,7 +47,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		expectRequeue        bool
 		expectManager        bool
 		m3dt                 *capm3.Metal3DataTemplate
-		cluster              *capi.Cluster
+		cluster              *clusterv1.Cluster
 		managerError         bool
 		reconcileNormal      bool
 		reconcileNormalError bool
@@ -165,9 +165,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta,
 				Spec:       capm3.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta,
-				Spec: capi.ClusterSpec{
+				Spec: clusterv1.ClusterSpec{
 					Paused: true,
 				},
 			},
@@ -179,7 +179,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta,
 				Spec:       capm3.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta,
 			},
 			managerError: true,
@@ -189,7 +189,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta,
 				Spec:       capm3.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta,
 			},
 			reconcileNormal:      true,
@@ -201,7 +201,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta,
 				Spec:       capm3.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta,
 			},
 			reconcileNormal: true,

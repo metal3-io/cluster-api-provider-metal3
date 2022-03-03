@@ -28,7 +28,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -93,10 +93,10 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, metal3Cluster.ObjectMeta)
 	if err != nil {
-		error := capierrors.InvalidConfigurationClusterError
-		metal3Cluster.Status.FailureReason = &error
+		invalidConfigError := capierrors.InvalidConfigurationClusterError
+		metal3Cluster.Status.FailureReason = &invalidConfigError
 		metal3Cluster.Status.FailureMessage = pointer.StringPtr("Unable to get owner cluster")
-		conditions.MarkFalse(metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.InternalFailureReason, capi.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.InternalFailureReason, clusterv1.ConditionSeverityError, err.Error())
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
@@ -142,8 +142,8 @@ func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cl
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []capi.ConditionType{
-			capi.ReadyCondition,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
 			capm3.BaremetalInfrastructureReadyCondition,
 		}},
 		patch.WithStatusObservedGeneration{},
@@ -155,7 +155,7 @@ func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInt
 	// If the Metal3Cluster doesn't have finalizer, add it.
 	clusterMgr.SetFinalizer()
 
-	//Create the Metal3 cluster (no-op)
+	// Create the Metal3 cluster (no-op)
 	if err := clusterMgr.Create(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -215,7 +215,7 @@ func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		).
 		// Watches can be defined with predicates in the builder directly now, no need to do `Build()` and then add the watch to the returned controller: https://github.com/kubernetes-sigs/cluster-api/blob/b00bd08d02311919645a4868861d0f9ca0df35ea/util/predicates/cluster_predicates.go#L147-L164
 		Watches(
-			&source.Kind{Type: &capi.Cluster{}},
+			&source.Kind{Type: &clusterv1.Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(func(o client.Object) []reconcile.Request {
 				requests := clusterToInfraFn(o)
 				if requests == nil {

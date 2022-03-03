@@ -42,8 +42,8 @@ import (
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
-	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -97,29 +97,29 @@ type MachineManagerInterface interface {
 	DissociateM3Metadata(context.Context) error
 	AssociateM3Metadata(context.Context) error
 	SetError(string, capierrors.MachineStatusError)
-	SetConditionMetal3MachineToFalse(capi.ConditionType, string, capi.ConditionSeverity, string, ...interface{})
-	SetConditionMetal3MachineToTrue(capi.ConditionType)
+	SetConditionMetal3MachineToFalse(clusterv1.ConditionType, string, clusterv1.ConditionSeverity, string, ...interface{})
+	SetConditionMetal3MachineToTrue(clusterv1.ConditionType)
 }
 
 // MachineManager is responsible for performing machine reconciliation.
 type MachineManager struct {
 	client client.Client
 
-	Cluster               *capi.Cluster
+	Cluster               *clusterv1.Cluster
 	Metal3Cluster         *capm3.Metal3Cluster
-	MachineList           *capi.MachineList
-	Machine               *capi.Machine
+	MachineList           *clusterv1.MachineList
+	Machine               *clusterv1.Machine
 	Metal3Machine         *capm3.Metal3Machine
 	Metal3MachineTemplate *capm3.Metal3MachineTemplate
-	MachineSet            *capi.MachineSet
-	MachineSetList        *capi.MachineSetList
+	MachineSet            *clusterv1.MachineSet
+	MachineSetList        *clusterv1.MachineSetList
 	Log                   logr.Logger
 }
 
 // NewMachineManager returns a new helper for managing a machine.
 func NewMachineManager(client client.Client,
-	cluster *capi.Cluster, metal3Cluster *capm3.Metal3Cluster,
-	machine *capi.Machine, metal3machine *capm3.Metal3Machine,
+	cluster *clusterv1.Cluster, metal3Cluster *capm3.Metal3Cluster,
+	machine *clusterv1.Machine, metal3machine *capm3.Metal3Machine,
 	machineLog logr.Logger) (*MachineManager, error) {
 	return &MachineManager{
 		client: client,
@@ -134,7 +134,7 @@ func NewMachineManager(client client.Client,
 
 // NewMachineSetManager returns a new helper for managing a machineset.
 func NewMachineSetManager(client client.Client,
-	machine *capi.Machine, machineSetList *capi.MachineSetList,
+	machine *clusterv1.Machine, machineSetList *clusterv1.MachineSetList,
 	machineLog logr.Logger) (*MachineManager, error) {
 	return &MachineManager{
 		client:         client,
@@ -207,10 +207,10 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmh.PausedAnnotation]; ok {
-			if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] == PausedAnnotationKey {
+			if m.Cluster.Name == host.Labels[clusterv1.ClusterLabelName] && annotations[bmh.PausedAnnotation] == PausedAnnotationKey {
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
 				delete(host.Annotations, bmh.PausedAnnotation)
-			} else if m.Cluster.Name == host.Labels[capi.ClusterLabelName] && annotations[bmh.PausedAnnotation] != PausedAnnotationKey {
+			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterLabelName] && annotations[bmh.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
 				return nil
 			}
@@ -514,14 +514,14 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return nil
 		}
 
-		//Remove clusterLabel from BMC secret.
+		// Remove clusterLabel from BMC secret.
 		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
 		if errBMC != nil && apierrors.IsNotFound(errBMC) {
 			m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
 		} else if errBMC == nil && tmpBMCSecret != nil {
 			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
-			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
-				delete(tmpBMCSecret.Labels, capi.ClusterLabelName)
+			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1.ClusterLabelName] == m.Machine.Spec.ClusterName {
+				delete(tmpBMCSecret.Labels, clusterv1.ClusterLabelName)
 				errBMC = updateObject(ctx, m.client, tmpBMCSecret)
 				if errBMC != nil {
 					if ok := errors.As(errBMC, &hasRequeueAfterError); !ok {
@@ -617,7 +617,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				}
 				if m.hasTemplateAnnotation() {
 					m3mtKey := client.ObjectKey{
-						Name:      m.Metal3Machine.ObjectMeta.GetAnnotations()[capi.TemplateClonedFromNameAnnotation],
+						Name:      m.Metal3Machine.ObjectMeta.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation],
 						Namespace: m.Metal3Machine.Namespace,
 					}
 					if err := m.client.Get(ctx, m3mtKey, m3mt); err != nil {
@@ -692,8 +692,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return err
 		}
 
-		if host.Labels != nil && host.Labels[capi.ClusterLabelName] == m.Machine.Spec.ClusterName {
-			delete(host.Labels, capi.ClusterLabelName)
+		if host.Labels != nil && host.Labels[clusterv1.ClusterLabelName] == m.Machine.Spec.ClusterName {
+			delete(host.Labels, clusterv1.ClusterLabelName)
 		}
 
 		m.Log.Info("Removing Paused Annotation (if any)")
@@ -1069,7 +1069,7 @@ func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmh.BareMe
 		if tmpBMCSecret.Labels == nil {
 			tmpBMCSecret.Labels = make(map[string]string)
 		}
-		tmpBMCSecret.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+		tmpBMCSecret.Labels[clusterv1.ClusterLabelName] = m.Machine.Spec.ClusterName
 		return updateObject(ctx, m.client, tmpBMCSecret)
 	}
 
@@ -1081,7 +1081,7 @@ func (m *MachineManager) setHostLabel(ctx context.Context, host *bmh.BareMetalHo
 	if host.Labels == nil {
 		host.Labels = make(map[string]string)
 	}
-	host.Labels[capi.ClusterLabelName] = m.Machine.Spec.ClusterName
+	host.Labels[clusterv1.ClusterLabelName] = m.Machine.Spec.ClusterName
 
 	return nil
 }
@@ -1212,7 +1212,7 @@ func (m *MachineManager) hasTemplateAnnotation() bool {
 	if annotations == nil {
 		return false
 	}
-	_, ok := annotations[capi.TemplateClonedFromNameAnnotation]
+	_, ok := annotations[clusterv1.TemplateClonedFromNameAnnotation]
 	return ok
 }
 
@@ -1225,12 +1225,12 @@ func (m *MachineManager) SetError(message string, reason capierrors.MachineStatu
 }
 
 // SetConditionMetal3MachineToFalse sets Metal3Machine condition status to False.
-func (m *MachineManager) SetConditionMetal3MachineToFalse(t capi.ConditionType, reason string, severity capi.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
 	conditions.MarkFalse(m.Metal3Machine, t, reason, severity, messageFormat, messageArgs...)
 }
 
 // SetConditionMetal3MachineToTrue sets Metal3Machine condition status to True.
-func (m *MachineManager) SetConditionMetal3MachineToTrue(t capi.ConditionType) {
+func (m *MachineManager) SetConditionMetal3MachineToTrue(t clusterv1.ConditionType) {
 	conditions.MarkTrue(m.Metal3Machine, t)
 }
 
@@ -1265,8 +1265,8 @@ func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmh.Bare
 
 // NodeAddresses returns a slice of corev1.NodeAddress objects for a
 // given Metal3 machine.
-func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAddress {
-	addrs := []capi.MachineAddress{}
+func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []clusterv1.MachineAddress {
+	addrs := []clusterv1.MachineAddress{}
 
 	// If the host is nil or we have no hw details, return an empty address array.
 	if host == nil || host.Status.HardwareDetails == nil {
@@ -1274,20 +1274,20 @@ func (m *MachineManager) nodeAddresses(host *bmh.BareMetalHost) []capi.MachineAd
 	}
 
 	for _, nic := range host.Status.HardwareDetails.NIC {
-		address := capi.MachineAddress{
-			Type:    capi.MachineInternalIP,
+		address := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalIP,
 			Address: nic.IP,
 		}
 		addrs = append(addrs, address)
 	}
 
 	if host.Status.HardwareDetails.Hostname != "" {
-		addrs = append(addrs, capi.MachineAddress{
-			Type:    capi.MachineHostName,
+		addrs = append(addrs, clusterv1.MachineAddress{
+			Type:    clusterv1.MachineHostName,
 			Address: host.Status.HardwareDetails.Hostname,
 		})
-		addrs = append(addrs, capi.MachineAddress{
-			Type:    capi.MachineInternalDNS,
+		addrs = append(addrs, clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalDNS,
 			Address: host.Status.HardwareDetails.Hostname,
 		})
 	}
@@ -1305,7 +1305,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 }
 
 // ClientGetter prototype.
-type ClientGetter func(ctx context.Context, c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
+type ClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error)
 
 // SetNodeProviderID sets the metal3 provider ID on the kubernetes node.
 func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
@@ -1416,7 +1416,7 @@ func setOwnerRefInList(refList []metav1.OwnerReference, controller bool,
 			Controller: pointer.BoolPtr(controller),
 		})
 	} else {
-		//The UID and the APIVersion might change due to move or version upgrade.
+		// The UID and the APIVersion might change due to move or version upgrade.
 		refList[index].APIVersion = objType.APIVersion
 		refList[index].UID = objMeta.UID
 		refList[index].Controller = pointer.BoolPtr(controller)
@@ -1628,7 +1628,7 @@ func (m *MachineManager) getKubeadmControlPlaneName(ctx context.Context) (string
 		if err != nil {
 			return "", errors.New("Failed to parse the group and version")
 		}
-		if aGV.Group != ctplanev1.GroupVersion.Group {
+		if aGV.Group != controlplanev1.GroupVersion.Group {
 			continue
 		}
 		// adding prefix to KubeadmControlPlane name in order to be able to differentiate
@@ -1661,7 +1661,7 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 		if err != nil {
 			return "", errors.New("Failed to parse the group and version")
 		}
-		if aGV.Group != capi.GroupVersion.Group {
+		if aGV.Group != clusterv1.GroupVersion.Group {
 			continue
 		}
 		// adding prefix to MachineDeployment name in order to be able to differentiate
@@ -1673,10 +1673,10 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 }
 
 // getMachineSet retrieves the MachineSet object corresponding to the CAPI machine.
-func (m *MachineManager) getMachineSet(ctx context.Context) (*capi.MachineSet, error) {
+func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineSet, error) {
 	m.Log.Info("Fetching MachineSet name")
 	// Get list of MachineSets.
-	machineSets := &capi.MachineSetList{}
+	machineSets := &clusterv1.MachineSetList{}
 	if m.Machine == nil {
 		return nil, errors.New("Could not find corresponding machine object")
 	}

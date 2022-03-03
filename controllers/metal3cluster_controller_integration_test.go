@@ -168,9 +168,9 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			},
 		),
 
-		//Given: Cluster, Metal3Cluster.
-		//Cluster.Spec.Paused=true
-		//Expected: Requeue Expected
+		// Given: Cluster, Metal3Cluster.
+		// Cluster.Spec.Paused=true
+		// Expected: Requeue Expected
 		Entry("Should requeue when owner Cluster is paused",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
@@ -183,7 +183,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		),
 
 		//Given: Cluster, Metal3Cluster.
-		//Metal3Cluster has cluster.x-k8s.io/paused annotation
+		// Metal3Cluster has cluster.x-k8s.io/paused annotation
 		//Expected: Requeue Expected
 		Entry("Should requeue when Metal3Cluster has paused annotation",
 			TestCaseReconcileBMC{

@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -20,7 +20,7 @@ var (
 	ctx                      = context.TODO()
 	specName                 = "metal3"
 	namespace                = "metal3"
-	cluster                  *capi.Cluster
+	cluster                  *clusterv1.Cluster
 	clusterName              = "test1"
 	clusterctlLogFolder      string
 	controlplaneListOptions  metav1.ListOptions

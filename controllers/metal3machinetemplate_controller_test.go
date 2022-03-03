@@ -32,7 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utils "k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -241,7 +241,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 						metal3machineTemplateName,
 						namespaceName,
 						map[string]string{
-							capi.PausedAnnotation: "true",
+							clusterv1.PausedAnnotation: "true",
 						}),
 				},
 				m3mTemplateIsPaused: true,

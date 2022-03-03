@@ -8,28 +8,100 @@ run:
 linters:
   disable-all: true
   enable:
+    - asciicheck
+    - bodyclose
     - deadcode
+    - depguard
+    - dogsled
     - errcheck
     - errorlint
+    - exportloopref
     - goconst
+    - gocritic
     - godot
     - gofmt
     - goimports
     - golint
     - gosimple
     - govet
+    - importas
     - ineffassign
     - misspell
     - nakedret
+    - nilerr
+    - noctx 
+    - nolintlint
     - prealloc
+    - predeclared
+    - revive
+    - rowserrcheck
     - staticcheck
     - structcheck
+    - stylecheck
+    - thelper
+    - typecheck
     - unconvert
     - unused
     - varcheck
     - whitespace
   # Run with --fast=false for more extensive checks
   fast: true
+
+linters-settings:
+  importas:
+      no-unaliased: true
+      alias:
+        # Kubernetes
+        - pkg: k8s.io/api/core/v1
+          alias: corev1
+        - pkg: k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1
+          alias: apiextensionsv1
+        - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+          alias: metav1
+        - pkg: k8s.io/apimachinery/pkg/api/errors
+          alias: apierrors
+        - pkg: k8s.io/apimachinery/pkg/util/errors
+          alias: kerrors
+        # Controller Runtime
+        - pkg: sigs.k8s.io/controller-runtime
+          alias: ctrl
+        # KCP
+        - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+          alias: controlplanev1
+        # CAPI
+        - pkg: sigs.k8s.io/cluster-api/api/v1alpha3
+          alias: clusterv1alpha3
+        - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
+          alias: clusterv1alpha4
+        - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+          alias: clusterv1
+  nolintlint:
+    allow-unused: false
+    allow-leading-space: false
+    require-specific: true
+  staticcheck:
+    go: "1.17"
+  stylecheck:
+    go: "1.17"
+  gocritic:
+    enabled-tags:
+      - experimental
+    disabled-checks:
+    - appendAssign
+    - dupImport # https://github.com/go-critic/go-critic/issues/845
+    - evalOrder
+    - ifElseChain
+    - octalLiteral
+    - regexpSimplify
+    - sloppyReassign
+    - truncateCmp
+    - typeDefFirst
+    - unnamedResult
+    - unnecessaryDefer
+    - whyNoLint
+    - wrapperFunc
+  unused:
+    go: "1.17"
 issues:
   exclude-rules:
     - path: api/v1alpha4/types\.go
@@ -41,19 +113,49 @@ issues:
     - path: _test\.go
       linters:
         - unused
+    # Disable linters for conversion
     - linters:
         - staticcheck
       text: "SA1019:"
+      path: .*(api|types)\/.*\/conversion.*\.go$
     # Dot imports for gomega or ginkgo are allowed
     # within test files.
     - path: _test\.go
       text: should not use dot imports
     - path: (test|e2e)/.*.go
       text: should not use dot imports
-    - path: _test\.go
-      text: cyclomatic complexity
-    - path: baremetal/.*.go
-      text: cyclomatic complexity
+    - linters:
+      - revive
+      text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"
+    # Exclude some packages or code to require comments, for example test code, or fake clients.
+    - linters:
+      - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      source: (func|type).*Fake.*
+    - linters:
+      - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: fake_\.go
+    - linters:
+      - revive
+      text: exported (method|function|type|const) (.+) should have comment or be unexported
+      path: .*(api|types)\/.*\/conversion.*\.go$
+    - linters:
+      - revive
+      text: "var-naming: don't use underscores in Go names;"
+      path: .*(api|types)\/.*\/conversion.*\.go$
+    - linters:
+      - revive
+      text: "receiver-naming: receiver name"
+      path: .*(api|types)\/.*\/conversion.*\.go$
+    - linters:
+      - stylecheck
+      text: "ST1003: should not use underscores in Go names;"
+      path: .*(api|types)\/.*\/conversion.*\.go$
+    - linters:
+      - stylecheck
+      text: "ST1016: methods on the same type should have the same receiver name"
+      path: .*(api|types)\/.*\/conversion.*\.go$
   include:
   - EXC0002 # include "missing comments" issues from golint
   max-issues-per-linter: 0

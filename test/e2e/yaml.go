@@ -10,7 +10,7 @@ import (
 
 func yamlContainKeyValue(yamlNodes []*yaml.Node, value string, keys ...string) ([]*yaml.Node, error) {
 	if yamlNodes == nil {
-		return nil, errors.New("Input list of yaml node is null")
+		return nil, errors.New("input list of yaml node is null")
 	}
 	foundNode := []*yaml.Node{}
 	for _, obj := range yamlNodes {
@@ -23,14 +23,14 @@ func yamlContainKeyValue(yamlNodes []*yaml.Node, value string, keys ...string) (
 		}
 	}
 	if len(foundNode) == 0 {
-		return nil, errors.New("Could not find the appropriate yaml node")
+		return nil, errors.New("could not find the appropriate yaml node")
 	}
 	return foundNode, nil
 }
 
 func yamlFindByValue(node *yaml.Node, values ...string) (*yaml.Node, error) {
 	if node == nil {
-		return nil, errors.New("Input yaml node is null")
+		return nil, errors.New("input yaml node is null")
 	}
 	value := values[0]
 	for i, child := range node.Content {
@@ -42,7 +42,7 @@ func yamlFindByValue(node *yaml.Node, values ...string) (*yaml.Node, error) {
 			return targetNode, nil
 		}
 	}
-	return nil, errors.New("Could not find the appropriate yaml node")
+	return nil, errors.New("could not find the appropriate yaml node")
 }
 
 func splitYAML(resources []byte) ([]*yaml.Node, error) {

@@ -26,7 +26,7 @@ import (
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
 
@@ -41,7 +41,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -58,7 +58,7 @@ var bootstrapDataSecretName = "testdatasecret"
 func m3mOwnerRefs() []metav1.OwnerReference {
 	return []metav1.OwnerReference{
 		{
-			APIVersion: capi.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Machine",
 			Name:       machineName,
 		},
@@ -107,8 +107,8 @@ func m3mMetaWithAnnotationDeletion() *metav1.ObjectMeta {
 	}
 }
 
-func userDataSecret() *v1.Secret {
-	return &v1.Secret{
+func userDataSecret() *corev1.Secret {
+	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
 			APIVersion: "v1",
@@ -124,7 +124,7 @@ func userDataSecret() *v1.Secret {
 
 func m3mSpecWithSecret() *capm3.Metal3MachineSpec {
 	return &capm3.Metal3MachineSpec{
-		UserData: &v1.SecretReference{
+		UserData: &corev1.SecretReference{
 			Name:      metal3machineName + "-user-data",
 			Namespace: namespaceName,
 		},
@@ -137,18 +137,18 @@ func metal3machineWithOwnerRefs() *capm3.Metal3Machine {
 	)
 }
 
-func machineWithInfra() *capi.Machine {
+func machineWithInfra() *clusterv1.Machine {
 	return newMachine(clusterName, machineName, metal3machineName, "")
 }
 
-func machineWithBootstrap() *capi.Machine {
+func machineWithBootstrap() *clusterv1.Machine {
 	machine := newMachine(
 		clusterName, machineName, metal3machineName, "",
 	)
-	machine.Spec.Bootstrap = capi.Bootstrap{
+	machine.Spec.Bootstrap = clusterv1.Bootstrap{
 		DataSecretName: &bootstrapDataSecretName,
 	}
-	machine.Status = capi.MachineStatus{
+	machine.Status = clusterv1.MachineStatus{
 		BootstrapReady: true,
 	}
 	return machine
@@ -164,7 +164,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		ErrorReasonExpected        bool
 		ErrorReason                capierrors.MachineStatusError
 		ErrorType                  error
-		ConditionsExpected         capi.Conditions
+		ConditionsExpected         clusterv1.Conditions
 		ExpectedRequeueDuration    time.Duration
 		LabelExpected              bool
 		ClusterInfraReady          bool
@@ -180,13 +180,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 
 	DescribeTable("Reconcile tests",
 		func(tc TestCaseReconcile) {
-			testmachine := &capi.Machine{}
-			testcluster := &capi.Cluster{}
+			testmachine := &clusterv1.Machine{}
+			testcluster := &clusterv1.Cluster{}
 			testBMmachine := &capm3.Metal3Machine{}
 			testBMHost := &bmh.BareMetalHost{}
 
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
-			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *capi.Cluster) (
+			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {
 				return clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1(), nil
@@ -242,7 +242,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				}
 			}
 			if tc.LabelExpected {
-				Expect(objMeta.Labels[capi.ClusterLabelName]).NotTo(BeNil())
+				Expect(objMeta.Labels[clusterv1.ClusterLabelName]).NotTo(BeNil())
 			}
 			if tc.CheckBMFinalizer {
 				Expect(baremetal.Contains(testBMmachine.Finalizers, capm3.MachineFinalizer)).To(BeTrue())
@@ -341,7 +341,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		Entry("Should not return an error when owner Cluster infrastructure is not ready",
 			TestCaseReconcile{
 				Objects: []client.Object{
-					newCluster(clusterName, nil, &capi.ClusterStatus{
+					newCluster(clusterName, nil, &clusterv1.ClusterStatus{
 						InfrastructureReady: false,
 					}),
 					metal3machineWithOwnerRefs(),
@@ -350,15 +350,15 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ErrorExpected:     false,
 				RequeueExpected:   false,
 				ClusterInfraReady: false,
-				ConditionsExpected: capi.Conditions{
-					capi.Condition{
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
 						Type:   capm3.AssociateBMHCondition,
-						Status: v1.ConditionFalse,
+						Status: corev1.ConditionFalse,
 						Reason: capm3.WaitingForClusterInfrastructureReason,
 					},
-					capi.Condition{
-						Type:   capi.ReadyCondition,
-						Status: v1.ConditionFalse,
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionFalse,
 					},
 				},
 			},
@@ -377,15 +377,15 @@ var _ = Describe("Reconcile metal3machine", func() {
 				RequeueExpected:     false,
 				ClusterInfraReady:   true,
 				CheckBootStrapReady: false,
-				ConditionsExpected: capi.Conditions{
-					capi.Condition{
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
 						Type:   capm3.AssociateBMHCondition,
-						Status: v1.ConditionFalse,
+						Status: corev1.ConditionFalse,
 						Reason: capm3.WaitingForBootstrapReadyReason,
 					},
-					capi.Condition{
-						Type:   capi.ReadyCondition,
-						Status: v1.ConditionFalse,
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionFalse,
 					},
 				},
 			},
@@ -422,7 +422,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine, Metal3Machine (No Spec/Status), Cluster, Metal3Cluster.
-		//Cluster.Spec.Paused=true
+		// Cluster.Spec.Paused=true
 		//Expected: Requeue Expected
 		Entry("Should requeue when owner Cluster is paused",
 			TestCaseReconcile{
@@ -439,7 +439,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine, Metal3Machine (No Spec/Status), Cluster, Metal3Cluster.
-		//Metal3Machine has cluster.x-k8s.io/paused annotation
+		// Metal3Machine has cluster.x-k8s.io/paused annotation
 		//Expected: Requeue Expected
 		Entry("Should requeue when Metal3Machine has paused annotation",
 			TestCaseReconcile{
@@ -537,7 +537,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 							Image: capm3.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
-								//No ChecksumType and DiskFormat given to test without them
+								// No ChecksumType and DiskFormat given to test without them
 								// CheckBMHostProvisioned is true
 							},
 						}, nil, false,
@@ -585,18 +585,18 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMFinalizer:    true,
 				CheckBMProviderID:   true,
 				CheckBootStrapReady: true,
-				ConditionsExpected: capi.Conditions{
-					capi.Condition{
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
 						Type:   capm3.AssociateBMHCondition,
-						Status: v1.ConditionTrue,
+						Status: corev1.ConditionTrue,
 					},
-					capi.Condition{
+					clusterv1.Condition{
 						Type:   capm3.KubernetesNodeReadyCondition,
-						Status: v1.ConditionTrue,
+						Status: corev1.ConditionTrue,
 					},
-					capi.Condition{
-						Type:   capi.ReadyCondition,
-						Status: v1.ConditionTrue,
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionTrue,
 					},
 				},
 			},
@@ -628,18 +628,18 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMProviderID:          true,
 				CheckBootStrapReady:        true,
 				CheckBMProviderIDUnchanged: true,
-				ConditionsExpected: capi.Conditions{
-					capi.Condition{
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
 						Type:   capm3.AssociateBMHCondition,
-						Status: v1.ConditionTrue,
+						Status: corev1.ConditionTrue,
 					},
-					capi.Condition{
+					clusterv1.Condition{
 						Type:   capm3.KubernetesNodeReadyCondition,
-						Status: v1.ConditionTrue,
+						Status: corev1.ConditionTrue,
 					},
-					capi.Condition{
-						Type:   capi.ReadyCondition,
-						Status: v1.ConditionTrue,
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionTrue,
 					},
 				},
 			},
@@ -692,19 +692,19 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMFinalizer:        true,
 				CheckBMProviderID:       false,
 				CheckBootStrapReady:     true,
-				ConditionsExpected: capi.Conditions{
-					capi.Condition{
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
 						Type:   capm3.AssociateBMHCondition,
-						Status: v1.ConditionTrue,
+						Status: corev1.ConditionTrue,
 					},
-					capi.Condition{
+					clusterv1.Condition{
 						Type:   capm3.KubernetesNodeReadyCondition,
-						Status: v1.ConditionFalse,
+						Status: corev1.ConditionFalse,
 						Reason: capm3.SettingProviderIDOnNodeFailedReason,
 					},
-					capi.Condition{
-						Type:   capi.ReadyCondition,
-						Status: v1.ConditionFalse,
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionFalse,
 					},
 				},
 			},
@@ -722,14 +722,14 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newBareMetalHost(nil, nil, nil, false),
 				},
 				TargetObjects: []runtime.Object{
-					&v1.Node{
+					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "bmh-0",
 							Labels: map[string]string{
 								baremetal.ProviderLabelPrefix: string(bmhuid),
 							},
 						},
-						Spec: v1.NodeSpec{},
+						Spec: corev1.NodeSpec{},
 					},
 				},
 				ErrorExpected:       false,
@@ -773,7 +773,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
 					newBareMetalHost(&bmh.BareMetalHostSpec{
-						ConsumerRef: &v1.ObjectReference{
+						ConsumerRef: &corev1.ObjectReference{
 							Name:       metal3machineName,
 							Namespace:  namespaceName,
 							Kind:       "Metal3Machine",

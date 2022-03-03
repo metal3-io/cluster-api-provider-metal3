@@ -30,8 +30,7 @@ func upgradeBMO() {
 	deploy, err := clientSet.AppsV1().Deployments(bmoNamespace).Get(ctx, bmoDeployName, metav1.GetOptions{})
 	Expect(err).To(BeNil())
 	for i, container := range deploy.Spec.Template.Spec.Containers {
-		switch container.Name {
-		case "manager":
+		if container.Name == "manager" {
 			Logf("Old image: %v", deploy.Spec.Template.Spec.Containers[i].Image)
 			Logf("New image: %v", bmoImage)
 			deploy.Spec.Template.Spec.Containers[i].Image = bmoImage

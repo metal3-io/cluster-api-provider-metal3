@@ -30,7 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -130,7 +130,7 @@ func createSecret(ctx context.Context, cl client.Client, name string,
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				capi.ClusterLabelName: clusterName,
+				clusterv1.ClusterLabelName: clusterName,
 			},
 			OwnerReferences: ownerRefs,
 		},
@@ -171,7 +171,7 @@ func deleteSecret(ctx context.Context, cl client.Client, name string,
 	if err != nil && !apierrors.IsNotFound(err) {
 		return err
 	} else if err == nil {
-		//unset the finalizers (remove all since we do not expect anything else
+		// unset the finalizers (remove all since we do not expect anything else
 		// to control that object).
 		tmpBootstrapSecret.Finalizers = []string{}
 		err = updateObject(ctx, cl, &tmpBootstrapSecret)

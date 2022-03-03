@@ -30,7 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -39,7 +39,7 @@ import (
 type DataTemplateManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
-	SetClusterOwnerRef(*capi.Cluster) error
+	SetClusterOwnerRef(*clusterv1.Cluster) error
 	UpdateDatas(context.Context) (int, error)
 }
 
@@ -79,7 +79,7 @@ func (m *DataTemplateManager) UnsetFinalizer() {
 }
 
 // SetClusterOwnerRef sets ownerRef.
-func (m *DataTemplateManager) SetClusterOwnerRef(cluster *capi.Cluster) error {
+func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1.Cluster) error {
 	// Verify that the owner reference is there, if not add it and update object,
 	// if error requeue.
 	if cluster == nil {
@@ -106,7 +106,7 @@ func (m *DataTemplateManager) SetClusterOwnerRef(cluster *capi.Cluster) error {
 func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, error) {
 	m.Log.Info("Fetching Metal3Data objects")
 
-	//start from empty maps
+	// start from empty maps
 	m.DataTemplate.Status.Indexes = make(map[string]int)
 
 	indexes := make(map[int]string)

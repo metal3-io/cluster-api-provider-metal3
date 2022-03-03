@@ -35,7 +35,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -66,7 +66,7 @@ func init() {
 
 	// Register required object kinds with global scheme.
 	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
-	_ = capi.AddToScheme(scheme.Scheme)
+	_ = clusterv1.AddToScheme(scheme.Scheme)
 	_ = capm3.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
 	_ = corev1.AddToScheme(scheme.Scheme)
@@ -75,7 +75,7 @@ func init() {
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := capi.AddToScheme(s); err != nil {
+	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := capm3.AddToScheme(s); err != nil {
@@ -139,8 +139,8 @@ var _ = AfterSuite(func() {
 
 var deletionTimestamp = metav1.Now()
 
-func clusterPauseSpec() *capi.ClusterSpec {
-	return &capi.ClusterSpec{
+func clusterPauseSpec() *clusterv1.ClusterSpec {
+	return &clusterv1.ClusterSpec{
 		Paused: true,
 		InfrastructureRef: &corev1.ObjectReference{
 			Name:       metal3ClusterName,
@@ -157,7 +157,7 @@ func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
-			capi.ClusterLabelName: clusterName,
+			clusterv1.ClusterLabelName: clusterName,
 		},
 	}
 }
@@ -174,7 +174,7 @@ func bmcSpec() *capm3.Metal3ClusterSpec {
 
 func bmcOwnerRef() *metav1.OwnerReference {
 	return &metav1.OwnerReference{
-		APIVersion: capi.GroupVersion.String(),
+		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       clusterName,
 	}
@@ -196,9 +196,9 @@ func getKey(objectName string) *client.ObjectKey {
 	}
 }
 
-func newCluster(clusterName string, spec *capi.ClusterSpec, status *capi.ClusterStatus) *capi.Cluster {
+func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *clusterv1.ClusterStatus) *clusterv1.Cluster {
 	if spec == nil {
-		spec = &capi.ClusterSpec{
+		spec = &clusterv1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
@@ -208,14 +208,14 @@ func newCluster(clusterName string, spec *capi.ClusterSpec, status *capi.Cluster
 		}
 	}
 	if status == nil {
-		status = &capi.ClusterStatus{
+		status = &clusterv1.ClusterStatus{
 			InfrastructureReady: true,
 		}
 	}
-	return &capi.Cluster{
+	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
-			APIVersion: capi.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
@@ -248,13 +248,13 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spe
 			Namespace: namespaceName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Cluster",
 					Name:       clusterName,
 				},
 			},
 			Annotations: map[string]string{
-				capi.PausedAnnotation: "true",
+				clusterv1.PausedAnnotation: "true",
 			},
 		}
 	}
@@ -273,17 +273,17 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spe
 	}
 }
 
-func newMachine(clusterName, machineName string, metal3machineName string, nodeRefName string) *capi.Machine {
-	machine := &capi.Machine{
+func newMachine(clusterName, machineName string, metal3machineName string, nodeRefName string) *clusterv1.Machine {
+	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
-			APIVersion: capi.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: namespaceName,
 			Labels: map[string]string{
-				capi.ClusterLabelName: clusterName,
+				clusterv1.ClusterLabelName: clusterName,
 			},
 		},
 	}
@@ -338,13 +338,13 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 			Namespace: namespaceName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Machine",
 					Name:       machineName,
 				},
 			},
 			Annotations: map[string]string{
-				capi.PausedAnnotation: "true",
+				clusterv1.PausedAnnotation: "true",
 			},
 		}
 	}
@@ -369,7 +369,7 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 }
 
 func newBareMetalHost(spec *bmh.BareMetalHostSpec,
-	status *bmh.BareMetalHostStatus, Labels map[string]string, paused bool,
+	status *bmh.BareMetalHostStatus, labels map[string]string, paused bool,
 ) *bmh.BareMetalHost {
 	if spec == nil {
 		spec = &bmh.BareMetalHostSpec{}
@@ -394,8 +394,8 @@ func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 		Spec:   *spec,
 		Status: *status,
 	}
-	if Labels != nil {
-		bmh.ObjectMeta.Labels = Labels
+	if labels != nil {
+		bmh.ObjectMeta.Labels = labels
 	}
 	if paused {
 		bmh.ObjectMeta.Annotations = map[string]string{

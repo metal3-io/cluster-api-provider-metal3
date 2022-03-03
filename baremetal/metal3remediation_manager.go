@@ -30,7 +30,7 @@ import (
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -60,7 +60,7 @@ type RemediationManagerInterface interface {
 	GetTimeout() *metav1.Duration
 	IncreaseRetryCount()
 	SetOwnerRemediatedConditionNew(ctx context.Context) error
-	GetCapiMachine(ctx context.Context) (*capi.Machine, error)
+	GetCapiMachine(ctx context.Context) (*clusterv1.Machine, error)
 }
 
 // RemediationManager is responsible for performing remediation reconciliation.
@@ -68,13 +68,13 @@ type RemediationManager struct {
 	Client            client.Client
 	Metal3Remediation *capm3.Metal3Remediation
 	Metal3Machine     *capm3.Metal3Machine
-	Machine           *capi.Machine
+	Machine           *clusterv1.Machine
 	Log               logr.Logger
 }
 
 // NewRemediationManager returns a new helper for managing a Metal3Remediation object.
 func NewRemediationManager(client client.Client,
-	metal3remediation *capm3.Metal3Remediation, metal3Machine *capm3.Metal3Machine, machine *capi.Machine,
+	metal3remediation *capm3.Metal3Remediation, metal3Machine *capm3.Metal3Machine, machine *clusterv1.Machine,
 	remediationLog logr.Logger) (*RemediationManager, error) {
 	return &RemediationManager{
 		Client:            client,
@@ -271,7 +271,7 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		r.Log.Info("Unable to create patch helper for Machine")
 		return err
 	}
-	conditions.MarkFalse(capiMachine, capi.MachineOwnerRemediatedCondition, capi.WaitingForRemediationReason, capi.ConditionSeverityWarning, "")
+	conditions.MarkFalse(capiMachine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 	err = machineHelper.Patch(ctx, capiMachine)
 	if err != nil {
 		r.Log.Info("Unable to patch Machine %d", capiMachine)
@@ -281,7 +281,7 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 }
 
 // GetCapiMachine returns CAPI machine object owning the current resource.
-func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*capi.Machine, error) {
+func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*clusterv1.Machine, error) {
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, r.Metal3Remediation.ObjectMeta)
 	if err != nil {
 		r.Log.Error(err, "metal3Remediation's owner Machine could not be retrieved")

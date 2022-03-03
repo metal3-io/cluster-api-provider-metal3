@@ -33,7 +33,6 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,8 +40,8 @@ import (
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/pointer"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
-	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -120,7 +119,7 @@ func consumerRefSome() *corev1.ObjectReference {
 		Name:       "someoneelsesmachine",
 		Namespace:  "myns",
 		Kind:       "M3Machine",
-		APIVersion: capi.GroupVersion.String(),
+		APIVersion: clusterv1.GroupVersion.String(),
 	}
 }
 
@@ -191,7 +190,7 @@ func m3mObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
 		Namespace:       "myns",
 		OwnerReferences: []metav1.OwnerReference{},
 		Labels: map[string]string{
-			capi.ClusterLabelName: clusterName,
+			clusterv1.ClusterLabelName: clusterName,
 		},
 		Annotations: map[string]string{
 			HostAnnotation: "myns/myhost",
@@ -205,7 +204,7 @@ func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
 		Namespace:       "myns",
 		OwnerReferences: []metav1.OwnerReference{},
 		Labels: map[string]string{
-			capi.ClusterLabelName: clusterName,
+			clusterv1.ClusterLabelName: clusterName,
 		},
 		Annotations: map[string]string{
 			bmh.PausedAnnotation: PausedAnnotationKey,
@@ -280,16 +279,16 @@ func m3mObjectMetaNoAnnotations() *metav1.ObjectMeta {
 	}
 }
 
-func machineOwnedByMachineSet() *capi.Machine {
-	return &capi.Machine{
+func machineOwnedByMachineSet() *clusterv1.Machine {
+	return &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: capi.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Machine",
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSet",
 					Name:       "ms-test1",
 				},
@@ -416,7 +415,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseBootstrapReady struct {
-		Machine    capi.Machine
+		Machine    clusterv1.Machine
 		ExpectTrue bool
 	}
 
@@ -432,15 +431,15 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(bootstrapState).To(Equal(tc.ExpectTrue))
 		},
 		Entry("ready", testCaseBootstrapReady{
-			Machine: capi.Machine{
-				Status: capi.MachineStatus{
+			Machine: clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
 					BootstrapReady: true,
 				},
 			},
 			ExpectTrue: true,
 		}),
 		Entry("not ready", testCaseBootstrapReady{
-			Machine:    capi.Machine{},
+			Machine:    clusterv1.Machine{},
 			ExpectTrue: false,
 		}),
 	)
@@ -474,7 +473,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	Describe("Test ChooseHost", func() {
 
-		//Creating the hosts
+		// Creating the hosts
 		host1 := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "host1",
@@ -577,7 +576,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 
 		type testCaseChooseHost struct {
-			Machine          *capi.Machine
+			Machine          *clusterv1.Machine
 			Hosts            []client.Object
 			M3Machine        *capm3.Metal3Machine
 			ExpectedHostName string
@@ -808,7 +807,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseRemovePauseAnnotation struct {
-		Cluster       *capi.Cluster
+		Cluster       *clusterv1.Cluster
 		M3Machine     *capm3.Metal3Machine
 		Host          *bmh.BareMetalHost
 		ExpectPresent bool
@@ -1086,7 +1085,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
 		type testCaseExists struct {
-			Machine   *capi.Machine
+			Machine   *clusterv1.Machine
 			M3Machine *capm3.Metal3Machine
 			Expected  bool
 		}
@@ -1103,7 +1102,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(result).To(Equal(tc.Expected))
 			},
 			Entry("Failed to find the existing host", testCaseExists{
-				Machine: &capi.Machine{},
+				Machine: &clusterv1.Machine{},
 				M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 					m3mObjectMetaWithSomeAnnotations(),
 				),
@@ -1111,7 +1110,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 			Entry("Found host even though annotation value is incorrect",
 				testCaseExists{
-					Machine: &capi.Machine{},
+					Machine: &clusterv1.Machine{},
 					M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 						m3mObjectMetaWithInvalidAnnotations(),
 					),
@@ -1119,7 +1118,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			),
 			Entry("Found host even though annotation not present", testCaseExists{
-				Machine: &capi.Machine{},
+				Machine: &clusterv1.Machine{},
 				M3Machine: newMetal3Machine("", nil, nil, nil,
 					m3mObjectMetaEmptyAnnotations(),
 				),
@@ -1138,7 +1137,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(&host).Build()
 
 		type testCaseGetHost struct {
-			Machine       *capi.Machine
+			Machine       *clusterv1.Machine
 			M3Machine     *capm3.Metal3Machine
 			ExpectPresent bool
 		}
@@ -1159,7 +1158,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 			},
 			Entry("Should find the expected host", testCaseGetHost{
-				Machine: &capi.Machine{},
+				Machine: &clusterv1.Machine{},
 				M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
@@ -1167,7 +1166,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}),
 			Entry("Should not find the host, annotation value incorrect",
 				testCaseGetHost{
-					Machine: &capi.Machine{},
+					Machine: &clusterv1.Machine{},
 					M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 						m3mObjectMetaWithInvalidAnnotations(),
 					),
@@ -1175,7 +1174,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			),
 			Entry("Should not find the host, annotation not present", testCaseGetHost{
-				Machine: &capi.Machine{},
+				Machine: &clusterv1.Machine{},
 				M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 					m3mObjectMetaEmptyAnnotations(),
 				),
@@ -1185,7 +1184,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type testCaseGetSetProviderID struct {
-		Machine       *capi.Machine
+		Machine       *clusterv1.Machine
 		M3Machine     *capm3.Metal3Machine
 		Host          *bmh.BareMetalHost
 		ExpectPresent bool
@@ -1275,7 +1274,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	Describe("Test utility functions", func() {
 		type testCaseSmallFunctions struct {
-			Machine        *capi.Machine
+			Machine        *clusterv1.Machine
 			M3Machine      *capm3.Metal3Machine
 			ExpectCtrlNode bool
 		}
@@ -1317,16 +1316,16 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectCtrlNode: false,
 			}),
 			Entry("Test small functions, control plane node", testCaseSmallFunctions{
-				Machine: &capi.Machine{
+				Machine: &clusterv1.Machine{
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "Machine",
-						APIVersion: capi.GroupVersion.String(),
+						APIVersion: clusterv1.GroupVersion.String(),
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mymachine",
 						Namespace: "myns",
 						Labels: map[string]string{
-							capi.MachineControlPlaneLabelName: "labelHere",
+							clusterv1.MachineControlPlaneLabelName: "labelHere",
 						},
 					},
 				},
@@ -1339,7 +1338,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type testCaseEnsureAnnotation struct {
-		Machine          capi.Machine
+		Machine          clusterv1.Machine
 		Host             *bmh.BareMetalHost
 		M3Machine        *capm3.Metal3Machine
 		ExpectAnnotation bool
@@ -1373,7 +1372,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 		},
 		Entry("Annotation exists and is correct", testCaseEnsureAnnotation{
-			Machine: capi.Machine{},
+			Machine: clusterv1.Machine{},
 			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 				m3mObjectMetaWithValidAnnotations(),
 			),
@@ -1383,7 +1382,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectAnnotation: true,
 		}),
 		Entry("Annotation exists but is wrong", testCaseEnsureAnnotation{
-			Machine: capi.Machine{},
+			Machine: clusterv1.Machine{},
 			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 				m3mObjectMetaWithInvalidAnnotations(),
 			),
@@ -1393,7 +1392,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectAnnotation: true,
 		}),
 		Entry("Annotations are empty", testCaseEnsureAnnotation{
-			Machine: capi.Machine{},
+			Machine: clusterv1.Machine{},
 			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
 				m3mObjectMetaEmptyAnnotations(),
 			),
@@ -1403,7 +1402,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectAnnotation: true,
 		}),
 		Entry("Annotations are nil", testCaseEnsureAnnotation{
-			Machine: capi.Machine{},
+			Machine: clusterv1.Machine{},
 			M3Machine: newMetal3Machine("", nil, nil, nil,
 				m3mObjectMetaNoAnnotations(),
 			),
@@ -1417,7 +1416,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	type testCaseDelete struct {
 		Host                            *bmh.BareMetalHost
 		Secret                          *corev1.Secret
-		Machine                         *capi.Machine
+		Machine                         *clusterv1.Machine
 		M3Machine                       *capm3.Metal3Machine
 		BMCSecret                       *corev1.Secret
 		ExpectedConsumerRef             *corev1.ObjectReference
@@ -1543,8 +1542,8 @@ var _ = Describe("Metal3Machine manager", func() {
 					&savedCred,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedHost.Labels[capi.ClusterLabelName]).To(Equal(""))
-				Expect(savedCred.Labels[capi.ClusterLabelName]).To(Equal(""))
+				Expect(savedHost.Labels[clusterv1.ClusterLabelName]).To(Equal(""))
+				Expect(savedCred.Labels[clusterv1.ClusterLabelName]).To(Equal(""))
 				// Other labels are not removed
 				Expect(savedHost.Labels["foo"]).To(Equal("bar"))
 				Expect(savedCred.Labels["foo"]).To(Equal("bar"))
@@ -1553,7 +1552,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mTemplate := capm3.Metal3MachineTemplate{}
 				err = fakeClient.Get(context.TODO(),
 					client.ObjectKey{
-						Name:      tc.M3Machine.ObjectMeta.GetAnnotations()[capi.TemplateClonedFromNameAnnotation],
+						Name:      tc.M3Machine.ObjectMeta.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation],
 						Namespace: tc.M3Machine.Namespace,
 					},
 					&m3mTemplate,
@@ -1691,12 +1690,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateReady,
 				bmhStatus(), false, "metadata", true,
 			),
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns2",
 				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("Foobar"),
 					},
 				},
@@ -1742,12 +1741,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
 				false, "metadata", true,
 			),
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns",
 				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("mym3machine-user-data"),
 					},
 				},
@@ -1895,8 +1894,8 @@ var _ = Describe("Metal3Machine manager", func() {
 
 		type testCaseUpdateMachineStatus struct {
 			Host            *bmh.BareMetalHost
-			Machine         *capi.Machine
-			ExpectedMachine capi.Machine
+			Machine         *clusterv1.Machine
+			ExpectedMachine clusterv1.Machine
 			M3Machine       capm3.Metal3Machine
 		}
 
@@ -1934,13 +1933,13 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				Machine: &capi.Machine{
+				Machine: &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mymachine",
 						Namespace: "myns",
 					},
-					Status: capi.MachineStatus{
-						Addresses: []capi.MachineAddress{
+					Status: clusterv1.MachineStatus{
+						Addresses: []clusterv1.MachineAddress{
 							{
 								Address: "192.168.1.255",
 								Type:    "InternalIP",
@@ -1959,10 +1958,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "M3Machine",
-						APIVersion: capi.GroupVersion.String(),
+						APIVersion: clusterv1.GroupVersion.String(),
 					},
 					Status: capm3.Metal3MachineStatus{
-						Addresses: []capi.MachineAddress{
+						Addresses: []clusterv1.MachineAddress{
 							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
@@ -1975,9 +1974,9 @@ var _ = Describe("Metal3Machine manager", func() {
 						Ready: true,
 					},
 				},
-				ExpectedMachine: capi.Machine{
-					Status: capi.MachineStatus{
-						Addresses: []capi.MachineAddress{
+				ExpectedMachine: clusterv1.Machine{
+					Status: clusterv1.MachineStatus{
+						Addresses: []clusterv1.MachineAddress{
 							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
@@ -1998,13 +1997,13 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				Machine: &capi.Machine{
+				Machine: &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mymachine",
 						Namespace: "myns",
 					},
-					Status: capi.MachineStatus{
-						Addresses: []capi.MachineAddress{
+					Status: clusterv1.MachineStatus{
+						Addresses: []clusterv1.MachineAddress{
 							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
@@ -2023,10 +2022,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "M3Machine",
-						APIVersion: capi.GroupVersion.String(),
+						APIVersion: clusterv1.GroupVersion.String(),
 					},
 					Status: capm3.Metal3MachineStatus{
-						Addresses: []capi.MachineAddress{
+						Addresses: []clusterv1.MachineAddress{
 							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
@@ -2039,9 +2038,9 @@ var _ = Describe("Metal3Machine manager", func() {
 						Ready: true,
 					},
 				},
-				ExpectedMachine: capi.Machine{
-					Status: capi.MachineStatus{
-						Addresses: []capi.MachineAddress{
+				ExpectedMachine: clusterv1.Machine{
+					Status: clusterv1.MachineStatus{
+						Addresses: []clusterv1.MachineAddress{
 							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
@@ -2057,12 +2056,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			Entry("Machine status unchanged, status set empty",
 				testCaseUpdateMachineStatus{
 					Host: &bmh.BareMetalHost{},
-					Machine: &capi.Machine{
+					Machine: &clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mymachine",
 							Namespace: "myns",
 						},
-						Status: capi.MachineStatus{},
+						Status: clusterv1.MachineStatus{},
 					},
 					M3Machine: capm3.Metal3Machine{
 						ObjectMeta: metav1.ObjectMeta{
@@ -2071,15 +2070,15 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "M3Machine",
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 						Status: capm3.Metal3MachineStatus{
-							Addresses: []capi.MachineAddress{},
+							Addresses: []clusterv1.MachineAddress{},
 							Ready:     true,
 						},
 					},
-					ExpectedMachine: capi.Machine{
-						Status: capi.MachineStatus{},
+					ExpectedMachine: clusterv1.Machine{
+						Status: clusterv1.MachineStatus{},
 					},
 				},
 			),
@@ -2095,31 +2094,31 @@ var _ = Describe("Metal3Machine manager", func() {
 			IP: "172.0.20.2",
 		}
 
-		addr1 := capi.MachineAddress{
-			Type:    capi.MachineInternalIP,
+		addr1 := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalIP,
 			Address: "192.168.1.1",
 		}
 
-		addr2 := capi.MachineAddress{
-			Type:    capi.MachineInternalIP,
+		addr2 := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineInternalIP,
 			Address: "172.0.20.2",
 		}
 
-		addr3 := capi.MachineAddress{
-			Type:    capi.MachineHostName,
+		addr3 := clusterv1.MachineAddress{
+			Type:    clusterv1.MachineHostName,
 			Address: "mygreathost",
 		}
 
 		type testCaseNodeAddress struct {
-			Machine               capi.Machine
+			Machine               clusterv1.Machine
 			M3Machine             capm3.Metal3Machine
 			Host                  *bmh.BareMetalHost
-			ExpectedNodeAddresses []capi.MachineAddress
+			ExpectedNodeAddresses []clusterv1.MachineAddress
 		}
 
 		DescribeTable("Test NodeAddress",
 			func(tc testCaseNodeAddress) {
-				var nodeAddresses []capi.MachineAddress
+				var nodeAddresses []clusterv1.MachineAddress
 
 				fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).Build()
 				machineMgr, err := NewMachineManager(fakeClient, nil, nil, &tc.Machine,
@@ -2143,7 +2142,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []capi.MachineAddress{addr1},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
 			}),
 			Entry("Two NICs", testCaseNodeAddress{
 				Host: &bmh.BareMetalHost{
@@ -2153,7 +2152,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []capi.MachineAddress{addr1, addr2},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1, addr2},
 			}),
 			Entry("Hostname is set", testCaseNodeAddress{
 				Host: &bmh.BareMetalHost{
@@ -2163,7 +2162,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []capi.MachineAddress{addr3},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr3},
 			}),
 			Entry("Empty Hostname", testCaseNodeAddress{
 				Host: &bmh.BareMetalHost{
@@ -2173,7 +2172,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []capi.MachineAddress{},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{},
 			}),
 			Entry("No host at all, so this is a no-op", testCaseNodeAddress{
 				Host:                  nil,
@@ -2218,7 +2217,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	Describe("Test SetNodeProviderID", func() {
 		s := runtime.NewScheme()
-		err := capi.AddToScheme(s)
+		err := clusterv1.AddToScheme(s)
 		if err != nil {
 			log.Printf("AddToScheme failed: %v", err)
 		}
@@ -2228,7 +2227,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}
 
 		type testCaseSetNodePoviderID struct {
-			Node               v1.Node
+			Node               corev1.Node
 			HostID             string
 			ExpectedError      bool
 			ExpectedProviderID string
@@ -2238,7 +2237,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			func(tc testCaseSetNodePoviderID) {
 				fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
 				corev1Client := clientfake.NewSimpleClientset(&tc.Node).CoreV1()
-				m := func(ctx context.Context, client client.Client, cluster *capi.Cluster) (
+				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
 					clientcorev1.CoreV1Interface, error,
 				) {
 					return corev1Client, nil
@@ -2248,7 +2247,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
 						&capm3.Metal3ClusterSpec{NoCloudProvider: true}, nil,
 					),
-					&capi.Machine{}, &capm3.Metal3Machine{}, logr.Discard(),
+					&clusterv1.Machine{}, &capm3.Metal3Machine{}, logr.Discard(),
 				)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -2272,13 +2271,13 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
 			},
 			Entry("Set target ProviderID, No matching node", testCaseSetNodePoviderID{
-				Node:               v1.Node{},
+				Node:               corev1.Node{},
 				HostID:             string(Bmhuid),
 				ExpectedError:      true,
 				ExpectedProviderID: ProviderID,
 			}),
 			Entry("Set target ProviderID, matching node", testCaseSetNodePoviderID{
-				Node: v1.Node{
+				Node: corev1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							ProviderLabelPrefix: string(bmhuid),
@@ -2290,13 +2289,13 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectedProviderID: fmt.Sprintf("%s%s", ProviderIDPrefix, string(bmhuid)),
 			}),
 			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
-				Node: v1.Node{
+				Node: corev1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							ProviderLabelPrefix: string(Bmhuid),
 						},
 					},
-					Spec: v1.NodeSpec{
+					Spec: corev1.NodeSpec{
 						ProviderID: ProviderID,
 					},
 				},
@@ -2308,7 +2307,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type testCaseGetUserDataSecretName struct {
-		Machine     *capi.Machine
+		Machine     *clusterv1.Machine
 		M3Machine   *capm3.Metal3Machine
 		BMHost      *bmh.BareMetalHost
 		Secret      *corev1.Secret
@@ -2394,12 +2393,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Type: "Opaque",
 			},
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns",
 				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("Foobar"),
 					},
 				},
@@ -2422,12 +2421,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Type: "Opaque",
 			},
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns2",
 				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("Foobar"),
 					},
 				},
@@ -2450,12 +2449,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Type: "Opaque",
 			},
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns2",
 				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
 							Name:      "abc",
 							Namespace: "def",
@@ -2469,12 +2468,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("UserDataSecretName set in Machine, secret exists", testCaseGetUserDataSecretName{
 			Secret: newSecret(),
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns",
 				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("test-data-secret-name"),
 					},
 				},
@@ -2483,12 +2482,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, "metadata", false),
 		}),
 		Entry("UserDataSecretName set in Machine, no secret", testCaseGetUserDataSecretName{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "myns",
 				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("test-data-secret-name"),
 					},
 				},
@@ -2499,7 +2498,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseAssociate struct {
-		Machine            *capi.Machine
+		Machine            *clusterv1.Machine
 		Host               *bmh.BareMetalHost
 		M3Machine          *capm3.Metal3Machine
 		BMCSecret          *corev1.Secret
@@ -2574,8 +2573,8 @@ var _ = Describe("Metal3Machine manager", func() {
 					&savedCred,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedHost.Labels[capi.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
-				Expect(savedCred.Labels[capi.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
+				Expect(savedHost.Labels[clusterv1.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
+				Expect(savedCred.Labels[clusterv1.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
 			}
 		},
 		Entry("Associate empty machine, Metal3 machine spec nil",
@@ -2712,7 +2711,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseUpdate struct {
-		Machine     *capi.Machine
+		Machine     *clusterv1.Machine
 		Host        *bmh.BareMetalHost
 		M3Machine   *capm3.Metal3Machine
 		ExpectError bool
@@ -3024,7 +3023,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	type testCaseM3MetaData struct {
 		M3Machine          *capm3.Metal3Machine
-		Machine            *capi.Machine
+		Machine            *clusterv1.Machine
 		DataClaim          *capm3.Metal3DataClaim
 		Data               *capm3.Metal3Data
 		ExpectError        bool
@@ -3441,7 +3440,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseNodeReuseLabelMatches struct {
-		Machine                  *capi.Machine
+		Machine                  *clusterv1.Machine
 		Host                     *bmh.BareMetalHost
 		expectNodeReuseLabelName string
 		expectNodeReuseLabel     bool
@@ -3486,18 +3485,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectMatch: false,
 		}),
 		Entry("Should match, if machine is controlplane  and nodeReuseLabelName matches KubeadmControlPlane name on the host", testCaseNodeReuseLabelMatches{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: ctplanev1.GroupVersion.String(),
+							APIVersion: controlplanev1.GroupVersion.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "test1",
 						},
 					},
 					Labels: map[string]string{
-						capi.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -3515,18 +3514,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectMatch:              true,
 		}),
 		Entry("Should return false if nodeReuseLabelName is empty for host", testCaseNodeReuseLabelMatches{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: ctplanev1.GroupVersion.String(),
+							APIVersion: controlplanev1.GroupVersion.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "test1",
 						},
 					},
 					Labels: map[string]string{
-						capi.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -3542,18 +3541,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectMatch:          false,
 		}),
 		Entry("Should return false if nodeReuseLabelName on the host does not match with KubeadmControlPlane name", testCaseNodeReuseLabelMatches{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: ctplanev1.GroupVersion.String(),
+							APIVersion: controlplanev1.GroupVersion.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "test1",
 						},
 					},
 					Labels: map[string]string{
-						capi.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -3569,11 +3568,11 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectMatch:          false,
 		}),
 		Entry("Should return false if nodeReuseLabelName on host is empty and machine is not owned by KubeadmControlPlane", testCaseNodeReuseLabelMatches{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						capi.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabelName: "",
 					},
 				},
 			},
@@ -3589,11 +3588,11 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectMatch:          false,
 		}),
 		Entry("Should return false if nodeReuseLabelName on the host does not match with MachineDeployment name", testCaseNodeReuseLabelMatches{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						capi.MachineDeploymentLabelName: "cluster.x-k8s.io/deployment-name",
+						clusterv1.MachineDeploymentLabelName: "cluster.x-k8s.io/deployment-name",
 					},
 				},
 			},
@@ -3669,7 +3668,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseGetKubeadmControlPlaneName struct {
-		Machine         *capi.Machine
+		Machine         *clusterv1.Machine
 		expectedKcp     bool
 		expectedKcpName string
 		expectError     bool
@@ -3700,11 +3699,11 @@ var _ = Describe("Metal3Machine manager", func() {
 
 		},
 		Entry("Should find the expected kcp", testCaseGetKubeadmControlPlaneName{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: ctplanev1.GroupVersion.String(),
+							APIVersion: controlplanev1.GroupVersion.String(),
 							Kind:       "KubeadmControlPlane",
 							Name:       "test1",
 						},
@@ -3716,11 +3715,11 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectedKcpName: "kcp-test1",
 		}),
 		Entry("Should not find the expected kcp, kind is not correct", testCaseGetKubeadmControlPlaneName{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: ctplanev1.GroupVersion.String(),
+							APIVersion: controlplanev1.GroupVersion.String(),
 							Kind:       "kcp",
 							Name:       "test1",
 						},
@@ -3730,7 +3729,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError: true,
 		}),
 		Entry("Should not find the expected kcp, API version is not correct", testCaseGetKubeadmControlPlaneName{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -3748,7 +3747,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError: true,
 		}),
 		Entry("Should give an error if Machine.ObjectMeta.OwnerReferences is nil", testCaseGetKubeadmControlPlaneName{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: nil,
 				},
@@ -3758,9 +3757,9 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseGetMachineDeploymentName struct {
-		Machine            *capi.Machine
-		MachineSetList     *capi.MachineSetList
-		expectedMachineSet *capi.MachineSet
+		Machine            *clusterv1.Machine
+		MachineSetList     *clusterv1.MachineSetList
+		expectedMachineSet *clusterv1.MachineSet
 		expectedMD         bool
 		expectedMDName     string
 		expectError        bool
@@ -3797,23 +3796,23 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Should find the expected MachineDeployment name", testCaseGetMachineDeploymentName{
 			Machine: machineOwnedByMachineSet(),
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "ms-test1",
 							OwnerReferences: []metav1.OwnerReference{
 								{
-									APIVersion: capi.GroupVersion.String(),
+									APIVersion: clusterv1.GroupVersion.String(),
 									Kind:       "MachineDeployment",
 									Name:       "test1",
 								},
@@ -3834,12 +3833,12 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			expectedMachineSet: &capi.MachineSet{
+			expectedMachineSet: &clusterv1.MachineSet{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ms-test1",
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineDeployment",
 							Name:       "test1",
 						},
@@ -3852,23 +3851,23 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not find the expected MachineDeployment name, MachineSet OwnerRef Kind is not correct", testCaseGetMachineDeploymentName{
 			Machine: machineOwnedByMachineSet(),
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "ms-test1",
 							OwnerReferences: []metav1.OwnerReference{
 								{
-									APIVersion: capi.GroupVersion.String(),
+									APIVersion: clusterv1.GroupVersion.String(),
 									Kind:       "WrongMachineSetOwnerRefKind",
 									Name:       "test1",
 								},
@@ -3890,16 +3889,16 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not find the expected MachineDeployment name, MachineSet OwnerRef APIVersion is not correct", testCaseGetMachineDeploymentName{
 			Machine: machineOwnedByMachineSet(),
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
@@ -3928,16 +3927,16 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not find the expected MachineDeployment name, MachineSet OwnerRef is empty", testCaseGetMachineDeploymentName{
 			Machine: machineOwnedByMachineSet(),
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
@@ -3961,9 +3960,9 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseGetMachineSet struct {
-		Machine            *capi.Machine
-		MachineSetList     *capi.MachineSetList
-		expectedMachineSet *capi.MachineSet
+		Machine            *clusterv1.Machine
+		MachineSetList     *clusterv1.MachineSetList
+		expectedMachineSet *clusterv1.MachineSet
 		expectError        bool
 	}
 	DescribeTable("Test GetMachineSet",
@@ -3996,16 +3995,16 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Should find the expected Machineset", testCaseGetMachineSet{
 			Machine: machineOwnedByMachineSet(),
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
@@ -4026,7 +4025,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			expectedMachineSet: &capi.MachineSet{
+			expectedMachineSet: &clusterv1.MachineSet{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ms-test1",
@@ -4040,11 +4039,11 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError:        true,
 		}),
 		Entry("Should not find the Machineset and error when machine is a controlplane", testCaseGetMachineSet{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						capi.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -4053,7 +4052,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError:        true,
 		}),
 		Entry("Should not find the Machineset and error when machine ownerRef is empty", testCaseGetMachineSet{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{},
@@ -4064,7 +4063,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError:        true,
 		}),
 		Entry("Should not find the Machineset when machine ownerRef Kind is not correct", testCaseGetMachineSet{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
@@ -4074,16 +4073,16 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
@@ -4102,7 +4101,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError:        true,
 		}),
 		Entry("Should not find the Machineset when machine ownerRef APIVersion is not correct", testCaseGetMachineSet{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
@@ -4112,16 +4111,16 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
@@ -4140,7 +4139,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError:        true,
 		}),
 		Entry("Should not find the Machineset when UID is not correct", testCaseGetMachineSet{
-			Machine: &capi.Machine{
+			Machine: &clusterv1.Machine{
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
@@ -4150,16 +4149,16 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			MachineSetList: &capi.MachineSetList{
+			MachineSetList: &clusterv1.MachineSetList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capi.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "MachineSetList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capi.MachineSet{
+				Items: []clusterv1.MachineSet{
 					{
 						TypeMeta: metav1.TypeMeta{
-							APIVersion: capi.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "MachineSet",
 						},
 						ObjectMeta: metav1.ObjectMeta{
@@ -4197,13 +4196,13 @@ func setupSchemeMm() *runtime.Scheme {
 	if err := corev1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := capi.AddToScheme(s); err != nil {
+	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	return s
 }
 
-func newConfig(UserDataNamespace string,
+func newConfig(userDataNamespace string,
 	labels map[string]string, reqs []capm3.HostSelectorRequirement,
 ) (*capm3.Metal3Machine, *corev1.ObjectReference) {
 	config := capm3.Metal3Machine{
@@ -4218,7 +4217,7 @@ func newConfig(UserDataNamespace string,
 			},
 			UserData: &corev1.SecretReference{
 				Name:      testUserDataSecretName,
-				Namespace: UserDataNamespace,
+				Namespace: userDataNamespace,
 			},
 			HostSelector: capm3.HostSelector{
 				MatchLabels:      labels,
@@ -4228,15 +4227,15 @@ func newConfig(UserDataNamespace string,
 		Status: capm3.Metal3MachineStatus{
 			UserData: &corev1.SecretReference{
 				Name:      testUserDataSecretName,
-				Namespace: UserDataNamespace,
+				Namespace: userDataNamespace,
 			},
 			MetaData: &corev1.SecretReference{
 				Name:      testMetaDataSecretName,
-				Namespace: UserDataNamespace,
+				Namespace: userDataNamespace,
 			},
 			NetworkData: &corev1.SecretReference{
 				Name:      testNetworkDataSecretName,
-				Namespace: UserDataNamespace,
+				Namespace: userDataNamespace,
 			},
 		},
 	}
@@ -4252,28 +4251,28 @@ func newConfig(UserDataNamespace string,
 
 func newMachine(machineName string, metal3machineName string,
 	infraRef *corev1.ObjectReference,
-) *capi.Machine {
+) *clusterv1.Machine {
 	if machineName == "" {
-		return &capi.Machine{}
+		return &clusterv1.Machine{}
 	}
 
 	if infraRef == nil {
 		infraRef = &corev1.ObjectReference{}
 	}
 
-	machine := &capi.Machine{
+	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
-			APIVersion: capi.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: "myns",
 		},
-		Spec: capi.MachineSpec{
+		Spec: clusterv1.MachineSpec{
 			ClusterName:       clusterName,
 			InfrastructureRef: *infraRef,
-			Bootstrap: capi.Bootstrap{
+			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef:      &corev1.ObjectReference{},
 				DataSecretName: nil,
 			},
@@ -4342,8 +4341,8 @@ func newBareMetalHost(name string,
 			Name:      name,
 			Namespace: "myns",
 			Labels: map[string]string{
-				capi.ClusterLabelName: clusterName,
-				"foo":                 "bar",
+				clusterv1.ClusterLabelName: clusterName,
+				"foo":                      "bar",
 			},
 		}
 	}
@@ -4379,8 +4378,8 @@ func newBMCSecret(name string, clusterlabel bool) *corev1.Secret {
 			Name:      name,
 			Namespace: "myns",
 			Labels: map[string]string{
-				capi.ClusterLabelName: clusterName,
-				"foo":                 "bar",
+				clusterv1.ClusterLabelName: clusterName,
+				"foo":                      "bar",
 			},
 		}
 	}

@@ -22,12 +22,11 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	_ "github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -35,7 +34,7 @@ import (
 type testCaseRemediationManager struct {
 	Metal3Remediation *capm3.Metal3Remediation
 	Metal3Machine     *capm3.Metal3Machine
-	Machine           *capi.Machine
+	Machine           *clusterv1.Machine
 	ExpectSuccess     bool
 }
 
@@ -66,7 +65,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Entry("All fields defined", testCaseRemediationManager{
 				Metal3Remediation: &capm3.Metal3Remediation{},
 				Metal3Machine:     &capm3.Metal3Machine{},
-				Machine:           &capi.Machine{},
+				Machine:           &clusterv1.Machine{},
 				ExpectSuccess:     true,
 			}),
 			Entry("None of the fields defined", testCaseRemediationManager{
@@ -299,7 +298,6 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			result, helper, err := remediationMgr.GetUnhealthyHost(context.TODO())
-			//Expect(err).NotTo(HaveOccurred())
 			if tc.ExpectPresent {
 				Expect(result).NotTo(BeNil())
 				Expect(helper).NotTo(BeNil())

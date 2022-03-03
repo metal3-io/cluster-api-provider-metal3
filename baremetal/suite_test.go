@@ -29,14 +29,13 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	capi "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -107,7 +106,7 @@ var _ = AfterSuite(func() {
 })
 
 var bmcOwnerRef = &metav1.OwnerReference{
-	APIVersion: capi.GroupVersion.String(),
+	APIVersion: clusterv1.GroupVersion.String(),
 	Kind:       "Cluster",
 	Name:       clusterName,
 }
@@ -118,7 +117,7 @@ var bmcOwnerRef = &metav1.OwnerReference{
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := capi.AddToScheme(s); err != nil {
+	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := capm3.AddToScheme(s); err != nil {
@@ -136,8 +135,8 @@ func setupScheme() *runtime.Scheme {
 	return s
 }
 
-func newCluster(clusterName string) *capi.Cluster {
-	return &capi.Cluster{
+func newCluster(clusterName string) *clusterv1.Cluster {
+	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Cluster",
 		},
@@ -145,15 +144,15 @@ func newCluster(clusterName string) *capi.Cluster {
 			Name:      clusterName,
 			Namespace: namespaceName,
 		},
-		Spec: capi.ClusterSpec{
-			InfrastructureRef: &v1.ObjectReference{
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &corev1.ObjectReference{
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
 				Kind:       "InfrastructureConfig",
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 			},
 		},
-		Status: capi.ClusterStatus{
+		Status: clusterv1.ClusterStatus{
 			InfrastructureReady: true,
 		},
 	}
