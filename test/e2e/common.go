@@ -36,7 +36,7 @@ func LogFromFile(logFile string) {
 	Logf(string(data))
 }
 
-func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, cluster *clusterv1.Cluster, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
+func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := clusterProxy.GetClient()
 
@@ -50,7 +50,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	})
 
 	if !skipCleanup {
-		By(fmt.Sprintf("Deleting cluster %s/%s", cluster.Namespace, cluster.Name))
+		By(fmt.Sprintf("Deleting cluster %s/%s", namespace, clusterName))
 		// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait

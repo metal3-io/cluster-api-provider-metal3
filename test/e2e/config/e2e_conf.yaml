@@ -18,6 +18,15 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
+  - name: v0.4.7
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/core-components.yaml"
+    type: "url"
+    contract: v1alpha4
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
   - name: v1.1.2
     # Use manifest from source files
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.2/core-components.yaml"
@@ -31,6 +40,15 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
+  - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/bootstrap-components.yaml"
+    type: "url"
+    contract: v1alpha4
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
   - name: v1.1.2
     # Use manifest from source files
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.2/bootstrap-components.yaml"
@@ -44,6 +62,15 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
+  - name: v0.4.7 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/control-plane-components.yaml"
+    type: "url"
+    contract: v1alpha4
+    replacements:
+      - old: --metrics-addr=127.0.0.1:8080
+        new: --metrics-addr=:8080
+    files:
+      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
   - name: v1.1.2
     # Use manifest from source files
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.2/control-plane-components.yaml"
@@ -57,12 +84,22 @@ providers:
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: v1.1.0
-    value: "file://${HOME}/.cluster-api/overrides/infrastructure-metal3/v1.1.0/infrastructure-components.yaml"
+  - name: v0.5.5
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/v0.5.5/infrastructure-components.yaml"
     type: "url"
+    contract: v1alpha4
+    files:
+    - sourcePath: "../data/infrastructure-metal3/v1alpha5/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
+  - name: v1.1.0
+    value: "${PWD}/config/default"
     contract: v1beta1
     files:
-    - sourcePath: "../../../metadata.yaml"
+    - sourcePath: "../data/infrastructure-metal3/v1beta1/metadata.yaml"
       targetName: "metadata.yaml"
     - sourcePath: "../_out/cluster-template-ubuntu.yaml"
       targetName: "cluster-template-ubuntu.yaml"
@@ -83,10 +120,13 @@ variables:
   CAPIRELEASE: "${CAPIRELEASE}"
   CAPM3RELEASE: "${CAPM3RELEASE}"
   CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
+  CAPM3_REL_TO_VERSION: "v1.1.0"
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/clusterctl-{OS}-{ARCH}"
   # Default vars for the template, those values could be overridden by the env-vars.
   SERVICE_CIDR: "10.96.0.0/12"
+  
 intervals:
-  default/wait-controllers: ["3m", "10s"]
+  default/wait-controllers: ["5m", "10s"]
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created
   default/wait-control-plane: ["30m", "10s"]
   default/wait-worker-nodes: ["30m", "10s"]

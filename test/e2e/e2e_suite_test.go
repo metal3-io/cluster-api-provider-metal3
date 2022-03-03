@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v3"
@@ -43,6 +44,9 @@ var (
 
 	// skipCleanup prevents cleanup of test resources e.g. for debug purposes.
 	skipCleanup bool
+
+	// upgradeTest triggers only e2e upgrade test if true.
+	upgradeTest bool
 )
 
 // Test suite global vars.
@@ -71,6 +75,7 @@ func init() {
 	flag.StringVar(&configPath, "e2e.config", "", "path to the e2e config file")
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
+	flag.BoolVar(&upgradeTest, "e2e.trigger-upgrade-test", false, "if true, the e2e upgrade test will be triggered and other tests will be skipped")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", true, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&kubeconfigPath, "e2e.kubeconfig-path", os.Getenv("HOME")+"/.kube/config", "if e2e.use-existing-cluster is true, path to the kubeconfig file")
 	e2eTestsPath = getE2eTestsPath()
@@ -144,6 +149,7 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
+	Expect(clusterv1alpha4.AddToScheme(sc))
 	Expect(bmo.AddToScheme(sc)).To(Succeed())
 	Expect(capm3.AddToScheme(sc)).To(Succeed())
 

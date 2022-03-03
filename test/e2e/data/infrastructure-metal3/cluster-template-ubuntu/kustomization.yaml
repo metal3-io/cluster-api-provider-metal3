@@ -1,6 +1,3 @@
 resources:
-- ../bases/cluster
 - ../bases/ippool
-patchesStrategicMerge:
-  - ./controlplane-kubeadm-config.yaml
-  - ./workers-kubeadm-config.yaml
+- ../bases/ubuntu-kubeadm-config

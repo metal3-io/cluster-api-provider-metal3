@@ -1,0 +1,5 @@
+
+resources:
+- ../cluster
+patchesStrategicMerge:
+  - ubuntu-kubeadm-config.yaml

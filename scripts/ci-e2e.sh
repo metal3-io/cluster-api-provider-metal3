@@ -51,9 +51,14 @@ source lib/common.sh
 clone_repos
 # The old path ends with '/..', making cp to copy the content of the directory instead of the whole one.  
 REPO_ROOT=$(realpath "$REPO_ROOT") 
-# Copy the current CAPM3 repo to the Go source directory
-rm -rf "${M3PATH}/cluster-api-provider-metal3" # To avoid 'permission denied' error when overriding .git/
-cp -R "${REPO_ROOT}" "${M3PATH}/cluster-api-provider-metal3/" 
+
+# Get correct CAPM3 path when testing locally
+export UPGRADE_TEST=${UPGRADE_TEST:-false}
+if ! $UPGRADE_TEST; then
+  # Copy the current CAPM3 repo to the Go source directory
+  rm -rf "${M3PATH}/cluster-api-provider-metal3" # To avoid 'permission denied' error when overriding .git/
+  cp -R "${REPO_ROOT}" "${M3PATH}/cluster-api-provider-metal3/"
+fi
 make launch_mgmt_cluster verify
 popd
 
