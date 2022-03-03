@@ -286,7 +286,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			host := bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			}
 
@@ -312,10 +312,10 @@ var _ = Describe("Metal3Remediation manager", func() {
 			M3Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
-					Namespace:       "myns",
+					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
-						HostAnnotation: "myns/myhost",
+						HostAnnotation: namespaceName + "/myhost",
 					},
 				},
 			},
@@ -325,10 +325,10 @@ var _ = Describe("Metal3Remediation manager", func() {
 			M3Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
-					Namespace:       "myns",
+					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
-						HostAnnotation: "myns/wronghostname",
+						HostAnnotation: namespaceName + "/wronghostname",
 					},
 				},
 			},
@@ -338,7 +338,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			M3Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
-					Namespace:       "myns",
+					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations:     map[string]string{},
 				},

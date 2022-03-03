@@ -111,7 +111,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			req := reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			}
 			ctx := context.Background()
@@ -140,7 +140,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			m3dt: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "abc",
-					Namespace:         "myns",
+					Namespace:         namespaceName,
 					DeletionTimestamp: &timestampNow,
 				},
 				Spec: capm3.Metal3DataTemplateSpec{ClusterName: "abc"},
@@ -151,7 +151,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			m3dt: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "abc",
-					Namespace:         "myns",
+					Namespace:         namespaceName,
 					DeletionTimestamp: &timestampNow,
 				},
 				Spec: capm3.Metal3DataTemplateSpec{ClusterName: "abc"},
@@ -370,7 +370,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Spec: capm3.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 					},
 				},

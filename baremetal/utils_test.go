@@ -128,7 +128,7 @@ var _ = Describe("Metal3 manager utils", func() {
 	var testObject = &capm3.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "abc",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 		Spec: capm3.Metal3MachineSpec{
 			ProviderID:            pointer.StringPtr("abcdef"),
@@ -142,7 +142,7 @@ var _ = Describe("Metal3 manager utils", func() {
 	var existingObject = &capm3.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "abc",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 		Spec: capm3.Metal3MachineSpec{
 			ProviderID: pointer.StringPtr("abcdefg"),
@@ -340,18 +340,18 @@ var _ = Describe("Metal3 manager utils", func() {
 				err := k8sClient.Create(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
 			}
-			_, err := checkSecretExists(context.TODO(), k8sClient, "abc", "myns")
+			_, err := checkSecretExists(context.TODO(), k8sClient, "abc", namespaceName)
 			if secretExists {
 				Expect(err).NotTo(HaveOccurred())
 				err = k8sClient.Delete(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -370,7 +370,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				err := k8sClient.Create(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Name:       "ghij",
@@ -396,7 +396,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			content := map[string][]byte{
 				"abc": []byte("def"),
 			}
-			err := createSecret(context.TODO(), k8sClient, "abc", "myns", "ghi",
+			err := createSecret(context.TODO(), k8sClient, "abc", namespaceName, "ghi",
 				ownerRef, content,
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -404,7 +404,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			err = k8sClient.Get(context.TODO(),
 				client.ObjectKey{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				&savedSecret,
 			)
@@ -418,7 +418,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			err = k8sClient.Delete(context.TODO(), &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -433,20 +433,20 @@ var _ = Describe("Metal3 manager utils", func() {
 				err := k8sClient.Create(context.TODO(), &corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:       "abc",
-						Namespace:  "myns",
+						Namespace:  namespaceName,
 						Finalizers: []string{"foo.bar/foo"},
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			err := deleteSecret(context.TODO(), k8sClient, "abc", "myns")
+			err := deleteSecret(context.TODO(), k8sClient, "abc", namespaceName)
 			Expect(err).NotTo(HaveOccurred())
 			savedSecret := corev1.Secret{}
 			err = k8sClient.Get(context.TODO(),
 				client.ObjectKey{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				&savedSecret,
 			)
@@ -499,7 +499,7 @@ var _ = Describe("Metal3 manager utils", func() {
 		Entry("Object does not exist", testCaseFetchM3DataTemplate{
 			TemplateRef: &corev1.ObjectReference{
 				Name:      "abc",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 			ExpectRequeue: true,
 		}),
@@ -516,7 +516,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: capm3.Metal3DataTemplateSpec{
 					ClusterName: "abc",
@@ -525,7 +525,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			ClusterName: "def",
 			TemplateRef: &corev1.ObjectReference{
 				Name:      "abc",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 			ExpectError: true,
 		}),
@@ -533,7 +533,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: capm3.Metal3DataTemplateSpec{
 					ClusterName: "abc",
@@ -542,7 +542,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			ClusterName: "abc",
 			TemplateRef: &corev1.ObjectReference{
 				Name:      "abc",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 		}),
 	)
@@ -588,18 +588,18 @@ var _ = Describe("Metal3 manager utils", func() {
 		},
 		Entry("Object does not exist", testCaseFetchM3Data{
 			Name:          "abc",
-			Namespace:     "myns",
+			Namespace:     namespaceName,
 			ExpectRequeue: true,
 		}),
 		Entry("Object exists", testCaseFetchM3Data{
 			Data: &capm3.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			Name:      "abc",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		}),
 	)
 
@@ -645,24 +645,24 @@ var _ = Describe("Metal3 manager utils", func() {
 		},
 		Entry("Object does not exist", testCaseGetM3Machine{
 			Name:        "abc",
-			Namespace:   "myns",
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			Name:      "abc",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		}),
 		Entry("Object exists, dataTemplate nil", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: capm3.Metal3MachineSpec{
 					DataTemplate: nil,
@@ -671,41 +671,41 @@ var _ = Describe("Metal3 manager utils", func() {
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			Name:        "abc",
-			Namespace:   "myns",
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate name mismatch", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: capm3.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abcd",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			Name:        "abc",
-			Namespace:   "myns",
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate namespace mismatch", testCaseGetM3Machine{
 			Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: capm3.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
@@ -717,11 +717,11 @@ var _ = Describe("Metal3 manager utils", func() {
 			DataTemplate: &capm3.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			Name:        "abc",
-			Namespace:   "myns",
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 	)

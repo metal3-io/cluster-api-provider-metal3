@@ -56,7 +56,7 @@ const (
 	metal3ClusterName         = "testmetal3Cluster"
 	machineName               = "testMachine"
 	metal3machineName         = "testmetal3machine"
-	namespaceName             = "testNameSpace"
+	namespaceName             = "controllerns"
 	metal3machineTemplateName = "testmetal3machinetemplate"
 )
 

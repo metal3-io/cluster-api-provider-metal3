@@ -49,7 +49,7 @@ var testEnv *envtest.Environment
 const (
 	clusterName       = "testCluster"
 	metal3ClusterName = "testmetal3Cluster"
-	namespaceName     = "testNameSpace"
+	namespaceName     = "baremetalns"
 	m3muid            = "11111111-9845-4321-1234-c74be387f57c"
 	bmhuid            = "22222222-9845-4c48-9e49-c74be387f57c"
 )
@@ -90,7 +90,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(k8sClient).ToNot(BeNil())
 		err = k8sClient.Create(context.TODO(), &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{Name: "myns"},
+			ObjectMeta: metav1.ObjectMeta{Name: namespaceName},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
