@@ -72,7 +72,7 @@ func m3mSpecAll() *capm3.Metal3MachineSpec {
 		ProviderID: &ProviderID,
 		UserData: &corev1.SecretReference{
 			Name:      "mym3machine-user-data",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 		Image: capm3.Image{
 			URL:          testImageURL,
@@ -88,15 +88,15 @@ func m3mSecretStatus() *capm3.Metal3MachineStatus {
 	return &capm3.Metal3MachineStatus{
 		UserData: &corev1.SecretReference{
 			Name:      "mym3machine-user-data",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 		MetaData: &corev1.SecretReference{
 			Name:      "mym3machine-meta-data",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 		NetworkData: &corev1.SecretReference{
 			Name:      "mym3machine-network-data",
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 	}
 }
@@ -108,7 +108,7 @@ func m3mSecretStatusNil() *capm3.Metal3MachineStatus {
 func consumerRef() *corev1.ObjectReference {
 	return &corev1.ObjectReference{
 		Name:       "mym3machine",
-		Namespace:  "myns",
+		Namespace:  namespaceName,
 		Kind:       "M3Machine",
 		APIVersion: capm3.GroupVersion.String(),
 	}
@@ -117,7 +117,7 @@ func consumerRef() *corev1.ObjectReference {
 func consumerRefSome() *corev1.ObjectReference {
 	return &corev1.ObjectReference{
 		Name:       "someoneelsesmachine",
-		Namespace:  "myns",
+		Namespace:  namespaceName,
 		Kind:       "M3Machine",
 		APIVersion: clusterv1.GroupVersion.String(),
 	}
@@ -187,13 +187,13 @@ func bmhSpecNoImg() *bmh.BareMetalHostSpec {
 func m3mObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "mym3machine",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Labels: map[string]string{
 			clusterv1.ClusterLabelName: clusterName,
 		},
 		Annotations: map[string]string{
-			HostAnnotation: "myns/myhost",
+			HostAnnotation: namespaceName + "/myhost",
 		},
 	}
 }
@@ -201,7 +201,7 @@ func m3mObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
 func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "myhost",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Labels: map[string]string{
 			clusterv1.ClusterLabelName: clusterName,
@@ -215,7 +215,7 @@ func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
 func bmhObjectMetaWithValidEmptyPausedAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "myhost",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Annotations: map[string]string{
 			bmh.PausedAnnotation: "",
@@ -226,7 +226,7 @@ func bmhObjectMetaWithValidEmptyPausedAnnotations() *metav1.ObjectMeta {
 func bmhObjectMetaEmptyAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "myhost",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Annotations:     map[string]string{},
 	}
@@ -235,7 +235,7 @@ func bmhObjectMetaEmptyAnnotations() *metav1.ObjectMeta {
 func bmhObjectMetaNoAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "myhost",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 	}
 }
@@ -243,10 +243,10 @@ func bmhObjectMetaNoAnnotations() *metav1.ObjectMeta {
 func m3mObjectMetaWithInvalidAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "foobarm3machine",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Annotations: map[string]string{
-			HostAnnotation: "myns/wrongvalue",
+			HostAnnotation: namespaceName + "/wrongvalue",
 		},
 	}
 }
@@ -254,10 +254,10 @@ func m3mObjectMetaWithInvalidAnnotations() *metav1.ObjectMeta {
 func m3mObjectMetaWithSomeAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "m3machine",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Annotations: map[string]string{
-			HostAnnotation: "myns/somehost",
+			HostAnnotation: namespaceName + "/somehost",
 		},
 	}
 }
@@ -265,7 +265,7 @@ func m3mObjectMetaWithSomeAnnotations() *metav1.ObjectMeta {
 func m3mObjectMetaEmptyAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "m3machine",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Annotations:     map[string]string{},
 	}
@@ -274,7 +274,7 @@ func m3mObjectMetaEmptyAnnotations() *metav1.ObjectMeta {
 func m3mObjectMetaNoAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
 		Name:            "m3machine",
-		Namespace:       "myns",
+		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 	}
 }
@@ -477,12 +477,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		host1 := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "host1",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 			Spec: bmh.BareMetalHostSpec{
 				ConsumerRef: &corev1.ObjectReference{
 					Name:       "someothermachine",
-					Namespace:  "myns",
+					Namespace:  namespaceName,
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 				},
@@ -493,12 +493,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		host3 := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "host3",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 			Spec: bmh.BareMetalHostSpec{
 				ConsumerRef: &corev1.ObjectReference{
 					Name:       "machine1",
-					Namespace:  "myns",
+					Namespace:  namespaceName,
 					Kind:       "M3Machine",
 					APIVersion: capm3.GroupVersion.String(),
 				},
@@ -513,7 +513,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		discoveredHost := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "discoveredHost",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 			Status: bmh.BareMetalHostStatus{
 				ErrorMessage: "this host is discovered but not usable",
@@ -522,28 +522,28 @@ var _ = Describe("Metal3Machine manager", func() {
 		hostWithLabel := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hostWithLabel",
-				Namespace: "myns",
+				Namespace: namespaceName,
 				Labels:    map[string]string{"key1": "value1"},
 			},
 		}
 		hostWithUnhealthyAnnotation := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "hostWithUnhealthyAnnotation",
-				Namespace:   "myns",
+				Namespace:   namespaceName,
 				Annotations: map[string]string{capm3.UnhealthyAnnotation: "unhealthy"},
 			},
 		}
 		hostWithNodeReuseLabelSetToKCP := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hostWithNodeReuseLabelSetToKCP",
-				Namespace: "myns",
+				Namespace: namespaceName,
 				Labels:    map[string]string{nodeReuseLabelName: "kcp-pool1"},
 			},
 		}
 		hostWithNodeReuseLabelSetToMD := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hostWithNodeReuseLabelSetToMD",
-				Namespace: "myns",
+				Namespace: namespaceName,
 				Labels:    map[string]string{nodeReuseLabelName: "md-pool1"},
 			},
 		}
@@ -755,7 +755,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       "mym3machine",
-						Namespace:  "myns",
+						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: capm3.GroupVersion.String(),
 					},
@@ -772,7 +772,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       "mym3machine",
-						Namespace:  "myns",
+						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: capm3.GroupVersion.String(),
 					},
@@ -789,7 +789,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       "mym3machine",
-						Namespace:  "myns",
+						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: capm3.GroupVersion.String(),
 					},
@@ -858,7 +858,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       "mym3machine",
-						Namespace:  "myns",
+						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: capm3.GroupVersion.String(),
 					},
@@ -876,7 +876,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       "mym3machine",
-						Namespace:  "myns",
+						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: capm3.GroupVersion.String(),
 					},
@@ -894,7 +894,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: bmh.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       "mym3machine",
-						Namespace:  "myns",
+						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: capm3.GroupVersion.String(),
 					},
@@ -976,7 +976,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("User data has no namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "",
-			ExpectedUserDataNamespace: "myns",
+			ExpectedUserDataNamespace: namespaceName,
 			Host: newBareMetalHost("host2", nil, bmh.StateNone,
 				nil, false, "metadata", false,
 			),
@@ -985,7 +985,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Externally provisioned, same machine", testCaseSetHostSpec{
 			UserDataNamespace:         "",
-			ExpectedUserDataNamespace: "myns",
+			ExpectedUserDataNamespace: namespaceName,
 			Host: newBareMetalHost("host2", nil, bmh.StateNone,
 				nil, false, "metadata", false,
 			),
@@ -995,7 +995,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Previously provisioned, different image",
 			testCaseSetHostSpec{
 				UserDataNamespace:         "",
-				ExpectedUserDataNamespace: "myns",
+				ExpectedUserDataNamespace: namespaceName,
 				Host: newBareMetalHost("host2", bmhSpecTestImg(),
 					bmh.StateNone, nil, false, "metadata", false,
 				),
@@ -1046,7 +1046,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("User data has no namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "",
-			ExpectedUserDataNamespace: "myns",
+			ExpectedUserDataNamespace: namespaceName,
 			Host: newBareMetalHost("host2", nil, bmh.StateNone,
 				nil, false, "metadata", false,
 			),
@@ -1055,7 +1055,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Externally provisioned, same machine", testCaseSetHostSpec{
 			UserDataNamespace:         "",
-			ExpectedUserDataNamespace: "myns",
+			ExpectedUserDataNamespace: namespaceName,
 			Host: newBareMetalHost("host2", nil, bmh.StateNone,
 				nil, false, "metadata", false,
 			),
@@ -1065,7 +1065,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Previously provisioned, different image",
 			testCaseSetHostSpec{
 				UserDataNamespace:         "",
-				ExpectedUserDataNamespace: "myns",
+				ExpectedUserDataNamespace: namespaceName,
 				Host: newBareMetalHost("host2", bmhSpecTestImg(),
 					bmh.StateNone, nil, false, "metadata", false,
 				),
@@ -1079,7 +1079,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		host := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "somehost",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 		}
 		fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
@@ -1131,7 +1131,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		host := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "myhost",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 		}
 		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(&host).Build()
@@ -1224,7 +1224,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			ExpectPresent: false,
@@ -1238,7 +1238,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
-					Namespace: "myns",
+					Namespace: namespaceName,
 					UID:       Bmhuid,
 				},
 				Status: bmh.BareMetalHostStatus{
@@ -1258,7 +1258,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: &bmh.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
-					Namespace: "myns",
+					Namespace: namespaceName,
 					UID:       Bmhuid,
 				},
 				Status: bmh.BareMetalHostStatus{
@@ -1282,7 +1282,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		host := bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "myhost",
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 		}
 		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(&host).Build()
@@ -1323,7 +1323,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mymachine",
-						Namespace: "myns",
+						Namespace: namespaceName,
 						Labels: map[string]string{
 							clusterv1.MachineControlPlaneLabelName: "labelHere",
 						},
@@ -1459,6 +1459,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
 				ok := errors.As(err, &requeueAfterError)
+
 				Expect(ok).To(BeTrue())
 				Expect(requeueAfterError.Error()).To(Equal(tc.ExpectedResult.Error()))
 			}
@@ -1743,7 +1744,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -1936,7 +1937,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Machine: &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mymachine",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Status: clusterv1.MachineStatus{
 						Addresses: []clusterv1.MachineAddress{
@@ -1954,7 +1955,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3Machine: capm3.Metal3Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mym3machine",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "M3Machine",
@@ -2000,7 +2001,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Machine: &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mymachine",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Status: clusterv1.MachineStatus{
 						Addresses: []clusterv1.MachineAddress{
@@ -2018,7 +2019,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3Machine: capm3.Metal3Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "mym3machine",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "M3Machine",
@@ -2059,14 +2060,14 @@ var _ = Describe("Metal3Machine manager", func() {
 					Machine: &clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mymachine",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Status: clusterv1.MachineStatus{},
 					},
 					M3Machine: capm3.Metal3Machine{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "mym3machine",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "M3Machine",
@@ -2386,7 +2387,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "Foobar",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Data: map[string][]byte{
 					"value": []byte("FooBar\n"),
@@ -2395,7 +2396,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -2470,7 +2471,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Secret: newSecret(),
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -2484,7 +2485,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("UserDataSecretName set in Machine, no secret", testCaseGetUserDataSecretName{
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -2642,11 +2643,11 @@ var _ = Describe("Metal3Machine manager", func() {
 					&capm3.Metal3MachineSpec{
 						DataTemplate: &corev1.ObjectReference{
 							Name:      "abcd",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						UserData: &corev1.SecretReference{
 							Name:      "mym3machine-user-data",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Image: capm3.Image{
 							URL:        testImageURL,
@@ -2669,11 +2670,11 @@ var _ = Describe("Metal3Machine manager", func() {
 					&capm3.Metal3MachineSpec{
 						DataTemplate: &corev1.ObjectReference{
 							Name:      "abcd",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						UserData: &corev1.SecretReference{
 							Name:      "mym3machine-user-data",
-							Namespace: "myns",
+							Namespace: namespaceName,
 						},
 						Image: capm3.Image{
 							URL:        testImageURL,
@@ -2681,7 +2682,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							DiskFormat: testImageDiskFormat,
 						},
 					}, &capm3.Metal3MachineStatus{
-						RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
+						RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 					}, nil,
 				),
 				Host:      newBareMetalHost("myhost", bmhSpecBMC(), bmh.StateNone, nil, false, "metadata", false),
@@ -2689,7 +2690,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Data: &capm3.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abcd-0",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 					Spec: capm3.Metal3DataSpec{
 						MetaData: &corev1.SecretReference{
@@ -3103,7 +3104,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
-					Namespace: "myns",
+					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "myName",
@@ -3131,7 +3132,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
-					Namespace: "myns",
+					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "myName",
@@ -3143,7 +3144,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Status: capm3.Metal3DataClaimStatus{
 					RenderedData: &corev1.ObjectReference{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},
@@ -3180,7 +3181,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectDataStatus {
 				Expect(tc.M3Machine.Status.RenderedData).To(Equal(&corev1.ObjectReference{
 					Name:      "abcd-0",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				}))
 			} else {
 				Expect(tc.M3Machine.Status.RenderedData).To(BeNil())
@@ -3226,7 +3227,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			ExpectRequeue: true,
@@ -3239,7 +3240,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Status: capm3.Metal3DataClaimStatus{
 					RenderedData: &corev1.ObjectReference{},
@@ -3255,18 +3256,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: capm3.Metal3DataClaimSpec{
 					Template: corev1.ObjectReference{
 						Name:      "abcd",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 				Status: capm3.Metal3DataClaimStatus{
 					RenderedData: &corev1.ObjectReference{
 						Name:      "abcd-0",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},
@@ -3275,7 +3276,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should requeue if M3M status set but Data does not exist", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
+				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine:          newMachine("myName", "myName", nil),
 			ExpectRequeue:    true,
@@ -3283,13 +3284,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should requeue if Data is not ready", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
+				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine: newMachine("myName", "myName", nil),
 			Data: &capm3.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abcd-0",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 			ExpectRequeue:    true,
@@ -3297,13 +3298,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not error if Data is ready but no secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
+				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine: newMachine("myName", "myName", nil),
 			Data: &capm3.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abcd-0",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Status: capm3.Metal3DataStatus{
 					Ready: true,
@@ -3314,13 +3315,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not error if Data is ready with secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &capm3.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: "myns"},
+				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine: newMachine("myName", "myName", nil),
 			Data: &capm3.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abcd-0",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 				Spec: capm3.Metal3DataSpec{
 					MetaData: &corev1.SecretReference{
@@ -3407,7 +3408,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
@@ -3416,14 +3417,14 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name:      "abcd",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			}, nil, nil),
 			Machine: newMachine("myName", "myName", nil),
 			DataClaim: &capm3.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			},
 		}),
@@ -3431,7 +3432,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &capm3.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name:      "abc",
-					Namespace: "myns",
+					Namespace: namespaceName,
 				},
 			}, nil, nil),
 			Machine:   newMachine("myName", "myName", nil),
@@ -4207,7 +4208,7 @@ func newConfig(userDataNamespace string,
 ) (*capm3.Metal3Machine, *corev1.ObjectReference) {
 	config := capm3.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 		Spec: capm3.Metal3MachineSpec{
 			Image: capm3.Image{
@@ -4242,7 +4243,7 @@ func newConfig(userDataNamespace string,
 
 	infrastructureRef := &corev1.ObjectReference{
 		Name:       "someothermachine",
-		Namespace:  "myns",
+		Namespace:  namespaceName,
 		Kind:       "M3Machine",
 		APIVersion: capm3.GroupVersion.String(),
 	}
@@ -4267,7 +4268,7 @@ func newMachine(machineName string, metal3machineName string,
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
-			Namespace: "myns",
+			Namespace: namespaceName,
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       clusterName,
@@ -4292,7 +4293,7 @@ func newMetal3Machine(name string,
 	if objMeta == nil {
 		objMeta = &metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "myns",
+			Namespace: namespaceName,
 		}
 	}
 
@@ -4326,20 +4327,20 @@ func newBareMetalHost(name string,
 	if name == "" {
 		return &bmh.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "myns",
+				Namespace: namespaceName,
 			},
 		}
 	}
 
 	objMeta := &metav1.ObjectMeta{
 		Name:      name,
-		Namespace: "myns",
+		Namespace: namespaceName,
 	}
 
 	if clusterlabel == true {
 		objMeta = &metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "myns",
+			Namespace: namespaceName,
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName: clusterName,
 				"foo":                      "bar",
@@ -4371,12 +4372,12 @@ func newBareMetalHost(name string,
 func newBMCSecret(name string, clusterlabel bool) *corev1.Secret {
 	objMeta := &metav1.ObjectMeta{
 		Name:      name,
-		Namespace: "myns",
+		Namespace: namespaceName,
 	}
 	if clusterlabel == true {
 		objMeta = &metav1.ObjectMeta{
 			Name:      name,
-			Namespace: "myns",
+			Namespace: namespaceName,
 			Labels: map[string]string{
 				clusterv1.ClusterLabelName: clusterName,
 				"foo":                      "bar",
@@ -4401,7 +4402,7 @@ func newSecret() *corev1.Secret {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "mym3machine-user-data",
-			Namespace:  "myns",
+			Namespace:  namespaceName,
 			Finalizers: []string{"abcd"},
 		},
 		Data: map[string][]byte{

@@ -43,11 +43,11 @@ import (
 var (
 	testObjectMeta = metav1.ObjectMeta{
 		Name:      "abc",
-		Namespace: "myns",
+		Namespace: namespaceName,
 	}
 	testObjectMetaWithLabel = metav1.ObjectMeta{
 		Name:      "abc",
-		Namespace: "myns",
+		Namespace: namespaceName,
 		Labels: map[string]string{
 			clusterv1.ClusterLabelName: "abc",
 		},
@@ -124,7 +124,7 @@ var _ = Describe("Metal3Data manager", func() {
 				req := reconcile.Request{
 					NamespacedName: types.NamespacedName{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				}
 				ctx := context.Background()
@@ -157,7 +157,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m3d: &capm3.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 						Labels: map[string]string{
 							clusterv1.ClusterLabelName: "abc",
 						},
@@ -170,7 +170,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m3d: &capm3.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 						Labels: map[string]string{
 							clusterv1.ClusterLabelName: "abc",
 						},
@@ -185,7 +185,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m3d: &capm3.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 						Labels: map[string]string{
 							clusterv1.ClusterLabelName: "abc",
 						},
@@ -371,7 +371,7 @@ var _ = Describe("Metal3Data manager", func() {
 		func(tc testCaseMetal3IPClaimToMetal3Data) {
 			ipClaim := &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace:       "myns",
+					Namespace:       namespaceName,
 					OwnerReferences: tc.ownerRefs,
 				},
 			}
@@ -408,7 +408,7 @@ var _ = Describe("Metal3Data manager", func() {
 				{
 					NamespacedName: types.NamespacedName{
 						Name:      "abc",
-						Namespace: "myns",
+						Namespace: namespaceName,
 					},
 				},
 			},

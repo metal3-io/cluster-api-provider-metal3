@@ -103,7 +103,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 						Name:      "machine-1",
 						Namespace: "bar",
 						Annotations: map[string]string{
-							baremetal.HostAnnotation: "myns/myhost",
+							baremetal.HostAnnotation: namespaceName + "/myhost",
 						},
 					},
 					Spec: capm3.Metal3MachineSpec{
