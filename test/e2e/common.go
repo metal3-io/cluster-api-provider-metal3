@@ -79,7 +79,10 @@ func downloadFile(filePath string, url string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() {
+		err := out.Close()
+		Expect(err).To(BeNil(), "Error closing file")
+	}()
 
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
