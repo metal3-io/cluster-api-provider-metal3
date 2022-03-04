@@ -115,6 +115,7 @@ CTLPLANE_KUBEADM_EXTRA_CONFIG="
       - usermod -aG docker ubuntu
     postKubeadmCommands:
       - mkdir -p /home/ubuntu/.kube
+      - chown ubuntu:ubuntu /home/ubuntu/.kube
       - cp /etc/kubernetes/admin.conf /home/ubuntu/.kube/config
       - systemctl enable --now keepalived
       - chown ubuntu:ubuntu /home/ubuntu/.kube/config

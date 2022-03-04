@@ -185,6 +185,7 @@ spec:
     - systemctl start monitor.keepalived.service
   postKubeadmCommands:
     - mkdir -p /home/metal3/.kube
+    - chown metal3:metal3 /home/metal3/.kube
     - cp /etc/kubernetes/admin.conf /home/metal3/.kube/config
     - systemctl enable --now keepalived
     - chown metal3:metal3 /home/metal3/.kube/config
