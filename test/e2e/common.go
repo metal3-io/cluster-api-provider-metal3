@@ -31,7 +31,7 @@ func Logf(format string, a ...interface{}) {
 }
 
 func LogFromFile(logFile string) {
-	data, err := os.ReadFile(logFile)
+	data, err := os.ReadFile(filepath.Clean(logFile))
 	Expect(err).To(BeNil(), "No log file found")
 	Logf(string(data))
 }
@@ -68,7 +68,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 }
 
 // downloadFile will download a url and store it in local filepath.
-func downloadFile(filepath string, url string) error {
+func downloadFile(filePath string, url string) error {
 	// Get the data
 	resp, err := http.Get(url) //nolint:noctx // NB: as we're just implementing an external interface we won't be able to get a context here.
 	if err != nil {
@@ -77,7 +77,7 @@ func downloadFile(filepath string, url string) error {
 	defer resp.Body.Close()
 
 	// Create the file
-	out, err := os.Create(filepath)
+	out, err := os.Create(filepath.Clean(filePath))
 	if err != nil {
 		return err
 	}
