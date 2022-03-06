@@ -849,6 +849,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 	availableHostsWithNodeReuse := []*bmh.BareMetalHost{}
 
 	for i, host := range hosts.Items {
+		host := host
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
 			helper, err := patch.NewHelper(&hosts.Items[i], m.client)
@@ -1294,6 +1295,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	for _, node := range nodes.Items {
+		node := node
 		if node.Spec.ProviderID == providerID {
 			continue
 		}
