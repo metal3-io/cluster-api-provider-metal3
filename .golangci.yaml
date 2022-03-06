@@ -49,6 +49,12 @@ linters:
   fast: true
 
 linters-settings:
+  gosec:
+    go: "1.17"
+    severity: medium
+    confidence: medium
+    excludes:
+      - G107
   importas:
       no-unaliased: true
       alias:
