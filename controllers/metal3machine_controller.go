@@ -22,7 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -80,7 +80,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	machineLog := r.Log.WithName(machineControllerName).WithValues("metal3-machine", req.NamespacedName)
 
 	// Fetch the Metal3Machine instance.
-	capm3Machine := &capm3.Metal3Machine{}
+	capm3Machine := &infrav1.Metal3Machine{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, capm3Machine); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -127,12 +127,12 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Make sure infrastructure is ready
 	if !cluster.Status.InfrastructureReady {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
-		conditions.MarkFalse(capm3Machine, capm3.AssociateBMHCondition, capm3.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
 	// Fetch the Metal3 cluster.
-	metal3Cluster := &capm3.Metal3Cluster{}
+	metal3Cluster := &infrav1.Metal3Cluster{}
 	metal3ClusterName := types.NamespacedName{
 		Namespace: capm3Machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
@@ -181,12 +181,12 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return r.reconcileNormal(ctx, machineMgr)
 }
 
-func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Machine *capm3.Metal3Machine, options ...patch.Option) error {
+func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Machine *infrav1.Metal3Machine, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(metal3Machine,
 		conditions.WithConditions(
-			capm3.AssociateBMHCondition,
-			capm3.KubernetesNodeReadyCondition,
+			infrav1.AssociateBMHCondition,
+			infrav1.KubernetesNodeReadyCondition,
 		),
 	)
 
@@ -194,8 +194,8 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 	options = append(options,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
-			capm3.AssociateBMHCondition,
-			capm3.KubernetesNodeReadyCondition,
+			infrav1.AssociateBMHCondition,
+			infrav1.KubernetesNodeReadyCondition,
 		}},
 		patch.WithStatusObservedGeneration{},
 	)
@@ -219,7 +219,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
 	if !machineMgr.IsBootstrapReady() {
-		machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.WaitingForBootstrapReadyReason, clusterv1.ConditionSeverityInfo, "")
+		machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.WaitingForBootstrapReadyReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -230,14 +230,14 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		// Associate the baremetalhost hosting the machine
 		err := machineMgr.Associate(ctx)
 		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(capm3.AssociateBMHCondition, capm3.AssociateBMHFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.AssociateBMHFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to associate the Metal3Machine to a BaremetalHost", errType,
 			)
 		}
 	}
 	// Update Condition to reflect that we have an associated BMH
-	machineMgr.SetConditionMetal3MachineToTrue(capm3.AssociateBMHCondition)
+	machineMgr.SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
 
 	// Make sure that the metadata is ready if any
 	err := machineMgr.AssociateM3Metadata(ctx)
@@ -258,7 +258,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if bmhID == nil {
 		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
 		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.MissingBMHReason, clusterv1.ConditionSeverityError, err.Error())
+			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.MissingBMHReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to get the providerID for the metal3machine", errType,
 			)
@@ -271,7 +271,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		// Set the providerID on the node if no Cloud provider
 		err = machineMgr.SetNodeProviderID(ctx, *bmhID, &providerID, r.CapiClientGetter)
 		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to set the target node providerID", errType,
 			)
@@ -311,26 +311,26 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 // SetupWithManager will add watches for this controller.
 func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3Machine{}).
+		For(&infrav1.Metal3Machine{}).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(capm3.GroupVersion.WithKind("Metal3Machine"))),
+			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Machine"))),
 		).
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToMetal3Machines),
 		).
 		Watches(
-			&source.Kind{Type: &capm3.Metal3Cluster{}},
+			&source.Kind{Type: &infrav1.Metal3Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3ClusterToMetal3Machines),
 		).
 		Watches(
-			&source.Kind{Type: &capm3.Metal3DataClaim{}},
+			&source.Kind{Type: &infrav1.Metal3DataClaim{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3DataClaimToMetal3Machines),
 		).
 		Watches(
-			&source.Kind{Type: &capm3.Metal3Data{}},
+			&source.Kind{Type: &infrav1.Metal3Data{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3DataToMetal3Machines),
 		).
 		Watches(
@@ -379,7 +379,7 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(o client.Object) []ctr
 // requests for reconciliation of Metal3Machines.
 func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.(*capm3.Metal3Cluster)
+	c, ok := o.(*infrav1.Metal3Cluster)
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o),
 			"failed to get Metal3Machine for Metal3Cluster",
@@ -422,7 +422,7 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj client.Objec
 	if host, ok := obj.(*bmh.BareMetalHost); ok {
 		if host.Spec.ConsumerRef != nil &&
 			host.Spec.ConsumerRef.Kind == Metal3Machine &&
-			host.Spec.ConsumerRef.GroupVersionKind().Group == capm3.GroupVersion.Group {
+			host.Spec.ConsumerRef.GroupVersionKind().Group == infrav1.GroupVersion.Group {
 			return []ctrl.Request{
 				{
 					NamespacedName: types.NamespacedName{
@@ -444,7 +444,7 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj client.Objec
 // Metal3Data and that Metal3Data references a Metal3Machine.
 func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj client.Object) []ctrl.Request {
 	requests := []ctrl.Request{}
-	if m3dc, ok := obj.(*capm3.Metal3DataClaim); ok {
+	if m3dc, ok := obj.(*infrav1.Metal3DataClaim); ok {
 		for _, ownerRef := range m3dc.OwnerReferences {
 			oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 			if err != nil {
@@ -456,7 +456,7 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj client.Obj
 			// not matching on UID since when pivoting it might change
 			// Not matching on API version as this might change
 			if ownerRef.Kind == "Metal3Machine" &&
-				oGV.Group == capm3.GroupVersion.Group {
+				oGV.Group == infrav1.GroupVersion.Group {
 				requests = append(requests, ctrl.Request{
 					NamespacedName: types.NamespacedName{
 						Name:      ownerRef.Name,
@@ -477,7 +477,7 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(obj client.Obj
 // Metal3Data and that Metal3Data references a Metal3Machine.
 func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj client.Object) []ctrl.Request {
 	requests := []ctrl.Request{}
-	if m3d, ok := obj.(*capm3.Metal3Data); ok {
+	if m3d, ok := obj.(*infrav1.Metal3Data); ok {
 		for _, ownerRef := range m3d.OwnerReferences {
 			if ownerRef.Kind != "Metal3Machine" {
 				continue
@@ -489,7 +489,7 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj client.Object) 
 				)
 				continue
 			}
-			if aGV.Group != capm3.GroupVersion.Group {
+			if aGV.Group != infrav1.GroupVersion.Group {
 				continue
 			}
 			requests = append(requests, ctrl.Request{
@@ -508,13 +508,13 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj client.Object) 
 }
 
 // setErrorM3Machine sets the ErrorMessage and ErrorReason fields on the metal3machine.
-func setErrorM3Machine(m3m *capm3.Metal3Machine, message string, reason capierrors.MachineStatusError) {
+func setErrorM3Machine(m3m *infrav1.Metal3Machine, message string, reason capierrors.MachineStatusError) {
 	m3m.Status.FailureMessage = pointer.StringPtr(message)
 	m3m.Status.FailureReason = &reason
 }
 
 // clearError removes the ErrorMessage from the metal3machine's Status if set.
-func clearErrorM3Machine(m3m *capm3.Metal3Machine) {
+func clearErrorM3Machine(m3m *infrav1.Metal3Machine) {
 	if m3m.Status.FailureMessage != nil || m3m.Status.FailureReason != nil {
 		m3m.Status.FailureMessage = nil
 		m3m.Status.FailureReason = nil

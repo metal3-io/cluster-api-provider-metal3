@@ -23,7 +23,7 @@ import (
 	// comment for go-lint.
 	"github.com/go-logr/logr"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -191,7 +191,7 @@ func deleteSecret(ctx context.Context, cl client.Client, name string,
 func fetchM3DataTemplate(ctx context.Context,
 	templateRef *corev1.ObjectReference, cl client.Client, mLog logr.Logger,
 	clusterName string,
-) (*capm3.Metal3DataTemplate, error) {
+) (*infrav1.Metal3DataTemplate, error) {
 	// If the user did not specify a DataTemplate, just keep going.
 	if templateRef == nil {
 		return nil, nil
@@ -201,7 +201,7 @@ func fetchM3DataTemplate(ctx context.Context,
 	}
 
 	// Fetch the Metal3 metadata.
-	metal3DataTemplate := &capm3.Metal3DataTemplate{}
+	metal3DataTemplate := &infrav1.Metal3DataTemplate{}
 	metal3DataTemplateName := types.NamespacedName{
 		Namespace: templateRef.Namespace,
 		Name:      templateRef.Name,
@@ -225,9 +225,9 @@ func fetchM3DataTemplate(ctx context.Context,
 
 func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string,
-) (*capm3.Metal3DataClaim, error) {
+) (*infrav1.Metal3DataClaim, error) {
 	// Fetch the Metal3DataClaim.
-	m3DataClaim := &capm3.Metal3DataClaim{}
+	m3DataClaim := &infrav1.Metal3DataClaim{}
 	metal3DataClaimName := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
@@ -245,9 +245,9 @@ func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 
 func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string,
-) (*capm3.Metal3Data, error) {
+) (*infrav1.Metal3Data, error) {
 	// Fetch the Metal3Data.
-	m3Data := &capm3.Metal3Data{}
+	m3Data := &infrav1.Metal3Data{}
 	metal3DataName := types.NamespacedName{
 		Namespace: namespace,
 		Name:      name,
@@ -264,11 +264,11 @@ func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 }
 
 func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
-	name, namespace string, dataTemplate *capm3.Metal3DataTemplate,
+	name, namespace string, dataTemplate *infrav1.Metal3DataTemplate,
 	requeueifNotFound bool,
-) (*capm3.Metal3Machine, error) {
+) (*infrav1.Metal3Machine, error) {
 	// Get the Metal3Machine.
-	tmpM3Machine := &capm3.Metal3Machine{}
+	tmpM3Machine := &infrav1.Metal3Machine{}
 	key := client.ObjectKey{
 		Name:      name,
 		Namespace: namespace,

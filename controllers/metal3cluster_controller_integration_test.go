@@ -27,7 +27,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,7 +50,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 
 	DescribeTable("Reconcile tests metal3Cluster",
 		func(tc TestCaseReconcileBMC) {
-			testclstr := &capm3.Metal3Cluster{}
+			testclstr := &infrav1.Metal3Cluster{}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 
 			r := &Metal3ClusterReconciler{
@@ -138,8 +138,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), nil, nil, nil, false),
 					newCluster(clusterName, nil, nil),
 				},
-				ErrorExpected: true,
-				//ErrorType:           &capm3.APIEndPointError{},
+				ErrorExpected:       true,
 				RequeueExpected:     false,
 				ErrorReasonExpected: true,
 				ErrorReason:         capierrors.InvalidConfigurationClusterError,
@@ -157,7 +156,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				RequeueExpected: false,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
-						Type:   capm3.BaremetalInfrastructureReadyCondition,
+						Type:   infrav1.BaremetalInfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					},
 					clusterv1.Condition{
@@ -199,7 +198,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should reconcileDelete when deletion timestamp is set.",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					&capm3.Metal3Cluster{
+					&infrav1.Metal3Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind: "Metal3Cluster",
 						},
@@ -221,7 +220,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("reconcileDelete should wait for metal3machine",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					&capm3.Metal3Cluster{
+					&infrav1.Metal3Cluster{
 						TypeMeta: metav1.TypeMeta{
 							Kind: "Metal3Cluster",
 						},

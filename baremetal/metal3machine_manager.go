@@ -30,7 +30,7 @@ import (
 	"github.com/go-logr/logr"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -107,11 +107,11 @@ type MachineManager struct {
 	client client.Client
 
 	Cluster               *clusterv1.Cluster
-	Metal3Cluster         *capm3.Metal3Cluster
+	Metal3Cluster         *infrav1.Metal3Cluster
 	MachineList           *clusterv1.MachineList
 	Machine               *clusterv1.Machine
-	Metal3Machine         *capm3.Metal3Machine
-	Metal3MachineTemplate *capm3.Metal3MachineTemplate
+	Metal3Machine         *infrav1.Metal3Machine
+	Metal3MachineTemplate *infrav1.Metal3MachineTemplate
 	MachineSet            *clusterv1.MachineSet
 	MachineSetList        *clusterv1.MachineSetList
 	Log                   logr.Logger
@@ -119,8 +119,8 @@ type MachineManager struct {
 
 // NewMachineManager returns a new helper for managing a machine.
 func NewMachineManager(client client.Client,
-	cluster *clusterv1.Cluster, metal3Cluster *capm3.Metal3Cluster,
-	machine *clusterv1.Machine, metal3machine *capm3.Metal3Machine,
+	cluster *clusterv1.Cluster, metal3Cluster *infrav1.Metal3Cluster,
+	machine *clusterv1.Machine, metal3machine *infrav1.Metal3Machine,
 	machineLog logr.Logger) (*MachineManager, error) {
 	return &MachineManager{
 		client: client,
@@ -148,9 +148,9 @@ func NewMachineSetManager(client client.Client,
 // SetFinalizer sets finalizer.
 func (m *MachineManager) SetFinalizer() {
 	// If the Metal3Machine doesn't have finalizer, add it.
-	if !Contains(m.Metal3Machine.Finalizers, capm3.MachineFinalizer) {
+	if !Contains(m.Metal3Machine.Finalizers, infrav1.MachineFinalizer) {
 		m.Metal3Machine.Finalizers = append(m.Metal3Machine.Finalizers,
-			capm3.MachineFinalizer,
+			infrav1.MachineFinalizer,
 		)
 	}
 }
@@ -159,7 +159,7 @@ func (m *MachineManager) SetFinalizer() {
 func (m *MachineManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	m.Metal3Machine.Finalizers = Filter(m.Metal3Machine.Finalizers,
-		capm3.MachineFinalizer,
+		infrav1.MachineFinalizer,
 	)
 }
 
@@ -612,7 +612,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				// machine role is ControlPlane, set nodeReuseLabelName to KubeadmControlPlane
 				// name, otherwise to MachineDeployment name.
 				m.Log.Info("Getting Metal3MachineTemplate")
-				m3mt := &capm3.Metal3MachineTemplate{}
+				m3mt := &infrav1.Metal3MachineTemplate{}
 				if m.Metal3Machine == nil {
 					return errors.New("Metal3Machine associated with Metal3MachineTemplate is not found")
 				}
@@ -805,7 +805,7 @@ func (m *MachineManager) getHost(ctx context.Context) (*bmh.BareMetalHost, *patc
 	return host, helper, err
 }
 
-func getHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
+func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Client,
 	mLog logr.Logger,
 ) (*bmh.BareMetalHost, error) {
 	annotations := m3Machine.ObjectMeta.GetAnnotations()
@@ -912,7 +912,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 			if _, ok := annotations[bmh.PausedAnnotation]; ok {
 				continue
 			}
-			if _, ok := annotations[capm3.UnhealthyAnnotation]; ok {
+			if _, ok := annotations[infrav1.UnhealthyAnnotation]; ok {
 				continue
 			}
 		}
@@ -983,7 +983,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 
 // consumerRefMatches returns a boolean based on whether the consumer
 // reference and bare metal machine metadata match.
-func consumerRefMatches(consumer *corev1.ObjectReference, m3machine *capm3.Metal3Machine) bool {
+func consumerRefMatches(consumer *corev1.ObjectReference, m3machine *infrav1.Metal3Machine) bool {
 	if consumer.Name != m3machine.Name {
 		return false
 	}
@@ -1256,7 +1256,7 @@ func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmh.Bare
 	metal3MachineOld := m.Metal3Machine.DeepCopy()
 
 	m.Metal3Machine.Status.Addresses = addrs
-	conditions.MarkTrue(m.Metal3Machine, capm3.AssociateBMHCondition)
+	conditions.MarkTrue(m.Metal3Machine, infrav1.AssociateBMHCondition)
 
 	if equality.Semantic.DeepEqual(m.Metal3Machine.Status, metal3MachineOld.Status) {
 		// Status did not change
@@ -1394,7 +1394,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID string, pr
 func (m *MachineManager) SetProviderID(providerID string) {
 	m.Metal3Machine.Spec.ProviderID = &providerID
 	m.Metal3Machine.Status.Ready = true
-	m.SetConditionMetal3MachineToTrue(capm3.KubernetesNodeReadyCondition)
+	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
 }
 
 // SetOwnerRef adds an ownerreference to this Metal3Machine.
@@ -1529,7 +1529,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 		return nil
 	}
 
-	dataClaim := &capm3.Metal3DataClaim{
+	dataClaim := &infrav1.Metal3DataClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Metal3Machine.Name,
 			Namespace: m.Metal3Machine.Namespace,
@@ -1544,7 +1544,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 			},
 			Labels: m.Metal3Machine.Labels,
 		},
-		Spec: capm3.Metal3DataClaimSpec{
+		Spec: infrav1.Metal3DataClaimSpec{
 			Template: *m.Metal3Machine.Spec.DataTemplate,
 		},
 	}

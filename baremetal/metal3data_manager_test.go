@@ -28,7 +28,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -54,7 +54,7 @@ var (
 			{
 				Name:       "abc",
 				Kind:       "Metal3Machine",
-				APIVersion: capm3.GroupVersion.String(),
+				APIVersion: infrav1.GroupVersion.String(),
 				UID:        m3muid,
 			},
 		},
@@ -66,7 +66,7 @@ var (
 
 var _ = Describe("Metal3Data manager", func() {
 	DescribeTable("Test Finalizers",
-		func(data *capm3.Metal3Data) {
+		func(data *infrav1.Metal3Data) {
 			machineMgr, err := NewDataManager(nil, data,
 				logr.Discard(),
 			)
@@ -75,17 +75,17 @@ var _ = Describe("Metal3Data manager", func() {
 			machineMgr.SetFinalizer()
 
 			Expect(data.ObjectMeta.Finalizers).To(ContainElement(
-				capm3.DataFinalizer,
+				infrav1.DataFinalizer,
 			))
 
 			machineMgr.UnsetFinalizer()
 
 			Expect(data.ObjectMeta.Finalizers).NotTo(ContainElement(
-				capm3.DataFinalizer,
+				infrav1.DataFinalizer,
 			))
 		},
-		Entry("No finalizers", &capm3.Metal3Data{}),
-		Entry("Additional Finalizers", &capm3.Metal3Data{
+		Entry("No finalizers", &infrav1.Metal3Data{}),
+		Entry("Additional Finalizers", &infrav1.Metal3Data{
 			ObjectMeta: metav1.ObjectMeta{
 				Finalizers: []string{"foo"},
 			},
@@ -93,7 +93,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	It("Test error handling", func() {
-		data := &capm3.Metal3Data{}
+		data := &infrav1.Metal3Data{}
 		dataMgr, err := NewDataManager(nil, data,
 			logr.Discard(),
 		)
@@ -106,9 +106,9 @@ var _ = Describe("Metal3Data manager", func() {
 	})
 
 	type testCaseReconcile struct {
-		m3d              *capm3.Metal3Data
-		m3dt             *capm3.Metal3DataTemplate
-		m3m              *capm3.Metal3Machine
+		m3d              *infrav1.Metal3Data
+		m3dt             *infrav1.Metal3DataTemplate
+		m3m              *infrav1.Metal3Machine
 		expectError      bool
 		expectRequeue    bool
 		expectedErrorSet bool
@@ -146,17 +146,17 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Clear Error", testCaseReconcile{
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{},
-				Status: capm3.Metal3DataStatus{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{},
+				Status: infrav1.Metal3DataStatus{
 					ErrorMessage: pointer.StringPtr("Error Happened"),
 				},
 			},
 		}),
 		Entry("requeue error", testCaseReconcile{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 				},
 			},
@@ -165,10 +165,10 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseCreateSecrets struct {
-		m3d                 *capm3.Metal3Data
-		m3dt                *capm3.Metal3DataTemplate
-		m3m                 *capm3.Metal3Machine
-		dataClaim           *capm3.Metal3DataClaim
+		m3d                 *infrav1.Metal3Data
+		m3dt                *infrav1.Metal3DataTemplate
+		m3m                 *infrav1.Metal3Machine
+		dataClaim           *infrav1.Metal3DataClaim
 		machine             *clusterv1.Machine
 		bmh                 *bmo.BareMetalHost
 		metadataSecret      *corev1.Secret
@@ -251,123 +251,123 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Empty", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{},
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{},
 			},
 		}),
 		Entry("No Metal3DataTemplate", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 				},
 			},
 			expectRequeue: true,
 		}),
 		Entry("No Metal3Machine in owner refs", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMeta,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			expectError: true,
 		}),
 		Entry("No Metal3Machine", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			expectRequeue: true,
 		}),
 		Entry("No Secret needed", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
 			},
-			m3m: &capm3.Metal3Machine{
+			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			expectReady: true,
 		}),
 		Entry("Machine without datatemplate", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
 			},
-			m3m: &capm3.Metal3Machine{
+			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			expectError: true,
 		}),
 		Entry("secrets exist", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						Strings: []capm3.MetaDataString{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
 							},
 						},
 					},
-					NetworkData: &capm3.NetworkData{
-						Links: capm3.NetworkDataLink{
-							Ethernets: []capm3.NetworkDataLinkEthernet{
+					NetworkData: &infrav1.NetworkData{
+						Links: infrav1.NetworkDataLink{
+							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
 									Id:   "eth0",
 									MTU:  1500,
-									MACAddress: &capm3.NetworkLinkEthernetMac{
+									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 									},
 								},
@@ -376,15 +376,15 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3m: &capm3.Metal3Machine{
+			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			metadataSecret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -409,32 +409,32 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedNetworkData: pointer.StringPtr("Bye"),
 		}),
 		Entry("secrets do not exist", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						Strings: []capm3.MetaDataString{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
 							},
 						},
 					},
-					NetworkData: &capm3.NetworkData{
-						Links: capm3.NetworkDataLink{
-							Ethernets: []capm3.NetworkDataLinkEthernet{
+					NetworkData: &infrav1.NetworkData{
+						Links: infrav1.NetworkDataLink{
+							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
 									Id:   "eth0",
 									MTU:  1500,
-									MACAddress: &capm3.NetworkLinkEthernetMac{
+									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 									},
 								},
@@ -443,7 +443,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3m: &capm3.Metal3Machine{
+			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -459,13 +459,13 @@ var _ = Describe("Metal3Data manager", func() {
 						"metal3.io/BareMetalHost": namespaceName + "/abc",
 					},
 				},
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: testObjectMeta,
@@ -478,32 +478,32 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedNetworkData: pointer.StringPtr("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						Strings: []capm3.MetaDataString{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
 							},
 						},
 					},
-					NetworkData: &capm3.NetworkData{
-						Links: capm3.NetworkDataLink{
-							Ethernets: []capm3.NetworkDataLinkEthernet{
+					NetworkData: &infrav1.NetworkData{
+						Links: infrav1.NetworkDataLink{
+							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
 									Id:   "eth0",
 									MTU:  1500,
-									MACAddress: &capm3.NetworkLinkEthernetMac{
+									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 									},
 								},
@@ -512,45 +512,45 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3m: &capm3.Metal3Machine{
+			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			expectRequeue: true,
 		}),
 		Entry("secrets do not exist", testCaseCreateSecrets{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						Strings: []capm3.MetaDataString{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
 							},
 						},
 					},
-					NetworkData: &capm3.NetworkData{
-						Links: capm3.NetworkDataLink{
-							Ethernets: []capm3.NetworkDataLinkEthernet{
+					NetworkData: &infrav1.NetworkData{
+						Links: infrav1.NetworkDataLink{
+							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
 									Id:   "eth0",
 									MTU:  1500,
-									MACAddress: &capm3.NetworkLinkEthernetMac{
+									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 									},
 								},
@@ -559,7 +559,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3m: &capm3.Metal3Machine{
+			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -571,24 +571,24 @@ var _ = Describe("Metal3Data manager", func() {
 						},
 					},
 				},
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
 			machine: &clusterv1.Machine{
 				ObjectMeta: testObjectMeta,
 			},
-			dataClaim: &capm3.Metal3DataClaim{
+			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			expectRequeue: true,
 		}),
 	)
 
 	type testCaseReleaseLeases struct {
-		m3d           *capm3.Metal3Data
-		m3dt          *capm3.Metal3DataTemplate
+		m3d           *infrav1.Metal3Data
+		m3dt          *infrav1.Metal3DataTemplate
 		expectError   bool
 		expectRequeue bool
 	}
@@ -617,15 +617,15 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Empty spec", testCaseReleaseLeases{
-			m3d: &capm3.Metal3Data{},
+			m3d: &infrav1.Metal3Data{},
 		}),
 		Entry("M3dt not found", testCaseReleaseLeases{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: corev1.ObjectReference{
 						Name: "abc",
 					},
@@ -634,18 +634,18 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("M3dt found", testCaseReleaseLeases{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Template: corev1.ObjectReference{
 						Name: "abc",
 					},
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -655,7 +655,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseGetAddressesFromPool struct {
-		m3dtSpec      capm3.Metal3DataTemplateSpec
+		m3dtSpec      infrav1.Metal3DataTemplateSpec
 		ipClaims      []string
 		expectError   bool
 		expectRequeue bool
@@ -676,17 +676,17 @@ var _ = Describe("Metal3Data manager", func() {
 				}
 				objects = append(objects, pool)
 			}
-			m3d := &capm3.Metal3Data{
+			m3d := &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 				},
 			}
-			m3dt := capm3.Metal3DataTemplate{
+			m3dt := infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -716,80 +716,80 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(expectedPoolAddress).To(Equal(poolAddresses))
 		},
 		Entry("Metadata ok", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{
-					IPAddressesFromPool: []capm3.FromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
 						{
 							Key:  "Address-1",
 							Name: "abcd-1",
 						},
 					},
-					PrefixesFromPool: []capm3.FromPool{
+					PrefixesFromPool: []infrav1.FromPool{
 						{
 							Key:  "Prefix-1",
 							Name: "abcd-2",
 						},
 					},
-					GatewaysFromPool: []capm3.FromPool{
+					GatewaysFromPool: []infrav1.FromPool{
 						{
 							Key:  "Gateway-1",
 							Name: "abcd-3",
 						},
 					},
 				},
-				NetworkData: &capm3.NetworkData{
-					Networks: capm3.NetworkDataNetwork{
-						IPv4: []capm3.NetworkDataIPv4{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
 							{
 								IPAddressFromIPPool: "abcd-4",
-								Routes: []capm3.NetworkDataRoutev4{
+								Routes: []infrav1.NetworkDataRoutev4{
 									{
-										Gateway: capm3.NetworkGatewayv4{
+										Gateway: infrav1.NetworkGatewayv4{
 											FromIPPool: pointer.StringPtr("abcd-5"),
 										},
 									},
 								},
 							},
 						},
-						IPv6: []capm3.NetworkDataIPv6{
+						IPv6: []infrav1.NetworkDataIPv6{
 							{
 								IPAddressFromIPPool: "abcd-6",
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd-7"),
 										},
 									},
 								},
 							},
 						},
-						IPv4DHCP: []capm3.NetworkDataIPv4DHCP{
+						IPv4DHCP: []infrav1.NetworkDataIPv4DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev4{
+								Routes: []infrav1.NetworkDataRoutev4{
 									{
-										Gateway: capm3.NetworkGatewayv4{
+										Gateway: infrav1.NetworkGatewayv4{
 											FromIPPool: pointer.StringPtr("abcd-8"),
 										},
 									},
 								},
 							},
 						},
-						IPv6DHCP: []capm3.NetworkDataIPv6DHCP{
+						IPv6DHCP: []infrav1.NetworkDataIPv6DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd-9"),
 										},
 									},
 								},
 							},
 						},
-						IPv6SLAAC: []capm3.NetworkDataIPv6DHCP{
+						IPv6SLAAC: []infrav1.NetworkDataIPv6DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd-10"),
 										},
 									},
@@ -814,16 +814,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPAddressesFromPool", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{
-					IPAddressesFromPool: []capm3.FromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
 						{
 							Key:  "Address-1",
 							Name: "abcd",
 						},
 					},
 				},
-				NetworkData: &capm3.NetworkData{},
+				NetworkData: &infrav1.NetworkData{},
 			},
 			ipClaims: []string{
 				"abcd",
@@ -831,16 +831,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("PrefixesFromPool", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{
-					PrefixesFromPool: []capm3.FromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					PrefixesFromPool: []infrav1.FromPool{
 						{
 							Key:  "Prefix-1",
 							Name: "abcd",
 						},
 					},
 				},
-				NetworkData: &capm3.NetworkData{},
+				NetworkData: &infrav1.NetworkData{},
 			},
 			ipClaims: []string{
 				"abcd",
@@ -848,16 +848,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("GatewaysFromPool", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{
-					GatewaysFromPool: []capm3.FromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					GatewaysFromPool: []infrav1.FromPool{
 						{
 							Key:  "Gateway-1",
 							Name: "abcd",
 						},
 					},
 				},
-				NetworkData: &capm3.NetworkData{},
+				NetworkData: &infrav1.NetworkData{},
 			},
 			ipClaims: []string{
 				"abcd",
@@ -865,16 +865,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPv4", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{},
-				NetworkData: &capm3.NetworkData{
-					Networks: capm3.NetworkDataNetwork{
-						IPv4: []capm3.NetworkDataIPv4{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
 							{
 								IPAddressFromIPPool: "abcd-1",
-								Routes: []capm3.NetworkDataRoutev4{
+								Routes: []infrav1.NetworkDataRoutev4{
 									{
-										Gateway: capm3.NetworkGatewayv4{
+										Gateway: infrav1.NetworkGatewayv4{
 											FromIPPool: pointer.StringPtr("abcd-2"),
 										},
 									},
@@ -891,16 +891,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPv6", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{},
-				NetworkData: &capm3.NetworkData{
-					Networks: capm3.NetworkDataNetwork{
-						IPv6: []capm3.NetworkDataIPv6{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv6: []infrav1.NetworkDataIPv6{
 							{
 								IPAddressFromIPPool: "abcd-1",
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd-2"),
 										},
 									},
@@ -917,15 +917,15 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPv4DHCP", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{},
-				NetworkData: &capm3.NetworkData{
-					Networks: capm3.NetworkDataNetwork{
-						IPv4DHCP: []capm3.NetworkDataIPv4DHCP{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4DHCP: []infrav1.NetworkDataIPv4DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev4{
+								Routes: []infrav1.NetworkDataRoutev4{
 									{
-										Gateway: capm3.NetworkGatewayv4{
+										Gateway: infrav1.NetworkGatewayv4{
 											FromIPPool: pointer.StringPtr("abcd"),
 										},
 									},
@@ -941,15 +941,15 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPv6DHCP", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{},
-				NetworkData: &capm3.NetworkData{
-					Networks: capm3.NetworkDataNetwork{
-						IPv6DHCP: []capm3.NetworkDataIPv6DHCP{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv6DHCP: []infrav1.NetworkDataIPv6DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd"),
 										},
 									},
@@ -965,15 +965,15 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPv6SLAAC", testCaseGetAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{},
-				NetworkData: &capm3.NetworkData{
-					Networks: capm3.NetworkDataNetwork{
-						IPv6SLAAC: []capm3.NetworkDataIPv6DHCP{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv6SLAAC: []infrav1.NetworkDataIPv6DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd"),
 										},
 									},
@@ -991,7 +991,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseReleaseAddressesFromPool struct {
-		m3dtSpec      capm3.Metal3DataTemplateSpec
+		m3dtSpec      infrav1.Metal3DataTemplateSpec
 		ipClaims      []string
 		expectError   bool
 		expectRequeue bool
@@ -1012,17 +1012,17 @@ var _ = Describe("Metal3Data manager", func() {
 				}
 				objects = append(objects, pool)
 			}
-			m3d := &capm3.Metal3Data{
+			m3d := &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 				},
 			}
-			m3dt := capm3.Metal3DataTemplate{
+			m3dt := infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
@@ -1058,80 +1058,80 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Metadata ok", testCaseReleaseAddressesFromPool{
-			m3dtSpec: capm3.Metal3DataTemplateSpec{
-				MetaData: &capm3.MetaData{
-					IPAddressesFromPool: []capm3.FromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
 						{
 							Key:  "Address-1",
 							Name: "abcd-1",
 						},
 					},
-					PrefixesFromPool: []capm3.FromPool{
+					PrefixesFromPool: []infrav1.FromPool{
 						{
 							Key:  "Prefix-1",
 							Name: "abcd-2",
 						},
 					},
-					GatewaysFromPool: []capm3.FromPool{
+					GatewaysFromPool: []infrav1.FromPool{
 						{
 							Key:  "Gateway-1",
 							Name: "abcd-3",
 						},
 					},
 				},
-				NetworkData: &capm3.NetworkData{
-					Networks: capm3.NetworkDataNetwork{
-						IPv4: []capm3.NetworkDataIPv4{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
 							{
 								IPAddressFromIPPool: "abcd-4",
-								Routes: []capm3.NetworkDataRoutev4{
+								Routes: []infrav1.NetworkDataRoutev4{
 									{
-										Gateway: capm3.NetworkGatewayv4{
+										Gateway: infrav1.NetworkGatewayv4{
 											FromIPPool: pointer.StringPtr("abcd-5"),
 										},
 									},
 								},
 							},
 						},
-						IPv6: []capm3.NetworkDataIPv6{
+						IPv6: []infrav1.NetworkDataIPv6{
 							{
 								IPAddressFromIPPool: "abcd-6",
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd-7"),
 										},
 									},
 								},
 							},
 						},
-						IPv4DHCP: []capm3.NetworkDataIPv4DHCP{
+						IPv4DHCP: []infrav1.NetworkDataIPv4DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev4{
+								Routes: []infrav1.NetworkDataRoutev4{
 									{
-										Gateway: capm3.NetworkGatewayv4{
+										Gateway: infrav1.NetworkGatewayv4{
 											FromIPPool: pointer.StringPtr("abcd-8"),
 										},
 									},
 								},
 							},
 						},
-						IPv6DHCP: []capm3.NetworkDataIPv6DHCP{
+						IPv6DHCP: []infrav1.NetworkDataIPv6DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd-9"),
 										},
 									},
 								},
 							},
 						},
-						IPv6SLAAC: []capm3.NetworkDataIPv6DHCP{
+						IPv6SLAAC: []infrav1.NetworkDataIPv6DHCP{
 							{
-								Routes: []capm3.NetworkDataRoutev6{
+								Routes: []infrav1.NetworkDataRoutev6{
 									{
-										Gateway: capm3.NetworkGatewayv6{
+										Gateway: infrav1.NetworkGatewayv6{
 											FromIPPool: pointer.StringPtr("abcd-10"),
 										},
 									},
@@ -1157,7 +1157,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseGetAddressFromPool struct {
-		m3d               *capm3.Metal3Data
+		m3d               *infrav1.Metal3Data
 		poolName          string
 		poolAddresses     map[string]addressFromPool
 		ipClaim           *ipamv1.IPClaim
@@ -1217,7 +1217,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Already processed", testCaseGetAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: namespaceName,
 				},
@@ -1231,7 +1231,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPClaim not found", testCaseGetAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1245,7 +1245,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectClaim:   true,
 		}),
 		Entry("IPClaim without allocation", testCaseGetAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1264,7 +1264,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPPool with allocation error", testCaseGetAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1287,7 +1287,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectDataError: true,
 		}),
 		Entry("IPAddress not found", testCaseGetAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1312,7 +1312,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPAddress found", testCaseGetAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1360,7 +1360,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseReleaseAddressFromPool struct {
-		m3d               *capm3.Metal3Data
+		m3d               *infrav1.Metal3Data
 		poolName          string
 		poolAddresses     map[string]bool
 		ipClaim           *ipamv1.IPClaim
@@ -1407,7 +1407,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Already processed", testCaseReleaseAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1422,7 +1422,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Deletion already attempted", testCaseReleaseAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1437,7 +1437,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPClaim not found", testCaseReleaseAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -1450,14 +1450,14 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPPool without ownerref", testCaseReleaseAddressFromPool{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 				},
 			},
 			poolName: "abc",
@@ -1474,8 +1474,8 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseRenderNetworkData struct {
-		m3d            *capm3.Metal3Data
-		m3dt           *capm3.Metal3DataTemplate
+		m3d            *infrav1.Metal3Data
+		m3dt           *infrav1.Metal3DataTemplate
 		bmh            *bmo.BareMetalHost
 		poolAddresses  map[string]addressFromPool
 		expectError    bool
@@ -1496,40 +1496,40 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(output).To(Equal(tc.expectedOutput))
 		},
 		Entry("Full example", testCaseRenderNetworkData{
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
-				Spec: capm3.Metal3DataTemplateSpec{
-					NetworkData: &capm3.NetworkData{
-						Links: capm3.NetworkDataLink{
-							Ethernets: []capm3.NetworkDataLinkEthernet{
+			m3dt: &infrav1.Metal3DataTemplate{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Links: infrav1.NetworkDataLink{
+							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
 									Id:   "eth0",
 									MTU:  1500,
-									MACAddress: &capm3.NetworkLinkEthernetMac{
+									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 									},
 								},
 							},
 						},
-						Networks: capm3.NetworkDataNetwork{
-							IPv4: []capm3.NetworkDataIPv4{
+						Networks: infrav1.NetworkDataNetwork{
+							IPv4: []infrav1.NetworkDataIPv4{
 								{
 									ID:                  "abc",
 									Link:                "def",
 									IPAddressFromIPPool: "abc",
-									Routes: []capm3.NetworkDataRoutev4{
+									Routes: []infrav1.NetworkDataRoutev4{
 										{
 											Network: "10.0.0.0",
 											Prefix:  16,
-											Gateway: capm3.NetworkGatewayv4{
+											Gateway: infrav1.NetworkGatewayv4{
 												String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
 											},
-											Services: capm3.NetworkDataServicev4{
+											Services: infrav1.NetworkDataServicev4{
 												DNS: []ipamv1.IPAddressv4Str{
 													ipamv1.IPAddressv4Str("8.8.8.8"),
 												},
@@ -1539,7 +1539,7 @@ var _ = Describe("Metal3Data manager", func() {
 								},
 							},
 						},
-						Services: capm3.NetworkDataService{
+						Services: infrav1.NetworkDataService{
 							DNS: []ipamv1.IPAddressStr{
 								ipamv1.IPAddressStr("8.8.8.8"),
 								ipamv1.IPAddressStr("2001::8888"),
@@ -1598,16 +1598,16 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Error in link", testCaseRenderNetworkData{
-			m3dt: &capm3.Metal3DataTemplate{
-				Spec: capm3.Metal3DataTemplateSpec{
-					NetworkData: &capm3.NetworkData{
-						Links: capm3.NetworkDataLink{
-							Ethernets: []capm3.NetworkDataLinkEthernet{
+			m3dt: &infrav1.Metal3DataTemplate{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Links: infrav1.NetworkDataLink{
+							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
 									Id:   "eth0",
 									MTU:  1500,
-									MACAddress: &capm3.NetworkLinkEthernetMac{
+									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										FromHostInterface: pointer.StringPtr("eth0"),
 									},
 								},
@@ -1619,16 +1619,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Address error", testCaseRenderNetworkData{
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
-				Spec: capm3.Metal3DataTemplateSpec{
-					NetworkData: &capm3.NetworkData{
-						Networks: capm3.NetworkDataNetwork{
-							IPv4: []capm3.NetworkDataIPv4{
+			m3dt: &infrav1.Metal3DataTemplate{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Networks: infrav1.NetworkDataNetwork{
+							IPv4: []infrav1.NetworkDataIPv4{
 								{
 									ID:                  "abc",
 									Link:                "def",
@@ -1642,8 +1642,8 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Empty", testCaseRenderNetworkData{
-			m3dt: &capm3.Metal3DataTemplate{
-				Spec: capm3.Metal3DataTemplateSpec{
+			m3dt: &infrav1.Metal3DataTemplate{
+				Spec: infrav1.Metal3DataTemplateSpec{
 					NetworkData: nil,
 				},
 			},
@@ -1652,7 +1652,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	It("Test renderNetworkServices", func() {
-		services := capm3.NetworkDataService{
+		services := infrav1.NetworkDataService{
 			DNS: []ipamv1.IPAddressStr{
 				(ipamv1.IPAddressStr)("8.8.8.8"),
 				(ipamv1.IPAddressStr)("2001::8888"),
@@ -1686,7 +1686,7 @@ var _ = Describe("Metal3Data manager", func() {
 	})
 
 	type testCaseRenderNetworkLinks struct {
-		links          capm3.NetworkDataLink
+		links          infrav1.NetworkDataLink
 		bmh            *bmo.BareMetalHost
 		expectError    bool
 		expectedOutput []interface{}
@@ -1703,13 +1703,13 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(result).To(Equal(tc.expectedOutput))
 		},
 		Entry("Ethernet, MAC from string", testCaseRenderNetworkLinks{
-			links: capm3.NetworkDataLink{
-				Ethernets: []capm3.NetworkDataLinkEthernet{
+			links: infrav1.NetworkDataLink{
+				Ethernets: []infrav1.NetworkDataLinkEthernet{
 					{
 						Type: "phy",
 						Id:   "eth0",
 						MTU:  1500,
-						MACAddress: &capm3.NetworkLinkEthernetMac{
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 						},
 					},
@@ -1725,13 +1725,13 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Ethernet, MAC error", testCaseRenderNetworkLinks{
-			links: capm3.NetworkDataLink{
-				Ethernets: []capm3.NetworkDataLinkEthernet{
+			links: infrav1.NetworkDataLink{
+				Ethernets: []infrav1.NetworkDataLinkEthernet{
 					{
 						Type: "phy",
 						Id:   "eth0",
 						MTU:  1500,
-						MACAddress: &capm3.NetworkLinkEthernetMac{
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							FromHostInterface: pointer.StringPtr("eth2"),
 						},
 					},
@@ -1746,13 +1746,13 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Bond, MAC from string", testCaseRenderNetworkLinks{
-			links: capm3.NetworkDataLink{
-				Bonds: []capm3.NetworkDataLinkBond{
+			links: infrav1.NetworkDataLink{
+				Bonds: []infrav1.NetworkDataLinkBond{
 					{
 						BondMode: "802.3ad",
 						Id:       "bond0",
 						MTU:      1500,
-						MACAddress: &capm3.NetworkLinkEthernetMac{
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 						},
 						BondLinks: []string{"eth0"},
@@ -1771,13 +1771,13 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Bond, MAC error", testCaseRenderNetworkLinks{
-			links: capm3.NetworkDataLink{
-				Bonds: []capm3.NetworkDataLinkBond{
+			links: infrav1.NetworkDataLink{
+				Bonds: []infrav1.NetworkDataLinkBond{
 					{
 						BondMode: "802.3ad",
 						Id:       "bond0",
 						MTU:      1500,
-						MACAddress: &capm3.NetworkLinkEthernetMac{
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							FromHostInterface: pointer.StringPtr("eth2"),
 						},
 						BondLinks: []string{"eth0"},
@@ -1793,13 +1793,13 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Vlan, MAC from string", testCaseRenderNetworkLinks{
-			links: capm3.NetworkDataLink{
-				Vlans: []capm3.NetworkDataLinkVlan{
+			links: infrav1.NetworkDataLink{
+				Vlans: []infrav1.NetworkDataLinkVlan{
 					{
 						VlanID: 2222,
 						Id:     "bond0",
 						MTU:    1500,
-						MACAddress: &capm3.NetworkLinkEthernetMac{
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 						},
 						VlanLink: "eth0",
@@ -1818,13 +1818,13 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Vlan, MAC error", testCaseRenderNetworkLinks{
-			links: capm3.NetworkDataLink{
-				Vlans: []capm3.NetworkDataLinkVlan{
+			links: infrav1.NetworkDataLink{
+				Vlans: []infrav1.NetworkDataLinkVlan{
 					{
 						VlanID: 2222,
 						Id:     "bond0",
 						MTU:    1500,
-						MACAddress: &capm3.NetworkLinkEthernetMac{
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							FromHostInterface: pointer.StringPtr("eth2"),
 						},
 						VlanLink: "eth0",
@@ -1842,8 +1842,8 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseRenderNetworkNetworks struct {
-		networks       capm3.NetworkDataNetwork
-		m3d            *capm3.Metal3Data
+		networks       infrav1.NetworkDataNetwork
+		m3d            *infrav1.Metal3Data
 		poolAddresses  map[string]addressFromPool
 		expectError    bool
 		expectedOutput []interface{}
@@ -1867,20 +1867,20 @@ var _ = Describe("Metal3Data manager", func() {
 					gateway: ipamv1.IPAddressStr("192.168.1.1"),
 				},
 			},
-			networks: capm3.NetworkDataNetwork{
-				IPv4: []capm3.NetworkDataIPv4{
+			networks: infrav1.NetworkDataNetwork{
+				IPv4: []infrav1.NetworkDataIPv4{
 					{
 						ID:                  "abc",
 						Link:                "def",
 						IPAddressFromIPPool: "abc",
-						Routes: []capm3.NetworkDataRoutev4{
+						Routes: []infrav1.NetworkDataRoutev4{
 							{
 								Network: "10.0.0.0",
 								Prefix:  16,
-								Gateway: capm3.NetworkGatewayv4{
+								Gateway: infrav1.NetworkGatewayv4{
 									FromIPPool: pointer.StringPtr("abc"),
 								},
-								Services: capm3.NetworkDataServicev4{
+								Services: infrav1.NetworkDataServicev4{
 									DNS: []ipamv1.IPAddressv4Str{
 										ipamv1.IPAddressv4Str("8.8.8.8"),
 									},
@@ -1890,8 +1890,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
@@ -1919,15 +1919,15 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPv4 network, error", testCaseRenderNetworkNetworks{
-			networks: capm3.NetworkDataNetwork{
-				IPv4: []capm3.NetworkDataIPv4{
+			networks: infrav1.NetworkDataNetwork{
+				IPv4: []infrav1.NetworkDataIPv4{
 					{
 						IPAddressFromIPPool: "abc",
 					},
 				},
 			},
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 1000,
 				},
 			},
@@ -1941,20 +1941,20 @@ var _ = Describe("Metal3Data manager", func() {
 					gateway: ipamv1.IPAddressStr("fe80::2001:1"),
 				},
 			},
-			networks: capm3.NetworkDataNetwork{
-				IPv6: []capm3.NetworkDataIPv6{
+			networks: infrav1.NetworkDataNetwork{
+				IPv6: []infrav1.NetworkDataIPv6{
 					{
 						ID:                  "abc",
 						Link:                "def",
 						IPAddressFromIPPool: "abc",
-						Routes: []capm3.NetworkDataRoutev6{
+						Routes: []infrav1.NetworkDataRoutev6{
 							{
 								Network: "2001::",
 								Prefix:  64,
-								Gateway: capm3.NetworkGatewayv6{
+								Gateway: infrav1.NetworkGatewayv6{
 									FromIPPool: pointer.StringPtr("abc"),
 								},
-								Services: capm3.NetworkDataServicev6{
+								Services: infrav1.NetworkDataServicev6{
 									DNS: []ipamv1.IPAddressv6Str{
 										ipamv1.IPAddressv6Str("2001::8888"),
 									},
@@ -1964,8 +1964,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
@@ -1993,34 +1993,34 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPv6 network error", testCaseRenderNetworkNetworks{
-			networks: capm3.NetworkDataNetwork{
-				IPv6: []capm3.NetworkDataIPv6{
+			networks: infrav1.NetworkDataNetwork{
+				IPv6: []infrav1.NetworkDataIPv6{
 					{
 						IPAddressFromIPPool: "abc",
 					},
 				},
 			},
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 10000,
 				},
 			},
 			expectError: true,
 		}),
 		Entry("IPv4 DHCP", testCaseRenderNetworkNetworks{
-			networks: capm3.NetworkDataNetwork{
-				IPv4DHCP: []capm3.NetworkDataIPv4DHCP{
+			networks: infrav1.NetworkDataNetwork{
+				IPv4DHCP: []infrav1.NetworkDataIPv4DHCP{
 					{
 						ID:   "abc",
 						Link: "def",
-						Routes: []capm3.NetworkDataRoutev4{
+						Routes: []infrav1.NetworkDataRoutev4{
 							{
 								Network: "10.0.0.0",
 								Prefix:  16,
-								Gateway: capm3.NetworkGatewayv4{
+								Gateway: infrav1.NetworkGatewayv4{
 									String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
 								},
-								Services: capm3.NetworkDataServicev4{
+								Services: infrav1.NetworkDataServicev4{
 									DNS: []ipamv1.IPAddressv4Str{
 										ipamv1.IPAddressv4Str("8.8.8.8"),
 									},
@@ -2030,8 +2030,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
@@ -2057,19 +2057,19 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPv6 DHCP", testCaseRenderNetworkNetworks{
-			networks: capm3.NetworkDataNetwork{
-				IPv6DHCP: []capm3.NetworkDataIPv6DHCP{
+			networks: infrav1.NetworkDataNetwork{
+				IPv6DHCP: []infrav1.NetworkDataIPv6DHCP{
 					{
 						ID:   "abc",
 						Link: "def",
-						Routes: []capm3.NetworkDataRoutev6{
+						Routes: []infrav1.NetworkDataRoutev6{
 							{
 								Network: "2001::",
 								Prefix:  64,
-								Gateway: capm3.NetworkGatewayv6{
+								Gateway: infrav1.NetworkGatewayv6{
 									String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("fe80::2001:1")),
 								},
-								Services: capm3.NetworkDataServicev6{
+								Services: infrav1.NetworkDataServicev6{
 									DNS: []ipamv1.IPAddressv6Str{
 										ipamv1.IPAddressv6Str("2001::8888"),
 									},
@@ -2079,8 +2079,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
@@ -2106,19 +2106,19 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPv6 SLAAC", testCaseRenderNetworkNetworks{
-			networks: capm3.NetworkDataNetwork{
-				IPv6SLAAC: []capm3.NetworkDataIPv6DHCP{
+			networks: infrav1.NetworkDataNetwork{
+				IPv6SLAAC: []infrav1.NetworkDataIPv6DHCP{
 					{
 						ID:   "abc",
 						Link: "def",
-						Routes: []capm3.NetworkDataRoutev6{
+						Routes: []infrav1.NetworkDataRoutev6{
 							{
 								Network: "2001::",
 								Prefix:  64,
-								Gateway: capm3.NetworkGatewayv6{
+								Gateway: infrav1.NetworkGatewayv6{
 									String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("fe80::2001:1")),
 								},
-								Services: capm3.NetworkDataServicev6{
+								Services: infrav1.NetworkDataServicev6{
 									DNS: []ipamv1.IPAddressv6Str{
 										ipamv1.IPAddressv6Str("2001::8888"),
 									},
@@ -2128,8 +2128,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3d: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
@@ -2157,21 +2157,21 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	It("Test getRoutesv4", func() {
-		netRoutes := []capm3.NetworkDataRoutev4{
+		netRoutes := []infrav1.NetworkDataRoutev4{
 			{
 				Network: "192.168.0.0",
 				Prefix:  24,
-				Gateway: capm3.NetworkGatewayv4{
+				Gateway: infrav1.NetworkGatewayv4{
 					String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
 				},
 			},
 			{
 				Network: "10.0.0.0",
 				Prefix:  16,
-				Gateway: capm3.NetworkGatewayv4{
+				Gateway: infrav1.NetworkGatewayv4{
 					FromIPPool: pointer.StringPtr("abc"),
 				},
-				Services: capm3.NetworkDataServicev4{
+				Services: infrav1.NetworkDataServicev4{
 					DNS: []ipamv1.IPAddressv4Str{
 						ipamv1.IPAddressv4Str("8.8.8.8"),
 						ipamv1.IPAddressv4Str("8.8.4.4"),
@@ -2223,21 +2223,21 @@ var _ = Describe("Metal3Data manager", func() {
 	})
 
 	It("Test getRoutesv6", func() {
-		netRoutes := []capm3.NetworkDataRoutev6{
+		netRoutes := []infrav1.NetworkDataRoutev6{
 			{
 				Network: "2001::0",
 				Prefix:  96,
-				Gateway: capm3.NetworkGatewayv6{
+				Gateway: infrav1.NetworkGatewayv6{
 					String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("2001::1")),
 				},
 			},
 			{
 				Network: "fe80::0",
 				Prefix:  64,
-				Gateway: capm3.NetworkGatewayv6{
+				Gateway: infrav1.NetworkGatewayv6{
 					FromIPPool: pointer.StringPtr("abc"),
 				},
-				Services: capm3.NetworkDataServicev6{
+				Services: infrav1.NetworkDataServicev6{
 					DNS: []ipamv1.IPAddressv6Str{
 						ipamv1.IPAddressv6Str("fe80:2001::8888"),
 						ipamv1.IPAddressv6Str("fe80:2001::8844"),
@@ -2319,7 +2319,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseGetLinkMacAddress struct {
-		mac         *capm3.NetworkLinkEthernetMac
+		mac         *infrav1.NetworkLinkEthernetMac
 		bmh         *bmo.BareMetalHost
 		expectError bool
 		expectedMAC string
@@ -2336,13 +2336,13 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(result).To(Equal(tc.expectedMAC))
 		},
 		Entry("String", testCaseGetLinkMacAddress{
-			mac: &capm3.NetworkLinkEthernetMac{
+			mac: &infrav1.NetworkLinkEthernetMac{
 				String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
 			},
 			expectedMAC: "XX:XX:XX:XX:XX:XX",
 		}),
 		Entry("from host interface", testCaseGetLinkMacAddress{
-			mac: &capm3.NetworkLinkEthernetMac{
+			mac: &infrav1.NetworkLinkEthernetMac{
 				FromHostInterface: pointer.StringPtr("eth1"),
 			},
 			bmh: &bmo.BareMetalHost{
@@ -2369,7 +2369,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedMAC: "XX:XX:XX:XX:XX:YY",
 		}),
 		Entry("from host interface not found", testCaseGetLinkMacAddress{
-			mac: &capm3.NetworkLinkEthernetMac{
+			mac: &infrav1.NetworkLinkEthernetMac{
 				FromHostInterface: pointer.StringPtr("eth2"),
 			},
 			bmh: &bmo.BareMetalHost{
@@ -2398,9 +2398,9 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseRenderMetaData struct {
-		m3d              *capm3.Metal3Data
-		m3dt             *capm3.Metal3DataTemplate
-		m3m              *capm3.Metal3Machine
+		m3d              *infrav1.Metal3Data
+		m3dt             *infrav1.Metal3DataTemplate
+		m3m              *infrav1.Metal3Machine
 		machine          *clusterv1.Machine
 		bmh              *bmo.BareMetalHost
 		poolAddresses    map[string]addressFromPool
@@ -2424,7 +2424,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(outputMap).To(Equal(tc.expectedMetaData))
 		},
 		Entry("Empty", testCaseRenderMetaData{
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
@@ -2432,29 +2432,29 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedMetaData: nil,
 		}),
 		Entry("Full example", testCaseRenderMetaData{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "datatemplate-abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						Strings: []capm3.MetaDataString{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
 							},
 						},
-						ObjectNames: []capm3.MetaDataObjectName{
+						ObjectNames: []infrav1.MetaDataObjectName{
 							{
 								Key:    "ObjectName-1",
 								Object: "machine",
@@ -2468,12 +2468,12 @@ var _ = Describe("Metal3Data manager", func() {
 								Object: "baremetalhost",
 							},
 						},
-						Namespaces: []capm3.MetaDataNamespace{
+						Namespaces: []infrav1.MetaDataNamespace{
 							{
 								Key: "Namespace-1",
 							},
 						},
-						Indexes: []capm3.MetaDataIndex{
+						Indexes: []infrav1.MetaDataIndex{
 							{
 								Key:    "Index-1",
 								Offset: 10,
@@ -2485,7 +2485,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Key: "Index-2",
 							},
 						},
-						IPAddressesFromPool: []capm3.FromPool{
+						IPAddressesFromPool: []infrav1.FromPool{
 							{
 								Key:  "Address-1",
 								Name: "abcd",
@@ -2499,7 +2499,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Name: "bcde",
 							},
 						},
-						PrefixesFromPool: []capm3.FromPool{
+						PrefixesFromPool: []infrav1.FromPool{
 							{
 								Key:  "Prefix-1",
 								Name: "abcd",
@@ -2513,7 +2513,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Name: "bcde",
 							},
 						},
-						GatewaysFromPool: []capm3.FromPool{
+						GatewaysFromPool: []infrav1.FromPool{
 							{
 								Key:  "Gateway-1",
 								Name: "abcd",
@@ -2527,13 +2527,13 @@ var _ = Describe("Metal3Data manager", func() {
 								Name: "bcde",
 							},
 						},
-						FromHostInterfaces: []capm3.MetaDataHostInterface{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
 							{
 								Key:       "Mac-1",
 								Interface: "eth1",
 							},
 						},
-						FromLabels: []capm3.MetaDataFromLabel{
+						FromLabels: []infrav1.MetaDataFromLabel{
 							{
 								Key:    "Label-1",
 								Object: "metal3machine",
@@ -2560,7 +2560,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Label:  "BMH",
 							},
 						},
-						FromAnnotations: []capm3.MetaDataFromAnnotation{
+						FromAnnotations: []infrav1.MetaDataFromAnnotation{
 							{
 								Key:        "Annotation-1",
 								Object:     "metal3machine",
@@ -2590,7 +2590,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3m: &capm3.Metal3Machine{
+			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "metal3machine-abc",
 					Namespace: namespaceName,
@@ -2689,13 +2689,13 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Interface absent", testCaseRenderMetaData{
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						FromHostInterfaces: []capm3.MetaDataHostInterface{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
 							{
 								Key:       "Mac-1",
 								Interface: "eth2",
@@ -2728,22 +2728,22 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("IP missing", testCaseRenderMetaData{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						IPAddressesFromPool: []capm3.FromPool{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						IPAddressesFromPool: []infrav1.FromPool{
 							{
 								Key:  "Address-1",
 								Name: "abc",
@@ -2755,22 +2755,22 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Prefix missing", testCaseRenderMetaData{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						PrefixesFromPool: []capm3.FromPool{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						PrefixesFromPool: []infrav1.FromPool{
 							{
 								Key:  "Address-1",
 								Name: "abc",
@@ -2782,22 +2782,22 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Gateway missing", testCaseRenderMetaData{
-			m3d: &capm3.Metal3Data{
+			m3d: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "data-abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						GatewaysFromPool: []capm3.FromPool{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						GatewaysFromPool: []infrav1.FromPool{
 							{
 								Key:  "Address-1",
 								Name: "abc",
@@ -2809,13 +2809,13 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Wrong object in name", testCaseRenderMetaData{
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						ObjectNames: []capm3.MetaDataObjectName{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						ObjectNames: []infrav1.MetaDataObjectName{
 							{
 								Key:    "ObjectName-3",
 								Object: "baremetalhost2",
@@ -2827,13 +2827,13 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Wrong object in Label", testCaseRenderMetaData{
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						FromLabels: []capm3.MetaDataFromLabel{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromLabels: []infrav1.MetaDataFromLabel{
 							{
 								Key:    "ObjectName-3",
 								Object: "baremetalhost2",
@@ -2846,13 +2846,13 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Wrong object in Annotation", testCaseRenderMetaData{
-			m3dt: &capm3.Metal3DataTemplate{
+			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "datatemplate-abc",
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					MetaData: &capm3.MetaData{
-						FromAnnotations: []capm3.MetaDataFromAnnotation{
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromAnnotations: []infrav1.MetaDataFromAnnotation{
 							{
 								Key:        "ObjectName-3",
 								Object:     "baremetalhost2",
@@ -2972,10 +2972,10 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseGetM3Machine struct {
-		Machine       *capm3.Metal3Machine
-		Data          *capm3.Metal3Data
-		DataTemplate  *capm3.Metal3DataTemplate
-		DataClaim     *capm3.Metal3DataClaim
+		Machine       *infrav1.Metal3Machine
+		Data          *infrav1.Metal3Data
+		DataTemplate  *infrav1.Metal3DataTemplate
+		DataClaim     *infrav1.Metal3DataClaim
 		ExpectError   bool
 		ExpectRequeue bool
 		ExpectEmpty   bool
@@ -3024,140 +3024,140 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Object does not exist", testCaseGetM3Machine{
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &capm3.Metal3DataClaim{
+			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			ExpectRequeue: true,
 		}),
 		Entry("Data spec unset", testCaseGetM3Machine{
-			Data:        &capm3.Metal3Data{},
+			Data:        &infrav1.Metal3Data{},
 			ExpectError: true,
 		}),
 		Entry("Data Spec name unset", testCaseGetM3Machine{
-			Data: &capm3.Metal3Data{
-				Spec: capm3.Metal3DataSpec{
+			Data: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: corev1.ObjectReference{},
 				},
 			},
 			ExpectError: true,
 		}),
 		Entry("Dataclaim Spec ownerref unset", testCaseGetM3Machine{
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &capm3.Metal3DataClaim{
+			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMeta,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			ExpectError: true,
 		}),
 		Entry("M3Machine not found", testCaseGetM3Machine{
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &capm3.Metal3DataClaim{
+			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			ExpectRequeue: true,
 		}),
 		Entry("Object exists", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
 			},
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &capm3.Metal3DataClaim{
+			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 		}),
 		Entry("Object exists, dataTemplate nil", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: nil,
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
 			},
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &capm3.Metal3DataClaim{
+			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate name mismatch", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abcd",
 						Namespace: namespaceName,
 					},
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
 			},
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &capm3.Metal3DataClaim{
+			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate namespace mismatch", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta,
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abc",
 						Namespace: "defg",
 					},
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta,
 			},
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec: capm3.Metal3DataSpec{
+				Spec: infrav1.Metal3DataSpec{
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &capm3.Metal3DataClaim{
+			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
-				Spec:       capm3.Metal3DataClaimSpec{},
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			ExpectEmpty: true,
 		}),

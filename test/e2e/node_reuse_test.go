@@ -10,7 +10,7 @@ import (
 	"time"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -465,7 +465,7 @@ func getProvisionedBmhNamesUuids(clusterClient client.Client) []string {
 }
 
 func updateNodeReuse(nodeReuse bool, m3machineTemplateName string, clusterClient client.Client) {
-	m3machineTemplate := capm3.Metal3MachineTemplate{}
+	m3machineTemplate := infrav1.Metal3MachineTemplate{}
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
 	helper, err := patch.NewHelper(&m3machineTemplate, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
@@ -491,7 +491,7 @@ func pointMDtoM3mt(m3mtname, mdName string, clusterClient client.Client) {
 }
 
 func updateBootImage(m3machineTemplateName string, clusterClient client.Client, imageURL string, imageChecksum string, checksumType string, imageFormat string) {
-	m3machineTemplate := capm3.Metal3MachineTemplate{}
+	m3machineTemplate := infrav1.Metal3MachineTemplate{}
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
 	helper, err := patch.NewHelper(&m3machineTemplate, clusterClient)
 	Expect(err).NotTo(HaveOccurred())

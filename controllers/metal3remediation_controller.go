@@ -22,7 +22,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
@@ -49,7 +49,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	remediationLog := r.Log.WithValues("metal3remediation", req.NamespacedName)
 
 	// Fetch the Metal3Remediation instance.
-	metal3Remediation := &capm3.Metal3Remediation{}
+	metal3Remediation := &infrav1.Metal3Remediation{}
 
 	helper, err := patch.NewHelper(metal3Remediation, r.Client)
 	if err != nil {
@@ -86,7 +86,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	remediationLog = remediationLog.WithValues("unhealthy machine detected", capiMachine.Name)
 
 	// Fetch Metal3Machine
-	metal3Machine := capm3.Metal3Machine{}
+	metal3Machine := infrav1.Metal3Machine{}
 	key := client.ObjectKey{
 		Name:      capiMachine.Spec.InfrastructureRef.Name,
 		Namespace: capiMachine.Spec.InfrastructureRef.Namespace,
@@ -129,25 +129,25 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 	// do not try to remediate the host
 	if !remediationMgr.OnlineStatus(host) {
 		r.Log.Info("Unable to remediate, Host is powered off (spec.Online is false)")
-		remediationMgr.SetRemediationPhase(capm3.PhaseFailed)
+		remediationMgr.SetRemediationPhase(infrav1.PhaseFailed)
 		return ctrl.Result{}, nil
 	}
 
 	remediationType := remediationMgr.GetRemediationType()
 
-	if remediationType != capm3.RebootRemediationStrategy {
+	if remediationType != infrav1.RebootRemediationStrategy {
 		r.Log.Info("unsupported remediation strategy")
 		return ctrl.Result{}, nil
 	}
 
-	if remediationType == capm3.RebootRemediationStrategy {
+	if remediationType == infrav1.RebootRemediationStrategy {
 		// If no phase set, default to running
 		if remediationMgr.GetRemediationPhase() == "" {
-			remediationMgr.SetRemediationPhase(capm3.PhaseRunning)
+			remediationMgr.SetRemediationPhase(infrav1.PhaseRunning)
 		}
 
 		switch remediationMgr.GetRemediationPhase() {
-		case capm3.PhaseRunning:
+		case infrav1.PhaseRunning:
 			// host is not rebooted yet
 			if remediationMgr.GetLastRemediatedTime() == nil {
 				r.Log.Info("Rebooting the host")
@@ -180,13 +180,13 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 					return ctrl.Result{RequeueAfter: nextRemediation}, nil
 				}
 			} else {
-				remediationMgr.SetRemediationPhase(capm3.PhaseWaiting)
+				remediationMgr.SetRemediationPhase(infrav1.PhaseWaiting)
 			}
-		case capm3.PhaseWaiting:
+		case infrav1.PhaseWaiting:
 			okToStop, nextCheck := remediationMgr.TimeToRemediate(remediationMgr.GetTimeout().Duration)
 
 			if okToStop {
-				remediationMgr.SetRemediationPhase(capm3.PhaseDeleting)
+				remediationMgr.SetRemediationPhase(infrav1.PhaseDeleting)
 				// When machine is still unhealthy after remediation, setting of OwnerRemediatedCondition
 				// moves control to CAPI machine controller. The owning controller will do
 				// preflight checks and handles the Machine deletion
@@ -225,6 +225,6 @@ func (r *Metal3RemediationReconciler) reconcileDelete(ctx context.Context,
 // SetupWithManager will add watches for Metal3Remediation controller.
 func (r *Metal3RemediationReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3Remediation{}).
+		For(&infrav1.Metal3Remediation{}).
 		Complete(r)
 }

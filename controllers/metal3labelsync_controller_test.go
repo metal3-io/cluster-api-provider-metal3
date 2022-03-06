@@ -23,7 +23,7 @@ import (
 	"github.com/go-logr/logr"
 
 	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -297,9 +297,9 @@ var _ = Describe("Metal3LabelSync controller", func() {
 	)
 	type TestCaseMetal3ClusterToBMHs struct {
 		Cluster        *clusterv1.Cluster
-		M3Cluster      *capm3.Metal3Cluster
+		M3Cluster      *infrav1.Metal3Cluster
 		Machine        *clusterv1.Machine
-		M3Machine      *capm3.Metal3Machine
+		M3Machine      *infrav1.Metal3Machine
 		ExpectRequests []ctrl.Request
 	}
 
@@ -347,7 +347,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				Name:       metal3machineName,
 				Namespace:  namespaceName,
 				Kind:       "Metal3Machine",
-				APIVersion: capm3.GroupVersion.String(),
+				APIVersion: infrav1.GroupVersion.String(),
 			},
 		}
 		notMetal3MachineSpec := bmh.BareMetalHostSpec{
@@ -355,7 +355,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				Name:       metal3machineName,
 				Namespace:  namespaceName,
 				Kind:       "notMetal3Machine",
-				APIVersion: "not" + capm3.GroupVersion.String(),
+				APIVersion: "not" + infrav1.GroupVersion.String(),
 			},
 		}
 		annotation := map[string]string{
@@ -371,15 +371,15 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
 				Kind:       "Metal3Cluster",
-				APIVersion: capm3.GroupVersion.String(),
+				APIVersion: infrav1.GroupVersion.String(),
 			},
 		}
 		type testCaseReconcile struct {
 			host            *bmh.BareMetalHost
 			machine         *clusterv1.Machine
-			metal3Machine   *capm3.Metal3Machine
+			metal3Machine   *infrav1.Metal3Machine
 			cluster         *clusterv1.Cluster
-			metal3Cluster   *capm3.Metal3Cluster
+			metal3Cluster   *infrav1.Metal3Cluster
 			expectError     bool
 			expectRequeue   bool
 			expectLabelsync map[string]string

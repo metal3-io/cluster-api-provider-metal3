@@ -26,7 +26,7 @@ import (
 	// TODO Why blank import ?
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -50,14 +50,14 @@ type ClusterManager struct {
 	client client.Client
 
 	Cluster       *clusterv1.Cluster
-	Metal3Cluster *capm3.Metal3Cluster
+	Metal3Cluster *infrav1.Metal3Cluster
 	Log           logr.Logger
 	// name string
 }
 
 // NewClusterManager returns a new helper for managing a cluster with a given name.
 func NewClusterManager(client client.Client, cluster *clusterv1.Cluster,
-	metal3Cluster *capm3.Metal3Cluster,
+	metal3Cluster *infrav1.Metal3Cluster,
 	clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	if metal3Cluster == nil {
 		return nil, errors.New("Metal3Cluster is required when creating a ClusterManager")
@@ -77,9 +77,9 @@ func NewClusterManager(client client.Client, cluster *clusterv1.Cluster,
 // SetFinalizer sets finalizer.
 func (s *ClusterManager) SetFinalizer() {
 	// If the Metal3Cluster doesn't have finalizer, add it.
-	if !Contains(s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer) {
+	if !Contains(s.Metal3Cluster.ObjectMeta.Finalizers, infrav1.ClusterFinalizer) {
 		s.Metal3Cluster.ObjectMeta.Finalizers = append(
-			s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer,
+			s.Metal3Cluster.ObjectMeta.Finalizers, infrav1.ClusterFinalizer,
 		)
 	}
 }
@@ -88,7 +88,7 @@ func (s *ClusterManager) SetFinalizer() {
 func (s *ClusterManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	s.Metal3Cluster.ObjectMeta.Finalizers = Filter(
-		s.Metal3Cluster.ObjectMeta.Finalizers, capm3.ClusterFinalizer,
+		s.Metal3Cluster.ObjectMeta.Finalizers, infrav1.ClusterFinalizer,
 	)
 }
 
@@ -109,7 +109,7 @@ func (s *ClusterManager) Create(ctx context.Context) error {
 }
 
 // ControlPlaneEndpoint returns cluster controlplane endpoint.
-func (s *ClusterManager) ControlPlaneEndpoint() ([]capm3.APIEndpoint, error) {
+func (s *ClusterManager) ControlPlaneEndpoint() ([]infrav1.APIEndpoint, error) {
 	// Get IP address from spec, which gets it from posted cr yaml.
 	endPoint := s.Metal3Cluster.Spec.ControlPlaneEndpoint
 	var err error
@@ -119,7 +119,7 @@ func (s *ClusterManager) ControlPlaneEndpoint() ([]capm3.APIEndpoint, error) {
 		return nil, err
 	}
 
-	return []capm3.APIEndpoint{
+	return []infrav1.APIEndpoint{
 		{
 			Host: endPoint.Host,
 			Port: endPoint.Port,
@@ -140,13 +140,13 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	if err != nil {
 		s.Metal3Cluster.Status.Ready = false
 		s.setError("Invalid ControlPlaneEndpoint values", capierrors.InvalidConfigurationClusterError)
-		conditions.MarkFalse(s.Metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.ControlPlaneEndpointFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.ControlPlaneEndpointFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return err
 	}
 
 	// Mark the metal3Cluster ready.
 	s.Metal3Cluster.Status.Ready = true
-	conditions.MarkTrue(s.Metal3Cluster, capm3.BaremetalInfrastructureReadyCondition)
+	conditions.MarkTrue(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition)
 	now := metav1.Now()
 	s.Metal3Cluster.Status.LastUpdated = &now
 	return nil

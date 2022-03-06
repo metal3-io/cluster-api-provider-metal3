@@ -26,7 +26,7 @@ import (
 	"github.com/go-logr/logr"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -58,13 +58,13 @@ type DataManagerInterface interface {
 // DataManager is responsible for performing machine reconciliation.
 type DataManager struct {
 	client client.Client
-	Data   *capm3.Metal3Data
+	Data   *infrav1.Metal3Data
 	Log    logr.Logger
 }
 
 // NewDataManager returns a new helper for managing a Metal3Data object.
 func NewDataManager(client client.Client,
-	data *capm3.Metal3Data, dataLog logr.Logger) (*DataManager, error) {
+	data *infrav1.Metal3Data, dataLog logr.Logger) (*DataManager, error) {
 	return &DataManager{
 		client: client,
 		Data:   data,
@@ -75,9 +75,9 @@ func NewDataManager(client client.Client,
 // SetFinalizer sets finalizer.
 func (m *DataManager) SetFinalizer() {
 	// If the Metal3Data doesn't have finalizer, add it.
-	if !Contains(m.Data.Finalizers, capm3.DataFinalizer) {
+	if !Contains(m.Data.Finalizers, infrav1.DataFinalizer) {
 		m.Data.Finalizers = append(m.Data.Finalizers,
-			capm3.DataFinalizer,
+			infrav1.DataFinalizer,
 		)
 	}
 }
@@ -86,7 +86,7 @@ func (m *DataManager) SetFinalizer() {
 func (m *DataManager) UnsetFinalizer() {
 	// Remove the finalizer.
 	m.Data.Finalizers = Filter(m.Data.Finalizers,
-		capm3.DataFinalizer,
+		infrav1.DataFinalizer,
 	)
 }
 
@@ -317,7 +317,7 @@ type addressFromPool struct {
 // been allocated it will return a map containing the IPPool name and the address,
 // prefix and gateway from that IPPool.
 func (m *DataManager) getAddressesFromPool(ctx context.Context,
-	m3dt capm3.Metal3DataTemplate,
+	m3dt infrav1.Metal3DataTemplate,
 ) (map[string]addressFromPool, error) {
 	var err error
 	requeue := false
@@ -502,7 +502,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 
 // releaseAddressesFromPool removes the OwnerReference on the IPPool objects.
 func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
-	m3dt capm3.Metal3DataTemplate,
+	m3dt infrav1.Metal3DataTemplate,
 ) error {
 	var err error
 	requeue := false
@@ -790,7 +790,7 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName strin
 
 // renderNetworkData renders the networkData into an object that will be
 // marshalled into the secret.
-func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
+func renderNetworkData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 	bmh *bmo.BareMetalHost, poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.NetworkData == nil {
@@ -821,7 +821,7 @@ func renderNetworkData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 }
 
 // renderNetworkServices renders the services.
-func renderNetworkServices(services capm3.NetworkDataService, poolAddresses map[string]addressFromPool) ([]interface{}, error) {
+func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses map[string]addressFromPool) ([]interface{}, error) {
 	data := []interface{}{}
 
 	for _, service := range services.DNS {
@@ -848,7 +848,7 @@ func renderNetworkServices(services capm3.NetworkDataService, poolAddresses map[
 }
 
 // renderNetworkLinks renders the different types of links.
-func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHost) ([]interface{}, error) {
+func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmo.BareMetalHost) ([]interface{}, error) {
 	data := []interface{}{}
 
 	// Ethernet links
@@ -901,8 +901,8 @@ func renderNetworkLinks(networkLinks capm3.NetworkDataLink, bmh *bmo.BareMetalHo
 }
 
 // renderNetworkNetworks renders the different types of network.
-func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
-	m3d *capm3.Metal3Data, poolAddresses map[string]addressFromPool,
+func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
+	m3d *infrav1.Metal3Data, poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
 	data := []interface{}{}
 
@@ -996,7 +996,7 @@ func renderNetworkNetworks(networks capm3.NetworkDataNetwork,
 }
 
 // getRoutesv4 returns the IPv4 routes.
-func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
+func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 	poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
 	routes := []interface{}{}
@@ -1042,7 +1042,7 @@ func getRoutesv4(netRoutes []capm3.NetworkDataRoutev4,
 }
 
 // getRoutesv6 returns the IPv6 routes.
-func getRoutesv6(netRoutes []capm3.NetworkDataRoutev6,
+func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 	poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
 	routes := []interface{}{}
@@ -1102,7 +1102,7 @@ func translateMask(maskInt int, ipv4 bool) interface{} {
 }
 
 // getLinkMacAddress returns the mac address.
-func getLinkMacAddress(mac *capm3.NetworkLinkEthernetMac, bmh *bmo.BareMetalHost) (
+func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac, bmh *bmo.BareMetalHost) (
 	string, error,
 ) {
 	macAddress := ""
@@ -1121,8 +1121,8 @@ func getLinkMacAddress(mac *capm3.NetworkLinkEthernetMac, bmh *bmo.BareMetalHost
 }
 
 // renderMetaData renders the MetaData items.
-func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
-	m3m *capm3.Metal3Machine, machine *clusterv1.Machine, bmh *bmo.BareMetalHost,
+func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmo.BareMetalHost,
 	poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.MetaData == nil {
@@ -1243,12 +1243,12 @@ func getBMHMacByName(name string, bmh *bmo.BareMetalHost) (string, error) {
 	return "", fmt.Errorf("nic name not found %v", name)
 }
 
-func (m *DataManager) getM3Machine(ctx context.Context, m3dt *capm3.Metal3DataTemplate) (*capm3.Metal3Machine, error) {
+func (m *DataManager) getM3Machine(ctx context.Context, m3dt *infrav1.Metal3DataTemplate) (*infrav1.Metal3Machine, error) {
 	if m.Data.Spec.Claim.Name == "" {
 		return nil, errors.New("Claim name not set")
 	}
 
-	capm3DataClaim := &capm3.Metal3DataClaim{}
+	capm3DataClaim := &infrav1.Metal3DataClaim{}
 	claimNamespacedName := types.NamespacedName{
 		Name:      m.Data.Spec.Claim.Name,
 		Namespace: m.Data.Namespace,
@@ -1270,7 +1270,7 @@ func (m *DataManager) getM3Machine(ctx context.Context, m3dt *capm3.Metal3DataTe
 		// not matching on UID since when pivoting it might change
 		// Not matching on API version as this might change
 		if ownerRef.Kind == "Metal3Machine" &&
-			oGV.Group == capm3.GroupVersion.Group {
+			oGV.Group == infrav1.GroupVersion.Group {
 			metal3MachineName = ownerRef.Name
 			break
 		}

@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -134,7 +134,7 @@ func pivoting() {
 
 	By("Check if metal3machines become ready.")
 	Eventually(func() error {
-		m3Machines := &capm3.Metal3MachineList{}
+		m3Machines := &infrav1.Metal3MachineList{}
 		if err := targetCluster.GetClient().List(ctx, m3Machines, client.InNamespace(namespace)); err != nil {
 			return err
 		}
@@ -363,7 +363,7 @@ func rePivoting() {
 
 	By("Check if metal3machines become ready.")
 	Eventually(func() error {
-		m3Machines := &capm3.Metal3MachineList{}
+		m3Machines := &infrav1.Metal3MachineList{}
 		if err := bootstrapClusterProxy.GetClient().List(ctx, m3Machines, client.InNamespace(namespace)); err != nil {
 			return err
 		}

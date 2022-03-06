@@ -24,7 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	"github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	. "github.com/onsi/ginkgo"
@@ -66,11 +66,11 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	if tc.ExpectToStartMachineDeletion {
 		// Go to deleting remediation phase, hand over control of the Machine to CAPI
 		// and annotate the node as unhealthy.
-		m.EXPECT().SetRemediationPhase(capm3.PhaseDeleting)
+		m.EXPECT().SetRemediationPhase(infrav1.PhaseDeleting)
 		m.EXPECT().SetOwnerRemediatedConditionNew(context.TODO())
 		m.EXPECT().SetUnhealthyAnnotation(context.TODO())
 	} else {
-		m.EXPECT().SetRemediationPhase(capm3.PhaseDeleting).MaxTimes(0)
+		m.EXPECT().SetRemediationPhase(infrav1.PhaseDeleting).MaxTimes(0)
 		m.EXPECT().SetOwnerRemediatedConditionNew(context.TODO()).MaxTimes(0)
 		m.EXPECT().SetUnhealthyAnnotation(context.TODO()).MaxTimes(0)
 	}
@@ -85,15 +85,15 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	// If user has set bmh.Spec.Online to false, do not try to remediate the host and set remediation phase to failed
 	if tc.HostStatusOffline {
 		m.EXPECT().OnlineStatus(bmh).Return(false)
-		m.EXPECT().SetRemediationPhase(capm3.PhaseFailed)
+		m.EXPECT().SetRemediationPhase(infrav1.PhaseFailed)
 		return m
 	}
 	m.EXPECT().OnlineStatus(bmh).Return(true)
 
-	m.EXPECT().GetRemediationType().Return(capm3.RebootRemediationStrategy)
+	m.EXPECT().GetRemediationType().Return(infrav1.RebootRemediationStrategy)
 	m.EXPECT().GetRemediationPhase().Return(tc.RemediationPhase).MinTimes(1)
 
-	if tc.RemediationPhase == capm3.PhaseRunning {
+	if tc.RemediationPhase == infrav1.PhaseRunning {
 		if tc.IsLastRemediatedTimeNil {
 			// No remediation time has been set on the host, so make sure the reboot annotation is added
 			m.EXPECT().GetLastRemediatedTime().Return(nil)
@@ -104,14 +104,14 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 		if tc.IsRetryLimitZero {
 			m.EXPECT().RetryLimitIsSet().Return(false)
 			// When there's no retrying to do, we don't do remediation and instead go to waiting phase
-			m.EXPECT().SetRemediationPhase(capm3.PhaseWaiting)
+			m.EXPECT().SetRemediationPhase(infrav1.PhaseWaiting)
 			return m
 		}
 		m.EXPECT().RetryLimitIsSet().Return(true)
 		m.EXPECT().HasReachRetryLimit().Return(false)
 	}
 
-	if tc.RemediationPhase == capm3.PhaseRunning || tc.RemediationPhase == capm3.PhaseWaiting {
+	if tc.RemediationPhase == infrav1.PhaseRunning || tc.RemediationPhase == infrav1.PhaseWaiting {
 		m.EXPECT().GetTimeout().Return(&metav1.Duration{Duration: time.Minute})
 		if tc.IsTimeToRemediate {
 			m.EXPECT().TimeToRemediate(time.Minute).Return(true, time.Duration(0))
@@ -174,7 +174,7 @@ var _ = Describe("Metal3Remediation controller", func() {
 					ExpectError:                    false,
 					ExpectRequeue:                  false,
 					ExpectRebootRemediationApplied: true,
-					RemediationPhase:               capm3.PhaseRunning,
+					RemediationPhase:               infrav1.PhaseRunning,
 					IsLastRemediatedTimeNil:        true,
 					IsRetryLimitZero:               true,
 				}),
@@ -182,20 +182,20 @@ var _ = Describe("Metal3Remediation controller", func() {
 					ExpectError:                    false,
 					ExpectRequeue:                  true,
 					ExpectRebootRemediationApplied: true,
-					RemediationPhase:               capm3.PhaseRunning,
+					RemediationPhase:               infrav1.PhaseRunning,
 					IsLastRemediatedTimeNil:        true,
 				}),
 				Entry("Should add reboot annotation to BMH if running remediation and it's time to remediate", reconcileNormalRemediationTestCase{
 					ExpectError:                    false,
 					ExpectRequeue:                  false,
 					ExpectRebootRemediationApplied: true,
-					RemediationPhase:               capm3.PhaseRunning,
+					RemediationPhase:               infrav1.PhaseRunning,
 					IsTimeToRemediate:              true,
 				}),
 				Entry("Should requeue if running remediation but it's not time to remediate yet", reconcileNormalRemediationTestCase{
 					ExpectError:             false,
 					ExpectRequeue:           true,
-					RemediationPhase:        capm3.PhaseRunning,
+					RemediationPhase:        infrav1.PhaseRunning,
 					IsLastRemediatedTimeNil: false,
 					IsTimeToRemediate:       false,
 				}),
@@ -203,13 +203,13 @@ var _ = Describe("Metal3Remediation controller", func() {
 					ExpectError:                  false,
 					ExpectRequeue:                false,
 					ExpectToStartMachineDeletion: true,
-					RemediationPhase:             capm3.PhaseWaiting,
+					RemediationPhase:             infrav1.PhaseWaiting,
 					IsTimeToRemediate:            true,
 				}),
 				Entry("Should requeue if waiting but it's not time to remediate yet", reconcileNormalRemediationTestCase{
 					ExpectError:       false,
 					ExpectRequeue:     true,
-					RemediationPhase:  capm3.PhaseWaiting,
+					RemediationPhase:  infrav1.PhaseWaiting,
 					IsTimeToRemediate: false,
 				}),
 			)

@@ -22,7 +22,7 @@ import (
 	"strconv"
 
 	"github.com/go-logr/logr"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,13 +46,13 @@ type DataTemplateManagerInterface interface {
 // DataTemplateManager is responsible for performing machine reconciliation.
 type DataTemplateManager struct {
 	client       client.Client
-	DataTemplate *capm3.Metal3DataTemplate
+	DataTemplate *infrav1.Metal3DataTemplate
 	Log          logr.Logger
 }
 
 // NewDataTemplateManager returns a new helper for managing a dataTemplate object.
 func NewDataTemplateManager(client client.Client,
-	dataTemplate *capm3.Metal3DataTemplate, dataTemplateLog logr.Logger) (*DataTemplateManager, error) {
+	dataTemplate *infrav1.Metal3DataTemplate, dataTemplateLog logr.Logger) (*DataTemplateManager, error) {
 	return &DataTemplateManager{
 		client:       client,
 		DataTemplate: dataTemplate,
@@ -63,9 +63,9 @@ func NewDataTemplateManager(client client.Client,
 // SetFinalizer sets finalizer.
 func (m *DataTemplateManager) SetFinalizer() {
 	// If the Metal3Machine doesn't have finalizer, add it.
-	if !Contains(m.DataTemplate.Finalizers, capm3.DataTemplateFinalizer) {
+	if !Contains(m.DataTemplate.Finalizers, infrav1.DataTemplateFinalizer) {
 		m.DataTemplate.Finalizers = append(m.DataTemplate.Finalizers,
-			capm3.DataTemplateFinalizer,
+			infrav1.DataTemplateFinalizer,
 		)
 	}
 }
@@ -74,7 +74,7 @@ func (m *DataTemplateManager) SetFinalizer() {
 func (m *DataTemplateManager) UnsetFinalizer() {
 	// Remove the finalizer.
 	m.DataTemplate.Finalizers = Filter(m.DataTemplate.Finalizers,
-		capm3.DataTemplateFinalizer,
+		infrav1.DataTemplateFinalizer,
 	)
 }
 
@@ -112,7 +112,7 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, e
 	indexes := make(map[int]string)
 
 	// get list of Metal3Data objects
-	dataObjects := capm3.Metal3DataList{}
+	dataObjects := infrav1.Metal3DataList{}
 	// without this ListOption, all namespaces would be including in the listing
 	opts := &client.ListOptions{
 		Namespace: m.DataTemplate.Namespace,
@@ -147,7 +147,7 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, e
 	return indexes, nil
 }
 
-func (m *DataTemplateManager) dataObjectBelongsToTemplate(dataObject capm3.Metal3Data) bool {
+func (m *DataTemplateManager) dataObjectBelongsToTemplate(dataObject infrav1.Metal3Data) bool {
 	if dataObject.Spec.Template.Name == m.DataTemplate.Name {
 		return true
 	}
@@ -177,7 +177,7 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
 	}
 
 	// get list of Metal3DataClaim objects
-	dataClaimObjects := capm3.Metal3DataClaimList{}
+	dataClaimObjects := infrav1.Metal3DataClaimList{}
 	// without this ListOption, all namespaces would be including in the listing
 	opts := &client.ListOptions{
 		Namespace: m.DataTemplate.Namespace,
@@ -210,7 +210,7 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
 }
 
 func (m *DataTemplateManager) updateData(ctx context.Context,
-	dataClaim *capm3.Metal3DataClaim, indexes map[int]string,
+	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
 	helper, err := patch.NewHelper(dataClaim, m.client)
 	if err != nil {
@@ -241,13 +241,13 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 }
 
 func (m *DataTemplateManager) createData(ctx context.Context,
-	dataClaim *capm3.Metal3DataClaim, indexes map[int]string,
+	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
 	var dataName string
 
-	if !Contains(dataClaim.Finalizers, capm3.DataClaimFinalizer) {
+	if !Contains(dataClaim.Finalizers, infrav1.DataClaimFinalizer) {
 		dataClaim.Finalizers = append(dataClaim.Finalizers,
-			capm3.DataClaimFinalizer,
+			infrav1.DataClaimFinalizer,
 		)
 	}
 
@@ -273,7 +273,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			return indexes, err
 		}
 		if ownerRef.Kind == "Metal3Machine" &&
-			aGV.Group == capm3.GroupVersion.Group {
+			aGV.Group == infrav1.GroupVersion.Group {
 			m3mUID = ownerRef.UID
 			m3mName = ownerRef.Name
 			break
@@ -307,10 +307,10 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	// Create the Metal3Data object, with an Owner ref to the Metal3Machine
 	// (curOwnerRef) and to the Metal3DataTemplate
-	dataObject := &capm3.Metal3Data{
+	dataObject := &infrav1.Metal3Data{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Data",
-			APIVersion: capm3.GroupVersion.String(),
+			APIVersion: infrav1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      dataName,
@@ -338,7 +338,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 				},
 			},
 		},
-		Spec: capm3.Metal3DataSpec{
+		Spec: infrav1.Metal3DataSpec{
 			Index:             claimIndex,
 			TemplateReference: m.DataTemplate.Spec.TemplateReference,
 			Template: corev1.ObjectReference{
@@ -375,7 +375,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 // DeleteDatas deletes old secrets.
 func (m *DataTemplateManager) deleteData(ctx context.Context,
-	dataClaim *capm3.Metal3DataClaim, indexes map[int]string,
+	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
 	var dataName string
 	m.Log.Info("Deleting Claim", "Metal3DataClaim", dataClaim.Name)
@@ -383,7 +383,7 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 	dataClaimIndex, ok := m.DataTemplate.Status.Indexes[dataClaim.Name]
 	if ok {
 		// Try to get the Metal3Data. if it succeeds, delete it
-		tmpM3Data := &capm3.Metal3Data{}
+		tmpM3Data := &infrav1.Metal3Data{}
 
 		if m.DataTemplate.Spec.TemplateReference != "" {
 			dataName = m.DataTemplate.Spec.TemplateReference + "-" + strconv.Itoa(dataClaimIndex)
@@ -411,7 +411,7 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 	}
 	dataClaim.Status.RenderedData = nil
 	dataClaim.Finalizers = Filter(dataClaim.Finalizers,
-		capm3.DataClaimFinalizer,
+		infrav1.DataClaimFinalizer,
 	)
 
 	m.Log.Info("Deleted Claim", "Metal3DataClaim", dataClaim.Name)

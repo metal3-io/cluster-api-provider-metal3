@@ -17,7 +17,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -55,7 +55,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	m3templateLog := r.Log.WithName(templateControllerName).WithValues("metal3-machine-template", req.NamespacedName)
 
 	// Fetch the Metal3MachineTemplate instance.
-	metal3MachineTemplate := &capm3.Metal3MachineTemplate{}
+	metal3MachineTemplate := &infrav1.Metal3MachineTemplate{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3MachineTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -79,7 +79,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	}()
 
 	// Fetch the Metal3MachineList
-	m3machinelist := &capm3.Metal3MachineList{}
+	m3machinelist := &infrav1.Metal3MachineList{}
 
 	if err := r.Client.List(ctx, m3machinelist); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to fetch Metal3MachineList")
@@ -117,9 +117,9 @@ func (r *Metal3MachineTemplateReconciler) reconcileNormal(ctx context.Context,
 // SetupWithManager will add watches for Metal3MachineTemplate controller.
 func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3MachineTemplate{}).
+		For(&infrav1.Metal3MachineTemplate{}).
 		Watches(
-			&source.Kind{Type: &capm3.Metal3Machine{}},
+			&source.Kind{Type: &infrav1.Metal3Machine{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3MachinesToMetal3MachineTemplate),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -130,8 +130,8 @@ func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, 
 // requests for reconciliation of Metal3MachineTemplates.
 func (r *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	if m3m, ok := o.(*capm3.Metal3Machine); ok {
-		if m3m.Annotations[clonedFromGroupKind] == "" && m3m.Annotations[clonedFromGroupKind] != capm3.ClonedFromGroupKind {
+	if m3m, ok := o.(*infrav1.Metal3Machine); ok {
+		if m3m.Annotations[clonedFromGroupKind] == "" && m3m.Annotations[clonedFromGroupKind] != infrav1.ClonedFromGroupKind {
 			return nil
 		}
 		result = append(result, ctrl.Request{
