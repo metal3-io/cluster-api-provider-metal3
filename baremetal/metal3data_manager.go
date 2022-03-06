@@ -25,7 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
@@ -791,7 +791,7 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName strin
 // renderNetworkData renders the networkData into an object that will be
 // marshalled into the secret.
 func renderNetworkData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
-	bmh *bmo.BareMetalHost, poolAddresses map[string]addressFromPool,
+	bmh *bmov1alpha1.BareMetalHost, poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.NetworkData == nil {
 		return nil, nil
@@ -848,7 +848,7 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 }
 
 // renderNetworkLinks renders the different types of links.
-func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmo.BareMetalHost) ([]interface{}, error) {
+func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
 	data := []interface{}{}
 
 	// Ethernet links
@@ -1102,7 +1102,7 @@ func translateMask(maskInt int, ipv4 bool) interface{} {
 }
 
 // getLinkMacAddress returns the mac address.
-func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac, bmh *bmo.BareMetalHost) (
+func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac, bmh *bmov1alpha1.BareMetalHost) (
 	string, error,
 ) {
 	macAddress := ""
@@ -1122,7 +1122,7 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac, bmh *bmo.BareMetalHo
 
 // renderMetaData renders the MetaData items.
 func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
-	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmo.BareMetalHost,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
 	poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.MetaData == nil {
@@ -1231,7 +1231,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 }
 
 // getBMHMacByName returns the mac address of the interface matching the name.
-func getBMHMacByName(name string, bmh *bmo.BareMetalHost) (string, error) {
+func getBMHMacByName(name string, bmh *bmov1alpha1.BareMetalHost) (string, error) {
 	if bmh == nil || bmh.Status.HardwareDetails == nil || bmh.Status.HardwareDetails.NIC == nil {
 		return "", errors.New("Nics list not populated")
 	}

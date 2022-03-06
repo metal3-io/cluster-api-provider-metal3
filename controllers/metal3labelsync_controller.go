@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
@@ -79,9 +79,9 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-label-sync", req.NamespacedName)
 
 	// We need to get the NodeRef from the CAPI Machine object:
-	// BMH.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
+	// bmov1alpha1.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
 
-	host := &bmh.BareMetalHost{}
+	host := &bmov1alpha1.BareMetalHost{}
 	if err := r.Client.Get(ctx, req.NamespacedName, host); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -89,7 +89,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 	if host.Annotations != nil {
-		if _, ok := host.Annotations[bmh.PausedAnnotation]; ok {
+		if _, ok := host.Annotations[bmov1alpha1.PausedAnnotation]; ok {
 			controllerLog.Info("BaremetalHost is currently paused. Remove pause to continue reconciliation.")
 			return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 		}
@@ -196,11 +196,11 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.Info("Finished synchronizing labels between BaremetalHost and Node")
-	// Always requeue to ensure label sync runs periodically for each BMH. This is necessary to catch any label updates to the Node that are synchronized through the BMH.
+	// Always requeue to ensure label sync runs periodically for each bmov1alpha1. This is necessary to catch any label updates to the Node that are synchronized through the bmov1alpha1.
 	return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 }
 
-func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmh.BareMetalHost, machine *clusterv1.Machine, cluster *clusterv1.Cluster, prefixSet map[string]struct{}) error {
+func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmov1alpha1.BareMetalHost, machine *clusterv1.Machine, cluster *clusterv1.Cluster, prefixSet map[string]struct{}) error {
 	hostLabelSyncSet := buildLabelSyncSet(prefixSet, host.Labels)
 	// Get the Node from the workload cluster
 	corev1Remote, err := r.CapiClientGetter(ctx, r.Client, cluster)
@@ -256,7 +256,7 @@ func synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet map[strin
 // SetupWithManager will add watches for this controller.
 func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&bmh.BareMetalHost{}).
+		For(&bmov1alpha1.BareMetalHost{}).
 		Watches(
 			&source.Kind{Type: &infrav1.Metal3Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3ClusterToBareMetalHosts),

@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -70,7 +70,7 @@ func init() {
 	_ = infrav1.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
 	_ = corev1.AddToScheme(scheme.Scheme)
-	_ = bmh.SchemeBuilder.AddToScheme(scheme.Scheme)
+	_ = bmov1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme)
 }
 
 func setupScheme() *runtime.Scheme {
@@ -87,7 +87,7 @@ func setupScheme() *runtime.Scheme {
 	if err := corev1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := bmh.SchemeBuilder.AddToScheme(s); err != nil {
+	if err := bmov1alpha1.SchemeBuilder.AddToScheme(s); err != nil {
 		panic(err)
 	}
 
@@ -368,23 +368,23 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 	}
 }
 
-func newBareMetalHost(spec *bmh.BareMetalHostSpec,
-	status *bmh.BareMetalHostStatus, labels map[string]string, paused bool,
-) *bmh.BareMetalHost {
+func newBareMetalHost(spec *bmov1alpha1.BareMetalHostSpec,
+	status *bmov1alpha1.BareMetalHostStatus, labels map[string]string, paused bool,
+) *bmov1alpha1.BareMetalHost {
 	if spec == nil {
-		spec = &bmh.BareMetalHostSpec{}
+		spec = &bmov1alpha1.BareMetalHostSpec{}
 	}
 	if status == nil {
-		status = &bmh.BareMetalHostStatus{
-			Provisioning: bmh.ProvisionStatus{
-				State: bmh.StateProvisioned,
+		status = &bmov1alpha1.BareMetalHostStatus{
+			Provisioning: bmov1alpha1.ProvisionStatus{
+				State: bmov1alpha1.StateProvisioned,
 			},
 		}
 	}
-	bmh := &bmh.BareMetalHost{
+	bmh := &bmov1alpha1.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalHost",
-			APIVersion: bmh.GroupVersion.String(),
+			APIVersion: bmov1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "bmh-0",

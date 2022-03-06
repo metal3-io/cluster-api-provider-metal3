@@ -27,7 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
 
-	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -170,7 +170,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3m                 *infrav1.Metal3Machine
 		dataClaim           *infrav1.Metal3DataClaim
 		machine             *clusterv1.Machine
-		bmh                 *bmo.BareMetalHost
+		bmh                 *bmov1alpha1.BareMetalHost
 		metadataSecret      *corev1.Secret
 		networkdataSecret   *corev1.Secret
 		expectError         bool
@@ -470,7 +470,7 @@ var _ = Describe("Metal3Data manager", func() {
 			machine: &clusterv1.Machine{
 				ObjectMeta: testObjectMeta,
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: testObjectMeta,
 			},
 			expectReady:         true,
@@ -1476,7 +1476,7 @@ var _ = Describe("Metal3Data manager", func() {
 	type testCaseRenderNetworkData struct {
 		m3d            *infrav1.Metal3Data
 		m3dt           *infrav1.Metal3DataTemplate
-		bmh            *bmo.BareMetalHost
+		bmh            *bmov1alpha1.BareMetalHost
 		poolAddresses  map[string]addressFromPool
 		expectError    bool
 		expectedOutput map[string][]interface{}
@@ -1687,7 +1687,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	type testCaseRenderNetworkLinks struct {
 		links          infrav1.NetworkDataLink
-		bmh            *bmo.BareMetalHost
+		bmh            *bmov1alpha1.BareMetalHost
 		expectError    bool
 		expectedOutput []interface{}
 	}
@@ -1737,11 +1737,11 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bmh-abc",
 				},
-				Status: bmo.BareMetalHostStatus{},
+				Status: bmov1alpha1.BareMetalHostStatus{},
 			},
 			expectError: true,
 		}),
@@ -1784,11 +1784,11 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bmh-abc",
 				},
-				Status: bmo.BareMetalHostStatus{},
+				Status: bmov1alpha1.BareMetalHostStatus{},
 			},
 			expectError: true,
 		}),
@@ -1831,11 +1831,11 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bmh-abc",
 				},
-				Status: bmo.BareMetalHostStatus{},
+				Status: bmov1alpha1.BareMetalHostStatus{},
 			},
 			expectError: true,
 		}),
@@ -2320,7 +2320,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	type testCaseGetLinkMacAddress struct {
 		mac         *infrav1.NetworkLinkEthernetMac
-		bmh         *bmo.BareMetalHost
+		bmh         *bmov1alpha1.BareMetalHost
 		expectError bool
 		expectedMAC string
 	}
@@ -2345,13 +2345,13 @@ var _ = Describe("Metal3Data manager", func() {
 			mac: &infrav1.NetworkLinkEthernetMac{
 				FromHostInterface: pointer.StringPtr("eth1"),
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bmh-abc",
 				},
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2372,13 +2372,13 @@ var _ = Describe("Metal3Data manager", func() {
 			mac: &infrav1.NetworkLinkEthernetMac{
 				FromHostInterface: pointer.StringPtr("eth2"),
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bmh-abc",
 				},
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2402,7 +2402,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3dt             *infrav1.Metal3DataTemplate
 		m3m              *infrav1.Metal3Machine
 		machine          *clusterv1.Machine
-		bmh              *bmo.BareMetalHost
+		bmh              *bmov1alpha1.BareMetalHost
 		poolAddresses    map[string]addressFromPool
 		expectedMetaData map[string]string
 		expectError      bool
@@ -2616,7 +2616,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "bmh-abc",
 					Namespace: namespaceName,
@@ -2628,9 +2628,9 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 					UID: bmhuid,
 				},
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2704,13 +2704,13 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
+			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "bmh-abc",
 				},
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2867,7 +2867,7 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseGetBMHMacByName struct {
-		bmh         *bmo.BareMetalHost
+		bmh         *bmov1alpha1.BareMetalHost
 		name        string
 		expectError bool
 		expectedMAC string
@@ -2884,26 +2884,26 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("No hardware details", testCaseGetBMHMacByName{
-			bmh: &bmo.BareMetalHost{
-				Status: bmo.BareMetalHostStatus{},
+			bmh: &bmov1alpha1.BareMetalHost{
+				Status: bmov1alpha1.BareMetalHostStatus{},
 			},
 			name:        "eth1",
 			expectError: true,
 		}),
 		Entry("No Nics detail", testCaseGetBMHMacByName{
-			bmh: &bmo.BareMetalHost{
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{},
+			bmh: &bmov1alpha1.BareMetalHost{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{},
 				},
 			},
 			name:        "eth1",
 			expectError: true,
 		}),
 		Entry("Empty nic list", testCaseGetBMHMacByName{
-			bmh: &bmo.BareMetalHost{
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{},
+			bmh: &bmov1alpha1.BareMetalHost{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{},
 					},
 				},
 			},
@@ -2911,10 +2911,10 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Nic not found", testCaseGetBMHMacByName{
-			bmh: &bmo.BareMetalHost{
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+			bmh: &bmov1alpha1.BareMetalHost{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2927,10 +2927,10 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Nic found", testCaseGetBMHMacByName{
-			bmh: &bmo.BareMetalHost{
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+			bmh: &bmov1alpha1.BareMetalHost{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2949,10 +2949,10 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedMAC: "XX:XX:XX:XX:XX:YY",
 		}),
 		Entry("Nic found, Empty Mac", testCaseGetBMHMacByName{
-			bmh: &bmo.BareMetalHost{
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+			bmh: &bmov1alpha1.BareMetalHost{
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",

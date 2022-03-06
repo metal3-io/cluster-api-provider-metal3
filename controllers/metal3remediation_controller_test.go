@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
-	"github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
@@ -75,7 +75,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 		m.EXPECT().SetUnhealthyAnnotation(context.TODO()).MaxTimes(0)
 	}
 
-	bmh := &v1alpha1.BareMetalHost{}
+	bmh := &bmov1alpha1.BareMetalHost{}
 	if tc.GetUnhealthyHostFails {
 		m.EXPECT().GetUnhealthyHost(context.TODO()).Return(nil, nil, fmt.Errorf("can't find foo_bmh"))
 		return m

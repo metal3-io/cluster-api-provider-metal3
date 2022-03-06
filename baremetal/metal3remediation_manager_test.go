@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -239,7 +239,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseEnsureRebootAnnotation struct {
-		Host              *bmh.BareMetalHost
+		Host              *bmov1alpha1.BareMetalHost
 		Metal3Remediation *infrav1.Metal3Remediation
 		ExpectTrue        bool
 	}
@@ -259,16 +259,16 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 		},
 		Entry(" Online field in spec is set to false", testCaseEnsureRebootAnnotation{
-			Host: &bmh.BareMetalHost{
-				Spec: bmh.BareMetalHostSpec{
+			Host: &bmov1alpha1.BareMetalHost{
+				Spec: bmov1alpha1.BareMetalHostSpec{
 					Online: false,
 				},
 			},
 			ExpectTrue: false,
 		}),
 		Entry(" Online field in spec is set to true", testCaseEnsureRebootAnnotation{
-			Host: &bmh.BareMetalHost{
-				Spec: bmh.BareMetalHostSpec{
+			Host: &bmov1alpha1.BareMetalHost{
+				Spec: bmov1alpha1.BareMetalHostSpec{
 					Online: true,
 				},
 			},
@@ -284,7 +284,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetUnhealthyHost",
 		func(tc testCaseGetUnhealthyHost) {
-			host := bmh.BareMetalHost{
+			host := bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
 					Namespace: namespaceName,
@@ -373,7 +373,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseSetAnnotation struct {
-		Host       *bmh.BareMetalHost
+		Host       *bmov1alpha1.BareMetalHost
 		M3Machine  *infrav1.Metal3Machine
 		ExpectTrue bool
 	}
@@ -405,7 +405,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -423,7 +423,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Annotations:     map[string]string{},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -443,7 +443,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -481,7 +481,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -499,7 +499,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Annotations:     map[string]string{},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -519,7 +519,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",

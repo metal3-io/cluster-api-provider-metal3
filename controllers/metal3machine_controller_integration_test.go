@@ -24,7 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -183,7 +183,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			testmachine := &clusterv1.Machine{}
 			testcluster := &clusterv1.Cluster{}
 			testBMmachine := &infrav1.Metal3Machine{}
-			testBMHost := &bmh.BareMetalHost{}
+			testBMHost := &bmov1alpha1.BareMetalHost{}
 
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
@@ -507,9 +507,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
-						Provisioning: bmh.ProvisionStatus{
-							State: bmh.StateAvailable,
+					newBareMetalHost(nil, &bmov1alpha1.BareMetalHostStatus{
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateAvailable,
 						},
 					}, nil, false),
 				},
@@ -545,9 +545,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
-						Provisioning: bmh.ProvisionStatus{
-							State: bmh.StateReady,
+					newBareMetalHost(nil, &bmov1alpha1.BareMetalHostStatus{
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateReady,
 						},
 					}, nil, false),
 				},
@@ -561,7 +561,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioned)
-		//Expected: No Error, BMH.Spec.ProviderID is set properly based on the UID
+		//Expected: No Error, bmov1alpha1.Spec.ProviderID is set properly based on the UID
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is not given, BMH is provisioned",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -612,7 +612,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, provider ID set), BMH (provisioned)
-		//Expected: No Error, BMH.Spec.ProviderID is set properly (unchanged)
+		//Expected: No Error, bmov1alpha1.Spec.ProviderID is set properly (unchanged)
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is given, BMH is provisioned",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -675,7 +675,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
 		//Expected: No Error, Requeue expected
-		//		BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
+		//		bmov1alpha1.Spec.ProviderID is not set based on the UID since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -688,9 +688,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
-						Provisioning: bmh.ProvisionStatus{
-							State: bmh.StateProvisioning,
+					newBareMetalHost(nil, &bmov1alpha1.BareMetalHostStatus{
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateProvisioning,
 						},
 					}, nil, false),
 				},
@@ -801,7 +801,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(&bmh.BareMetalHostSpec{
+					newBareMetalHost(&bmov1alpha1.BareMetalHostSpec{
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       metal3machineName,
 							Namespace:  namespaceName,
@@ -810,7 +810,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						},
 						Online:                true,
 						AutomatedCleaningMode: "metadata",
-					}, &bmh.BareMetalHostStatus{}, nil, false),
+					}, &bmov1alpha1.BareMetalHostStatus{}, nil, false),
 				},
 				ErrorExpected:           false,
 				RequeueExpected:         true,

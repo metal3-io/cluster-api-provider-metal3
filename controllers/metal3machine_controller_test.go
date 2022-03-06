@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
@@ -421,7 +421,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type TestCaseBMHToM3M struct {
-		Host          *bmh.BareMetalHost
+		Host          *bmov1alpha1.BareMetalHost
 		ExpectRequest bool
 	}
 
@@ -448,12 +448,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		// Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines",
 			TestCaseBMHToM3M{
-				Host: &bmh.BareMetalHost{
+				Host: &bmov1alpha1.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
 						Namespace: namespaceName,
 					},
-					Spec: bmh.BareMetalHostSpec{
+					Spec: bmov1alpha1.BareMetalHostSpec{
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       "someothermachine",
 							Namespace:  namespaceName,
@@ -468,12 +468,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		// Given machine, but no metal3machine resource
 		Entry("BareMetalHost To Metal3Machines, no ConsumerRef",
 			TestCaseBMHToM3M{
-				Host: &bmh.BareMetalHost{
+				Host: &bmov1alpha1.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "host1",
 						Namespace: namespaceName,
 					},
-					Spec: bmh.BareMetalHostSpec{},
+					Spec: bmov1alpha1.BareMetalHostSpec{},
 				},
 				ExpectRequest: false,
 			},

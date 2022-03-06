@@ -27,7 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/cache"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -48,8 +48,8 @@ type RemediationManagerInterface interface {
 	TimeToRemediate(timeout time.Duration) (bool, time.Duration)
 	SetRebootAnnotation(ctx context.Context) error
 	SetUnhealthyAnnotation(ctx context.Context) error
-	GetUnhealthyHost(ctx context.Context) (*bmh.BareMetalHost, *patch.Helper, error)
-	OnlineStatus(host *bmh.BareMetalHost) bool
+	GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error)
+	OnlineStatus(host *bmov1alpha1.BareMetalHost) bool
 	GetRemediationType() infrav1.RemediationType
 	RetryLimitIsSet() bool
 	SetRemediationPhase(phase string)
@@ -133,8 +133,8 @@ func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 	}
 
 	r.Log.Info("Adding Reboot annotation to host", host.Name)
-	rebootMode := bmh.RebootAnnotationArguments{}
-	rebootMode.Mode = bmh.RebootModeHard
+	rebootMode := bmov1alpha1.RebootAnnotationArguments{}
+	rebootMode.Mode = bmov1alpha1.RebootModeHard
 	marshalledMode, err := json.Marshal(rebootMode)
 
 	if err != nil {
@@ -162,7 +162,7 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 
 // GetUnhealthyHost gets the associated host for unhealthy machine. Returns nil if not found. Assumes the
 // host is in the same namespace as the unhealthy machine.
-func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmh.BareMetalHost, *patch.Helper, error) {
+func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error) {
 	host, err := getUnhealthyHost(ctx, r.Metal3Machine, r.Client, r.Log)
 	if err != nil || host == nil {
 		return host, nil, err
@@ -173,7 +173,7 @@ func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmh.BareMet
 
 func getUnhealthyHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Client,
 	rLog logr.Logger,
-) (*bmh.BareMetalHost, error) {
+) (*bmov1alpha1.BareMetalHost, error) {
 	annotations := m3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		err := fmt.Errorf("unable to get %s annotations", m3Machine.Name)
@@ -190,7 +190,7 @@ func getUnhealthyHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl 
 		return nil, err
 	}
 
-	host := bmh.BareMetalHost{}
+	host := bmov1alpha1.BareMetalHost{}
 	key := client.ObjectKey{
 		Name:      hostName,
 		Namespace: hostNamespace,
@@ -206,7 +206,7 @@ func getUnhealthyHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl 
 }
 
 // OnlineStatus returns hosts Online field value.
-func (r *RemediationManager) OnlineStatus(host *bmh.BareMetalHost) bool {
+func (r *RemediationManager) OnlineStatus(host *bmov1alpha1.BareMetalHost) bool {
 	return host.Spec.Online
 }
 

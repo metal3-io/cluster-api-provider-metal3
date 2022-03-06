@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,7 +92,7 @@ func downloadFile(filePath string, url string) error {
 }
 
 // filterBmhsByProvisioningState returns a filtered list of BaremetalHost objects in certain provisioning state.
-func filterBmhsByProvisioningState(bmhs []bmo.BareMetalHost, state bmo.ProvisioningState) (result []bmo.BareMetalHost) {
+func filterBmhsByProvisioningState(bmhs []bmov1alpha1.BareMetalHost, state bmov1alpha1.ProvisioningState) (result []bmov1alpha1.BareMetalHost) {
 	for _, bmh := range bmhs {
 		if bmh.Status.Provisioning.State == state {
 			result = append(result, bmh)
@@ -112,7 +112,7 @@ func filterMachinesByPhase(machines []clusterv1.Machine, phase string) (result [
 }
 
 // annotateBmh annotates BaremetalHost with a given key and value.
-func annotateBmh(ctx context.Context, client client.Client, host bmo.BareMetalHost, key string, value *string) {
+func annotateBmh(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, key string, value *string) {
 	helper, err := patch.NewHelper(&host, client)
 	Expect(err).NotTo(HaveOccurred())
 	annotations := host.GetAnnotations()
@@ -129,7 +129,7 @@ func annotateBmh(ctx context.Context, client client.Client, host bmo.BareMetalHo
 }
 
 // deleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
-func deleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmo.BareMetalHost, nodeReuseLabelName string) {
+func deleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, nodeReuseLabelName string) {
 	helper, err := patch.NewHelper(&host, client)
 	Expect(err).NotTo(HaveOccurred())
 	labels := host.GetLabels()

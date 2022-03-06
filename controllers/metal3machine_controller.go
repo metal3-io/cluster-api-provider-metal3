@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
@@ -334,7 +334,7 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			handler.EnqueueRequestsFromMapFunc(r.Metal3DataToMetal3Machines),
 		).
 		Watches(
-			&source.Kind{Type: &bmh.BareMetalHost{}},
+			&source.Kind{Type: &bmov1alpha1.BareMetalHost{}},
 			handler.EnqueueRequestsFromMapFunc(r.BareMetalHostToMetal3Machines),
 		).
 		Complete(r)
@@ -419,7 +419,7 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o client.Object)
 // BareMetalHostToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
 // BareMetalHost and that BareMetalHost references a Metal3Machine.
 func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(obj client.Object) []ctrl.Request {
-	if host, ok := obj.(*bmh.BareMetalHost); ok {
+	if host, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
 		if host.Spec.ConsumerRef != nil &&
 			host.Spec.ConsumerRef.Kind == Metal3Machine &&
 			host.Spec.ConsumerRef.GroupVersionKind().Group == infrav1.GroupVersion.Group {
