@@ -21,6 +21,24 @@ function os_check() {
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
 export NUM_NODES=${NUM_NODES:-"4"}
+export UPGRADE_TEST=${UPGRADE_TEST:-false}
+if $UPGRADE_TEST; then
+    export CAPI_VERSION="v1alpha4"
+    export CAPM3_VERSION="v1alpha5"
+fi
+
+# Override project infra vars that point to 
+# the current branch to build capm3 image and crds
+if [[ "${CAPM3_VERSION}" == "v1alpha5" ]]; then 
+    export CAPM3RELEASE="v0.5.5"
+    export CAPIRELEASE="v0.4.7"
+    export CAPM3BRANCH="release-0.5"
+    # This var is set in project infra to use the current repo location for 
+    # building CAPM3 image while upgrade needs an old version 
+    unset CAPM3_LOCAL_IMAGE
+    export M3PATH=${M3PATH:-"${HOME}/go/src/github.com/metal3-io"}
+    export CAPM3PATH="${M3PATH}/cluster-api-provider-metal3"
+fi
 
 # needed for variable substitution in templates
 export IMAGE_CHECKSUM_TYPE="md5"

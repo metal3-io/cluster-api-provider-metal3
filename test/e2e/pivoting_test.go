@@ -33,7 +33,7 @@ func pivoting() {
 	Logf("Starting pivoting tests")
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	if ephemeralCluster == "kind" {
+	if ephemeralCluster == KIND {
 		removeIronicContainers()
 	} else {
 		removeIronicDeployment()
@@ -296,7 +296,7 @@ func rePivoting() {
 
 	By("Reinstate Ironic containers and BMH")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	if ephemeralCluster == "kind" {
+	if ephemeralCluster == KIND {
 		bmoPath := os.Getenv("BMOPATH")
 		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
