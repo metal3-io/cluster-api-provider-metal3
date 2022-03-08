@@ -12,7 +12,7 @@ require (
 	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v0.23.0
 	k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b
-	sigs.k8s.io/cluster-api v1.1.2
+	sigs.k8s.io/cluster-api v1.1.3
 	sigs.k8s.io/controller-runtime v0.11.1
 
 )
@@ -62,6 +62,6 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.2
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.3
 
 replace github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
