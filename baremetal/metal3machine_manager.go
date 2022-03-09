@@ -18,9 +18,10 @@ package baremetal
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"os"
 	"strings"
 	"time"
@@ -887,6 +888,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 	availableHostsWithNodeReuse := []*bmh.BareMetalHost{}
 
 	for i, host := range hosts.Items {
+		host := host
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
 			helper, err := patch.NewHelper(&hosts.Items[i], m.client)
@@ -940,7 +942,6 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 	}
 
 	// choose a host.
-	rand.Seed(time.Now().Unix())
 	var chosenHost *bmh.BareMetalHost
 
 	// If there are hosts with nodeReuseLabelName:
@@ -959,7 +960,9 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 			// If host is found in `Ready` state, pick it
 			if len(hostsInAvailableStateWithNodeReuse) != 0 {
 				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in Ready/Available state, choosing the host %v", len(hostsInAvailableStateWithNodeReuse), host.Name))
-				chosenHost = hostsInAvailableStateWithNodeReuse[rand.Intn(len(hostsInAvailableStateWithNodeReuse))]
+				rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(hostsInAvailableStateWithNodeReuse))))
+				randomHost := rHost.Int64()
+				chosenHost = hostsInAvailableStateWithNodeReuse[randomHost]
 			} else if len(hostsInNotAvailableStateWithNodeReuse) != 0 {
 				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in %v state, requeuing the host %v", len(hostsInNotAvailableStateWithNodeReuse), host.Status.Provisioning.State, host.Name))
 				return nil, nil, &RequeueAfterError{RequeueAfter: requeueAfter}
@@ -969,7 +972,9 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmh.BareMetalHost, *p
 		// If there are no hosts with nodeReuseLabelName, fall back
 		// to the current flow and select hosts randomly.
 		m.Log.Info(fmt.Sprintf("%d host(s) available, choosing a random host", len(availableHosts)))
-		chosenHost = availableHosts[rand.Intn(len(availableHosts))]
+		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(availableHosts))))
+		randomHost := rHost.Int64()
+		chosenHost = availableHosts[randomHost]
 	}
 
 	helper, err := patch.NewHelper(chosenHost, m.client)
@@ -1330,6 +1335,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	for _, node := range nodes.Items {
+		node := node
 		if node.Spec.ProviderID == providerID {
 			continue
 		}

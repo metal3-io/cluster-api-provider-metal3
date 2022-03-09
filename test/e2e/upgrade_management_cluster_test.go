@@ -49,7 +49,7 @@ func upgradeManagementCluster() {
 	Expect(err).ToNot(HaveOccurred(), "failed to download temporary file")
 	defer os.Remove(clusterctlBinaryPath) // clean up
 
-	err = os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
+	err = os.Chmod(clusterctlBinaryPath, 0744)
 	Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
 
 	By("Creating a high available cluster")

@@ -25,6 +25,7 @@ linters:
     - gosimple
     - govet
     - importas
+    - gosec
     - ineffassign
     - misspell
     - nakedret
@@ -48,6 +49,12 @@ linters:
   fast: true
 
 linters-settings:
+  gosec:
+    go: "1.17"
+    severity: medium
+    confidence: medium
+    excludes:
+      - G107
   importas:
       no-unaliased: true
       alias:
@@ -110,6 +117,9 @@ issues:
     - path: test/e2e
       linters:
         - golint
+    - path: test/e2e
+      linters:
+        - gosec
     - path: _test\.go
       linters:
         - unused
