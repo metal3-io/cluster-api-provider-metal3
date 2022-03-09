@@ -31,7 +31,7 @@ fi
 # the current branch to build capm3 image and crds
 if [[ "${CAPM3_VERSION}" == "v1alpha5" ]]; then 
     export CAPM3RELEASE="v0.5.5"
-    export CAPIRELEASE="v0.4.7"
+    export CAPIRELEASE="v0.4.8"
     export CAPM3BRANCH="release-0.5"
     # This var is set in project infra to use the current repo location for 
     # building CAPM3 image while upgrade needs an old version 
