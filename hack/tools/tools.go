@@ -22,7 +22,7 @@ package tools
 
 import (
 	_ "github.com/drone/envsubst"
-	_ "github.com/golang/mock/gomock"
+	_ "github.com/golang/mock/mockgen"
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/jteeuwen/go-bindata/go-bindata"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
