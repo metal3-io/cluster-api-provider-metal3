@@ -2665,7 +2665,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectedMetaData: map[string]string{
 				"String-1":     "String-1",
-				"providerid":   fmt.Sprintf("%s/%s/%s", namespaceName, bmhuid, m3muid),
+				"providerid":   fmt.Sprintf("%s/%s/%s", namespaceName, "bmh-abc", "metal3machine-abc"),
 				"ObjectName-1": "machine-abc",
 				"ObjectName-2": "metal3machine-abc",
 				"ObjectName-3": "bmh-abc",

@@ -23,6 +23,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -31,7 +32,6 @@ import (
 	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -41,9 +41,11 @@ import (
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -2168,10 +2170,28 @@ var _ = Describe("Metal3Machine manager", func() {
 					),
 					&capi.Machine{}, &capm3.Metal3Machine{}, klogr.New(),
 				)
+				if tc.M3MHasHostAnnotation {
+					machineMgr, err = NewMachineManager(fakeClient, newCluster(clusterName),
+						newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
+							&capm3.Metal3ClusterSpec{NoCloudProvider: true}, nil,
+						),
+						&clusterv1.Machine{}, &capm3.Metal3Machine{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "abc",
+								Namespace: namespaceName,
+								UID:       m3muid,
+								Annotations: map[string]string{
+									HostAnnotation: namespaceName + "/myhost",
+								},
+							},
+						}, logr.Discard(),
+					)
+				}
+
 				Expect(err).NotTo(HaveOccurred())
 
 				err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
-					tc.ExpectedProviderID, mockCapiClientGetter,
+					&tc.ExpectedProviderID, m,
 				)
 
 				if tc.ExpectedError {
@@ -2212,9 +2232,10 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				HostID:             string(bmhuid),
-				ExpectedError:      false,
-				ExpectedProviderID: fmt.Sprintf("%s%s", ProviderIDPrefix, string(bmhuid)),
+				HostID:               string(bmhuid),
+				ExpectedError:        false,
+				ExpectedProviderID:   fmt.Sprintf("metal3://%s/%s/%s", namespaceName, "myhost", "abc"),
+				M3MHasHostAnnotation: true,
 			}),
 			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
 				TargetObjects: []runtime.Object{
@@ -2294,9 +2315,10 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				HostID:             string(Bmhuid),
-				ExpectedError:      false,
-				ExpectedProviderID: ProviderID,
+				HostID:               string(Bmhuid),
+				ExpectedError:        false,
+				ExpectedProviderID:   ProviderID,
+				M3MHasHostAnnotation: true,
 			}),
 			Entry("Fail when nodes do not have providerID", testCaseSetNodePoviderID{
 				TargetObjects: []runtime.Object{

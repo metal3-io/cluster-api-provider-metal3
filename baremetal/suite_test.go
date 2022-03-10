@@ -56,7 +56,7 @@ const (
 	bmhuid            = "22222222-9845-4c48-9e49-c74be387f57c"
 )
 
-var providerid = fmt.Sprintf("%s/%s/%s", namespaceName, bmhuid, m3muid)
+var providerid = fmt.Sprintf("%s/%s/%s", namespaceName, "abc", "abc")
 
 func TestManagers(t *testing.T) {
 	RegisterFailHandler(Fail)

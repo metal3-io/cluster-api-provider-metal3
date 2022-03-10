@@ -78,7 +78,7 @@ type MachineManagerInterface interface {
 	Update(context.Context) error
 	HasAnnotation() bool
 	GetProviderIDAndBMHID() (string, *string)
-	SetNodeProviderID(context.Context, string, string, ClientGetter) error
+	SetNodeProviderID(context.Context, string, *string, ClientGetter) error
 	SetProviderID(string)
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
@@ -1277,41 +1277,77 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 // ClientGetter prototype
 type ClientGetter func(ctx context.Context, c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
 
-// SetNodeProviderID sets the metal3 provider ID on the kubernetes node
-func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
-	if !m.Metal3Cluster.Spec.NoCloudProvider {
-		return nil
-	}
+// SetNodeProviderID sets the metal3 provider ID on the kubernetes node.
+func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID string, providerIDOnM3M *string, clientFactory ClientGetter) error {
+	// todo: bmhID should not be trusted and needs to removed from the signature.
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
 	}
+	namespace := m.Metal3Machine.GetNamespace()
+	m3mName := m.Metal3Machine.GetName()
+	bmhName, err := m.getBmhNameFromM3Machine()
+	if err != nil {
+		m.Log.Info("unable to retrieve BMH name from Metal3Machine")
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
 
-	nodeLabel := fmt.Sprintf("%s=%v", ProviderLabelPrefix, bmhID)
-	nodes, nodesCount, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
+	providerIDLegacy := fmt.Sprintf("metal3://%s", bmhID)
+	providerIDNew := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
+
+	if !m.Metal3Cluster.Spec.NoCloudProvider {
+		matchingNodesCount, err := m.getMatchingNodesWithoutLabelCount(ctx, providerIDLegacy, providerIDNew, providerIDOnM3M, clientFactory)
+		if matchingNodesCount > 1 {
+			m.Log.Info("More than one node using the same providerID")
+			return errors.Wrap(err, "More than one node using the same providerID")
+		}
+		if err != nil {
+			m.Log.Info("error retrieving node, requeuing")
+			return &RequeueAfterError{RequeueAfter: requeueAfter}
+		}
+		if matchingNodesCount == 0 {
+			// The node could either be still running cloud-init or
+			// kubernetes has not set the node.spec.ProviderID field yet.
+			m.Log.Info("Some target nodes do not have spec.providerID field set yet, requeuing")
+			return &RequeueAfterError{RequeueAfter: requeueAfter}
+		}
+		return nil
+	}
+	nodeLabel := fmt.Sprintf("%s=%s", ProviderLabelPrefix, bmhID)
+	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
 		m.Log.Info("error retrieving node, requeuing")
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
-	if nodesCount == 0 {
+	if countNodesWithLabel == 0 {
 		// The node could either be still running cloud-init or have been
-		// deleted manually. TODO: handle a manual deletion case
-		m.Log.Info("Target node is not found, requeuing")
+		// deleted manually. TODO: handle a manual deletion case.
+		m.Log.Info("requeuing, could not find node with label: ", nodeLabel)
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
+	if countNodesWithLabel > 1 {
+		return errors.Wrap(err, fmt.Sprintf("Found multiple target nodes with the same label: (%s)", nodeLabel))
+	}
+	var nodeVar corev1.Node
 	for _, node := range nodes.Items {
-		node := node
-		if node.Spec.ProviderID == providerID {
-			continue
+		providerIDOnNode := node.Spec.ProviderID
+		if providerIDOnNode == "" {
+			node.Spec.ProviderID = providerIDNew
+		} else if providerIDOnNode == providerIDNew {
+			*providerIDOnM3M = providerIDNew
+		} else if providerIDOnNode == providerIDLegacy {
+			*providerIDOnM3M = providerIDLegacy
+		} else {
+			m.Log.Info("node using unsupported providerID format", providerIDOnNode)
+			return errors.Wrap(err, "node using unsupported providerID format")
 		}
-		node.Spec.ProviderID = providerID
-		_, err = corev1Remote.Nodes().Update(ctx, &node, metav1.UpdateOptions{})
+		nodeVar = node
+		_, err = corev1Remote.Nodes().Update(ctx, &nodeVar, metav1.UpdateOptions{})
 		if err != nil {
-			return errors.Wrap(err, "unable to update the target node")
+			return errors.Wrap(err, "unable to update the target node with providerID")
 		}
 	}
 	m.Log.Info("ProviderID set on target node")
-
 	return nil
 }
 
@@ -1685,16 +1721,30 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*capi.MachineSet, e
 	return nil, errors.New("MachineSet is not found")
 }
 
-// getNodesWithLabel gets kubernetes nodes with a given label
+// getBmhNameFromM3Machine retrieves bmhName from m3m annotations.
+func (m *MachineManager) getBmhNameFromM3Machine() (string, error) {
+	annotationValue := m.Metal3Machine.ObjectMeta.GetAnnotations()[HostAnnotation]
+	valueParts := strings.Split(annotationValue, "/")
+	if (len(valueParts) < 2) || (valueParts[0] != m.Metal3Machine.GetNamespace()) {
+		errMessage := fmt.Sprintf("unable to retrieve bmh name from metal3machine: %s , using annotation: %s", m.Metal3Machine.GetName(), annotationValue)
+		return "", errors.New(errMessage)
+	}
+	bmhName := valueParts[1]
+	return bmhName, nil
+}
+
+// getNodesWithLabel gets kubernetes nodes with a given label.
 func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string, clientFactory ClientGetter) (*corev1.NodeList, int, error) {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "Error creating a remote client")
 	}
 	nodesCount := 0
-	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{
+	filter := metav1.ListOptions{
 		LabelSelector: nodeLabel,
-	})
+	}
+
+	nodes, err := corev1Remote.Nodes().List(ctx, filter)
 	if err != nil {
 		m.Log.Info(fmt.Sprintf("error while retrieving nodes with label (%s): %v", nodeLabel, err))
 		return nil, 0, err
@@ -1703,4 +1753,85 @@ func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string
 		nodesCount = len(nodes.Items)
 	}
 	return nodes, nodesCount, err
+}
+
+// getMatchingNodesWithoutLabelCount tLabel gets kubernetes nodes based on their Spec.providerID field.
+func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, providerIDLegacy, providerIDNew string, providerIDonM3M *string, clientFactory ClientGetter) (int, error) {
+	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
+	matchingNodesCount := 0
+	if err != nil {
+		return matchingNodesCount, errors.Wrap(err, "Error creating a remote client")
+	}
+
+	filter := metav1.ListOptions{}
+	nodes, err := corev1Remote.Nodes().List(ctx, filter)
+	if err != nil {
+		m.Log.Info(fmt.Sprintf("error while retrieving nodes: %v", err))
+		return matchingNodesCount, err
+	}
+	// kubernetes nodes with their providerID and name fields set
+	validNodes := make(map[string][]string)
+	matchingNodeProviderID := ""
+	for _, node := range nodes.Items {
+		providerIDOnNode := node.Spec.ProviderID
+		if providerIDOnNode == "" {
+			m.Log.Info("no providerID value found on node: ", node.GetName())
+		} else if providerIDOnNode == providerIDNew {
+			matchingNodeProviderID = providerIDNew
+		} else if providerIDOnNode == providerIDLegacy {
+			matchingNodeProviderID = providerIDLegacy
+		} else {
+			m.Log.Info("The node: ", node.GetName(), " does not match expected providerID: ", providerIDOnNode, "Considering other nodes ...")
+		}
+		if providerIDOnNode != "" && node.GetName() != "" {
+			validNodes[providerIDOnNode] = append(validNodes[providerIDOnNode], node.GetName())
+		}
+	}
+	err = m.duplicateProviderIDsExist(validNodes, providerIDLegacy, providerIDNew)
+	if err != nil {
+		// There are, at least, two nodes. Details are in err
+		return 2, err
+	}
+	if matchingNodeProviderID != "" {
+		*providerIDonM3M = matchingNodeProviderID
+		return 1, nil
+	}
+	return matchingNodesCount, nil
+}
+
+// duplicateProviderIDsExist determnes if a providerID is already in use by other nodes.
+func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]string, providerIDLegacy, providerIDNew string) error {
+	duplicateUsageCounter := 0
+	var duplicateNodes []string
+	nodeName := strings.Split(strings.TrimPrefix(providerIDNew, "metal3://"), "/")[1]
+	if nodeName == "" {
+		nodeName = "unknown node"
+	}
+	for providerID, nodes := range validNodes {
+		matchingNodes := strings.Join(nodes, ",")
+		// verify if the same providerId is not consumed twice. Example:
+		// legacy provider-id: metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6
+		// new format provider-id:   metal3://metal3/node-0/test-controlplane-xyz
+		// The above two providerIDs are the same and would consume the same bmh node,
+		// the former using uuid and the latter using a name.
+		// The check below prevents such double providerID consumptions.
+		if providerID == providerIDLegacy || strings.Contains(providerID, nodeName) {
+			duplicateUsageCounter++
+			duplicateNodes = append(duplicateNodes, nodes...)
+		}
+		// duplicates due to the same, at least, two instances of legacy OR new OR unknown formats being used in multiple nodes.
+		if len(nodes) > 1 {
+			errMsg := fmt.Sprintf("providerID %s is in use by multiple nodes: (%s)", providerID, matchingNodes)
+			m.Log.Info(errMsg)
+			return errors.New(errMsg)
+		}
+	}
+	// duplicates due to both the legacy AND new providerIDs being used by multiple nodes.
+	if duplicateUsageCounter > 1 {
+		duplicateNodesNames := strings.Join(duplicateNodes, ",")
+		errMsg := fmt.Sprintf("both providerIDs (%s and %s) cannot be used at the same time by node: (%s)", providerIDLegacy, providerIDNew, duplicateNodesNames)
+		m.Log.Info(errMsg)
+		return errors.New(errMsg)
+	}
+	return nil
 }
