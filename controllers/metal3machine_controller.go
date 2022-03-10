@@ -252,7 +252,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	}
 	if bmhID != nil {
 		// Set the providerID on the node if no Cloud provider
-		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
+		err = machineMgr.SetNodeProviderID(ctx, *bmhID, &providerID, r.CapiClientGetter)
 		if err != nil {
 			return checkMachineError(machineMgr, err,
 				"failed to set the target node providerID", errType,

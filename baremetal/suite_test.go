@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -52,6 +53,8 @@ const (
 	metal3ClusterName = "testmetal3Cluster"
 	namespaceName     = "testNameSpace"
 )
+
+var providerid = fmt.Sprintf("%s/%s/%s", namespaceName, "abc", "abc")
 
 func TestManagers(t *testing.T) {
 	RegisterFailHandler(Fail)

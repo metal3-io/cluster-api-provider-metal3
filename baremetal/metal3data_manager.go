@@ -1191,7 +1191,8 @@ func renderMetaData(m3d *capm3.Metal3Data, m3dt *capm3.Metal3DataTemplate,
 	for _, entry := range m3dt.Spec.MetaData.Strings {
 		metadata[entry.Key] = entry.Value
 	}
-
+	providerid := fmt.Sprintf("%s/%s/%s", m3m.GetNamespace(), bmh.GetName(), m3m.GetName())
+	metadata["providerid"] = providerid
 	return yaml.Marshal(metadata)
 }
 

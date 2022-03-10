@@ -132,7 +132,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		// if we fail to set it on the node, we do not go further
 		if tc.SetNodeProviderIDFails {
 			m.EXPECT().
-				SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
+				SetNodeProviderID(context.TODO(), string(bmhuid), &providerID, nil).
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID("abc").MaxTimes(0)
 			m.EXPECT().SetError(gomock.Any(), gomock.Any())
@@ -141,7 +141,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 		// we successfully set it on the node
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
+			SetNodeProviderID(context.TODO(), string(bmhuid), &providerID, nil).
 			Return(nil)
 		m.EXPECT().SetProviderID("metal3://abc")
 
@@ -151,7 +151,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
 
 		m.EXPECT().
-			SetNodeProviderID(context.TODO(), "abc", "metal3://abc", nil).
+			SetNodeProviderID(context.TODO(), bmhuid, &providerID, nil).
 			MaxTimes(0)
 	}
 
