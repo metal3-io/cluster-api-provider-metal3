@@ -1306,6 +1306,10 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 	if providerID == nil {
 		return "", nil
 	}
+	if strings.Contains(*providerID, ProviderIDPrefix) {
+		bmhID := strings.TrimPrefix(*providerID, ProviderIDPrefix)
+		return *providerID, pointer.StringPtr(parseProviderID(bmhID))
+	}
 	return *providerID, pointer.StringPtr(parseProviderID(*providerID))
 }
 
