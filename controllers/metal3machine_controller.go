@@ -269,7 +269,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	}
 	if bmhID != nil {
 		// Set the providerID on the node if no Cloud provider
-		err = machineMgr.SetNodeProviderID(ctx, *bmhID, providerID, r.CapiClientGetter)
+		err = machineMgr.SetNodeProviderID(ctx, *bmhID, &providerID, r.CapiClientGetter)
 		if err != nil {
 			machineMgr.SetConditionMetal3MachineToFalse(capm3.KubernetesNodeReadyCondition, capm3.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,

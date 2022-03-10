@@ -2228,10 +2228,11 @@ var _ = Describe("Metal3Machine manager", func() {
 		}
 
 		type testCaseSetNodePoviderID struct {
-			Node               corev1.Node
-			HostID             string
-			ExpectedError      bool
-			ExpectedProviderID string
+			Node                 corev1.Node
+			M3MHasHostAnnotation bool
+			HostID               string
+			ExpectedError        bool
+			ExpectedProviderID   string
 		}
 
 		DescribeTable("Test SetNodeProviderID",
@@ -2250,10 +2251,28 @@ var _ = Describe("Metal3Machine manager", func() {
 					),
 					&clusterv1.Machine{}, &capm3.Metal3Machine{}, logr.Discard(),
 				)
+				if tc.M3MHasHostAnnotation {
+					machineMgr, err = NewMachineManager(fakeClient, newCluster(clusterName),
+						newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
+							&capm3.Metal3ClusterSpec{NoCloudProvider: true}, nil,
+						),
+						&clusterv1.Machine{}, &capm3.Metal3Machine{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "abc",
+								Namespace: namespaceName,
+								UID:       m3muid,
+								Annotations: map[string]string{
+									HostAnnotation: namespaceName + "/myhost",
+								},
+							},
+						}, logr.Discard(),
+					)
+				}
+
 				Expect(err).NotTo(HaveOccurred())
 
 				err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
-					tc.ExpectedProviderID, m,
+					&tc.ExpectedProviderID, m,
 				)
 
 				if tc.ExpectedError {
@@ -2272,10 +2291,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
 			},
 			Entry("Set target ProviderID, No matching node", testCaseSetNodePoviderID{
-				Node:               corev1.Node{},
-				HostID:             string(Bmhuid),
-				ExpectedError:      true,
-				ExpectedProviderID: ProviderID,
+				Node:                 corev1.Node{},
+				HostID:               string(Bmhuid),
+				ExpectedError:        true,
+				ExpectedProviderID:   ProviderID,
+				M3MHasHostAnnotation: true,
 			}),
 			Entry("Set target ProviderID, matching node", testCaseSetNodePoviderID{
 				Node: corev1.Node{
@@ -2285,9 +2305,10 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				HostID:             string(bmhuid),
-				ExpectedError:      false,
-				ExpectedProviderID: fmt.Sprintf("%s%s", ProviderIDPrefix, string(bmhuid)),
+				HostID:               string(bmhuid),
+				ExpectedError:        false,
+				ExpectedProviderID:   fmt.Sprintf("metal3://%s/%s/%s", namespaceName, "myhost", "abc"),
+				M3MHasHostAnnotation: true,
 			}),
 			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
 				Node: corev1.Node{
@@ -2300,9 +2321,10 @@ var _ = Describe("Metal3Machine manager", func() {
 						ProviderID: ProviderID,
 					},
 				},
-				HostID:             string(Bmhuid),
-				ExpectedError:      false,
-				ExpectedProviderID: ProviderID,
+				HostID:               string(Bmhuid),
+				ExpectedError:        false,
+				ExpectedProviderID:   ProviderID,
+				M3MHasHostAnnotation: true,
 			}),
 		)
 	})
