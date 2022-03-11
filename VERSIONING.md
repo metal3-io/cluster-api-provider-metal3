@@ -9,7 +9,7 @@ as we try to follow closely the release process
 <!-- markdownlint-restore -->
 
 - We follow [Semantic Versioning (semver)](https://semver.org/).
-- We try to follow Cluster API release cadence
+- We try to follow Cluster API release cadence,
 - The cadence is subject to change if necessary, refer to the
   [Milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) page
   for up-to-date information.

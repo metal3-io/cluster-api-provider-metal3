@@ -113,7 +113,7 @@ The architecture with the components involved is documented [here](docs/architec
 
 ## E2E test
 
-To trigger e2e test on a PR, use the following phrases:
+To trigger e2e test on the PR, use the following phrases:
 
 On main branch:
 

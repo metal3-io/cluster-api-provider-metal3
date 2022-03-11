@@ -13,7 +13,7 @@ This doc gives short instructions how to run e2e tests. For the developing e2e t
 
 ## Running
 
-Run e2e tests with
+Run e2e tests with:
 
 ```sh
 make test-e2e
