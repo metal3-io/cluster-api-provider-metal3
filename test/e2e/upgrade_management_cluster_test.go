@@ -127,7 +127,7 @@ func upgradeManagementCluster() {
 	upgradeClusterClientSet := upgradeClusterProxy.GetClientSet()
 	ironicNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: os.Getenv("IRONIC_NAMESPACE"),
+			Name: e2eConfig.GetVariable("IRONIC_NAMESPACE"),
 		},
 	}
 	_, err = upgradeClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})

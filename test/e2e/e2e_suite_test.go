@@ -177,9 +177,9 @@ func createClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
 	cniPath := config.GetVariable(capi_e2e.CNIPath)
 	if osType == "centos" {
-		updateCalico(cniPath, "eth1")
+		updateCalico(config, cniPath, "eth1")
 	} else {
-		updateCalico(cniPath, "enp2s0")
+		updateCalico(config, cniPath, "enp2s0")
 	}
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
@@ -246,8 +246,8 @@ func validateGlobals(specName string) {
 	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid argument. artifactFolder can't be created for %s spec", specName)
 }
 
-func updateCalico(calicoYaml, calicoInterface string) {
-	calicoManifestURL := fmt.Sprintf("https://docs.projectcalico.org/archive/%s/manifests/calico.yaml", os.Getenv("CALICO_MINOR_RELEASE"))
+func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface string) {
+	calicoManifestURL := fmt.Sprintf("https://docs.projectcalico.org/archive/%s/manifests/calico.yaml", config.GetVariable("CALICO_MINOR_RELEASE"))
 	err := downloadFile(calicoYaml, calicoManifestURL)
 	Expect(err).To(BeNil(), "Unable to download Calico manifest")
 	cniYaml, err := os.ReadFile(calicoYaml)
@@ -255,11 +255,11 @@ func updateCalico(calicoYaml, calicoInterface string) {
 
 	Logf("Replace the calico version with the pinned one")
 	regex := regexp.MustCompile("image: docker.io/calico/(.+):v(.+)")
-	replacement := fmt.Sprintf("image: docker.io/calico/$1:%s", os.Getenv("CALICO_PATCH_RELEASE"))
+	replacement := fmt.Sprintf("image: docker.io/calico/$1:%s", config.GetVariable("CALICO_PATCH_RELEASE"))
 	cniYaml = []byte(regex.ReplaceAllString(string(cniYaml), replacement))
 
 	Logf("Replace the default CIDR with the one set in $POD_CIDR")
-	podCIDR := os.Getenv("POD_CIDR")
+	podCIDR := config.GetVariable("POD_CIDR")
 	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
 
 	yamlDocuments, err := splitYAML(cniYaml)

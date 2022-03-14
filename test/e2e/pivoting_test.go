@@ -43,7 +43,7 @@ func pivoting() {
 	targetClusterClientSet := targetCluster.GetClientSet()
 	ironicNamespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: os.Getenv("IRONIC_NAMESPACE"),
+			Name: e2eConfig.GetVariable("IRONIC_NAMESPACE"),
 		},
 	}
 	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
@@ -165,9 +165,9 @@ func pivoting() {
 
 func configureIronicConfigmap(isIronicDeployed bool) {
 	ironicDataDir := "IRONIC_DATA_DIR"
-	ironicConfigmap := fmt.Sprintf("%s/ironic-deployment/keepalived/ironic_bmo_configmap.env", os.Getenv(bmoPath))
-	newIronicConfigmap := fmt.Sprintf("%s/ironic_bmo_configmap.env", os.Getenv(ironicDataDir))
-	backupIronicConfigmap := fmt.Sprintf("%s/ironic-deployment/keepalived/ironic_bmo_configmap.env.orig", os.Getenv(bmoPath))
+	ironicConfigmap := fmt.Sprintf("%s/ironic-deployment/keepalived/ironic_bmo_configmap.env", e2eConfig.GetVariable(bmoPath))
+	newIronicConfigmap := fmt.Sprintf("%s/ironic_bmo_configmap.env", e2eConfig.GetVariable(ironicDataDir))
+	backupIronicConfigmap := fmt.Sprintf("%s/ironic-deployment/keepalived/ironic_bmo_configmap.env.orig", e2eConfig.GetVariable(bmoPath))
 	if isIronicDeployed {
 		cmd := exec.Command("cp", ironicConfigmap, backupIronicConfigmap)
 		err := cmd.Run()
@@ -183,8 +183,8 @@ func configureIronicConfigmap(isIronicDeployed bool) {
 }
 
 func restoreBMOConfigmap() {
-	bmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env", os.Getenv(bmoPath))
-	backupBmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env.orig", os.Getenv(bmoPath))
+	bmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env", e2eConfig.GetVariable(bmoPath))
+	backupBmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env.orig", e2eConfig.GetVariable(bmoPath))
 	cmd := exec.Command("mv", backupBmoConfigmap, bmoConfigmap)
 	_ = cmd.Run()
 	// Accept the error of this cmd because there might be no backup file to restore
@@ -194,18 +194,20 @@ func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO stri
 	ironicTLSSetup := "IRONIC_TLS_SETUP"
 	ironicBasicAuth := "IRONIC_BASIC_AUTH"
 	ironicHost := os.Getenv("CLUSTER_PROVISIONING_IP")
-	path := fmt.Sprintf("%s/tools/", os.Getenv(bmoPath))
+	path := fmt.Sprintf("%s/tools/", e2eConfig.GetVariable(bmoPath))
 	args := []string{
 		isBMO,
 		isIronic,
-		os.Getenv(ironicTLSSetup),
-		os.Getenv(ironicBasicAuth),
+		e2eConfig.GetVariable(ironicTLSSetup),
+		e2eConfig.GetVariable(ironicBasicAuth),
 		"true",
 	}
 	env := []string{
 		fmt.Sprintf("IRONIC_HOST=%s", ironicHost),
 		fmt.Sprintf("IRONIC_HOST_IP=%s", ironicHost),
 		fmt.Sprintf("KUBECTL_ARGS=--kubeconfig=%s", targetCluster.GetKubeconfigPath()),
+		fmt.Sprintf("NAMEPREFIX=%s", e2eConfig.GetVariable("NAMEPREFIX")),
+		fmt.Sprintf("RESTART_CONTAINER_CERTIFICATE_UPDATED=%s", e2eConfig.GetVariable("RESTART_CONTAINER_CERTIFICATE_UPDATED")),
 		"USER=ubuntu",
 	}
 	cmd := exec.Command("./deploy.sh", args...)
@@ -253,15 +255,15 @@ func removeIronicContainers() {
 }
 
 func removeIronicDeployment() {
-	deploymentName := os.Getenv("NAMEPREFIX") + "-ironic"
-	ironicNamespace := os.Getenv("IRONIC_NAMESPACE")
+	deploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
+	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
 	err := bootstrapClusterProxy.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "Failed to delete Ironic from the source cluster")
 }
 
 func removeIronicDeploymentOnTarget() {
-	deploymentName := os.Getenv("NAMEPREFIX") + "-ironic"
-	ironicNamespace := os.Getenv("IRONIC_NAMESPACE")
+	deploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
+	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
 	err := targetCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "Failed to delete Ironic from the target cluster")
 }
@@ -297,7 +299,7 @@ func rePivoting() {
 	By("Reinstate Ironic containers and BMH")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 	if ephemeralCluster == KIND {
-		bmoPath := os.Getenv("BMOPATH")
+		bmoPath := e2eConfig.GetVariable("BMOPATH")
 		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 		stdoutStderr, err := cmd.CombinedOutput()

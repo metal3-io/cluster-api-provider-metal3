@@ -132,10 +132,6 @@ UPGRADE_TEST ?= false
 EPHEMERAL_TEST ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
-# Exported to the cluster templates
-SSH_PUB_KEY_CONTENT=$(file < ${HOME}/.ssh/id_rsa.pub)
-export SSH_PUB_KEY_CONTENT
-
 ## Processes e2e_conf file
 .PHONY: e2e-substitutions
 e2e-substitutions: $(ENVSUBST)

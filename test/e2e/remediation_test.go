@@ -369,7 +369,7 @@ func listVms(state vmState) []string {
 		flag = "--state-other"
 	}
 
-	cmd := exec.Command("virsh", "list", "--name", flag)
+	cmd := exec.Command("sudo", "virsh", "list", "--name", flag)
 	result, err := cmd.Output()
 	Expect(err).NotTo(HaveOccurred())
 
