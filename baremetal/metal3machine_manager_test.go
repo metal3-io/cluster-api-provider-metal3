@@ -864,6 +864,16 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(statusPresent).To(BeTrue())
 				annotation, err := json.Marshal(&tc.Host.Status)
 				Expect(err).To(BeNil())
+				// (Note) manager code marshals the inspection data stored in annotation,
+				// which causes alphabetically reordering of keys. Since we are marshaling
+				// only the annotation, the status value here doesn't match the marshaled
+				// annotation data, because it wasn't re-ordered by the JSON marshaller.
+				// That's why we are marshaling status data as well so that its fields are
+				// also alphabetically reordered to match the annotation keys style..
+				obj := map[string]interface{}{}
+				err = json.Unmarshal(annotation, &obj)
+				Expect(err).To(BeNil())
+				annotation, _ = json.Marshal(obj)
 				Expect(status).To(Equal(string(annotation)))
 			} else {
 				Expect(statusPresent).To(BeFalse())

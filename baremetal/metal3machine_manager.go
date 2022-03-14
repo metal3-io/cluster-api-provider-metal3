@@ -257,6 +257,12 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		)
 		return errors.Wrap(err, "failed to marshall status annotation")
 	}
+	obj := map[string]interface{}{}
+	if err := json.Unmarshal(newAnnotation, &obj); err != nil {
+		return errors.Wrap(err, "failed to unmarshall status annotation")
+	}
+	delete(obj, "hardware")
+	newAnnotation, _ = json.Marshal(obj)
 	host.Annotations[bmov1alpha1.StatusAnnotation] = string(newAnnotation)
 	return helper.Patch(ctx, host)
 }
