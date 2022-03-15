@@ -125,5 +125,8 @@ Release-0.5 branch:
 - **/test-v1a5-ubuntu-e2e** runs v1a5 e2e tests on Ubuntu
 - **/test-v1a5-centos-e2e** runs v1a5 e2e tests on CentOS
 
-More info about e2e test can be found [here](docs/e2e-test.md)
+Upgrade tests:
 
+- **/test-v1b1-upgrade-e2e** runs e2e upgrade tests from v1a5 to v1b1 on Ubuntu
+
+More info about e2e test can be found [here](docs/e2e-test.md)
