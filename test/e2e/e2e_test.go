@@ -77,12 +77,20 @@ var _ = Describe("Workload cluster creation", func() {
 				cluster = result.Cluster
 				targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 				remediation()
-				pivoting()
-				upgradeBMO()
-				upgradeIronic()
-				certRotation()
-				nodeReuse()
-				rePivoting()
+				if !ephemeralTest {
+					pivoting()
+					upgradeBMO(targetCluster.GetClientSet())
+					upgradeIronic(targetCluster.GetClientSet())
+					certRotation(targetCluster.GetClientSet(), targetCluster.GetClient())
+					nodeReuse(targetCluster.GetClient())
+					rePivoting()
+				} else {
+					upgradeBMO(bootstrapClusterProxy.GetClientSet())
+					upgradeIronic(bootstrapClusterProxy.GetClientSet())
+					certRotation(bootstrapClusterProxy.GetClientSet(), bootstrapClusterProxy.GetClient())
+					nodeReuse(bootstrapClusterProxy.GetClient())
+
+				}
 			}
 		})
 	})

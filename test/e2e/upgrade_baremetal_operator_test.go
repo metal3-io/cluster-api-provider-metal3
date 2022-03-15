@@ -5,13 +5,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
-func upgradeBMO() {
+func upgradeBMO(clientSet *kubernetes.Clientset) {
 	Logf("Starting BMO containers upgrade tests")
 	var (
 		namePrefix = e2eConfig.GetVariable("NAMEPREFIX")
-		clientSet  = targetCluster.GetClientSet()
 		// BMO and Ironic share namespace
 		bmoNamespace      = e2eConfig.GetVariable("IRONIC_NAMESPACE")
 		bmoDeployName     = namePrefix + "-controller-manager"

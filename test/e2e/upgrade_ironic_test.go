@@ -5,13 +5,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 )
 
-func upgradeIronic() {
+func upgradeIronic(clientSet *kubernetes.Clientset) {
 	Logf("Starting ironic containers upgrade tests")
 	var (
 		namePrefix        = e2eConfig.GetVariable("NAMEPREFIX")
-		clientSet         = targetCluster.GetClientSet()
 		ironicNamespace   = e2eConfig.GetVariable("IRONIC_NAMESPACE")
 		ironicDeployName  = namePrefix + "-ironic"
 		containerRegistry = e2eConfig.GetVariable("CONTAINER_REGISTRY")
@@ -32,12 +32,8 @@ func upgradeIronic() {
 	for i, container := range deploy.Spec.Template.Spec.Containers {
 		switch container.Name {
 		case
-			// TODO(dtantsur): remove api and conductor once
-			// they're fully replaced by the all-in-one ironic
 			"ironic",
-			"ironic-api",
 			"ironic-dnsmasq",
-			"ironic-conductor",
 			"ironic-log-watch",
 			"ironic-inspector":
 			deploy.Spec.Template.Spec.Containers[i].Image = containerRegistry + "/metal3-io/ironic:" + ironicImageTag
