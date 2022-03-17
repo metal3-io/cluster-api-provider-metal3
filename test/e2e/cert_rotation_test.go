@@ -12,22 +12,20 @@ import (
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"k8s.io/apimachinery/pkg/labels"
-	framework "sigs.k8s.io/cluster-api/test/framework"
 )
 
-func certRotation() {
+func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) {
 	Logf("Start the certificate rotation test")
 	By("Check if Ironic pod is running")
-	targetClusterClientSet := targetCluster.GetClientSet()
 	ironicNamespace := os.Getenv("NAMEPREFIX") + "-system"
 	ironicDeploymentName := os.Getenv("NAMEPREFIX") + "-ironic"
-	ironicDeployment, err := getDeployment(targetCluster, ironicDeploymentName, ironicNamespace)
+	ironicDeployment, err := getDeployment(clusterClient, ironicDeploymentName, ironicNamespace)
 	Eventually(func() error {
-		ironicPod, err := getPodFromDeployment(targetCluster, ironicDeployment, ironicNamespace)
+		ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)
 		if err != nil {
 			return err
 		}
@@ -42,11 +40,10 @@ func certRotation() {
 
 	By("Get the current number of time containers were restarted")
 	containerNumRestart := make(map[string]int32)
-	containerNumRestart["ironic-api"] = 0
-	containerNumRestart["ironic-conductor"] = 0
+	containerNumRestart["ironic-httpd"] = 0
 	containerNumRestart["mariadb"] = 0
 	Expect(err).To(BeNil())
-	ironicPod, err := getPodFromDeployment(targetCluster, ironicDeployment, ironicNamespace)
+	ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)
 	Expect(err).To(BeNil())
 	for _, container := range ironicPod.Status.ContainerStatuses {
 		if _, exist := containerNumRestart[container.Name]; exist {
@@ -61,17 +58,29 @@ func certRotation() {
 		"mariadb-cert",
 	}
 	for _, secretName := range secretList {
-		err := targetClusterClientSet.CoreV1().Secrets(ironicNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
+		err := clientSet.CoreV1().Secrets(ironicNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
 		Expect(err).To(BeNil(), "Cannot detele this secret: %s", secretName)
 	}
 
 	By("Wait for containers in the ironic pod to be restarted")
 	Eventually(func() error {
-		ironicPod, err := getPodFromDeployment(targetCluster, ironicDeployment, ironicNamespace)
+		ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)
 		if err != nil {
 			return err
 		}
-
+		// check for container in containerNumRestart list
+		for container := range containerNumRestart {
+			notFound := true
+			for _, ironicContainer := range ironicPod.Status.ContainerStatuses {
+				if ironicContainer.Name == container {
+					notFound = false
+					break
+				}
+			}
+			if notFound {
+				return fmt.Errorf("%s container does not exist in Ironic pod", container)
+			}
+		}
 		if ironicPod.Status.Phase == corev1.PodRunning {
 			for _, container := range ironicPod.Status.ContainerStatuses {
 				if oldNumRestart, exist := containerNumRestart[container.Name]; exist {
@@ -87,26 +96,26 @@ func certRotation() {
 	By("CERTIFICATE ROTATION TESTS PASSED!")
 }
 
-func getDeployment(targetCluster framework.ClusterProxy, deploymentName string, namespace string) (*appv1.Deployment, error) {
+func getDeployment(clusterClient client.Client, deploymentName string, namespace string) (*appv1.Deployment, error) {
 	deployment := &appv1.Deployment{}
 	namespaceName := client.ObjectKey{
 		Name:      deploymentName,
 		Namespace: namespace,
 	}
-	err := targetCluster.GetClient().Get(ctx, namespaceName, deployment)
+	err := clusterClient.Get(ctx, namespaceName, deployment)
 	if err != nil {
 		return nil, err
 	}
 	return deployment, nil
 }
 
-func getPodFromDeployment(targetCluster framework.ClusterProxy, deployment *appv1.Deployment, namespace string) (*corev1.Pod, error) {
+func getPodFromDeployment(clientSet *kubernetes.Clientset, deployment *appv1.Deployment, namespace string) (*corev1.Pod, error) {
 	labelMap, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
 	Expect(err).To(BeNil())
 	option := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labelMap).String(),
 	}
-	podList, err := targetCluster.GetClientSet().CoreV1().Pods(namespace).List(ctx, option)
+	podList, err := clientSet.CoreV1().Pods(namespace).List(ctx, option)
 	if err != nil {
 		return nil, err
 	}

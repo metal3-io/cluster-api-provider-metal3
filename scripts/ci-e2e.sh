@@ -54,6 +54,7 @@ REPO_ROOT=$(realpath "$REPO_ROOT")
 
 # Get correct CAPM3 path when testing locally
 export UPGRADE_TEST=${UPGRADE_TEST:-false}
+export EPHEMERAL_TEST=${EPHEMERAL_TEST:-false}
 if ! $UPGRADE_TEST; then
   # Copy the current CAPM3 repo to the Go source directory
   rm -rf "${M3PATH}/cluster-api-provider-metal3" # To avoid 'permission denied' error when overriding .git/
