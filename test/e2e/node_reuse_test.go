@@ -139,7 +139,7 @@ func nodeReuse(clusterClient client.Client) {
 	Eventually(
 		func(g Gomega) {
 			machines := &clusterv1.MachineList{}
-			g.Expect(targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
+			g.Expect(clusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
 			deletingCount := 0
 			for _, machine := range machines.Items {
 				Expect(machine.Status.GetTypedPhase() == clusterv1.MachinePhaseProvisioning).To(BeFalse()) // Ensure no machine is provisioning
