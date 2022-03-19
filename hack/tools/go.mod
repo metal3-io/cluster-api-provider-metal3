@@ -1,4 +1,4 @@
-module sigs.k8s.io/cluster-api/hack/tools
+module github.com/metal3-io/cluster-api-provider-metal3/hack/tools
 
 go 1.17
 
