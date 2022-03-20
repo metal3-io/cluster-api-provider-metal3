@@ -51,8 +51,8 @@ make clean -C /opt/metal3-dev-env/metal3-dev-env/ && sudo rm -rf /opt/metal3-dev
 
 The e2e tests currently include three different sets:
 
-1. pivoting_based_feature_tests
-1. remediation_feature_tests
+1. pivoting_based_feature_test
+1. remediation_based_feature_test
 1. upgrade_tests
 1. live_iso_tests
 
@@ -69,11 +69,12 @@ However, in case we need to run them in the ephemeral cluster pivoting and re-pi
 
 - Remediation
 - Inspection¹
+- Metal3Remediation
 
 ¹ Inspection is actually run [in the middle of the remediation test](https://github.com/metal3-io/cluster-api-provider-metal3/blob/8d08f375de93a793f839b42b5ec40e6bebf98664/test/e2e/remediation_test.go#L108) for practical reasons at the moment.
 
 The ephemeral cluster is first launched using [metal3-dev-env](https://github.com/metal3-io/metal3-dev-env).
-The remediation and inspection tests are then run with the controllers still in the ephemeral cluster either before pivoting or after re-pivoting.
+The remediation, inspection and Metal3Remediation tests are then run with the controllers still in the ephemeral cluster either before pivoting or after re-pivoting.
 
 `upgrade_management_cluster_test`:
 
