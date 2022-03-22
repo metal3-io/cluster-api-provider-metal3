@@ -2228,7 +2228,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}
 
 		type testCaseSetNodePoviderID struct {
-			Node                 corev1.Node
+			TargetObjects        []runtime.Object
 			M3MHasHostAnnotation bool
 			HostID               string
 			ExpectedError        bool
@@ -2238,7 +2238,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Test SetNodeProviderID",
 			func(tc testCaseSetNodePoviderID) {
 				fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
-				corev1Client := clientfake.NewSimpleClientset(&tc.Node).CoreV1()
+				corev1Client := clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1()
 				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
 					clientcorev1.CoreV1Interface, error,
 				) {
@@ -2283,25 +2283,32 @@ var _ = Describe("Metal3Machine manager", func() {
 
 				ctx := context.Background()
 				// get the node
-				node, err := corev1Client.Nodes().Get(ctx, tc.Node.Name,
-					metav1.GetOptions{},
-				)
+				nodes, err := corev1Client.Nodes().List(ctx, metav1.ListOptions{})
 				Expect(err).NotTo(HaveOccurred())
-
+				var node corev1.Node
+				for _, currentNode := range nodes.Items {
+					node = currentNode
+					// there is only one node
+					break
+				}
 				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
 			},
 			Entry("Set target ProviderID, No matching node", testCaseSetNodePoviderID{
-				Node:                 corev1.Node{},
+				TargetObjects: []runtime.Object{
+					&corev1.Node{},
+				},
 				HostID:               string(Bmhuid),
 				ExpectedError:        true,
 				ExpectedProviderID:   ProviderID,
 				M3MHasHostAnnotation: true,
 			}),
 			Entry("Set target ProviderID, matching node", testCaseSetNodePoviderID{
-				Node: corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							ProviderLabelPrefix: string(bmhuid),
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								ProviderLabelPrefix: string(bmhuid),
+							},
 						},
 					},
 				},
@@ -2311,18 +2318,121 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3MHasHostAnnotation: true,
 			}),
 			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
-				Node: corev1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							ProviderLabelPrefix: string(Bmhuid),
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								ProviderLabelPrefix: string(Bmhuid),
+							},
 						},
-					},
-					Spec: corev1.NodeSpec{
-						ProviderID: ProviderID,
+						Spec: corev1.NodeSpec{
+							ProviderID: ProviderID,
+						},
 					},
 				},
 				HostID:               string(Bmhuid),
 				ExpectedError:        false,
+				ExpectedProviderID:   ProviderID,
+				M3MHasHostAnnotation: true,
+			}),
+		)
+		DescribeTable("Test SetNodeProviderID with noCloudProvider set to false",
+			func(tc testCaseSetNodePoviderID) {
+				fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+				corev1Client := clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1()
+				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
+					clientcorev1.CoreV1Interface, error,
+				) {
+					return corev1Client, nil
+				}
+
+				machineMgr, err := NewMachineManager(fakeClient, newCluster(clusterName),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
+						&capm3.Metal3ClusterSpec{NoCloudProvider: false}, nil,
+					),
+					&clusterv1.Machine{}, &capm3.Metal3Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "abc",
+							Namespace: namespaceName,
+							UID:       m3muid,
+							Annotations: map[string]string{
+								HostAnnotation: namespaceName + "/myhost",
+							},
+						},
+					}, logr.Discard(),
+				)
+
+				Expect(err).NotTo(HaveOccurred())
+
+				err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
+					&tc.ExpectedProviderID, m,
+				)
+
+				if tc.ExpectedError {
+					Expect(err).To(HaveOccurred())
+					return
+				}
+				Expect(err).NotTo(HaveOccurred())
+
+				ctx := context.Background()
+				Expect(err).NotTo(HaveOccurred())
+				nodes, err := corev1Client.Nodes().List(ctx, metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				var node corev1.Node
+				for _, currentNode := range nodes.Items {
+					node = currentNode
+					// there is only one node
+					break
+				}
+				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
+			},
+			Entry("Accept providerID when set on a node", testCaseSetNodePoviderID{
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{},
+						Spec: corev1.NodeSpec{
+							ProviderID: ProviderID,
+						},
+					},
+				},
+				HostID:               string(Bmhuid),
+				ExpectedError:        false,
+				ExpectedProviderID:   ProviderID,
+				M3MHasHostAnnotation: true,
+			}),
+			Entry("Fail when nodes do not have providerID", testCaseSetNodePoviderID{
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{},
+						Spec:       corev1.NodeSpec{},
+					},
+				},
+				HostID:               string(Bmhuid),
+				ExpectedError:        true,
+				ExpectedProviderID:   ProviderID,
+				M3MHasHostAnnotation: true,
+			}),
+			Entry("Fail when multiple nodes use the same providerID", testCaseSetNodePoviderID{
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "node-0",
+						},
+						Spec: corev1.NodeSpec{
+							ProviderID: ProviderID,
+						},
+					},
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "node-1",
+						},
+						Spec: corev1.NodeSpec{
+							ProviderID: ProviderID,
+						},
+					},
+				},
+				HostID:               string(Bmhuid),
+				ExpectedError:        true,
 				ExpectedProviderID:   ProviderID,
 				M3MHasHostAnnotation: true,
 			}),
