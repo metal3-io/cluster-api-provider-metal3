@@ -18,5 +18,5 @@ else
     --entrypoint sh \
     --workdir /capm3 \
     docker.io/golang:1.17 \
-    /capm3/hack/golint.sh
+    /capm3/hack/ensure-golangci-lint.sh
 fi;
