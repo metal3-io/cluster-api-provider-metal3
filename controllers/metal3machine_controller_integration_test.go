@@ -579,6 +579,16 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
 					newBareMetalHost(nil, nil, nil, false),
 				},
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "node-0",
+						},
+						Spec: corev1.NodeSpec{
+							ProviderID: providerID,
+						},
+					},
+				},
 				ErrorExpected:       false,
 				RequeueExpected:     false,
 				ClusterInfraReady:   true,
@@ -620,6 +630,25 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
 					newBareMetalHost(nil, nil, nil, false),
+				},
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "node-0",
+						},
+						Spec: corev1.NodeSpec{
+							ProviderID: providerID,
+						},
+					},
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "node-1",
+							Labels: map[string]string{
+								baremetal.ProviderLabelPrefix: string(bmhuid),
+							},
+						},
+						Spec: corev1.NodeSpec{},
+					},
 				},
 				ErrorExpected:              false,
 				RequeueExpected:            false,
@@ -724,7 +753,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "bmh-0",
+							Name: "node-0",
 							Labels: map[string]string{
 								baremetal.ProviderLabelPrefix: string(bmhuid),
 							},
