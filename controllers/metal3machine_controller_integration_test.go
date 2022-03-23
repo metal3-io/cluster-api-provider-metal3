@@ -67,7 +67,7 @@ func m3mOwnerRefs() []metav1.OwnerReference {
 
 func m3mMetaWithOwnerRef() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:            "abc",
+		Name:            metal3machineName,
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Annotations:     map[string]string{},
@@ -76,7 +76,7 @@ func m3mMetaWithOwnerRef() *metav1.ObjectMeta {
 
 func m3mMetaWithDeletion() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:              "abc",
+		Name:              metal3machineName,
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
 		OwnerReferences:   m3mOwnerRefs(),
@@ -86,23 +86,23 @@ func m3mMetaWithDeletion() *metav1.ObjectMeta {
 
 func m3mMetaWithAnnotation() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:            "abc",
+		Name:            metal3machineName,
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Annotations: map[string]string{
-			baremetal.HostAnnotation: namespaceName + "/bmh-0",
+			baremetal.HostAnnotation: namespaceName + "/" + baremetalHostName,
 		},
 	}
 }
 
 func m3mMetaWithAnnotationDeletion() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:              "abc",
+		Name:              metal3machineName,
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
 		OwnerReferences:   m3mOwnerRefs(),
 		Annotations: map[string]string{
-			baremetal.HostAnnotation: namespaceName + "/bmh-0",
+			baremetal.HostAnnotation: namespaceName + "/" + baremetalHostName,
 		},
 	}
 }
@@ -212,7 +212,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			objMeta := testmachine.ObjectMeta
 			_ = fakeClient.Get(context.TODO(), *getKey(clusterName), testcluster)
 			_ = fakeClient.Get(context.TODO(), *getKey(metal3machineName), testBMmachine)
-			_ = fakeClient.Get(context.TODO(), *getKey("bmh-0"), testBMHost)
+			_ = fakeClient.Get(context.TODO(), *getKey(baremetalHostName), testBMHost)
 
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
@@ -582,7 +582,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "node-0",
+							Name: nodeName1,
 						},
 						Spec: corev1.NodeSpec{
 							ProviderID: providerID,
@@ -634,7 +634,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "node-0",
+							Name: nodeName1,
 						},
 						Spec: corev1.NodeSpec{
 							ProviderID: providerID,
@@ -642,7 +642,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					},
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "node-1",
+							Name: nodeName2,
 							Labels: map[string]string{
 								baremetal.ProviderLabelPrefix: string(bmhuid),
 							},
@@ -753,7 +753,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "node-0",
+							Name: nodeName1,
 							Labels: map[string]string{
 								baremetal.ProviderLabelPrefix: string(bmhuid),
 							},

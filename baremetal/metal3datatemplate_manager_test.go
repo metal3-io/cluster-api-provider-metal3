@@ -301,10 +301,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			},
 			dataClaims: []*infrav1.Metal3DataClaim{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: namespaceName,
-					},
+					ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 					Spec: infrav1.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",

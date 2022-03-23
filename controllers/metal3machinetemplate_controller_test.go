@@ -100,10 +100,10 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 				M3Machine: &infrav1.Metal3Machine{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "machine-1",
-						Namespace: "bar",
+						Name:      machineName,
+						Namespace: namespaceName,
 						Annotations: map[string]string{
-							baremetal.HostAnnotation: namespaceName + "/myhost",
+							baremetal.HostAnnotation: namespaceName + "/" + baremetalHostName,
 						},
 					},
 					Spec: infrav1.Metal3MachineSpec{
@@ -135,7 +135,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 				M3Machine: &infrav1.Metal3Machine{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "machine-1",
+						Name:      machineName,
 						Namespace: namespace,
 						Annotations: map[string]string{
 							"cluster.x-k8s.io/cloned-from-name":      name,

@@ -338,10 +338,7 @@ var _ = Describe("Metal3 manager utils", func() {
 		func(secretExists bool) {
 			if secretExists {
 				err := k8sClient.Create(context.TODO(), &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: namespaceName,
-					},
+					ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 				})
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -349,10 +346,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			if secretExists {
 				Expect(err).NotTo(HaveOccurred())
 				err = k8sClient.Delete(context.TODO(), &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc",
-						Namespace: namespaceName,
-					},
+					ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 				})
 				Expect(err).NotTo(HaveOccurred())
 			} else {

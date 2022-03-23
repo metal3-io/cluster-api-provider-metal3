@@ -330,7 +330,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				ExpectRequests: []ctrl.Request{
 					{
 						NamespacedName: types.NamespacedName{
-							Name:      "myhost",
+							Name:      baremetalHostName,
 							Namespace: namespaceName,
 						},
 					},
@@ -423,7 +423,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				}
 				req := reconcile.Request{
 					NamespacedName: types.NamespacedName{
-						Name:      "bmh-0",
+						Name:      baremetalHostName,
 						Namespace: namespaceName,
 					},
 				}
@@ -582,7 +582,7 @@ func m3mObjectMeta() *metav1.ObjectMeta {
 			clusterv1.ClusterLabelName: clusterName,
 		},
 		Annotations: map[string]string{
-			baremetal.HostAnnotation: namespaceName + "/myhost",
+			baremetal.HostAnnotation: namespaceName + "/" + baremetalHostName,
 		},
 	}
 }

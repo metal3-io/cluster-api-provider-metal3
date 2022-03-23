@@ -53,11 +53,17 @@ var testEnv *envtest.Environment
 var timestampNow = metav1.Now()
 
 const (
+	baremetalHostName         = "testbaremetalhost"
+	namespaceName             = "controllerns"
+	metal3DataName            = "testmetal3Data"
+	metal3DataTemplateName    = "testmetal3DataTemplate"
+	metal3DataClaimName       = "testmetal3DataClaim"
+	nodeName1                 = "testNodeNam-1"
+	nodeName2                 = "testNodeNam-2"
 	clusterName               = "controllerns_testCluster"
 	metal3ClusterName         = "controllerns_testmetal3Cluster"
 	machineName               = "controllerns_testMachine"
 	metal3machineName         = "controllerns_testmetal3machine"
-	namespaceName             = "controllerns"
 	metal3machineTemplateName = "controllerns_testmetal3machinetemplate"
 )
 
@@ -388,7 +394,7 @@ func newBareMetalHost(bmhName string, spec *bmov1alpha1.BareMetalHostSpec,
 			APIVersion: bmov1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      bmhName,
+			Name:      baremetalHostName,
 			Namespace: namespaceName,
 			UID:       bmhuid,
 		},

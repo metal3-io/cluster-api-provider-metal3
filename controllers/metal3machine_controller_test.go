@@ -450,7 +450,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			TestCaseBMHToM3M{
 				Host: &bmov1alpha1.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "host1",
+						Name:      baremetalHostName,
 						Namespace: namespaceName,
 					},
 					Spec: bmov1alpha1.BareMetalHostSpec{
@@ -470,7 +470,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			TestCaseBMHToM3M{
 				Host: &bmov1alpha1.BareMetalHost{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "host1",
+						Name:      baremetalHostName,
 						Namespace: namespaceName,
 					},
 					Spec: bmov1alpha1.BareMetalHostSpec{},
@@ -523,7 +523,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Metal3Machine in ownerRef",
 			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
-					Name:       "abc",
+					Name:       metal3machineName,
 					Kind:       "Metal3Machine",
 					APIVersion: infrav1.GroupVersion.String(),
 				},
@@ -543,7 +543,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Wrong Version, should work",
 			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
-					Name:       "abc",
+					Name:       metal3machineName,
 					Kind:       "Metal3Machine",
 					APIVersion: infrav1.GroupVersion.Group + "/v1blah1",
 				},
@@ -553,7 +553,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Wrong Group, should not work",
 			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
-					Name:       "abc",
+					Name:       metal3machineName,
 					Kind:       "Metal3Machine",
 					APIVersion: "foo.bar/" + infrav1.GroupVersion.Version,
 				},
