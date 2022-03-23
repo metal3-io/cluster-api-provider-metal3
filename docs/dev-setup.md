@@ -284,7 +284,7 @@ below.  Please note, the precedence of variables is as follows:
         },
         "metadata": {,
             "CONTROL_PLANE_MACHINE_COUNT": "1",
-            "KUBERNETES_VERSION": "v1.23.3",
+            "KUBERNETES_VERSION": "v1.23.5",
             "WORKER_MACHINE_COUNT": "2",
         }
     }
