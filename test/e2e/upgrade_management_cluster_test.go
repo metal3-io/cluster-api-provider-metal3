@@ -146,9 +146,6 @@ func upgradeManagementCluster() {
 		_, err = upgradeClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
 		Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
 
-		By("Configure Ironic Configmap")
-		configureIronicConfigmap(true)
-
 		By("Add labels to BMO CRDs")
 		labelBMOCRDs(nil)
 
@@ -157,11 +154,6 @@ func upgradeManagementCluster() {
 
 		By("Install Ironic in the target cluster")
 		installIronicBMO(upgradeClusterProxy, "true", "false")
-
-		By("Restore original BMO configmap")
-		restoreBMOConfigmap()
-		By("Reinstate Ironic Configmap")
-		configureIronicConfigmap(false)
 
 		By("Add labels to BMO CRDs in the target cluster")
 		labelBMOCRDs(upgradeClusterProxy)
