@@ -36,16 +36,12 @@ import (
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var (
-	testObjectMeta = metav1.ObjectMeta{
-		Name:      "abc",
-		Namespace: namespaceName,
-		UID:       bmhuid,
-	}
 	testObjectMetaWithOR = metav1.ObjectMeta{
 		Name:      "abc",
 		Namespace: namespaceName,
@@ -154,9 +150,9 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("requeue error", testCaseReconcile{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 				},
 			},
@@ -257,28 +253,28 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("No Metal3DataTemplate", testCaseCreateSecrets{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 				},
 			},
 			expectRequeue: true,
 		}),
 		Entry("No Metal3Machine in owner refs", testCaseCreateSecrets{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference,
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
-			dataClaim: &infrav1alpha5.Metal3DataClaim{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1alpha5.Metal3DataClaimSpec{},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			expectError: true,
 		}),
@@ -290,8 +286,8 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			dataClaim: &infrav1alpha5.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
@@ -307,12 +303,12 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
-			m3m: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3MachineSpec{
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
@@ -330,11 +326,11 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
-			m3m: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			dataClaim: &infrav1alpha5.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
@@ -350,11 +346,11 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						Strings: []infrav1alpha5.MetaDataString{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
@@ -377,9 +373,9 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3m: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3MachineSpec{
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
@@ -388,19 +384,13 @@ var _ = Describe("Metal3Data manager", func() {
 				Spec:       infrav1alpha5.Metal3DataClaimSpec{},
 			},
 			metadataSecret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-metadata",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-metadata", namespaceName, ""),
 				Data: map[string][]byte{
 					"metaData": []byte("Hello"),
 				},
 			},
 			networkdataSecret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-networkdata",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-networkdata", namespaceName, ""),
 				Data: map[string][]byte{
 					"networkData": []byte("Bye"),
 				},
@@ -417,11 +407,11 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						Strings: []infrav1alpha5.MetaDataString{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
@@ -468,11 +458,11 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMetaWithOR,
 				Spec:       infrav1alpha5.Metal3DataClaimSpec{},
 			},
-			machine: &capi.Machine{
-				ObjectMeta: testObjectMeta,
+			machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
-			bmh: &bmo.BareMetalHost{
-				ObjectMeta: testObjectMeta,
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			expectReady:         true,
 			expectedMetadata:    pointer.StringPtr(fmt.Sprintf("String-1: String-1\nproviderid: %s\n", providerid)),
@@ -486,11 +476,11 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						Strings: []infrav1alpha5.MetaDataString{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
@@ -513,9 +503,9 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			m3m: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3MachineSpec{
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: testObjectReference,
 				},
 			},
@@ -533,11 +523,11 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim:    *testObjectReference,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						Strings: []infrav1alpha5.MetaDataString{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						Strings: []infrav1.MetaDataString{
 							{
 								Key:   "String-1",
 								Value: "String-1",
@@ -576,8 +566,8 @@ var _ = Describe("Metal3Data manager", func() {
 					DataTemplate: testObjectReference,
 				},
 			},
-			machine: &capi.Machine{
-				ObjectMeta: testObjectMeta,
+			machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			dataClaim: &infrav1alpha5.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR,
@@ -621,12 +611,9 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1alpha5.Metal3Data{},
 		}),
 		Entry("M3dt not found", testCaseReleaseLeases{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Template: corev1.ObjectReference{
 						Name: "abc",
 					},
@@ -635,22 +622,16 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("M3dt found", testCaseReleaseLeases{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Template: corev1.ObjectReference{
 						Name: "abc",
 					},
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 		}),
 	)
@@ -667,32 +648,23 @@ var _ = Describe("Metal3Data manager", func() {
 			objects := []client.Object{}
 			for _, poolName := range tc.ipClaims {
 				pool := &ipamv1.IPClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc-" + poolName,
-						Namespace: namespaceName,
-					},
+					ObjectMeta: testObjectMeta("abc-"+poolName, namespaceName, ""),
 					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference,
 					},
 				}
 				objects = append(objects, pool)
 			}
-			m3d := &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d := &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
 					APIVersion: infrav1alpha5.GroupVersion.String(),
 				},
 			}
-			m3dt := infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
-				Spec: tc.m3dtSpec,
+			m3dt := infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       tc.m3dtSpec,
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, m3d,
@@ -1003,31 +975,23 @@ var _ = Describe("Metal3Data manager", func() {
 			objects := []client.Object{}
 			for _, poolName := range tc.ipClaims {
 				pool := &ipamv1.IPClaim{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc-" + poolName,
-						Namespace: namespaceName,
-					},
+					ObjectMeta: testObjectMeta("abc-"+poolName, namespaceName, ""),
 					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference,
 					},
 				}
 				objects = append(objects, pool)
 			}
-			m3d := &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d := &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
 					APIVersion: infrav1alpha5.GroupVersion.String(),
 				},
 			}
-			m3dt := infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: tc.m3dtSpec,
+			m3dt := infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec:       tc.m3dtSpec,
 			}
 			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(c, m3d,
@@ -1218,10 +1182,8 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Already processed", testCaseGetAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
 			},
 			poolName: "abc",
 			poolAddresses: map[string]addressFromPool{
@@ -1232,11 +1194,8 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPClaim not found", testCaseGetAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName: "abc",
 			expectedAddresses: map[string]addressFromPool{
@@ -1246,40 +1205,28 @@ var _ = Describe("Metal3Data manager", func() {
 			expectClaim:   true,
 		}),
 		Entry("IPClaim without allocation", testCaseGetAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName: "abc",
 			expectedAddresses: map[string]addressFromPool{
 				"abc": {},
 			},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-abc",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
 			},
 			expectRequeue: true,
 		}),
 		Entry("IPPool with allocation error", testCaseGetAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName: "abc",
 			expectedAddresses: map[string]addressFromPool{
 				"abc": {},
 			},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-abc",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
 				Status: ipamv1.IPClaimStatus{
 					ErrorMessage: pointer.StringPtr("Error happened"),
 				},
@@ -1288,21 +1235,15 @@ var _ = Describe("Metal3Data manager", func() {
 			expectDataError: true,
 		}),
 		Entry("IPAddress not found", testCaseGetAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName: "abc",
 			expectedAddresses: map[string]addressFromPool{
 				"abc": {},
 			},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-abc",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
 				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.11",
@@ -1313,11 +1254,8 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 		}),
 		Entry("IPAddress found", testCaseGetAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName: "abc",
 			expectedAddresses: map[string]addressFromPool{
@@ -1331,10 +1269,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-abc",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
 				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.10",
@@ -1342,12 +1277,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-
 			ipAddress: &ipamv1.IPAddress{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-192.168.0.10",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
 				Spec: ipamv1.IPAddressSpec{
 					Address: ipamv1.IPAddressStr("192.168.0.10"),
 					Prefix:  26,
@@ -1408,11 +1339,8 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Already processed", testCaseReleaseAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName: "abc",
 			poolAddresses: map[string]bool{
@@ -1423,11 +1351,8 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Deletion already attempted", testCaseReleaseAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName: "abc",
 			poolAddresses: map[string]bool{
@@ -1438,11 +1363,8 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPClaim not found", testCaseReleaseAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			poolName:      "abc",
 			poolAddresses: map[string]bool{},
@@ -1451,11 +1373,8 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("IPPool without ownerref", testCaseReleaseAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
 					APIVersion: infrav1alpha5.GroupVersion.String(),
@@ -1463,10 +1382,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			poolName: "abc",
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-abc",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
 			},
 			expectedAddresses: map[string]bool{
 				"abc": true,
@@ -1740,11 +1656,9 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bmh-abc",
-				},
-				Status: bmo.BareMetalHostStatus{},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta("bmh-abc", namespaceName, ""),
+				Status:     bmov1alpha1.BareMetalHostStatus{},
 			},
 			expectError: true,
 		}),
@@ -1787,11 +1701,9 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bmh-abc",
-				},
-				Status: bmo.BareMetalHostStatus{},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta("bmh-abc", namespaceName, ""),
+				Status:     bmov1alpha1.BareMetalHostStatus{},
 			},
 			expectError: true,
 		}),
@@ -1834,11 +1746,9 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bmh-abc",
-				},
-				Status: bmo.BareMetalHostStatus{},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta("bmh-abc", namespaceName, ""),
+				Status:     bmov1alpha1.BareMetalHostStatus{},
 			},
 			expectError: true,
 		}),
@@ -2350,13 +2260,11 @@ var _ = Describe("Metal3Data manager", func() {
 			mac: &infrav1alpha5.NetworkLinkEthernetMac{
 				FromHostInterface: pointer.StringPtr("eth1"),
 			},
-			bmh: &bmo.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bmh-abc",
-				},
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta("bmh-abc", namespaceName, ""),
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2377,13 +2285,11 @@ var _ = Describe("Metal3Data manager", func() {
 			mac: &infrav1alpha5.NetworkLinkEthernetMac{
 				FromHostInterface: pointer.StringPtr("eth2"),
 			},
-			bmh: &bmo.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bmh-abc",
-				},
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta("bmh-abc", namespaceName, ""),
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2430,20 +2336,15 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(outputMap).To(Equal(tc.expectedMetaData))
 		},
 		Entry("Empty", testCaseRenderMetaData{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
 			},
 			expectedMetaData: nil,
 		}),
 		Entry("Full example", testCaseRenderMetaData{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "data-abc",
-					Namespace: namespaceName,
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
@@ -2695,13 +2596,11 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Interface absent", testCaseRenderMetaData{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						FromHostInterfaces: []infrav1alpha5.MetaDataHostInterface{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
 							{
 								Key:       "Mac-1",
 								Interface: "eth2",
@@ -2710,13 +2609,11 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			bmh: &bmo.BareMetalHost{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "bmh-abc",
-				},
-				Status: bmo.BareMetalHostStatus{
-					HardwareDetails: &bmo.HardwareDetails{
-						NIC: []bmo.NIC{
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta("bmh-abc", namespaceName, ""),
+				Status: bmov1alpha1.BareMetalHostStatus{
+					HardwareDetails: &bmov1alpha1.HardwareDetails{
+						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
 								MAC:  "XX:XX:XX:XX:XX:XX",
@@ -2734,22 +2631,17 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("IP missing", testCaseRenderMetaData{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "data-abc",
-					Namespace: namespaceName,
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						IPAddressesFromPool: []infrav1alpha5.FromPool{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						IPAddressesFromPool: []infrav1.FromPool{
 							{
 								Key:  "Address-1",
 								Name: "abc",
@@ -2761,22 +2653,17 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Prefix missing", testCaseRenderMetaData{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "data-abc",
-					Namespace: namespaceName,
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						PrefixesFromPool: []infrav1alpha5.FromPool{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						PrefixesFromPool: []infrav1.FromPool{
 							{
 								Key:  "Address-1",
 								Name: "abc",
@@ -2788,22 +2675,17 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Gateway missing", testCaseRenderMetaData{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "data-abc",
-					Namespace: namespaceName,
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						GatewaysFromPool: []infrav1alpha5.FromPool{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						GatewaysFromPool: []infrav1.FromPool{
 							{
 								Key:  "Address-1",
 								Name: "abc",
@@ -2815,13 +2697,11 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Wrong object in name", testCaseRenderMetaData{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						ObjectNames: []infrav1alpha5.MetaDataObjectName{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						ObjectNames: []infrav1.MetaDataObjectName{
 							{
 								Key:    "ObjectName-3",
 								Object: "baremetalhost2",
@@ -2833,13 +2713,11 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Wrong object in Label", testCaseRenderMetaData{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						FromLabels: []infrav1alpha5.MetaDataFromLabel{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromLabels: []infrav1.MetaDataFromLabel{
 							{
 								Key:    "ObjectName-3",
 								Object: "baremetalhost2",
@@ -2852,13 +2730,11 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Wrong object in Annotation", testCaseRenderMetaData{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "datatemplate-abc",
-				},
-				Spec: infrav1alpha5.Metal3DataTemplateSpec{
-					MetaData: &infrav1alpha5.MetaData{
-						FromAnnotations: []infrav1alpha5.MetaDataFromAnnotation{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("datatemplate-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromAnnotations: []infrav1.MetaDataFromAnnotation{
 							{
 								Key:        "ObjectName-3",
 								Object:     "baremetalhost2",
@@ -3061,9 +2937,9 @@ var _ = Describe("Metal3Data manager", func() {
 					Claim: *testObjectReference,
 				},
 			},
-			DataClaim: &infrav1alpha5.Metal3DataClaim{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1alpha5.Metal3DataClaimSpec{},
+			DataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			ExpectError: true,
 		}),
@@ -3081,8 +2957,8 @@ var _ = Describe("Metal3Data manager", func() {
 			ExpectRequeue: true,
 		}),
 		Entry("Object exists", testCaseGetM3Machine{
-			Machine: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			Data: &infrav1alpha5.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
@@ -3096,14 +2972,14 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 		}),
 		Entry("Object exists, dataTemplate nil", testCaseGetM3Machine{
-			Machine: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3MachineSpec{
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: nil,
 				},
 			},
-			DataTemplate: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			Data: &infrav1alpha5.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
@@ -3118,17 +2994,17 @@ var _ = Describe("Metal3Data manager", func() {
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate name mismatch", testCaseGetM3Machine{
-			Machine: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3MachineSpec{
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abcd",
 						Namespace: namespaceName,
 					},
 				},
 			},
-			DataTemplate: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			Data: &infrav1alpha5.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,
@@ -3143,17 +3019,17 @@ var _ = Describe("Metal3Data manager", func() {
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate namespace mismatch", testCaseGetM3Machine{
-			Machine: &infrav1alpha5.Metal3Machine{
-				ObjectMeta: testObjectMeta,
-				Spec: infrav1alpha5.Metal3MachineSpec{
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abc",
 						Namespace: "defg",
 					},
 				},
 			},
-			DataTemplate: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			Data: &infrav1alpha5.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR,

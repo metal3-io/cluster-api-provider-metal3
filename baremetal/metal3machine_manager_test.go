@@ -1741,12 +1741,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmh.StateNone, nil,
 				false, true,
 			),
-			Machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+			Machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("mym3machine-user-data"),
 					},
 				},
@@ -2447,12 +2445,10 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Type: "Opaque",
 			},
-			Machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+			Machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("Foobar"),
 					},
 				},
@@ -2522,12 +2518,10 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("UserDataSecretName set in Machine, secret exists", testCaseGetUserDataSecretName{
 			Secret: newSecret(),
-			Machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+			Machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("test-data-secret-name"),
 					},
 				},
@@ -2536,12 +2530,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			BMHost:    newBareMetalHost("myhost", nil, bmh.StateNone, nil, false, false),
 		}),
 		Entry("UserDataSecretName set in Machine, no secret", testCaseGetUserDataSecretName{
-			Machine: &capi.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
-				Spec: capi.MachineSpec{
-					Bootstrap: capi.Bootstrap{
+			Machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("test-data-secret-name"),
 					},
 				},
@@ -3891,10 +3883,8 @@ func newBareMetalHost(name string,
 	clusterlabel bool) *bmh.BareMetalHost {
 
 	if name == "" {
-		return &bmh.BareMetalHost{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespaceName,
-			},
+		return &bmov1alpha1.BareMetalHost{
+			ObjectMeta: testObjectMeta("", namespaceName, ""),
 		}
 	}
 

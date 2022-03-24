@@ -130,9 +130,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		},
 		Entry("Metal3DataTemplate not found", testCaseReconcile{}),
 		Entry("Cluster not found", testCaseReconcile{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1alpha5.Metal3DataTemplateSpec{ClusterName: "abc"},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
 		}),
 		Entry("Deletion, Cluster not found", testCaseReconcile{
@@ -160,13 +160,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectError:          true,
 		}),
 		Entry("Paused cluster", testCaseReconcile{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1alpha5.Metal3DataTemplateSpec{ClusterName: "abc"},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
-				ObjectMeta: testObjectMeta,
-				Spec: capi.ClusterSpec{
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec: clusterv1.ClusterSpec{
 					Paused: true,
 				},
 			},
@@ -174,34 +174,34 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectManager: true,
 		}),
 		Entry("Error in manager", testCaseReconcile{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1alpha5.Metal3DataTemplateSpec{ClusterName: "abc"},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
-				ObjectMeta: testObjectMeta,
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			managerError: true,
 		}),
 		Entry("Reconcile normal error", testCaseReconcile{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1alpha5.Metal3DataTemplateSpec{ClusterName: "abc"},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
-				ObjectMeta: testObjectMeta,
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			reconcileNormal:      true,
 			reconcileNormalError: true,
 			expectManager:        true,
 		}),
 		Entry("Reconcile normal no error", testCaseReconcile{
-			m3dt: &infrav1alpha5.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1alpha5.Metal3DataTemplateSpec{ClusterName: "abc"},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
+				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: "abc"},
 			},
-			cluster: &capi.Cluster{
-				ObjectMeta: testObjectMeta,
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			},
 			reconcileNormal: true,
 			expectManager:   true,
@@ -354,18 +354,24 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		},
 		Entry("No Metal3DataTemplate in Spec",
 			TestCaseM3DCToM3DT{
-				DataClaim: &infrav1alpha5.Metal3DataClaim{
-					ObjectMeta: testObjectMeta,
-					Spec:       infrav1alpha5.Metal3DataClaimSpec{},
+				DataClaim: &infrav1.Metal3DataClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc",
+						Namespace: namespaceName,
+					},
+					Spec: infrav1.Metal3DataClaimSpec{},
 				},
 				ExpectRequest: false,
 			},
 		),
 		Entry("Metal3DataTemplate in Spec, with namespace",
 			TestCaseM3DCToM3DT{
-				DataClaim: &infrav1alpha5.Metal3DataClaim{
-					ObjectMeta: testObjectMeta,
-					Spec: infrav1alpha5.Metal3DataClaimSpec{
+				DataClaim: &infrav1.Metal3DataClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc",
+						Namespace: namespaceName,
+					},
+					Spec: infrav1.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name:      "abc",
 							Namespace: namespaceName,
@@ -377,9 +383,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		),
 		Entry("Metal3DataTemplate in Spec, no namespace",
 			TestCaseM3DCToM3DT{
-				DataClaim: &infrav1alpha5.Metal3DataClaim{
-					ObjectMeta: testObjectMeta,
-					Spec: infrav1alpha5.Metal3DataClaimSpec{
+				DataClaim: &infrav1.Metal3DataClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc",
+						Namespace: namespaceName,
+					},
+					Spec: infrav1.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{
 							Name: "abc",
 						},
