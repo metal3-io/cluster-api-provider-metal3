@@ -368,9 +368,9 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 	}
 }
 
-func newBareMetalHost(spec *bmov1alpha1.BareMetalHostSpec,
-	status *bmov1alpha1.BareMetalHostStatus, labels map[string]string, paused bool,
-) *bmov1alpha1.BareMetalHost {
+func newBareMetalHost(bmhName string, spec *bmh.BareMetalHostSpec,
+	status *bmh.BareMetalHostStatus, labels map[string]string, paused bool,
+) *bmh.BareMetalHost {
 	if spec == nil {
 		spec = &bmov1alpha1.BareMetalHostSpec{}
 	}
@@ -387,7 +387,7 @@ func newBareMetalHost(spec *bmov1alpha1.BareMetalHostSpec,
 			APIVersion: bmov1alpha1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bmh-0",
+			Name:      bmhName,
 			Namespace: namespaceName,
 			UID:       bmhuid,
 		},
