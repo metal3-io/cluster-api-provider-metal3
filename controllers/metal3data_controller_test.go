@@ -39,20 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var (
-	testObjectMeta = metav1.ObjectMeta{
-		Name:      "abc",
-		Namespace: "myns",
-	}
-	testObjectMetaWithLabel = metav1.ObjectMeta{
-		Name:      "abc",
-		Namespace: "myns",
-		Labels: map[string]string{
-			capi.ClusterLabelName: "abc",
-		},
-	}
-)
-
 var _ = Describe("Metal3Data manager", func() {
 
 	Describe("Test Data Reconcile functions", func() {

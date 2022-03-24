@@ -1163,10 +1163,8 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 		},
 		Entry("Already processed", testCaseGetAddressFromPool{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "myns",
-				},
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
 			},
 			poolName: testPoolName,
 			poolAddresses: map[string]addressFromPool{
@@ -1226,10 +1224,7 @@ var _ = Describe("Metal3Data manager", func() {
 				testPoolName: {},
 			},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-abc",
-					Namespace: "myns",
-				},
+				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
 				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.11",
@@ -1263,12 +1258,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-
 			ipAddress: &ipamv1.IPAddress{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc-192.168.0.10",
-					Namespace: "myns",
-				},
+				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
 				Spec: ipamv1.IPAddressSpec{
 					Address: ipamv1.IPAddressStr("192.168.0.10"),
 					Prefix:  26,
@@ -2332,12 +2323,9 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedMetaData: nil,
 		}),
 		Entry("Full example", testCaseRenderMetaData{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "data-abc",
-					Namespace: "myns",
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},
@@ -2647,12 +2635,9 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Prefix missing", testCaseRenderMetaData{
-			m3d: &infrav1alpha5.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "data-abc",
-					Namespace: "myns",
-				},
-				Spec: infrav1alpha5.Metal3DataSpec{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
 					Index: 2,
 				},
 			},

@@ -73,14 +73,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					APIVersion: capm3.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "foo",
-				},
-				Spec: capm3.Metal3MachineTemplateSpec{
-					Template: capm3.Metal3MachineTemplateResource{
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+				ObjectMeta: testObjectMeta("abc", "foo", ""),
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 						},
 					},
 				},
@@ -144,14 +141,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					APIVersion: capm3.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "foo",
-				},
-				Spec: capm3.Metal3MachineTemplateSpec{
-					Template: capm3.Metal3MachineTemplateResource{
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
+				ObjectMeta: testObjectMeta("abc", "foo", ""),
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeMetadata),
 						},
 					},
 				},
@@ -215,13 +209,10 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					APIVersion: capm3.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "foo",
-				},
-				Spec: capm3.Metal3MachineTemplateSpec{
-					Template: capm3.Metal3MachineTemplateResource{
-						Spec: capm3.Metal3MachineSpec{
+				ObjectMeta: testObjectMeta("abc", "foo", ""),
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
 							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},

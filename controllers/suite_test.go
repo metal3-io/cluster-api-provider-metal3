@@ -364,10 +364,9 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 	}
 }
 
-func newBareMetalHost(spec *bmh.BareMetalHostSpec,
-	status *bmh.BareMetalHostStatus,
-) *bmh.BareMetalHost {
-
+func newBareMetalHost(bmhName string, spec *bmov1alpha1.BareMetalHostSpec,
+	status *bmov1alpha1.BareMetalHostStatus, labels map[string]string, paused bool,
+) *bmov1alpha1.BareMetalHost {
 	if spec == nil {
 		spec = &bmh.BareMetalHostSpec{}
 	}
@@ -384,7 +383,7 @@ func newBareMetalHost(spec *bmh.BareMetalHostSpec,
 			APIVersion: bmh.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bmh-0",
+			Name:      bmhName,
 			Namespace: namespaceName,
 			UID:       "54db7dd5-269a-4d94-a12a-c4eafcecb8e7",
 		},
@@ -397,5 +396,12 @@ func testObjectMeta(name string, namespace string, uid string) metav1.ObjectMeta
 		Name:      name,
 		Namespace: namespace,
 		UID:       types.UID(uid),
+	}
+}
+
+func testObjectMeta(name string, namespace string, uid string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      name,
+		Namespace: namespace,
 	}
 }

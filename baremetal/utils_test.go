@@ -420,11 +420,8 @@ var _ = Describe("Metal3 manager utils", func() {
 			Expect(savedSecret.ObjectMeta.OwnerReferences).To(Equal(ownerRef))
 			Expect(savedSecret.Data).To(Equal(content))
 
-			err = c.Delete(context.TODO(), &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
+			err = k8sClient.Delete(context.TODO(), &corev1.Secret{
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 			})
 			Expect(err).NotTo(HaveOccurred())
 		},

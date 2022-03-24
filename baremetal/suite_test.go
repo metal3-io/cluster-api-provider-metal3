@@ -151,6 +151,13 @@ func setupScheme() *runtime.Scheme {
 	return s
 }
 
+func testObjectMeta(name string, namespace string, uid string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      name,
+		Namespace: namespace,
+	}
+}
+
 func newCluster(clusterName string) *clusterv1.Cluster {
 	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
