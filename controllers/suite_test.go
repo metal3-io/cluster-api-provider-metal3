@@ -53,12 +53,12 @@ var testEnv *envtest.Environment
 var timestampNow = metav1.Now()
 
 const (
-	clusterName               = "testCluster"
-	metal3ClusterName         = "testmetal3Cluster"
-	machineName               = "testMachine"
-	metal3machineName         = "testmetal3machine"
+	clusterName               = "controllerns_testCluster"
+	metal3ClusterName         = "controllerns_testmetal3Cluster"
+	machineName               = "controllerns_testMachine"
+	metal3machineName         = "controllerns_testmetal3machine"
 	namespaceName             = "controllerns"
-	metal3machineTemplateName = "testmetal3machinetemplate"
+	metal3machineTemplateName = "controllerns_testmetal3machinetemplate"
 )
 
 func init() {
