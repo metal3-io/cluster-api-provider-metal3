@@ -91,14 +91,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("no previous ownerref", testCaseSetClusterOwnerRef{
 			template: &infrav1.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
+				ObjectMeta: testObjectMeta("abc", "", ""),
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc-cluster",
-				},
+				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
 			},
 		}),
 		Entry("previous ownerref", testCaseSetClusterOwnerRef{
@@ -113,9 +109,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc-cluster",
-				},
+				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
 			},
 		}),
 		Entry("ownerref present", testCaseSetClusterOwnerRef{
@@ -133,9 +127,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc-cluster",
-				},
+				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
 			},
 		}),
 	)
@@ -177,15 +169,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("indexes", testGetIndexes{
 			template: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 			},
 			indexes: []*infrav1.Metal3Data{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "abc-0",
-						Namespace: namespaceName,
-					},
+					ObjectMeta: testObjectMeta("abc-0", namespaceName, ""),
 					Spec: infrav1.Metal3DataSpec{
 						Index:    0,
 						Template: *testObjectReference,
@@ -193,10 +182,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "bbc-1",
-						Namespace: namespaceName,
-					},
+					ObjectMeta: testObjectMeta("bbc-1", namespaceName, ""),
 					Spec: infrav1.Metal3DataSpec{
 						Index: 1,
 						Template: corev1.ObjectReference{
@@ -512,10 +498,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			},
 			indexes: map[int]string{},
 			template2: &infrav1.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc1",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc1", namespaceName, ""),
 				Spec: infrav1.Metal3DataTemplateSpec{
 					TemplateReference: "abc",
 				},
@@ -535,11 +518,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			},
 			indexes: map[int]string{},
 			template2: &infrav1.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc1",
-					Namespace: namespaceName,
-				},
-				Spec: infrav1.Metal3DataTemplateSpec{},
+				ObjectMeta: testObjectMeta("abc1", namespaceName, ""),
+				Spec:       infrav1.Metal3DataTemplateSpec{},
 				Status: infrav1.Metal3DataTemplateStatus{
 					Indexes: map[string]int{},
 				},
@@ -601,10 +581,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMetaWithOR,
 			},
 			dataObject: &infrav1.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("abc", namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
 					Index: 0,
 					Template: corev1.ObjectReference{
@@ -813,17 +790,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		Entry("Empty Template", testCaseDeleteDatas{
 			template: &infrav1.Metal3DataTemplate{},
 			dataClaim: &infrav1.Metal3DataClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "TestRef",
-				},
+				ObjectMeta: testObjectMeta("TestRef", "", ""),
 			},
 		}),
 		Entry("No Deletion needed", testCaseDeleteDatas{
 			template: &infrav1.Metal3DataTemplate{},
 			dataClaim: &infrav1.Metal3DataClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "TestRef",
-				},
+				ObjectMeta: testObjectMeta("TestRef", "", ""),
 			},
 			expectedMap: map[int]string{0: "abcd"},
 			indexes: map[int]string{
@@ -839,9 +812,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "TestRef",
-				},
+				ObjectMeta: testObjectMeta("TestRef", "", ""),
 			},
 			indexes: map[int]string{
 				0: "TestRef",
@@ -851,10 +822,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("Deletion needed", testCaseDeleteDatas{
 			template: &infrav1.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-				},
-				Spec: infrav1.Metal3DataTemplateSpec{},
+				ObjectMeta: testObjectMeta("abc", "", ""),
+				Spec:       infrav1.Metal3DataTemplateSpec{},
 				Status: infrav1.Metal3DataTemplateStatus{
 					Indexes: map[string]int{
 						"TestRef": 0,
