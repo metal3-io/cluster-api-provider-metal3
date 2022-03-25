@@ -95,7 +95,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.1.0
+  - name: v1.1.1
     value: "${PWD}/config/default"
     contract: v1beta1
     files:
@@ -120,7 +120,7 @@ variables:
   CAPIRELEASE: "${CAPIRELEASE}"
   CAPM3RELEASE: "${CAPM3RELEASE}"
   CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
-  CAPM3_REL_TO_VERSION: "v1.1.0"
+  CAPM3_REL_TO_VERSION: "v1.1.1"
   INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}"
   # Default vars for the template, those values could be overridden by the env-vars.
   SERVICE_CIDR: "10.96.0.0/12"
