@@ -52,7 +52,7 @@ provider:
     You can also specify the provider version by appending a version tag to the provider name as follows:
 
     ```shell
-    clusterctl init --infrastructure metal3:v1.1.0
+    clusterctl init --infrastructure metal3:v1.1.1
     ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install cert-manager for Baremetal Operator,
