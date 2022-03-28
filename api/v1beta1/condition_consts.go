@@ -50,5 +50,5 @@ const (
 	// Could not find the BMH associated with the Metal3Machine
 	MissingBMHReason = "MissingBMHReason"
 	// Could not set the ProviderID on the target cluster's Node object.
-	SettingProviderIDOnNodeFailedReason = "DrainingFailed"
+	SettingProviderIDOnNodeFailedReason = "SettingProviderIDOnNodeFailed"
 )
