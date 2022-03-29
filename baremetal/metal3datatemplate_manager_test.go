@@ -177,8 +177,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 		Entry("indexes", testGetIndexes{
 			template: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta,
-				Spec:       infrav1.Metal3DataTemplateSpec{},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc",
+					Namespace: namespaceName,
+					UID:       bmhuid,
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{},
 			},
 			indexes: []*infrav1.Metal3Data{
 				{
