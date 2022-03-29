@@ -58,13 +58,15 @@ const (
 	testPoolName           = "baremetal-testpoolname"
 	metal3DataName         = "baremetal-testmetal3dataname"
 	metal3DataClaimName    = "baremetal-testmetal3dataclaim"
-	namespaceName          = "baremetalns-testns"
 	muid                   = "902b9bf0-42c2-42ef-8315-ab23f07e009a"
 	m3muid                 = "11111111-9845-4321-1234-c74be387f57c"
 	bmhuid                 = "22222222-9845-4c48-9e49-c74be387f57c"
 	m3duid                 = "4f3223fb-1ac1-482c-a4d4-e09f8e6c08f1"
 	m3dcuid                = "d184c4f7-2a64-4537-bf74-f6abd08cb992"
 	m3dtuid                = "9c8facc6-c9e3-4b1c-a038-d8416717fab3"
+	namespaceName          = "baremetalns"
+	m3muid                 = "11111111-9845-4321-1234-c74be387f57c"
+	bmhuid                 = "22222222-9845-4c48-9e49-c74be387f57c"
 )
 
 var providerid = fmt.Sprintf("%s/%s/%s", namespaceName, baremetalhostName, metal3machineName)
