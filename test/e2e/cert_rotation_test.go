@@ -3,7 +3,6 @@ package e2e
 import (
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -21,8 +20,8 @@ import (
 func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) {
 	Logf("Start the certificate rotation test")
 	By("Check if Ironic pod is running")
-	ironicNamespace := os.Getenv("NAMEPREFIX") + "-system"
-	ironicDeploymentName := os.Getenv("NAMEPREFIX") + "-ironic"
+	ironicNamespace := e2eConfig.GetVariable("NAMEPREFIX") + "-system"
+	ironicDeploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
 	ironicDeployment, err := getDeployment(clusterClient, ironicDeploymentName, ironicNamespace)
 	Eventually(func() error {
 		ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)

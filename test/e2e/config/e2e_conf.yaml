@@ -107,24 +107,48 @@ providers:
       targetName: "cluster-template-centos.yaml"
 
 variables:
-  KUBERNETES_VERSION: "${KUBERNETES_VERSION}"
-  UPGRADED_K8S_VERSION: "${UPGRADED_K8S_VERSION}"
   CNI: "/tmp/calico.yaml"
+  KUBERNETES_VERSION: "v1.23.3"
+  UPGRADED_K8S_VERSION: "v1.23.5"
+  CONTROL_PLANE_MACHINE_COUNT: 3
+  WORKER_MACHINE_COUNT: 1
   APIVersion: "infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}"
-  NAMEPREFIX: "${NAMEPREFIX:-baremetal-operator}"
-  IRONIC_NAMESPACE: "${IRONIC_NAMESPACE:-baremetal-operator-system}"
+  IRONIC_NAMESPACE: "baremetal-operator-system"
+  NAMEPREFIX: "baremetal-operator"
+  IRONIC_DATA_DIR: "${DEV_ENV_WORKING_DIR}/ironic"
+  BMOPATH: "${M3PATH}/baremetal-operator"
+  IRONIC_TLS_SETUP: "true"
+  IRONIC_BASIC_AUTH: "true"
+  RESTART_CONTAINER_CERTIFICATE_UPDATED: "true"
   CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-main}"
   MARIADB_IMAGE_TAG: "${MARIADB_IMAGE_TAG:-main}"
   UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
-  CAPIRELEASE: "${CAPIRELEASE}"
-  CAPM3RELEASE: "${CAPM3RELEASE}"
-  CONFIG_FILE_PATH: "${HOME}/.cluster-api/overrides/clusterctl.yaml"
   CAPM3_REL_TO_VERSION: "v1.1.1"
+
   INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}"
+  # Pin Calico version
+  CALICO_PATCH_RELEASE: "v3.21.0"
+  CALICO_MINOR_RELEASE: "v3.21"
   # Default vars for the template, those values could be overridden by the env-vars.
+  CAPI_VERSION: "v1beta1"
+  CAPM3_VERSION: "v1beta1"
   SERVICE_CIDR: "10.96.0.0/12"
-  
+  POD_CIDR: "192.168.0.0/18"
+  PROVISIONING_CIDR: "24"
+  CLUSTER_APIENDPOINT_HOST: "192.168.111.249"
+  CLUSTER_APIENDPOINT_PORT: "6443"
+  EXTERNAL_SUBNET_V4_PREFIX: "24"
+  CLUSTER_PROVISIONING_INTERFACE: "ironicendpoint"
+  BAREMETALV4_POOL_RANGE_START: "192.168.111.100"
+  BAREMETALV4_POOL_RANGE_END: "192.168.111.200"
+  PROVISIONING_POOL_RANGE_START: "172.22.0.100"
+  PROVISIONING_POOL_RANGE_END: "172.22.0.200"
+  EXTERNAL_SUBNET_V4_HOST: "192.168.111.1"
+  REGISTRY: "192.168.111.1:5000"
+  IMAGE_CHECKSUM_TYPE: "md5"
+  IMAGE_USERNAME: "metal3"
+  NODE_DRAIN_TIMEOUT: "0s"
 intervals:
   default/wait-controllers: ["5m", "10s"]
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created
