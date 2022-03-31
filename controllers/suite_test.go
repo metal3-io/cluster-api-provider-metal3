@@ -58,6 +58,8 @@ const (
 	metal3machineName         = "controllerns_testmetal3machine"
 	namespaceName             = "controllerns"
 	metal3machineTemplateName = "controllerns_testmetal3machinetemplate"
+	node0Name                 = "node-0"
+	node1Name                 = "node-1"
 )
 
 func init() {
@@ -368,9 +370,9 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 	}
 }
 
-func newBareMetalHost(bmhName string, spec *bmh.BareMetalHostSpec,
-	status *bmh.BareMetalHostStatus, labels map[string]string, paused bool,
-) *bmh.BareMetalHost {
+func newBareMetalHost(bmhName string, spec *bmov1alpha1.BareMetalHostSpec,
+	status *bmov1alpha1.BareMetalHostStatus, labels map[string]string, paused bool,
+) *bmov1alpha1.BareMetalHost {
 	if spec == nil {
 		spec = &bmov1alpha1.BareMetalHostSpec{}
 	}

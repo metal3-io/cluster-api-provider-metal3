@@ -107,7 +107,7 @@ func m3mSecretStatusNil() *infrav1.Metal3MachineStatus {
 
 func consumerRef() *corev1.ObjectReference {
 	return &corev1.ObjectReference{
-		Name:       "mym3machine",
+		Name:       metal3machineName,
 		Namespace:  namespaceName,
 		Kind:       "M3Machine",
 		APIVersion: infrav1.GroupVersion.String(),
@@ -186,7 +186,7 @@ func bmhSpecNoImg() *bmov1alpha1.BareMetalHostSpec {
 
 func m3mObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:            "mym3machine",
+		Name:            metal3machineName,
 		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Labels: map[string]string{
@@ -602,26 +602,26 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 			},
 			Entry("Pick host2 which lacks ConsumerRef", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef2),
+				Machine:          newMachine(machineName, "", infrastructureRef2),
 				Hosts:            []client.Object{&host2, &host1},
 				M3Machine:        m3mconfig2,
 				ExpectedHostName: host2.Name,
 			}),
 			Entry("Pick hostWithNodeReuseLabelSetToKCP, which has a matching nodeReuseLabelName", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef2),
+				Machine:          newMachine(machineName, "", infrastructureRef2),
 				Hosts:            []client.Object{&hostWithNodeReuseLabelSetToKCP, &host3, &host2},
 				M3Machine:        m3mconfig2,
 				ExpectedHostName: hostWithNodeReuseLabelSetToKCP.Name,
 			}),
 			Entry("Pick hostWithNodeReuseLabelSetToMD, which has a matching nodeReuseLabelName", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef2),
+				Machine:          newMachine(machineName, "", infrastructureRef2),
 				Hosts:            []client.Object{&hostWithNodeReuseLabelSetToMD, &host3, &host2},
 				M3Machine:        m3mconfig2,
 				ExpectedHostName: hostWithNodeReuseLabelSetToMD.Name,
 			}),
 			Entry("Ignore discoveredHost and pick host2, which lacks a ConsumerRef",
 				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef2),
+					Machine:          newMachine(machineName, "", infrastructureRef2),
 					Hosts:            []client.Object{&discoveredHost, &host2, &host1},
 					M3Machine:        m3mconfig2,
 					ExpectedHostName: host2.Name,
@@ -629,14 +629,14 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			Entry("Ignore hostWithUnhealthyAnnotation and pick host2, which lacks a ConsumerRef",
 				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef2),
+					Machine:          newMachine(machineName, "", infrastructureRef2),
 					Hosts:            []client.Object{&hostWithUnhealthyAnnotation, &host1, &host2},
 					M3Machine:        m3mconfig2,
 					ExpectedHostName: host2.Name,
 				},
 			),
 			Entry("Pick host3, which has a matching ConsumerRef", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef3),
+				Machine:          newMachine(machineName, "", infrastructureRef3),
 				Hosts:            []client.Object{&host1, &host3, &host2},
 				M3Machine:        m3mconfig3,
 				ExpectedHostName: host3.Name,
@@ -651,7 +651,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			Entry("Choose hosts with a label, even without a label selector",
 				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef),
+					Machine:          newMachine(machineName, "", infrastructureRef),
 					Hosts:            []client.Object{&hostWithLabel},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: hostWithLabel.Name,
@@ -659,40 +659,40 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			Entry("Choose hosts with a nodeReuseLabelName set to KCP, even without a label selector",
 				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef),
+					Machine:          newMachine(machineName, "", infrastructureRef),
 					Hosts:            []client.Object{&hostWithNodeReuseLabelSetToKCP},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: hostWithNodeReuseLabelSetToKCP.Name,
 				},
 			),
 			Entry("Choose the host with the right label", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef2),
+				Machine:          newMachine(machineName, "", infrastructureRef2),
 				Hosts:            []client.Object{&hostWithLabel, &host2},
 				M3Machine:        m3mconfig2,
 				ExpectedHostName: hostWithLabel.Name,
 			}),
 			Entry("No host that matches required label", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef3),
+				Machine:          newMachine(machineName, "", infrastructureRef3),
 				Hosts:            []client.Object{&host2, &hostWithLabel},
 				M3Machine:        m3mconfig3,
 				ExpectedHostName: "",
 			}),
 			Entry("Host that matches a matchExpression", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef4),
+				Machine:          newMachine(machineName, "", infrastructureRef4),
 				Hosts:            []client.Object{&host2, &hostWithLabel},
 				M3Machine:        m3mconfig4,
 				ExpectedHostName: hostWithLabel.Name,
 			}),
 			Entry("No Host available that matches a matchExpression",
 				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef4),
+					Machine:          newMachine(machineName, "", infrastructureRef4),
 					Hosts:            []client.Object{&host2},
 					M3Machine:        m3mconfig4,
 					ExpectedHostName: "",
 				},
 			),
 			Entry("No host chosen, invalid match expression", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef5),
+				Machine:          newMachine(machineName, "", infrastructureRef5),
 				Hosts:            []client.Object{&host2, &hostWithLabel, &host1},
 				M3Machine:        m3mconfig5,
 				ExpectedHostName: "",
@@ -754,14 +754,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:       "mym3machine",
+						Name:       metal3machineName,
 						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
 			ExpectPausePresent: true,
 			ExpectError:        false,
@@ -771,14 +771,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: *bmhObjectMetaWithValidEmptyPausedAnnotations(),
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:       "mym3machine",
+						Name:       metal3machineName,
 						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
 			ExpectPausePresent: true,
 			ExpectError:        false,
@@ -788,7 +788,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: *bmhObjectMetaEmptyAnnotations(),
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:       "mym3machine",
+						Name:       metal3machineName,
 						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: infrav1.GroupVersion.String(),
@@ -798,7 +798,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					OperationalStatus: "OK",
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
 			ExpectPausePresent:  true,
 			ExpectStatusPresent: true,
@@ -857,14 +857,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:       "mym3machine",
+						Name:       metal3machineName,
 						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
 			ExpectPresent: false,
 			ExpectError:   false,
@@ -875,14 +875,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: *bmhObjectMetaWithValidEmptyPausedAnnotations(),
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:       "mym3machine",
+						Name:       metal3machineName,
 						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
 			ExpectPresent: true,
 			ExpectError:   false,
@@ -893,14 +893,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: *bmhObjectMetaNoAnnotations(),
 				Spec: bmov1alpha1.BareMetalHostSpec{
 					ConsumerRef: &corev1.ObjectReference{
-						Name:       "mym3machine",
+						Name:       metal3machineName,
 						Namespace:  namespaceName,
 						Kind:       "M3Machine",
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
 			ExpectPresent: false,
 			ExpectError:   false,
@@ -923,7 +923,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
 				map[string]string{}, []infrav1.HostSelectorRequirement{},
 			)
-			machine := newMachine("machine1", "", infrastructureRef)
+			machine := newMachine(machineName, "", infrastructureRef)
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, machine, m3mconfig,
 				logr.Discard(),
@@ -1012,7 +1012,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
 				map[string]string{}, []infrav1.HostSelectorRequirement{},
 			)
-			machine := newMachine("machine1", "", infrastructureRef)
+			machine := newMachine(machineName, "", infrastructureRef)
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, machine, m3mconfig,
 				logr.Discard(),
@@ -1103,7 +1103,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Entry("Failed to find the existing host", testCaseExists{
 				Machine: &clusterv1.Machine{},
-				M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 					m3mObjectMetaWithSomeAnnotations(),
 				),
 				Expected: true,
@@ -1111,7 +1111,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Entry("Found host even though annotation value is incorrect",
 				testCaseExists{
 					Machine: &clusterv1.Machine{},
-					M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+					M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 						m3mObjectMetaWithInvalidAnnotations(),
 					),
 					Expected: false,
@@ -1159,7 +1159,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Entry("Should find the expected host", testCaseGetHost{
 				Machine: &clusterv1.Machine{},
-				M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				ExpectPresent: true,
@@ -1167,7 +1167,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Entry("Should not find the host, annotation value incorrect",
 				testCaseGetHost{
 					Machine: &clusterv1.Machine{},
-					M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+					M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 						m3mObjectMetaWithInvalidAnnotations(),
 					),
 					ExpectPresent: false,
@@ -1175,7 +1175,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			Entry("Should not find the host, annotation not present", testCaseGetHost{
 				Machine: &clusterv1.Machine{},
-				M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 					m3mObjectMetaEmptyAnnotations(),
 				),
 				ExpectPresent: false,
@@ -1218,7 +1218,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Set ProviderID, empty annotations", testCaseGetSetProviderID{
 			Machine: newMachine("", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaEmptyAnnotations(),
 			),
 			Host: &bmov1alpha1.BareMetalHost{
@@ -1232,7 +1232,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Set ProviderID", testCaseGetSetProviderID{
 			Machine: newMachine("", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Host: &bmov1alpha1.BareMetalHost{
@@ -1252,7 +1252,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Set ProviderID, wrong state", testCaseGetSetProviderID{
 			Machine: newMachine("", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Host: &bmov1alpha1.BareMetalHost{
@@ -1310,7 +1310,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Entry("Test small functions, worker node", testCaseSmallFunctions{
 				Machine: newMachine("", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 					m3mObjectMetaEmptyAnnotations(),
 				),
 				ExpectCtrlNode: false,
@@ -1329,7 +1329,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				M3Machine: newMetal3Machine("mym3machine", nil, m3mSpec(), nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpec(), nil,
 					m3mObjectMetaEmptyAnnotations(),
 				),
 				ExpectCtrlNode: true,
@@ -1373,7 +1373,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Annotation exists and is correct", testCaseEnsureAnnotation{
 			Machine: clusterv1.Machine{},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil,
@@ -1383,7 +1383,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Annotation exists but is wrong", testCaseEnsureAnnotation{
 			Machine: clusterv1.Machine{},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 				m3mObjectMetaWithInvalidAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmov1alpha1.StateNone,
@@ -1393,7 +1393,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Annotations are empty", testCaseEnsureAnnotation{
 			Machine: clusterv1.Machine{},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 				m3mObjectMetaEmptyAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmov1alpha1.StateNone,
@@ -1591,8 +1591,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmov1alpha1.StateProvisioned, bmhStatus(), false, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef:     consumerRef(),
@@ -1604,8 +1604,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpec(), bmov1alpha1.StateNone,
 				nil, false, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef:     consumerRef(),
@@ -1617,8 +1617,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmov1alpha1.StateNone, nil,
 				false, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1628,8 +1628,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
 				bmov1alpha1.StateDeprovisioning, bmhStatus(), false, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
@@ -1640,8 +1640,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(),
 				bmov1alpha1.StateExternallyProvisioned, bmhPowerStatus(), true, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
@@ -1653,8 +1653,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: newBareMetalHost("myhost", bmhSpecNoImg(),
 					bmov1alpha1.StateExternallyProvisioned, bmhPowerStatus(), false, "metadata", true,
 				),
-				Machine: newMachine("mymachine", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+				Machine: newMachine(machineName, "", nil),
+				M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				Secret:              newSecret(),
@@ -1666,8 +1666,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: newBareMetalHost("myhost", bmhSpecNoImg(),
 					bmov1alpha1.StateUnmanaged, bmhPowerStatus(), false, "metadata", true,
 				),
-				Machine: newMachine("mymachine", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+				Machine: newMachine(machineName, "", nil),
+				M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				Secret:              newSecret(),
@@ -1678,8 +1678,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmov1alpha1.StateAvailable,
 				bmhStatus(), false, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1689,8 +1689,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecNoImg(), bmov1alpha1.StateReady,
 				bmhStatus(), false, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1710,7 +1710,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret: newSecret(),
@@ -1721,7 +1721,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					bmov1alpha1.StateProvisioned, bmhStatus(), false, "metadata", true,
 				),
 				Machine: newMachine("", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+				M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				ExpectedConsumerRef:     consumerRefSome(),
@@ -1732,7 +1732,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("No consumer ref, so this is a no-op", testCaseDelete{
 			Host:    newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", true),
 			Machine: newMachine("", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1741,7 +1741,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("No host at all, so this is a no-op", testCaseDelete{
 			Host:    nil,
 			Machine: newMachine("", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
@@ -1761,23 +1761,23 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret:              newSecret(),
 			ExpectSecretDeleted: false,
 		}),
 		Entry("Clusterlabel should be removed", testCaseDelete{
-			Machine:                   newMachine("mymachine", "mym3machine", nil),
-			M3Machine:                 newMetal3Machine("mym3machine", nil, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations()),
+			Machine:                   newMachine(machineName, metal3machineName, nil),
+			M3Machine:                 newMetal3Machine(metal3machineName, nil, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations()),
 			Host:                      newBareMetalHost("myhost", bmhSpecBMC(), bmov1alpha1.StateNone, nil, false, "metadata", true),
 			BMCSecret:                 newBMCSecret("mycredentials", true),
 			ExpectSecretDeleted:       true,
 			ExpectClusterLabelDeleted: true,
 		}),
 		Entry("PausedAnnotation/CAPM3 should be removed", testCaseDelete{
-			Machine:   newMachine("mymachine", "mym3machine", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations()),
+			Machine:   newMachine(machineName, metal3machineName, nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations()),
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: *bmhObjectMetaWithValidCAPM3PausedAnnotations(),
 				Spec:       *bmhSpecBMC(),
@@ -1793,8 +1793,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedPausedAnnotationDeleted: true,
 		}),
 		Entry("No clusterLabel in BMH or BMC Secret so this is a no-op ", testCaseDelete{
-			Machine:                   newMachine("mymachine", "mym3machine", nil),
-			M3Machine:                 newMetal3Machine("mym3machine", nil, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations()),
+			Machine:                   newMachine(machineName, metal3machineName, nil),
+			M3Machine:                 newMetal3Machine(metal3machineName, nil, m3mSpecAll(), m3mSecretStatus(), m3mObjectMetaWithValidAnnotations()),
 			Host:                      newBareMetalHost("myhost", bmhSpecBMC(), bmov1alpha1.StateNone, nil, false, "metadata", false),
 			BMCSecret:                 newBMCSecret("mycredentials", false),
 			ExpectSecretDeleted:       true,
@@ -1804,8 +1804,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: newBareMetalHost("myhost", bmhSpecSomeImg(),
 				bmov1alpha1.StateProvisioned, bmhStatus(), false, "metadata", true,
 			),
-			Machine: newMachine("mymachine", "mym3machine", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatusNil(),
+			Machine: newMachine(machineName, metal3machineName, nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatusNil(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Secret:                  newSecret(),
@@ -1816,8 +1816,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Capm3FastTrack is set to false, AutomatedCleaning mode is set to metadata, set bmh online field to false", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmov1alpha1.StateDeprovisioning, bmhStatus(), false, "metadata", true),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedResult:          &RequeueAfterError{},
@@ -1829,8 +1829,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Capm3FastTrack is set to true, AutomatedCleaning mode is set to metadata, set bmh online field to true", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmov1alpha1.StateDeprovisioning, bmhStatus(), false, "metadata", true),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedResult:          &RequeueAfterError{},
@@ -1842,8 +1842,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Capm3FastTrack is set to false, AutomatedCleaning mode is set to disabled, set bmh online field to false", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmov1alpha1.StateDeprovisioning, bmhStatus(), false, "disabled", true),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedResult:          &RequeueAfterError{},
@@ -1855,8 +1855,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Capm3FastTrack is set to true, AutomatedCleaning mode is set to disabled, set bmh online field to false", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmov1alpha1.StateDeprovisioning, bmhStatus(), false, "disabled", true),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedResult:          &RequeueAfterError{},
@@ -1868,8 +1868,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Capm3FastTrack is empty, AutomatedCleaning mode is set to disabled, set bmh online field to false", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmov1alpha1.StateDeprovisioning, bmhStatus(), false, "disabled", true),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedResult:          &RequeueAfterError{},
@@ -1881,8 +1881,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Capm3FastTrack is empty, AutomatedCleaning mode is set to metadata, set bmh online field to false", testCaseDelete{
 			Host: newBareMetalHost("myhost", bmhSpec(),
 				bmov1alpha1.StateDeprovisioning, bmhStatus(), false, "metadata", true),
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedResult:          &RequeueAfterError{},
@@ -1939,9 +1939,9 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				&metav1.ObjectMeta{
-					Name:      "mym3machine",
+					Name:      metal3machineName,
 					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -2020,9 +2020,9 @@ var _ = Describe("Metal3Machine manager", func() {
 						DataSecretName: pointer.StringPtr("mym3machine-user-data")},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				&metav1.ObjectMeta{
-					Name:      "mym3machine",
+					Name:      metal3machineName,
 					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
@@ -2140,7 +2140,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				M3Machine: infrav1.Metal3Machine{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "mym3machine",
+						Name:      metal3machineName,
 						Namespace: namespaceName,
 					},
 					TypeMeta: metav1.TypeMeta{
@@ -2204,7 +2204,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				M3Machine: infrav1.Metal3Machine{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "mym3machine",
+						Name:      metal3machineName,
 						Namespace: namespaceName,
 					},
 					TypeMeta: metav1.TypeMeta{
@@ -2252,7 +2252,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					M3Machine: infrav1.Metal3Machine{
 						ObjectMeta: metav1.ObjectMeta{
-							Name:      "mym3machine",
+							Name:      metal3machineName,
 							Namespace: namespaceName,
 						},
 						TypeMeta: metav1.TypeMeta{
@@ -2602,7 +2602,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "node-0",
+							Name: node0Name,
 						},
 						Spec: corev1.NodeSpec{
 							ProviderID: ProviderID,
@@ -2610,7 +2610,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
-							Name: "node-1",
+							Name: node1Name,
 						},
 						Spec: corev1.NodeSpec{
 							ProviderID: ProviderID,
@@ -2722,7 +2722,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil, nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil, nil),
 			BMHost:    newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", false),
 		}),
 		Entry("Secret set in Machine, different namespace", testCaseGetUserDataSecretName{
@@ -2750,7 +2750,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil, nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil, nil),
 			BMHost:    newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", false),
 		}),
 		Entry("Secret in other namespace set in Machine", testCaseGetUserDataSecretName{
@@ -2782,7 +2782,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil, nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil, nil),
 			BMHost:    newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", false),
 		}),
 		Entry("UserDataSecretName set in Machine, secret exists", testCaseGetUserDataSecretName{
@@ -2797,7 +2797,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil, nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil, nil),
 			BMHost:    newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", false),
 		}),
 		Entry("UserDataSecretName set in Machine, no secret", testCaseGetUserDataSecretName{
@@ -2811,7 +2811,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil, nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil, nil),
 			BMHost:    newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", false),
 		}),
 	)
@@ -2899,7 +2899,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Associate empty machine, Metal3 machine spec nil",
 			testCaseAssociate{
 				Machine: newMachine("", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				Host: newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil,
@@ -2911,7 +2911,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Associate empty machine, Metal3 machine spec set",
 			testCaseAssociate{
 				Machine: newMachine("", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, m3mSpecAll(), nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpecAll(), nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				Host: newBareMetalHost("myhost", bmhSpecBMC(), bmov1alpha1.StateNone, nil,
@@ -2925,7 +2925,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Associate empty machine, host empty, Metal3 machine spec set",
 			testCaseAssociate{
 				Machine: newMachine("", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, m3mSpecAll(), nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpecAll(), nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				Host:           newBareMetalHost("", nil, bmov1alpha1.StateNone, nil, false, "metadata", false),
@@ -2936,7 +2936,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Associate machine, host nil, Metal3 machine spec set, requeue",
 			testCaseAssociate{
 				Machine: newMachine("myUniqueMachine", "", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil, m3mSpecAll(), nil,
+				M3Machine: newMetal3Machine(metal3machineName, nil, m3mSpecAll(), nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
 				Host:          nil,
@@ -2945,8 +2945,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		Entry("Associate machine, host set, Metal3 machine spec set, set clusterLabel",
 			testCaseAssociate{
-				Machine:            newMachine("mymachine", "mym3machine", nil),
-				M3Machine:          newMetal3Machine("mym3machine", nil, m3mSpecAll(), nil, nil),
+				Machine:            newMachine(machineName, metal3machineName, nil),
+				M3Machine:          newMetal3Machine(metal3machineName, nil, m3mSpecAll(), nil, nil),
 				Host:               newBareMetalHost("myhost", bmhSpecBMC(), bmov1alpha1.StateNone, nil, false, "metadata", false),
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
@@ -2956,8 +2956,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		Entry("Associate machine with DataTemplate missing",
 			testCaseAssociate{
-				Machine: newMachine("mymachine", "mym3machine", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil,
+				Machine: newMachine(machineName, metal3machineName, nil),
+				M3Machine: newMetal3Machine(metal3machineName, nil,
 					&infrav1.Metal3MachineSpec{
 						DataTemplate: &corev1.ObjectReference{
 							Name:      "abcd",
@@ -2983,8 +2983,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		),
 		Entry("Associate machine with DataTemplate and Data ready",
 			testCaseAssociate{
-				Machine: newMachine("mymachine", "mym3machine", nil),
-				M3Machine: newMetal3Machine("mym3machine", nil,
+				Machine: newMachine(machineName, metal3machineName, nil),
+				M3Machine: newMetal3Machine(metal3machineName, nil,
 					&infrav1.Metal3MachineSpec{
 						DataTemplate: &corev1.ObjectReference{
 							Name:      "abcd",
@@ -3059,15 +3059,15 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 		},
 		Entry("Update machine", testCaseUpdate{
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, nil, nil,
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil,
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			Host: newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", false),
 		}),
 		Entry("Update machine, DataTemplate missing", testCaseUpdate{
-			Machine: newMachine("mymachine", "", nil),
-			M3Machine: newMetal3Machine("mym3machine", nil, &infrav1.Metal3MachineSpec{
+			Machine: newMachine(machineName, "", nil),
+			M3Machine: newMetal3Machine(metal3machineName, nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{
 					Name: "abcd",
 				},
@@ -3411,14 +3411,14 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine:     newMachine("myName", "myName", nil),
+			Machine:     newMachine(machineName, metal3machineName, nil),
 			expectClaim: true,
 		}),
 		Entry("Should not be an error if DataClaim exists", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
@@ -3438,7 +3438,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine:     newMachine("myName", "myName", nil),
+			Machine:     newMachine(machineName, metal3machineName, nil),
 			DataClaim:   &infrav1.Metal3DataClaim{},
 			expectClaim: true,
 		}),
@@ -3446,7 +3446,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
@@ -3534,14 +3534,14 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine:       newMachine("myName", "myName", nil),
+			Machine:       newMachine(machineName, metal3machineName, nil),
 			ExpectRequeue: true,
 		}),
 		Entry("Should requeue if Data claim without status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
@@ -3554,7 +3554,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
@@ -3570,7 +3570,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
@@ -3596,7 +3596,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, nil, &infrav1.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
-			Machine:          newMachine("myName", "myName", nil),
+			Machine:          newMachine(machineName, metal3machineName, nil),
 			ExpectRequeue:    true,
 			ExpectDataStatus: true,
 		}),
@@ -3604,7 +3604,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, nil, &infrav1.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abcd-0",
@@ -3618,7 +3618,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, nil, &infrav1.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abcd-0",
@@ -3635,7 +3635,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine("myName", nil, nil, &infrav1.Metal3MachineStatus{
 				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abcd-0",
@@ -3709,7 +3709,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				MetaData:    &corev1.SecretReference{Name: "abcd"},
 				NetworkData: &corev1.SecretReference{Name: "defg"},
 			}, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 		}),
 		Entry("MetaData and NetworkData should be set in spec and status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
@@ -3719,7 +3719,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				MetaData:    &corev1.SecretReference{Name: "abcd"},
 				NetworkData: &corev1.SecretReference{Name: "defg"},
 			}, nil),
-			Machine:            newMachine("myName", "myName", nil),
+			Machine:            newMachine(machineName, metal3machineName, nil),
 			ExpectSecretStatus: true,
 		}),
 		Entry("Should return nil if DataClaim not found", testCaseM3MetaData{
@@ -3729,7 +3729,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 		}),
 		Entry("Should not error if DataClaim found", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
@@ -3738,7 +3738,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 			}, nil, nil),
-			Machine: newMachine("myName", "myName", nil),
+			Machine: newMachine(machineName, metal3machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myName",
@@ -3753,7 +3753,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 			}, nil, nil),
-			Machine:   newMachine("myName", "myName", nil),
+			Machine:   newMachine(machineName, metal3machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{},
 		}),
 	)

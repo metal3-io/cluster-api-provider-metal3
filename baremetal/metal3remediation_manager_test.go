@@ -312,7 +312,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should find the unhealthy host", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
@@ -325,7 +325,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the unhealthy host", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
@@ -338,7 +338,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the host, annotation is empty", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations:     map[string]string{},

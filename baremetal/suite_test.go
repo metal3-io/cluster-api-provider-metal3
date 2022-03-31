@@ -50,9 +50,13 @@ var testEnv *envtest.Environment
 const (
 	clusterName       = "baremetalns_testCluster"
 	metal3ClusterName = "baremetalns_testmetal3Cluster"
+	metal3machineName = "testmetal3machine"
+	machineName       = "testMachine"
 	namespaceName     = "baremetalns"
 	m3muid            = "11111111-9845-4321-1234-c74be387f57c"
 	bmhuid            = "22222222-9845-4c48-9e49-c74be387f57c"
+	node0Name         = "node-0"
+	node1Name         = "node-1"
 )
 
 var providerid = fmt.Sprintf("%s/%s/%s", namespaceName, "abc", "abc")
