@@ -1,7 +1,7 @@
 # Versioning
 
 Those guidelines are coming from
-[Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/VERSIONING.md)
+[Cluster API](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#versioning)
 as we try to follow closely the release process
 
 <!-- markdownlint-disable -->
@@ -21,16 +21,16 @@ as we try to follow closely the release process
 ## Overview
 
 Cluster API follows [Semantic Versioning](https://semver.org).
-I'd recommend reading the aforementioned link if you're not familiar,
+We recommend reading the aforementioned link if you're not familiar,
 but essentially, for any given release X.Y.Z:
 
 - an X (*major*) release indicates a set of backwards-compatible code.
   Changing X means there's a breaking change.
 
-- a Y (*minor*) release indicates a minimum feature set.  Changing Y means
+- a Y (*minor*) release indicates a minimum feature set. Changing Y means
   the addition of a backwards-compatible feature.
 
-- a Z (*patch*) release indicates minimum set of bugfixes.  Changing
+- a Z (*patch*) release indicates minimum set of bugfixes. Changing
   Z means a backwards-compatible change that doesn't add functionality.
 
 *NB*: If the major release is `0`, any minor release may contain breaking
@@ -38,7 +38,7 @@ changes.
 
 These guarantees extend to all code exposed in public APIs of
 Cluster API Provider Metal3. This includes code both in Cluster API Provider
-Baremetal itself, *plus types from dependencies in public APIs*.  Types and
+Metal3 itself, *plus types from dependencies in public APIs*. Types and
 functions not in public APIs are not considered part of the guarantee.
 
 In order to easily maintain the guarantees, we have a couple of processes
@@ -49,12 +49,12 @@ that we follow.
 Cluster API Provider Metal3 contains two types of branches: the *main*
 branch and *release-X* branches.
 
-The *main* branch is where development happens.  All the latest and
+The *main* branch is where development happens. All the latest and
 greatest code, including breaking changes, happen on main.
 
-The *release-X* branches contain stable, backwards compatible code.  Every
-major (X) release, a new such branch is created.  It is from these
-branches that minor and patch releases are tagged.  In some cases, it may
+The *release-X* branches contain stable, backwards compatible code. For every
+major (X) release, a new such branch is created. It is from these
+branches that minor and patch releases are tagged. In some cases, it may
 be necessary to open PRs for bugfixes directly against stable branches, but
 this should generally be avoided.
 
@@ -64,7 +64,7 @@ filters and checks for changes tagged as breaking (see below).
 
 ## PR Process
 
-Every PR should be annotated with an icon indicating whether it's
+Every PR should be labeled with an icon indicating whether it's
 a:
 
 - Breaking change: :warning: (`:warning:`)
@@ -73,28 +73,27 @@ a:
 - Docs: :book: (`:book:`)
 - Infra/Tests/Other: :seedling: (`:seedling:`)
 
-You can also use the equivalent emoji directly, since GitHub doesn't
-render the `:xyz:` aliases in PR titles.
-
 Individual commits should not be tagged separately, but will generally be
 assumed to match the PR. For instance, if you have a bug fix in with
 a breaking change, it's generally encouraged to submit the bug fix
 separately, but if you must put them in one PR, mark the commit
 separately.
 
+All changes must be code reviewed. Coding conventions and standards are explained in the official [developer
+docs](https://git.k8s.io/community/contributors/devel). Expect reviewers to request that you
+avoid common [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
+
 ### Commands and Workflow
 
 Cluster API Provider Metal3 follows the standard Kubernetes workflow: any PR
-needs `lgtm` and `approved` labels, PRs authors must have signed the CNCF CLA,
-and PRs must pass the tests before being merged.  See [the contributor
-docs](https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#the-testing-and-merge-workflow)
-for more info.
+needs `lgtm` and `approved` labels, and PRs must pass the tests before being merged.
+See [the contributor docs](https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#the-testing-and-merge-workflow) for more info.
 
-We use the same priority and kind labels as Kubernetes.  See the labels
+We use the same priority and kind labels as Kubernetes. See the labels
 tab in GitHub for the full list.
 
 The standard Kubernetes comment commands should work in
-Cluster API Provider Metal3.  See [Prow](https://prow.k8s.io/command-help)
+Cluster API Provider Metal3. See [Prow](https://prow.apps.test.metal3.io/command-help)
 for a command reference.
 
 ## Release Process
@@ -103,7 +102,7 @@ Minor and patch releases are generally done immediately after a feature or
 bugfix is landed, or sometimes a series of features tied together.
 
 Minor releases will only be tagged on the *most recent* major release
-branch, except in exceptional circumstances.  Patches will be backported
+branch, except in exceptional circumstances. Patches will be backported
 to maintained stable versions, as needed.
 
 Major releases are done shortly after a breaking change is merged -- once
@@ -117,20 +116,20 @@ Refer to the [releasing document](./docs/releasing.md) for the exact steps.
 
 ### Breaking Changes
 
-Try to avoid breaking changes.  They make life difficult for users, who
+Try to avoid breaking changes. They make life difficult for users, who
 have to rewrite their code when they eventually upgrade, and for
 maintainers/contributors, who have to deal with differences between main
 and stable branches.
 
 That being said, we'll occasionally want to make breaking changes. They'll
 be merged onto main, and will then trigger a major release (see [Release
-Process](#release-process)).  Because breaking changes induce a major
+Process](#release-process)). Because breaking changes induce a major
 revision, the maintainers may delay a particular breaking change until
 a later date when they are ready to make a major revision with a few
 breaking changes.
 
 If you're going to make a breaking change, please make sure to explain in
-detail why it's helpful.  Is it necessary to cleanly resolve an issue?
+detail why it's helpful. Is it necessary to cleanly resolve an issue?
 Does it improve API ergonomics?
 
 Maintainers should treat breaking changes with caution, and evaluate
@@ -171,7 +170,7 @@ Furthermore, our dependency on Kubernetes libraries makes this difficult
 ### Always assume we've broken compatibility
 
 *a.k.a. k8s.io/client-go style* While this makes life easier (a bit) for
-maintainers, it's problematic for users.  While breaking changes arrive sooner,
+maintainers, it's problematic for users. While breaking changes arrive sooner,
 upgrading becomes very painful.
 
 Furthermore, we still have to maintain stable branches for bugfixes, so
