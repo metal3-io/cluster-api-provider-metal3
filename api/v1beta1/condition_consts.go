@@ -48,7 +48,7 @@ const (
 	// KubernetesNodeReadyCondition documents the transition of a Metal3Machine into a Kubernetes Node.
 	KubernetesNodeReadyCondition clusterv1.ConditionType = "KubernetesNodeReady"
 	// Could not find the BMH associated with the Metal3Machine
-	MissingBMHReason = "MissingBMHReason"
+	MissingBMHReason = "MissingBMH"
 	// Could not set the ProviderID on the target cluster's Node object.
-	SettingProviderIDOnNodeFailedReason = "DrainingFailed"
+	SettingProviderIDOnNodeFailedReason = "SettingProviderIDOnNodeFailed"
 )
