@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,11 +53,12 @@ var testEnv *envtest.Environment
 var timestampNow = metav1.Now()
 
 const (
-	clusterName       = "testCluster"
-	metal3ClusterName = "testmetal3Cluster"
-	machineName       = "testMachine"
-	metal3machineName = "testmetal3machine"
-	namespaceName     = "testNameSpace"
+	clusterName               = "testCluster"
+	metal3ClusterName         = "testmetal3Cluster"
+	machineName               = "testMachine"
+	metal3machineName         = "testmetal3machine"
+	namespaceName             = "testNameSpace"
+	metal3machineTemplateName = "testmetal3machinetemplate"
 )
 
 func init() {
@@ -292,6 +294,20 @@ func newMachine(clusterName, machineName string, metal3machineName string) *clus
 		}
 	}
 	return machine
+}
+
+func newMetal3MachineTemplate(m3mTemplateName string, namespace string, annotations map[string]string) *capm3.Metal3MachineTemplate {
+	return &capm3.Metal3MachineTemplate{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Metal3MachineTemplate",
+			APIVersion: capm3.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        m3mTemplateName,
+			Namespace:   namespace,
+			Annotations: annotations,
+		},
+	}
 }
 
 func newMetal3Machine(name string, meta *metav1.ObjectMeta,
