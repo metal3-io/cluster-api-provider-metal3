@@ -1,7 +1,7 @@
 package e2e
 
 import (
-	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -24,11 +24,11 @@ func inspection() {
 	bootstrapClient := bootstrapClusterProxy.GetClient()
 
 	Logf("Request inspection for all Available BMHs via API")
-	availableBMHList := bmo.BareMetalHostList{}
+	availableBMHList := bmov1alpha1.BareMetalHostList{}
 	Expect(bootstrapClient.List(ctx, &availableBMHList, client.InNamespace(namespace))).To(Succeed())
 	Logf("Request inspection for all Available BMHs via API")
 	for _, bmh := range availableBMHList.Items {
-		if bmh.Status.Provisioning.State == bmo.StateAvailable {
+		if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable {
 			annotateBmh(ctx, bootstrapClient, bmh, inspectAnnotation, pointer.String(""))
 		}
 	}
@@ -40,7 +40,7 @@ func inspection() {
 			Logf("Error: %v", err)
 			return err
 		}
-		inspectingBMHs := filterBmhsByProvisioningState(bmhs, bmo.StateInspecting)
+		inspectingBMHs := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateInspecting)
 		if len(inspectingBMHs) != numberOfAvailableBMHs {
 			return errors.Errorf("Waiting for %v BMHs to be in Inspecting state, but got %v", numberOfAvailableBMHs, len(inspectingBMHs))
 		}
@@ -54,7 +54,7 @@ func inspection() {
 			Logf("Error: %v", err)
 			return err
 		}
-		availableBMHs := filterBmhsByProvisioningState(bmhs, bmo.StateAvailable)
+		availableBMHs := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
 		if len(availableBMHs) != numberOfAvailableBMHs {
 			return errors.Errorf("Waiting for %v BMHs to be in Available state, but got %v", numberOfAvailableBMHs, len(availableBMHs))
 		}

@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -35,8 +35,8 @@ import (
 var _ = Describe("Metal3MachineTemplate manager", func() {
 
 	type testCaseUpdate struct {
-		M3MachineTemplate *capm3.Metal3MachineTemplate
-		M3MachineList     *capm3.Metal3MachineList
+		M3MachineTemplate *infrav1.Metal3MachineTemplate
+		M3MachineList     *infrav1.Metal3MachineList
 		ExpectedValue     *string
 	}
 
@@ -61,7 +61,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					Name:      m3m.Name,
 					Namespace: m3m.Namespace,
 				}
-				updatedM3M := capm3.Metal3Machine{}
+				updatedM3M := infrav1.Metal3Machine{}
 				err = fakeClient.Get(context.TODO(), key, &updatedM3M)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(updatedM3M.Spec.AutomatedCleaningMode).To(Equal(tc.ExpectedValue))
@@ -69,30 +69,30 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 		},
 		Entry("Disk cleaning disabled", testCaseUpdate{
 			ExpectedValue: utils.StringPtr("disabled"),
-			M3MachineTemplate: &capm3.Metal3MachineTemplate{
+			M3MachineTemplate: &infrav1.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "foo",
 				},
-				Spec: capm3.Metal3MachineTemplateSpec{
-					Template: capm3.Metal3MachineTemplateResource{
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 						},
 					},
 				},
 			},
-			M3MachineList: &capm3.Metal3MachineList{
+			M3MachineList: &infrav1.Metal3MachineList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capm3.Metal3Machine{
+				Items: []infrav1.Metal3Machine{
 					{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -100,11 +100,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+								"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 							},
 						},
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeMetadata),
 						},
 					},
 					{
@@ -114,11 +114,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+								"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 							},
 						},
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeMetadata),
 						},
 					},
 					{
@@ -128,11 +128,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+								"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 							},
 						},
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeMetadata),
 						},
 					},
 				},
@@ -140,30 +140,30 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 		}),
 		Entry("Disk cleaning enabled", testCaseUpdate{
 			ExpectedValue: utils.StringPtr("metadata"),
-			M3MachineTemplate: &capm3.Metal3MachineTemplate{
+			M3MachineTemplate: &infrav1.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "foo",
 				},
-				Spec: capm3.Metal3MachineTemplateSpec{
-					Template: capm3.Metal3MachineTemplateResource{
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeMetadata),
 						},
 					},
 				},
 			},
-			M3MachineList: &capm3.Metal3MachineList{
+			M3MachineList: &infrav1.Metal3MachineList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capm3.Metal3Machine{
+				Items: []infrav1.Metal3Machine{
 					{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -171,11 +171,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+								"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 							},
 						},
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 						},
 					},
 					{
@@ -185,11 +185,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+								"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 							},
 						},
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 						},
 					},
 					{
@@ -199,11 +199,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "abc",
-								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+								"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 							},
 						},
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 						},
 					},
 				},
@@ -211,30 +211,30 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 		}),
 		Entry("Don't synchronize M3Machines which are not part of the M3MTemplate ", testCaseUpdate{
 			ExpectedValue: utils.StringPtr("metadata"),
-			M3MachineTemplate: &capm3.Metal3MachineTemplate{
+			M3MachineTemplate: &infrav1.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: "foo",
 				},
-				Spec: capm3.Metal3MachineTemplateSpec{
-					Template: capm3.Metal3MachineTemplateResource{
-						Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
 							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},
 				},
 			},
-			M3MachineList: &capm3.Metal3MachineList{
+			M3MachineList: &infrav1.Metal3MachineList{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: capm3.GroupVersion.String(),
+					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineList",
 				},
 				ListMeta: metav1.ListMeta{},
-				Items: []capm3.Metal3Machine{
+				Items: []infrav1.Metal3Machine{
 					{
 						TypeMeta: metav1.TypeMeta{},
 						ObjectMeta: metav1.ObjectMeta{
@@ -242,11 +242,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							Namespace: "foo",
 							Annotations: map[string]string{
 								"cluster.x-k8s.io/cloned-from-name":      "xyz",
-								"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+								"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 							},
 						},
-						Spec: capm3.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeMetadata),
 						},
 					},
 				},

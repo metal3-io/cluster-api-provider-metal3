@@ -27,8 +27,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/tools/cache"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -48,9 +48,9 @@ type RemediationManagerInterface interface {
 	TimeToRemediate(timeout time.Duration) (bool, time.Duration)
 	SetRebootAnnotation(ctx context.Context) error
 	SetUnhealthyAnnotation(ctx context.Context) error
-	GetUnhealthyHost(ctx context.Context) (*bmh.BareMetalHost, *patch.Helper, error)
-	OnlineStatus(host *bmh.BareMetalHost) bool
-	GetRemediationType() capm3.RemediationType
+	GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error)
+	OnlineStatus(host *bmov1alpha1.BareMetalHost) bool
+	GetRemediationType() infrav1.RemediationType
 	RetryLimitIsSet() bool
 	SetRemediationPhase(phase string)
 	GetRemediationPhase() string
@@ -66,15 +66,15 @@ type RemediationManagerInterface interface {
 // RemediationManager is responsible for performing remediation reconciliation.
 type RemediationManager struct {
 	Client            client.Client
-	Metal3Remediation *capm3.Metal3Remediation
-	Metal3Machine     *capm3.Metal3Machine
+	Metal3Remediation *infrav1.Metal3Remediation
+	Metal3Machine     *infrav1.Metal3Machine
 	Machine           *clusterv1.Machine
 	Log               logr.Logger
 }
 
 // NewRemediationManager returns a new helper for managing a Metal3Remediation object.
 func NewRemediationManager(client client.Client,
-	metal3remediation *capm3.Metal3Remediation, metal3Machine *capm3.Metal3Machine, machine *clusterv1.Machine,
+	metal3remediation *infrav1.Metal3Remediation, metal3Machine *infrav1.Metal3Machine, machine *clusterv1.Machine,
 	remediationLog logr.Logger) (*RemediationManager, error) {
 	return &RemediationManager{
 		Client:            client,
@@ -88,9 +88,9 @@ func NewRemediationManager(client client.Client,
 // SetFinalizer sets finalizer.
 func (r *RemediationManager) SetFinalizer() {
 	// If the Metal3Remediation doesn't have finalizer, add it.
-	if !Contains(r.Metal3Remediation.Finalizers, capm3.RemediationFinalizer) {
+	if !Contains(r.Metal3Remediation.Finalizers, infrav1.RemediationFinalizer) {
 		r.Metal3Remediation.Finalizers = append(r.Metal3Remediation.Finalizers,
-			capm3.RemediationFinalizer,
+			infrav1.RemediationFinalizer,
 		)
 	}
 }
@@ -99,7 +99,7 @@ func (r *RemediationManager) SetFinalizer() {
 func (r *RemediationManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
 	r.Metal3Remediation.Finalizers = Filter(r.Metal3Remediation.Finalizers,
-		capm3.RemediationFinalizer,
+		infrav1.RemediationFinalizer,
 	)
 }
 
@@ -133,8 +133,8 @@ func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 	}
 
 	r.Log.Info("Adding Reboot annotation to host", host.Name)
-	rebootMode := bmh.RebootAnnotationArguments{}
-	rebootMode.Mode = bmh.RebootModeHard
+	rebootMode := bmov1alpha1.RebootAnnotationArguments{}
+	rebootMode.Mode = bmov1alpha1.RebootModeHard
 	marshalledMode, err := json.Marshal(rebootMode)
 
 	if err != nil {
@@ -145,7 +145,7 @@ func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 	return helper.Patch(ctx, host)
 }
 
-// SetUnhealthyAnnotation sets capm3.UnhealthyAnnotation on unhealthy host.
+// SetUnhealthyAnnotation sets UnhealthyAnnotation annotation on unhealthy host.
 func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
@@ -156,13 +156,13 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 	}
 
 	r.Log.Info("Adding Unhealthy annotation to host", host.Name)
-	host.Annotations[capm3.UnhealthyAnnotation] = "capm3/UnhealthyNode"
+	host.Annotations[infrav1.UnhealthyAnnotation] = "capm3/UnhealthyNode"
 	return helper.Patch(ctx, host)
 }
 
 // GetUnhealthyHost gets the associated host for unhealthy machine. Returns nil if not found. Assumes the
 // host is in the same namespace as the unhealthy machine.
-func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmh.BareMetalHost, *patch.Helper, error) {
+func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error) {
 	host, err := getUnhealthyHost(ctx, r.Metal3Machine, r.Client, r.Log)
 	if err != nil || host == nil {
 		return host, nil, err
@@ -171,9 +171,9 @@ func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmh.BareMet
 	return host, helper, err
 }
 
-func getUnhealthyHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl client.Client,
+func getUnhealthyHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Client,
 	rLog logr.Logger,
-) (*bmh.BareMetalHost, error) {
+) (*bmov1alpha1.BareMetalHost, error) {
 	annotations := m3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		err := fmt.Errorf("unable to get %s annotations", m3Machine.Name)
@@ -190,7 +190,7 @@ func getUnhealthyHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl cl
 		return nil, err
 	}
 
-	host := bmh.BareMetalHost{}
+	host := bmov1alpha1.BareMetalHost{}
 	key := client.ObjectKey{
 		Name:      hostName,
 		Namespace: hostNamespace,
@@ -206,12 +206,12 @@ func getUnhealthyHost(ctx context.Context, m3Machine *capm3.Metal3Machine, cl cl
 }
 
 // OnlineStatus returns hosts Online field value.
-func (r *RemediationManager) OnlineStatus(host *bmh.BareMetalHost) bool {
+func (r *RemediationManager) OnlineStatus(host *bmov1alpha1.BareMetalHost) bool {
 	return host.Spec.Online
 }
 
 // GetRemediationType return type of remediation strategy.
-func (r *RemediationManager) GetRemediationType() capm3.RemediationType {
+func (r *RemediationManager) GetRemediationType() infrav1.RemediationType {
 	return r.Metal3Remediation.Spec.Strategy.Type
 }
 

@@ -21,7 +21,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -43,13 +43,13 @@ var _ = Describe("Manager factory testing", func() {
 
 	It("returns a cluster manager", func() {
 		_, err := managerFactory.NewClusterManager(&clusterv1.Cluster{},
-			&capm3.Metal3Cluster{}, clusterLog,
+			&infrav1.Metal3Cluster{}, clusterLog,
 		)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("fails to return a cluster manager with nil cluster", func() {
-		_, err := managerFactory.NewClusterManager(nil, &capm3.Metal3Cluster{},
+		_, err := managerFactory.NewClusterManager(nil, &infrav1.Metal3Cluster{},
 			clusterLog,
 		)
 		Expect(err).To(HaveOccurred())
@@ -64,29 +64,29 @@ var _ = Describe("Manager factory testing", func() {
 
 	It("returns a metal3 machine manager", func() {
 		_, err := managerFactory.NewMachineManager(&clusterv1.Cluster{},
-			&capm3.Metal3Cluster{}, &clusterv1.Machine{}, &capm3.Metal3Machine{},
+			&infrav1.Metal3Cluster{}, &clusterv1.Machine{}, &infrav1.Metal3Machine{},
 			clusterLog,
 		)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("returns a DataTemplate manager", func() {
-		_, err := managerFactory.NewDataTemplateManager(&capm3.Metal3DataTemplate{}, clusterLog)
+		_, err := managerFactory.NewDataTemplateManager(&infrav1.Metal3DataTemplate{}, clusterLog)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("returns a Data manager", func() {
-		_, err := managerFactory.NewDataManager(&capm3.Metal3Data{}, clusterLog)
+		_, err := managerFactory.NewDataManager(&infrav1.Metal3Data{}, clusterLog)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("returns a MachineTemplate manager", func() {
-		_, err := managerFactory.NewMachineTemplateManager(&capm3.Metal3MachineTemplate{}, &capm3.Metal3MachineList{}, clusterLog)
+		_, err := managerFactory.NewMachineTemplateManager(&infrav1.Metal3MachineTemplate{}, &infrav1.Metal3MachineList{}, clusterLog)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("returns a Remediation manager", func() {
-		_, err := managerFactory.NewRemediationManager(&capm3.Metal3Remediation{}, &capm3.Metal3Machine{}, &clusterv1.Machine{}, clusterLog)
+		_, err := managerFactory.NewRemediationManager(&infrav1.Metal3Remediation{}, &infrav1.Metal3Machine{}, &clusterv1.Machine{}, clusterLog)
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

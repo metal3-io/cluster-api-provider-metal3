@@ -23,8 +23,8 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -33,8 +33,8 @@ import (
 )
 
 type testCaseRemediationManager struct {
-	Metal3Remediation *capm3.Metal3Remediation
-	Metal3Machine     *capm3.Metal3Machine
+	Metal3Remediation *infrav1.Metal3Remediation
+	Metal3Machine     *infrav1.Metal3Machine
 	Machine           *clusterv1.Machine
 	ExpectSuccess     bool
 }
@@ -64,8 +64,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 				}
 			},
 			Entry("All fields defined", testCaseRemediationManager{
-				Metal3Remediation: &capm3.Metal3Remediation{},
-				Metal3Machine:     &capm3.Metal3Machine{},
+				Metal3Remediation: &infrav1.Metal3Remediation{},
+				Metal3Machine:     &infrav1.Metal3Machine{},
 				Machine:           &clusterv1.Machine{},
 				ExpectSuccess:     true,
 			}),
@@ -88,20 +88,20 @@ var _ = Describe("Metal3Remediation manager", func() {
 			remediationMgr.SetFinalizer()
 
 			Expect(tc.Metal3Remediation.ObjectMeta.Finalizers).To(ContainElement(
-				capm3.RemediationFinalizer,
+				infrav1.RemediationFinalizer,
 			))
 
 			remediationMgr.UnsetFinalizer()
 
 			Expect(tc.Metal3Remediation.ObjectMeta.Finalizers).NotTo(ContainElement(
-				capm3.RemediationFinalizer,
+				infrav1.RemediationFinalizer,
 			))
 		},
 		Entry("No finalizers", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{},
+			Metal3Remediation: &infrav1.Metal3Remediation{},
 		}),
 		Entry("Additional finalizers", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{
+			Metal3Remediation: &infrav1.Metal3Remediation{
 				ObjectMeta: metav1.ObjectMeta{
 					Finalizers: []string{"foo"},
 				},
@@ -110,7 +110,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseRetryLimitSet struct {
-		Metal3Remediation *capm3.Metal3Remediation
+		Metal3Remediation *infrav1.Metal3Remediation
 		ExpectTrue        bool
 	}
 
@@ -126,9 +126,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Expect(retryLimitIsSet).To(Equal(tc.ExpectTrue))
 		},
 		Entry("retry limit is set", testCaseRetryLimitSet{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 1,
 						Timeout:    &metav1.Duration{},
@@ -138,9 +138,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: true,
 		}),
 		Entry("retry limit is set to 0", testCaseRetryLimitSet{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 0,
 						Timeout:    &metav1.Duration{},
@@ -150,9 +150,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: false,
 		}),
 		Entry("retry limit is set to less than 0", testCaseRetryLimitSet{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: -1,
 						Timeout:    &metav1.Duration{},
@@ -162,9 +162,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: false,
 		}),
 		Entry("retry limit is not set", testCaseRetryLimitSet{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:    "",
 						Timeout: &metav1.Duration{},
 					},
@@ -186,15 +186,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Expect(retryLimitIsSet).To(Equal(tc.ExpectTrue))
 		},
 		Entry("retry limit is reached", testCaseRetryLimitSet{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 1,
 						Timeout:    &metav1.Duration{},
 					},
 				},
-				Status: capm3.Metal3RemediationStatus{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase:          "",
 					RetryCount:     1,
 					LastRemediated: &metav1.Time{},
@@ -203,15 +203,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: true,
 		}),
 		Entry("retry limit is not reached", testCaseRetryLimitSet{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 1,
 						Timeout:    &metav1.Duration{},
 					},
 				},
-				Status: capm3.Metal3RemediationStatus{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase:          "",
 					RetryCount:     0,
 					LastRemediated: &metav1.Time{},
@@ -220,15 +220,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: false,
 		}),
 		Entry("retry limit is not set so limit is reached", testCaseRetryLimitSet{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 0,
 						Timeout:    &metav1.Duration{},
 					},
 				},
-				Status: capm3.Metal3RemediationStatus{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase:          "",
 					RetryCount:     0,
 					LastRemediated: &metav1.Time{},
@@ -239,8 +239,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseEnsureRebootAnnotation struct {
-		Host              *bmh.BareMetalHost
-		Metal3Remediation *capm3.Metal3Remediation
+		Host              *bmov1alpha1.BareMetalHost
+		Metal3Remediation *infrav1.Metal3Remediation
 		ExpectTrue        bool
 	}
 
@@ -259,16 +259,16 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 		},
 		Entry(" Online field in spec is set to false", testCaseEnsureRebootAnnotation{
-			Host: &bmh.BareMetalHost{
-				Spec: bmh.BareMetalHostSpec{
+			Host: &bmov1alpha1.BareMetalHost{
+				Spec: bmov1alpha1.BareMetalHostSpec{
 					Online: false,
 				},
 			},
 			ExpectTrue: false,
 		}),
 		Entry(" Online field in spec is set to true", testCaseEnsureRebootAnnotation{
-			Host: &bmh.BareMetalHost{
-				Spec: bmh.BareMetalHostSpec{
+			Host: &bmov1alpha1.BareMetalHost{
+				Spec: bmov1alpha1.BareMetalHostSpec{
 					Online: true,
 				},
 			},
@@ -277,14 +277,14 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseGetUnhealthyHost struct {
-		M3Machine         *capm3.Metal3Machine
-		Metal3Remediation *capm3.Metal3Remediation
+		M3Machine         *infrav1.Metal3Machine
+		Metal3Remediation *infrav1.Metal3Remediation
 		ExpectPresent     bool
 	}
 
 	DescribeTable("Test GetUnhealthyHost",
 		func(tc testCaseGetUnhealthyHost) {
-			host := bmh.BareMetalHost{
+			host := bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "myhost",
 					Namespace: namespaceName,
@@ -310,7 +310,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 		},
 		Entry("Should find the unhealthy host", testCaseGetUnhealthyHost{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       namespaceName,
@@ -323,7 +323,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectPresent: true,
 		}),
 		Entry("Should not find the unhealthy host", testCaseGetUnhealthyHost{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       namespaceName,
@@ -336,7 +336,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectPresent: false,
 		}),
 		Entry("Should not find the host, annotation is empty", testCaseGetUnhealthyHost{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       namespaceName,
@@ -347,7 +347,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectPresent: false,
 		}),
 		Entry("Should not find the host, annotation is nil", testCaseGetUnhealthyHost{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -358,7 +358,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectPresent: false,
 		}),
 		Entry("Should not find the host, could not parse annotation value", testCaseGetUnhealthyHost{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -373,8 +373,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseSetAnnotation struct {
-		Host       *bmh.BareMetalHost
-		M3Machine  *capm3.Metal3Machine
+		Host       *bmov1alpha1.BareMetalHost
+		M3Machine  *infrav1.Metal3Machine
 		ExpectTrue bool
 	}
 
@@ -395,7 +395,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 		},
 		Entry("Should set the unhealthy annotation", testCaseSetAnnotation{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -405,17 +405,17 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
-					Annotations: map[string]string{capm3.UnhealthyAnnotation: ""},
+					Annotations: map[string]string{infrav1.UnhealthyAnnotation: ""},
 				},
 			},
 			ExpectTrue: true,
 		}),
 		Entry("Should not set the unhealthy annotation, annotation is empty", testCaseSetAnnotation{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -423,17 +423,17 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Annotations:     map[string]string{},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
-					Annotations: map[string]string{capm3.UnhealthyAnnotation: ""},
+					Annotations: map[string]string{infrav1.UnhealthyAnnotation: ""},
 				},
 			},
 			ExpectTrue: false,
 		}),
 		Entry("Should not set the unhealthy annotation because of wrong HostAnnotation", testCaseSetAnnotation{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -443,11 +443,11 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
-					Annotations: map[string]string{capm3.UnhealthyAnnotation: ""},
+					Annotations: map[string]string{infrav1.UnhealthyAnnotation: ""},
 				},
 			},
 			ExpectTrue: false,
@@ -471,7 +471,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 		},
 		Entry("Should set the reboot annotation", testCaseSetAnnotation{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -481,7 +481,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -491,7 +491,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: true,
 		}),
 		Entry("Should not set the reboot annotation, annotation is empty", testCaseSetAnnotation{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -499,7 +499,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Annotations:     map[string]string{},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -509,7 +509,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: false,
 		}),
 		Entry("Should not set the reboot annotation because of wrong HostAnnotation", testCaseSetAnnotation{
-			M3Machine: &capm3.Metal3Machine{
+			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "mym3machine",
 					Namespace:       "myns",
@@ -519,7 +519,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					},
 				},
 			},
-			Host: &bmh.BareMetalHost{
+			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:        "myhost",
 					Namespace:   "myns",
@@ -531,8 +531,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseGetRemediationType struct {
-		Metal3Remediation  *capm3.Metal3Remediation
-		RemediationType    *capm3.RemediationType
+		Metal3Remediation  *infrav1.Metal3Remediation
+		RemediationType    *infrav1.RemediationType
 		RemediationTypeSet bool
 	}
 
@@ -545,15 +545,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 			remediationType := remediationMgr.GetRemediationType()
 			if tc.RemediationTypeSet {
-				Expect(remediationType).To(Equal(capm3.RebootRemediationStrategy))
+				Expect(remediationType).To(Equal(infrav1.RebootRemediationStrategy))
 			} else {
-				Expect(remediationType).To(Equal(capm3.RemediationType("")))
+				Expect(remediationType).To(Equal(infrav1.RemediationType("")))
 			}
 		},
 		Entry("Remediation strategy type is set to Reboot, should return strategy", testCaseGetRemediationType{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "Reboot",
 						RetryLimit: 0,
 						Timeout:    &metav1.Duration{},
@@ -563,9 +563,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			RemediationTypeSet: true,
 		}),
 		Entry("Remediation strategy type is not set should return empty string", testCaseGetRemediationType{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 0,
 						Timeout:    &metav1.Duration{},
@@ -577,7 +577,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseGetRemediatedTime struct {
-		Metal3Remediation *capm3.Metal3Remediation
+		Metal3Remediation *infrav1.Metal3Remediation
 		Remediated        bool
 	}
 
@@ -596,14 +596,14 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 		},
 		Entry("Host is not yet remediated and last remediation timestamp is not set yet", testCaseGetRemediatedTime{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{},
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{},
 			},
 			Remediated: false,
 		}),
 		Entry("Host is remediated and controller has set the last remediation timestamp", testCaseGetRemediatedTime{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					LastRemediated: &metav1.Time{},
 				},
 			},
@@ -612,7 +612,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testTimeToRemediate struct {
-		Metal3Remediation *capm3.Metal3Remediation
+		Metal3Remediation *infrav1.Metal3Remediation
 		ExpectTrue        bool
 	}
 
@@ -634,15 +634,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 		},
 		Entry("Time to remediate reached", testTimeToRemediate{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 1,
 						Timeout:    &metav1.Duration{Duration: 600 * time.Second},
 					},
 				},
-				Status: capm3.Metal3RemediationStatus{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase:          "",
 					RetryCount:     1,
 					LastRemediated: &metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
@@ -651,15 +651,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: true,
 		}),
 		Entry("Time to remediate is not reached because of LastRemediated is nil", testTimeToRemediate{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 1,
 						Timeout:    &metav1.Duration{Duration: 600 * time.Second},
 					},
 				},
-				Status: capm3.Metal3RemediationStatus{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase:          "",
 					RetryCount:     1,
 					LastRemediated: nil,
@@ -668,15 +668,15 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ExpectTrue: false,
 		}),
 		Entry("Time to remediate is not reached, LastRemediated + Timeout is greater than current time", testTimeToRemediate{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 1,
 						Timeout:    &metav1.Duration{Duration: 600 * time.Second},
 					},
 				},
-				Status: capm3.Metal3RemediationStatus{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase:          "",
 					RetryCount:     1,
 					LastRemediated: &metav1.Time{Time: time.Now()},
@@ -687,7 +687,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseGetTimeout struct {
-		Metal3Remediation *capm3.Metal3Remediation
+		Metal3Remediation *infrav1.Metal3Remediation
 		TimeoutSet        bool
 	}
 
@@ -706,17 +706,17 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 		},
 		Entry("Timeout is not set", testCaseGetTimeout{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{},
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{},
 				},
 			},
 			TimeoutSet: false,
 		}),
 		Entry("Timeout is set", testCaseGetTimeout{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Spec: capm3.Metal3RemediationSpec{
-					Strategy: &capm3.RemediationStrategy{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{
+					Strategy: &infrav1.RemediationStrategy{
 						Type:       "",
 						RetryLimit: 0,
 						Timeout:    &metav1.Duration{},
@@ -734,16 +734,16 @@ var _ = Describe("Metal3Remediation manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			remediationMgr.SetRemediationPhase(capm3.PhaseRunning)
+			remediationMgr.SetRemediationPhase(infrav1.PhaseRunning)
 
 			Expect(tc.Metal3Remediation.Status.Phase).To(Equal("Running"))
 		},
 		Entry("No phase", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{},
+			Metal3Remediation: &infrav1.Metal3Remediation{},
 		}),
 		Entry("Overwride excisting phase", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase: "Waiting",
 				},
 			},
@@ -763,11 +763,11 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Expect(tc.Metal3Remediation.Status.LastRemediated).ShouldNot(BeNil())
 		},
 		Entry("No timestamp set", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{},
+			Metal3Remediation: &infrav1.Metal3Remediation{},
 		}),
 		Entry("Overwride excisting time", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					LastRemediated: &metav1.Time{},
 				},
 			},
@@ -787,18 +787,18 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Expect(tc.Metal3Remediation.Status.RetryCount).To(Equal(newCount))
 		},
 		Entry("RetryCount is not set", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{},
+			Metal3Remediation: &infrav1.Metal3Remediation{},
 		}),
 		Entry("RetryCount is 0", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					RetryCount: 0,
 				},
 			},
 		}),
 		Entry("RetryCount is 2", testCaseRemediationManager{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					RetryCount: 2,
 				},
 			},
@@ -806,7 +806,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	)
 
 	type testCaseGetRemediationPhase struct {
-		Metal3Remediation *capm3.Metal3Remediation
+		Metal3Remediation *infrav1.Metal3Remediation
 		Succeed           bool
 	}
 
@@ -820,13 +820,13 @@ var _ = Describe("Metal3Remediation manager", func() {
 			phase := remediationMgr.GetRemediationPhase()
 
 			if tc.Succeed {
-				if phase == capm3.PhaseRunning {
+				if phase == infrav1.PhaseRunning {
 					Expect(tc.Metal3Remediation.Status.Phase).Should(ContainSubstring("Running"))
 				}
-				if phase == capm3.PhaseWaiting {
+				if phase == infrav1.PhaseWaiting {
 					Expect(tc.Metal3Remediation.Status.Phase).Should(ContainSubstring("Waiting"))
 				}
-				if phase == capm3.PhaseDeleting {
+				if phase == infrav1.PhaseDeleting {
 					Expect(tc.Metal3Remediation.Status.Phase).Should(ContainSubstring("Deleting machine"))
 				}
 			} else {
@@ -837,36 +837,36 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 		},
 		Entry("No phase set", testCaseGetRemediationPhase{
-			Metal3Remediation: &capm3.Metal3Remediation{},
+			Metal3Remediation: &infrav1.Metal3Remediation{},
 			Succeed:           false,
 		}),
 		Entry("Phase is set to Running", testCaseGetRemediationPhase{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase: "Running",
 				},
 			},
 			Succeed: true,
 		}),
 		Entry("Phase is set to Waiting", testCaseGetRemediationPhase{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase: "Waiting",
 				},
 			},
 			Succeed: true,
 		}),
 		Entry("Phase is set to Deleting", testCaseGetRemediationPhase{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase: "Deleting machine",
 				},
 			},
 			Succeed: true,
 		}),
 		Entry("Phase is set to something else", testCaseGetRemediationPhase{
-			Metal3Remediation: &capm3.Metal3Remediation{
-				Status: capm3.Metal3RemediationStatus{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Status: infrav1.Metal3RemediationStatus{
 					Phase: "test",
 				},
 			},

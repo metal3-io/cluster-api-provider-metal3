@@ -24,7 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -34,7 +34,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -122,8 +122,8 @@ func userDataSecret() *corev1.Secret {
 	}
 }
 
-func m3mSpecWithSecret() *capm3.Metal3MachineSpec {
-	return &capm3.Metal3MachineSpec{
+func m3mSpecWithSecret() *infrav1.Metal3MachineSpec {
+	return &infrav1.Metal3MachineSpec{
 		UserData: &corev1.SecretReference{
 			Name:      metal3machineName + "-user-data",
 			Namespace: namespaceName,
@@ -131,7 +131,7 @@ func m3mSpecWithSecret() *capm3.Metal3MachineSpec {
 	}
 }
 
-func metal3machineWithOwnerRefs() *capm3.Metal3Machine {
+func metal3machineWithOwnerRefs() *infrav1.Metal3Machine {
 	return newMetal3Machine(
 		metal3machineName, m3mMetaWithOwnerRef(), nil, nil, false,
 	)
@@ -182,8 +182,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 		func(tc TestCaseReconcile) {
 			testmachine := &clusterv1.Machine{}
 			testcluster := &clusterv1.Cluster{}
-			testBMmachine := &capm3.Metal3Machine{}
-			testBMHost := &bmh.BareMetalHost{}
+			testBMmachine := &infrav1.Metal3Machine{}
+			testBMHost := &bmov1alpha1.BareMetalHost{}
 
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
@@ -245,7 +245,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Expect(objMeta.Labels[clusterv1.ClusterLabelName]).NotTo(BeNil())
 			}
 			if tc.CheckBMFinalizer {
-				Expect(baremetal.Contains(testBMmachine.Finalizers, capm3.MachineFinalizer)).To(BeTrue())
+				Expect(baremetal.Contains(testBMmachine.Finalizers, infrav1.MachineFinalizer)).To(BeTrue())
 			}
 			if tc.CheckBMState {
 				Expect(testBMmachine.Status.Ready).To(BeTrue())
@@ -352,9 +352,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ClusterInfraReady: false,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
-						Type:   capm3.AssociateBMHCondition,
+						Type:   infrav1.AssociateBMHCondition,
 						Status: corev1.ConditionFalse,
-						Reason: capm3.WaitingForClusterInfrastructureReason,
+						Reason: infrav1.WaitingForClusterInfrastructureReason,
 					},
 					clusterv1.Condition{
 						Type:   clusterv1.ReadyCondition,
@@ -379,9 +379,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady: false,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
-						Type:   capm3.AssociateBMHCondition,
+						Type:   infrav1.AssociateBMHCondition,
 						Status: corev1.ConditionFalse,
-						Reason: capm3.WaitingForBootstrapReadyReason,
+						Reason: infrav1.WaitingForBootstrapReadyReason,
 					},
 					clusterv1.Condition{
 						Type:   clusterv1.ReadyCondition,
@@ -461,10 +461,10 @@ var _ = Describe("Reconcile metal3machine", func() {
 			TestCaseReconcile{
 				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(),
-						&capm3.Metal3MachineSpec{
+						&infrav1.Metal3MachineSpec{
 							ProviderID: &providerID,
 						},
-						&capm3.Metal3MachineStatus{
+						&infrav1.Metal3MachineStatus{
 							Ready: true,
 						},
 						false,
@@ -493,8 +493,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []client.Object{
 
 					newMetal3Machine(
-						metal3machineName, m3mMetaWithOwnerRef(), &capm3.Metal3MachineSpec{
-							Image: capm3.Image{
+						metal3machineName, m3mMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
+							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
 								// Checking the pointers,
@@ -507,9 +507,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
-						Provisioning: bmh.ProvisionStatus{
-							State: bmh.StateAvailable,
+					newBareMetalHost(nil, &bmov1alpha1.BareMetalHostStatus{
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateAvailable,
 						},
 					}, nil, false),
 				},
@@ -533,8 +533,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []client.Object{
 
 					newMetal3Machine(
-						metal3machineName, m3mMetaWithOwnerRef(), &capm3.Metal3MachineSpec{
-							Image: capm3.Image{
+						metal3machineName, m3mMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
+							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
 								// No ChecksumType and DiskFormat given to test without them
@@ -545,9 +545,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
-						Provisioning: bmh.ProvisionStatus{
-							State: bmh.StateReady,
+					newBareMetalHost(nil, &bmov1alpha1.BareMetalHostStatus{
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateReady,
 						},
 					}, nil, false),
 				},
@@ -567,8 +567,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []client.Object{
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
-						&capm3.Metal3MachineSpec{
-							Image: capm3.Image{
+						&infrav1.Metal3MachineSpec{
+							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
 							},
@@ -597,11 +597,11 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady: true,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
-						Type:   capm3.AssociateBMHCondition,
+						Type:   infrav1.AssociateBMHCondition,
 						Status: corev1.ConditionTrue,
 					},
 					clusterv1.Condition{
-						Type:   capm3.KubernetesNodeReadyCondition,
+						Type:   infrav1.KubernetesNodeReadyCondition,
 						Status: corev1.ConditionTrue,
 					},
 					clusterv1.Condition{
@@ -618,9 +618,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []client.Object{
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
-						&capm3.Metal3MachineSpec{
+						&infrav1.Metal3MachineSpec{
 							ProviderID: pointer.StringPtr(providerID),
-							Image: capm3.Image{
+							Image: infrav1.Image{
 								Checksum: "abcd",
 								URL:      "abcd",
 							},
@@ -659,11 +659,11 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBMProviderIDUnchanged: true,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
-						Type:   capm3.AssociateBMHCondition,
+						Type:   infrav1.AssociateBMHCondition,
 						Status: corev1.ConditionTrue,
 					},
 					clusterv1.Condition{
-						Type:   capm3.KubernetesNodeReadyCondition,
+						Type:   infrav1.KubernetesNodeReadyCondition,
 						Status: corev1.ConditionTrue,
 					},
 					clusterv1.Condition{
@@ -673,14 +673,14 @@ var _ = Describe("Reconcile metal3machine", func() {
 				},
 			},
 		),
-		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
-		//Expected: No Error, Requeue expected
-		//		BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
+		// Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
+		// Expected: No Error, Requeue expected
+		// BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
 			TestCaseReconcile{
 				Objects: []client.Object{
-					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &capm3.Metal3MachineSpec{
-						Image: capm3.Image{
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
+						Image: infrav1.Image{
 							Checksum: "abcd",
 							URL:      "abcd",
 						},
@@ -688,9 +688,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(nil, &bmh.BareMetalHostStatus{
-						Provisioning: bmh.ProvisionStatus{
-							State: bmh.StateProvisioning,
+					newBareMetalHost(nil, &bmov1alpha1.BareMetalHostStatus{
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateProvisioning,
 						},
 					}, nil, false),
 				},
@@ -723,13 +723,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady:     true,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
-						Type:   capm3.AssociateBMHCondition,
+						Type:   infrav1.AssociateBMHCondition,
 						Status: corev1.ConditionTrue,
 					},
 					clusterv1.Condition{
-						Type:   capm3.KubernetesNodeReadyCondition,
+						Type:   infrav1.KubernetesNodeReadyCondition,
 						Status: corev1.ConditionFalse,
-						Reason: capm3.SettingProviderIDOnNodeFailedReason,
+						Reason: infrav1.SettingProviderIDOnNodeFailedReason,
 					},
 					clusterv1.Condition{
 						Type:   clusterv1.ReadyCondition,
@@ -801,16 +801,16 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost(&bmh.BareMetalHostSpec{
+					newBareMetalHost(&bmov1alpha1.BareMetalHostSpec{
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       metal3machineName,
 							Namespace:  namespaceName,
 							Kind:       "Metal3Machine",
-							APIVersion: capm3.GroupVersion.String(),
+							APIVersion: infrav1.GroupVersion.String(),
 						},
 						Online:                true,
 						AutomatedCleaningMode: "metadata",
-					}, &bmh.BareMetalHostStatus{}, nil, false),
+					}, &bmov1alpha1.BareMetalHostStatus{}, nil, false),
 				},
 				ErrorExpected:           false,
 				RequeueExpected:         true,

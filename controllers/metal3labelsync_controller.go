@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	bmh "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -79,9 +79,9 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-label-sync", req.NamespacedName)
 
 	// We need to get the NodeRef from the CAPI Machine object:
-	// BMH.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
+	// BareMetalHost.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
 
-	host := &bmh.BareMetalHost{}
+	host := &bmov1alpha1.BareMetalHost{}
 	if err := r.Client.Get(ctx, req.NamespacedName, host); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -89,7 +89,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 	if host.Annotations != nil {
-		if _, ok := host.Annotations[bmh.PausedAnnotation]; ok {
+		if _, ok := host.Annotations[bmov1alpha1.PausedAnnotation]; ok {
 			controllerLog.Info("BaremetalHost is currently paused. Remove pause to continue reconciliation.")
 			return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 		}
@@ -112,11 +112,11 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, nil
 	}
 	if host.Spec.ConsumerRef.Kind != Metal3Machine &&
-		host.Spec.ConsumerRef.GroupVersionKind().Group != capm3.GroupVersion.Group {
+		host.Spec.ConsumerRef.GroupVersionKind().Group != infrav1.GroupVersion.Group {
 		controllerLog.Info(fmt.Sprintf("Unknown GroupVersionKind in BareMetalHost Consumer Ref %v", host.Spec.ConsumerRef.GroupVersionKind()))
 		return ctrl.Result{}, nil
 	}
-	capm3Machine := &capm3.Metal3Machine{}
+	capm3Machine := &infrav1.Metal3Machine{}
 	capm3MachineKey := client.ObjectKey{
 		Name:      host.Spec.ConsumerRef.Name,
 		Namespace: host.Spec.ConsumerRef.Namespace,
@@ -159,7 +159,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controllerLog.V(5).Info(fmt.Sprintf("Found Cluster %v/%v", cluster.Name, cluster.Namespace))
 
 	// Fetch the Metal3 cluster.
-	metal3Cluster := &capm3.Metal3Cluster{}
+	metal3Cluster := &infrav1.Metal3Cluster{}
 	metal3ClusterName := types.NamespacedName{
 		Namespace: capm3Machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
@@ -196,11 +196,11 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.Info("Finished synchronizing labels between BaremetalHost and Node")
-	// Always requeue to ensure label sync runs periodically for each BMH. This is necessary to catch any label updates to the Node that are synchronized through the BMH.
+	// Always requeue to ensure label sync runs periodically for each BareMetalHost. This is necessary to catch any label updates to the Node that are synchronized through the BareMetalHost.
 	return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 }
 
-func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmh.BareMetalHost, machine *clusterv1.Machine, cluster *clusterv1.Cluster, prefixSet map[string]struct{}) error {
+func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmov1alpha1.BareMetalHost, machine *clusterv1.Machine, cluster *clusterv1.Cluster, prefixSet map[string]struct{}) error {
 	hostLabelSyncSet := buildLabelSyncSet(prefixSet, host.Labels)
 	// Get the Node from the workload cluster
 	corev1Remote, err := r.CapiClientGetter(ctx, r.Client, cluster)
@@ -256,9 +256,9 @@ func synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet map[strin
 // SetupWithManager will add watches for this controller.
 func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&bmh.BareMetalHost{}).
+		For(&bmov1alpha1.BareMetalHost{}).
 		Watches(
-			&source.Kind{Type: &capm3.Metal3Cluster{}},
+			&source.Kind{Type: &infrav1.Metal3Cluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3ClusterToBareMetalHosts),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -269,7 +269,7 @@ func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ct
 // requests for reconciliation of BareMetalHosts' label updates.
 func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.(*capm3.Metal3Cluster)
+	c, ok := o.(*infrav1.Metal3Cluster)
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o),
 			"failed to get BareMetalHost for Metal3Cluster",
@@ -300,7 +300,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Objec
 		if m.Spec.InfrastructureRef.Namespace != "" {
 			name = client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}
 		}
-		capm3Machine := &capm3.Metal3Machine{}
+		capm3Machine := &infrav1.Metal3Machine{}
 		if err := r.Client.Get(context.TODO(), name, capm3Machine); err != nil {
 			log.Error(err, "failed to get Metal3Machine")
 			continue

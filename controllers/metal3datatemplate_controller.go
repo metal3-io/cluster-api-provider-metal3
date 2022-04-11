@@ -20,7 +20,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -67,7 +67,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
 
 	// Fetch the Metal3DataTemplate instance.
-	capm3DataTemplate := &capm3.Metal3DataTemplate{}
+	capm3DataTemplate := &infrav1.Metal3DataTemplate{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, capm3DataTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -162,9 +162,9 @@ func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 // SetupWithManager will add watches for this controller.
 func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3DataTemplate{}).
+		For(&infrav1.Metal3DataTemplate{}).
 		Watches(
-			&source.Kind{Type: &capm3.Metal3DataClaim{}},
+			&source.Kind{Type: &infrav1.Metal3DataClaim{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3DataClaimToMetal3DataTemplate),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -175,7 +175,7 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 // Metal3DataTemplate if the event is for a
 // Metal3DataClaim and that Metal3DataClaim references a Metal3DataTemplate.
 func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(obj client.Object) []ctrl.Request {
-	if m3dc, ok := obj.(*capm3.Metal3DataClaim); ok {
+	if m3dc, ok := obj.(*infrav1.Metal3DataClaim); ok {
 		if m3dc.Spec.Template.Name != "" {
 			namespace := m3dc.Spec.Template.Namespace
 			if namespace == "" {

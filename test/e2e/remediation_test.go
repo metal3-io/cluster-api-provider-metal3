@@ -10,8 +10,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -50,7 +50,7 @@ func remediation() {
 	Expect(controlplaneM3Machines).To(HaveLen(int(controlPlaneMachineCount)))
 	Expect(workerM3Machines).To(HaveLen(int(workerMachineCount)))
 
-	getBmhFromM3Machine := func(m3Machine capm3.Metal3Machine) (result bmo.BareMetalHost) {
+	getBmhFromM3Machine := func(m3Machine infrav1.Metal3Machine) (result bmov1alpha1.BareMetalHost) {
 		Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: metal3MachineToBmhName(m3Machine)}, &result)).To(Succeed())
 		return result
 	}
@@ -100,7 +100,7 @@ func remediation() {
 			Logf("Error: %v", err)
 			return err
 		}
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmo.StateAvailable)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
+		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
@@ -118,7 +118,7 @@ func remediation() {
 	Logf("Waiting for worker BMH to be in Available state")
 	Eventually(func(g Gomega) error {
 		g.Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
-		g.Expect(workerBmh.Status.Provisioning.State).To(Equal(bmo.StateAvailable))
+		g.Expect(workerBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
@@ -129,7 +129,7 @@ func remediation() {
 			Logf("Error: %v", err)
 			return err
 		}
-		provisioningBMHs := filterBmhsByProvisioningState(bmhs, bmo.StateProvisioned)
+		provisioningBMHs := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)
 		if len(provisioningBMHs) != 2 {
 			return errors.New("Waiting for 2 BMHs to be Provisioned")
 		}
@@ -146,7 +146,7 @@ func remediation() {
 			Logf("Error: %v", err)
 			return err
 		}
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmo.StateProvisioning)).To(HaveLen(1))
+		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(1))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
 
@@ -157,8 +157,8 @@ func remediation() {
 			Logf("Error: %v", err)
 			return err
 		}
-		Expect(filterBmhsByProvisioningState(bmhs, bmo.StateProvisioned)).To(HaveLen(3))
-		Expect(filterBmhsByProvisioningState(bmhs, bmo.StateProvisioning)).To(HaveLen(1))
+		Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
+		Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(1))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "monitor-provisioning")...)
 
@@ -172,7 +172,7 @@ func remediation() {
 			Logf("Error: %v", err)
 			return err
 		}
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmo.StateProvisioned)).To(HaveLen(allMachinesCount))
+		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(allMachinesCount))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
 
@@ -191,15 +191,15 @@ func remediation() {
 
 	By("Waiting for 2 BMHs to be in Available state")
 	Eventually(func(g Gomega) error {
-		bmhs := bmo.BareMetalHostList{}
+		bmhs := bmov1alpha1.BareMetalHostList{}
 		g.Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-		g.Expect(filterBmhsByProvisioningState(bmhs.Items, bmo.StateAvailable)).To(HaveLen(2))
+		g.Expect(filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateAvailable)).To(HaveLen(2))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Testing Metal3DataTemplate reference")
 	Logf("Creating a new Metal3DataTemplate")
-	m3dataTemplate := capm3.Metal3DataTemplate{}
+	m3dataTemplate := infrav1.Metal3DataTemplate{}
 	m3dataTemplateName := fmt.Sprintf("%s-workers-template", clusterName)
 	newM3dataTemplateName := "test-new-m3dt"
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3dataTemplateName}, &m3dataTemplate)).To(Succeed())
@@ -219,7 +219,7 @@ func remediation() {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Creating a new Metal3MachineTemplate")
-	m3machineTemplate := capm3.Metal3MachineTemplate{}
+	m3machineTemplate := infrav1.Metal3MachineTemplate{}
 	m3machineTemplateName := fmt.Sprintf("%s-workers", clusterName)
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
 	newM3MachineTemplateName := "test-new-m3mt"
@@ -255,15 +255,15 @@ func remediation() {
 			Logf("Error: %v", err)
 			return err
 		}
-		filtered := filterBmhsByProvisioningState(bmhs, bmo.StateAvailable)
-		Logf("There are %d BMHs in state %s", len(filtered), bmo.StateAvailable)
+		filtered := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
+		Logf("There are %d BMHs in state %s", len(filtered), bmov1alpha1.StateAvailable)
 		g.Expect(filtered).To(HaveLen(2))
 		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Waiting for single Metal3Data to refer to the old template")
 	Eventually(func(g Gomega) {
-		datas := capm3.Metal3DataList{}
+		datas := infrav1.Metal3DataList{}
 		g.Expect(bootstrapClient.List(ctx, &datas, client.InNamespace(namespace))).To(Succeed())
 		filtered := filterM3DataByReference(datas.Items, m3dataTemplateName)
 		g.Expect(filtered).To(HaveLen(1))
@@ -274,9 +274,9 @@ func remediation() {
 
 	Byf("Waiting for all %d BMHs to be Provisioned", allMachinesCount)
 	Eventually(func(g Gomega) {
-		bmhs := bmo.BareMetalHostList{}
+		bmhs := bmov1alpha1.BareMetalHostList{}
 		g.Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-		g.Expect(filterBmhsByProvisioningState(bmhs.Items, bmo.StateProvisioned)).To(HaveLen(allMachinesCount))
+		g.Expect(filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateProvisioned)).To(HaveLen(allMachinesCount))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	Byf("Waiting for all %d machines to be Running", allMachinesCount)
@@ -290,8 +290,8 @@ func remediation() {
 }
 
 type bmhToMachine struct {
-	baremetalhost *bmo.BareMetalHost
-	metal3machine *capm3.Metal3Machine
+	baremetalhost *bmov1alpha1.BareMetalHost
+	metal3machine *infrav1.Metal3Machine
 }
 type bmhToMachineSlice []bmhToMachine
 
@@ -302,7 +302,7 @@ func (btm bmhToMachine) String() string {
 	)
 }
 
-func (btms bmhToMachineSlice) getBMHs() (hosts []bmo.BareMetalHost) {
+func (btms bmhToMachineSlice) getBMHs() (hosts []bmov1alpha1.BareMetalHost) {
 	for _, ms := range btms {
 		if ms.baremetalhost != nil {
 			hosts = append(hosts, *ms.baremetalhost)
@@ -336,7 +336,7 @@ func (btms bmhToMachineSlice) getNodeNames() []string {
 
 // metal3MachineToMachineName finds the releveant owner reference in Metal3Machine
 // and returns the name of corresponding Machine.
-func metal3MachineToMachineName(m3machine capm3.Metal3Machine) (string, error) {
+func metal3MachineToMachineName(m3machine infrav1.Metal3Machine) (string, error) {
 	ownerReferences := m3machine.GetOwnerReferences()
 	for _, reference := range ownerReferences {
 		if reference.Kind == "Machine" {
@@ -346,12 +346,12 @@ func metal3MachineToMachineName(m3machine capm3.Metal3Machine) (string, error) {
 	return "", fmt.Errorf("metal3machine missing a \"Machine\" kind owner reference")
 }
 
-func metal3MachineToBmhName(m3machine capm3.Metal3Machine) string {
+func metal3MachineToBmhName(m3machine infrav1.Metal3Machine) string {
 	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
 }
 
 // Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object.
-func bmhToVMName(host bmo.BareMetalHost) string {
+func bmhToVMName(host bmov1alpha1.BareMetalHost) string {
 	return strings.ReplaceAll(host.Name, "-", "_")
 }
 
@@ -385,15 +385,15 @@ func listVms(state vmState) []string {
 	return lines[:i]
 }
 
-func getAllBmhs(ctx context.Context, c client.Client, namespace, specName string) ([]bmo.BareMetalHost, error) {
-	bmhs := bmo.BareMetalHostList{}
+func getAllBmhs(ctx context.Context, c client.Client, namespace, specName string) ([]bmov1alpha1.BareMetalHost, error) {
+	bmhs := bmov1alpha1.BareMetalHostList{}
 	err := c.List(ctx, &bmhs, client.InNamespace(namespace))
 	return bmhs.Items, err
 }
 
-func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) ([]capm3.Metal3Machine, []capm3.Metal3Machine) {
-	var controlplane, workers []capm3.Metal3Machine
-	allMachines := &capm3.Metal3MachineList{}
+func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) ([]infrav1.Metal3Machine, []infrav1.Metal3Machine) {
+	var controlplane, workers []infrav1.Metal3Machine
+	allMachines := &infrav1.Metal3MachineList{}
 	Expect(c.List(ctx, allMachines, client.InNamespace(namespace))).To(Succeed())
 
 	for _, machine := range allMachines.Items {
@@ -407,7 +407,7 @@ func getMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 	return controlplane, workers
 }
 
-func filterM3DataByReference(datas []capm3.Metal3Data, referenceName string) (result []capm3.Metal3Data) {
+func filterM3DataByReference(datas []infrav1.Metal3Data, referenceName string) (result []infrav1.Metal3Data) {
 	for _, data := range datas {
 		if data.Spec.TemplateReference == referenceName {
 			result = append(result, data)

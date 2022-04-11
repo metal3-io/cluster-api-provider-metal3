@@ -18,7 +18,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,16 +38,16 @@ type TemplateManagerInterface interface {
 type MachineTemplateManager struct {
 	client client.Client
 
-	Metal3MachineList     *capm3.Metal3MachineList
-	Metal3MachineTemplate *capm3.Metal3MachineTemplate
+	Metal3MachineList     *infrav1.Metal3MachineList
+	Metal3MachineTemplate *infrav1.Metal3MachineTemplate
 	Log                   logr.Logger
 }
 
 // NewMachineTemplateManager returns a new helper for managing a metal3MachineTemplate.
 func NewMachineTemplateManager(client client.Client,
-	metal3MachineTemplate *capm3.Metal3MachineTemplate,
+	metal3MachineTemplate *infrav1.Metal3MachineTemplate,
 
-	metal3MachineList *capm3.Metal3MachineList,
+	metal3MachineList *infrav1.Metal3MachineList,
 	metal3MachineTemplateLog logr.Logger) (*MachineTemplateManager, error) {
 	return &MachineTemplateManager{
 		client: client,
@@ -64,7 +64,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 	m.Log.Info("Fetching metal3Machine objects")
 
 	// get list of metal3Machine objects
-	m3ms := &capm3.Metal3MachineList{}
+	m3ms := &infrav1.Metal3MachineList{}
 	// without this ListOption, all namespaces would be included in the listing
 	opts := &client.ListOptions{
 		Namespace: m.Metal3MachineTemplate.Namespace,
@@ -74,7 +74,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 		return errors.Wrap(err, "failed to list metal3Machines")
 	}
 
-	matchedM3Machines := []*capm3.Metal3Machine{}
+	matchedM3Machines := []*infrav1.Metal3Machine{}
 
 	// Fetch metal3Machines belonging to the same metal3MachineTemplate
 	for i := range m3ms.Items {

@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/utils/pointer"
@@ -113,41 +113,41 @@ var _ = Describe("Metal3 manager utils", func() {
 	})
 
 	type testCaseUpdate struct {
-		TestObject     *capm3.Metal3Machine
-		ExistingObject *capm3.Metal3Machine
+		TestObject     *infrav1.Metal3Machine
+		ExistingObject *infrav1.Metal3Machine
 		ExpectedError  bool
 	}
 
 	type testCasePatch struct {
-		TestObject     *capm3.Metal3Machine
-		ExistingObject *capm3.Metal3Machine
+		TestObject     *infrav1.Metal3Machine
+		ExistingObject *infrav1.Metal3Machine
 		ExpectedError  bool
 		CreateObject   bool
 	}
 
-	var testObject = &capm3.Metal3Machine{
+	var testObject = &infrav1.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "abc",
 			Namespace: namespaceName,
 		},
-		Spec: capm3.Metal3MachineSpec{
+		Spec: infrav1.Metal3MachineSpec{
 			ProviderID:            pointer.StringPtr("abcdef"),
 			AutomatedCleaningMode: pointer.StringPtr("metadata"),
 		},
-		Status: capm3.Metal3MachineStatus{
+		Status: infrav1.Metal3MachineStatus{
 			Ready: true,
 		},
 	}
 
-	var existingObject = &capm3.Metal3Machine{
+	var existingObject = &infrav1.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "abc",
 			Namespace: namespaceName,
 		},
-		Spec: capm3.Metal3MachineSpec{
+		Spec: infrav1.Metal3MachineSpec{
 			ProviderID: pointer.StringPtr("abcdefg"),
 		},
-		Status: capm3.Metal3MachineStatus{
+		Status: infrav1.Metal3MachineStatus{
 			Ready: true,
 		},
 	}
@@ -160,7 +160,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			if tc.CreateObject {
 				err = k8sClient.Create(context.TODO(), tc.ExistingObject)
 				Expect(err).NotTo(HaveOccurred())
-				m3m := capm3.Metal3Machine{}
+				m3m := infrav1.Metal3Machine{}
 				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.ExistingObject.Name,
@@ -193,7 +193,7 @@ var _ = Describe("Metal3 manager utils", func() {
 
 				if tc.CreateObject {
 					// verify that the object was updated
-					savedObject := capm3.Metal3Machine{}
+					savedObject := infrav1.Metal3Machine{}
 					err = k8sClient.Get(context.TODO(),
 						client.ObjectKey{
 							Name:      tc.TestObject.Name,
@@ -239,7 +239,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			if tc.ExistingObject != nil {
 				err := k8sClient.Create(context.TODO(), tc.ExistingObject)
 				Expect(err).NotTo(HaveOccurred())
-				m3m := capm3.Metal3Machine{}
+				m3m := infrav1.Metal3Machine{}
 				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.ExistingObject.Name,
@@ -259,7 +259,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(obj.Spec).To(Equal(tc.TestObject.Spec))
 				Expect(obj.Status).To(Equal(tc.TestObject.Status))
-				savedObject := capm3.Metal3Machine{}
+				savedObject := infrav1.Metal3Machine{}
 				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.TestObject.Name,
@@ -306,7 +306,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(obj.Spec).To(Equal(tc.TestObject.Spec))
 				Expect(obj.Status).To(Equal(tc.TestObject.Status))
-				savedObject := capm3.Metal3Machine{}
+				savedObject := infrav1.Metal3Machine{}
 				err = k8sClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.TestObject.Name,
@@ -375,7 +375,7 @@ var _ = Describe("Metal3 manager utils", func() {
 							{
 								Name:       "ghij",
 								Kind:       "Metal3Machine",
-								APIVersion: capm3.GroupVersion.String(),
+								APIVersion: infrav1.GroupVersion.String(),
 								UID:        "7df7fe8e-9cdb-4c57-8144-0a30bf6b9496",
 							},
 						},
@@ -390,7 +390,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			ownerRef := []metav1.OwnerReference{{
 				Name:       "abcd",
 				Kind:       "Metal3Machine",
-				APIVersion: capm3.GroupVersion.String(),
+				APIVersion: infrav1.GroupVersion.String(),
 				UID:        "7df7fe8e-9cdb-4c57-8144-0a30bf6b9496",
 			}}
 			content := map[string][]byte{
@@ -458,7 +458,7 @@ var _ = Describe("Metal3 manager utils", func() {
 	)
 
 	type testCaseFetchM3DataTemplate struct {
-		DataTemplate  *capm3.Metal3DataTemplate
+		DataTemplate  *infrav1.Metal3DataTemplate
 		ClusterName   string
 		TemplateRef   *corev1.ObjectReference
 		ExpectError   bool
@@ -513,12 +513,12 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectError: true,
 		}),
 		Entry("Object with wrong cluster", testCaseFetchM3DataTemplate{
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
+				Spec: infrav1.Metal3DataTemplateSpec{
 					ClusterName: "abc",
 				},
 			},
@@ -530,12 +530,12 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectError: true,
 		}),
 		Entry("Object with correct cluster", testCaseFetchM3DataTemplate{
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3DataTemplateSpec{
+				Spec: infrav1.Metal3DataTemplateSpec{
 					ClusterName: "abc",
 				},
 			},
@@ -548,7 +548,7 @@ var _ = Describe("Metal3 manager utils", func() {
 	)
 
 	type testCaseFetchM3Data struct {
-		Data          *capm3.Metal3Data
+		Data          *infrav1.Metal3Data
 		Name          string
 		Namespace     string
 		ExpectError   bool
@@ -592,7 +592,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectRequeue: true,
 		}),
 		Entry("Object exists", testCaseFetchM3Data{
-			Data: &capm3.Metal3Data{
+			Data: &infrav1.Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -604,10 +604,10 @@ var _ = Describe("Metal3 manager utils", func() {
 	)
 
 	type testCaseGetM3Machine struct {
-		Machine       *capm3.Metal3Machine
+		Machine       *infrav1.Metal3Machine
 		Name          string
 		Namespace     string
-		DataTemplate  *capm3.Metal3DataTemplate
+		DataTemplate  *infrav1.Metal3DataTemplate
 		ExpectError   bool
 		ExpectRequeue bool
 		ExpectEmpty   bool
@@ -649,7 +649,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -659,16 +659,16 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: namespaceName,
 		}),
 		Entry("Object exists, dataTemplate nil", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: nil,
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -679,19 +679,19 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate name mismatch", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abcd",
 						Namespace: namespaceName,
 					},
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
@@ -702,19 +702,19 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate namespace mismatch", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
+			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
-				Spec: capm3.Metal3MachineSpec{
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abc",
 						Namespace: "defg",
 					},
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
+			DataTemplate: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "abc",
 					Namespace: namespaceName,

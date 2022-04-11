@@ -24,7 +24,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
@@ -69,7 +69,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	clusterLog := log.Log.WithName(clusterControllerName).WithValues("metal3-cluster", req.NamespacedName)
 
 	// Fetch the Metal3Cluster instance
-	metal3Cluster := &capm3.Metal3Cluster{}
+	metal3Cluster := &infrav1.Metal3Cluster{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3Cluster); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -96,7 +96,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		invalidConfigError := capierrors.InvalidConfigurationClusterError
 		metal3Cluster.Status.FailureReason = &invalidConfigError
 		metal3Cluster.Status.FailureMessage = pointer.StringPtr("Unable to get owner cluster")
-		conditions.MarkFalse(metal3Cluster, capm3.BaremetalInfrastructureReadyCondition, capm3.InternalFailureReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1.ConditionSeverityError, err.Error())
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
@@ -132,11 +132,11 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return reconcileNormal(ctx, clusterMgr)
 }
 
-func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cluster *capm3.Metal3Cluster, options ...patch.Option) error {
+func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cluster *infrav1.Metal3Cluster, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(metal3Cluster,
 		conditions.WithConditions(
-			capm3.BaremetalInfrastructureReadyCondition,
+			infrav1.BaremetalInfrastructureReadyCondition,
 		),
 	)
 
@@ -144,7 +144,7 @@ func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cl
 	options = append(options,
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
-			capm3.BaremetalInfrastructureReadyCondition,
+			infrav1.BaremetalInfrastructureReadyCondition,
 		}},
 		patch.WithStatusObservedGeneration{},
 	)
@@ -193,19 +193,19 @@ func reconcileDelete(ctx context.Context,
 
 // SetupWithManager will add watches for this controller.
 func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
-	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(capm3.GroupVersion.WithKind("Metal3Cluster"))
+	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Cluster"))
 	return ctrl.NewControllerManagedBy(mgr).
 		For(
-			&capm3.Metal3Cluster{},
+			&infrav1.Metal3Cluster{},
 			// Predicates can now be set on the for directly, so no need to use a generic event filter and worry about the kind
 			builder.WithPredicates(
 				predicate.Funcs{
 					// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
 					UpdateFunc: func(e event.UpdateEvent) bool {
-						oldCluster := e.ObjectOld.(*capm3.Metal3Cluster).DeepCopy()
-						newCluster := e.ObjectNew.(*capm3.Metal3Cluster).DeepCopy()
-						oldCluster.Status = capm3.Metal3ClusterStatus{}
-						newCluster.Status = capm3.Metal3ClusterStatus{}
+						oldCluster := e.ObjectOld.(*infrav1.Metal3Cluster).DeepCopy()
+						newCluster := e.ObjectNew.(*infrav1.Metal3Cluster).DeepCopy()
+						oldCluster.Status = infrav1.Metal3ClusterStatus{}
+						newCluster.Status = infrav1.Metal3ClusterStatus{}
 						oldCluster.ObjectMeta.ResourceVersion = ""
 						newCluster.ObjectMeta.ResourceVersion = ""
 						return !reflect.DeepEqual(oldCluster, newCluster)
@@ -222,7 +222,7 @@ func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 					return nil
 				}
 
-				c := &capm3.Metal3Cluster{}
+				c := &infrav1.Metal3Cluster{}
 				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
 					r.Log.V(4).Error(err, "Failed to get Metal3 cluster")
 					return nil

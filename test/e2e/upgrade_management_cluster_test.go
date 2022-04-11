@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	bmo "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -171,7 +171,7 @@ func upgradeManagementCluster() {
 
 	By("Check if BMH is in provisioned state")
 	Eventually(func() error {
-		bmhList := &bmo.BareMetalHostList{}
+		bmhList := &bmov1alpha1.BareMetalHostList{}
 		if err := upgradeClusterClient.List(ctx, bmhList, client.InNamespace(namespace)); err != nil {
 			return err
 		}
@@ -193,7 +193,7 @@ func upgradeManagementCluster() {
 	Eventually(func(g Gomega) {
 		bmhs, err := getAllBmhs(ctx, upgradeClusterClient, namespace, specName)
 		g.Expect(err).To(BeNil())
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmo.StateAvailable)).To(HaveLen(2))
+		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)).To(HaveLen(2))
 	}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
 
 	/*-------------------------------*

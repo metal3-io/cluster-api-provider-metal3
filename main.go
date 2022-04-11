@@ -24,11 +24,11 @@ import (
 	"os"
 	"time"
 
-	bmoapis "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1alpha5 "github.com/metal3-io/cluster-api-provider-metal3/api/v1alpha5"
-	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	capm3remote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
+	infraremote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/spf13/pflag"
@@ -66,10 +66,10 @@ var (
 func init() {
 	_ = scheme.AddToScheme(myscheme)
 	_ = ipamv1.AddToScheme(myscheme)
-	_ = infrav1beta1.AddToScheme(myscheme)
+	_ = infrav1.AddToScheme(myscheme)
 	_ = infrav1alpha5.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
-	_ = bmoapis.AddToScheme(myscheme)
+	_ = bmov1alpha1.AddToScheme(myscheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -248,7 +248,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Machine"),
-		CapiClientGetter: capm3remote.NewClusterClient,
+		CapiClientGetter: infraremote.NewClusterClient,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3MachineReconciler")
@@ -289,7 +289,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3LabelSync"),
-		CapiClientGetter: capm3remote.NewClusterClient,
+		CapiClientGetter: infraremote.NewClusterClient,
 	}).SetupWithManager(ctx, mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3LabelSyncReconciler")
 		os.Exit(1)
@@ -315,42 +315,42 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&infrav1beta1.Metal3Cluster{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3Cluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Cluster")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1beta1.Metal3Machine{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3Machine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Machine")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1beta1.Metal3MachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3MachineTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3MachineTemplate")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1beta1.Metal3DataTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3DataTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataTemplate")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1beta1.Metal3Data{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3Data{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Data")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1beta1.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3DataClaim{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3DataClaim")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1beta1.Metal3Remediation{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3Remediation{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3Remediation")
 		os.Exit(1)
 	}
 
-	if err := (&infrav1beta1.Metal3RemediationTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&infrav1.Metal3RemediationTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3RemediationTemplate")
 		os.Exit(1)
 	}

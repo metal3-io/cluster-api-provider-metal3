@@ -21,7 +21,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
@@ -61,7 +61,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	metadataLog := r.Log.WithName(dataControllerName).WithValues("metal3-data", req.NamespacedName)
 
 	// Fetch the Metal3Data instance.
-	capm3Metadata := &capm3.Metal3Data{}
+	capm3Metadata := &infrav1.Metal3Data{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, capm3Metadata); err != nil {
 		if apierrors.IsNotFound(err) {
@@ -148,7 +148,7 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 // SetupWithManager will add watches for this controller.
 func (r *Metal3DataReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&capm3.Metal3Data{}).
+		For(&infrav1.Metal3Data{}).
 		Watches(
 			&source.Kind{Type: &ipamv1.IPClaim{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
@@ -171,7 +171,7 @@ func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj client.Object) []ct
 				r.Log.Error(err, "failed to parse the API version")
 				continue
 			}
-			if aGV.Group != capm3.GroupVersion.Group {
+			if aGV.Group != infrav1.GroupVersion.Group {
 				continue
 			}
 			requests = append(requests, ctrl.Request{

@@ -26,7 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
-	capm3 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +42,7 @@ type commonTestCase struct {
 	testRequest                       ctrl.Request
 	expectedResult                    ctrl.Result
 	expectedError                     *string
-	m3mTemplate                       *capm3.Metal3MachineTemplate
+	m3mTemplate                       *infrav1.Metal3MachineTemplate
 	shouldUpdateAutomatedCleaningMode bool
 }
 
@@ -76,8 +76,8 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 		},
 	}
 	type TestCaseM3MtoM3MT struct {
-		M3Machine     *capm3.Metal3Machine
-		M3MTemplate   *capm3.Metal3MachineTemplate
+		M3Machine     *infrav1.Metal3Machine
+		M3MTemplate   *infrav1.Metal3MachineTemplate
 		ExpectRequest bool
 	}
 	DescribeTable("Metal3Machine To Metal3MachineTemplate tests",
@@ -89,7 +89,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
 				Expect(tc.M3Machine.Annotations[clonedFromName]).To(Equal(tc.M3MTemplate.Name))
-				Expect(tc.M3Machine.Annotations[clonedFromGroupKind]).To(Equal(capm3.ClonedFromGroupKind))
+				Expect(tc.M3Machine.Annotations[clonedFromGroupKind]).To(Equal(infrav1.ClonedFromGroupKind))
 				Expect(tc.M3Machine.Namespace).To(Equal(tc.M3MTemplate.Namespace))
 			} else {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
@@ -97,7 +97,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 		},
 		Entry("Reconciliation should not be requested due to missing reference to a template",
 			TestCaseM3MtoM3MT{
-				M3Machine: &capm3.Metal3Machine{
+				M3Machine: &infrav1.Metal3Machine{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "machine-1",
@@ -106,23 +106,23 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 							baremetal.HostAnnotation: namespaceName + "/myhost",
 						},
 					},
-					Spec: capm3.Metal3MachineSpec{
-						AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+					Spec: infrav1.Metal3MachineSpec{
+						AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 					},
 				},
-				M3MTemplate: &capm3.Metal3MachineTemplate{
+				M3MTemplate: &infrav1.Metal3MachineTemplate{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: capm3.GroupVersion.String(),
+						APIVersion: infrav1.GroupVersion.String(),
 						Kind:       "Metal3MachineTemplate",
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      name,
 						Namespace: namespace,
 					},
-					Spec: capm3.Metal3MachineTemplateSpec{
-						Template: capm3.Metal3MachineTemplateResource{
-							Spec: capm3.Metal3MachineSpec{
-								AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+					Spec: infrav1.Metal3MachineTemplateSpec{
+						Template: infrav1.Metal3MachineTemplateResource{
+							Spec: infrav1.Metal3MachineSpec{
+								AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 							},
 						},
 					},
@@ -132,33 +132,33 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 		),
 		Entry("Reconciliation should be requested",
 			TestCaseM3MtoM3MT{
-				M3Machine: &capm3.Metal3Machine{
+				M3Machine: &infrav1.Metal3Machine{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "machine-1",
 						Namespace: namespace,
 						Annotations: map[string]string{
 							"cluster.x-k8s.io/cloned-from-name":      name,
-							"cluster.x-k8s.io/cloned-from-groupkind": capm3.ClonedFromGroupKind,
+							"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
 						},
 					},
-					Spec: capm3.Metal3MachineSpec{
-						AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+					Spec: infrav1.Metal3MachineSpec{
+						AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 					},
 				},
-				M3MTemplate: &capm3.Metal3MachineTemplate{
+				M3MTemplate: &infrav1.Metal3MachineTemplate{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: capm3.GroupVersion.String(),
+						APIVersion: infrav1.GroupVersion.String(),
 						Kind:       "Metal3MachineTemplate",
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      name,
 						Namespace: namespace,
 					},
-					Spec: capm3.Metal3MachineTemplateSpec{
-						Template: capm3.Metal3MachineTemplateResource{
-							Spec: capm3.Metal3MachineSpec{
-								AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
+					Spec: infrav1.Metal3MachineTemplateSpec{
+						Template: infrav1.Metal3MachineTemplateResource{
+							Spec: infrav1.Metal3MachineSpec{
+								AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
 							},
 						},
 					},
