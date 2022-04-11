@@ -561,7 +561,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioned)
-		//Expected: No Error, bmov1alpha1.Spec.ProviderID is set properly based on the UID
+		//Expected: No Error, BMH.Spec.ProviderID is set properly based on the UID
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is not given, BMH is provisioned",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -612,7 +612,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, provider ID set), BMH (provisioned)
-		//Expected: No Error, bmov1alpha1.Spec.ProviderID is set properly (unchanged)
+		//Expected: No Error, BMH.Spec.ProviderID is set properly (unchanged)
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is given, BMH is provisioned",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -673,9 +673,9 @@ var _ = Describe("Reconcile metal3machine", func() {
 				},
 			},
 		),
-		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
-		//Expected: No Error, Requeue expected
-		//		bmov1alpha1.Spec.ProviderID is not set based on the UID since BMH is in provisioning
+		// Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
+		// Expected: No Error, Requeue expected
+		// BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
 			TestCaseReconcile{
 				Objects: []client.Object{

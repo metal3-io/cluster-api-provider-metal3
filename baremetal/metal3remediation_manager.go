@@ -145,7 +145,7 @@ func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 	return helper.Patch(ctx, host)
 }
 
-// SetUnhealthyAnnotation sets infrav1.UnhealthyAnnotation on unhealthy host.
+// SetUnhealthyAnnotation sets UnhealthyAnnotation annotation on unhealthy host.
 func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {

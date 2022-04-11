@@ -79,7 +79,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-label-sync", req.NamespacedName)
 
 	// We need to get the NodeRef from the CAPI Machine object:
-	// bmov1alpha1.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
+	// BareMetalHost.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
 
 	host := &bmov1alpha1.BareMetalHost{}
 	if err := r.Client.Get(ctx, req.NamespacedName, host); err != nil {
@@ -196,7 +196,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.Info("Finished synchronizing labels between BaremetalHost and Node")
-	// Always requeue to ensure label sync runs periodically for each bmov1alpha1. This is necessary to catch any label updates to the Node that are synchronized through the bmov1alpha1.
+	// Always requeue to ensure label sync runs periodically for each BareMetalHost. This is necessary to catch any label updates to the Node that are synchronized through the BareMetalHost.
 	return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 }
 
