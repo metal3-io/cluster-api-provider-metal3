@@ -62,13 +62,16 @@ export UPGRADE_TEST=${UPGRADE_TEST:-false}
 if $UPGRADE_TEST; then
     export CAPI_VERSION="v1alpha4"
     export CAPM3_VERSION="v1alpha5"
+    # Ironic and BMO images to start from. They will then upgrade to main/latest
+    export IRONIC_TAG="capm3-v0.5.5"
+    export BAREMETAL_OPERATOR_TAG="capm3-v0.5.5"
 fi
-# Override project infra vars that point to 
+# Override project infra vars that point to
 # the current branch to build capm3 image and crds
-if [[ "${CAPM3_VERSION}" == "v1alpha5" ]]; then 
+if [[ "${CAPM3_VERSION}" == "v1alpha5" ]]; then
     export CAPM3BRANCH="release-0.5"
-    # This var is set in project infra to use the current repo location for 
-    # building CAPM3 image while upgrade needs an old version 
+    # This var is set in project infra to use the current repo location for
+    # building CAPM3 image while upgrade needs an old version
     unset CAPM3_LOCAL_IMAGE
     export CAPM3PATH="${M3PATH}/cluster-api-provider-metal3"
 fi
