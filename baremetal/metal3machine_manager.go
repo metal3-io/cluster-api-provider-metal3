@@ -39,7 +39,9 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/pointer"
@@ -1369,6 +1371,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID string, pr
 	}
 	var nodeVar corev1.Node
 	for _, node := range nodes.Items {
+		oldData, err := json.Marshal(node)
 		providerIDOnNode := node.Spec.ProviderID
 		if providerIDOnNode == "" {
 			node.Spec.ProviderID = providerIDNew
@@ -1381,7 +1384,15 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID string, pr
 			return errors.Wrap(err, "node using unsupported providerID format")
 		}
 		nodeVar = node
-		_, err = corev1Remote.Nodes().Update(ctx, &nodeVar, metav1.UpdateOptions{})
+		newData, err := json.Marshal(&nodeVar)
+		if err != nil {
+			return fmt.Errorf("failed to json.Marshal node: %w", err)
+		}
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Node{})
+		if err != nil {
+			return fmt.Errorf("failed to create patch for node %q: %w", node.GetName(), err)
+		}
+		_, err = corev1Remote.Nodes().Patch(ctx, nodeVar.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
 		if err != nil {
 			return errors.Wrap(err, "unable to update the target node with providerID")
 		}
