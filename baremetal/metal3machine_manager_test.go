@@ -1429,6 +1429,9 @@ var _ = Describe("Metal3Machine manager", func() {
 		MachineIsNotControlPlane        bool
 		ExpectedBMHOnlineStatus         bool
 		capm3fasttrack                  string
+		Cluster                         *clusterv1.Cluster
+		Metal3MachineTemplate           *infrav1.Metal3MachineTemplate
+		MachineSet                      *clusterv1.MachineSet
 	}
 
 	DescribeTable("Test Delete function",
@@ -1443,12 +1446,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.BMCSecret != nil {
 				objects = append(objects, tc.BMCSecret)
 			}
+			if tc.Metal3MachineTemplate != nil {
+				objects = append(objects, tc.Metal3MachineTemplate)
+			}
+			if tc.MachineSet != nil {
+				objects = append(objects, tc.MachineSet)
+			}
 
 			Capm3FastTrack = tc.capm3fasttrack
 
 			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
 
-			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
+			machineMgr, err := NewMachineManager(fakeClient, tc.Cluster, nil, tc.Machine,
 				tc.M3Machine, logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -1881,6 +1890,183 @@ var _ = Describe("Metal3Machine manager", func() {
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
 			ExpectedBMHOnlineStatus: false,
+		}),
+		Entry("NodeReuse enabled, machine is worker, no error expected", testCaseDelete{
+			Host: newBareMetalHost("myhost",
+				&bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: consumerRef(),
+					Online:      false,
+				},
+				bmov1alpha1.StateNone,
+				&bmov1alpha1.BareMetalHostStatus{
+					Provisioning: bmov1alpha1.ProvisionStatus{
+						State: bmov1alpha1.StateNone,
+					},
+				}, false, "metadata", true),
+			Machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Name:       "myMachineSet",
+							UID:        "123456789",
+							Kind:       "MachineSet",
+						},
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("mym3machine-user-data")},
+				},
+			},
+			MachineSet: &clusterv1.MachineSet{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineSet",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "myMachineSet",
+					Namespace: namespaceName,
+					UID:       "123456789",
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "MachineDeployment",
+							Name:       "test1",
+						},
+					},
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+				&metav1.ObjectMeta{
+					Name:      "mym3machine",
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "MachineSet",
+							APIVersion: infrav1.GroupVersion.String(),
+							Name:       "test1",
+							UID:        "123456789",
+						},
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "test1-bwjsg",
+							UID:        "070f03fb-b0e1-4863-9d95-7fd681d8d257",
+						},
+					},
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: clusterName,
+					},
+					Annotations: map[string]string{
+						HostAnnotation:                           "baremetalns/myhost",
+						"cluster.x-k8s.io/cloned-from-name":      "abc",
+						"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
+					},
+				}),
+			Cluster:             newCluster(clusterName),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: false,
+			Metal3MachineTemplate: &infrav1.Metal3MachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3MachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc",
+					Namespace: namespaceName,
+				},
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: pointer.StringPtr(infrav1.CleaningModeDisabled),
+						},
+					},
+					NodeReuse: true,
+				}},
+		}),
+		Entry("NodeReuse enabled, machine is controlplane, no error expected", testCaseDelete{
+			Host: newBareMetalHost("myhost",
+				&bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: consumerRef(),
+					Online:      false,
+				},
+				bmov1alpha1.StateNone,
+				&bmov1alpha1.BareMetalHostStatus{
+					Provisioning: bmov1alpha1.ProvisionStatus{
+						State: bmov1alpha1.StateNone,
+					},
+				}, false, "metadata", false),
+			Machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "mymachine",
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							Name:       "test1",
+							UID:        "123456789",
+							Kind:       "KubeadmControlPlane",
+						},
+					},
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: pointer.StringPtr("mym3machine-user-data")},
+				},
+			},
+			M3Machine: newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(),
+				&metav1.ObjectMeta{
+					Name:      "mym3machine",
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind:       "KubeadmControlPlane",
+							APIVersion: infrav1.GroupVersion.String(),
+							Name:       "test1",
+							UID:        "2a72b7d2-b5bd-4074-a1fe-7d417bdcd95b",
+						},
+						{
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Machine",
+							Name:       "test1-bwjsg",
+							UID:        "070f03fb-b0e1-4863-9d95-7fd681d8d257",
+						},
+					},
+					Labels: map[string]string{
+						clusterv1.ClusterLabelName: clusterName,
+					},
+					Annotations: map[string]string{
+						HostAnnotation:                           "baremetalns/myhost",
+						"cluster.x-k8s.io/cloned-from-name":      "abc",
+						"cluster.x-k8s.io/cloned-from-groupkind": infrav1.ClonedFromGroupKind,
+					},
+				}),
+			Cluster:             newCluster(clusterName),
+			Secret:              newSecret(),
+			ExpectSecretDeleted: false,
+			Metal3MachineTemplate: &infrav1.Metal3MachineTemplate{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "Metal3MachineTemplate",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "abc",
+					Namespace: namespaceName,
+				},
+				Spec: infrav1.Metal3MachineTemplateSpec{
+					Template: infrav1.Metal3MachineTemplateResource{
+						Spec: infrav1.Metal3MachineSpec{
+							AutomatedCleaningMode: pointer.StringPtr(infrav1.CleaningModeDisabled),
+						},
+					},
+					NodeReuse: true,
+				}},
 		}),
 	)
 
