@@ -1046,7 +1046,9 @@ func (m *MachineManager) nodeReuseLabelExists(ctx context.Context, host *bmov1al
 		return false
 	}
 	_, ok := host.Labels[nodeReuseLabelName]
-	m.Log.Info(fmt.Sprintf("nodeReuseLabelName exists on the host %v", host.Name))
+	if ok {
+		m.Log.Info(fmt.Sprintf("nodeReuseLabelName exists on the host %v", host.Name))
+	}
 	return ok
 }
 
