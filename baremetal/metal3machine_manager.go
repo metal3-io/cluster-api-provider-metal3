@@ -1052,7 +1052,7 @@ func (m *MachineManager) nodeReuseLabelExists(ctx context.Context, host *bmov1al
 
 // getBMCSecret will return the BMCSecret associated with BMH.
 func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmov1alpha1.BareMetalHost) (*corev1.Secret, error) {
-	if host.Spec.BMC.CredentialsName == "" {
+	if host == nil || host.Spec.BMC.CredentialsName == "" {
 		return nil, nil
 	}
 	tmpBMCSecret := corev1.Secret{}
