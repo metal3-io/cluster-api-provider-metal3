@@ -77,7 +77,7 @@ features turned off. If you would like to enable these features, add
 [The Cluster API Book](https://cluster-api.sigs.k8s.io/developer/tilt.html#create-a-tilt-settingsjson-file).
 
 Once your kind management cluster is up and running, you can
-[deploy an example cluster](#deploying-an-example-cluster).
+[deploy an example cluster](#deploy-an-example-cluster).
 
 You can also
 [deploy a flavor cluster as a local tilt resource](#Running-flavor-clusters-as-a-tilt-resource).
