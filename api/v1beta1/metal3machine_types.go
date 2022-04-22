@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"net/url"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,6 +92,19 @@ func (s *Metal3MachineSpec) IsValid() error {
 	}
 	if len(missing) > 0 {
 		return errors.Errorf("Missing fields from ProviderSpec: %v", missing)
+	}
+
+	invalid := []string{}
+	_, err := url.ParseRequestURI(s.Image.URL)
+	if err != nil {
+		invalid = append(invalid, "Image.URL")
+	}
+	_, err = url.ParseRequestURI(s.Image.Checksum)
+	if err != nil {
+		invalid = append(invalid, "Image.Checksum")
+	}
+	if len(invalid) > 0 {
+		return errors.Errorf("Invalid fields from ProviderSpec: %v", invalid)
 	}
 	return nil
 }
