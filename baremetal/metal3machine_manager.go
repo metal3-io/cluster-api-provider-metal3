@@ -502,8 +502,12 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if host == nil {
+		m.Log.Info("host not found for metal3machine %s", m.Metal3Machine.Name)
+		return nil
+	}
 
-	if host != nil && host.Spec.ConsumerRef != nil {
+	if host.Spec.ConsumerRef != nil {
 		// don't remove the ConsumerRef if it references some other  metal3 machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("host already associated with another metal3 machine",
