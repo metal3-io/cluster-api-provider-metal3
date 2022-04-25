@@ -164,10 +164,18 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			r.Log.Error(err, "error getting cluster client")
 			return ctrl.Result{}, errors.Wrap(err, "error getting cluster client")
 		}
+
+		// handle old clusters which were not setup with RBAC for accessing nodes
+		isNodeForbidden := false
 		node, err := remediationMgr.GetNode(ctx, clusterClient)
-		if err != nil && !apierrors.IsNotFound(err) {
-			r.Log.Error(err, "error getting node for remediation")
-			return ctrl.Result{}, errors.Wrap(err, "error getting node for remediation")
+		if err != nil {
+			if apierrors.IsForbidden(err) {
+				r.Log.Info("Node access is forbidden, will skip node deletion")
+				isNodeForbidden = true
+			} else if !apierrors.IsNotFound(err) {
+				r.Log.Error(err, "error getting node for remediation")
+				return ctrl.Result{}, errors.Wrap(err, "error getting node for remediation")
+			}
 		}
 
 		switch remediationMgr.GetRemediationPhase() {
@@ -201,19 +209,27 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			}
 
 			// Restore node if available and not done yet
-			if node != nil && remediationMgr.HasFinalizer() {
-				// Node was recreated, restore annotations and labels
-				r.Log.Info("Restoring the node")
-				if err := r.restoreNode(ctx, remediationMgr, clusterClient, node); err != nil {
-					return ctrl.Result{}, err
+			if remediationMgr.HasFinalizer() {
+				if node != nil {
+					// Node was recreated, restore annotations and labels
+					r.Log.Info("Restoring the node")
+					if err := r.restoreNode(ctx, remediationMgr, clusterClient, node); err != nil {
+						return ctrl.Result{}, err
+					}
+
+					// clean up
+					remediationMgr.RemoveNodeBackupAnnotations()
+					remediationMgr.UnsetFinalizer()
+
+					r.Log.Info("Node restored, remediation done, CR should be deleted soonish")
+					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+				} else if isNodeForbidden {
+					// we don't have a node, just remove finalizer
+					remediationMgr.UnsetFinalizer()
+
+					r.Log.Info("Skipping node restore, remediation done, CR should be deleted soonish")
+					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 				}
-
-				// clean up
-				remediationMgr.RemoveNodeBackupAnnotations()
-				remediationMgr.UnsetFinalizer()
-
-				r.Log.Info("Remediation done, CR should be deleted soonish")
-				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 			}
 
 			// Check timeout, either node wasn't recreated yet, or CR is not deleted because of still unhealthy node
