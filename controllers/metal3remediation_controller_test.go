@@ -47,6 +47,7 @@ type reconcileNormalRemediationTestCase struct {
 	IsFinalizerSet        bool
 	IsPowerOffRequested   bool
 	IsPoweredOn           bool
+	IsNodeForbidden       bool
 	IsNodeBackedUp        bool
 	IsNodeDeleted         bool
 	IsTimedOut            bool
@@ -74,7 +75,9 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 
 	expectGetNode := func() {
 		m.EXPECT().GetClusterClient(context.TODO())
-		if tc.IsNodeDeleted {
+		if tc.IsNodeForbidden {
+			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(nil, &apierrors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonForbidden}})
+		} else if tc.IsNodeDeleted {
 			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(nil, &apierrors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound}})
 		} else {
 			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(&corev1.Node{}, nil)
@@ -110,7 +113,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 			return m
 		}
 
-		if !tc.IsNodeDeleted {
+		if !tc.IsNodeForbidden && !tc.IsNodeDeleted {
 			m.EXPECT().SetNodeBackupAnnotations(gomock.Any(), gomock.Any()).Return(!tc.IsNodeBackedUp)
 			if !tc.IsNodeBackedUp {
 				return m
@@ -136,12 +139,16 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 			return m
 		}
 
-		if !tc.IsNodeDeleted {
-			m.EXPECT().HasFinalizer().Return(tc.IsFinalizerSet)
-			if tc.IsFinalizerSet {
+		m.EXPECT().HasFinalizer().Return(tc.IsFinalizerSet)
+		if tc.IsFinalizerSet {
+			if !tc.IsNodeDeleted {
 				m.EXPECT().GetNodeBackupAnnotations().Return("{\"foo\":\"bar\"}", "")
 				m.EXPECT().UpdateNode(context.TODO(), gomock.Any(), gomock.Any())
 				m.EXPECT().RemoveNodeBackupAnnotations()
+				m.EXPECT().UnsetFinalizer()
+				return m
+			}
+			if tc.IsNodeForbidden {
 				m.EXPECT().UnsetFinalizer()
 				return m
 			}
@@ -332,6 +339,18 @@ var _ = Describe("Metal3Remediation controller", func() {
 					IsPoweredOn:         true,
 					IsNodeBackedUp:      true,
 					IsNodeDeleted:       false,
+					IsTimedOut:          false,
+				}),
+				Entry("Should skip restore node if forbidden and clean up and requeue", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseWaiting,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: false,
+					IsPoweredOn:         true,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsNodeForbidden:     true,
 					IsTimedOut:          false,
 				}),
 				Entry("Should check if retry limit is reached, and restart remediation if false, and then requeue", reconcileNormalRemediationTestCase{
