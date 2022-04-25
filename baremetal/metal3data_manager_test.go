@@ -1651,40 +1651,72 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 	)
 
-	It("Test renderNetworkServices", func() {
-		services := infrav1.NetworkDataService{
-			DNS: []ipamv1.IPAddressStr{
-				(ipamv1.IPAddressStr)("8.8.8.8"),
-				(ipamv1.IPAddressStr)("2001::8888"),
+	type testRenderNetworkServices struct {
+		services       infrav1.NetworkDataService
+		poolAddresses  map[string]addressFromPool
+		expectedOutput []interface{}
+		expectError    bool
+	}
+
+	DescribeTable("Test renderNetworkServices",
+		func(tc testRenderNetworkServices) {
+			result, err := renderNetworkServices(tc.services, tc.poolAddresses)
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+				return
+			}
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(Equal(tc.expectedOutput))
+		},
+		Entry("Services and poolAddresses have the same pool", testRenderNetworkServices{
+			services: infrav1.NetworkDataService{
+				DNS: []ipamv1.IPAddressStr{
+					(ipamv1.IPAddressStr)("8.8.8.8"),
+					(ipamv1.IPAddressStr)("2001::8888"),
+				},
+				DNSFromIPPool: pointer.StringPtr("pool1"),
 			},
-			DNSFromIPPool: pointer.StringPtr("pool1"),
-		}
-		poolAddresses := map[string]addressFromPool{
-			"pool1": {
-				dnsServers: []ipamv1.IPAddressStr{
-					ipamv1.IPAddressStr("8.8.4.4"),
+			poolAddresses: map[string]addressFromPool{
+				"pool1": {
+					dnsServers: []ipamv1.IPAddressStr{
+						ipamv1.IPAddressStr("8.8.4.4"),
+					},
 				},
 			},
-		}
-		expectedOutput := []interface{}{
-			map[string]interface{}{
-				"type":    "dns",
-				"address": ipamv1.IPAddressStr("8.8.8.8"),
+			expectedOutput: []interface{}{
+				map[string]interface{}{
+					"type":    "dns",
+					"address": ipamv1.IPAddressStr("8.8.8.8"),
+				},
+				map[string]interface{}{
+					"type":    "dns",
+					"address": ipamv1.IPAddressStr("2001::8888"),
+				},
+				map[string]interface{}{
+					"type":    "dns",
+					"address": ipamv1.IPAddressStr("8.8.4.4"),
+				},
 			},
-			map[string]interface{}{
-				"type":    "dns",
-				"address": ipamv1.IPAddressStr("2001::8888"),
+			expectError: false,
+		}),
+		Entry("Services and poolAddresses have different pools", testRenderNetworkServices{
+			services: infrav1.NetworkDataService{
+				DNS: []ipamv1.IPAddressStr{
+					(ipamv1.IPAddressStr)("8.8.8.8"),
+					(ipamv1.IPAddressStr)("2001::8888"),
+				},
+				DNSFromIPPool: pointer.StringPtr("pool1"),
 			},
-			map[string]interface{}{
-				"type":    "dns",
-				"address": ipamv1.IPAddressStr("8.8.4.4"),
+			poolAddresses: map[string]addressFromPool{
+				"pool2": {
+					dnsServers: []ipamv1.IPAddressStr{
+						ipamv1.IPAddressStr("8.8.4.4"),
+					},
+				},
 			},
-		}
-		result, err := renderNetworkServices(services, poolAddresses)
-		Expect(result).To(Equal(expectedOutput))
-		Expect(err).NotTo(HaveOccurred())
-	})
-
+			expectError: true,
+		}),
+	)
 	type testCaseRenderNetworkLinks struct {
 		links          infrav1.NetworkDataLink
 		bmh            *bmov1alpha1.BareMetalHost
