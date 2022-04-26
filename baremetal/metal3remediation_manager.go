@@ -212,16 +212,25 @@ func (r *RemediationManager) OnlineStatus(host *bmov1alpha1.BareMetalHost) bool 
 
 // GetRemediationType return type of remediation strategy.
 func (r *RemediationManager) GetRemediationType() infrav1.RemediationType {
+	if r.Metal3Remediation.Spec.Strategy == nil {
+		return ""
+	}
 	return r.Metal3Remediation.Spec.Strategy.Type
 }
 
 // RetryLimitIsSet returns true if retryLimit is set, false if not.
 func (r *RemediationManager) RetryLimitIsSet() bool {
+	if r.Metal3Remediation.Spec.Strategy == nil {
+		return false
+	}
 	return r.Metal3Remediation.Spec.Strategy.RetryLimit > 0
 }
 
 // HasReachRetryLimit returns true if retryLimit is reached.
 func (r *RemediationManager) HasReachRetryLimit() bool {
+	if r.Metal3Remediation.Spec.Strategy == nil {
+		return false
+	}
 	return r.Metal3Remediation.Spec.Strategy.RetryLimit == r.Metal3Remediation.Status.RetryCount
 }
 
