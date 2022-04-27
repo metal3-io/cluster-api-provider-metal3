@@ -79,8 +79,6 @@ var _ = Describe("Workload cluster creation", func() {
 				remediation()
 				if !ephemeralTest {
 					pivoting()
-					upgradeBMO(targetCluster.GetClientSet())
-					upgradeIronic(targetCluster.GetClientSet())
 					certRotation(targetCluster.GetClientSet(), targetCluster.GetClient())
 					nodeReuse(targetCluster.GetClient())
 					rePivoting()

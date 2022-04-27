@@ -251,6 +251,17 @@ func upgradeManagementCluster() {
 
 	By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
 
+	/*--------------------------------------*
+	| Upgrade Ironic and BareMetalOperator  |
+	*---------------------------------------*/
+
+	// TODO: If/when we rework the upgrade test to be able to use CAPI e2e
+	// upgrade test, these two should be included as a PreUpgrade step.
+	// If we do not go that route, we should instead refactor the whole
+	// upgradeManagementCluster function into smaller parts.
+	upgradeIronic(upgradeClusterProxy.GetClientSet())
+	upgradeBMO(upgradeClusterProxy.GetClientSet())
+
 	/*-------------------------------*
 	| Upgrade the management cluster |
 	*--------------------------------*/
