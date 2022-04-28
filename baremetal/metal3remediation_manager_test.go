@@ -574,6 +574,12 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			RemediationTypeSet: false,
 		}),
+		Entry("Remediation strategy is nil should return empty string", testCaseGetRemediationType{
+			Metal3Remediation: &infrav1.Metal3Remediation{
+				Spec: infrav1.Metal3RemediationSpec{},
+			},
+			RemediationTypeSet: false,
+		}),
 	)
 
 	type testCaseGetRemediatedTime struct {
