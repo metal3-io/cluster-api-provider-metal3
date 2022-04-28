@@ -151,7 +151,19 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## --------------------------------------
 ## E2E Testing
 ## --------------------------------------
+GINKGO_FOCUS  ?=
+GINKGO_SKIP ?=
 
+# TODO (Mohammed) select the test in JJB
+ifeq ($(UPGRADE_TEST),true)
+GINKGO_FOCUS := upgrade
+else
+GINKGO_SKIP := upgrade
+endif
+
+ifneq ($(strip $(GINKGO_SKIP)),)
+_SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-ginkgo.skip="$(arg)")
+endif
 .PHONY: e2e-tests
 e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
 e2e-tests: e2e-substitutions cluster-templates ## This target should be called from scripts/ci-e2e.sh
@@ -160,6 +172,7 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 	done
 	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
 		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
+		-ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
