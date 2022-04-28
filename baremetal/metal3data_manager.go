@@ -143,7 +143,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return err
 	}
 	if m3m == nil {
-		return errors.New("Unexpected error getting Metal3Machine")
+		return errors.New("Metal3Machine associated with Metal3DataTemplate is not found")
 	}
 	m.Log.Info("Fetched Metal3Machine")
 
