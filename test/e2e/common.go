@@ -58,12 +58,6 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 			Client:    client,
 			Namespace: namespace,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
-
-		By(fmt.Sprintf("Deleting namespace used for hosting the %q test spec", specName))
-		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
-			Deleter: client,
-			Name:    namespace,
-		})
 	}
 }
 

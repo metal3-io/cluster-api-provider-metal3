@@ -24,7 +24,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var _ = Describe("When testing cluster upgrade [upgrade]", func() {
+	upgradeManagementCluster()
+})
+
 func upgradeManagementCluster() {
+	BeforeEach(func() {
+		osType := strings.ToLower(os.Getenv("OS"))
+		Expect(osType).ToNot(Equal(""))
+		validateGlobals(specName)
+
+		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
+		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
+	})
 	var (
 		ctx                 = context.TODO()
 		specName            = "metal3"
@@ -34,272 +46,278 @@ func upgradeManagementCluster() {
 		clusterctlLogFolder string
 		kubernetesVersion   = e2eConfig.GetVariable(KubernetesVersion)
 	)
-	/*---------------------------------------------*
-	| Create a target cluster with v1a4 clusterctl |
-	*----------------------------------------------*/
-	Logf("Starting v1a5 to v1b1 upgrade tests")
+	It("Should create a management cluster and then upgrade capi and capm3", func() {
+		/*---------------------------------------------*
+		| Create a target cluster with v1a4 clusterctl |
+		*----------------------------------------------*/
+		Logf("Starting v1a5 to v1b1 upgrade tests")
 
-	clusterctlBinaryURLTemplate := e2eConfig.GetVariable("INIT_WITH_BINARY")
-	clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
-	clusterctlBinaryURL := clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
-	clusterctlBinaryPath := "/tmp/clusterctltmp"
+		clusterctlBinaryURLTemplate := e2eConfig.GetVariable("INIT_WITH_BINARY")
+		clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
+		clusterctlBinaryURL := clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
+		clusterctlBinaryPath := "/tmp/clusterctltmp"
 
-	Logf("Downloading clusterctl binary from %s", clusterctlBinaryURL)
-	err := downloadFile(clusterctlBinaryPath, clusterctlBinaryURL)
-	Expect(err).ToNot(HaveOccurred(), "failed to download temporary file")
-	defer os.Remove(clusterctlBinaryPath) // clean up
+		Logf("Downloading clusterctl binary from %s", clusterctlBinaryURL)
+		err := downloadFile(clusterctlBinaryPath, clusterctlBinaryURL)
+		Expect(err).ToNot(HaveOccurred(), "failed to download temporary file")
+		defer os.Remove(clusterctlBinaryPath) // clean up
 
-	err = os.Chmod(clusterctlBinaryPath, 0744)
-	Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
+		err = os.Chmod(clusterctlBinaryPath, 0744)
+		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
 
-	By("Creating a high available cluster")
-	Logf("Getting the cluster template yaml")
-	upgradeClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
-		KubeconfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
-		ClusterctlConfigPath: clusterctlConfigPath,
-		// define template variables
-		Namespace:                namespace,
-		ClusterName:              clusterName,
-		KubernetesVersion:        kubernetesVersion,
-		Flavor:                   "ubuntu",
-		ControlPlaneMachineCount: pointer.Int64Ptr(1),
-		WorkerMachineCount:       pointer.Int64Ptr(1),
-		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-		// setup clusterctl logs folder
-		LogFolder: clusterctlLogFolder,
-	})
+		By("Creating a high available cluster")
+		Logf("Getting the cluster template yaml")
+		upgradeClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
+			KubeconfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
+			ClusterctlConfigPath: clusterctlConfigPath,
+			// define template variables
+			Namespace:                namespace,
+			ClusterName:              clusterName,
+			KubernetesVersion:        kubernetesVersion,
+			Flavor:                   "ubuntu",
+			ControlPlaneMachineCount: pointer.Int64Ptr(1),
+			WorkerMachineCount:       pointer.Int64Ptr(1),
+			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+			// setup clusterctl logs folder
+			LogFolder: clusterctlLogFolder,
+		})
 
-	Expect(upgradeClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
+		Expect(upgradeClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
-	Logf("Applying the cluster template yaml to the cluster: \n%v\n", string(upgradeClusterTemplate))
+		Logf("Applying the cluster template yaml to the cluster: \n%v\n", string(upgradeClusterTemplate))
 
-	Expect(bootstrapClusterProxy.Apply(ctx, upgradeClusterTemplate)).To(Succeed())
+		Expect(bootstrapClusterProxy.Apply(ctx, upgradeClusterTemplate)).To(Succeed())
 
-	By("Waiting for the machines to be running")
-	Eventually(func() (int, error) {
-		n := 0
-		machineList := &clusterv1alpha4.MachineList{}
-		if err := bootstrapClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}); err == nil {
-			for _, machine := range machineList.Items {
-				if strings.EqualFold(machine.Status.Phase, "running") {
-					n++
+		By("Waiting for the machines to be running")
+		Eventually(func() (int, error) {
+			n := 0
+			machineList := &clusterv1alpha4.MachineList{}
+			if err := bootstrapClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}); err == nil {
+				for _, machine := range machineList.Items {
+					if strings.EqualFold(machine.Status.Phase, "running") {
+						n++
+					}
 				}
 			}
+			return n, nil
+		}, e2eConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(2))
+
+		upgradeClusterProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+		upgradeClusterClient := upgradeClusterProxy.GetClient()
+
+		// Apply CNI
+		cniYaml, err := os.ReadFile(e2eConfig.GetVariable(capi_e2e.CNIPath))
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(upgradeClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
+		By("Initializing the workload cluster with older versions of providers")
+
+		contract := e2eConfig.GetVariable("CAPI_VERSION")
+
+		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
+			ClusterctlBinaryPath:    clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
+			ClusterProxy:            upgradeClusterProxy,
+			ClusterctlConfigPath:    clusterctlConfigPath,
+			CoreProvider:            e2eConfig.GetProviderLatestVersionsByContract(contract, config.ClusterAPIProviderName)[0],
+			BootstrapProviders:      e2eConfig.GetProviderLatestVersionsByContract(contract, config.KubeadmBootstrapProviderName),
+			ControlPlaneProviders:   e2eConfig.GetProviderLatestVersionsByContract(contract, config.KubeadmControlPlaneProviderName),
+			InfrastructureProviders: e2eConfig.GetProviderLatestVersionsByContract(contract, e2eConfig.InfrastructureProviders()...),
+			LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName),
+		}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
+
+		/*-------------------------------------------------*
+		| Pivot to run ironic/BMO and resources on target |
+		*--------------------------------------------------*/
+		By("Start pivoting")
+		By("Remove Ironic containers from the source cluster")
+		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
+		if ephemeralCluster == KIND {
+			removeIronicContainers()
+		} else {
+			removeIronicDeployment()
 		}
-		return n, nil
-	}, e2eConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(2))
 
-	upgradeClusterProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-	upgradeClusterClient := upgradeClusterProxy.GetClient()
-
-	// Apply CNI
-	cniYaml, err := os.ReadFile(e2eConfig.GetVariable(capi_e2e.CNIPath))
-	Expect(err).ShouldNot(HaveOccurred())
-	Expect(upgradeClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
-	By("Initializing the workload cluster with older versions of providers")
-
-	contract := e2eConfig.GetVariable("CAPI_VERSION")
-
-	clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-		ClusterctlBinaryPath:    clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
-		ClusterProxy:            upgradeClusterProxy,
-		ClusterctlConfigPath:    clusterctlConfigPath,
-		CoreProvider:            e2eConfig.GetProviderLatestVersionsByContract(contract, config.ClusterAPIProviderName)[0],
-		BootstrapProviders:      e2eConfig.GetProviderLatestVersionsByContract(contract, config.KubeadmBootstrapProviderName),
-		ControlPlaneProviders:   e2eConfig.GetProviderLatestVersionsByContract(contract, config.KubeadmControlPlaneProviderName),
-		InfrastructureProviders: e2eConfig.GetProviderLatestVersionsByContract(contract, e2eConfig.InfrastructureProviders()...),
-		LogFolder:               filepath.Join(artifactFolder, "clusters", clusterName),
-	}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
-
-	/*-------------------------------------------------*
-	| Pivot to run ironic/BMO and resources on target |
-	*--------------------------------------------------*/
-	By("Start pivoting")
-	By("Remove Ironic containers from the source cluster")
-	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	if ephemeralCluster == KIND {
-		removeIronicContainers()
-	} else {
-		removeIronicDeployment()
-	}
-
-	By("Create Ironic namespace")
-	upgradeClusterClientSet := upgradeClusterProxy.GetClientSet()
-	ironicNamespace := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: e2eConfig.GetVariable("IRONIC_NAMESPACE"),
-		},
-	}
-	_, err = upgradeClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
-	Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
-
-	By("Configure Ironic Configmap")
-	configureIronicConfigmap(true)
-
-	By("Add labels to BMO CRDs")
-	labelBMOCRDs(nil)
-
-	By("Install BMO")
-	installIronicBMO(upgradeClusterProxy, "false", "true")
-
-	By("Install Ironic in the target cluster")
-	installIronicBMO(upgradeClusterProxy, "true", "false")
-
-	By("Restore original BMO configmap")
-	restoreBMOConfigmap()
-	By("Reinstate Ironic Configmap")
-	configureIronicConfigmap(false)
-
-	By("Add labels to BMO CRDs in the target cluster")
-	labelBMOCRDs(upgradeClusterProxy)
-
-	By("Ensure API servers are stable before doing move")
-	Consistently(func() error {
-		kubeSystem := &corev1.Namespace{}
-		return bootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-	}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
-	Consistently(func() error {
-		kubeSystem := &corev1.Namespace{}
-		return upgradeClusterClient.Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-	}, "5s", "100ms").Should(BeNil(), "Failed to assert target API server stability")
-	By("Moving the cluster to self hosted")
-
-	cmd := exec.Command(clusterctlBinaryPath, "move", "--to-kubeconfig", upgradeClusterProxy.GetKubeconfigPath(), "-n", namespace, "-v", "10")
-	output, err := cmd.CombinedOutput()
-	Logf("move: %v", string(output))
-	Expect(err).To(BeNil())
-
-	By("Check if BMH is in provisioned state")
-	Eventually(func() error {
-		bmhList := &bmov1alpha1.BareMetalHostList{}
-		if err := upgradeClusterClient.List(ctx, bmhList, client.InNamespace(namespace)); err != nil {
-			return err
+		By("Create Ironic namespace")
+		upgradeClusterClientSet := upgradeClusterProxy.GetClientSet()
+		ironicNamespace := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: e2eConfig.GetVariable("IRONIC_NAMESPACE"),
+			},
 		}
-		for _, bmh := range bmhList.Items {
-			if !bmh.WasProvisioned() {
-				return errors.New("BMHs cannot be provisioned")
+		_, err = upgradeClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
+		Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
+
+		By("Configure Ironic Configmap")
+		configureIronicConfigmap(true)
+
+		By("Add labels to BMO CRDs")
+		labelBMOCRDs(nil)
+
+		By("Install BMO")
+		installIronicBMO(upgradeClusterProxy, "false", "true")
+
+		By("Install Ironic in the target cluster")
+		installIronicBMO(upgradeClusterProxy, "true", "false")
+
+		By("Restore original BMO configmap")
+		restoreBMOConfigmap()
+		By("Reinstate Ironic Configmap")
+		configureIronicConfigmap(false)
+
+		By("Add labels to BMO CRDs in the target cluster")
+		labelBMOCRDs(upgradeClusterProxy)
+
+		By("Ensure API servers are stable before doing move")
+		Consistently(func() error {
+			kubeSystem := &corev1.Namespace{}
+			return bootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+		}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
+		Consistently(func() error {
+			kubeSystem := &corev1.Namespace{}
+			return upgradeClusterClient.Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+		}, "5s", "100ms").Should(BeNil(), "Failed to assert target API server stability")
+		By("Moving the cluster to self hosted")
+
+		cmd := exec.Command(clusterctlBinaryPath, "move", "--to-kubeconfig", upgradeClusterProxy.GetKubeconfigPath(), "-n", namespace, "-v", "10")
+		output, err := cmd.CombinedOutput()
+		Logf("move: %v", string(output))
+		Expect(err).To(BeNil())
+
+		By("Check if BMH is in provisioned state")
+		Eventually(func() error {
+			bmhList := &bmov1alpha1.BareMetalHostList{}
+			if err := upgradeClusterClient.List(ctx, bmhList, client.InNamespace(namespace)); err != nil {
+				return err
 			}
-		}
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(BeNil())
-
-	Logf("Apply the available BMHs CRs")
-	cmd = exec.Command("kubectl", "apply", "-f", "/opt/metal3-dev-env/bmhosts_crs.yaml", "-n", namespace, "--kubeconfig", upgradeClusterProxy.GetKubeconfigPath())
-	output, err = cmd.CombinedOutput()
-	Logf("Apply BMHs CRs: %v", string(output))
-	Expect(err).To(BeNil())
-
-	Logf("Waiting for 2 BMHs to be in Available state")
-	Eventually(func(g Gomega) {
-		bmhs, err := getAllBmhs(ctx, upgradeClusterClient, namespace, specName)
-		g.Expect(err).To(BeNil())
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)).To(HaveLen(2))
-	}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
-
-	/*-------------------------------*
-	| Create a test workload cluster |
-	*--------------------------------*/
-	var (
-		controlPlaneMachineCount = pointer.Int64Ptr(1)
-		workerMachineCount       = pointer.Int64Ptr(1)
-	)
-	// Update CLUSTER_APIENDPOINT_HOST
-	os.Setenv("CLUSTER_APIENDPOINT_HOST", "192.168.111.250")
-
-	By("Creating a test workload cluster")
-
-	Logf("Creating the workload cluster with name %q using (Kubernetes %s, %d control-plane machines, %d worker machines)",
-		workloadClusterName, kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
-
-	Logf("Getting the cluster template yaml")
-	workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
-		// pass reference to the management cluster hosting this test
-		KubeconfigPath: upgradeClusterProxy.GetKubeconfigPath(),
-		// pass the clusterctl config file that points to the local provider repository created for this test
-		ClusterctlConfigPath: clusterctlConfigPath,
-
-		// define template variables
-		Namespace:                namespace,
-		ClusterName:              workloadClusterName,
-		Flavor:                   "upgrade-workload",
-		KubernetesVersion:        kubernetesVersion,
-		ControlPlaneMachineCount: controlPlaneMachineCount,
-		WorkerMachineCount:       workerMachineCount,
-		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-		// setup clusterctl logs folder
-		LogFolder: filepath.Join(artifactFolder, "clusters", upgradeClusterProxy.GetName()),
-	})
-	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
-	Logf("%v ", string(workloadClusterTemplate))
-
-	Logf("Applying the cluster template yaml to the cluster")
-	Expect(upgradeClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
-
-	By("Waiting for the machines to be running")
-	Eventually(func() (int, error) {
-		var n int
-		machineList := &clusterv1alpha4.MachineList{}
-		if err := upgradeClusterClient.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName}); err == nil {
-			for _, machine := range machineList.Items {
-				if strings.EqualFold(machine.Status.Phase, "running") {
-					n++
+			for _, bmh := range bmhList.Items {
+				if !bmh.WasProvisioned() {
+					return errors.New("BMHs cannot be provisioned")
 				}
 			}
-		}
-		return n, nil
-	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Equal(2))
+			return nil
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(BeNil())
 
-	By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
+		Logf("Apply the available BMHs CRs")
+		cmd = exec.Command("kubectl", "apply", "-f", "/opt/metal3-dev-env/bmhosts_crs.yaml", "-n", namespace, "--kubeconfig", upgradeClusterProxy.GetKubeconfigPath())
+		output, err = cmd.CombinedOutput()
+		Logf("Apply BMHs CRs: %v", string(output))
+		Expect(err).To(BeNil())
 
-	/*--------------------------------------*
-	| Upgrade Ironic and BareMetalOperator  |
-	*---------------------------------------*/
+		Logf("Waiting for 2 BMHs to be in Available state")
+		Eventually(func(g Gomega) {
+			bmhs, err := getAllBmhs(ctx, upgradeClusterClient, namespace, specName)
+			g.Expect(err).To(BeNil())
+			g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)).To(HaveLen(2))
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
 
-	// TODO: If/when we rework the upgrade test to be able to use CAPI e2e
-	// upgrade test, these two should be included as a PreUpgrade step.
-	// If we do not go that route, we should instead refactor the whole
-	// upgradeManagementCluster function into smaller parts.
-	upgradeIronic(upgradeClusterProxy.GetClientSet())
-	upgradeBMO(upgradeClusterProxy.GetClientSet())
+		/*-------------------------------*
+		| Create a test workload cluster |
+		*--------------------------------*/
+		var (
+			controlPlaneMachineCount = pointer.Int64Ptr(1)
+			workerMachineCount       = pointer.Int64Ptr(1)
+		)
+		// Update CLUSTER_APIENDPOINT_HOST
+		os.Setenv("CLUSTER_APIENDPOINT_HOST", "192.168.111.250")
 
-	/*-------------------------------*
-	| Upgrade the management cluster |
-	*--------------------------------*/
-	By("Upgrading providers to the latest version available")
-	By("Get the management cluster images before upgrading")
-	printImages(upgradeClusterProxy)
+		By("Creating a test workload cluster")
 
-	Logf("Upgrade management cluster to : %v", clusterv1.GroupVersion.Version)
-	clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
-		ClusterctlConfigPath: clusterctlConfigPath,
-		ClusterProxy:         upgradeClusterProxy,
-		Contract:             clusterv1.GroupVersion.Version,
-		LogFolder:            filepath.Join(artifactFolder, "clusters", workloadClusterName),
-	}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
+		Logf("Creating the workload cluster with name %q using (Kubernetes %s, %d control-plane machines, %d worker machines)",
+			workloadClusterName, kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)
 
-	Logf("The target cluster upgraded!")
+		Logf("Getting the cluster template yaml")
+		workloadClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
+			// pass reference to the management cluster hosting this test
+			KubeconfigPath: upgradeClusterProxy.GetKubeconfigPath(),
+			// pass the clusterctl config file that points to the local provider repository created for this test
+			ClusterctlConfigPath: clusterctlConfigPath,
 
-	By("Get the management cluster images after upgrading")
-	printImages(upgradeClusterProxy)
+			// define template variables
+			Namespace:                namespace,
+			ClusterName:              workloadClusterName,
+			Flavor:                   "upgrade-workload",
+			KubernetesVersion:        kubernetesVersion,
+			ControlPlaneMachineCount: controlPlaneMachineCount,
+			WorkerMachineCount:       workerMachineCount,
+			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+			// setup clusterctl logs folder
+			LogFolder: filepath.Join(artifactFolder, "clusters", upgradeClusterProxy.GetName()),
+		})
+		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
+		Logf("%v ", string(workloadClusterTemplate))
 
-	By("Upgrade bootstrap cluster")
-	By("Get the management cluster images before upgrading")
-	printImages(bootstrapClusterProxy)
+		Logf("Applying the cluster template yaml to the cluster")
+		Expect(upgradeClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
 
-	Logf("Upgrade bootstrap cluster to : %v", clusterv1.GroupVersion.Version)
-	clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
-		ClusterctlConfigPath: clusterctlConfigPath,
-		ClusterProxy:         bootstrapClusterProxy,
-		Contract:             clusterv1.GroupVersion.Version,
-		LogFolder:            filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-	}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
+		By("Waiting for the machines to be running")
+		Eventually(func() (int, error) {
+			var n int
+			machineList := &clusterv1alpha4.MachineList{}
+			if err := upgradeClusterClient.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName}); err == nil {
+				for _, machine := range machineList.Items {
+					if strings.EqualFold(machine.Status.Phase, "running") {
+						n++
+					}
+				}
+			}
+			return n, nil
+		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Equal(2))
 
-	Logf("The source cluster upgraded!")
+		By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
 
-	By("Get the bootstrap cluster images after upgrading")
-	printImages(bootstrapClusterProxy)
+		/*--------------------------------------*
+		| Upgrade Ironic and BareMetalOperator  |
+		*---------------------------------------*/
 
-	By("UPGRADE MANAGEMENT CLUSTER PASSED!")
+		// TODO: If/when we rework the upgrade test to be able to use CAPI e2e
+		// upgrade test, these two should be included as a PreUpgrade step.
+		// If we do not go that route, we should instead refactor the whole
+		// upgradeManagementCluster function into smaller parts.
+		upgradeIronic(upgradeClusterProxy.GetClientSet())
+		upgradeBMO(upgradeClusterProxy.GetClientSet())
+
+		/*-------------------------------*
+		| Upgrade the management cluster |
+		*--------------------------------*/
+		By("Upgrading providers to the latest version available")
+		By("Get the management cluster images before upgrading")
+		printImages(upgradeClusterProxy)
+
+		Logf("Upgrade management cluster to : %v", clusterv1.GroupVersion.Version)
+		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
+			ClusterctlConfigPath: clusterctlConfigPath,
+			ClusterProxy:         upgradeClusterProxy,
+			Contract:             clusterv1.GroupVersion.Version,
+			LogFolder:            filepath.Join(artifactFolder, "clusters", workloadClusterName),
+		}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
+
+		Logf("The target cluster upgraded!")
+
+		By("Get the management cluster images after upgrading")
+		printImages(upgradeClusterProxy)
+
+		By("Upgrade bootstrap cluster")
+		By("Get the management cluster images before upgrading")
+		printImages(bootstrapClusterProxy)
+
+		Logf("Upgrade bootstrap cluster to : %v", clusterv1.GroupVersion.Version)
+		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
+			ClusterctlConfigPath: clusterctlConfigPath,
+			ClusterProxy:         bootstrapClusterProxy,
+			Contract:             clusterv1.GroupVersion.Version,
+			LogFolder:            filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
+		}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
+
+		Logf("The source cluster upgraded!")
+
+		By("Get the bootstrap cluster images after upgrading")
+		printImages(bootstrapClusterProxy)
+
+		By("UPGRADE MANAGEMENT CLUSTER PASSED!")
+	})
+
+	AfterEach(func() {
+		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+	})
 }
 
 func printImages(clusterProxy framework.ClusterProxy) {
