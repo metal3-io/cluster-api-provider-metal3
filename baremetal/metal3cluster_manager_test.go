@@ -61,6 +61,7 @@ type testCaseBMClusterManager struct {
 
 type descendantsTestCase struct {
 	Machines            []*clusterv1.Machine
+	OwnerRef            *metav1.OwnerReference
 	ExpectError         bool
 	ExpectedDescendants int
 }
@@ -302,10 +303,11 @@ var _ = Describe("Metal3Cluster manager", func() {
 	var descendantsTestCases = []TableEntry{
 		Entry("No Cluster Descendants", descendantsTestCase{
 			Machines:            []*clusterv1.Machine{},
+			OwnerRef:            bmcOwnerRef,
 			ExpectError:         false,
 			ExpectedDescendants: 0,
 		}),
-		Entry("One Cluster Descendant", descendantsTestCase{
+		Entry("One Cluster Descendant with proper OwnerRef", descendantsTestCase{
 			Machines: []*clusterv1.Machine{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -316,8 +318,28 @@ var _ = Describe("Metal3Cluster manager", func() {
 					},
 				},
 			},
+			OwnerRef:            bmcOwnerRef,
 			ExpectError:         false,
 			ExpectedDescendants: 1,
+		}),
+		Entry("One Cluster Descendant with wrong OwnerRef", descendantsTestCase{
+			Machines: []*clusterv1.Machine{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: namespaceName,
+						Labels: map[string]string{
+							clusterv1.ClusterLabelName: clusterName,
+						},
+					},
+				},
+			},
+			OwnerRef: &metav1.OwnerReference{
+				APIVersion: "test////",
+				Kind:       "Cluster",
+				Name:       clusterName,
+			},
+			ExpectError:         true,
+			ExpectedDescendants: 0,
 		}),
 	}
 
@@ -375,7 +397,7 @@ func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
 
 func descendantsSetup(tc descendantsTestCase) *ClusterManager {
 	cluster := newCluster(clusterName)
-	bmCluster := newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
+	bmCluster := newMetal3Cluster(metal3ClusterName, tc.OwnerRef,
 		nil, nil,
 	)
 	objects := []client.Object{
