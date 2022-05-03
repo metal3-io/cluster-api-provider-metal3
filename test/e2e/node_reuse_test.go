@@ -79,7 +79,7 @@ func nodeReuse() {
 	if osType != "centos" {
 		imageNamePrefix = "UBUNTU_20.04_NODE_IMAGE_K8S"
 	} else {
-		imageNamePrefix = "CENTOS_8_NODE_IMAGE_K8S"
+		imageNamePrefix = "CENTOS_9_NODE_IMAGE_K8S"
 	}
 	imageName := fmt.Sprintf("%s_%s.qcow2", imageNamePrefix, upgradedK8sVersion)
 	Logf("IMAGE_NAME: %v", imageName)
