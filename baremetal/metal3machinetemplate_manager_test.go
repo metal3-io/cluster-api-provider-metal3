@@ -74,10 +74,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "foo",
-				},
+				ObjectMeta: testObjectMeta("abc", "foo", ""),
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
@@ -145,10 +142,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "foo",
-				},
+				ObjectMeta: testObjectMeta("abc", "foo", ""),
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
@@ -216,10 +210,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					APIVersion: infrav1.GroupVersion.String(),
 					Kind:       "Metal3MachineTemplate",
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "foo",
-				},
+				ObjectMeta: testObjectMeta("abc", "foo", ""),
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{

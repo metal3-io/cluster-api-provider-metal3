@@ -1872,9 +1872,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				false, "metadata", true,
 			),
 			Machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("mym3machine-user-data"),
@@ -2833,9 +2831,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Type: "Opaque",
 			},
 			Machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("Foobar"),
@@ -2908,9 +2904,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("UserDataSecretName set in Machine, secret exists", testCaseGetUserDataSecretName{
 			Secret: newSecret(),
 			Machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("test-data-secret-name"),
@@ -2922,9 +2916,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("UserDataSecretName set in Machine, no secret", testCaseGetUserDataSecretName{
 			Machine: &clusterv1.Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: namespaceName,
-				},
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						DataSecretName: pointer.StringPtr("test-data-secret-name"),
@@ -4465,10 +4457,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 			expectedMachineSet: &clusterv1.MachineSet{
-				TypeMeta: metav1.TypeMeta{},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "ms-test1",
-				},
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: testObjectMeta("ms-test1", "", ""),
 			},
 		}),
 		Entry("Should not find the Machineset and error when machine is nil", testCaseGetMachineSet{
@@ -4764,9 +4754,7 @@ func newBareMetalHost(name string,
 	clusterlabel bool) *bmov1alpha1.BareMetalHost {
 	if name == "" {
 		return &bmov1alpha1.BareMetalHost{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: namespaceName,
-			},
+			ObjectMeta: testObjectMeta("", namespaceName, ""),
 		}
 	}
 
