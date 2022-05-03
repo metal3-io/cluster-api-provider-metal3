@@ -474,9 +474,9 @@ var _ = Describe("Metal3Machine manager", func() {
 	Describe("Test ChooseHost", func() {
 
 		// Creating the hosts
-		host1 := bmov1alpha1.BareMetalHost{
+		hostWithOtherConsRef := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "host1",
+				Name:      "hostWithOtherConsRef",
 				Namespace: namespaceName,
 			},
 			Spec: bmov1alpha1.BareMetalHostSpec{
@@ -488,32 +488,39 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 		}
-		host2 := *newBareMetalHost("myhost", nil, bmov1alpha1.StateNone, nil, false, "metadata", false)
 
-		host3 := bmov1alpha1.BareMetalHost{
+		availableHost := newBareMetalHost("availableHost", &bmov1alpha1.BareMetalHostSpec{}, bmov1alpha1.StateReady, &bmov1alpha1.BareMetalHostStatus{}, true, "metadata", false)
+
+		hostWithConRef := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "host3",
+				Name:      "hostWithConRef",
 				Namespace: namespaceName,
 			},
 			Spec: bmov1alpha1.BareMetalHostSpec{
 				ConsumerRef: &corev1.ObjectReference{
-					Name:       "machine1",
+					Name:       "mym3machine",
 					Namespace:  namespaceName,
 					Kind:       "M3Machine",
 					APIVersion: infrav1.GroupVersion.String(),
 				},
 			},
 		}
-		host4 := bmov1alpha1.BareMetalHost{
+		hostInOtherNS := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "host4",
+				Name:      "hostInOtherNS",
 				Namespace: "someotherns",
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
 			},
 		}
 		discoveredHost := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "discoveredHost",
 				Namespace: namespaceName,
+				Labels:    map[string]string{"key1": "value1"},
 			},
 			Status: bmov1alpha1.BareMetalHostStatus{
 				ErrorMessage: "this host is discovered but not usable",
@@ -525,6 +532,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				Namespace: namespaceName,
 				Labels:    map[string]string{"key1": "value1"},
 			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
 		}
 		hostWithUnhealthyAnnotation := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
@@ -532,21 +544,51 @@ var _ = Describe("Metal3Machine manager", func() {
 				Namespace:   namespaceName,
 				Annotations: map[string]string{infrav1.UnhealthyAnnotation: "unhealthy"},
 			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
+		}
+		hostWithPausedAnnotation := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "hostWithPausedAnnotation",
+				Namespace:   namespaceName,
+				Annotations: map[string]string{bmov1alpha1.PausedAnnotation: PausedAnnotationKey},
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
 		}
 		hostWithNodeReuseLabelSetToKCP := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hostWithNodeReuseLabelSetToKCP",
 				Namespace: namespaceName,
-				Labels:    map[string]string{nodeReuseLabelName: "kcp-pool1"},
+				Labels:    map[string]string{nodeReuseLabelName: "kcp-test1"},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
 			},
 		}
-		hostWithNodeReuseLabelSetToMD := bmov1alpha1.BareMetalHost{
+		hostWithNodeReuseLabelStateNone := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "hostWithNodeReuseLabelSetToMD",
+				Name:      "hostWithNodeReuseLabelStateNone",
 				Namespace: namespaceName,
-				Labels:    map[string]string{nodeReuseLabelName: "md-pool1"},
+				Labels:    map[string]string{nodeReuseLabelName: "kcp-test1"},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateNone,
+				},
 			},
 		}
+
 		m3mconfig, infrastructureRef := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{},
 		)
@@ -577,14 +619,26 @@ var _ = Describe("Metal3Machine manager", func() {
 
 		type testCaseChooseHost struct {
 			Machine          *clusterv1.Machine
-			Hosts            []client.Object
+			Hosts            *bmov1alpha1.BareMetalHostList
 			M3Machine        *infrav1.Metal3Machine
 			ExpectedHostName string
 		}
 
 		DescribeTable("Test ChooseHost",
 			func(tc testCaseChooseHost) {
-				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Hosts...).Build()
+				objects := []client.Object{}
+				if tc.Hosts != nil {
+					for i := range tc.Hosts.Items {
+						objects = append(objects, &tc.Hosts.DeepCopy().Items[i])
+					}
+				}
+				if tc.Machine != nil {
+					objects = append(objects, tc.Machine)
+				}
+				if tc.M3Machine != nil {
+					objects = append(objects, tc.M3Machine)
+				}
+				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 				machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 					tc.M3Machine, logr.Discard(),
 				)
@@ -597,103 +651,169 @@ var _ = Describe("Metal3Machine manager", func() {
 					return
 				}
 				Expect(err).NotTo(HaveOccurred())
-				if result != nil {
+				if tc.ExpectedHostName != "" {
 					Expect(result.Name).To(Equal(tc.ExpectedHostName))
 				}
 			},
-			Entry("Pick host2 which lacks ConsumerRef", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef2),
-				Hosts:            []client.Object{&host2, &host1},
-				M3Machine:        m3mconfig2,
-				ExpectedHostName: host2.Name,
-			}),
 			Entry("Pick hostWithNodeReuseLabelSetToKCP, which has a matching nodeReuseLabelName", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef2),
-				Hosts:            []client.Object{&hostWithNodeReuseLabelSetToKCP, &host3, &host2},
-				M3Machine:        m3mconfig2,
+				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mymachine",
+						Namespace: namespaceName,
+
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Name:       "test1",
+								Kind:       "KubeadmControlPlane",
+							},
+						},
+						Labels: map[string]string{
+							clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						},
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: *infrastructureRef,
+					},
+				},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithNodeReuseLabelSetToKCP}},
+				M3Machine:        m3mconfig,
 				ExpectedHostName: hostWithNodeReuseLabelSetToKCP.Name,
 			}),
-			Entry("Pick hostWithNodeReuseLabelSetToMD, which has a matching nodeReuseLabelName", testCaseChooseHost{
+			Entry("Requeu hostWithNodeReuseLabelStateNone, which has a matching nodeReuseLabelName", testCaseChooseHost{
+				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "mymachine",
+						Namespace: namespaceName,
+
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Name:       "test1",
+								Kind:       "KubeadmControlPlane",
+							},
+						},
+						Labels: map[string]string{
+							clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						},
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: *infrastructureRef,
+					},
+				},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithNodeReuseLabelStateNone}},
+				M3Machine:        m3mconfig,
+				ExpectedHostName: "",
+			}),
+			Entry("Pick availableHost which lacks ConsumerRef", testCaseChooseHost{
+				Machine:          newMachine("machine1", "", infrastructureRef),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost}},
+				M3Machine:        m3mconfig,
+				ExpectedHostName: availableHost.Name,
+			}),
+			Entry("Ignore discoveredHost and pick availableHost, which lacks a ConsumerRef",
+				testCaseChooseHost{
+					Machine:          newMachine("machine1", "", infrastructureRef),
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{discoveredHost, hostWithOtherConsRef, *availableHost}},
+					M3Machine:        m3mconfig,
+					ExpectedHostName: availableHost.Name,
+				},
+			),
+			Entry("Ignore hostWithUnhealthyAnnotation and pick availableHost, which lacks a ConsumerRef",
+				testCaseChooseHost{
+					Machine:          newMachine("machine1", "", infrastructureRef),
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithUnhealthyAnnotation, hostWithOtherConsRef, *availableHost}},
+					M3Machine:        m3mconfig,
+					ExpectedHostName: availableHost.Name,
+				},
+			),
+			Entry("Ignore hostWithPausedAnnotation and pick availableHost, which lacks a ConsumerRef",
+				testCaseChooseHost{
+					Machine:          newMachine("machine1", "", infrastructureRef),
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithPausedAnnotation, hostWithOtherConsRef, *availableHost}},
+					M3Machine:        m3mconfig,
+					ExpectedHostName: availableHost.Name,
+				},
+			),
+			Entry("Pick hostWithConRef, which has a matching ConsumerRef", testCaseChooseHost{
 				Machine:          newMachine("machine1", "", infrastructureRef2),
-				Hosts:            []client.Object{&hostWithNodeReuseLabelSetToMD, &host3, &host2},
-				M3Machine:        m3mconfig2,
-				ExpectedHostName: hostWithNodeReuseLabelSetToMD.Name,
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithConRef}},
+				M3Machine:        newMetal3Machine("mym3machine", nil, nil, m3mSecretStatus(), nil),
+				ExpectedHostName: hostWithConRef.Name,
 			}),
-			Entry("Ignore discoveredHost and pick host2, which lacks a ConsumerRef",
-				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef2),
-					Hosts:            []client.Object{&discoveredHost, &host2, &host1},
-					M3Machine:        m3mconfig2,
-					ExpectedHostName: host2.Name,
-				},
-			),
-			Entry("Ignore hostWithUnhealthyAnnotation and pick host2, which lacks a ConsumerRef",
-				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef2),
-					Hosts:            []client.Object{&hostWithUnhealthyAnnotation, &host1, &host2},
-					M3Machine:        m3mconfig2,
-					ExpectedHostName: host2.Name,
-				},
-			),
-			Entry("Pick host3, which has a matching ConsumerRef", testCaseChooseHost{
-				Machine:          newMachine("machine1", "", infrastructureRef3),
-				Hosts:            []client.Object{&host1, &host3, &host2},
-				M3Machine:        m3mconfig3,
-				ExpectedHostName: host3.Name,
-			}),
+
 			Entry("Two hosts already taken, third is in another namespace",
 				testCaseChooseHost{
 					Machine:          newMachine("machine2", "", infrastructureRef),
-					Hosts:            []client.Object{&host1, &host3, &host4},
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, hostWithConRef, hostInOtherNS}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: "",
-				},
-			),
+				}),
+
 			Entry("Choose hosts with a label, even without a label selector",
 				testCaseChooseHost{
 					Machine:          newMachine("machine1", "", infrastructureRef),
-					Hosts:            []client.Object{&hostWithLabel},
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithLabel}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: hostWithLabel.Name,
 				},
 			),
 			Entry("Choose hosts with a nodeReuseLabelName set to KCP, even without a label selector",
 				testCaseChooseHost{
-					Machine:          newMachine("machine1", "", infrastructureRef),
-					Hosts:            []client.Object{&hostWithNodeReuseLabelSetToKCP},
+					Machine: &clusterv1.Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mymachine",
+							Namespace: namespaceName,
+
+							OwnerReferences: []metav1.OwnerReference{
+								{
+									APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+									Name:       "test1",
+									Kind:       "KubeadmControlPlane",
+								},
+							},
+							Labels: map[string]string{
+								clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+							},
+						},
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: *infrastructureRef,
+						},
+					},
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithNodeReuseLabelSetToKCP}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: hostWithNodeReuseLabelSetToKCP.Name,
 				},
 			),
 			Entry("Choose the host with the right label", testCaseChooseHost{
 				Machine:          newMachine("machine1", "", infrastructureRef2),
-				Hosts:            []client.Object{&hostWithLabel, &host2},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithLabel, *availableHost}},
 				M3Machine:        m3mconfig2,
 				ExpectedHostName: hostWithLabel.Name,
 			}),
 			Entry("No host that matches required label", testCaseChooseHost{
 				Machine:          newMachine("machine1", "", infrastructureRef3),
-				Hosts:            []client.Object{&host2, &hostWithLabel},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel}},
 				M3Machine:        m3mconfig3,
 				ExpectedHostName: "",
 			}),
 			Entry("Host that matches a matchExpression", testCaseChooseHost{
 				Machine:          newMachine("machine1", "", infrastructureRef4),
-				Hosts:            []client.Object{&host2, &hostWithLabel},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel}},
 				M3Machine:        m3mconfig4,
 				ExpectedHostName: hostWithLabel.Name,
 			}),
 			Entry("No Host available that matches a matchExpression",
 				testCaseChooseHost{
 					Machine:          newMachine("machine1", "", infrastructureRef4),
-					Hosts:            []client.Object{&host2},
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost}},
 					M3Machine:        m3mconfig4,
 					ExpectedHostName: "",
 				},
 			),
 			Entry("No host chosen, invalid match expression", testCaseChooseHost{
 				Machine:          newMachine("machine1", "", infrastructureRef5),
-				Hosts:            []client.Object{&host2, &hostWithLabel, &host1},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef}},
 				M3Machine:        m3mconfig5,
 				ExpectedHostName: "",
 			}),
