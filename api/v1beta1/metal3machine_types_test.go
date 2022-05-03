@@ -148,6 +148,32 @@ func TestSpecIsValid(t *testing.T) {
 			ErrorExpected: false,
 			Name:          "HostSelector Multiple MatchLabels provided",
 		},
+		{
+			Spec: Metal3MachineSpec{
+				Image: Image{
+					URL:      "test url",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: true,
+			Name:          "Invalid URL Image.URL",
+		},
+		{
+			Spec: Metal3MachineSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "test url",
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: true,
+			Name:          "Invalid URL Image.Checksum",
+		},
 	}
 
 	for _, tc := range cases {
