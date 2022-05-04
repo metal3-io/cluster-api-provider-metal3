@@ -3,7 +3,6 @@
 ## Introduction
 
 The ```Cluster API``` includes an optional [MachineHealthCheck (MHC)](https://cluster-api.sigs.k8s.io/tasks/healthcheck.html) component that implements automated health checking capability. With ```CAPM3 Remediation Controller``` it is possible to plug in Metal3 specific remediation strategies to remediate an unhealthy nodes while relying on Cluster API MHC to determine those nodes as unhealthy.
-
 ## CAPI MachineHealthCheck
 
 A MachineHealthCheck is a Cluster API resource, which allows users to define conditions under which Machines within a Cluster should be considered unhealthy. Users can also specify a timeout for each of the conditions that they define to check on the Machine’s Node. If any of these conditions are met for the duration of the timeout, the Machine will be remediated. Within CAPM3 we use MHC to create remediation requests based on ```Metal3RemediationTemplate``` and ```Metal3Remediation``` CRDs to plug in our own remediation solution.

@@ -81,7 +81,7 @@ func createTargetCluster() (targetCluster framework.ClusterProxy) {
 			Flavor:                   osType,
 			Namespace:                namespace,
 			ClusterName:              clusterName,
-			KubernetesVersion:        e2eConfig.GetVariable(KubernetesVersion),
+			KubernetesVersion:        e2eConfig.GetVariable("KUBERNETES_VERSION"),
 			ControlPlaneMachineCount: &controlPlaneMachineCount,
 			WorkerMachineCount:       &workerMachineCount,
 		},

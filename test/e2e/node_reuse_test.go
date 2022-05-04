@@ -36,7 +36,7 @@ func nodeReuse(clusterClient client.Client) {
 		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 		numberOfWorkers      = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 		numberOfAllBmh       = numberOfControlplane + numberOfWorkers
-		controlplaneTaint    = &corev1.Taint{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}
+		controlplaneTaint    = &corev1.Taint{Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule}
 		imageNamePrefix      string
 	)
 
@@ -448,6 +448,7 @@ func getControlplaneNodes(clientSet *kubernetes.Clientset) *corev1.NodeList {
 	controlplaneListOptions = metav1.ListOptions{LabelSelector: controlplaneNodesSelector.String()}
 	controlplaneNodes, err := clientSet.CoreV1().Nodes().List(ctx, controlplaneListOptions)
 	Expect(err).To(BeNil(), "Failed to get controlplane nodes")
+	Logf("controlplaneNodes found %v", len(controlplaneNodes.Items))
 	return controlplaneNodes
 }
 
