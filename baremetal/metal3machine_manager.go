@@ -1841,9 +1841,14 @@ func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, 
 			validNodes[providerIDOnNode] = append(validNodes[providerIDOnNode], node.GetName())
 		}
 	}
-	err = m.duplicateProviderIDsExist(validNodes, providerIDLegacy, providerIDNew)
+	err = m.duplicateProviderIDsExist(validNodes)
 	if err != nil {
-		// There are, at least, two nodes. Details are in err
+		// There are at least two nodes and details are in er
+		return 2, err
+	}
+	err = m.currentProviderIDUsedMultipleTimes(validNodes, providerIDLegacy, providerIDNew)
+	if err != nil {
+		// There are at least two nodes and details are in err
 		return 2, err
 	}
 	if matchingNodeProviderID != "" {
@@ -1853,8 +1858,23 @@ func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, 
 	return matchingNodesCount, nil
 }
 
-// duplicateProviderIDsExist determnes if a providerID is already in use by other nodes.
-func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]string, providerIDLegacy, providerIDNew string) error {
+// duplicateProviderIDsExist determines if a providerID is used in multiple nodes.
+func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]string) error {
+	for providerID, nodes := range validNodes {
+		matchingNodes := strings.Join(nodes, ",")
+		// verify if same providerID is used by multiple nodes.
+		if len(nodes) > 1 {
+			errMsg := fmt.Sprintf("Same providerID %s is in use by multiple nodes: (%s)", providerID, matchingNodes)
+			m.Log.Info(errMsg)
+			return errors.New(errMsg)
+		}
+	}
+	return nil
+}
+
+// providerIDUsedMultipleTimes determines if a providerID is already in use in different formats.
+// this is run during provisioning of a node.
+func (m *MachineManager) currentProviderIDUsedMultipleTimes(validNodes map[string][]string, providerIDLegacy, providerIDNew string) error {
 	duplicateUsageCounter := 0
 	var duplicateNodes []string
 	nodeName := strings.Split(strings.TrimPrefix(providerIDNew, "metal3://"), "/")[1]
@@ -1862,7 +1882,6 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]strin
 		nodeName = "unknown node"
 	}
 	for providerID, nodes := range validNodes {
-		matchingNodes := strings.Join(nodes, ",")
 		// verify if the same providerId is not consumed twice. Example:
 		// legacy provider-id: metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6
 		// new format provider-id:   metal3://metal3/node-0/test-controlplane-xyz
@@ -1873,17 +1892,11 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]strin
 			duplicateUsageCounter++
 			duplicateNodes = append(duplicateNodes, nodes...)
 		}
-		// duplicates due to the same, at least, two instances of legacy OR new OR unknown formats being used in multiple nodes.
-		if len(nodes) > 1 {
-			errMsg := fmt.Sprintf("providerID %s is in use by multiple nodes: (%s)", providerID, matchingNodes)
-			m.Log.Info(errMsg)
-			return errors.New(errMsg)
-		}
 	}
-	// duplicates due to both the legacy AND new providerIDs being used by multiple nodes.
+	// duplicates due to both the legacy AND new providerIDs being used by different nodes.
 	if duplicateUsageCounter > 1 {
 		duplicateNodesNames := strings.Join(duplicateNodes, ",")
-		errMsg := fmt.Sprintf("both providerIDs (%s and %s) cannot be used at the same time by node: (%s)", providerIDLegacy, providerIDNew, duplicateNodesNames)
+		errMsg := fmt.Sprintf("Both formats of providerID (%s and %s) cannot be used at the same time by node(s): (%s)", providerIDLegacy, providerIDNew, duplicateNodesNames)
 		m.Log.Info(errMsg)
 		return errors.New(errMsg)
 	}
