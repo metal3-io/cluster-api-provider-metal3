@@ -32,6 +32,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
@@ -410,5 +411,6 @@ func testObjectMeta(name string, namespace string, uid string) metav1.ObjectMeta
 	return metav1.ObjectMeta{
 		Name:      name,
 		Namespace: namespace,
+		UID:       types.UID(uid),
 	}
 }
