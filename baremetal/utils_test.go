@@ -127,8 +127,8 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	var testObject = &capm3.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "abc",
-			Namespace: "myns",
+			Name:      metal3machineName,
+			Namespace: namespaceName,
 		},
 		Spec: capm3.Metal3MachineSpec{
 			ProviderID:            pointer.StringPtr("abcdef"),
@@ -141,8 +141,8 @@ var _ = Describe("Metal3 manager utils", func() {
 
 	var existingObject = &capm3.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "abc",
-			Namespace: "myns",
+			Name:      metal3machineName,
+			Namespace: namespaceName,
 		},
 		Spec: capm3.Metal3MachineSpec{
 			ProviderID: pointer.StringPtr("abcdefg"),
@@ -505,8 +505,8 @@ var _ = Describe("Metal3 manager utils", func() {
 		},
 		Entry("Object does not exist", testCaseFetchM3DataTemplate{
 			TemplateRef: &corev1.ObjectReference{
-				Name:      "abc",
-				Namespace: "myns",
+				Name:      metal3DataTemplateName,
+				Namespace: namespaceName,
 			},
 			ExpectRequeue: true,
 		}),
@@ -520,36 +520,30 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectError: true,
 		}),
 		Entry("Object with wrong cluster", testCaseFetchM3DataTemplate{
-			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					ClusterName: "abc",
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					ClusterName: clusterName,
 				},
 			},
 			ClusterName: "def",
 			TemplateRef: &corev1.ObjectReference{
-				Name:      "abc",
-				Namespace: "myns",
+				Name:      metal3DataTemplateName,
+				Namespace: namespaceName,
 			},
 			ExpectError: true,
 		}),
 		Entry("Object with correct cluster", testCaseFetchM3DataTemplate{
-			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3DataTemplateSpec{
-					ClusterName: "abc",
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					ClusterName: clusterName,
 				},
 			},
-			ClusterName: "abc",
+			ClusterName: clusterName,
 			TemplateRef: &corev1.ObjectReference{
-				Name:      "abc",
-				Namespace: "myns",
+				Name:      metal3DataTemplateName,
+				Namespace: namespaceName,
 			},
 		}),
 	)
@@ -595,19 +589,16 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 		},
 		Entry("Object does not exist", testCaseFetchM3Data{
-			Name:          "abc",
-			Namespace:     "myns",
+			Name:          metal3machineName,
+			Namespace:     namespaceName,
 			ExpectRequeue: true,
 		}),
 		Entry("Object exists", testCaseFetchM3Data{
-			Data: &capm3.Metal3Data{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
+			Data: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 			},
-			Name:      "abc",
-			Namespace: "myns",
+			Name:      metal3DataName,
+			Namespace: namespaceName,
 		}),
 	)
 
@@ -653,84 +644,63 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 		},
 		Entry("Object does not exist", testCaseGetM3Machine{
-			Name:        "abc",
-			Namespace:   "myns",
+			Name:        metal3machineName,
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, ""),
 			},
-			Name:      "abc",
-			Namespace: "myns",
+			Name:      metal3machineName,
+			Namespace: namespaceName,
 		}),
 		Entry("Object exists, dataTemplate nil", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: nil,
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 			},
-			Name:        "abc",
-			Namespace:   "myns",
+			Name:        metal3machineName,
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate name mismatch", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
 						Name:      "abcd",
 						Namespace: "myns",
 					},
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 			},
-			Name:        "abc",
-			Namespace:   "myns",
+			Name:        metal3machineName,
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 		Entry("Object exists, dataTemplate namespace mismatch", testCaseGetM3Machine{
-			Machine: &capm3.Metal3Machine{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
-				Spec: capm3.Metal3MachineSpec{
+			Machine: &infrav1.Metal3Machine{
+				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: &corev1.ObjectReference{
-						Name:      "abc",
+						Name:      metal3DataTemplateName,
 						Namespace: "defg",
 					},
 				},
 			},
-			DataTemplate: &capm3.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "abc",
-					Namespace: "myns",
-				},
+			DataTemplate: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 			},
-			Name:        "abc",
-			Namespace:   "myns",
+			Name:        metal3machineName,
+			Namespace:   namespaceName,
 			ExpectEmpty: true,
 		}),
 	)

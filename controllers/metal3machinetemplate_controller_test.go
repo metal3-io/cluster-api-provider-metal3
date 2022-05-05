@@ -71,7 +71,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 	templateMgrErrorMsg := "failed to create helper for managing the templateMgr"
 	defaultTestRequest := ctrl.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      metal3machineTemplateName,
+			Name:      metal3DataTemplateName,
 			Namespace: namespaceName,
 		},
 	}
@@ -103,7 +103,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 						Name:      "machine-1",
 						Namespace: "bar",
 						Annotations: map[string]string{
-							baremetal.HostAnnotation: "myns/myhost",
+							baremetal.HostAnnotation: namespaceName + "/" + baremetalhostName,
 						},
 					},
 					Spec: capm3.Metal3MachineSpec{
@@ -225,7 +225,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					expectedResult: ctrl.Result{},
 					expectedError:  &templateMgrErrorMsg,
 					m3mTemplate: newMetal3MachineTemplate(
-						metal3machineTemplateName,
+						metal3DataTemplateName,
 						namespaceName,
 						map[string]string{}),
 				},
@@ -238,7 +238,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					expectedResult: ctrl.Result{Requeue: true, RequeueAfter: requeueAfter},
 					expectedError:  nil,
 					m3mTemplate: newMetal3MachineTemplate(
-						metal3machineTemplateName,
+						metal3DataTemplateName,
 						namespaceName,
 						map[string]string{
 							capi.PausedAnnotation: "true",
@@ -253,7 +253,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					expectedResult: ctrl.Result{},
 					expectedError:  nil,
 					m3mTemplate: newMetal3MachineTemplate(
-						metal3machineTemplateName,
+						metal3DataTemplateName,
 						namespaceName,
 						map[string]string{}),
 					shouldUpdateAutomatedCleaningMode: true,
@@ -297,7 +297,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					testRequest:    defaultTestRequest,
 					expectedResult: ctrl.Result{},
 					expectedError:  new(string),
-					m3mTemplate: newMetal3MachineTemplate(metal3machineTemplateName,
+					m3mTemplate: newMetal3MachineTemplate(metal3DataTemplateName,
 						namespaceName,
 						map[string]string{}),
 				},
@@ -310,7 +310,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					expectedResult: ctrl.Result{},
 					expectedError:  nil,
 					m3mTemplate: newMetal3MachineTemplate(
-						metal3machineTemplateName,
+						metal3DataTemplateName,
 						namespaceName,
 						map[string]string{}),
 					shouldUpdateAutomatedCleaningMode: true,

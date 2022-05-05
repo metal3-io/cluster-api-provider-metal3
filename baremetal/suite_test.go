@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 	"testing"
 
@@ -48,10 +49,25 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 
 const (
-	clusterName       = "testCluster"
-	metal3ClusterName = "testmetal3Cluster"
-	namespaceName     = "testNameSpace"
+	clusterName            = "baremetal-testcluster"
+	machineName            = "baremetal-testmachine"
+	metal3ClusterName      = "baremetal-testmetal3Cluster"
+	metal3machineName      = "baremetal-testmetal3machine"
+	baremetalhostName      = "baremetal-testbaremetalhost"
+	metal3DataTemplateName = "baremetal-testmetal3datatemplate"
+	testPoolName           = "baremetal-testpoolname"
+	metal3DataName         = "baremetal-testmetal3dataname"
+	metal3DataClaimName    = "baremetal-testmetal3dataclaim"
+	namespaceName          = "baremetalns-testns"
+	muid                   = "902b9bf0-42c2-42ef-8315-ab23f07e009a"
+	m3muid                 = "11111111-9845-4321-1234-c74be387f57c"
+	bmhuid                 = "22222222-9845-4c48-9e49-c74be387f57c"
+	m3duid                 = "4f3223fb-1ac1-482c-a4d4-e09f8e6c08f1"
+	m3dcuid                = "d184c4f7-2a64-4537-bf74-f6abd08cb992"
+	m3dtuid                = "9c8facc6-c9e3-4b1c-a038-d8416717fab3"
 )
+
+var providerid = fmt.Sprintf("%s/%s/%s", namespaceName, baremetalhostName, metal3machineName)
 
 func TestManagers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -180,5 +196,26 @@ func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference,
 		},
 		Spec:   *spec,
 		Status: *status,
+	}
+}
+
+func testObjectMetaWithOR(name string, m3mName string) metav1.ObjectMeta {
+	return metav1.ObjectMeta{
+		Name:      name,
+		Namespace: namespaceName,
+
+		OwnerReferences: []metav1.OwnerReference{
+			{
+				Name:       m3mName,
+				Kind:       "Metal3Machine",
+				APIVersion: infrav1.GroupVersion.String(),
+				UID:        m3muid,
+			},
+		},
+	}
+}
+func testObjectReference(name string) *corev1.ObjectReference {
+	return &corev1.ObjectReference{
+		Name: name,
 	}
 }
