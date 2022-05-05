@@ -281,7 +281,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	DescribeTable("Test GetUnhealthyHost",
 		func(tc testCaseGetUnhealthyHost) {
 			host := bmov1alpha1.BareMetalHost{
-				ObjectMeta: testObjectMeta("myhost", namespaceName, ""),
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
@@ -305,11 +305,11 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should find the unhealthy host", testCaseGetUnhealthyHost{
 			M3Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
-						HostAnnotation: namespaceName + "/myhost",
+						HostAnnotation: namespaceName + "/" + baremetalhostName,
 					},
 				},
 			},
@@ -318,7 +318,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the unhealthy host", testCaseGetUnhealthyHost{
 			M3Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
@@ -331,7 +331,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the host, annotation not present", testCaseGetUnhealthyHost{
 			M3Machine: &capm3.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations:     map[string]string{},
