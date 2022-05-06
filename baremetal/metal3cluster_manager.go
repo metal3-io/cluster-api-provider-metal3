@@ -115,6 +115,7 @@ func (s *ClusterManager) ControlPlaneEndpoint() ([]infrav1.APIEndpoint, error) {
 	var err error
 
 	if endPoint.Host == "" || endPoint.Port == 0 {
+		err = errors.New("Invalid field ControlPlaneEndpoint")
 		s.Log.Error(err, "Host IP or PORT not set")
 		return nil, err
 	}
