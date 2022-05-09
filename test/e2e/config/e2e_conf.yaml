@@ -18,8 +18,8 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v0.4.8
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/core-components.yaml"
+  - name: ${CAPI_FROM_RELEASE}
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/core-components.yaml"
     type: "url"
     contract: v1alpha4
     replacements:
@@ -27,9 +27,9 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-  - name: v1.1.3
+  - name: ${CAPI_TO_RELEASE}
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.3/core-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_TO_RELEASE}/core-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -40,8 +40,8 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/bootstrap-components.yaml"
+  - name: ${CAPI_FROM_RELEASE} # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/bootstrap-components.yaml"
     type: "url"
     contract: v1alpha4
     replacements:
@@ -49,9 +49,9 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-  - name: v1.1.3
+  - name: ${CAPI_TO_RELEASE}
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.3/bootstrap-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_TO_RELEASE}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -62,8 +62,8 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v0.4.8 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/control-plane-components.yaml"
+  - name: ${CAPI_FROM_RELEASE} # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/control-plane-components.yaml"
     type: "url"
     contract: v1alpha4
     replacements:
@@ -71,9 +71,9 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-  - name: v1.1.3
+  - name: ${CAPI_TO_RELEASE}
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.3/control-plane-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_TO_RELEASE}/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -84,8 +84,8 @@ providers:
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: v0.5.5
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/v0.5.5/infrastructure-components.yaml"
+  - name: ${CAPM3_FROM_RELEASE}
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/${CAPM3_FROM_RELEASE}/infrastructure-components.yaml"
     type: "url"
     contract: v1alpha4
     files:
@@ -95,7 +95,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.1.1
+  - name: ${CAPM3_TO_RELEASE}
     value: "${PWD}/config/default"
     contract: v1beta1
     files:
@@ -124,9 +124,8 @@ variables:
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-main}"
   MARIADB_IMAGE_TAG: "${MARIADB_IMAGE_TAG:-main}"
   UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
-  CAPM3_REL_TO_VERSION: "v1.1.1"
 
-  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/clusterctl-{OS}-{ARCH}"
   # Pin Calico version
   CALICO_PATCH_RELEASE: "v3.21.0"
   CALICO_MINOR_RELEASE: "v3.21"

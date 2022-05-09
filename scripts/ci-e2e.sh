@@ -24,7 +24,7 @@ clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 cat <<-EOF > "${M3_DEV_ENV_PATH}/config_${USER}.sh"
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
-export NUM_NODES=${NUM_NODES:-"4"} 
+export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
@@ -58,7 +58,21 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_basic_auth.sh"
 # shellcheck disable=SC1091,SC1090
 source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
-# run e2e tests 
+if $UPGRADE_TEST; then
+  export CAPI_FROM_RELEASE="${CAPIRELEASE}"
+  export CAPI_TO_RELEASE="${CAPI_TO_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.1.")}"
+
+  export CAPM3_FROM_RELEASE="${CAPM3RELEASE}"
+  export CAPM3_TO_RELEASE="${CAPM3_TO_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v1.1.")}"
+else
+  export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v0.4.")}"
+  export CAPI_TO_RELEASE="${CAPIRELEASE}"
+
+  export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v0.5.")}"
+  export CAPM3_TO_RELEASE="${CAPM3RELEASE}"
+fi
+
+# run e2e tests
 make e2e-tests
 
 # Clean devenv
