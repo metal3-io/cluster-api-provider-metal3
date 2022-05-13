@@ -218,7 +218,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		err := machineMgr.Associate(ctx)
 		if err != nil {
 			return checkMachineError(machineMgr, err,
-				"failed to associate the Metal3Machine to a BaremetalHost", errType,
+				"failed to associate the Metal3Machine to a BaremetalHost.", errType,
 			)
 		}
 	}
