@@ -172,6 +172,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		CheckBMState               bool
 		CheckBMProviderID          bool
 		CheckBMProviderIDUnchanged bool
+		CheckBMProviderIDNew       bool
 		CheckBootStrapReady        bool
 		CheckBMHostCleaned         bool
 		CheckBMHostProvisioned     bool
@@ -184,6 +185,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			testcluster := &clusterv1.Cluster{}
 			testBMmachine := &infrav1.Metal3Machine{}
 			testBMHost := &bmov1alpha1.BareMetalHost{}
+			oldProviderID := testBMmachine.Spec.ProviderID
 
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
 			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
@@ -252,11 +254,15 @@ var _ = Describe("Reconcile metal3machine", func() {
 			}
 			if tc.CheckBMProviderID {
 				if tc.CheckBMProviderIDUnchanged {
-					Expect(testBMmachine.Spec.ProviderID).NotTo(Equal(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-						string(testBMHost.ObjectMeta.UID))))
+					Expect(testBMmachine.Spec.ProviderID).To(Equal(oldProviderID))
 				} else {
-					Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-						string(testBMHost.ObjectMeta.UID)))))
+					if tc.CheckBMProviderIDNew {
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
+							testBMHost.ObjectMeta.Namespace, testBMHost.ObjectMeta.Name, testBMmachine.ObjectMeta.Name))))
+					} else {
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
+							string(testBMHost.ObjectMeta.UID)))))
+					}
 				}
 			}
 			if tc.CheckBootStrapReady {
@@ -650,13 +656,12 @@ var _ = Describe("Reconcile metal3machine", func() {
 						Spec: corev1.NodeSpec{},
 					},
 				},
-				ErrorExpected:              false,
-				RequeueExpected:            false,
-				ClusterInfraReady:          true,
-				CheckBMFinalizer:           true,
-				CheckBMProviderID:          true,
-				CheckBootStrapReady:        true,
-				CheckBMProviderIDUnchanged: true,
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBMFinalizer:    true,
+				CheckBMProviderID:   true,
+				CheckBootStrapReady: true,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
 						Type:   infrav1.AssociateBMHCondition,
@@ -761,12 +766,13 @@ var _ = Describe("Reconcile metal3machine", func() {
 						Spec: corev1.NodeSpec{},
 					},
 				},
-				ErrorExpected:       false,
-				RequeueExpected:     false,
-				ClusterInfraReady:   true,
-				CheckBMFinalizer:    true,
-				CheckBMProviderID:   true,
-				CheckBootStrapReady: true,
+				ErrorExpected:        false,
+				RequeueExpected:      false,
+				ClusterInfraReady:    true,
+				CheckBMFinalizer:     true,
+				CheckBMProviderID:    true,
+				CheckBMProviderIDNew: true,
+				CheckBootStrapReady:  true,
 			},
 		),
 		//Given: Deletion timestamp on M3Machine, No BMHost Given
