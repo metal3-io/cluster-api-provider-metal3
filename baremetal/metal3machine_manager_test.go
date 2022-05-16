@@ -23,6 +23,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -40,9 +41,11 @@ import (
 	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -2167,8 +2170,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				err = machineMgr.SetNodeProviderID(context.TODO(), tc.HostID,
-					tc.ExpectedProviderID, mockCapiClientGetter,
+				err = machineMgr.SetNodeProviderID(context.TODO(), &tc.HostID,
+					&tc.ExpectedProviderID, m,
 				)
 
 				if tc.ExpectedError {
@@ -2206,10 +2209,80 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectedProviderID: "metal3://abcd",
 			}),
 			Entry("Set target ProviderID, providerID set", testCaseSetNodePoviderID{
-				Node: v1.Node{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"metal3.io/uuid": "abcd",
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Labels: map[string]string{
+								ProviderLabelPrefix: string(Bmhuid),
+							},
+						},
+						Spec: corev1.NodeSpec{
+							ProviderID: ProviderID,
+						},
+					},
+				},
+				HostID:               string(Bmhuid),
+				ExpectedError:        false,
+				ExpectedProviderID:   ProviderID,
+				M3MHasHostAnnotation: true,
+			}),
+		)
+		DescribeTable("Test SetNodeProviderID with noCloudProvider set to false",
+			func(tc testCaseSetNodePoviderID) {
+				fakeClient := fake.NewClientBuilder().WithScheme(s).Build()
+				corev1Client := clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1()
+				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
+					clientcorev1.CoreV1Interface, error,
+				) {
+					return corev1Client, nil
+				}
+
+				machineMgr, err := NewMachineManager(fakeClient, newCluster(clusterName),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
+						&infrav1.Metal3ClusterSpec{NoCloudProvider: false}, nil,
+					),
+					&clusterv1.Machine{}, &infrav1.Metal3Machine{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "abc",
+							Namespace: namespaceName,
+							UID:       m3muid,
+							Annotations: map[string]string{
+								HostAnnotation: namespaceName + "/myhost",
+							},
+						},
+					}, logr.Discard(),
+				)
+
+				Expect(err).NotTo(HaveOccurred())
+
+				err = machineMgr.SetNodeProviderID(context.TODO(), &tc.HostID,
+					&tc.ExpectedProviderID, m,
+				)
+
+				if tc.ExpectedError {
+					Expect(err).To(HaveOccurred())
+					return
+				}
+				Expect(err).NotTo(HaveOccurred())
+
+				ctx := context.Background()
+				Expect(err).NotTo(HaveOccurred())
+				nodes, err := corev1Client.Nodes().List(ctx, metav1.ListOptions{})
+				Expect(err).NotTo(HaveOccurred())
+				var node corev1.Node
+				for _, currentNode := range nodes.Items {
+					node = currentNode
+					// there is only one node
+					break
+				}
+				Expect(node.Spec.ProviderID).To(Equal(tc.ExpectedProviderID))
+			},
+			Entry("Accept providerID when set on a node", testCaseSetNodePoviderID{
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{},
+						Spec: corev1.NodeSpec{
+							ProviderID: ProviderID,
 						},
 					},
 					Spec: v1.NodeSpec{

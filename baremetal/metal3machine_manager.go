@@ -76,7 +76,7 @@ type MachineManagerInterface interface {
 	Update(context.Context) error
 	HasAnnotation() bool
 	GetProviderIDAndBMHID() (string, *string)
-	SetNodeProviderID(context.Context, string, string, ClientGetter) error
+	SetNodeProviderID(context.Context, *string, *string, ClientGetter) error
 	SetProviderID(string)
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
@@ -1265,25 +1265,67 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 	if providerID == nil {
 		return "", nil
 	}
-	return *providerID, pointer.StringPtr(parseProviderID(*providerID))
+	bmhID := *providerID
+	if strings.Contains(bmhID, ProviderIDPrefix) {
+		bmhID = strings.TrimPrefix(bmhID, ProviderIDPrefix)
+	}
+	// If the providerID is in new format, it does not contain the BMH ID, but
+	// instead contains / to separate the names. In that case we return nil for
+	// the bmh ID to force the controller to fetch it differently.
+	if strings.Contains(bmhID, "/") {
+		return *providerID, nil
+	}
+	return *providerID, pointer.StringPtr(bmhID)
 }
 
 // ClientGetter prototype
 type ClientGetter func(ctx context.Context, c client.Client, cluster *capi.Cluster) (clientcorev1.CoreV1Interface, error)
 
-// SetNodeProviderID sets the metal3 provider ID on the kubernetes node
-func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerID string, clientFactory ClientGetter) error {
-	if !m.Metal3Cluster.Spec.NoCloudProvider {
-		return nil
-	}
+// SetNodeProviderID sets the metal3 provider ID on the kubernetes node.
+func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID *string, providerIDOnM3M *string, clientFactory ClientGetter) error {
+	// todo: bmhID should not be trusted and needs to removed from the signature.
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
 	}
+	namespace := m.Metal3Machine.GetNamespace()
+	m3mName := m.Metal3Machine.GetName()
+	bmhName, err := m.getBmhNameFromM3Machine()
+	if err != nil {
+		m.Log.Info("unable to retrieve BMH name from Metal3Machine")
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	providerIDLegacy := "metal3://unknown"
+	nodeLabel := fmt.Sprintf("%s=unknown", ProviderLabelPrefix)
+	if bmhID != nil {
+		providerIDLegacy = fmt.Sprintf("metal3://%s", *bmhID)
+		nodeLabel = fmt.Sprintf("%s=%s", ProviderLabelPrefix, *bmhID)
+	}
+	providerIDNew := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
 
-	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("metal3.io/uuid=%v", bmhID),
-	})
+	matchingNodesCount, err := m.getMatchingNodesWithoutLabelCount(ctx, providerIDLegacy, providerIDNew, providerIDOnM3M, clientFactory)
+	if matchingNodesCount > 1 {
+		m.Log.Info("More than one node using the same providerID")
+		return errors.Wrap(err, "More than one node using the same providerID")
+	}
+	if err != nil {
+		m.Log.Info("error retrieving node, requeuing")
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	if !m.Metal3Cluster.Spec.NoCloudProvider && matchingNodesCount == 0 {
+		// The node could either be still running cloud-init or
+		// kubernetes has not set the node.spec.ProviderID field yet.
+		m.Log.Info("Some target nodes do not have spec.providerID field set yet, requeuing")
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	if matchingNodesCount == 1 {
+		return nil
+	}
+	if bmhID == nil {
+		m.Log.Info("requeuing, could not find the BMH ID yet.")
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
 		m.Log.Info(fmt.Sprintf("error while accessing cluster: %v", err))
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
@@ -1295,9 +1337,28 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID, providerI
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	for _, node := range nodes.Items {
-		node := node
-		if node.Spec.ProviderID == providerID {
-			continue
+		oldData, err := json.Marshal(node)
+		providerIDOnNode := node.Spec.ProviderID
+		if providerIDOnNode == "" {
+			// By default we use the new format, if not set on the node.
+			node.Spec.ProviderID = providerIDNew
+			*providerIDOnM3M = providerIDNew
+		} else if providerIDOnNode == providerIDNew {
+			*providerIDOnM3M = providerIDNew
+		} else if providerIDOnNode == providerIDLegacy {
+			*providerIDOnM3M = providerIDLegacy
+		} else {
+			m.Log.Info("node using unsupported providerID format", providerIDOnNode)
+			return errors.Wrap(err, "node using unsupported providerID format")
+		}
+		nodeVar = node
+		newData, err := json.Marshal(&nodeVar)
+		if err != nil {
+			return fmt.Errorf("failed to json.Marshal node: %w", err)
+		}
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Node{})
+		if err != nil {
+			return fmt.Errorf("failed to create patch for node %q: %w", node.GetName(), err)
 		}
 		node.Spec.ProviderID = providerID
 		_, err = corev1Remote.Nodes().Update(ctx, &node, metav1.UpdateOptions{})
