@@ -280,10 +280,10 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetUnhealthyHost",
 		func(tc testCaseGetUnhealthyHost) {
-			host := bmov1alpha1.BareMetalHost{
+			host := bmh.BareMetalHost{
 				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
+			c := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
 			remediationMgr, err := NewRemediationManager(c, nil, tc.M3Machine, nil,
 				klogr.New(),

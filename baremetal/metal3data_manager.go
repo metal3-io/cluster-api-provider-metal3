@@ -41,12 +41,6 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-const (
-	m3machine   = "metal3machine"
-	host        = "baremetalhost"
-	capimachine = "machine"
-)
-
 // DataManagerInterface is an interface for a DataManager
 type DataManagerInterface interface {
 	SetFinalizer()

@@ -74,10 +74,10 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					Kind:       "Metal3MachineTemplate",
 				},
 				ObjectMeta: testObjectMeta("abc", "foo", ""),
-				Spec: infrav1.Metal3MachineTemplateSpec{
-					Template: infrav1.Metal3MachineTemplateResource{
-						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
+				Spec: capm3.Metal3MachineTemplateSpec{
+					Template: capm3.Metal3MachineTemplateResource{
+						Spec: capm3.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeDisabled),
 						},
 					},
 				},
@@ -142,10 +142,10 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					Kind:       "Metal3MachineTemplate",
 				},
 				ObjectMeta: testObjectMeta("abc", "foo", ""),
-				Spec: infrav1.Metal3MachineTemplateSpec{
-					Template: infrav1.Metal3MachineTemplateResource{
-						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeMetadata),
+				Spec: capm3.Metal3MachineTemplateSpec{
+					Template: capm3.Metal3MachineTemplateResource{
+						Spec: capm3.Metal3MachineSpec{
+							AutomatedCleaningMode: utils.StringPtr(capm3.CleaningModeMetadata),
 						},
 					},
 				},
@@ -210,9 +210,9 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 					Kind:       "Metal3MachineTemplate",
 				},
 				ObjectMeta: testObjectMeta("abc", "foo", ""),
-				Spec: infrav1.Metal3MachineTemplateSpec{
-					Template: infrav1.Metal3MachineTemplateResource{
-						Spec: infrav1.Metal3MachineSpec{
+				Spec: capm3.Metal3MachineTemplateSpec{
+					Template: capm3.Metal3MachineTemplateResource{
+						Spec: capm3.Metal3MachineSpec{
 							AutomatedCleaningMode: utils.StringPtr("disabled"),
 						},
 					},

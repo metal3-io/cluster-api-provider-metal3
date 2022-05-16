@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/klogr"
 	capi "sigs.k8s.io/cluster-api/api/v1alpha4"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -130,7 +129,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			Entry("Metal3Data not found", testCaseReconcile{}),
 			Entry("Missing cluster label", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
@@ -138,12 +137,12 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			}),
 			Entry("Cluster not found", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: "abc",
+							capi.ClusterLabelName: "abc",
 						},
 					},
 				},
@@ -192,37 +191,37 @@ var _ = Describe("Metal3Data manager", func() {
 				releaseLeasesError: true,
 			}),
 			Entry("Paused cluster", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							capi.ClusterLabelName: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1.Cluster{
+				cluster: &capi.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 					},
-					Spec: clusterv1.ClusterSpec{
+					Spec: capi.ClusterSpec{
 						Paused: true,
 					},
 				},
 				expectRequeue: true,
 			}),
 			Entry("Error in manager", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							capi.ClusterLabelName: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1.Cluster{
+				cluster: &capi.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
@@ -231,16 +230,16 @@ var _ = Describe("Metal3Data manager", func() {
 				managerError: true,
 			}),
 			Entry("Reconcile normal error", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							capi.ClusterLabelName: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1.Cluster{
+				cluster: &capi.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
@@ -251,16 +250,16 @@ var _ = Describe("Metal3Data manager", func() {
 				expectManager:        true,
 			}),
 			Entry("Reconcile normal no error", testCaseReconcile{
-				m3d: &infrav1.Metal3Data{
+				m3d: &infrav1alpha5.Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							capi.ClusterLabelName: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1.Cluster{
+				cluster: &capi.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,

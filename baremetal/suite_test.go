@@ -215,7 +215,7 @@ func testObjectMetaWithOR(name string, m3mName string) metav1.ObjectMeta {
 			{
 				Name:       m3mName,
 				Kind:       "Metal3Machine",
-				APIVersion: infrav1.GroupVersion.String(),
+				APIVersion: infrav1alpha5.GroupVersion.String(),
 				UID:        m3muid,
 			},
 		},

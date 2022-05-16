@@ -54,15 +54,16 @@ var testEnv *envtest.Environment
 var timestampNow = metav1.Now()
 
 const (
-	clusterName            = "controller-testcluster"
-	metal3ClusterName      = "controller-testmetal3cluster"
-	machineName            = "controller-testmachine"
-	metal3machineName      = "controller-testmetal3machine"
-	namespaceName          = "controller-testns"
-	metal3DataTemplateName = "controller-testmetal3datatemplate"
-	baremetalhostName      = "controller-testbaremetalhostname"
-	metal3DataName         = "controller-testmetal3dataname"
-	metal3DataClaimName    = "baremetal-testmetal3dataclaim"
+	clusterName               = "controller-testcluster"
+	metal3ClusterName         = "controller-testmetal3cluster"
+	machineName               = "controller-testmachine"
+	metal3machineName         = "controller-testmetal3machine"
+	namespaceName             = "controller-testns"
+	metal3DataTemplateName    = "controller-testmetal3datatemplate"
+	baremetalhostName         = "controller-testbaremetalhostname"
+	metal3DataName            = "controller-testmetal3dataname"
+	metal3DataClaimName       = "baremetal-testmetal3dataclaim"
+	metal3machineTemplateName = "controller-testmetal3machinetemplate"
 )
 
 func init() {
@@ -364,9 +365,9 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 	}
 }
 
-func newBareMetalHost(bmhName string, spec *bmov1alpha1.BareMetalHostSpec,
-	status *bmov1alpha1.BareMetalHostStatus, labels map[string]string, paused bool,
-) *bmov1alpha1.BareMetalHost {
+func newBareMetalHost(bmhName string, spec *bmh.BareMetalHostSpec,
+	status *bmh.BareMetalHostStatus,
+) *bmh.BareMetalHost {
 	if spec == nil {
 		spec = &bmh.BareMetalHostSpec{}
 	}
