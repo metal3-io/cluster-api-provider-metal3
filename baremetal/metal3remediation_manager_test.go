@@ -285,7 +285,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	DescribeTable("Test GetUnhealthyHost",
 		func(tc testCaseGetUnhealthyHost) {
 			host := bmov1alpha1.BareMetalHost{
-				ObjectMeta: testObjectMeta("myhost", namespaceName, ""),
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
@@ -308,11 +308,11 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should find the unhealthy host", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
-						HostAnnotation: namespaceName + "/myhost",
+						HostAnnotation: namespaceName + "/" + baremetalhostName,
 					},
 				},
 			},
@@ -321,7 +321,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the unhealthy host", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
@@ -334,7 +334,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the host, annotation is empty", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       namespaceName,
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations:     map[string]string{},
@@ -345,7 +345,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the host, annotation is nil", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations:     nil,
@@ -356,7 +356,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not find the host, could not parse annotation value", testCaseGetUnhealthyHost{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
@@ -393,17 +393,17 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should set the unhealthy annotation", testCaseSetAnnotation{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
-						HostAnnotation: "myns/myhost",
+						HostAnnotation: "myns/" + baremetalhostName,
 					},
 				},
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "myhost",
+					Name:        baremetalhostName,
 					Namespace:   "myns",
 					Annotations: map[string]string{infrav1.UnhealthyAnnotation: ""},
 				},
@@ -413,7 +413,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not set the unhealthy annotation, annotation is empty", testCaseSetAnnotation{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations:     map[string]string{},
@@ -421,7 +421,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "myhost",
+					Name:        baremetalhostName,
 					Namespace:   "myns",
 					Annotations: map[string]string{infrav1.UnhealthyAnnotation: ""},
 				},
@@ -431,7 +431,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not set the unhealthy annotation because of wrong HostAnnotation", testCaseSetAnnotation{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
@@ -441,7 +441,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "myhost",
+					Name:        baremetalhostName,
 					Namespace:   "myns",
 					Annotations: map[string]string{infrav1.UnhealthyAnnotation: ""},
 				},
@@ -469,17 +469,17 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should set the reboot annotation", testCaseSetAnnotation{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
-						HostAnnotation: "myns/myhost",
+						HostAnnotation: "myns/" + baremetalhostName,
 					},
 				},
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "myhost",
+					Name:        baremetalhostName,
 					Namespace:   "myns",
 					Annotations: map[string]string{rebootAnnotation: ""},
 				},
@@ -489,7 +489,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not set the reboot annotation, annotation is empty", testCaseSetAnnotation{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations:     map[string]string{},
@@ -497,7 +497,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "myhost",
+					Name:        baremetalhostName,
 					Namespace:   "myns",
 					Annotations: map[string]string{rebootAnnotation: ""},
 				},
@@ -507,7 +507,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		Entry("Should not set the reboot annotation because of wrong HostAnnotation", testCaseSetAnnotation{
 			M3Machine: &infrav1.Metal3Machine{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "mym3machine",
+					Name:            metal3machineName,
 					Namespace:       "myns",
 					OwnerReferences: []metav1.OwnerReference{},
 					Annotations: map[string]string{
@@ -517,7 +517,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:        "myhost",
+					Name:        baremetalhostName,
 					Namespace:   "myns",
 					Annotations: map[string]string{rebootAnnotation: ""},
 				},

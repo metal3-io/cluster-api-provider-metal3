@@ -67,7 +67,7 @@ func m3mOwnerRefs() []metav1.OwnerReference {
 
 func m3mMetaWithOwnerRef() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:            "abc",
+		Name:            metal3machineName,
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Annotations:     map[string]string{},
@@ -76,7 +76,7 @@ func m3mMetaWithOwnerRef() *metav1.ObjectMeta {
 
 func m3mMetaWithDeletion() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:              "abc",
+		Name:              metal3machineName,
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
 		OwnerReferences:   m3mOwnerRefs(),
@@ -86,23 +86,23 @@ func m3mMetaWithDeletion() *metav1.ObjectMeta {
 
 func m3mMetaWithAnnotation() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:            "abc",
+		Name:            metal3machineName,
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Annotations: map[string]string{
-			baremetal.HostAnnotation: namespaceName + "/bmh-0",
+			baremetal.HostAnnotation: namespaceName + "/" + baremetalhostName,
 		},
 	}
 }
 
 func m3mMetaWithAnnotationDeletion() *metav1.ObjectMeta {
 	return &metav1.ObjectMeta{
-		Name:              "abc",
+		Name:              metal3machineName,
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
 		OwnerReferences:   m3mOwnerRefs(),
 		Annotations: map[string]string{
-			baremetal.HostAnnotation: namespaceName + "/bmh-0",
+			baremetal.HostAnnotation: namespaceName + "/" + baremetalhostName,
 		},
 	}
 }
@@ -212,7 +212,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			objMeta := testmachine.ObjectMeta
 			_ = fakeClient.Get(context.TODO(), *getKey(clusterName), testcluster)
 			_ = fakeClient.Get(context.TODO(), *getKey(metal3machineName), testBMmachine)
-			_ = fakeClient.Get(context.TODO(), *getKey("bmh-0"), testBMHost)
+			_ = fakeClient.Get(context.TODO(), *getKey(baremetalhostName), testBMHost)
 
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
@@ -472,7 +472,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost("bmh-0", nil, nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, nil, nil, false),
 				},
 				ErrorExpected:       false,
 				RequeueExpected:     false,
@@ -507,7 +507,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost("bmh-0", nil, &bmov1alpha1.BareMetalHostStatus{
+					newBareMetalHost(baremetalhostName, nil, &bmov1alpha1.BareMetalHostStatus{
 						Provisioning: bmov1alpha1.ProvisionStatus{
 							State: bmov1alpha1.StateAvailable,
 						},
@@ -545,7 +545,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost("bmh-0", nil, &bmov1alpha1.BareMetalHostStatus{
+					newBareMetalHost(baremetalhostName, nil, &bmov1alpha1.BareMetalHostStatus{
 						Provisioning: bmov1alpha1.ProvisionStatus{
 							State: bmov1alpha1.StateReady,
 						},
@@ -577,7 +577,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost("bmh-0", nil, nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, nil, nil, false),
 				},
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
@@ -629,7 +629,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost("bmh-0", nil, nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, nil, nil, false),
 				},
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
@@ -688,7 +688,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost("bmh-0", nil, &bmov1alpha1.BareMetalHostStatus{
+					newBareMetalHost(baremetalhostName, nil, &bmov1alpha1.BareMetalHostStatus{
 						Provisioning: bmov1alpha1.ProvisionStatus{
 							State: bmov1alpha1.StateProvisioning,
 						},
@@ -712,7 +712,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
-					newBareMetalHost("bmh-0", nil, nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, nil, nil, false),
 				},
 				ErrorExpected:           false,
 				RequeueExpected:         true,
@@ -748,7 +748,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithBootstrap(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
-					newBareMetalHost("bmh-0", nil, nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, nil, nil, false),
 				},
 				TargetObjects: []runtime.Object{
 					&corev1.Node{
@@ -801,7 +801,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					machineWithInfra(),
 					newCluster(clusterName, nil, nil),
 					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
-					newBareMetalHost("bmh-0", &bmov1alpha1.BareMetalHostSpec{
+					newBareMetalHost(baremetalhostName, &bmov1alpha1.BareMetalHostSpec{
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       metal3machineName,
 							Namespace:  namespaceName,
