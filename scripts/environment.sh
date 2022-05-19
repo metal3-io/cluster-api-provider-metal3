@@ -24,10 +24,10 @@ function os_check() {
     export DISTRO="${ID}${VERSION_ID%.*}"
     export OS="${ID}"
     export OS_VERSION_ID=$VERSION_ID
-    export SUPPORTED_DISTROS=(centos8 centos9 rhel8 ubuntu20)
+    export SUPPORTED_DISTROS=(centos8 centos9 rhel8 ubuntu20 ubuntu22)
 
     if [[ ! "${SUPPORTED_DISTROS[*]}" =~ $DISTRO ]]; then
-        echo "Supported OS distros for the host are: CentOS Stream 8/9 or RHEL8/9 or Ubuntu20.04"
+        echo "Supported OS distros for the host are: CentOS Stream 8/9 or RHEL8/9 or Ubuntu20.04 or Ubuntu22.04"
         exit 1
     fi
 }
@@ -76,8 +76,8 @@ if [[ "${CAPM3_VERSION}" == "v1alpha5" ]]; then
     export CAPM3PATH="${M3PATH}/cluster-api-provider-metal3"
 fi
 if [[ "${IMAGE_OS}" == "ubuntu" ]]; then
-  export UPGRADED_IMAGE_NAME="UBUNTU_20.04_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}.qcow2"
-  export UPGRADED_RAW_IMAGE_NAME="UBUNTU_20.04_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}-raw.img"
+  export UPGRADED_IMAGE_NAME="UBUNTU_22.04_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}.qcow2"
+  export UPGRADED_RAW_IMAGE_NAME="UBUNTU_22.04_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}-raw.img"
 else
   export UPGRADED_IMAGE_NAME="CENTOS_9_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}.qcow2"
   export UPGRADED_RAW_IMAGE_NAME="CENTOS_9_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}-raw.img"
