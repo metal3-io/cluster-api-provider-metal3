@@ -37,6 +37,16 @@ func LogFromFile(logFile string) {
 }
 
 func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
+	Logf("clusterctlLogFolder: %v",clusterctlLogFolder)
+	cmd := exec.Command("ls", artifactFolder)
+	result, err := cmd.Output()
+	Logf(result)
+	Expect(err).NotTo(HaveOccurred())
+	Logf("clusterctlLogFolder: %v",clusterctlLogFolder)
+	cmd = exec.Command("cp", "-r", artifactFolder, "/tmp/_artifacts")
+	result, err = cmd.Output()
+	Logf(result)
+	Expect(err).NotTo(HaveOccurred())
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := clusterProxy.GetClient()
 
@@ -59,6 +69,15 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 			Namespace: namespace,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 	}
+	cmd = exec.Command("ls", artifactFolder)
+	result, err = cmd.Output()
+	Logf(result)
+	Expect(err).NotTo(HaveOccurred())
+
+	cmd = exec.Command("cp", "-r","/tmp/_artifacts", artifactFolder )
+	result, err = cmd.Output()
+	Logf(result)
+	Expect(err).NotTo(HaveOccurred())
 }
 
 // downloadFile will download a url and store it in local filepath.

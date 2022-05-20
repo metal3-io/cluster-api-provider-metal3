@@ -42,6 +42,7 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 
 	It("Should get a management cluster then test cert rotation and node reuse", func() {
 		targetCluster = createTargetCluster()
+		if false {
 		managementCluster := bootstrapClusterProxy
 		// If not running ephemeral test, use the target cluster for management
 		if !ephemeralTest {
@@ -55,6 +56,7 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 		if !ephemeralTest {
 			rePivoting()
 		}
+	}
 
 	})
 
