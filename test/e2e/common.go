@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -40,12 +41,12 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	Logf("clusterctlLogFolder: %v",clusterctlLogFolder)
 	cmd := exec.Command("ls", artifactFolder)
 	result, err := cmd.Output()
-	Logf(result)
+	Logf(string(result))
 	Expect(err).NotTo(HaveOccurred())
 	Logf("clusterctlLogFolder: %v",clusterctlLogFolder)
 	cmd = exec.Command("cp", "-r", artifactFolder, "/tmp/_artifacts")
 	result, err = cmd.Output()
-	Logf(result)
+	Logf(string(result))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := clusterProxy.GetClient()
@@ -71,12 +72,12 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	}
 	cmd = exec.Command("ls", artifactFolder)
 	result, err = cmd.Output()
-	Logf(result)
+	Logf(string(result))
 	Expect(err).NotTo(HaveOccurred())
 
 	cmd = exec.Command("cp", "-r","/tmp/_artifacts", artifactFolder )
 	result, err = cmd.Output()
-	Logf(result)
+	Logf(string(result))
 	Expect(err).NotTo(HaveOccurred())
 }
 
