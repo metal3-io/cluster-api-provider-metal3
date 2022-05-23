@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -263,13 +262,10 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 				"failed to get the providerID for the metal3machine", errType,
 			)
 		}
-		if bmhID != nil {
-			providerID = fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix, *bmhID)
-		}
 	}
-	if bmhID != nil {
+	if providerID != "" || bmhID != nil {
 		// Set the providerID on the node if no Cloud provider
-		err = machineMgr.SetNodeProviderID(ctx, *bmhID, &providerID, r.CapiClientGetter)
+		err = machineMgr.SetNodeProviderID(ctx, bmhID, &providerID, r.CapiClientGetter)
 		if err != nil {
 			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
