@@ -1,7 +1,9 @@
 # Cluster API Provider Metal3 for Managed Bare Metal Hardware
 
-[![Ubuntu V1beta1 build status](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_ubuntu/badge/icon?subject=Ubuntu%20E2E%20V1beta1)](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_ubuntu/)
-[![CentOS V1beta1 build status](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_centos/badge/icon?subject=CentOS%20E2E%20V1beta1)](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_centos/)
+[![Ubuntu Integration v1beta1 build status](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_ubuntu/badge/icon?subject=Ubuntu%20Integration%20V1beta1)](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_ubuntu/)
+[![CentOS Integration v1beta1 build status](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_centos/badge/icon?subject=CentOS%20Integration%20V1beta1)](https://jenkins.nordix.org/view/Metal3/job/metal3_main_v1b1_integration_test_centos/)
+[![Ubuntu e2e v1beta1 build status](https://jenkins.nordix.org/view/Metal3%20Main/job/metal3_main_v1b1_e2e_test_ubuntu/badge/icon?subject=Ubuntu%20E2E%20V1beta1)](https://jenkins.nordix.org/view/Metal3%20Main/job/metal3_main_v1b1_e2e_test_ubuntu/)
+[![CentOS e2e v1beta1 build status](https://jenkins.nordix.org/view/Metal3%20Main/job/metal3_main_v1b1_e2e_test_centos/badge/icon?subject=CentOS%20E2E%20V1beta1)](https://jenkins.nordix.org/view/Metal3%20Main/job/metal3_main_v1b1_e2e_test_centos/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
