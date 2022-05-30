@@ -54,7 +54,7 @@ Then start Tilt:
 make tilt-up
 ```
 
-The Tilt dashboard can be accessed at <http://127.0.0.1:10350>. If tilt is running remotely, it can be accessed using ssh tunneling. An example of ```~/.ssh/config```  is show below.
+The Tilt dashboard can be accessed at <http://localhost:10350>. If tilt is running remotely, it can be accessed using ssh tunneling. An example of ```~/.ssh/config```  is show below.
 
 ```bash
 Host tiltvm
@@ -107,7 +107,7 @@ API (CAPI) repository and configuring Tilt to use `kind` to deploy the cluster
 api management components.
 
 > you may wish to checkout out the correct version of CAPI to match the
-[version used in CAPM3](go.mod)
+[version used in CAPM3](../go.mod)
 
 Note that `tilt up` will be run from the `cluster-api repository` directory and
 the `tilt-settings.json` file will point back to the

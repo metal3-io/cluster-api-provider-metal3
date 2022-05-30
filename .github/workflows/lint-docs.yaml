@@ -1,9 +1,6 @@
 name: Check Markdown links
 
 on:
-  push:
-    branches:
-      - add-deadlink-workflow/furkat
   pull_request:
     types: [opened, edited, synchronize, reopened]
     paths:
