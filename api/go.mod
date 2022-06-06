@@ -12,7 +12,7 @@ require (
 	k8s.io/apimachinery v0.23.5
 	k8s.io/client-go v0.23.5
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed
-	sigs.k8s.io/cluster-api v1.1.3
+	sigs.k8s.io/cluster-api v1.1.4
 	sigs.k8s.io/controller-runtime v0.11.2
 
 )
@@ -37,7 +37,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/prometheus/client_golang v1.11.0 // indirect
+	github.com/prometheus/client_golang v1.11.1 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/common v0.28.0 // indirect
 	github.com/prometheus/procfs v0.6.0 // indirect
@@ -62,6 +62,6 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.3
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.4
 
 replace github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
