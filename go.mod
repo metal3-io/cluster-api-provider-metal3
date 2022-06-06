@@ -24,12 +24,12 @@ require (
 	k8s.io/client-go v0.21.4
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/utils v0.0.0-20210802155522-efc7438f0176
-	sigs.k8s.io/cluster-api v0.4.7
-	sigs.k8s.io/cluster-api/test v0.4.7
+	sigs.k8s.io/cluster-api v0.4.8
+	sigs.k8s.io/cluster-api/test v0.4.8
 	sigs.k8s.io/controller-runtime v0.9.7
 	sigs.k8s.io/yaml v1.2.0
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.7
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v0.4.8
