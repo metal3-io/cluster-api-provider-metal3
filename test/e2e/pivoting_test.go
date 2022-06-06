@@ -67,6 +67,8 @@ func pivoting() {
 
 	By("Add labels to BMO CRDs")
 	labelBMOCRDs(nil)
+	By("Add Labels to hardwareData CRDs")
+	labelHDCRDs(nil)
 
 	By("Install BMO")
 	installIronicBMO(targetCluster, "false", "true")
@@ -81,6 +83,8 @@ func pivoting() {
 
 	By("Add labels to BMO CRDs in the target cluster")
 	labelBMOCRDs(targetCluster)
+	By("Add Labels to hardwareData CRDs in the target cluster")
+	labelHDCRDs(targetCluster)
 
 	By("Ensure API servers are stable before doing move")
 	// Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.
@@ -288,6 +292,29 @@ func labelBMOCRDs(targetCluster framework.ClusterProxy) {
 		}
 		err := cmd.Run()
 		Expect(err).To(BeNil(), "Cannot label BMO CRDs")
+	}
+}
+
+func labelHDCRDs(targetCluster framework.ClusterProxy) {
+	labels := []string{
+		"clusterctl.cluster.x-k8s.io=",
+		"clusterctl.cluster.x-k8s.io/move=",
+	}
+	kubectlArgs := ""
+	if targetCluster != nil {
+		kubectlArgs = fmt.Sprintf("--kubeconfig=%s", targetCluster.GetKubeconfigPath())
+	}
+
+	crdName := "hardwaredata.metal3.io"
+	for _, label := range labels {
+		var cmd *exec.Cmd
+		if kubectlArgs == "" {
+			cmd = exec.Command("kubectl", "label", "--overwrite", "crds", crdName, label)
+		} else {
+			cmd = exec.Command("kubectl", kubectlArgs, "label", "--overwrite", "crds", crdName, label)
+		}
+		err := cmd.Run()
+		Expect(err).To(BeNil(), "Cannot label HD CRDs")
 	}
 }
 
