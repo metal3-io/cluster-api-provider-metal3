@@ -51,7 +51,7 @@ For version v0.x.y:
    NB: `origin` should be the name of the remote pointing to
    `github.com/metal3-io/cluster-api-provider-metal3`
 1. Run `make release` to build artifacts (the image is automatically built by CI)
-1. [Create a release in GitHub](https://help.github.com/en/github/administering-a-repository/creating-releases)
+1. [Create a release in GitHub](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
    that contains the elements listed above that have been created in the `out`
    folder
 1. Create a branch `release-0.x` for a minor release for backports and bug fixes.
