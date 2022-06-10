@@ -171,7 +171,7 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
 	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
-		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
+		-ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.failFast -ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		-ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
