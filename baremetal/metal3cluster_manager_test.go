@@ -258,8 +258,11 @@ var _ = Describe("Metal3Cluster manager", func() {
 			Expect(clusterMgr).NotTo(BeNil())
 
 			err = clusterMgr.UpdateClusterStatus()
-			Expect(err).NotTo(HaveOccurred())
-
+			if tc.ExpectSuccess {
+				Expect(err).NotTo(HaveOccurred())
+			} else {
+				Expect(err).To(HaveOccurred())
+			}
 		},
 		Entry("Cluster and BMCluster exist", testCaseBMClusterManager{
 			Cluster: newCluster(clusterName),
