@@ -1,0 +1,230 @@
+---
+apiVersion: controlplane.cluster.x-k8s.io/${CAPI_VERSION}
+kind: KubeadmControlPlane
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  kubeadmConfigSpec:
+    files:
+    - content: |
+        #!/bin/bash
+        set -e
+        url="$1"
+        dst="$2"
+        filename="$(basename $url)"
+        tmpfile="/tmp/$filename"
+        curl -sSL -w "%{http_code}" "$url" | sed "s:/usr/bin:/usr/local/bin:g" > /tmp/"$filename"
+        http_status=$(cat "$tmpfile" | tail -n 1)
+        if [ "$http_status" != "200" ]; then
+          echo "Error: unable to retrieve $filename file";
+          exit 1;
+        else
+          cat "$tmpfile"| sed '$d' > "$dst";
+        fi
+      owner: root:root
+      path: /usr/local/bin/retrieve.configuration.files.sh
+      permissions: "0755"
+    - content: |
+        #!/bin/bash
+        while :; do
+          curl -sk https://127.0.0.1:6443/healthz 1>&2 > /dev/null
+          isOk=$?
+          isActive=$(systemctl show -p ActiveState keepalived.service | cut -d'=' -f2)
+          if [ $isOk == "0" ] &&  [ $isActive != "active" ]; then
+            logger 'API server is healthy, however keepalived is not running, starting keepalived'
+            echo 'API server is healthy, however keepalived is not running, starting keepalived'
+            sudo systemctl start keepalived.service
+          elif [ $isOk != "0" ] &&  [ $isActive == "active" ]; then
+            logger 'API server is not healthy, however keepalived running, stopping keepalived'
+            echo 'API server is not healthy, however keepalived running, stopping keepalived'
+            sudo systemctl stop keepalived.service
+          fi
+          sleep 5
+        done
+      owner: root:root
+      path: /usr/local/bin/monitor.keepalived.sh
+      permissions: "0755"
+    - path: /lib/systemd/system/monitor.keepalived.service
+      owner: root:root
+      content: |
+        [Unit]
+        Description=Monitors keepalived adjusts status with that of API server
+        After=syslog.target network-online.target
+        [Service]
+        Type=simple
+        Restart=always
+        ExecStart=/usr/local/bin/monitor.keepalived.sh
+        [Install]
+        WantedBy=multi-user.target
+    - path: /etc/keepalived/keepalived.conf
+      content: |
+        ! Configuration File for keepalived
+        global_defs {
+            notification_email {
+            sysadmin@example.com
+            support@example.com
+            }
+            notification_email_from lb@example.com
+            smtp_server localhost
+            smtp_connect_timeout 30
+        }
+        vrrp_instance VI_1 {
+            state MASTER
+            interface eth1
+            virtual_router_id 1
+            priority 101
+            advert_int 1
+            virtual_ipaddress {
+                ${CLUSTER_APIENDPOINT_HOST}
+            }
+        }
+    - path: /etc/sysconfig/network-scripts/ifcfg-eth0
+      owner: root:root
+      permissions: '0644'
+      content: |
+        BOOTPROTO=none
+        DEVICE=eth0
+        ONBOOT=yes
+        TYPE=Ethernet
+        USERCTL=no
+        BRIDGE=${CLUSTER_PROVISIONING_INTERFACE}
+    - content: |
+        TYPE=Bridge
+        DEVICE=${CLUSTER_PROVISIONING_INTERFACE}
+        ONBOOT=yes
+        USERCTL=no
+        BOOTPROTO="static"
+        IPADDR={{ ds.meta_data.provisioningIP }}
+        PREFIX={{ ds.meta_data.provisioningCIDR }}
+      path: /etc/sysconfig/network-scripts/ifcfg-ironicendpoint
+      owner: root:root
+      permissions: '0644'
+    - content: |
+        [kubernetes]
+        name=Kubernetes
+        baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+        enabled=1
+        gpgcheck=1
+        repo_gpgcheck=0
+        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      owner: root:root
+      path: /etc/yum.repos.d/kubernetes.repo
+      permissions: '0644'
+    - content: |
+        [registries.search]
+        registries = ['docker.io']
+
+        [registries.insecure]
+        registries = ['${REGISTRY}']
+      path: /etc/containers/registries.conf
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          cgroup-driver: systemd
+          container-runtime: remote
+          container-runtime-endpoint: unix:///var/run/crio/crio.sock
+          feature-gates: AllAlpha=false
+          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+          provider-id: ${PROVIDER_ID_FORMAT}
+          runtime-request-timeout: 5m
+        name: '{{ ds.meta_data.name }}'
+    joinConfiguration:
+      controlPlane: {}
+      nodeRegistration:
+        kubeletExtraArgs:
+          cgroup-driver: systemd
+          container-runtime: remote
+          container-runtime-endpoint: unix:///var/run/crio/crio.sock
+          feature-gates: AllAlpha=false
+          node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
+          provider-id: ${PROVIDER_ID_FORMAT}
+          runtime-request-timeout: 5m
+        name: '{{ ds.meta_data.name }}'
+    postKubeadmCommands:
+    - mkdir -p /home/${IMAGE_USERNAME}/.kube
+    - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube
+    - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
+    - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
+    preKubeadmCommands:
+    - systemctl restart NetworkManager.service
+    - nmcli connection load /etc/sysconfig/network-scripts/ifcfg-eth0
+    - nmcli connection up filename /etc/sysconfig/network-scripts/ifcfg-eth0
+    - systemctl enable --now crio keepalived kubelet
+    - systemctl link /lib/systemd/system/monitor.keepalived.service
+    - systemctl enable monitor.keepalived.service
+    - systemctl start monitor.keepalived.service
+---
+apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      files:
+      - content: |
+          #!/bin/bash
+          set -e
+          url="$1"
+          dst="$2"
+          filename="$(basename $url)"
+          tmpfile="/tmp/$filename"
+          curl -sSL -w "%{http_code}" "$url" | sed "s:/usr/bin:/usr/local/bin:g" > /tmp/"$filename"
+          http_status=$(cat "$tmpfile" | tail -n 1)
+          if [ "$http_status" != "200" ]; then
+            echo "Error: unable to retrieve $filename file";
+            exit 1;
+          else
+            cat "$tmpfile"| sed '$d' > "$dst";
+          fi
+        owner: root:root
+        path: /usr/local/bin/retrieve.configuration.files.sh
+        permissions: "0755"
+      - content: |
+          BOOTPROTO=none
+          DEVICE=eth0
+          ONBOOT=yes
+          TYPE=Ethernet
+          USERCTL=no
+          BRIDGE=${CLUSTER_PROVISIONING_INTERFACE}
+        path: /etc/sysconfig/network-scripts/ifcfg-eth0
+        owner: root:root
+        permissions: '0644'
+      - path: /etc/sysconfig/network-scripts/ifcfg-ironicendpoint
+        owner: root:root
+        permissions: '0644'
+        content: |
+          TYPE=Bridge
+          DEVICE=${CLUSTER_PROVISIONING_INTERFACE}
+          ONBOOT=yes
+          USERCTL=no
+          BOOTPROTO="static"
+          IPADDR={{ ds.meta_data.provisioningIP }}
+          PREFIX={{ ds.meta_data.provisioningCIDR }}
+      - path: /etc/yum.repos.d/kubernetes.repo
+        owner: root:root
+        permissions: '0644'
+        content: |
+          [kubernetes]
+          name=Kubernetes
+          baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+          enabled=1
+          gpgcheck=1
+          repo_gpgcheck=0
+          gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+      - path : /etc/containers/registries.conf
+        owner: root:root
+        permissions: '0644'
+        content: |
+          [registries.search]
+          registries = ['docker.io']
+
+          [registries.insecure]
+          registries = ['${REGISTRY}']
+      preKubeadmCommands:
+      - systemctl restart NetworkManager.service
+      - nmcli connection load /etc/sysconfig/network-scripts/ifcfg-eth0
+      - nmcli connection up filename /etc/sysconfig/network-scripts/ifcfg-eth0
+      - systemctl enable --now crio kubelet
