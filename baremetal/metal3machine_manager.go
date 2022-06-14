@@ -530,9 +530,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		// Remove clusterLabel from BMC secret.
 		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
 		if errBMC != nil && apierrors.IsNotFound(errBMC) {
-			m.Log.Info("BMC credential not found for BareMetalhost", host.Name)
+			m.Log.Info(fmt.Sprintf("BMC credential not found for BareMetalhost %s", host.Name))
 		} else if errBMC == nil && tmpBMCSecret != nil {
-			m.Log.Info("Deleting cluster label from BMC credential", host.Spec.BMC.CredentialsName)
+			m.Log.Info(fmt.Sprintf("Deleting cluster label from BMC credential %s", host.Spec.BMC.CredentialsName))
 			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1.ClusterLabelName] == m.Machine.Spec.ClusterName {
 				delete(tmpBMCSecret.Labels, clusterv1.ClusterLabelName)
 				errBMC = updateObject(ctx, m.client, tmpBMCSecret)
