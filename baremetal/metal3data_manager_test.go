@@ -637,6 +637,9 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			m3d := &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Template: *testObjectReference(metal3DataTemplateName),
+				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
 					APIVersion: infrav1.GroupVersion.String(),
@@ -1103,6 +1106,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	type testCaseGetAddressFromPool struct {
 		m3d             *infrav1.Metal3Data
+		m3dt            *infrav1.Metal3DataTemplate
 		poolName        string
 		poolRef         corev1.TypedLocalObjectReference
 		ipClaim         *ipamv1.IPClaim
@@ -1123,6 +1127,9 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
+			if tc.m3dt != nil {
+				objects = append(objects, tc.m3dt)
+			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
@@ -1132,7 +1139,11 @@ var _ = Describe("Metal3Data manager", func() {
 				context.TODO(), tc.poolRef,
 			)
 			if tc.expectError {
-				Expect(err).To(HaveOccurred())
+				if tc.m3dt != nil {
+					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+				} else {
+					Expect(err).To(HaveOccurred())
+				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -1162,19 +1173,12 @@ var _ = Describe("Metal3Data manager", func() {
 				Expect(capm3IPClaim.Finalizers).To(ContainElement(infrav1.DataFinalizer))
 			}
 		},
-		Entry("IPClaim not found", testCaseGetAddressFromPool{
-			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
-			},
-			poolName:        testPoolName,
-			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
-			expectedAddress: addressFromPool{},
-			expectRequeue:   true,
-			expectClaim:     true,
-		}),
 		Entry("IPClaim without allocation", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Template: *testObjectReference(metal3DataTemplateName),
+				},
 			},
 			poolName:        testPoolName,
 			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
@@ -1187,6 +1191,12 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("IPClaim with deletion timestamp", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Template: *testObjectReference(metal3DataTemplateName),
+				},
+			},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 			},
 			poolName:        testPoolName,
 			expectedAddress: addressFromPool{},
@@ -1215,7 +1225,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectRequeue: true,
+			expectRequeue: false,
+			expectError:   true,
 		}),
 		Entry("IPPool with allocation error", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
@@ -1236,6 +1247,12 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("IPAddress not found", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Template: *testObjectReference(metal3DataTemplateName),
+				},
+			},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 			},
 			poolName:        testPoolName,
 			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
@@ -1249,11 +1266,15 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectRequeue: true,
+			expectRequeue: false,
+			expectError:   true,
 		}),
 		Entry("IPAddress found", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				Spec: infrav1.Metal3DataSpec{
+					Template: *testObjectReference(metal3DataTemplateName),
+				},
 			},
 			poolName: testPoolName,
 			poolRef:  corev1.TypedLocalObjectReference{Name: testPoolName},
