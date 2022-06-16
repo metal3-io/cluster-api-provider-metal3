@@ -132,7 +132,7 @@ func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 		return errors.New("Unable to set an Reboot Annotation, Host not found")
 	}
 
-	r.Log.Info("Adding Reboot annotation to host", host.Name)
+	r.Log.Info("Adding Reboot annotation to host", "host", host.Name)
 	rebootMode := bmov1alpha1.RebootAnnotationArguments{}
 	rebootMode.Mode = bmov1alpha1.RebootModeHard
 	marshalledMode, err := json.Marshal(rebootMode)
@@ -155,7 +155,7 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 		return errors.New("Unable to set an Unhealthy Annotation, Host not found")
 	}
 
-	r.Log.Info("Adding Unhealthy annotation to host", host.Name)
+	r.Log.Info("Adding Unhealthy annotation to host", "host", host.Name)
 	host.Annotations[infrav1.UnhealthyAnnotation] = "capm3/UnhealthyNode"
 	return helper.Patch(ctx, host)
 }
@@ -283,7 +283,7 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 	conditions.MarkFalse(capiMachine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 	err = machineHelper.Patch(ctx, capiMachine)
 	if err != nil {
-		r.Log.Info("Unable to patch Machine %d", capiMachine)
+		r.Log.Info("Unable to patch Machine", "machine", capiMachine)
 		return err
 	}
 	return nil
