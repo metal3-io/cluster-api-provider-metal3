@@ -113,7 +113,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	if host.Spec.ConsumerRef.Kind != Metal3Machine &&
 		host.Spec.ConsumerRef.GroupVersionKind().Group != infrav1.GroupVersion.Group {
-		controllerLog.Info(fmt.Sprintf("Unknown GroupVersionKind in BareMetalHost Consumer Ref %v", host.Spec.ConsumerRef.GroupVersionKind()))
+		controllerLog.Info("Unknown GroupVersionKind in BareMetalHost Consumer Ref", "groupversion", host.Spec.ConsumerRef.GroupVersionKind())
 		return ctrl.Result{}, nil
 	}
 	capm3Machine := &infrav1.Metal3Machine{}
@@ -123,7 +123,10 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	if err := r.Client.Get(ctx, capm3MachineKey, capm3Machine); err != nil {
 		if apierrors.IsNotFound(err) {
-			controllerLog.Info(fmt.Sprintf("Could not find associated Metal3Machine %v for BareMetalHost %v/%v, will retry", capm3MachineKey, host.Namespace, host.Name))
+			controllerLog.Info("Could not find associated Metal3Machine for BareMetalHost, will retry",
+				"machinekey", capm3MachineKey,
+				"hostnamespace", host.Namespace,
+				"host", host.Name)
 			return ctrl.Result{RequeueAfter: requeueAfter}, nil
 		}
 		return ctrl.Result{}, err

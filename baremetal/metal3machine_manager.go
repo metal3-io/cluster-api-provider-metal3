@@ -509,7 +509,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		return err
 	}
 	if host == nil {
-		m.Log.Info("host not found for metal3machine %s", m.Metal3Machine.Name)
+		m.Log.Info("host not found for metal3machine", "metal3machine", m.Metal3Machine.Name)
 		return nil
 	}
 
@@ -530,9 +530,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		// Remove clusterLabel from BMC secret.
 		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
 		if errBMC != nil && apierrors.IsNotFound(errBMC) {
-			m.Log.Info(fmt.Sprintf("BMC credential not found for BareMetalhost %s", host.Name))
+			m.Log.Info("BMC credential not found for BareMetalhost", "host", host.Name)
 		} else if errBMC == nil && tmpBMCSecret != nil {
-			m.Log.Info(fmt.Sprintf("Deleting cluster label from BMC credential %s", host.Spec.BMC.CredentialsName))
+			m.Log.Info("Deleting cluster label from BMC credential", "bmccredential", host.Spec.BMC.CredentialsName)
 			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1.ClusterLabelName] == m.Machine.Spec.ClusterName {
 				delete(tmpBMCSecret.Labels, clusterv1.ClusterLabelName)
 				errBMC = updateObject(ctx, m.client, tmpBMCSecret)
@@ -580,7 +580,10 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		} else if Capm3FastTrack == "false" {
 			host.Spec.Online = false
 		}
-		m.Log.Info(fmt.Sprintf("Host %v AutomatedCleaningMode is %v, setting Online field to %v", host.Name, host.Spec.AutomatedCleaningMode, host.Spec.Online))
+		m.Log.Info("Set host Online field by AutomatedCleaningMode",
+			"host", host.Name,
+			"automatedCleaningMode", host.Spec.AutomatedCleaningMode,
+			"hostSpecOnline", host.Spec.Online)
 
 		if onlineStatus != host.Spec.Online {
 			bmhUpdated = true
@@ -642,7 +645,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 					} else {
 						// in case of upgrading, Metal3MachineTemplate will not be deleted and we can fetch it,
 						// in order to check for node reuse feature in the next step.
-						m.Log.Info(fmt.Sprintf("Found Metal3machineTemplate %v", m3mtKey.Name))
+						m.Log.Info("Found Metal3machineTemplate", "metal3machineTemplate", m3mtKey.Name)
 					}
 				}
 				if m3mt != nil {
@@ -653,23 +656,23 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 						// Check if machine is ControlPlane
 						if m.isControlPlane() {
 							// Fetch KubeadmControlPlane name for controlplane machine
-							m.Log.Info(fmt.Sprintf("Fetch KubeadmControlPlane name while deprovisioning host %v", host.Name))
+							m.Log.Info("Fetch KubeadmControlPlane name while deprovisioning host", "host", host.Name)
 							kcpName, err := m.getKubeadmControlPlaneName(ctx)
 							if err != nil {
 								return err
 							}
 							// Set nodeReuseLabelName on the host to KubeadmControlPlane name
-							m.Log.Info(fmt.Sprintf("Setting nodeReuseLabelName in host %v to fetched KubeadmControlPlane name %v", host.Name, kcpName))
+							m.Log.Info("Setting nodeReuseLabelName in host to fetched KubeadmControlPlane", "host", host.Name, "kubeadmControlPlane", kcpName)
 							host.Labels[nodeReuseLabelName] = kcpName
 						} else {
 							// Fetch MachineDeployment name for worker machine
-							m.Log.Info(fmt.Sprintf("Fetch MachineDeployment name while deprovisioning host %v", host.Name))
+							m.Log.Info("Fetch MachineDeployment name while deprovisioning host", "host", host.Name)
 							mdName, err := m.getMachineDeploymentName(ctx)
 							if err != nil {
 								return err
 							}
 							// Set nodeReuseLabelName on the host to MachineDeployment name
-							m.Log.Info(fmt.Sprintf("Setting nodeReuseLabelName in host %v to fetched MachineDeployment name %v", host.Name, mdName))
+							m.Log.Info("Setting nodeReuseLabelName in host to fetched MachineDeployment", "host", host.Name, "machinedeployment", mdName)
 							host.Labels[nodeReuseLabelName] = mdName
 						}
 					}
@@ -931,7 +934,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 
 		if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
 			if m.nodeReuseLabelExists(ctx, &host) && m.nodeReuseLabelMatches(ctx, &host) {
-				m.Log.Info(fmt.Sprintf("Found host %v with nodeReuseLabelName and it matches, adding it to availableHostsWithNodeReuse list", host.Name))
+				m.Log.Info("Found host with nodeReuseLabelName and it matches, adding it to availableHostsWithNodeReuse list", "host", host.Name)
 				availableHostsWithNodeReuse = append(availableHostsWithNodeReuse, &hosts.Items[i])
 			} else if !m.nodeReuseLabelExists(ctx, &host) {
 				switch host.Status.Provisioning.State {
@@ -939,16 +942,16 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 				default:
 					continue
 				}
-				m.Log.Info(fmt.Sprintf("Host %v matched hostSelector for Metal3Machine, adding it to availableHosts list", host.Name))
+				m.Log.Info("Host matched hostSelector for Metal3Machine, adding it to availableHosts list", "host", host.Name)
 				availableHosts = append(availableHosts, &hosts.Items[i])
 			}
 		} else {
-			m.Log.Info(fmt.Sprintf("Host %v did not match hostSelector for Metal3Machine", host.Name))
+			m.Log.Info("Host did not match hostSelector for Metal3Machine", "host", host.Name)
 		}
 	}
 
-	m.Log.Info(fmt.Sprintf("%d hosts available with nodeReuseLabelName while choosing host for Metal3 machine", len(availableHostsWithNodeReuse)))
-	m.Log.Info(fmt.Sprintf("%d hosts available while choosing host for Metal3 machine", len(availableHosts)))
+	m.Log.Info("Host count available with nodeReuseLabelName while choosing host for Metal3 machine", "hostcount", len(availableHostsWithNodeReuse))
+	m.Log.Info("Host count available while choosing host for Metal3 machine", "hostcount", len(availableHosts))
 	if len(availableHostsWithNodeReuse) == 0 && len(availableHosts) == 0 {
 		return nil, nil, nil
 	}
@@ -971,19 +974,19 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 
 			// If host is found in `Ready` state, pick it
 			if len(hostsInAvailableStateWithNodeReuse) != 0 {
-				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in Ready/Available state, choosing the host %v", len(hostsInAvailableStateWithNodeReuse), host.Name))
+				m.Log.Info("Found host(s) with nodeReuseLabelName in Ready/Available state, choosing the host", "availabeHostCount", len(hostsInAvailableStateWithNodeReuse), "host", host.Name)
 				rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(hostsInAvailableStateWithNodeReuse))))
 				randomHost := rHost.Int64()
 				chosenHost = hostsInAvailableStateWithNodeReuse[randomHost]
 			} else if len(hostsInNotAvailableStateWithNodeReuse) != 0 {
-				m.Log.Info(fmt.Sprintf("Found %v host(s) with nodeReuseLabelName in %v state, requeuing the host %v", len(hostsInNotAvailableStateWithNodeReuse), host.Status.Provisioning.State, host.Name))
+				m.Log.Info("Found host(s) with nodeReuseLabelName in not-available state, requeuing the host", "notAvailabeHostCount", len(hostsInNotAvailableStateWithNodeReuse), "hoststate", host.Status.Provisioning.State, "host", host.Name)
 				return nil, nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 			}
 		}
 	} else {
 		// If there are no hosts with nodeReuseLabelName, fall back
 		// to the current flow and select hosts randomly.
-		m.Log.Info(fmt.Sprintf("%d host(s) available, choosing a random host", len(availableHosts)))
+		m.Log.Info("host(s) count available, choosing a random host", "availabeHostCount", len(availableHosts))
 		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(availableHosts))))
 		randomHost := rHost.Int64()
 		chosenHost = availableHosts[randomHost]
@@ -1030,7 +1033,7 @@ func (m *MachineManager) nodeReuseLabelMatches(ctx context.Context, host *bmov1a
 		if host.Labels[nodeReuseLabelName] != kcp {
 			return false
 		}
-		m.Log.Info(fmt.Sprintf("nodeReuseLabelName on the host %v matches KubeadmControlPlane name %v", host.Name, kcp))
+		m.Log.Info("nodeReuseLabelName on the host matches KubeadmControlPlane name", "host", host.Name, "kubeadmControlPlane", kcp)
 		return true
 	}
 	md, err := m.getMachineDeploymentName(ctx)
@@ -1043,7 +1046,7 @@ func (m *MachineManager) nodeReuseLabelMatches(ctx context.Context, host *bmov1a
 	if host.Labels[nodeReuseLabelName] != md {
 		return false
 	}
-	m.Log.Info(fmt.Sprintf("nodeReuseLabelName on the host %v matches MachineDeployment name %v", host.Name, md))
+	m.Log.Info("nodeReuseLabelName on the host matches MachineDeployment", "host", host.Name, "machinedeployment", md)
 	return true
 }
 
@@ -1057,7 +1060,7 @@ func (m *MachineManager) nodeReuseLabelExists(ctx context.Context, host *bmov1al
 	}
 	_, ok := host.Labels[nodeReuseLabelName]
 	if ok {
-		m.Log.Info(fmt.Sprintf("nodeReuseLabelName exists on the host %v", host.Name))
+		m.Log.Info("nodeReuseLabelName exists on the host", "host", host.Name)
 	}
 	return ok
 }
@@ -1071,7 +1074,7 @@ func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmov1alpha1.Bar
 	key := host.CredentialsKey()
 	err := m.client.Get(ctx, key, &tmpBMCSecret)
 	if err != nil {
-		m.Log.Info("Cannot retrieve BMC credential for BareMetalhost ", host.Name, err)
+		m.Log.Error(err, "Cannot retrieve BMC credential for BareMetalhost", "host", host.Name)
 		return nil, err
 	}
 	return &tmpBMCSecret, nil
@@ -1388,7 +1391,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID *string, p
 	if countNodesWithLabel == 0 {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case.
-		m.Log.Info("requeuing, could not find node with label: ", nodeLabel)
+		m.Log.Info("requeuing, could not find node with label", "nodelabel", nodeLabel)
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	if countNodesWithLabel > 1 {
@@ -1407,7 +1410,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID *string, p
 		} else if providerIDOnNode == providerIDLegacy {
 			*providerIDOnM3M = providerIDLegacy
 		} else {
-			m.Log.Info("node using unsupported providerID format", providerIDOnNode)
+			m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode)
 			return errors.Wrap(err, "node using unsupported providerID format")
 		}
 		nodeVar = node
@@ -1717,7 +1720,7 @@ func (m *MachineManager) getKubeadmControlPlaneName(ctx context.Context) (string
 		}
 		// adding prefix to KubeadmControlPlane name in order to be able to differentiate
 		// KubeadmControlPlane and MachineDeployment in case they have the same names set in the cluster.
-		m.Log.Info(fmt.Sprintf("Fetched KubeadmControlPlane name %v", "kcp-"+mOwnerRef.Name))
+		m.Log.Info("Fetched KubeadmControlPlane name", "kubeadmControlPlane", "kcp-"+mOwnerRef.Name)
 		return "kcp-" + mOwnerRef.Name, nil
 	}
 	return "", errors.New("KubeadmControlPlane name is not found")
@@ -1750,7 +1753,7 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 		}
 		// adding prefix to MachineDeployment name in order to be able to differentiate
 		// MachineDeployment and KubeadmControlPlane in case they have the same names set in the cluster.
-		m.Log.Info(fmt.Sprintf("Fetched MachineDeployment name %v", "md-"+msOwnerRef.Name))
+		m.Log.Info("Fetched MachineDeployment name", "machinedeployment", "md-"+msOwnerRef.Name)
 		return "md-" + msOwnerRef.Name, nil
 	}
 	return "", errors.New("MachineDeployment name is not found")
@@ -1788,7 +1791,7 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 				continue
 			}
 			if mOwnerRef.Name == machineset.Name {
-				m.Log.Info(fmt.Sprintf("Found MachineSet %v corresponding to machine", machineset.Name))
+				m.Log.Info("Found MachineSet corresponding to machine", "machineset", machineset.Name)
 				return machineset, nil
 			}
 		}
@@ -1821,7 +1824,7 @@ func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string
 
 	nodes, err := corev1Remote.Nodes().List(ctx, filter)
 	if err != nil {
-		m.Log.Info(fmt.Sprintf("error while retrieving nodes with label (%s): %v", nodeLabel, err))
+		m.Log.Error(err, "error while retrieving nodes with label", "nodelabel", nodeLabel)
 		return nil, 0, err
 	}
 	if nodes != nil {
@@ -1841,7 +1844,7 @@ func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, 
 	filter := metav1.ListOptions{}
 	nodes, err := corev1Remote.Nodes().List(ctx, filter)
 	if err != nil {
-		m.Log.Info(fmt.Sprintf("error while retrieving nodes: %v", err))
+		m.Log.Error(err, "error while retrieving nodes")
 		return matchingNodesCount, err
 	}
 	// kubernetes nodes with their providerID and name fields set
@@ -1850,13 +1853,13 @@ func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, 
 	for _, node := range nodes.Items {
 		providerIDOnNode := node.Spec.ProviderID
 		if providerIDOnNode == "" {
-			m.Log.Info("no providerID value found on node: ", node.GetName())
+			m.Log.Info("no providerID value found on node", "node", node.GetName())
 		} else if providerIDOnNode == providerIDNew {
 			matchingNodeProviderID = providerIDNew
 		} else if providerIDOnNode == providerIDLegacy {
 			matchingNodeProviderID = providerIDLegacy
 		} else {
-			m.Log.Info("The node: ", node.GetName(), " does not match expected providerID: ", providerIDOnNode, "Considering other nodes ...")
+			m.Log.Info("The node does not match expected providerID. Considering other nodes ", "node", node.GetName(), "providerID", providerIDOnNode)
 		}
 		if providerIDOnNode != "" && node.GetName() != "" {
 			validNodes[providerIDOnNode] = append(validNodes[providerIDOnNode], node.GetName())
