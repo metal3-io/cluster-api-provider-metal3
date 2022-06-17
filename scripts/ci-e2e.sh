@@ -74,8 +74,3 @@ fi
 
 # run e2e tests
 make e2e-tests
-
-# Clean devenv
-pushd "${M3_DEV_ENV_PATH}"  || exit 1
-make clean
-popd || exit 1
