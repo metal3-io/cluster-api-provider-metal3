@@ -111,7 +111,7 @@ spec:
             container-runtime-endpoint: unix:///var/run/crio/crio.sock
             feature-gates: AllAlpha=false
             node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-            provider-id: metal3://{{ ds.meta_data.uuid }}
+            provider-id: ${PROVIDER_ID_FORMAT}
             runtime-request-timeout: 5m
           name: '{{ ds.meta_data.name }}'
       users:
