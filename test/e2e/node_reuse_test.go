@@ -77,7 +77,7 @@ func nodeReuse() {
 	osType := strings.ToLower(os.Getenv("OS"))
 	Expect(osType).ToNot(Equal(""))
 	if osType != "centos" {
-		imageNamePrefix = "UBUNTU_22.04_NODE_IMAGE_K8S"
+		imageNamePrefix = "UBUNTU_20.04_NODE_IMAGE_K8S"
 	} else {
 		imageNamePrefix = "CENTOS_9_NODE_IMAGE_K8S"
 	}
