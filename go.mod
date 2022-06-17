@@ -34,7 +34,7 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.4
 
 replace github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511
 
-replace github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
+replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 
 require (
 	cloud.google.com/go v0.99.0 // indirect
