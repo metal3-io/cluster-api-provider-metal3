@@ -7,9 +7,9 @@ require (
 	github.com/go-logr/logr v1.2.2
 	github.com/golang/mock v1.6.0
 	github.com/jinzhu/copier v0.3.2
-	github.com/metal3-io/baremetal-operator/apis v0.0.0-20220317105911-8c218e0c4f0d
+	github.com/metal3-io/baremetal-operator/apis v0.0.0-20220617103906-946dc6d709de
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041
+	github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/pkg/errors v0.9.1
@@ -34,7 +34,7 @@ replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.4
 
 replace github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511
 
-replace github.com/docker/distribution => github.com/docker/distribution v2.8.0+incompatible
+replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 
 require (
 	cloud.google.com/go v0.99.0 // indirect

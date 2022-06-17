@@ -171,8 +171,8 @@ github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/daviddengcn/go-colortext v0.0.0-20160507010035-511bcaf42ccd/go.mod h1:dv4zxwHi5C/8AeI+4gX4dCWOIvNi7I6JCSX0HvlKPgE=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
-github.com/docker/distribution v2.8.0+incompatible h1:l9EaZDICImO1ngI+uTifW+ZYvvz7fKISBAKpg+MbWbY=
-github.com/docker/distribution v2.8.0+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
+github.com/docker/distribution v2.8.1+incompatible h1:Q50tZOPR6T/hjNsyc9g8/syEs6bk8XXApsHjKukMl68=
+github.com/docker/distribution v2.8.1+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/docker v20.10.16+incompatible h1:2Db6ZR/+FUR3hqPMwnogOPHFn405crbpxvWzKovETOQ=
 github.com/docker/docker v20.10.16+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/go-connections v0.4.0 h1:El9xVISelRB7BuFusrZozjnkIM5YnzCViNKohAFqRJQ=
@@ -491,10 +491,14 @@ github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182aff
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/metal3-io/baremetal-operator/apis v0.0.0-20220317105911-8c218e0c4f0d h1:W3hATi420BCdgXVrsp5RMTjx0yyxbSG2y5t9nI1duQA=
 github.com/metal3-io/baremetal-operator/apis v0.0.0-20220317105911-8c218e0c4f0d/go.mod h1:Kyik+ziiZLez6p4ZUwT0iO6T8F7YygaHVhCBx//KhLI=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20220617103906-946dc6d709de h1:b5bGtOSql1WoM21nPEWTeBK+JpN8trg2rlawj8zihRE=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20220617103906-946dc6d709de/go.mod h1:IFJXZUVXhVZC4prZ9PpemddmhnnNuKwYwnztyGNoSSk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511 h1:+DOZI8DuQEH1wtwsqIcdX/vcZhExpUY5xH/+nBqAwps=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511/go.mod h1:/PSTQInIZmfuOmAp/pSgZAs4txs6T49woC0MYIa4QzE=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041 h1:F1Htgv+9LlKXn3E6BgxV4aX9TRFL2jg0E9c1RXOSasg=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041/go.mod h1:qdidQnK6LZA0TPrlMuiGhgkIS3piBKPnYUgLPdvp6uQ=
+github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae h1:aSwVQLVhLm6gEA6p8dTJksHUZAV8pvF7j2vKr2VJYsU=
+github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae/go.mod h1:IgZuGEbWca+Jh3QwdkhAM5ZEKuN+c55xOTwxwwaUSUM=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/miekg/dns v1.1.26/go.mod h1:bPDLeHnStXmXAq1m/Ch/hvfNHr14JKNPMBo3VZKjuso=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
