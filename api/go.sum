@@ -408,6 +408,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182aff
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041 h1:F1Htgv+9LlKXn3E6BgxV4aX9TRFL2jg0E9c1RXOSasg=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041/go.mod h1:qdidQnK6LZA0TPrlMuiGhgkIS3piBKPnYUgLPdvp6uQ=
+github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae h1:aSwVQLVhLm6gEA6p8dTJksHUZAV8pvF7j2vKr2VJYsU=
+github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae/go.mod h1:IgZuGEbWca+Jh3QwdkhAM5ZEKuN+c55xOTwxwwaUSUM=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/miekg/dns v1.1.26/go.mod h1:bPDLeHnStXmXAq1m/Ch/hvfNHr14JKNPMBo3VZKjuso=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
