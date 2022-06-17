@@ -491,6 +491,8 @@ github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182aff
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
 github.com/metal3-io/baremetal-operator/apis v0.0.0-20220317105911-8c218e0c4f0d h1:W3hATi420BCdgXVrsp5RMTjx0yyxbSG2y5t9nI1duQA=
 github.com/metal3-io/baremetal-operator/apis v0.0.0-20220317105911-8c218e0c4f0d/go.mod h1:Kyik+ziiZLez6p4ZUwT0iO6T8F7YygaHVhCBx//KhLI=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20220617103906-946dc6d709de h1:b5bGtOSql1WoM21nPEWTeBK+JpN8trg2rlawj8zihRE=
+github.com/metal3-io/baremetal-operator/apis v0.0.0-20220617103906-946dc6d709de/go.mod h1:IFJXZUVXhVZC4prZ9PpemddmhnnNuKwYwnztyGNoSSk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511 h1:+DOZI8DuQEH1wtwsqIcdX/vcZhExpUY5xH/+nBqAwps=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511/go.mod h1:/PSTQInIZmfuOmAp/pSgZAs4txs6T49woC0MYIa4QzE=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041 h1:F1Htgv+9LlKXn3E6BgxV4aX9TRFL2jg0E9c1RXOSasg=
