@@ -585,7 +585,10 @@ clean-examples: ## Remove all the temporary files generated in the examples fold
 	rm -rf examples/_out/
 	rm -f examples/provider-components/provider-components-*.yaml
 
+WORKING_DIR = /opt/metal3-dev-env
+M3_DEV_ENV_PATH ?= $(WORKING_DIR)/metal3-dev-env
 clean-e2e:
+	$(MAKE) clean -C $(M3_DEV_ENV_PATH)
 	rm -rf $(E2E_OUT_DIR)
 
 .PHONY: verify
