@@ -62,9 +62,6 @@ func pivoting() {
 
 	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-pivoting", "clusterctl-init.log"))
 
-	By("Configure Ironic Configmap")
-	configureIronicConfigmap(true)
-
 	By("Add labels to BMO CRDs")
 	labelBMOCRDs(nil)
 	By("Add Labels to hardwareData CRDs")
@@ -75,11 +72,6 @@ func pivoting() {
 
 	By("Install Ironic in the target cluster")
 	installIronicBMO(targetCluster, "true", "false")
-
-	By("Restore original BMO configmap")
-	restoreBMOConfigmap()
-	By("Reinstate Ironic Configmap")
-	configureIronicConfigmap(false)
 
 	By("Add labels to BMO CRDs in the target cluster")
 	labelBMOCRDs(targetCluster)
@@ -165,33 +157,6 @@ func pivoting() {
 	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(BeNil())
 
 	By("PIVOTING TESTS PASSED!")
-}
-
-func configureIronicConfigmap(isIronicDeployed bool) {
-	ironicDataDir := "IRONIC_DATA_DIR"
-	ironicConfigmap := fmt.Sprintf("%s/ironic-deployment/keepalived/ironic_bmo_configmap.env", e2eConfig.GetVariable(bmoPath))
-	newIronicConfigmap := fmt.Sprintf("%s/ironic_bmo_configmap.env", e2eConfig.GetVariable(ironicDataDir))
-	backupIronicConfigmap := fmt.Sprintf("%s/ironic-deployment/keepalived/ironic_bmo_configmap.env.orig", e2eConfig.GetVariable(bmoPath))
-	if isIronicDeployed {
-		cmd := exec.Command("cp", ironicConfigmap, backupIronicConfigmap)
-		err := cmd.Run()
-		Expect(err).To(BeNil(), "Cannot run cp command")
-		cmd = exec.Command("cp", newIronicConfigmap, ironicConfigmap)
-		err = cmd.Run()
-		Expect(err).To(BeNil(), "Cannot run cp command")
-	} else {
-		cmd := exec.Command("mv", backupIronicConfigmap, ironicConfigmap)
-		err := cmd.Run()
-		Expect(err).To(BeNil(), "Cannot run mv command")
-	}
-}
-
-func restoreBMOConfigmap() {
-	bmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env", e2eConfig.GetVariable(bmoPath))
-	backupBmoConfigmap := fmt.Sprintf("%s/config/default/ironic.env.orig", e2eConfig.GetVariable(bmoPath))
-	cmd := exec.Command("mv", backupBmoConfigmap, bmoConfigmap)
-	_ = cmd.Run()
-	// Accept the error of this cmd because there might be no backup file to restore
 }
 
 func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO string) {
@@ -333,14 +298,8 @@ func rePivoting() {
 		fmt.Printf("%s\n", stdoutStderr)
 		Expect(err).To(BeNil(), "Cannot run local ironic")
 	} else {
-		By("Configure Ironic Configmap")
-		configureIronicConfigmap(true)
-
 		By("Install Ironic in the target cluster")
 		installIronicBMO(bootstrapClusterProxy, "true", "false")
-
-		By("Reinstate Ironic Configmap")
-		configureIronicConfigmap(false)
 	}
 
 	By("Ensure API servers are stable before doing move")
