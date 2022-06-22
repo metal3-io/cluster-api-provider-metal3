@@ -1326,6 +1326,9 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 	bmhID := *providerID
 	if strings.Contains(bmhID, ProviderIDPrefix) {
 		bmhID = strings.TrimPrefix(bmhID, ProviderIDPrefix)
+	} else {
+		// providerID does not contain expected prefix.
+		return "", nil
 	}
 	// If the providerID is in new format, it does not contain the BMH ID, but
 	// instead contains / to separate the names. In that case we return nil for
