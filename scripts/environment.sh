@@ -58,8 +58,7 @@ export M3PATH=${M3PATH:-"${HOME}/go/src/github.com/metal3-io"}
 export CAPM3_LOCAL_IMAGE="${CAPM3PATH}"
 
 # Upgrade test environment vars and config
-export UPGRADE_TEST=${UPGRADE_TEST:-false}
-if $UPGRADE_TEST; then
+if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
     export CAPI_VERSION="v1alpha4"
     export CAPM3_VERSION="v1alpha5"
     # Ironic and BMO images to start from. They will then upgrade to main/latest

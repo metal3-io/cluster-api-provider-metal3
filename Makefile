@@ -128,7 +128,6 @@ E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
 E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
 
 SKIP_CLEANUP ?= false
-UPGRADE_TEST ?= false
 EPHEMERAL_TEST ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
@@ -155,7 +154,7 @@ GINKGO_FOCUS  ?=
 GINKGO_SKIP ?=
 
 # TODO (Mohammed) select the test in JJB
-ifeq ($(UPGRADE_TEST),true)
+ifeq ($(GINKGO_FOCUS),upgrade)
 GINKGO_FOCUS := upgrade
 else
 GINKGO_SKIP := upgrade
@@ -176,7 +175,6 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
-		-e2e.trigger-upgrade-test=$(UPGRADE_TEST) \
 		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 	rm $(E2E_CONF_FILE_ENVSUBST)
