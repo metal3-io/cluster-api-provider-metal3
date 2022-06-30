@@ -34,8 +34,11 @@ var _ = Describe("Workload cluster creation", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
-		flavorSuffix = "-m3-dev-env"
-
+		if osType == "centos" {
+			flavorSuffix = "-centos"
+		} else {
+			flavorSuffix = ""
+		}
 		validateGlobals(specName)
 
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
