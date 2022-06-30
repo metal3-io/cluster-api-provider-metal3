@@ -397,7 +397,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	err = helper.Patch(ctx, host)
 	if err != nil {
 		var aggr kerrors.Aggregate
-		if ok := errors.As(err, aggr); ok {
+		if ok := errors.As(err, &aggr); ok {
 			for _, kerr := range aggr.Errors() {
 				if apierrors.IsConflict(kerr) {
 					return &RequeueAfterError{}
@@ -447,7 +447,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		err = helper.Patch(ctx, host)
 		if err != nil {
 			var aggr kerrors.Aggregate
-			if ok := errors.As(err, aggr); ok {
+			if ok := errors.As(err, &aggr); ok {
 				for _, kerr := range aggr.Errors() {
 					if apierrors.IsConflict(kerr) {
 						return &RequeueAfterError{}
