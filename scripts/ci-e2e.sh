@@ -58,7 +58,7 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_basic_auth.sh"
 # shellcheck disable=SC1091,SC1090
 source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
-if $UPGRADE_TEST; then
+if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
   export CAPI_FROM_RELEASE="${CAPIRELEASE}"
   export CAPI_TO_RELEASE="${CAPI_TO_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.1.")}"
 
