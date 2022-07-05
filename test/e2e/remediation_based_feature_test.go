@@ -50,7 +50,7 @@ var _ = Describe("Testing nodes remediation [remediation]", func() {
 		By("Creating target cluster")
 		targetCluster = createTargetCluster()
 
-		// Run Metal3Remediation test first, doesn't work work after remediation...
+		// Run Metal3Remediation test first, doesn't work after remediation...
 		By("Running Metal3Remediation tests")
 		metal3remediation()
 

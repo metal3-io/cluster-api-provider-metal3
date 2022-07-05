@@ -123,7 +123,7 @@ func (r *RemediationManager) UnsetFinalizer() {
 	)
 }
 
-// HasFinalizer return if finalizer is set.
+// HasFinalizer returns if finalizer is set.
 func (r *RemediationManager) HasFinalizer() bool {
 	return Contains(r.Metal3Remediation.Finalizers, infrav1.RemediationFinalizer)
 }
@@ -173,7 +173,7 @@ func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
 	return helper.Patch(ctx, host)
 }
 
-// RemovePowerOffAnnotation removes poweroff annotation on unhealthy host.
+// RemovePowerOffAnnotation removes poweroff annotation from unhealthy host.
 func (r *RemediationManager) RemovePowerOffAnnotation(ctx context.Context) error {
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
@@ -183,19 +183,19 @@ func (r *RemediationManager) RemovePowerOffAnnotation(ctx context.Context) error
 		return errors.New("Unable to remove PowerOff Annotation, Host not found")
 	}
 
-	r.Log.Info("Removing PowerOff annotation to host", "host name", host.Name)
+	r.Log.Info("Removing PowerOff annotation from host", "host name", host.Name)
 	delete(host.Annotations, r.getPowerOffAnnotationKey())
 	return helper.Patch(ctx, host)
 }
 
-// IsPowerOffRequested return if poweroff annotation is set.
+// IsPowerOffRequested returns true if poweroff annotation is set.
 func (r *RemediationManager) IsPowerOffRequested(ctx context.Context) (bool, error) {
 	host, _, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return false, err
 	}
 	if host == nil {
-		return false, errors.New("Unable to remove PowerOff Annotation, Host not found")
+		return false, errors.New("Unable to check PowerOff Annotation, Host not found")
 	}
 
 	if _, ok := host.Annotations[r.getPowerOffAnnotationKey()]; ok {
@@ -204,14 +204,14 @@ func (r *RemediationManager) IsPowerOffRequested(ctx context.Context) (bool, err
 	return false, nil
 }
 
-// IsPoweredOn return if the host is powered off.
+// IsPoweredOn returns true if the host is powered on.
 func (r *RemediationManager) IsPoweredOn(ctx context.Context) (bool, error) {
 	host, _, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return false, err
 	}
 	if host == nil {
-		return false, errors.New("Unable to remove PowerOff Annotation, Host not found")
+		return false, errors.New("Unable to check power status, Host not found")
 	}
 
 	return host.Status.PoweredOn, nil
@@ -417,6 +417,7 @@ func (r *RemediationManager) DeleteNode(ctx context.Context, clusterClient v1.Co
 	return nil
 }
 
+// GetClusterClient returns the client for interacting with the target cluster.
 func (r *RemediationManager) GetClusterClient(ctx context.Context) (v1.CoreV1Interface, error) {
 	capiMachine, err := r.GetCapiMachine(ctx)
 	if err != nil {
@@ -466,7 +467,7 @@ func (r *RemediationManager) GetNodeBackupAnnotations() (annotations, labels str
 	return
 }
 
-// RemoveNodeBackupAnnotations removed the node back annotation from the remediation resource.
+// RemoveNodeBackupAnnotations removes the node backup annotation from the remediation resource.
 func (r *RemediationManager) RemoveNodeBackupAnnotations() {
 	rem := r.Metal3Remediation
 	if rem.Annotations == nil {
@@ -476,6 +477,7 @@ func (r *RemediationManager) RemoveNodeBackupAnnotations() {
 	delete(rem.Annotations, nodeLabelsBackupAnnotation)
 }
 
+// getPowerOffAnnotationKey returns the key of the power off annotation.
 func (r *RemediationManager) getPowerOffAnnotationKey() string {
 	return fmt.Sprintf(powerOffAnnotation, r.Metal3Remediation.UID)
 }

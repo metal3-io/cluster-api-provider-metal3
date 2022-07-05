@@ -65,22 +65,22 @@ func metal3remediation() {
 		},
 		Status: infrav1.Metal3RemediationStatus{},
 	}
-	Expect(bootstrapClient.Create(ctx, m3Remediation)).To(Succeed(), "should create Metal3Remediation")
+	Expect(bootstrapClient.Create(ctx, m3Remediation)).To(Succeed(), "should create Metal3Remediation CR")
 
-	By("Waiting for power off")
+	By("Waiting for VM power off")
 	waitForVmsState([]string{vmName}, shutoff, specName)
 
 	By("Waiting for node deletion")
 	waitForNodeDeletion(ctx, targetClient, workerNodeName)
 
-	By("Waiting for power on")
+	By("Waiting for VM power on")
 	waitForVmsState([]string{vmName}, running, specName)
 
 	By("Waiting for node ready")
 	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Name: workerNodeName}, corev1.ConditionTrue, specName)
 
-	By("Deleting remediation")
-	Expect(bootstrapClient.Delete(ctx, m3Remediation)).To(Succeed(), "should delete Metal3Remediation")
+	By("Deleting Metal3Remediation CR")
+	Expect(bootstrapClient.Delete(ctx, m3Remediation)).To(Succeed(), "should delete Metal3Remediation CR")
 
 	By("METAL3REMEDIATION TESTS PASSED!")
 }
