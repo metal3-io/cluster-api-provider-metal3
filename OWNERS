@@ -1,7 +1,6 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
- - hardys
  - kashifest
  - furkatgofurov7
  - Xenwar
@@ -10,6 +9,8 @@ approvers:
 reviewers:
  - namnx228
  - smoshiur1237
+ - mboukhalfa
+ - zhouhao3
 
 emeritus_approvers:
  - maelk
