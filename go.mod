@@ -53,7 +53,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/coredns/caddy v1.1.0 // indirect
-	github.com/coredns/corefile-migration v1.0.14 // indirect
+	github.com/coredns/corefile-migration v1.0.17 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/distribution v2.8.0+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect

@@ -108,8 +108,8 @@ providers:
 
 variables:
   CNI: "/tmp/calico.yaml"
-  KUBERNETES_VERSION: "v1.23.3"
-  UPGRADED_K8S_VERSION: "v1.23.5"
+  KUBERNETES_VERSION: "v1.23.5"
+  UPGRADED_K8S_VERSION: "v1.23.8"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   APIVersion: "infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}"

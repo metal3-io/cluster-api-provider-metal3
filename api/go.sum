@@ -116,7 +116,7 @@ github.com/cockroachdb/datadriven v0.0.0-20200714090401-bf6692d28da5/go.mod h1:h
 github.com/cockroachdb/errors v1.2.4/go.mod h1:rQD95gz6FARkaKkQXUksEje/d9a6wBJoCr5oaCLELYA=
 github.com/cockroachdb/logtags v0.0.0-20190617123548-eb05cc24525f/go.mod h1:i/u985jwjWRlyHXQbwatDASoW0RMlZ/3i9yJHE2xLkI=
 github.com/coredns/caddy v1.1.0/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.14/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
+github.com/coredns/corefile-migration v1.0.17/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
@@ -406,8 +406,6 @@ github.com/mattn/go-runewidth v0.0.13/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 h1:I0XW9+e1XWDxdcEniV4rQAIOPUGDq67JSCiRCgGCZLI=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041 h1:F1Htgv+9LlKXn3E6BgxV4aX9TRFL2jg0E9c1RXOSasg=
-github.com/metal3-io/ip-address-manager/api v0.0.0-20220321184016-0a0fc8752041/go.mod h1:qdidQnK6LZA0TPrlMuiGhgkIS3piBKPnYUgLPdvp6uQ=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae h1:aSwVQLVhLm6gEA6p8dTJksHUZAV8pvF7j2vKr2VJYsU=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae/go.mod h1:IgZuGEbWca+Jh3QwdkhAM5ZEKuN+c55xOTwxwwaUSUM=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
@@ -1106,13 +1104,11 @@ honnef.co/go/tools v0.0.1-2020.1.4/go.mod h1:X/FiERA/W4tHapMX5mGpAtMSVEeEUOyHaw9
 k8s.io/api v0.23.0/go.mod h1:8wmDdLBHBNxtOIytwLstXt5E9PddnZb0GaMcqsvDBpg=
 k8s.io/api v0.23.5 h1:zno3LUiMubxD/V1Zw3ijyKO3wxrhbUF1Ck+VjBvfaoA=
 k8s.io/api v0.23.5/go.mod h1:Na4XuKng8PXJ2JsploYYrivXrINeTaycCGcYgF91Xm8=
-k8s.io/apiextensions-apiserver v0.23.0/go.mod h1:xIFAEEDlAZgpVBl/1VSjGDmLoXAWRG40+GsWhKhAxY4=
 k8s.io/apiextensions-apiserver v0.23.5 h1:5SKzdXyvIJKu+zbfPc3kCbWpbxi+O+zdmAJBm26UJqI=
 k8s.io/apiextensions-apiserver v0.23.5/go.mod h1:ntcPWNXS8ZPKN+zTXuzYMeg731CP0heCTl6gYBxLcuQ=
 k8s.io/apimachinery v0.23.0/go.mod h1:fFCTTBKvKcwTPFzjlcxp91uPFZr+JA0FubU4fLzzFYc=
 k8s.io/apimachinery v0.23.5 h1:Va7dwhp8wgkUPWsEXk6XglXWU4IKYLKNlv8VkX7SDM0=
 k8s.io/apimachinery v0.23.5/go.mod h1:BEuFMMBaIbcOqVIJqNZJXGFTP4W6AycEpb5+m/97hrM=
-k8s.io/apiserver v0.23.0/go.mod h1:Cec35u/9zAepDPPFyT+UMrgqOCjgJ5qtfVJDxjZYmt4=
 k8s.io/apiserver v0.23.5/go.mod h1:7wvMtGJ42VRxzgVI7jkbKvMbuCbVbgsWFT7RyXiRNTw=
 k8s.io/cli-runtime v0.23.0/go.mod h1:B5N3YH0KP1iKr6gEuJ/RRmGjO0mJQ/f/JrsmEiPQAlU=
 k8s.io/client-go v0.23.0/go.mod h1:hrDnpnK1mSr65lHHcUuIZIXDgEbzc7/683c6hyG4jTA=
@@ -1143,11 +1139,9 @@ k8s.io/utils v0.0.0-20211116205334-6203023598ed/go.mod h1:jPW/WVKK9YHAvNhRxK0md/
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
-sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.25/go.mod h1:Mlj9PNLmG9bZ6BHFwFKDo5afkpWyUISkb9Me0GnK66I=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30/go.mod h1:fEO7lRTdivWO2qYVCVG7dEADOMo/MLDCVr8So2g88Uw=
 sigs.k8s.io/cluster-api v1.1.4 h1:mD44GELeiMfQKxyBmsxdYn/FmNAIkFWr2auM++qxx1A=
 sigs.k8s.io/cluster-api v1.1.4/go.mod h1:luiK6hLylbm4Kc7dkRw6KPAvNum9sAqpz5DfkdCaSW8=
-sigs.k8s.io/controller-runtime v0.11.1/go.mod h1:KKwLiTooNGu+JmLZGn9Sl3Gjmfj66eMbCQznLP5zcqA=
 sigs.k8s.io/controller-runtime v0.11.2 h1:H5GTxQl0Mc9UjRJhORusqfJCIjBO8UtUxGggCwL1rLA=
 sigs.k8s.io/controller-runtime v0.11.2/go.mod h1:P6QCzrEjLaZGqHsfd+os7JQ+WFZhvB8MRFsn4dWF7O4=
 sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 h1:fD1pz4yfdADVNfFmcP2aBEtudwUQ1AlLnRBALr33v3s=
@@ -1158,7 +1152,6 @@ sigs.k8s.io/kustomize/kustomize/v4 v4.4.1/go.mod h1:qOKJMMz2mBP+vcS7vK+mNz4HBLja
 sigs.k8s.io/kustomize/kyaml v0.13.0/go.mod h1:FTJxEZ86ScK184NpGSAQcfEqee0nul8oLCK30D47m4E=
 sigs.k8s.io/structured-merge-diff/v4 v4.0.2/go.mod h1:bJZC9H9iH24zzfZ/41RGcq60oK1F7G282QMXDPYydCw=
 sigs.k8s.io/structured-merge-diff/v4 v4.1.2/go.mod h1:j/nl6xW8vLS49O8YvXW1ocPhZawJtm+Yrr7PPRQ0Vg4=
-sigs.k8s.io/structured-merge-diff/v4 v4.2.0/go.mod h1:j/nl6xW8vLS49O8YvXW1ocPhZawJtm+Yrr7PPRQ0Vg4=
 sigs.k8s.io/structured-merge-diff/v4 v4.2.1 h1:bKCqE9GvQ5tiVHn5rfn1r+yao3aLQEaLzkkmAkf+A6Y=
 sigs.k8s.io/structured-merge-diff/v4 v4.2.1/go.mod h1:j/nl6xW8vLS49O8YvXW1ocPhZawJtm+Yrr7PPRQ0Vg4=
 sigs.k8s.io/yaml v1.2.0/go.mod h1:yfXDCHCao9+ENCvLSE62v9VSji2MKu5jeNfTrofGhJc=
