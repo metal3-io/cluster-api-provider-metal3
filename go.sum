@@ -139,7 +139,6 @@ github.com/cockroachdb/errors v1.2.4/go.mod h1:rQD95gz6FARkaKkQXUksEje/d9a6wBJoC
 github.com/cockroachdb/logtags v0.0.0-20190617123548-eb05cc24525f/go.mod h1:i/u985jwjWRlyHXQbwatDASoW0RMlZ/3i9yJHE2xLkI=
 github.com/coredns/caddy v1.1.0 h1:ezvsPrT/tA/7pYDBZxu0cT0VmWk75AfIaf6GSYCNMf0=
 github.com/coredns/caddy v1.1.0/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.14/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
 github.com/coredns/corefile-migration v1.0.17 h1:tNwh8+4WOANV6NjSljwgW7qViJfhvPUt1kosj4rR8yg=
 github.com/coredns/corefile-migration v1.0.17/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
@@ -1243,10 +1242,10 @@ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30/go.mod h1:fEO7lRTdivWO2qYVCVG7dEADOMo/MLDCVr8So2g88Uw=
-sigs.k8s.io/cluster-api v1.1.4 h1:mD44GELeiMfQKxyBmsxdYn/FmNAIkFWr2auM++qxx1A=
-sigs.k8s.io/cluster-api v1.1.4/go.mod h1:luiK6hLylbm4Kc7dkRw6KPAvNum9sAqpz5DfkdCaSW8=
-sigs.k8s.io/cluster-api/test v1.1.4 h1:QJSVvAeGtBSf4ImRiyPe1cTZJAGC7QGHZckEfCjLGco=
-sigs.k8s.io/cluster-api/test v1.1.4/go.mod h1:10gpXFNXUuYHoFfmGR98KfsJHuTQIWjRkiU8ggmXbrc=
+sigs.k8s.io/cluster-api v1.1.5 h1:4gV3mg1mlwrm3bFWeXADfL9ILRyufjR47KpwBL3PT6Y=
+sigs.k8s.io/cluster-api v1.1.5/go.mod h1:WBPgw1yJdvybx/U3Ib49T9Q4JurairgnA/s0afxuE/w=
+sigs.k8s.io/cluster-api/test v1.1.5 h1:jukMEA50R3V6G7VcJMR7dMZJPd3Tuf0Orc/6CKuS9Ek=
+sigs.k8s.io/cluster-api/test v1.1.5/go.mod h1:NXFioUFKruk/PgpUt4QrprV9bN1rVUcm7OWao9dfesg=
 sigs.k8s.io/controller-runtime v0.11.2 h1:H5GTxQl0Mc9UjRJhORusqfJCIjBO8UtUxGggCwL1rLA=
 sigs.k8s.io/controller-runtime v0.11.2/go.mod h1:P6QCzrEjLaZGqHsfd+os7JQ+WFZhvB8MRFsn4dWF7O4=
 sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 h1:fD1pz4yfdADVNfFmcP2aBEtudwUQ1AlLnRBALr33v3s=
