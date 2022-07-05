@@ -1073,4 +1073,4 @@ secret through the Metal3DataTemplate object.
 You can find CR examples in the
 [Metal3-io dev env project](https://github.com/metal3-io/metal3-dev-env),
 in the [template
-folder](https://github.com/metal3-io/metal3-dev-env/tree/main/vm-setup/roles/v1aX_integration_test/templates).
+folder](https://github.com/metal3-io/metal3-dev-env/tree/main/tests/roles/run_tests/templates).
