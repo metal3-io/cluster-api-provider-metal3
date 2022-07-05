@@ -221,13 +221,13 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 					remediationMgr.RemoveNodeBackupAnnotations()
 					remediationMgr.UnsetFinalizer()
 
-					r.Log.Info("Node restored, remediation done, CR should be deleted soonish")
+					r.Log.Info("Node restored, remediation done, CR should be deleted soon")
 					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 				} else if isNodeForbidden {
 					// we don't have a node, just remove finalizer
 					remediationMgr.UnsetFinalizer()
 
-					r.Log.Info("Skipping node restore, remediation done, CR should be deleted soonish")
+					r.Log.Info("Skipping node restore, remediation done, CR should be deleted soon")
 					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 				}
 			}
@@ -339,7 +339,7 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 			in corruption or other issues for applications with singleton requirement. After the host is powered
 			off we know for sure that it is safe to re-assign that workload to other nodes.
 		*/
-		modified := r.backupNode(ctx, remediationMgr, node)
+		modified := r.backupNode(remediationMgr, node)
 		if modified {
 			r.Log.Info("Backing up node")
 			// save annotations before deleting node
@@ -362,7 +362,7 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 }
 
 // Returns whether annotations or labels were set / updated.
-func (r *Metal3RemediationReconciler) backupNode(ctx context.Context, remediationMgr baremetal.RemediationManagerInterface,
+func (r *Metal3RemediationReconciler) backupNode(remediationMgr baremetal.RemediationManagerInterface,
 	node *corev1.Node) bool {
 	marshaledAnnotations, err := marshal(node.Annotations)
 	if err != nil {
