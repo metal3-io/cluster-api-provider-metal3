@@ -119,21 +119,21 @@ To trigger e2e test on a PR, use the following phrases:
 
 On main branch:
 
-- **/test-v1b1-ubuntu-e2e** runs v1b1 e2e tests on Ubuntu
-- **/test-v1b1-centos-e2e** runs v1b1 e2e tests on CentOS
+- **/test-ubuntu-e2e-main** runs e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-e2e-main** runs e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
 
 Or use parallel for faster tests. Note that these tests run in multiple VMs by creating an independent VM for each test spec:
 
-- **/test-v1b1-ubuntu-e2e-parallel** runs v1b1 e2e tests on Ubuntu
-- **/test-v1b1-centos-e2e-parallel** runs v1b1 e2e tests on CentOS
+- **/test-ubuntu-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on CentOS
 
 Release-0.5 branch:
 
-- **/test-v1a5-ubuntu-e2e** runs v1a5 e2e tests on Ubuntu
-- **/test-v1a5-centos-e2e** runs v1a5 e2e tests on CentOS
+- **/test-ubuntu-e2e-release-0-5** runs e2e tests with CAPM3 API version v1alpha5 and branch release-0.5 on Ubuntu
+- **/test-centos-e2e-release-0-5** runs e2e tests with CAPM3 API version v1alpha5 and branch release-0.5 on CentOS
 
 Upgrade tests:
 
-- **/test-v1b1-upgrade-e2e** runs e2e upgrade tests from v1a5 to v1b1 on Ubuntu
+- **/test-upgrade-e2e-main** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
 
 More info about e2e test can be found [here](docs/e2e-test.md)
