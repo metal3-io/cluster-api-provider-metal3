@@ -22,15 +22,15 @@ require (
 	k8s.io/client-go v0.23.5
 	k8s.io/klog/v2 v2.30.0
 	k8s.io/utils v0.0.0-20211116205334-6203023598ed
-	sigs.k8s.io/cluster-api v1.1.4
-	sigs.k8s.io/cluster-api/test v1.1.4
+	sigs.k8s.io/cluster-api v1.1.5
+	sigs.k8s.io/cluster-api/test v1.1.5
 	sigs.k8s.io/controller-runtime v0.11.2
 	sigs.k8s.io/yaml v1.3.0
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.4
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.1.5
 
 replace github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0-20220209171559-d3bcdd79e511
 
@@ -53,9 +53,9 @@ require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/coredns/caddy v1.1.0 // indirect
-	github.com/coredns/corefile-migration v1.0.14 // indirect
+	github.com/coredns/corefile-migration v1.0.17 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/distribution v2.8.0+incompatible // indirect
+	github.com/docker/distribution v2.8.1+incompatible // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46 // indirect
