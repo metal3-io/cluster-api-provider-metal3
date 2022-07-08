@@ -73,6 +73,16 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 	}
 	m.EXPECT().OnlineStatus(bmh).Return(true)
 
+	node := &corev1.Node{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{"foo": "bar"},
+			Labels:      map[string]string{"answer": "42"},
+		},
+		Spec:   corev1.NodeSpec{},
+		Status: corev1.NodeStatus{},
+	}
+
 	expectGetNode := func() {
 		m.EXPECT().GetClusterClient(context.TODO())
 		if tc.IsNodeForbidden {
@@ -80,7 +90,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 		} else if tc.IsNodeDeleted {
 			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(nil, &apierrors.StatusError{ErrStatus: metav1.Status{Reason: metav1.StatusReasonNotFound}})
 		} else {
-			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(&corev1.Node{}, nil)
+			m.EXPECT().GetNode(context.TODO(), gomock.Any()).Return(node, nil)
 		}
 	}
 
@@ -114,7 +124,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 		}
 
 		if !tc.IsNodeForbidden && !tc.IsNodeDeleted {
-			m.EXPECT().SetNodeBackupAnnotations(gomock.Any(), gomock.Any()).Return(!tc.IsNodeBackedUp)
+			m.EXPECT().SetNodeBackupAnnotations("{\"foo\":\"bar\"}", "{\"answer\":\"42\"}").Return(!tc.IsNodeBackedUp)
 			if !tc.IsNodeBackedUp {
 				return m
 			}
@@ -142,7 +152,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 		m.EXPECT().HasFinalizer().Return(tc.IsFinalizerSet)
 		if tc.IsFinalizerSet {
 			if !tc.IsNodeDeleted {
-				m.EXPECT().GetNodeBackupAnnotations().Return("{\"foo\":\"bar\"}", "")
+				m.EXPECT().GetNodeBackupAnnotations().Return("{\"foo\":\"bar\"}", "{\"answer\":\"42\"}")
 				m.EXPECT().UpdateNode(context.TODO(), gomock.Any(), gomock.Any())
 				m.EXPECT().RemoveNodeBackupAnnotations()
 				m.EXPECT().UnsetFinalizer()
@@ -169,6 +179,12 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 			m.EXPECT().SetUnhealthyAnnotation(context.TODO())
 			m.EXPECT().SetRemediationPhase(infrav1.PhaseDeleting)
 		}
+
+	case infrav1.PhaseDeleting:
+		expectGetNode()
+
+	case infrav1.PhaseFailed:
+		expectGetNode()
 	}
 	return m
 }
@@ -286,6 +302,17 @@ var _ = Describe("Metal3Remediation controller", func() {
 					IsNodeDeleted:       false,
 					IsTimedOut:          false,
 				}),
+				Entry("Should update phase when node is deleted", reconcileNormalRemediationTestCase{
+					ExpectError:         false,
+					ExpectRequeue:       true,
+					RemediationPhase:    infrav1.PhaseRunning,
+					IsFinalizerSet:      true,
+					IsPowerOffRequested: true,
+					IsPoweredOn:         false,
+					IsNodeBackedUp:      true,
+					IsNodeDeleted:       true,
+					IsTimedOut:          false,
+				}),
 				Entry("Should request power on, and then requeue", reconcileNormalRemediationTestCase{
 					ExpectError:         false,
 					ExpectRequeue:       true,
@@ -376,6 +403,16 @@ var _ = Describe("Metal3Remediation controller", func() {
 					IsNodeDeleted:       true,
 					IsTimedOut:          true,
 					IsRetryLimitReached: true,
+				}),
+				Entry("Should not requeue for Phase Deleting", reconcileNormalRemediationTestCase{
+					ExpectError:      false,
+					ExpectRequeue:    false,
+					RemediationPhase: infrav1.PhaseDeleting,
+				}),
+				Entry("Should not requeue for Phase Failed", reconcileNormalRemediationTestCase{
+					ExpectError:      false,
+					ExpectRequeue:    false,
+					RemediationPhase: infrav1.PhaseFailed,
 				}),
 			)
 		})
