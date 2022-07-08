@@ -49,7 +49,7 @@ func liveIsoTest() {
 		Eventually(func(g Gomega) {
 			g.Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bmhs[0].Name}, &isoBmh)).To(Succeed())
 			g.Expect(isoBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioned))
-		}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(Succeed())
 
 		vmName := bmhToVMName(isoBmh)
 		serialLogFile := fmt.Sprintf("/var/log/libvirt/qemu/%s-serial0.log", vmName)
