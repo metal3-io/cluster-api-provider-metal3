@@ -24,12 +24,14 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/client-go/tools/cache"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/client-go/tools/cache"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -38,46 +40,64 @@ import (
 )
 
 const (
-	rebootAnnotation = "reboot.metal3.io"
+	powerOffAnnotation              = "reboot.metal3.io/metal3-remediation-%s"
+	nodeAnnotationsBackupAnnotation = "remediation.metal3.io/node-annotations-backup"
+	nodeLabelsBackupAnnotation      = "remediation.metal3.io/node-labels-backup"
 )
 
 // RemediationManagerInterface is an interface for a RemediationManager.
 type RemediationManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
+	HasFinalizer() bool
 	TimeToRemediate(timeout time.Duration) (bool, time.Duration)
-	SetRebootAnnotation(ctx context.Context) error
+	SetPowerOffAnnotation(ctx context.Context) error
+	RemovePowerOffAnnotation(ctx context.Context) error
+	IsPowerOffRequested(ctx context.Context) (bool, error)
+	IsPoweredOn(ctx context.Context) (bool, error)
 	SetUnhealthyAnnotation(ctx context.Context) error
 	GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error)
 	OnlineStatus(host *bmov1alpha1.BareMetalHost) bool
 	GetRemediationType() infrav1.RemediationType
 	RetryLimitIsSet() bool
+	HasReachRetryLimit() bool
 	SetRemediationPhase(phase string)
 	GetRemediationPhase() string
 	GetLastRemediatedTime() *metav1.Time
 	SetLastRemediationTime(remediationTime *metav1.Time)
-	HasReachRetryLimit() bool
 	GetTimeout() *metav1.Duration
 	IncreaseRetryCount()
 	SetOwnerRemediatedConditionNew(ctx context.Context) error
 	GetCapiMachine(ctx context.Context) (*clusterv1.Machine, error)
+	GetNode(ctx context.Context, clusterClient v1.CoreV1Interface) (*corev1.Node, error)
+	UpdateNode(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error
+	DeleteNode(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error
+	GetClusterClient(ctx context.Context) (v1.CoreV1Interface, error)
+	SetNodeBackupAnnotations(annotations string, labels string) bool
+	GetNodeBackupAnnotations() (annotations, labels string)
+	RemoveNodeBackupAnnotations()
 }
 
 // RemediationManager is responsible for performing remediation reconciliation.
 type RemediationManager struct {
 	Client            client.Client
+	CapiClientGetter  ClientGetter
 	Metal3Remediation *infrav1.Metal3Remediation
 	Metal3Machine     *infrav1.Metal3Machine
 	Machine           *clusterv1.Machine
 	Log               logr.Logger
 }
 
+// enforce implementation of interface.
+var _ RemediationManagerInterface = &RemediationManager{}
+
 // NewRemediationManager returns a new helper for managing a Metal3Remediation object.
-func NewRemediationManager(client client.Client,
+func NewRemediationManager(client client.Client, capiClientGetter ClientGetter,
 	metal3remediation *infrav1.Metal3Remediation, metal3Machine *infrav1.Metal3Machine, machine *clusterv1.Machine,
 	remediationLog logr.Logger) (*RemediationManager, error) {
 	return &RemediationManager{
 		Client:            client,
+		CapiClientGetter:  capiClientGetter,
 		Metal3Remediation: metal3remediation,
 		Metal3Machine:     metal3Machine,
 		Machine:           machine,
@@ -85,10 +105,10 @@ func NewRemediationManager(client client.Client,
 	}, nil
 }
 
-// SetFinalizer sets finalizer.
+// SetFinalizer sets finalizer. Return if it was set.
 func (r *RemediationManager) SetFinalizer() {
 	// If the Metal3Remediation doesn't have finalizer, add it.
-	if !Contains(r.Metal3Remediation.Finalizers, infrav1.RemediationFinalizer) {
+	if !r.HasFinalizer() {
 		r.Metal3Remediation.Finalizers = append(r.Metal3Remediation.Finalizers,
 			infrav1.RemediationFinalizer,
 		)
@@ -101,6 +121,11 @@ func (r *RemediationManager) UnsetFinalizer() {
 	r.Metal3Remediation.Finalizers = Filter(r.Metal3Remediation.Finalizers,
 		infrav1.RemediationFinalizer,
 	)
+}
+
+// HasFinalizer returns if finalizer is set.
+func (r *RemediationManager) HasFinalizer() bool {
+	return Contains(r.Metal3Remediation.Finalizers, infrav1.RemediationFinalizer)
 }
 
 // TimeToRemediate checks if it is time to execute a next remediation step
@@ -122,17 +147,17 @@ func (r *RemediationManager) TimeToRemediate(timeout time.Duration) (bool, time.
 	return false, nextRemediation
 }
 
-// SetRebootAnnotation sets reboot annotation on unhealthy host.
-func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
+// SetPowerOffAnnotation sets poweroff annotation on unhealthy host.
+func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return err
 	}
 	if host == nil {
-		return errors.New("Unable to set an Reboot Annotation, Host not found")
+		return errors.New("Unable to set a PowerOff Annotation, Host not found")
 	}
 
-	r.Log.Info("Adding Reboot annotation to host", "host", host.Name)
+	r.Log.Info("Adding PowerOff annotation to host", "host", host.Name)
 	rebootMode := bmov1alpha1.RebootAnnotationArguments{}
 	rebootMode.Mode = bmov1alpha1.RebootModeHard
 	marshalledMode, err := json.Marshal(rebootMode)
@@ -141,11 +166,58 @@ func (r *RemediationManager) SetRebootAnnotation(ctx context.Context) error {
 		return err
 	}
 
-	host.Annotations[rebootAnnotation] = string(marshalledMode)
+	if host.Annotations == nil {
+		host.Annotations = make(map[string]string)
+	}
+	host.Annotations[r.getPowerOffAnnotationKey()] = string(marshalledMode)
 	return helper.Patch(ctx, host)
 }
 
-// SetUnhealthyAnnotation sets UnhealthyAnnotation annotation on unhealthy host.
+// RemovePowerOffAnnotation removes poweroff annotation from unhealthy host.
+func (r *RemediationManager) RemovePowerOffAnnotation(ctx context.Context) error {
+	host, helper, err := r.GetUnhealthyHost(ctx)
+	if err != nil {
+		return err
+	}
+	if host == nil {
+		return errors.New("Unable to remove PowerOff Annotation, Host not found")
+	}
+
+	r.Log.Info("Removing PowerOff annotation from host", "host name", host.Name)
+	delete(host.Annotations, r.getPowerOffAnnotationKey())
+	return helper.Patch(ctx, host)
+}
+
+// IsPowerOffRequested returns true if poweroff annotation is set.
+func (r *RemediationManager) IsPowerOffRequested(ctx context.Context) (bool, error) {
+	host, _, err := r.GetUnhealthyHost(ctx)
+	if err != nil {
+		return false, err
+	}
+	if host == nil {
+		return false, errors.New("Unable to check PowerOff Annotation, Host not found")
+	}
+
+	if _, ok := host.Annotations[r.getPowerOffAnnotationKey()]; ok {
+		return true, nil
+	}
+	return false, nil
+}
+
+// IsPoweredOn returns true if the host is powered on.
+func (r *RemediationManager) IsPoweredOn(ctx context.Context) (bool, error) {
+	host, _, err := r.GetUnhealthyHost(ctx)
+	if err != nil {
+		return false, err
+	}
+	if host == nil {
+		return false, errors.New("Unable to check power status, Host not found")
+	}
+
+	return host.Status.PoweredOn, nil
+}
+
+// SetUnhealthyAnnotation sets capm3.UnhealthyAnnotation on unhealthy host.
 func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
@@ -297,4 +369,115 @@ func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*clusterv1.Mac
 		return nil, errors.Wrapf(err, "metal3Remediation's owner Machine could not be retrieved")
 	}
 	return capiMachine, nil
+}
+
+// GetNode returns the Node associated with the machine in the current context.
+func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV1Interface) (*corev1.Node, error) {
+	capiMachine, err := r.GetCapiMachine(ctx)
+	if err != nil {
+		r.Log.Error(err, "metal3Remediation's node could not be retrieved")
+		return nil, errors.Wrapf(err, "metal3Remediation's node could not be retrieved")
+	}
+	if capiMachine.Status.NodeRef == nil {
+		r.Log.Error(nil, "metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
+		return nil, errors.Errorf("metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
+	}
+
+	node, err := clusterClient.Nodes().Get(ctx, capiMachine.Status.NodeRef.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil, nil
+	} else if err != nil {
+		r.Log.Error(err, "Could not get cluster node")
+		return nil, errors.Wrapf(err, "Could not get cluster node")
+	}
+	return node, nil
+}
+
+// UpdateNode updates the given node.
+func (r *RemediationManager) UpdateNode(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error {
+	_, err := clusterClient.Nodes().Update(ctx, node, metav1.UpdateOptions{})
+	if err != nil {
+		r.Log.Error(err, "Could not update cluster node")
+		return errors.Wrapf(err, "Could not update cluster node")
+	}
+	return nil
+}
+
+// DeleteNode deletes the given node.
+func (r *RemediationManager) DeleteNode(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error {
+	if !node.DeletionTimestamp.IsZero() {
+		return nil
+	}
+
+	err := clusterClient.Nodes().Delete(ctx, node.Name, metav1.DeleteOptions{})
+	if err != nil {
+		r.Log.Error(err, "Could not delete cluster node")
+		return errors.Wrapf(err, "Could not delete cluster node")
+	}
+	return nil
+}
+
+// GetClusterClient returns the client for interacting with the target cluster.
+func (r *RemediationManager) GetClusterClient(ctx context.Context) (v1.CoreV1Interface, error) {
+	capiMachine, err := r.GetCapiMachine(ctx)
+	if err != nil {
+		r.Log.Error(err, "metal3Remediation's node could not be retrieved")
+		return nil, errors.Wrapf(err, "metal3Remediation's node could not be retrieved")
+	}
+
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
+	if err != nil {
+		r.Log.Error(err, "Machine is missing cluster label or cluster does not exist")
+		return nil, errors.Wrapf(err, "Machine is missing cluster label or cluster does not exist")
+	}
+
+	clusterClient, err := r.CapiClientGetter(ctx, r.Client, cluster)
+	if err != nil {
+		r.Log.Error(err, "Could not get cluster client")
+		return nil, errors.Wrapf(err, "Could not get cluster client")
+	}
+
+	return clusterClient, nil
+}
+
+// SetNodeBackupAnnotations sets the given node annotations and labels as remediation annotations.
+// Returns whether annotations were set or modified, or not.
+func (r *RemediationManager) SetNodeBackupAnnotations(annotations string, labels string) bool {
+	rem := r.Metal3Remediation
+	if rem.Annotations == nil {
+		rem.Annotations = make(map[string]string)
+	}
+	if rem.Annotations[nodeAnnotationsBackupAnnotation] != annotations ||
+		rem.Annotations[nodeLabelsBackupAnnotation] != labels {
+		rem.Annotations[nodeAnnotationsBackupAnnotation] = annotations
+		rem.Annotations[nodeLabelsBackupAnnotation] = labels
+		return true
+	}
+	return false
+}
+
+// GetNodeBackupAnnotations gets the stringified annotations and labels from the remediation annotations.
+func (r *RemediationManager) GetNodeBackupAnnotations() (annotations, labels string) {
+	rem := r.Metal3Remediation
+	if rem.Annotations == nil {
+		return "", ""
+	}
+	annotations = rem.Annotations[nodeAnnotationsBackupAnnotation]
+	labels = rem.Annotations[nodeLabelsBackupAnnotation]
+	return
+}
+
+// RemoveNodeBackupAnnotations removes the node backup annotation from the remediation resource.
+func (r *RemediationManager) RemoveNodeBackupAnnotations() {
+	rem := r.Metal3Remediation
+	if rem.Annotations == nil {
+		return
+	}
+	delete(rem.Annotations, nodeAnnotationsBackupAnnotation)
+	delete(rem.Annotations, nodeLabelsBackupAnnotation)
+}
+
+// getPowerOffAnnotationKey returns the key of the power off annotation.
+func (r *RemediationManager) getPowerOffAnnotationKey() string {
+	return fmt.Sprintf(powerOffAnnotation, r.Metal3Remediation.UID)
 }
