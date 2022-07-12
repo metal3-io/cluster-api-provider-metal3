@@ -157,7 +157,7 @@ GINKGO_SKIP ?=
 ifeq ($(GINKGO_FOCUS),upgrade)
 GINKGO_FOCUS := upgrade
 else
-GINKGO_SKIP := upgrade
+GINKGO_SKIP := upgrade live-iso
 endif
 
 ifneq ($(strip $(GINKGO_SKIP)),)
