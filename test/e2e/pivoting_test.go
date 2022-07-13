@@ -92,6 +92,7 @@ func pivoting() {
 	}, "5s", "100ms").Should(BeNil(), "Failed to assert target API server stability")
 
 	By("Moving the cluster to self hosted")
+	Logf(namespace)
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(artifactFolder, "clusters", clusterName+"-bootstrap"),
 		ClusterctlConfigPath: clusterctlConfigPath,
