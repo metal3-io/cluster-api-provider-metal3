@@ -251,7 +251,10 @@ func nodeReuse(clusterClient client.Client) {
 		}
 		time.Sleep(30 * time.Second)
 	}
-
+	// avoid this issue since I found that a node was not untainted https://jenkins.nordix.org/job/metal3_keep_capm3_main_e2e_test_centos/5/consoleFull
+	By("sleep 5 min")
+	time.Sleep(5 * 60 * time.Second)
+	
 	By("Untaint all CP nodes")
 	// The rest of CP nodes may take time to be untaintable
 	// We have untainted the 2 first CPs
