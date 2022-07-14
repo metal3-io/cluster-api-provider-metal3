@@ -27,28 +27,46 @@ func liveIsoTest() {
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
-	It("Should update the bmh with live iso", func() {
+	It("Should update the BMH with live ISO", func() {
 		bootstrapClient := bootstrapClusterProxy.GetClient()
+
+		By("Waiting for all BMHs to be in Available state")
+		Eventually(
+			func(g Gomega) {
+				bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+				Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
+				filtered := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
+				g.Expect(len(filtered)).To(Equal(len(bmhs)))
+				Logf("One or more BMHs are not available yet")
+			}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
 
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
 		Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
+		var isoBmh bmov1alpha1.BareMetalHost
+		for _, bmh := range bmhs {
+			Logf("Checking BMH %s", bmh.Name)
+			if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable {
+				isoBmh = bmh
+				Logf("BMH %s is in %s state", bmh.Name, bmh.Status.Provisioning.State)
+				break
+			}
+		}
 
-		isoBmh := bmhs[0]
-		Expect(isoBmh).ToNot(BeNil())
-
+		isoBmh.Spec.Online = true
 		isoBmh.Spec.Image = &bmov1alpha1.Image{
 			URL:          liveISOImageURL,
 			Checksum:     "",
 			ChecksumType: "",
 			DiskFormat:   pointer.StringPtr("live-iso"),
 		}
-
 		Expect(bootstrapClient.Update(ctx, &isoBmh)).NotTo(HaveOccurred())
+		isoBmhName := isoBmh.Name
 
-		By("waiting for live ISO image booted host to be in provisioned state")
+		By("Waiting for live ISO image booted host to be in provisioned state")
 		Eventually(func(g Gomega) {
-			g.Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: bmhs[0].Name}, &isoBmh)).To(Succeed())
-			g.Expect(isoBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioned))
+			g.Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: isoBmhName}, &isoBmh)).To(Succeed())
+			g.Expect(isoBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioned), fmt.Sprintf("BMH %s is not in provisioned state", isoBmh.Name))
+			Logf("BMH %s is in %s state", isoBmh.Name, isoBmh.Status.Provisioning.State)
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(Succeed())
 
 		vmName := bmhToVMName(isoBmh)
@@ -65,6 +83,31 @@ func liveIsoTest() {
 	})
 
 	AfterEach(func() {
-		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		By("Deprovisioning live ISO image booted BMH")
+
+		bootstrapClient := bootstrapClusterProxy.GetClient()
+
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		Expect(err).NotTo(HaveOccurred(), "Error getting all BMHs")
+		bmhsLen := len(bmhs)
+
+		for _, bmh := range bmhs {
+			Logf("Checking BMH %s", bmh.Name)
+			if bmh.Status.Provisioning.State == bmov1alpha1.StateProvisioned {
+				Logf("live ISO image booted BMH found %s", bmh.Name)
+				bmh.Spec.Online = false
+				bmh.Spec.Image = nil
+				Expect(bootstrapClient.Update(ctx, &bmh)).NotTo(HaveOccurred())
+			}
+		}
+		By("Waiting for deprovisioned live ISO image booted BMH to be available")
+		Eventually(
+			func(g Gomega) {
+				bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+				Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
+				filtered := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
+				g.Expect(len(filtered)).To(Equal(bmhsLen))
+			}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
+		By("live ISO image booted BMH deprovisioned successfully")
 	})
 }
