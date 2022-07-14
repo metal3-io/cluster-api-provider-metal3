@@ -82,6 +82,12 @@ func metal3remediation() {
 	By("Deleting Metal3Remediation CR")
 	Expect(bootstrapClient.Delete(ctx, m3Remediation)).To(Succeed(), "should delete Metal3Remediation CR")
 
+	By("Make sure Metal3Remediation CR was actually deleted (finalizer is removed)")
+	Eventually(func() bool {
+		err = bootstrapClient.Get(ctx, client.ObjectKeyFromObject(m3Remediation), m3Remediation)
+		return apierrors.IsNotFound(err)
+	}, 2*time.Minute, 10*time.Second).Should(BeTrue(), "Metal3Remediation should have been deleted")
+
 	By("METAL3REMEDIATION TESTS PASSED!")
 }
 

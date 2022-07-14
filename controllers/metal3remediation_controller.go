@@ -55,6 +55,13 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Fetch the Metal3Remediation instance.
 	metal3Remediation := &infrav1.Metal3Remediation{}
+	if err := r.Client.Get(ctx, req.NamespacedName, metal3Remediation); err != nil {
+		if apierrors.IsNotFound(err) {
+			return ctrl.Result{}, nil
+		}
+		remediationLog.Error(err, "unable to get metal3Remediation")
+		return ctrl.Result{}, err
+	}
 
 	helper, err := patch.NewHelper(metal3Remediation, r.Client)
 	if err != nil {
@@ -68,19 +75,13 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		patchOpts := []patch.Option{}
 		patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 
-		err := helper.Patch(ctx, metal3Remediation, patchOpts...)
-		if err != nil {
-			remediationLog.Error(err, "failed to Patch metal3Remediation")
+		patchErr := helper.Patch(ctx, metal3Remediation, patchOpts...)
+		if patchErr != nil {
+			remediationLog.Error(patchErr, "failed to Patch metal3Remediation")
+			// trigger requeue!
+			rerr = patchErr
 		}
 	}()
-
-	if err := r.Client.Get(ctx, req.NamespacedName, metal3Remediation); err != nil {
-		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
-		}
-		remediationLog.Error(err, "unable to get metal3Remediation")
-		return ctrl.Result{}, err
-	}
 
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, metal3Remediation.ObjectMeta)
@@ -115,12 +116,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the metal3remediation")
 	}
 
-	// Handle deleted remediation
-	if !metal3Remediation.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, remediationMgr)
-	}
-
-	// Handle non-deleted remediation
+	// Handle both deleted and non-deleted remediations
 	return r.reconcileNormal(ctx, remediationMgr)
 }
 
@@ -218,10 +214,9 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 					}
 
 					// clean up
+					r.Log.Info("Remediation done, cleaning up remediation CR")
 					remediationMgr.RemoveNodeBackupAnnotations()
 					remediationMgr.UnsetFinalizer()
-
-					r.Log.Info("Node restored, remediation done, CR should be deleted soon")
 					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 				} else if isNodeForbidden {
 					// we don't have a node, just remove finalizer
@@ -236,6 +231,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			timedOut, _ := remediationMgr.TimeToRemediate(remediationMgr.GetTimeout().Duration)
 			if !timedOut {
 				// Not yet time to retry or stop remediation, requeue
+				r.Log.Info("Waiting for node to get healthy and CR being deleted")
 				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 			}
 
@@ -284,12 +280,6 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			r.Log.Error(nil, "unknown phase!", "phase", remediationMgr.GetRemediationPhase())
 		}
 	}
-	return ctrl.Result{}, nil
-}
-
-func (r *Metal3RemediationReconciler) reconcileDelete(ctx context.Context,
-	remediationMgr baremetal.RemediationManagerInterface,
-) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 

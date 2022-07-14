@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -107,25 +108,17 @@ func NewRemediationManager(client client.Client, capiClientGetter ClientGetter,
 
 // SetFinalizer sets finalizer. Return if it was set.
 func (r *RemediationManager) SetFinalizer() {
-	// If the Metal3Remediation doesn't have finalizer, add it.
-	if !r.HasFinalizer() {
-		r.Metal3Remediation.Finalizers = append(r.Metal3Remediation.Finalizers,
-			infrav1.RemediationFinalizer,
-		)
-	}
+	controllerutil.AddFinalizer(r.Metal3Remediation, infrav1.RemediationFinalizer)
 }
 
 // UnsetFinalizer unsets finalizer.
 func (r *RemediationManager) UnsetFinalizer() {
-	// Cluster is deleted so remove the finalizer.
-	r.Metal3Remediation.Finalizers = Filter(r.Metal3Remediation.Finalizers,
-		infrav1.RemediationFinalizer,
-	)
+	controllerutil.RemoveFinalizer(r.Metal3Remediation, infrav1.RemediationFinalizer)
 }
 
 // HasFinalizer returns if finalizer is set.
 func (r *RemediationManager) HasFinalizer() bool {
-	return Contains(r.Metal3Remediation.Finalizers, infrav1.RemediationFinalizer)
+	return controllerutil.ContainsFinalizer(r.Metal3Remediation, infrav1.RemediationFinalizer)
 }
 
 // TimeToRemediate checks if it is time to execute a next remediation step
