@@ -13,7 +13,7 @@ Metal3-io components are deployed :
 
 The BareMetalHost is an object from
 [baremetal-operator](https://github.com/metal3-io/baremetal-operator). Each
-CR represents a physical host with BMC credentials, hardware status etc.
+CR represents a physical host with BMC credentials, hardware, status etc.
 
 BareMetalHost exposes those different fields that are secret references:
 

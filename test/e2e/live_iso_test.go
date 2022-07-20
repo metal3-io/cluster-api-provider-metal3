@@ -29,7 +29,6 @@ func liveIsoTest() {
 	})
 	It("Should update the BMH with live ISO", func() {
 		bootstrapClient := bootstrapClusterProxy.GetClient()
-
 		By("Waiting for all BMHs to be in Available state")
 		Eventually(
 			func(g Gomega) {
@@ -95,7 +94,7 @@ func liveIsoTest() {
 			Logf("Checking BMH %s", bmh.Name)
 			if bmh.Status.Provisioning.State == bmov1alpha1.StateProvisioned {
 				Logf("live ISO image booted BMH found %s", bmh.Name)
-				bmh.Spec.Online = false
+				bmh.Spec.Online = true
 				bmh.Spec.Image = nil
 				Expect(bootstrapClient.Update(ctx, &bmh)).NotTo(HaveOccurred())
 			}
