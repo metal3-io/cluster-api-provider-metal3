@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The ```Cluster API``` includes an optional [MachineHealthCheck (MHC)](https://cluster-api.sigs.k8s.io/tasks/healthcheck.html) component that implements automated health checking capability. With ```CAPM3 Remediation Controller``` it is possible to plug in Metal3 specific remediation strategies to remediate an unhealthy nodes while relying on Cluster API MHC to determine those nodes as unhealthy.
+The ```Cluster API``` includes an optional [MachineHealthCheck (MHC)](https://cluster-api.sigs.k8s.io/tasks/automated-machine-management/healthchecking.html) component that implements automated health checking capability. With ```CAPM3 Remediation Controller``` it is possible to plug in Metal3 specific remediation strategies to remediate an unhealthy nodes while relying on Cluster API MHC to determine those nodes as unhealthy.
 
 ## CAPI MachineHealthCheck
 

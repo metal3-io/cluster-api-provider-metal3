@@ -36,8 +36,9 @@ func nodeReuse(clusterClient client.Client) {
 		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 		numberOfWorkers      = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 		numberOfAllBmh       = numberOfControlplane + numberOfWorkers
-		controlplaneTaint    = &corev1.Taint{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}
-		imageNamePrefix      string
+		controlplaneTaints   = []corev1.Taint{{Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule},
+			{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}}
+		imageNamePrefix string
 	)
 
 	const (
@@ -54,7 +55,7 @@ func nodeReuse(clusterClient client.Client) {
 
 	By("Untaint all CP nodes before scaling down machinedeployment")
 	controlplaneNodes := getControlplaneNodes(clientSet)
-	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaint)
+	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
 
 	By("Scale down MachineDeployment to 0")
 	scaleMachineDeployment(ctx, clusterClient, clusterName, namespace, 0)
@@ -205,7 +206,7 @@ func nodeReuse(clusterClient client.Client) {
 
 	By("Untaint CP nodes after upgrade of two controlplane nodes")
 	controlplaneNodes = getControlplaneNodes(clientSet)
-	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaint)
+	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
 
 	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
 	Eventually(
@@ -257,7 +258,7 @@ func nodeReuse(clusterClient client.Client) {
 	// We have untainted the 2 first CPs
 	for untaintedNodeCount := 0; untaintedNodeCount < numberOfControlplane-2; {
 		controlplaneNodes = getControlplaneNodes(clientSet)
-		untaintedNodeCount = untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaint)
+		untaintedNodeCount = untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
 		time.Sleep(10 * time.Second)
 	}
 
@@ -448,6 +449,7 @@ func getControlplaneNodes(clientSet *kubernetes.Clientset) *corev1.NodeList {
 	controlplaneListOptions = metav1.ListOptions{LabelSelector: controlplaneNodesSelector.String()}
 	controlplaneNodes, err := clientSet.CoreV1().Nodes().List(ctx, controlplaneListOptions)
 	Expect(err).To(BeNil(), "Failed to get controlplane nodes")
+	Logf("controlplaneNodes found %v", len(controlplaneNodes.Items))
 	return controlplaneNodes
 }
 
@@ -502,11 +504,11 @@ func updateBootImage(m3machineTemplateName string, clusterClient client.Client, 
 	Expect(helper.Patch(ctx, &m3machineTemplate)).To(Succeed())
 }
 
-func untaintNodes(targetClusterClient client.Client, nodes *corev1.NodeList, taint *corev1.Taint) (count int) {
+func untaintNodes(targetClusterClient client.Client, nodes *corev1.NodeList, taints []corev1.Taint) (count int) {
 	count = 0
 	for i := range nodes.Items {
 		Logf("Untainting node %v ...", nodes.Items[i].Name)
-		newNode, changed := removeTaint(&nodes.Items[i], taint)
+		newNode, changed := removeTaint(&nodes.Items[i], taints)
 		if changed {
 			patchHelper, err := patch.NewHelper(&nodes.Items[i], targetClusterClient)
 			Expect(err).To(BeNil())
@@ -517,40 +519,47 @@ func untaintNodes(targetClusterClient client.Client, nodes *corev1.NodeList, tai
 	return
 }
 
-func removeTaint(node *corev1.Node, taint *corev1.Taint) (*corev1.Node, bool) {
+func removeTaint(node *corev1.Node, taints []corev1.Taint) (*corev1.Node, bool) {
 	newNode := node.DeepCopy()
 	nodeTaints := newNode.Spec.Taints
 	if len(nodeTaints) == 0 {
 		return newNode, false
 	}
 
-	if !taintExists(nodeTaints, taint) {
+	if !taintExists(nodeTaints, taints) {
 		return newNode, false
 	}
 
-	newTaints, _ := deleteTaint(nodeTaints, taint)
+	newTaints, _ := deleteTaint(nodeTaints, taints)
 	newNode.Spec.Taints = newTaints
 	return newNode, true
 }
 
-func taintExists(taints []corev1.Taint, taintToFind *corev1.Taint) bool {
+func taintExists(taints []corev1.Taint, taintsToFind []corev1.Taint) bool {
 	for _, taint := range taints {
-		if taint.MatchTaint(taintToFind) {
-			return true
+		for _, taintToFind := range taintsToFind {
+			if taint.MatchTaint(&taintToFind) {
+				return true
+			}
 		}
 	}
 	return false
 }
 
-func deleteTaint(taints []corev1.Taint, taintToDelete *corev1.Taint) ([]corev1.Taint, bool) {
+func deleteTaint(taints []corev1.Taint, taintsToDelete []corev1.Taint) ([]corev1.Taint, bool) {
 	newTaints := []corev1.Taint{}
 	deleted := false
 	for i := range taints {
-		if taintToDelete.MatchTaint(&taints[i]) {
-			deleted = true
-			continue
+		currentTaintDeleted := false
+		for _, taintToDelete := range taintsToDelete {
+			if taintToDelete.MatchTaint(&taints[i]) {
+				deleted = true
+				currentTaintDeleted = true
+			}
 		}
-		newTaints = append(newTaints, taints[i])
+		if !currentTaintDeleted {
+			newTaints = append(newTaints, taints[i])
+		}
 	}
 	return newTaints, deleted
 }
