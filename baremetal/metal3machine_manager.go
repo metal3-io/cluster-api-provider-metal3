@@ -1881,10 +1881,8 @@ func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, 
 func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]string, providerIDLegacy, providerIDNew string) error {
 	duplicateUsageCounter := 0
 	var duplicateNodes []string
-	nodeName := strings.Split(strings.TrimPrefix(providerIDNew, "metal3://"), "/")[1]
-	if nodeName == "" {
-		nodeName = "unknown node"
-	}
+	// Check if any node has metal3://<namespace>/<bmh>/ as a beginning of providerID
+	newProviderIDMatch := providerIDNew[:strings.LastIndex(providerIDNew, "/")+1]
 	for providerID, nodes := range validNodes {
 		matchingNodes := strings.Join(nodes, ",")
 		// verify if the same providerId is not consumed twice. Example:
@@ -1893,7 +1891,7 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]strin
 		// The above two providerIDs are the same and would consume the same bmh node,
 		// the former using uuid and the latter using a name.
 		// The check below prevents such double providerID consumptions.
-		if providerID == providerIDLegacy || strings.Contains(providerID, nodeName) {
+		if providerID == providerIDLegacy || strings.Contains(providerID, newProviderIDMatch) {
 			duplicateUsageCounter++
 			duplicateNodes = append(duplicateNodes, nodes...)
 		}
