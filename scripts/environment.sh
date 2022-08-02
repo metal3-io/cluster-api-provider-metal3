@@ -48,7 +48,11 @@ else
   export EPHEMERAL_CLUSTER="minikube"
 fi
 
-export FROM_K8S_VERSION="v1.24.0"
+# Until the upgrade process starts with CAPI 0.4.x
+# CAPM 0.5.x and K8s 1.23.x it is not possible to set
+# the starting version of the target cluster (FROM_K8S_VERSION)
+# higher than 1.23.x
+export FROM_K8S_VERSION="v1.23.8"
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 export UPGRADED_K8S_VERSION="v1.24.1"
 # Can be overriden from jjbs
