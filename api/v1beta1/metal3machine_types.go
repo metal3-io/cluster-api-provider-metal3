@@ -87,7 +87,8 @@ func (s *Metal3MachineSpec) IsValid() error {
 	if s.Image.URL == "" {
 		missing = append(missing, "Image.URL")
 	}
-	if s.Image.Checksum == "" {
+	// Checksum is not required for live-iso.
+	if (s.Image.DiskFormat == nil || *s.Image.DiskFormat != "live-iso") && s.Image.Checksum == "" {
 		missing = append(missing, "Image.Checksum")
 	}
 	if len(missing) > 0 {
@@ -99,9 +100,11 @@ func (s *Metal3MachineSpec) IsValid() error {
 	if err != nil {
 		invalid = append(invalid, "Image.URL")
 	}
-	_, err = url.ParseRequestURI(s.Image.Checksum)
-	if err != nil {
-		invalid = append(invalid, "Image.Checksum")
+	if s.Image.DiskFormat == nil || *s.Image.DiskFormat != "live-iso" {
+		_, err = url.ParseRequestURI(s.Image.Checksum)
+		if err != nil {
+			invalid = append(invalid, "Image.Checksum")
+		}
 	}
 	if len(invalid) > 0 {
 		return errors.Errorf("Invalid fields from ProviderSpec: %v", invalid)

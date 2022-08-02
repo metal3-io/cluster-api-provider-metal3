@@ -27,6 +27,7 @@ import (
 )
 
 func TestSpecIsValid(t *testing.T) {
+	diskFormat := "live-iso"
 	cases := []struct {
 		Spec          Metal3MachineSpec
 		ErrorExpected bool
@@ -173,6 +174,19 @@ func TestSpecIsValid(t *testing.T) {
 			},
 			ErrorExpected: true,
 			Name:          "Invalid URL Image.Checksum",
+		},
+		{
+			Spec: Metal3MachineSpec{
+				Image: Image{
+					URL:        "http://172.22.0.1/images/rhcos.iso",
+					DiskFormat: &diskFormat,
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: false,
+			Name:          "Valid spec with live-iso diskFormat",
 		},
 	}
 
