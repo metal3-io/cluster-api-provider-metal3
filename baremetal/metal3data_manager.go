@@ -311,280 +311,86 @@ type addressFromPool struct {
 	dnsServers []ipamv1.IPAddressStr
 }
 
-// getAddressesFromPool will fetch each Metal3IPPool referenced at least once,
-// set the Ownerreference if not set, and check if the Metal3IPAddress has been
-// allocated. If not, it will requeue once all IPPools were fetched. If all have
-// been allocated it will return a map containing the IPPool name and the address,
-// prefix and gateway from that IPPool.
+// getAddressesFromPool allocates IP addresses from all IP pools referenced by a [Metal3DataTemplate].
+// It does so by creating IP claims for each referenced pool. It will check whether the claim was fulfilled
+// and return a map containing all pools and addresses. If some claims are not fulfilled yet, it will
+// return a [RequeueAfterError], indicating that some addresses were not fully allocated yet.
 func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	m3dt infrav1.Metal3DataTemplate,
 ) (map[string]addressFromPool, error) {
 	var err error
 	requeue := false
 	itemRequeue := false
-	addresses := make(map[string]addressFromPool)
-	if m3dt.Spec.MetaData != nil {
-		for _, pool := range m3dt.Spec.MetaData.IPAddressesFromPool {
-			m.Log.Info("Fetch IPAddresses from IPPool", "Pool Name", pool.Name)
-			m.Log.Info("IP Addresses", "IP Address", pool.Key)
-			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return addresses, err
-			}
-		}
-		for _, pool := range m3dt.Spec.MetaData.PrefixesFromPool {
-			m.Log.Info("Fetch Prefixes from IPPool ", "Pool Name", pool.Name)
-			m.Log.Info("Prefixes", "Prefix", pool.Key)
-			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return addresses, err
-			}
-		}
-		for _, pool := range m3dt.Spec.MetaData.GatewaysFromPool {
-			m.Log.Info("Fetch Gateways from IPPool ", "Pool Name", pool.Name)
-			m.Log.Info("Gateways", "Gateway", pool.Key)
-			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return addresses, err
-			}
-		}
-		for _, pool := range m3dt.Spec.MetaData.DNSServersFromPool {
-			m.Log.Info("Fetch DNSServers from IPPool ", "Pool Name", pool.Name)
-			m.Log.Info("DNSServers ", "DNSServer", pool.Key)
-			addresses, itemRequeue, err = m.getAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return addresses, err
-			}
+
+	poolRefs := getReferencedPools(m3dt)
+	addresses := map[string]addressFromPool{}
+	for pool, ref := range poolRefs {
+		m.Log.Info("Allocating address from IPPool", "pool name", pool)
+		addresses[pool], itemRequeue, err = m.getAddressFromM3Pool(ctx, ref)
+		requeue = requeue || itemRequeue
+		if err != nil {
+			return addresses, err
 		}
 	}
-	if m3dt.Spec.NetworkData != nil {
-		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
-			m.Log.Info("Fetch network data from IPPool for IPv4", "Pool Name", network.IPAddressFromIPPool)
-			addresses, itemRequeue, err = m.getAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return addresses, err
-			}
-			// network.IPAddressFromIPPool
-			for _, route := range network.Routes {
-				if route.Gateway.FromIPPool != nil {
-					m.Log.Info("Fetch Route Gateway from IPPool for IPv4", "Pool Name", route.Gateway.FromIPPool)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-				if route.Services.DNSFromIPPool != nil {
-					m.Log.Info("Fetch DNS from IPPool for IPv4", "Pool Name", route.Services.DNSFromIPPool)
-					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-			}
-		}
 
-		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6 {
-			m.Log.Info("Fetch network data from IPPool for IPv6", "IPPool", network.IPAddressFromIPPool)
-			addresses, itemRequeue, err = m.getAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return addresses, err
-			}
-			for _, route := range network.Routes {
-				if route.Gateway.FromIPPool != nil {
-					m.Log.Info("Fetch Route Gateway from IPPool for IPv6", "Pool Name", route.Gateway.FromIPPool)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-				if route.Services.DNSFromIPPool != nil {
-					m.Log.Info("Fetch DNS from IPPool for IPv6", "Pool Name", route.Services.DNSFromIPPool)
-					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-			}
-		}
-
-		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4DHCP {
-			for _, route := range network.Routes {
-				if route.Gateway.FromIPPool != nil {
-					m.Log.Info("Fetch Route Gateway from IPPool for IPv4DHCP", "Pool Name", route.Gateway.FromIPPool)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-				if route.Services.DNSFromIPPool != nil {
-					m.Log.Info("Fetch DNS from IPPool for IPv4DHCP", "Pool Name", route.Services.DNSFromIPPool)
-					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-			}
-		}
-
-		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6DHCP {
-			for _, route := range network.Routes {
-				if route.Gateway.FromIPPool != nil {
-					m.Log.Info("Fetch Network Gateway from IPPool for IPv6DHCP", "Pool Name", route.Gateway.FromIPPool)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-				if route.Services.DNSFromIPPool != nil {
-					m.Log.Info("Fetch DNS from IPPool for IPv6DHCP", "Pool Name", route.Services.DNSFromIPPool)
-					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-			}
-		}
-
-		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6SLAAC {
-			for _, route := range network.Routes {
-				if route.Gateway.FromIPPool != nil {
-					m.Log.Info("Fetch Gateway from IPPool for IPv6SLAAC", "Pool Name", route.Gateway.FromIPPool)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-				if route.Services.DNSFromIPPool != nil {
-					m.Log.Info("Fetch DNS from IPPool for IPv6SAAC", "Pool Name", route.Services.DNSFromIPPool)
-					m.Log.Info("DNS Entries", "DNS", route.Services.DNS)
-					addresses, itemRequeue, err = m.getAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return addresses, err
-					}
-				}
-			}
-		}
-		if m3dt.Spec.NetworkData.Services.DNSFromIPPool != nil {
-			m.Log.Info("Fetch DNS from IPPool")
-			m.Log.Info("DNS Entries", "DNS", m3dt.Spec.NetworkData.Services.DNS)
-			addresses, itemRequeue, err = m.getAddressFromPool(ctx, *m3dt.Spec.NetworkData.Services.DNSFromIPPool, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return addresses, err
-			}
-		}
-	}
 	if requeue {
 		return addresses, &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	return addresses, nil
 }
 
-// releaseAddressesFromPool removes the OwnerReference on the IPPool objects.
-func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
-	m3dt infrav1.Metal3DataTemplate,
-) error {
-	var err error
-	requeue := false
-	itemRequeue := false
-	addresses := make(map[string]bool)
+// releaseAddressesFromPool releases all addresses allocated by a [Metal3DataTemplate] by deleting the IP claims.
+func (m *DataManager) releaseAddressesFromPool(ctx context.Context, m3dt infrav1.Metal3DataTemplate) error {
+	poolRefs := getReferencedPools(m3dt)
+	for pool, ref := range poolRefs {
+		m.Log.Info("Releasing address from IPPool", "pool name", pool)
+		err := m.releaseAddressFromM3Pool(ctx, ref)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// getReferencedPools returns a map containing references to all pools mentioned by a [Metal3DataTemplate].
+func getReferencedPools(m3dt infrav1.Metal3DataTemplate) map[string]corev1.TypedLocalObjectReference {
+	addresses := map[string]corev1.TypedLocalObjectReference{}
 	if m3dt.Spec.MetaData != nil {
 		for _, pool := range m3dt.Spec.MetaData.IPAddressesFromPool {
-			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			fmt.Println(requeue)
-			if err != nil {
-				return err
-			}
+			addresses[pool.Name] = corev1.TypedLocalObjectReference{Name: pool.Name}
 		}
 		for _, pool := range m3dt.Spec.MetaData.PrefixesFromPool {
-			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return err
-			}
+			addresses[pool.Name] = corev1.TypedLocalObjectReference{Name: pool.Name}
 		}
 		for _, pool := range m3dt.Spec.MetaData.GatewaysFromPool {
-			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return err
-			}
+			addresses[pool.Name] = corev1.TypedLocalObjectReference{Name: pool.Name}
 		}
 		for _, pool := range m3dt.Spec.MetaData.DNSServersFromPool {
-			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, pool.Name, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return err
-			}
+			addresses[pool.Name] = corev1.TypedLocalObjectReference{Name: pool.Name}
 		}
 	}
 	if m3dt.Spec.NetworkData != nil {
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 {
-			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return err
-			}
-			// network.IPAddressFromIPPool
+			addresses[network.IPAddressFromIPPool] = corev1.TypedLocalObjectReference{Name: network.IPAddressFromIPPool}
+
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Gateway.FromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Gateway.FromIPPool}
 				}
 				if route.Services.DNSFromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Services.DNSFromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Services.DNSFromIPPool}
 				}
 			}
 		}
 
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6 {
-			addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, network.IPAddressFromIPPool, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return err
-			}
+			addresses[network.IPAddressFromIPPool] = corev1.TypedLocalObjectReference{Name: network.IPAddressFromIPPool}
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Gateway.FromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Gateway.FromIPPool}
 				}
 				if route.Services.DNSFromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Services.DNSFromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Services.DNSFromIPPool}
 				}
 			}
 		}
@@ -592,18 +398,10 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4DHCP {
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Gateway.FromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Gateway.FromIPPool}
 				}
 				if route.Services.DNSFromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Services.DNSFromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Services.DNSFromIPPool}
 				}
 			}
 		}
@@ -611,18 +409,10 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6DHCP {
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Gateway.FromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Gateway.FromIPPool}
 				}
 				if route.Services.DNSFromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Services.DNSFromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Services.DNSFromIPPool}
 				}
 			}
 		}
@@ -630,62 +420,35 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6SLAAC {
 			for _, route := range network.Routes {
 				if route.Gateway.FromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Gateway.FromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Gateway.FromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Gateway.FromIPPool}
 				}
 				if route.Services.DNSFromIPPool != nil {
-					addresses, itemRequeue, err = m.releaseAddressFromPool(ctx, *route.Services.DNSFromIPPool, addresses)
-					requeue = requeue || itemRequeue
-					if err != nil {
-						return err
-					}
+					addresses[*route.Services.DNSFromIPPool] = corev1.TypedLocalObjectReference{Name: *route.Services.DNSFromIPPool}
 				}
 			}
 		}
 		if m3dt.Spec.NetworkData.Services.DNSFromIPPool != nil {
-			_, itemRequeue, err = m.releaseAddressFromPool(ctx, *m3dt.Spec.NetworkData.Services.DNSFromIPPool, addresses)
-			requeue = requeue || itemRequeue
-			if err != nil {
-				return err
-			}
+			addresses[*m3dt.Spec.NetworkData.Services.DNSFromIPPool] = corev1.TypedLocalObjectReference{Name: *m3dt.Spec.NetworkData.Services.DNSFromIPPool}
 		}
 	}
-	if requeue {
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
-	}
-	return nil
+	return addresses
 }
 
-// getAddressFromPool adds an ownerReference on the referenced Metal3IPPool
-// objects. It then tries to fetch the Metal3IPAddress if it exists, and asks
-// for requeue if not ready.
-func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
-	addresses map[string]addressFromPool,
-) (map[string]addressFromPool, bool, error) {
-	if addresses == nil {
-		addresses = make(map[string]addressFromPool)
-	}
-	if entry, ok := addresses[poolName]; ok {
-		if entry.address != "" {
-			return addresses, false, nil
-		}
-	}
-	addresses[poolName] = addressFromPool{}
-
-	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolName,
+// getAddressFromM3Pool allocates an address from a metal3 IPAM pool using a IPClaim.
+// If the claim exists already, it will return ip address once the claim was fulfilled
+// with an IPAddress resource.
+func (m *DataManager) getAddressFromM3Pool(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (addressFromPool, bool, error) {
+	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name,
 		m.Data.Namespace,
 	)
 	if err != nil {
 		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			return addresses, false, err
+			return addressFromPool{}, false, err
 		}
 		// Create the claim
 		ipClaim = &ipamv1.IPClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      m.Data.Name + "-" + poolName,
+				Name:      m.Data.Name + "-" + poolRef.Name,
 				Namespace: m.Data.Namespace,
 				OwnerReferences: []metav1.OwnerReference{
 					{
@@ -700,7 +463,7 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 			},
 			Spec: ipamv1.IPClaimSpec{
 				Pool: corev1.ObjectReference{
-					Name:      poolName,
+					Name:      poolRef.Name,
 					Namespace: m.Data.Namespace,
 				},
 			},
@@ -709,7 +472,7 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		err = createObject(ctx, m.client, ipClaim)
 		if err != nil {
 			if ok := errors.As(err, &hasRequeueAfterError); !ok {
-				return addresses, false, err
+				return addressFromPool{}, false, err
 			}
 		}
 	}
@@ -717,19 +480,19 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 	if !ipClaim.DeletionTimestamp.IsZero() {
 		// This IPClaim is about to be deleted so we cannot use it. Requeue.
 		m.Log.Info("Found IPClaim with deletion timestamp, requeuing.", "IPClaim", ipClaim)
-		return addresses, true, nil
+		return addressFromPool{}, true, nil
 	}
 
 	if ipClaim.Status.ErrorMessage != nil {
 		m.Data.Status.ErrorMessage = pointer.StringPtr(fmt.Sprintf(
-			"IP Allocation for %v failed : %v", poolName, ipClaim.Status.ErrorMessage,
+			"IP Allocation for %v failed : %v", poolRef.Name, ipClaim.Status.ErrorMessage,
 		))
-		return addresses, false, errors.New(*m.Data.Status.ErrorMessage)
+		return addressFromPool{}, false, errors.New(*m.Data.Status.ErrorMessage)
 	}
 
 	// verify if allocation is there, if not requeue
 	if ipClaim.Status.Address == nil {
-		return addresses, true, nil
+		return addressFromPool{}, true, nil
 	}
 
 	// get Metal3IPAddress object
@@ -741,9 +504,9 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 
 	if err := m.client.Get(ctx, addressNamespacedName, ipAddress); err != nil {
 		if apierrors.IsNotFound(err) {
-			return addresses, true, nil
+			return addressFromPool{}, true, nil
 		}
-		return addresses, false, err
+		return addressFromPool{}, false, err
 	}
 
 	gateway := ipamv1.IPAddressStr("")
@@ -751,47 +514,32 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		gateway = *ipAddress.Spec.Gateway
 	}
 
-	addresses[poolName] = addressFromPool{
+	return addressFromPool{
 		address:    ipAddress.Spec.Address,
 		prefix:     ipAddress.Spec.Prefix,
 		gateway:    gateway,
 		dnsServers: ipAddress.Spec.DNSServers,
-	}
-
-	return addresses, false, nil
+	}, false, nil
 }
 
-// releaseAddressFromPool removes the owner reference on existing referenced
-// Metal3IPPool objects.
-func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolName string,
-	addresses map[string]bool,
-) (map[string]bool, bool, error) {
-	if addresses == nil {
-		addresses = make(map[string]bool)
-	}
-	if _, ok := addresses[poolName]; ok {
-		return addresses, false, nil
-	}
-	addresses[poolName] = false
-
-	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolName,
+// releaseAddressFromM3Pool deletes the IP claim for a referenced pool.
+func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef corev1.TypedLocalObjectReference) error {
+	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name,
 		m.Data.Namespace,
 	)
 	if err != nil {
 		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			return addresses, false, err
+			return err
 		}
-		addresses[poolName] = true
-		return addresses, false, nil
+		return nil
 	}
 
 	err = deleteObject(ctx, m.client, ipClaim)
 	if err != nil {
-		return addresses, false, err
+		return err
 	}
 
-	addresses[poolName] = true
-	return addresses, false, nil
+	return nil
 }
 
 // renderNetworkData renders the networkData into an object that will be
