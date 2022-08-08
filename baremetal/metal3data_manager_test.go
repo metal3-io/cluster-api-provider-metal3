@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 
@@ -1193,6 +1194,41 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
+			},
+			expectRequeue: true,
+		}),
+		Entry("IPClaim with deletion timestamp", testCaseGetAddressFromPool{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+			},
+			poolName: testPoolName,
+			expectedAddresses: map[string]addressFromPool{
+				testPoolName: {},
+			},
+			ipClaim: &ipamv1.IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              metal3DataName + "-" + testPoolName,
+					Namespace:         namespaceName,
+					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Minute)},
+					Finalizers:        []string{"ipclaim.ipam.metal3.io"},
+				},
+				Status: ipamv1.IPClaimStatus{
+					Address: &corev1.ObjectReference{
+						Name:      "abc-192.168.0.10",
+						Namespace: namespaceName,
+					},
+				},
+			},
+			ipAddress: &ipamv1.IPAddress{
+				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
+				Spec: ipamv1.IPAddressSpec{
+					Address: ipamv1.IPAddressStr("192.168.0.10"),
+					Prefix:  26,
+					Gateway: (*ipamv1.IPAddressStr)(pointer.StringPtr("192.168.0.1")),
+					DNSServers: []ipamv1.IPAddressStr{
+						"8.8.8.8",
+					},
+				},
 			},
 			expectRequeue: true,
 		}),
