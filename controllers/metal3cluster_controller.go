@@ -193,7 +193,7 @@ func reconcileDelete(ctx context.Context,
 
 // SetupWithManager will add watches for this controller.
 func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
-	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Cluster"))
+	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("Metal3Cluster"), mgr.GetClient(), &infrav1.Metal3Cluster{})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(
 			&infrav1.Metal3Cluster{},

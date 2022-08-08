@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.9.1
   creationTimestamp: null
   name: metal3datas.infrastructure.cluster.x-k8s.io
 spec:
@@ -85,6 +85,7 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               index:
                 description: Index stores the index value of this instance in the
                   Metal3DataTemplate.
@@ -93,26 +94,28 @@ spec:
                 description: MetaData points to the rendered MetaData secret.
                 properties:
                   name:
-                    description: Name is unique within a namespace to reference a
+                    description: name is unique within a namespace to reference a
                       secret resource.
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the secret
+                    description: namespace defines the space within which the secret
                       name must be unique.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               networkData:
                 description: NetworkData points to the rendered NetworkData secret.
                 properties:
                   name:
-                    description: Name is unique within a namespace to reference a
+                    description: name is unique within a namespace to reference a
                       secret resource.
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the secret
+                    description: namespace defines the space within which the secret
                       name must be unique.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               template:
                 description: DataTemplate is the Metal3DataTemplate this was generated
                   from.
@@ -150,6 +153,7 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               templateReference:
                 description: TemplateReference refers to the Template the Metal3MachineTemplate
                   refers to. It can be matched against the key or it may also point
@@ -237,6 +241,7 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               index:
                 description: Index stores the index value of this instance in the
                   Metal3DataTemplate.
@@ -245,26 +250,28 @@ spec:
                 description: MetaData points to the rendered MetaData secret.
                 properties:
                   name:
-                    description: Name is unique within a namespace to reference a
+                    description: name is unique within a namespace to reference a
                       secret resource.
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the secret
+                    description: namespace defines the space within which the secret
                       name must be unique.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               networkData:
                 description: NetworkData points to the rendered NetworkData secret.
                 properties:
                   name:
-                    description: Name is unique within a namespace to reference a
+                    description: name is unique within a namespace to reference a
                       secret resource.
                     type: string
                   namespace:
-                    description: Namespace defines the space within which the secret
+                    description: namespace defines the space within which the secret
                       name must be unique.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               template:
                 description: DataTemplate is the Metal3DataTemplate this was generated
                   from.
@@ -302,6 +309,7 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               templateReference:
                 description: TemplateReference refers to the Template the Metal3MachineTemplate
                   refers to. It can be matched against the key or it may also point
@@ -327,9 +335,3 @@ spec:
     storage: true
     subresources:
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

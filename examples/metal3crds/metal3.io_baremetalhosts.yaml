@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.6.2
+    controller-gen.kubebuilder.io/version: v0.9.1
   creationTimestamp: null
   name: baremetalhosts.metal3.io
 spec:
@@ -151,6 +151,7 @@ spec:
                     description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               customDeploy:
                 description: A custom deploy procedure.
                 properties:
@@ -250,6 +251,7 @@ spec:
                       name must be unique.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               networkData:
                 description: NetworkData holds the reference to the Secret containing
                   network configuration (e.g content of network_data.json which is
@@ -264,6 +266,7 @@ spec:
                       name must be unique.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
               online:
                 description: Should the server be online?
                 type: boolean
@@ -493,6 +496,7 @@ spec:
                       name must be unique.
                     type: string
                 type: object
+                x-kubernetes-map-type: atomic
             required:
             - online
             type: object
@@ -534,6 +538,7 @@ spec:
                           secret name must be unique.
                         type: string
                     type: object
+                    x-kubernetes-map-type: atomic
                   credentialsVersion:
                     type: string
                 type: object
@@ -1065,6 +1070,7 @@ spec:
                           secret name must be unique.
                         type: string
                     type: object
+                    x-kubernetes-map-type: atomic
                   credentialsVersion:
                     type: string
                 type: object

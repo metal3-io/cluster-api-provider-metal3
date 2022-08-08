@@ -39,7 +39,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
-	"k8s.io/klog/v2"
+	"k8s.io/component-base/logs"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -61,6 +62,7 @@ var (
 	healthAddr                  string
 	watchNamespace              string
 	watchFilterValue            string
+	logOptions                  = logs.NewOptions()
 )
 
 func init() {
@@ -74,13 +76,24 @@ func init() {
 }
 
 func main() {
-	klog.InitFlags(nil)
 	rand.Seed(time.Now().UnixNano())
 	initFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	ctrl.SetLogger(klogr.New())
+	if err := logOptions.ValidateAndApply(nil); err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	// The JSON log format requires the Klog format in klog, otherwise log lines
+	// are serialized twice, e.g.:
+	// { ... "msg":"controller/cluster \"msg\"=\"Starting workers\"\n"}
+	if logOptions.Config.Format == logs.JSONLogFormat {
+		ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
+	} else {
+		ctrl.SetLogger(klogr.New())
+	}
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
@@ -128,6 +141,9 @@ func main() {
 }
 
 func initFlags(fs *pflag.FlagSet) {
+	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
+	logOptions.AddFlags(fs)
+
 	flag.StringVar(
 		&metricsBindAddr,
 		"metrics-bind-addr",
