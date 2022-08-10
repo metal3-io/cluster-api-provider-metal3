@@ -48,10 +48,10 @@ else
   export EPHEMERAL_CLUSTER="minikube"
 fi
 
-# Until the upgrade process starts with CAPI 0.4.x
-# CAPM 0.5.x and K8s 1.23.x it is not possible to set
-# the starting version of the target cluster (FROM_K8S_VERSION)
-# higher than 1.23.x
+# Until the upgrade process starts with CAPI v0.4.x
+# CAPM3 v0.5.x and K8s v1.23.x it is not possible to set
+# the starting version of k8s in the target cluster (FROM_K8S_VERSION)
+# higher than v1.23.x
 export FROM_K8S_VERSION="v1.23.8"
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 export UPGRADED_K8S_VERSION="v1.24.1"
