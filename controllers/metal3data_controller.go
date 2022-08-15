@@ -55,7 +55,7 @@ type Metal3DataReconciler struct {
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
-// Reconcile handles Metal3Machine events.
+// Reconcile handles Metal3Data events.
 func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	metadataLog := r.Log.WithName(dataControllerName).WithValues("metal3-data", req.NamespacedName)
 
@@ -72,7 +72,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
-	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
+	// Always patch capm3Data exiting this function so we can persist any Metal3Data changes.
 	defer func() {
 		err := helper.Patch(ctx, capm3Metadata)
 		if err != nil {

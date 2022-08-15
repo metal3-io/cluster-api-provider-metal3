@@ -1159,6 +1159,7 @@ var _ = Describe("Metal3Data manager", func() {
 				_, err := findOwnerRefFromList(capm3IPClaim.OwnerReferences,
 					tc.m3d.TypeMeta, tc.m3d.ObjectMeta)
 				Expect(err).NotTo(HaveOccurred())
+				Expect(capm3IPClaim.Finalizers).To(ContainElement(infrav1.DataFinalizer))
 			}
 		},
 		Entry("IPClaim not found", testCaseGetAddressFromPool{
@@ -1319,14 +1320,21 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			if tc.ipClaim != nil {
 				capm3IPClaim := &ipamv1.IPClaim{}
-				poolNamespacedName := types.NamespacedName{
-					Name:      tc.m3d.Name,
-					Namespace: tc.m3d.Namespace,
+				claimNamespacedName := types.NamespacedName{
+					Name:      tc.ipClaim.Name,
+					Namespace: tc.ipClaim.Namespace,
 				}
 
-				err = dataMgr.client.Get(context.TODO(), poolNamespacedName, capm3IPClaim)
-				Expect(err).To(HaveOccurred())
-				Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				err = dataMgr.client.Get(context.TODO(), claimNamespacedName, capm3IPClaim)
+				if tc.injectDeleteErr {
+					// There was an error deleting the claim, so we expect it to still be there
+					Expect(err).To(BeNil())
+					// We expect the ownerRef to be gone
+					Expect(capm3IPClaim.OwnerReferences).To(BeEmpty())
+				} else {
+					Expect(err).To(HaveOccurred())
+					Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				}
 			}
 		},
 		Entry("IPClaim exists", testCaseReleaseAddressFromPool{
@@ -1348,7 +1356,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			poolRef: corev1.TypedLocalObjectReference{Name: "abc"},
 		}),
-		Entry("Deletion error", testCaseReleaseAddressFromPool{
+		Entry("Deletion error and ownerRef removal", testCaseReleaseAddressFromPool{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				TypeMeta: metav1.TypeMeta{
@@ -1358,7 +1366,14 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3DataName + "-" + testPoolName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{{
+						Kind:       "Metal3Data",
+						APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
+					}},
+				},
 			},
 			injectDeleteErr: true,
 			expectError:     true,
