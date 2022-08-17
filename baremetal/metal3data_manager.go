@@ -317,6 +317,11 @@ type addressFromPool struct {
 	dnsServers []ipamv1.IPAddressStr
 }
 
+type reconciledClaim struct {
+	m3Claim    *ipamv1.IPClaim
+	fetchAgain bool
+}
+
 // getAddressesFromPool allocates IP addresses from all IP pools referenced by a [Metal3DataTemplate].
 // It does so by creating IP claims for each referenced pool. It will check whether the claim was fulfilled
 // and return a map containing all pools and addresses. If some claims are not fulfilled yet, it will
@@ -329,10 +334,31 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	itemRequeue := false
 
 	poolRefs := getReferencedPools(m3dt)
+	claims := map[string]reconciledClaim{}
 	addresses := map[string]addressFromPool{}
+
 	for pool, ref := range poolRefs {
+		rc, err := m.ensureM3IPClaim(ctx, ref)
+		if err != nil {
+			return addresses, err
+		}
+		claims[pool] = rc
+	}
+
+	for pool, ref := range poolRefs {
+		rc, ok := claims[pool]
+		if !ok {
+			continue
+		}
+		if rc.fetchAgain {
+			rc.m3Claim, err = fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+ref.Name, m.Data.Namespace)
+			if err != nil {
+				// We ignore erros here. If they are persistent they will be handled during the next reconciliation.
+				continue
+			}
+		}
 		m.Log.Info("Allocating address from IPPool", "pool name", pool)
-		addresses[pool], itemRequeue, err = m.getAddressFromM3Pool(ctx, ref)
+		addresses[pool], itemRequeue, err = m.addressFromM3Claim(ctx, ref, rc.m3Claim)
 		requeue = requeue || itemRequeue
 		if err != nil {
 			return addresses, err
@@ -464,78 +490,87 @@ func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocatio
 	}
 }
 
-// getAddressFromM3Pool allocates an address from a metal3 IPAM pool using a IPClaim.
-// If the claim exists already, it will return ip address once the claim was fulfilled
-// with an IPAddress resource.
-func (m *DataManager) getAddressFromM3Pool(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (addressFromPool, bool, error) {
+// ensureM3IPClaim ensures that a claim for a referenced pool exists.
+// It returns the claim and whether to fetch the claim again when fetching IP addresses.
+func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
 	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name, m.Data.Namespace)
+	if err == nil {
+		return reconciledClaim{m3Claim: ipClaim}, nil
+	}
+
+	if ok := errors.As(err, &hasRequeueAfterError); !ok {
+		return reconciledClaim{m3Claim: ipClaim}, err
+	}
+
+	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
+		m.Log, m.Data.Labels[clusterv1.ClusterLabelName],
+	)
+	if err != nil {
+		return reconciledClaim{m3Claim: ipClaim}, err
+	}
+	if m3dt == nil {
+		return reconciledClaim{m3Claim: ipClaim}, nil
+	}
+	m.Log.Info("Fetched Metal3DataTemplate")
+
+	// Fetch the Metal3Machine, to get the related info
+	m3m, err := m.getM3Machine(ctx, m3dt)
+	if err != nil {
+		return reconciledClaim{m3Claim: ipClaim}, err
+	}
+	if m3m == nil {
+		return reconciledClaim{m3Claim: ipClaim}, nil
+	}
+	m.Log.Info("Fetched Metal3Machine")
+
+	// Fetch the BMH associated with the M3M
+	bmh, err := getHost(ctx, m3m, m.client, m.Log)
+	if err != nil {
+		return reconciledClaim{m3Claim: ipClaim}, err
+	}
+	if bmh == nil {
+		return reconciledClaim{m3Claim: ipClaim}, &RequeueAfterError{RequeueAfter: requeueAfter}
+	}
+	m.Log.Info("Fetched BMH")
+
+	ipClaim, err = fetchM3IPClaim(ctx, m.client, m.Log, bmh.Name+"-"+poolRef.Name, m.Data.Namespace)
+	if err == nil {
+		return reconciledClaim{m3Claim: ipClaim}, nil
+	}
+	if ok := errors.As(err, &hasRequeueAfterError); !ok {
+		return reconciledClaim{m3Claim: ipClaim}, err
+	}
+
+	var ObjMeta *metav1.ObjectMeta
+	if EnableBMHNameBasedPreallocation {
+		// if EnableBMHNameBasedPreallocation enabled, name of the m3IPClaim is based on the BMH name
+		ObjMeta = m.m3IPClaimObjectMeta(bmh.Name, poolRef.Name, true)
+	} else {
+		// otherwise, name of the m3IPClaim is based on the m3Data name
+		ObjMeta = m.m3IPClaimObjectMeta(m.Data.Name, poolRef.Name, false)
+	}
+	// Create the claim
+	ipClaim = &ipamv1.IPClaim{
+		ObjectMeta: *ObjMeta,
+		Spec: ipamv1.IPClaimSpec{
+			Pool: corev1.ObjectReference{
+				Name:      poolRef.Name,
+				Namespace: m.Data.Namespace,
+			},
+		},
+	}
+	err = createObject(ctx, m.client, ipClaim)
 	if err != nil {
 		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			return addressFromPool{}, false, err
-		}
-		m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-			m.Log, m.Data.Labels[clusterv1.ClusterLabelName],
-		)
-		if err != nil {
-			return addressFromPool{}, false, err
-		}
-		if m3dt == nil {
-			return addressFromPool{}, false, nil
-		}
-		m.Log.Info("Fetched Metal3DataTemplate")
-
-		// Fetch the Metal3Machine, to get the related info
-		m3m, err := m.getM3Machine(ctx, m3dt)
-		if err != nil {
-			return addressFromPool{}, false, err
-		}
-		if m3m == nil {
-			return addressFromPool{}, false, err
-		}
-		m.Log.Info("Fetched Metal3Machine")
-
-		// Fetch the BMH associated with the M3M
-		bmh, err := getHost(ctx, m3m, m.client, m.Log)
-		if err != nil {
-			return addressFromPool{}, false, err
-		}
-		if bmh == nil {
-			return addressFromPool{}, false, &RequeueAfterError{RequeueAfter: requeueAfter}
-		}
-
-		m.Log.Info("Fetched BMH")
-		ipClaim, err = fetchM3IPClaim(ctx, m.client, m.Log, bmh.Name+"-"+poolRef.Name, m.Data.Namespace)
-		if err != nil {
-			if ok := errors.As(err, &hasRequeueAfterError); !ok {
-				return addressFromPool{}, false, err
-			}
-			var ObjMeta *metav1.ObjectMeta
-			if EnableBMHNameBasedPreallocation {
-				// if EnableBMHNameBasedPreallocation enabled, name of the m3IPClaim is based on the BMH name
-				ObjMeta = m.m3IPClaimObjectMeta(bmh.Name, poolRef.Name, true)
-			} else {
-				// otherwise, name of the m3IPClaim is based on the m3Data name
-				ObjMeta = m.m3IPClaimObjectMeta(m.Data.Name, poolRef.Name, false)
-			}
-			// Create the claim
-			ipClaim = &ipamv1.IPClaim{
-				ObjectMeta: *ObjMeta,
-				Spec: ipamv1.IPClaimSpec{
-					Pool: corev1.ObjectReference{
-						Name:      poolRef.Name,
-						Namespace: m.Data.Namespace,
-					},
-				},
-			}
-			err = createObject(ctx, m.client, ipClaim)
-			if err != nil {
-				if ok := errors.As(err, &hasRequeueAfterError); !ok {
-					return addressFromPool{}, false, err
-				}
-			}
+			return reconciledClaim{m3Claim: ipClaim}, err
 		}
 	}
 
+	return reconciledClaim{m3Claim: ipClaim, fetchAgain: true}, nil
+}
+
+// addressFromClaim retrieves the IP address for a ip claim.
+func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.TypedLocalObjectReference, ipClaim *ipamv1.IPClaim) (addressFromPool, bool, error) {
 	if !ipClaim.DeletionTimestamp.IsZero() {
 		// Is it "our" ipClaim, or does it belong to an old and deleted Metal3Data with the same name?
 		matchingOwnerRef := false
@@ -549,7 +584,7 @@ func (m *DataManager) getAddressFromM3Pool(ctx context.Context, poolRef corev1.T
 			m.Log.Info("Found old IPClaim with deletion timestamp. Attempting to clean up and requeue.", "IPClaim", ipClaim)
 			if Contains(ipClaim.Finalizers, infrav1.DataFinalizer) {
 				ipClaim.Finalizers = Filter(ipClaim.Finalizers, infrav1.DataFinalizer)
-				err = updateObject(ctx, m.client, ipClaim)
+				err := updateObject(ctx, m.client, ipClaim)
 				if err != nil {
 					m.Log.Info("Failed to remove finalizer from old IPClaim", "IPClaim", ipClaim, "error", err)
 				}
