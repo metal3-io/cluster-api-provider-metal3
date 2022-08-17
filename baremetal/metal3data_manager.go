@@ -714,12 +714,6 @@ func (m *DataManager) getAddressFromPool(ctx context.Context, poolName string,
 		}
 	}
 
-	if !ipClaim.DeletionTimestamp.IsZero() {
-		// This IPClaim is about to be deleted so we cannot use it. Requeue.
-		m.Log.Info("Found IPClaim with deletion timestamp, requeuing.", "IPClaim", ipClaim)
-		return addresses, true, nil
-	}
-
 	if ipClaim.Status.ErrorMessage != nil {
 		m.Data.Status.ErrorMessage = pointer.StringPtr(fmt.Sprintf(
 			"IP Allocation for %v failed : %v", poolName, ipClaim.Status.ErrorMessage,
