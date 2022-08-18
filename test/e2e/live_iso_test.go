@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -18,7 +19,6 @@ var _ = Describe("When testing live iso [live-iso]", func() {
 })
 
 func liveIsoTest() {
-	Logf("Starting live ISO test")
 	var (
 		liveISOImageURL = e2eConfig.GetVariable("LIVE_ISO_IMAGE")
 	)
@@ -28,6 +28,7 @@ func liveIsoTest() {
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
 	It("Should update the BMH with live ISO", func() {
+		Logf("Starting live ISO test")
 		bootstrapClient := bootstrapClusterProxy.GetClient()
 
 		By("Waiting for all BMHs to be in Available state")
@@ -45,7 +46,9 @@ func liveIsoTest() {
 		var isoBmh bmov1alpha1.BareMetalHost
 		for _, bmh := range bmhs {
 			Logf("Checking BMH %s", bmh.Name)
-			if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable {
+			// Pick the first BMH that is available and uses redfish-virtualmedia (ipmi and redfish does not support live-iso)
+			if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable &&
+				strings.HasPrefix(bmh.Spec.BMC.Address, "redfish-virtualmedia") {
 				isoBmh = bmh
 				Logf("BMH %s is in %s state", bmh.Name, bmh.Status.Provisioning.State)
 				break
