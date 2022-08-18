@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -45,7 +46,9 @@ func liveIsoTest() {
 		var isoBmh bmov1alpha1.BareMetalHost
 		for _, bmh := range bmhs {
 			Logf("Checking BMH %s", bmh.Name)
-			if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable {
+			// Pick the first BMH that is available and uses redfish (ipmi does not support live-iso)
+			if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable &&
+				strings.HasPrefix(bmh.Spec.BMC.Address, "redfish") {
 				isoBmh = bmh
 				Logf("BMH %s is in %s state", bmh.Name, bmh.Status.Provisioning.State)
 				break
