@@ -44,6 +44,7 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
@@ -78,6 +79,7 @@ var (
 func init() {
 	_ = scheme.AddToScheme(myscheme)
 	_ = ipamv1.AddToScheme(myscheme)
+	_ = caipamv1.AddToScheme(myscheme)
 	_ = infrav1.AddToScheme(myscheme)
 	_ = infrav1alpha5.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)

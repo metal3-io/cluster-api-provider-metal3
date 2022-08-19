@@ -172,6 +172,38 @@ func (src *Metal3DataTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &v1beta1.Metal3DataTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if dst.Spec.MetaData != nil && restored.Spec.MetaData != nil {
+		for k := range dst.Spec.MetaData.IPAddressesFromPool {
+			dst.Spec.MetaData.IPAddressesFromPool[k].APIGroup = restored.Spec.MetaData.IPAddressesFromPool[k].APIGroup
+			dst.Spec.MetaData.IPAddressesFromPool[k].Kind = restored.Spec.MetaData.IPAddressesFromPool[k].Kind
+		}
+		for k := range dst.Spec.MetaData.GatewaysFromPool {
+			dst.Spec.MetaData.GatewaysFromPool[k].APIGroup = restored.Spec.MetaData.GatewaysFromPool[k].APIGroup
+			dst.Spec.MetaData.GatewaysFromPool[k].Kind = restored.Spec.MetaData.GatewaysFromPool[k].Kind
+		}
+		for k := range dst.Spec.MetaData.PrefixesFromPool {
+			dst.Spec.MetaData.PrefixesFromPool[k].APIGroup = restored.Spec.MetaData.PrefixesFromPool[k].APIGroup
+			dst.Spec.MetaData.PrefixesFromPool[k].Kind = restored.Spec.MetaData.PrefixesFromPool[k].Kind
+		}
+		for k := range dst.Spec.MetaData.DNSServersFromPool {
+			dst.Spec.MetaData.DNSServersFromPool[k].APIGroup = restored.Spec.MetaData.DNSServersFromPool[k].APIGroup
+			dst.Spec.MetaData.DNSServersFromPool[k].Kind = restored.Spec.MetaData.DNSServersFromPool[k].Kind
+		}
+	}
+	if dst.Spec.NetworkData != nil && restored.Spec.NetworkData != nil {
+		for k := range dst.Spec.NetworkData.Networks.IPv4 {
+			dst.Spec.NetworkData.Networks.IPv4[k].FromPoolRef = restored.Spec.NetworkData.Networks.IPv4[k].FromPoolRef
+		}
+		for k := range dst.Spec.NetworkData.Networks.IPv6 {
+			dst.Spec.NetworkData.Networks.IPv6[k].FromPoolRef = restored.Spec.NetworkData.Networks.IPv6[k].FromPoolRef
+		}
+	}
+
 	return nil
 }
 
@@ -181,7 +213,22 @@ func (dst *Metal3DataTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
+}
+
+func Convert_v1beta1_NetworkDataIPv6_To_v1alpha5_NetworkDataIPv6(in *v1beta1.NetworkDataIPv6, out *NetworkDataIPv6, s apiconversion.Scope) error {
+	// fromPoolRef was added with v1beta1.
+	return autoConvert_v1beta1_NetworkDataIPv6_To_v1alpha5_NetworkDataIPv6(in, out, s)
+}
+
+func Convert_v1beta1_NetworkDataIPv4_To_v1alpha5_NetworkDataIPv4(in *v1beta1.NetworkDataIPv4, out *NetworkDataIPv4, s apiconversion.Scope) error {
+	// fromPoolRef was added with v1beta1.
+	return autoConvert_v1beta1_NetworkDataIPv4_To_v1alpha5_NetworkDataIPv4(in, out, s)
+}
+
+func Convert_v1beta1_FromPool_To_v1alpha5_FromPool(in *v1beta1.FromPool, out *FromPool, s apiconversion.Scope) error {
+	// apiGroup and kind was added with v1beta1.
+	return autoConvert_v1beta1_FromPool_To_v1alpha5_FromPool(in, out, s)
 }
 
 func (src *Metal3DataTemplateList) ConvertTo(dstRaw conversion.Hub) error {

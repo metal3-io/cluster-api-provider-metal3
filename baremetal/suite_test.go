@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -38,7 +39,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -141,6 +144,9 @@ func setupScheme() *runtime.Scheme {
 	if err := ipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
+	if err := caipamv1.AddToScheme(s); err != nil {
+		panic(err)
+	}
 	if err := corev1.AddToScheme(s); err != nil {
 		panic(err)
 	}
@@ -227,4 +233,17 @@ func testObjectReference(name string) *corev1.ObjectReference {
 	return &corev1.ObjectReference{
 		Name: name,
 	}
+}
+
+func fakeClient(objects ...client.Object) client.Client {
+	objs := []client.Object{}
+	for _, o := range objects {
+		if o != nil && reflect.ValueOf(o).Kind() == reflect.Ptr && !reflect.ValueOf(o).IsNil() {
+			objs = append(objs, o)
+		}
+	}
+	return fake.NewClientBuilder().
+		WithScheme(setupScheme()).
+		WithObjects(objs...).
+		Build()
 }

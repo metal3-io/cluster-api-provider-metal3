@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -129,8 +130,14 @@ type FromPool struct {
 	// Key will be used as the key to set in the metadata map for cloud-init
 	Key string `json:"key"`
 
-	// Name is the name of the IPPool used to fetch the value to set in the metadata map for cloud-init
+	// Name is the name of the IP pool used to fetch the value to set in the metadata map for cloud-init
 	Name string `json:"name"`
+
+	// APIGroup is the api group of the IP pool.
+	APIGroup string `json:"apiGroup"`
+
+	// Kind is the kind of the IP pool
+	Kind string `json:"kind"`
 }
 
 // MetaData represents a keyand value of the metadata.
@@ -385,8 +392,11 @@ type NetworkDataIPv4 struct {
 	// Link is the link on which the network applies
 	Link string `json:"link"`
 
-	// IPAddressFromIPPool contains the name of the IPPool to use to get an ip address
-	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
+	// IPAddressFromIPPool contains the name of the IP pool to use to get an ip address
+	IPAddressFromIPPool string `json:"ipAddressFromIPPool,omitempty"`
+
+	// FromPoolRef is a reference to a IP pool to allocate an address from.
+	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
 
 	// Routes contains a list of IPv4 routes
 	// +optional
@@ -404,6 +414,9 @@ type NetworkDataIPv6 struct {
 
 	// IPAddressFromIPPool contains the name of the IPPool to use to get an ip address
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
+
+	// FromPoolRef is a reference to a IP pool to allocate an address from.
+	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
 
 	// Routes contains a list of IPv6 routes
 	// +optional
