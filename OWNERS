@@ -4,7 +4,6 @@ approvers:
  - kashifest
  - furkatgofurov7
  - Xenwar
- - fmuyassarov
 
 reviewers:
  - namnx228
@@ -14,6 +13,7 @@ reviewers:
 
 emeritus_approvers:
  - maelk
+ - fmuyassarov
 
 emeritus_reviewers:
  - jan-est
