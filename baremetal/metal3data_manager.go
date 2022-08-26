@@ -205,7 +205,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return nil
 	}
 
-	// Fetch all the Metal3IPPools and set the OwnerReference. Check if the
+	// Fetch all the Metal3IPPools and create Metal3IPClaims as needed. Check if the
 	// IP address has been allocated, if so, fetch the address, gateway and prefix.
 	poolAddresses, err := m.getAddressesFromPool(ctx, *m3dt)
 	if err != nil {
@@ -448,8 +448,9 @@ func (m *DataManager) getAddressFromM3Pool(ctx context.Context, poolRef corev1.T
 		// Create the claim
 		ipClaim = &ipamv1.IPClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      m.Data.Name + "-" + poolRef.Name,
-				Namespace: m.Data.Namespace,
+				Name:       m.Data.Name + "-" + poolRef.Name,
+				Namespace:  m.Data.Namespace,
+				Finalizers: []string{infrav1.DataFinalizer},
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion: m.Data.APIVersion,
@@ -478,7 +479,7 @@ func (m *DataManager) getAddressFromM3Pool(ctx context.Context, poolRef corev1.T
 	}
 
 	if !ipClaim.DeletionTimestamp.IsZero() {
-		// This IPClaim is about to be deleted so we cannot use it. Requeue.
+		// This Metal3IPClaim is about to be deleted so we cannot use it. Requeue.
 		m.Log.Info("Found IPClaim with deletion timestamp, requeuing.", "IPClaim", ipClaim)
 		return addressFromPool{}, true, nil
 	}
@@ -532,6 +533,27 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 			return err
 		}
 		return nil
+	}
+
+	// Remove finalizer from Metal3IPClaim since we no longer need it
+	ipClaim.Finalizers = Filter(ipClaim.Finalizers, infrav1.DataFinalizer)
+	// Remove Metal3Data ownerRef
+	newOwnerRefs := []metav1.OwnerReference{}
+	for _, ownerRef := range ipClaim.OwnerReferences {
+		oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			return err
+		}
+		if ownerRef.Kind == "Metal3Data" && oGV.Group == infrav1.GroupVersion.Group {
+			continue
+		} else {
+			newOwnerRefs = append(newOwnerRefs, ownerRef)
+		}
+	}
+	ipClaim.OwnerReferences = newOwnerRefs
+	err = updateObject(ctx, m.client, ipClaim)
+	if err != nil {
+		return err
 	}
 
 	err = deleteObject(ctx, m.client, ipClaim)
