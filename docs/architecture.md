@@ -166,7 +166,7 @@ metadata:
     cluster.x-k8s.io/control-plane: "true"
     cluster.x-k8s.io/cluster-name: "test1"
 spec:
-  version: v1.17.0
+  version: v1.18.0
   bootstrap:
     configRef:
       apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
@@ -210,7 +210,7 @@ spec:
     kind: Metal3Machine
     name: test1-controlplane-0
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
-  version: v1.17.0
+  version: v1.18.0
 status:
   addresses:
   - address: 172.22.0.10

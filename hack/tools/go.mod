@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/hack/tools
 
-go 1.17
+go 1.19
 
 require (
 	github.com/drone/envsubst v1.0.3

@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
-//Constant variables
+// Constant variables
 const (
 	APIEndpointPort = "6443"
 )
