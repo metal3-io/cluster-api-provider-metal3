@@ -17,6 +17,7 @@
 set -o errexit
 set -o nounset
 set -o pipefail
+set -x
 
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 BIN_ROOT="${KUBE_ROOT}/hack/tools/bin"
@@ -37,6 +38,16 @@ verify_kustomize_version() {
       fi
       archive_name="kustomize-v${MINIMUM_KUSTOMIZE_VERSION}.tar.gz"
       curl -sLo "${BIN_ROOT}/${archive_name}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${goos}_${goarch}.tar.gz"
+      tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
+      chmod +x "${BIN_ROOT}/kustomize"
+      rm "${BIN_ROOT}/${archive_name}"
+    elif [[ "${OSTYPE}" == "darwin"* ]]; then
+      echo 'kustomize not found, installing'
+      if ! [ -d "${BIN_ROOT}" ]; then
+        mkdir -p "${BIN_ROOT}"
+      fi
+      archive_name="kustomize-v${MINIMUM_KUSTOMIZE_VERSION}.tar.gz"
+      curl -sLo "${BIN_ROOT}/${archive_name}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_darwin_${goarch}.tar.gz"
       tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
       chmod +x "${BIN_ROOT}/kustomize"
       rm "${BIN_ROOT}/${archive_name}"
