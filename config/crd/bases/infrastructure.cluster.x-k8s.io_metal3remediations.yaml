@@ -46,7 +46,7 @@ spec:
     name: v1alpha5
     schema:
       openAPIV3Schema:
-        description: Metal3Remediation is the Schema for the metal3remediations API
+        description: Metal3Remediation is the Schema for the metal3remediations API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -78,7 +78,7 @@ spec:
                 type: object
             type: object
           status:
-            description: Metal3RemediationStatus defines the observed state of Metal3Remediation
+            description: Metal3RemediationStatus defines the observed state of Metal3Remediation.
             properties:
               lastRemediated:
                 description: LastRemediated identifies when the host was last remediated
@@ -124,7 +124,7 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Metal3Remediation is the Schema for the metal3remediations API
+        description: Metal3Remediation is the Schema for the metal3remediations API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -156,7 +156,7 @@ spec:
                 type: object
             type: object
           status:
-            description: Metal3RemediationStatus defines the observed state of Metal3Remediation
+            description: Metal3RemediationStatus defines the observed state of Metal3Remediation.
             properties:
               lastRemediated:
                 description: LastRemediated identifies when the host was last remediated

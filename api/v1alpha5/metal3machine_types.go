@@ -30,7 +30,7 @@ const (
 	MachineFinalizer = "metal3machine.infrastructure.cluster.x-k8s.io"
 )
 
-// Metal3MachineSpec defines the desired state of Metal3Machine
+// Metal3MachineSpec defines the desired state of Metal3Machine.
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
 	// (metal3://<bmh-uuid>)
@@ -85,7 +85,7 @@ func (s *Metal3MachineSpec) IsValid() error {
 	return nil
 }
 
-// Metal3MachineStatus defines the observed state of Metal3Machine
+// Metal3MachineStatus defines the observed state of Metal3Machine.
 type Metal3MachineStatus struct {
 
 	// LastUpdated identifies when this status was last observed.
@@ -175,7 +175,7 @@ type Metal3MachineStatus struct {
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this M3Machine belongs"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="metal3machine current phase"
 
-// Metal3Machine is the Schema for the metal3machines API
+// Metal3Machine is the Schema for the metal3machines API.
 type Metal3Machine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -186,7 +186,7 @@ type Metal3Machine struct {
 
 // +kubebuilder:object:root=true
 
-// Metal3MachineList contains a list of Metal3Machine
+// Metal3MachineList contains a list of Metal3Machine.
 type Metal3MachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

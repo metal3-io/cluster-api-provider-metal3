@@ -33,9 +33,10 @@ const (
 	CleaningModeDisabled = "disabled"
 	CleaningModeMetadata = "metadata"
 	ClonedFromGroupKind  = "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io"
+	LiveIsoDiskFormat    = "live-iso"
 )
 
-// Metal3MachineSpec defines the desired state of Metal3Machine
+// Metal3MachineSpec defines the desired state of Metal3Machine.
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
 	// (metal3://<bmh-uuid>)
@@ -88,7 +89,7 @@ func (s *Metal3MachineSpec) IsValid() error {
 		missing = append(missing, "Image.URL")
 	}
 	// Checksum is not required for live-iso.
-	if (s.Image.DiskFormat == nil || *s.Image.DiskFormat != "live-iso") && s.Image.Checksum == "" {
+	if (s.Image.DiskFormat == nil || *s.Image.DiskFormat != LiveIsoDiskFormat) && s.Image.Checksum == "" {
 		missing = append(missing, "Image.Checksum")
 	}
 	if len(missing) > 0 {
@@ -100,7 +101,7 @@ func (s *Metal3MachineSpec) IsValid() error {
 	if err != nil {
 		invalid = append(invalid, "Image.URL")
 	}
-	if s.Image.DiskFormat == nil || *s.Image.DiskFormat != "live-iso" {
+	if s.Image.DiskFormat == nil || *s.Image.DiskFormat != LiveIsoDiskFormat {
 		_, err = url.ParseRequestURI(s.Image.Checksum)
 		if err != nil {
 			invalid = append(invalid, "Image.Checksum")
@@ -112,7 +113,7 @@ func (s *Metal3MachineSpec) IsValid() error {
 	return nil
 }
 
-// Metal3MachineStatus defines the observed state of Metal3Machine
+// Metal3MachineStatus defines the observed state of Metal3Machine.
 type Metal3MachineStatus struct {
 
 	// LastUpdated identifies when this status was last observed.
@@ -210,7 +211,7 @@ type Metal3MachineStatus struct {
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this M3Machine belongs"
 // +kubebuilder:printcolumn:name="Phase",type="string",JSONPath=".status.phase",description="metal3machine current phase"
 
-// Metal3Machine is the Schema for the metal3machines API
+// Metal3Machine is the Schema for the metal3machines API.
 type Metal3Machine struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -224,7 +225,7 @@ type Metal3Machine struct {
 
 // +kubebuilder:object:root=true
 
-// Metal3MachineList contains a list of Metal3Machine
+// Metal3MachineList contains a list of Metal3Machine.
 type Metal3MachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional

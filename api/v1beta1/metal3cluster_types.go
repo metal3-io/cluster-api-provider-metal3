@@ -98,7 +98,7 @@ type Metal3ClusterStatus struct {
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this BMCluster belongs"
 // +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint",description="Control plane endpoint"
 
-// Metal3Cluster is the Schema for the metal3clusters API
+// Metal3Cluster is the Schema for the metal3clusters API.
 type Metal3Cluster struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -111,7 +111,7 @@ type Metal3Cluster struct {
 
 // +kubebuilder:object:root=true
 
-// Metal3ClusterList contains a list of Metal3Cluster
+// Metal3ClusterList contains a list of Metal3Cluster.
 type Metal3ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional

@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate
+// Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate.
 type Metal3MachineTemplateSpec struct {
 	Template Metal3MachineTemplateResource `json:"template"`
 
@@ -36,7 +36,7 @@ type Metal3MachineTemplateSpec struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3MachineTemplate"
 // +kubebuilder:resource:path=metal3machinetemplates,scope=Namespaced,categories=cluster-api,shortName=m3mt;m3machinetemplate;m3machinetemplates;metal3mt;metal3machinetemplate
 
-// Metal3MachineTemplate is the Schema for the metal3machinetemplates API
+// Metal3MachineTemplate is the Schema for the metal3machinetemplates API.
 type Metal3MachineTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -46,7 +46,7 @@ type Metal3MachineTemplate struct {
 
 // +kubebuilder:object:root=true
 
-// Metal3MachineTemplateList contains a list of Metal3MachineTemplate
+// Metal3MachineTemplateList contains a list of Metal3MachineTemplate.
 type Metal3MachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
@@ -57,7 +57,7 @@ func init() {
 	SchemeBuilder.Register(&Metal3MachineTemplate{}, &Metal3MachineTemplateList{})
 }
 
-// Metal3MachineTemplateResource describes the data needed to create a Metal3Machine from a template
+// Metal3MachineTemplateResource describes the data needed to create a Metal3Machine from a template.
 type Metal3MachineTemplateResource struct {
 	// Spec is the specification of the desired behavior of the machine.
 	Spec Metal3MachineSpec `json:"spec"`

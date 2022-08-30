@@ -2112,7 +2112,7 @@ func Convert_v1beta1_NetworkDataLink_To_v1alpha5_NetworkDataLink(in *v1beta1.Net
 
 func autoConvert_v1alpha5_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in *NetworkDataLinkBond, out *v1beta1.NetworkDataLinkBond, s conversion.Scope) error {
 	out.BondMode = in.BondMode
-	out.Id = in.Id
+	out.ID = in.ID
 	out.MTU = in.MTU
 	out.MACAddress = (*v1beta1.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.BondLinks = *(*[]string)(unsafe.Pointer(&in.BondLinks))
@@ -2126,7 +2126,7 @@ func Convert_v1alpha5_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in *Net
 
 func autoConvert_v1beta1_NetworkDataLinkBond_To_v1alpha5_NetworkDataLinkBond(in *v1beta1.NetworkDataLinkBond, out *NetworkDataLinkBond, s conversion.Scope) error {
 	out.BondMode = in.BondMode
-	out.Id = in.Id
+	out.ID = in.ID
 	out.MTU = in.MTU
 	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.BondLinks = *(*[]string)(unsafe.Pointer(&in.BondLinks))
@@ -2140,7 +2140,7 @@ func Convert_v1beta1_NetworkDataLinkBond_To_v1alpha5_NetworkDataLinkBond(in *v1b
 
 func autoConvert_v1alpha5_NetworkDataLinkEthernet_To_v1beta1_NetworkDataLinkEthernet(in *NetworkDataLinkEthernet, out *v1beta1.NetworkDataLinkEthernet, s conversion.Scope) error {
 	out.Type = in.Type
-	out.Id = in.Id
+	out.ID = in.ID
 	out.MTU = in.MTU
 	out.MACAddress = (*v1beta1.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	return nil
@@ -2153,7 +2153,7 @@ func Convert_v1alpha5_NetworkDataLinkEthernet_To_v1beta1_NetworkDataLinkEthernet
 
 func autoConvert_v1beta1_NetworkDataLinkEthernet_To_v1alpha5_NetworkDataLinkEthernet(in *v1beta1.NetworkDataLinkEthernet, out *NetworkDataLinkEthernet, s conversion.Scope) error {
 	out.Type = in.Type
-	out.Id = in.Id
+	out.ID = in.ID
 	out.MTU = in.MTU
 	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	return nil
@@ -2166,7 +2166,7 @@ func Convert_v1beta1_NetworkDataLinkEthernet_To_v1alpha5_NetworkDataLinkEthernet
 
 func autoConvert_v1alpha5_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(in *NetworkDataLinkVlan, out *v1beta1.NetworkDataLinkVlan, s conversion.Scope) error {
 	out.VlanID = in.VlanID
-	out.Id = in.Id
+	out.ID = in.ID
 	out.MTU = in.MTU
 	out.MACAddress = (*v1beta1.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.VlanLink = in.VlanLink
@@ -2180,7 +2180,7 @@ func Convert_v1alpha5_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(in *Net
 
 func autoConvert_v1beta1_NetworkDataLinkVlan_To_v1alpha5_NetworkDataLinkVlan(in *v1beta1.NetworkDataLinkVlan, out *NetworkDataLinkVlan, s conversion.Scope) error {
 	out.VlanID = in.VlanID
-	out.Id = in.Id
+	out.ID = in.ID
 	out.MTU = in.MTU
 	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.VlanLink = in.VlanLink

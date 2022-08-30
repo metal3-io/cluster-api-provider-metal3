@@ -39,24 +39,24 @@ func (c *Metal3Cluster) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3Cluster) ValidateCreate() error {
 	return c.validate()
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3Cluster) ValidateUpdate(old runtime.Object) error {
 	return c.validate()
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3Cluster) ValidateDelete() error {
 	return nil
 }
 
 func (c *Metal3Cluster) validate() error {
 	var allErrs field.ErrorList
-	if len(c.Spec.ControlPlaneEndpoint.Host) == 0 {
+	if c.Spec.ControlPlaneEndpoint.Host == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
@@ -65,7 +65,6 @@ func (c *Metal3Cluster) validate() error {
 				"is required",
 			),
 		)
-
 	}
 
 	if len(allErrs) == 0 {

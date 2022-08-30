@@ -37,7 +37,6 @@ func TestMetal3DataDefault(t *testing.T) {
 }
 
 func TestMetal3DataCreateValidation(t *testing.T) {
-
 	tests := []struct {
 		name      string
 		dataName  string
@@ -100,7 +99,6 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 }
 
 func TestMetal3DataUpdateValidation(t *testing.T) {
-
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -258,9 +256,9 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var new, old *Metal3Data
+			var newData, oldData *Metal3Data
 			g := NewWithT(t)
-			new = &Metal3Data{
+			newData = &Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "abc-1",
@@ -269,7 +267,7 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			}
 
 			if tt.old != nil {
-				old = &Metal3Data{
+				oldData = &Metal3Data{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 						Name:      "abc-1",
@@ -277,13 +275,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 					Spec: *tt.old,
 				}
 			} else {
-				old = nil
+				oldData = nil
 			}
 
 			if tt.expectErr {
-				g.Expect(new.ValidateUpdate(old)).NotTo(Succeed())
+				g.Expect(newData.ValidateUpdate(oldData)).NotTo(Succeed())
 			} else {
-				g.Expect(new.ValidateUpdate(old)).To(Succeed())
+				g.Expect(newData.ValidateUpdate(oldData)).To(Succeed())
 			}
 		})
 	}

@@ -22,7 +22,6 @@ import (
 )
 
 func TestMetal3RemediationTemplateDefault(t *testing.T) {
-
 	g := NewWithT(t)
 	m3rt := &Metal3RemediationTemplate{
 		ObjectMeta: metav1.ObjectMeta{

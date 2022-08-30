@@ -20,18 +20,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Metal3RemediationTemplateSpec defines the desired state of Metal3RemediationTemplate
+// Metal3RemediationTemplateSpec defines the desired state of Metal3RemediationTemplate.
 type Metal3RemediationTemplateSpec struct {
 	Template Metal3RemediationTemplateResource `json:"template"`
 }
 
-// Metal3RemediationTemplateResource describes the data needed to create a Metal3Remediation from a template
+// Metal3RemediationTemplateResource describes the data needed to create a Metal3Remediation from a template.
 type Metal3RemediationTemplateResource struct {
 	// Spec is the specification of the desired behavior of the Metal3Remediation.
 	Spec Metal3RemediationSpec `json:"spec"`
 }
 
-// Metal3RemediationTemplateStatus defines the observed state of Metal3RemediationTemplate
+// Metal3RemediationTemplateStatus defines the observed state of Metal3RemediationTemplate.
 type Metal3RemediationTemplateStatus struct {
 	// Metal3RemediationStatus defines the observed state of Metal3Remediation
 	Status Metal3RemediationStatus `json:"status"`
@@ -42,7 +42,7 @@ type Metal3RemediationTemplateStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 
-// Metal3RemediationTemplate is the Schema for the metal3remediationtemplates API
+// Metal3RemediationTemplate is the Schema for the metal3remediationtemplates API.
 type Metal3RemediationTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -53,7 +53,7 @@ type Metal3RemediationTemplate struct {
 
 // +kubebuilder:object:root=true
 
-// Metal3RemediationTemplateList contains a list of Metal3RemediationTemplate
+// Metal3RemediationTemplateList contains a list of Metal3RemediationTemplate.
 type Metal3RemediationTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

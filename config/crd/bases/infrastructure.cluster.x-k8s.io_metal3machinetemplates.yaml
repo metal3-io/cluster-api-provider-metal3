@@ -32,7 +32,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: Metal3MachineTemplate is the Schema for the metal3machinetemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -47,7 +47,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate
+            description: Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate.
             properties:
               nodeReuse:
                 default: false
@@ -56,7 +56,7 @@ spec:
                 type: boolean
               template:
                 description: Metal3MachineTemplateResource describes the data needed
-                  to create a Metal3Machine from a template
+                  to create a Metal3Machine from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior
@@ -245,7 +245,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: Metal3MachineTemplate is the Schema for the metal3machinetemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -260,7 +260,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate
+            description: Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate.
             properties:
               nodeReuse:
                 default: false
@@ -269,7 +269,7 @@ spec:
                 type: boolean
               template:
                 description: Metal3MachineTemplateResource describes the data needed
-                  to create a Metal3Machine from a template
+                  to create a Metal3Machine from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior

@@ -36,7 +36,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: Metal3DataTemplate is the Schema for the metal3datatemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -86,7 +86,7 @@ spec:
                     items:
                       description: MetaDataFromAnnotation contains the information
                         to fetch an annotation content, if the label does not exist,
-                        it is rendered as empty string
+                        it is rendered as empty string.
                       properties:
                         annotation:
                           description: Annotation is the key of the Annotation to
@@ -115,7 +115,7 @@ spec:
                       to be rendered as MAC addresses of the host interfaces.
                     items:
                       description: MetaDataHostInterface contains the information
-                        to render the object name
+                        to render the object name.
                       properties:
                         interface:
                           description: Interface is the name of the interface in the
@@ -137,7 +137,7 @@ spec:
                     items:
                       description: MetaDataFromLabel contains the information to fetch
                         a label content, if the label does not exist, it is rendered
-                        as empty string
+                        as empty string.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -183,7 +183,7 @@ spec:
                       from the index of the Metal3Data
                     items:
                       description: MetaDataIndex contains the information to render
-                        the index
+                        the index.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -230,7 +230,7 @@ spec:
                       from the namespace
                     items:
                       description: MetaDataNamespace contains the information to render
-                        the namespace
+                        the namespace.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -245,7 +245,7 @@ spec:
                       from the name of objects.
                     items:
                       description: MetaDataObjectName contains the information to
-                        render the object name
+                        render the object name.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -287,7 +287,7 @@ spec:
                       from strings
                     items:
                       description: MetaDataString contains the information to render
-                        the string
+                        the string.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -314,7 +314,7 @@ spec:
                         description: Bonds contains a list of Bond links
                         items:
                           description: NetworkDataLinkBond represents a bond link
-                            object
+                            object.
                           properties:
                             bondLinks:
                               description: BondLinks is the list of links that are
@@ -369,7 +369,7 @@ spec:
                         description: Ethernets contains a list of Ethernet links
                         items:
                           description: NetworkDataLinkEthernet represents an ethernet
-                            link object
+                            link object.
                           properties:
                             id:
                               description: Id is the ID of the interface (used for
@@ -419,7 +419,7 @@ spec:
                         description: Vlans contains a list of Vlan links
                         items:
                           description: NetworkDataLinkVlan represents a vlan link
-                            object
+                            object.
                           properties:
                             id:
                               description: Id is the ID of the interface (used for
@@ -468,7 +468,7 @@ spec:
                         description: IPv4 contains a list of IPv4 static allocations
                         items:
                           description: NetworkDataIPv4 represents an ipv4 static network
-                            object
+                            object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -484,7 +484,7 @@ spec:
                               description: Routes contains a list of IPv4 routes
                               items:
                                 description: NetworkDataRoutev4 represents an ipv4
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv4 address of the
@@ -540,7 +540,7 @@ spec:
                         description: IPv4 contains a list of IPv4 DHCP allocations
                         items:
                           description: NetworkDataIPv4DHCP represents an ipv4 DHCP
-                            network object
+                            network object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -552,7 +552,7 @@ spec:
                               description: Routes contains a list of IPv4 routes
                               items:
                                 description: NetworkDataRoutev4 represents an ipv4
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv4 address of the
@@ -607,7 +607,7 @@ spec:
                         description: IPv4 contains a list of IPv6 static allocations
                         items:
                           description: NetworkDataIPv6 represents an ipv6 static network
-                            object
+                            object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -623,7 +623,7 @@ spec:
                               description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv6 address of the
@@ -679,7 +679,7 @@ spec:
                         description: IPv4 contains a list of IPv6 DHCP allocations
                         items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
-                            network object
+                            network object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -691,7 +691,7 @@ spec:
                               description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv6 address of the
@@ -746,7 +746,7 @@ spec:
                         description: IPv4 contains a list of IPv6 SLAAC allocations
                         items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
-                            network object
+                            network object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -758,7 +758,7 @@ spec:
                               description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv6 address of the
@@ -866,7 +866,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: Metal3DataTemplate is the Schema for the metal3datatemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -916,7 +916,7 @@ spec:
                     items:
                       description: MetaDataFromAnnotation contains the information
                         to fetch an annotation content, if the label does not exist,
-                        it is rendered as empty string
+                        it is rendered as empty string.
                       properties:
                         annotation:
                           description: Annotation is the key of the Annotation to
@@ -945,7 +945,7 @@ spec:
                       to be rendered as MAC addresses of the host interfaces.
                     items:
                       description: MetaDataHostInterface contains the information
-                        to render the object name
+                        to render the object name.
                       properties:
                         interface:
                           description: Interface is the name of the interface in the
@@ -967,7 +967,7 @@ spec:
                     items:
                       description: MetaDataFromLabel contains the information to fetch
                         a label content, if the label does not exist, it is rendered
-                        as empty string
+                        as empty string.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -1013,7 +1013,7 @@ spec:
                       from the index of the Metal3Data
                     items:
                       description: MetaDataIndex contains the information to render
-                        the index
+                        the index.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -1060,7 +1060,7 @@ spec:
                       from the namespace
                     items:
                       description: MetaDataNamespace contains the information to render
-                        the namespace
+                        the namespace.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -1075,7 +1075,7 @@ spec:
                       from the name of objects.
                     items:
                       description: MetaDataObjectName contains the information to
-                        render the object name
+                        render the object name.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -1117,7 +1117,7 @@ spec:
                       from strings
                     items:
                       description: MetaDataString contains the information to render
-                        the string
+                        the string.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -1144,7 +1144,7 @@ spec:
                         description: Bonds contains a list of Bond links
                         items:
                           description: NetworkDataLinkBond represents a bond link
-                            object
+                            object.
                           properties:
                             bondLinks:
                               description: BondLinks is the list of links that are
@@ -1199,7 +1199,7 @@ spec:
                         description: Ethernets contains a list of Ethernet links
                         items:
                           description: NetworkDataLinkEthernet represents an ethernet
-                            link object
+                            link object.
                           properties:
                             id:
                               description: Id is the ID of the interface (used for
@@ -1249,7 +1249,7 @@ spec:
                         description: Vlans contains a list of Vlan links
                         items:
                           description: NetworkDataLinkVlan represents a vlan link
-                            object
+                            object.
                           properties:
                             id:
                               description: Id is the ID of the interface (used for
@@ -1298,7 +1298,7 @@ spec:
                         description: IPv4 contains a list of IPv4 static allocations
                         items:
                           description: NetworkDataIPv4 represents an ipv4 static network
-                            object
+                            object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -1314,7 +1314,7 @@ spec:
                               description: Routes contains a list of IPv4 routes
                               items:
                                 description: NetworkDataRoutev4 represents an ipv4
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv4 address of the
@@ -1370,7 +1370,7 @@ spec:
                         description: IPv4 contains a list of IPv4 DHCP allocations
                         items:
                           description: NetworkDataIPv4DHCP represents an ipv4 DHCP
-                            network object
+                            network object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -1382,7 +1382,7 @@ spec:
                               description: Routes contains a list of IPv4 routes
                               items:
                                 description: NetworkDataRoutev4 represents an ipv4
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv4 address of the
@@ -1437,7 +1437,7 @@ spec:
                         description: IPv4 contains a list of IPv6 static allocations
                         items:
                           description: NetworkDataIPv6 represents an ipv6 static network
-                            object
+                            object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -1453,7 +1453,7 @@ spec:
                               description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv6 address of the
@@ -1509,7 +1509,7 @@ spec:
                         description: IPv4 contains a list of IPv6 DHCP allocations
                         items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
-                            network object
+                            network object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -1521,7 +1521,7 @@ spec:
                               description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv6 address of the
@@ -1576,7 +1576,7 @@ spec:
                         description: IPv4 contains a list of IPv6 SLAAC allocations
                         items:
                           description: NetworkDataIPv6DHCP represents an ipv6 DHCP
-                            network object
+                            network object.
                           properties:
                             id:
                               description: ID is the network ID (name)
@@ -1588,7 +1588,7 @@ spec:
                               description: Routes contains a list of IPv6 routes
                               items:
                                 description: NetworkDataRoutev6 represents an ipv6
-                                  route object
+                                  route object.
                                 properties:
                                   gateway:
                                     description: Gateway is the IPv6 address of the

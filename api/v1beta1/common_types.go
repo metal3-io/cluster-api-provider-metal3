@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	// UnhealthyAnnotation is the annotation that sets unhealthy status of BMH
+	// UnhealthyAnnotation is the annotation that sets unhealthy status of BMH.
 	UnhealthyAnnotation = "capi.metal3.io/unhealthy"
 )
 
@@ -67,7 +67,7 @@ type Image struct {
 	// +optional
 	ChecksumType *string `json:"checksumType,omitempty"`
 
-	//DiskFormat contains the image disk format
+	// DiskFormat contains the image disk format
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk;live-iso
 	// +optional
 	DiskFormat *string `json:"format,omitempty"`

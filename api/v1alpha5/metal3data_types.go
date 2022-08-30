@@ -64,7 +64,7 @@ type Metal3DataStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3Data"
-// Metal3Data is the Schema for the metal3datas API
+// Metal3Data is the Schema for the metal3datas API.
 type Metal3Data struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -75,7 +75,7 @@ type Metal3Data struct {
 
 // +kubebuilder:object:root=true
 
-// Metal3DataList contains a list of Metal3Data
+// Metal3DataList contains a list of Metal3Data.
 type Metal3DataList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
