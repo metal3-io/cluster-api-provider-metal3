@@ -36,24 +36,24 @@ var _ webhook.Validator = &Metal3MachineTemplate{}
 func (c *Metal3MachineTemplate) Default() {
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3MachineTemplate) ValidateCreate() error {
 	return c.validate()
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3MachineTemplate) ValidateUpdate(old runtime.Object) error {
 	return c.validate()
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3MachineTemplate) ValidateDelete() error {
 	return nil
 }
 
 func (c *Metal3MachineTemplate) validate() error {
 	var allErrs field.ErrorList
-	if len(c.Spec.Template.Spec.Image.URL) == 0 {
+	if c.Spec.Template.Spec.Image.URL == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
@@ -65,7 +65,7 @@ func (c *Metal3MachineTemplate) validate() error {
 	}
 
 	// Checksum is not required for live-iso.
-	if len(c.Spec.Template.Spec.Image.Checksum) == 0 && (c.Spec.Template.Spec.Image.DiskFormat == nil || *c.Spec.Template.Spec.Image.DiskFormat != "live-iso") {
+	if c.Spec.Template.Spec.Image.Checksum == "" && (c.Spec.Template.Spec.Image.DiskFormat == nil || *c.Spec.Template.Spec.Image.DiskFormat != LiveIsoDiskFormat) {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
@@ -74,7 +74,6 @@ func (c *Metal3MachineTemplate) validate() error {
 				"is required",
 			),
 		)
-
 	}
 
 	if len(allErrs) == 0 {

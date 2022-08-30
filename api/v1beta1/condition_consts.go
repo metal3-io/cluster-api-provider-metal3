@@ -27,7 +27,7 @@ const (
 	// ControlPlaneEndpointFailedReason is used to indicate that provided ControlPlaneEndpoint is invalid.
 	ControlPlaneEndpointFailedReason = "ControlPlaneEndpointFailed"
 	// InternalFailureReason is used to indicate that an internal failure
-	// occured. The `Message` field of the Condition should be consluted for
+	// occurred. The `Message` field of the Condition should be consluted for
 	// details on the failure.
 	InternalFailureReason = "InternalFailureOccured"
 )
@@ -47,7 +47,7 @@ const (
 
 	// KubernetesNodeReadyCondition documents the transition of a Metal3Machine into a Kubernetes Node.
 	KubernetesNodeReadyCondition clusterv1.ConditionType = "KubernetesNodeReady"
-	// Could not find the BMH associated with the Metal3Machine
+	// Could not find the BMH associated with the Metal3Machine.
 	MissingBMHReason = "MissingBMH"
 	// Could not set the ProviderID on the target cluster's Node object.
 	SettingProviderIDOnNodeFailedReason = "SettingProviderIDOnNodeFailed"

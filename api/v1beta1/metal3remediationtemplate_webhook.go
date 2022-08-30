@@ -31,10 +31,10 @@ import (
 var (
 	// Default retry timeout is 600 seconds.
 	defaultTimeout = metav1.Duration{Duration: 600 * time.Second}
-	// Minimum time between remediation retries
+	// Minimum time between remediation retries.
 	minTimeout = metav1.Duration{Duration: 100 * time.Second}
 	// Mininum remediation retry limit is 1.
-	// Controller will try to remediate unhealhy node at least once
+	// Controller will try to remediate unhealhy node at least once.
 	minRetryLimit = 1
 )
 
@@ -53,7 +53,7 @@ func (r *Metal3RemediationTemplate) SetupWebhookWithManager(mgr ctrl.Manager) er
 var _ webhook.Defaulter = &Metal3RemediationTemplate{}
 var _ webhook.Validator = &Metal3RemediationTemplate{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *Metal3RemediationTemplate) Default() {
 	if r.Spec.Template.Spec.Strategy.Type == "" {
 		r.Spec.Template.Spec.Strategy.Type = RebootRemediationStrategy
@@ -68,19 +68,19 @@ func (r *Metal3RemediationTemplate) Default() {
 	}
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *Metal3RemediationTemplate) ValidateCreate() error {
 	metal3remediationtemplatelog.Info("validate create", "name", r.Name)
 	return r.validate()
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *Metal3RemediationTemplate) ValidateUpdate(old runtime.Object) error {
 	metal3remediationtemplatelog.Info("validate update", "name", r.Name)
 	return r.validate()
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *Metal3RemediationTemplate) ValidateDelete() error {
 	metal3remediationtemplatelog.Info("validate delete", "name", r.Name)
 	return nil

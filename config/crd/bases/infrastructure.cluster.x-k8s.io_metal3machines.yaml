@@ -47,7 +47,7 @@ spec:
     name: v1alpha5
     schema:
       openAPIV3Schema:
-        description: Metal3Machine is the Schema for the metal3machines API
+        description: Metal3Machine is the Schema for the metal3machines API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -62,7 +62,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3MachineSpec defines the desired state of Metal3Machine
+            description: Metal3MachineSpec defines the desired state of Metal3Machine.
             properties:
               automatedCleaningMode:
                 description: When set to disabled, automated cleaning of host disks
@@ -226,7 +226,7 @@ spec:
             - image
             type: object
           status:
-            description: Metal3MachineStatus defines the observed state of Metal3Machine
+            description: Metal3MachineStatus defines the observed state of Metal3Machine.
             properties:
               addresses:
                 description: Addresses is a list of addresses assigned to the machine.
@@ -404,7 +404,7 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Metal3Machine is the Schema for the metal3machines API
+        description: Metal3Machine is the Schema for the metal3machines API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -419,7 +419,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3MachineSpec defines the desired state of Metal3Machine
+            description: Metal3MachineSpec defines the desired state of Metal3Machine.
             properties:
               automatedCleaningMode:
                 description: When set to disabled, automated cleaning of host disks
@@ -583,7 +583,7 @@ spec:
             - image
             type: object
           status:
-            description: Metal3MachineStatus defines the observed state of Metal3Machine
+            description: Metal3MachineStatus defines the observed state of Metal3Machine.
             properties:
               addresses:
                 description: Addresses is a list of addresses assigned to the machine.

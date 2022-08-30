@@ -40,21 +40,21 @@ func (r *Metal3Remediation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &Metal3Remediation{}
 var _ webhook.Validator = &Metal3Remediation{}
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *Metal3Remediation) Default() {
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (r *Metal3Remediation) ValidateCreate() error {
 	return r.validate()
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (r *Metal3Remediation) ValidateUpdate(old runtime.Object) error {
 	return r.validate()
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *Metal3Remediation) ValidateDelete() error {
 	metal3remediationlog.Info("validate delete", "name", r.Name)
 	return nil

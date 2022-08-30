@@ -82,7 +82,6 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 }
 
 func TestMetal3DataClaimUpdateValidation(t *testing.T) {
-
 	tests := []struct {
 		name      string
 		expectErr bool

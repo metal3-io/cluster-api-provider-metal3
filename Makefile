@@ -231,9 +231,11 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v --timeout=10m
+	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --timeout=10m
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run go fmt against code
 fmt:

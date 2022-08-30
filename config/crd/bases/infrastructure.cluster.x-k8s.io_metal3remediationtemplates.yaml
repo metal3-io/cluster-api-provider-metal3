@@ -27,7 +27,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: Metal3RemediationTemplate is the Schema for the metal3remediationtemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -43,11 +43,11 @@ spec:
             type: object
           spec:
             description: Metal3RemediationTemplateSpec defines the desired state of
-              Metal3RemediationTemplate
+              Metal3RemediationTemplate.
             properties:
               template:
                 description: Metal3RemediationTemplateResource describes the data
-                  needed to create a Metal3Remediation from a template
+                  needed to create a Metal3Remediation from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior
@@ -75,7 +75,7 @@ spec:
             type: object
           status:
             description: Metal3RemediationTemplateStatus defines the observed state
-              of Metal3RemediationTemplate
+              of Metal3RemediationTemplate.
             properties:
               status:
                 description: Metal3RemediationStatus defines the observed state of
@@ -107,7 +107,7 @@ spec:
     schema:
       openAPIV3Schema:
         description: Metal3RemediationTemplate is the Schema for the metal3remediationtemplates
-          API
+          API.
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -123,11 +123,11 @@ spec:
             type: object
           spec:
             description: Metal3RemediationTemplateSpec defines the desired state of
-              Metal3RemediationTemplate
+              Metal3RemediationTemplate.
             properties:
               template:
                 description: Metal3RemediationTemplateResource describes the data
-                  needed to create a Metal3Remediation from a template
+                  needed to create a Metal3Remediation from a template.
                 properties:
                   spec:
                     description: Spec is the specification of the desired behavior
@@ -155,7 +155,7 @@ spec:
             type: object
           status:
             description: Metal3RemediationTemplateStatus defines the observed state
-              of Metal3RemediationTemplate
+              of Metal3RemediationTemplate.
             properties:
               status:
                 description: Metal3RemediationStatus defines the observed state of

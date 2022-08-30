@@ -53,7 +53,7 @@ type Metal3RemediationSpec struct {
 	Strategy *RemediationStrategy `json:"strategy,omitempty"`
 }
 
-// RemediationStrategy describes how to remediate machines
+// RemediationStrategy describes how to remediate machines.
 type RemediationStrategy struct {
 	// Type of remediation.
 	// +optional
@@ -68,7 +68,7 @@ type RemediationStrategy struct {
 	Timeout *metav1.Duration `json:"timeout"`
 }
 
-// Metal3RemediationStatus defines the observed state of Metal3Remediation
+// Metal3RemediationStatus defines the observed state of Metal3Remediation.
 type Metal3RemediationStatus struct {
 	// Phase represents the current phase of machine remediation.
 	// E.g. Pending, Running, Done etc.
@@ -98,7 +98,7 @@ type Metal3RemediationStatus struct {
 // +kubebuilder:printcolumn:name="Strategy",type=string,JSONPath=".spec.strategy.type",description="Type of the remediation strategy"
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=".status.phase",description="Phase of the remediation"
 
-// Metal3Remediation is the Schema for the metal3remediations API
+// Metal3Remediation is the Schema for the metal3remediations API.
 type Metal3Remediation struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
@@ -112,7 +112,7 @@ type Metal3Remediation struct {
 
 // +kubebuilder:object:root=true
 
-// Metal3RemediationList contains a list of Metal3Remediation
+// Metal3RemediationList contains a list of Metal3Remediation.
 type Metal3RemediationList struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional

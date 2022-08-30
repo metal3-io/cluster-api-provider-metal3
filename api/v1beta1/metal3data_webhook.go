@@ -39,7 +39,7 @@ var _ webhook.Validator = &Metal3Data{}
 func (c *Metal3Data) Default() {
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
+// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3Data) ValidateCreate() error {
 	allErrs := field.ErrorList{}
 	if (c.Spec.TemplateReference != "" && c.Name != c.Spec.TemplateReference+"-"+strconv.Itoa(c.Spec.Index)) ||
@@ -69,7 +69,7 @@ func (c *Metal3Data) ValidateCreate() error {
 	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
+// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3Data) ValidateUpdate(old runtime.Object) error {
 	allErrs := field.ErrorList{}
 	oldMetal3Data, ok := old.(*Metal3Data)
@@ -145,7 +145,7 @@ func (c *Metal3Data) ValidateUpdate(old runtime.Object) error {
 	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
+// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3Data) ValidateDelete() error {
 	return nil
 }

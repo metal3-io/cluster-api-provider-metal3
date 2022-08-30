@@ -37,7 +37,6 @@ func TestMetal3DataDefault(t *testing.T) {
 }
 
 func TestMetal3DataCreateValidation(t *testing.T) {
-
 	tests := []struct {
 		name      string
 		dataName  string
@@ -100,7 +99,6 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 }
 
 func TestMetal3DataUpdateValidation(t *testing.T) {
-
 	tests := []struct {
 		name      string
 		expectErr bool
