@@ -342,7 +342,7 @@ var _ = Describe("Metal3Data manager", func() {
 							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
-									Id:   "eth0",
+									ID:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -403,7 +403,7 @@ var _ = Describe("Metal3Data manager", func() {
 							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
-									Id:   "eth0",
+									ID:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -472,7 +472,7 @@ var _ = Describe("Metal3Data manager", func() {
 							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
-									Id:   "eth0",
+									ID:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -519,7 +519,7 @@ var _ = Describe("Metal3Data manager", func() {
 							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
-									Id:   "eth0",
+									ID:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -1400,7 +1400,7 @@ var _ = Describe("Metal3Data manager", func() {
 							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
-									Id:   "eth0",
+									ID:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -1497,7 +1497,7 @@ var _ = Describe("Metal3Data manager", func() {
 							Ethernets: []infrav1.NetworkDataLinkEthernet{
 								{
 									Type: "phy",
-									Id:   "eth0",
+									ID:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
 										FromHostInterface: pointer.StringPtr("eth0"),
@@ -1631,7 +1631,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Ethernets: []infrav1.NetworkDataLinkEthernet{
 					{
 						Type: "phy",
-						Id:   "eth0",
+						ID:   "eth0",
 						MTU:  1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -1653,7 +1653,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Ethernets: []infrav1.NetworkDataLinkEthernet{
 					{
 						Type: "phy",
-						Id:   "eth0",
+						ID:   "eth0",
 						MTU:  1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							FromHostInterface: pointer.StringPtr("eth2"),
@@ -1672,7 +1672,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Bonds: []infrav1.NetworkDataLinkBond{
 					{
 						BondMode: "802.3ad",
-						Id:       "bond0",
+						ID:       "bond0",
 						MTU:      1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -1697,7 +1697,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Bonds: []infrav1.NetworkDataLinkBond{
 					{
 						BondMode: "802.3ad",
-						Id:       "bond0",
+						ID:       "bond0",
 						MTU:      1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							FromHostInterface: pointer.StringPtr("eth2"),
@@ -1717,7 +1717,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Vlans: []infrav1.NetworkDataLinkVlan{
 					{
 						VlanID: 2222,
-						Id:     "bond0",
+						ID:     "bond0",
 						MTU:    1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
@@ -1742,7 +1742,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Vlans: []infrav1.NetworkDataLinkVlan{
 					{
 						VlanID: 2222,
-						Id:     "bond0",
+						ID:     "bond0",
 						MTU:    1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
 							FromHostInterface: pointer.StringPtr("eth2"),

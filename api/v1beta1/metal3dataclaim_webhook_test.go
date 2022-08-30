@@ -174,9 +174,9 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var new, old *Metal3DataClaim
+			var newDataClaim, oldDataClaim *Metal3DataClaim
 			g := NewWithT(t)
-			new = &Metal3DataClaim{
+			newDataClaim = &Metal3DataClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 					Name:      "abc-1",
@@ -185,7 +185,7 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			}
 
 			if tt.old != nil {
-				old = &Metal3DataClaim{
+				oldDataClaim = &Metal3DataClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 						Name:      "abc-1",
@@ -193,13 +193,13 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 					Spec: *tt.old,
 				}
 			} else {
-				old = nil
+				oldDataClaim = nil
 			}
 
 			if tt.expectErr {
-				g.Expect(new.ValidateUpdate(old)).NotTo(Succeed())
+				g.Expect(newDataClaim.ValidateUpdate(oldDataClaim)).NotTo(Succeed())
 			} else {
-				g.Expect(new.ValidateUpdate(old)).To(Succeed())
+				g.Expect(newDataClaim.ValidateUpdate(oldDataClaim)).To(Succeed())
 			}
 		})
 	}

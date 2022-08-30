@@ -179,9 +179,9 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var new, old *Metal3DataTemplate
+			var newDT, oldDT *Metal3DataTemplate
 			g := NewWithT(t)
-			new = &Metal3DataTemplate{
+			newDT = &Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
 				},
@@ -189,20 +189,20 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			}
 
 			if tt.old != nil {
-				old = &Metal3DataTemplate{
+				oldDT = &Metal3DataTemplate{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
 					},
 					Spec: *tt.old,
 				}
 			} else {
-				old = nil
+				oldDT = nil
 			}
 
 			if tt.expectErr {
-				g.Expect(new.ValidateUpdate(old)).NotTo(Succeed())
+				g.Expect(newDT.ValidateUpdate(oldDT)).NotTo(Succeed())
 			} else {
-				g.Expect(new.ValidateUpdate(old)).To(Succeed())
+				g.Expect(newDT.ValidateUpdate(oldDT)).To(Succeed())
 			}
 		})
 	}

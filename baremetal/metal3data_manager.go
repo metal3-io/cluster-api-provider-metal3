@@ -613,7 +613,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 		}
 		data = append(data, map[string]interface{}{
 			"type":                 link.Type,
-			"id":                   link.Id,
+			"id":                   link.ID,
 			"mtu":                  link.MTU,
 			"ethernet_mac_address": macAddress,
 		})
@@ -627,7 +627,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 		}
 		data = append(data, map[string]interface{}{
 			"type":                 "bond",
-			"id":                   link.Id,
+			"id":                   link.ID,
 			"mtu":                  link.MTU,
 			"ethernet_mac_address": macAddress,
 			"bond_mode":            link.BondMode,
@@ -643,7 +643,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 		}
 		data = append(data, map[string]interface{}{
 			"type":             "vlan",
-			"id":               link.Id,
+			"id":               link.ID,
 			"mtu":              link.MTU,
 			"vlan_mac_address": macAddress,
 			"vlan_id":          link.VlanID,
