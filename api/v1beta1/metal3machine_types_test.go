@@ -166,7 +166,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "test url",
+					Checksum: "http://:asdf",
 				},
 				UserData: &corev1.SecretReference{
 					Name: "worker-user-data",
@@ -174,6 +174,19 @@ func TestSpecIsValid(t *testing.T) {
 			},
 			ErrorExpected: true,
 			Name:          "Invalid URL Image.Checksum",
+		},
+		{
+			Spec: Metal3MachineSpec{
+				Image: Image{
+					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+					Checksum: "somehash2345092830480293804",
+				},
+				UserData: &corev1.SecretReference{
+					Name: "worker-user-data",
+				},
+			},
+			ErrorExpected: false,
+			Name:          "Hash value in Image.Checksum",
 		},
 		{
 			Spec: Metal3MachineSpec{
