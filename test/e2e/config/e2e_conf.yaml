@@ -132,6 +132,7 @@ variables:
   # Default vars for the template, those values could be overridden by the env-vars.
   CAPI_VERSION: "v1beta1"
   CAPM3_VERSION: "v1beta1"
+  CONFIG_FILE_PATH: "${HOME}/.cluster-api/clusterctl.yaml"
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   PROVISIONING_CIDR: "24"

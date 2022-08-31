@@ -52,7 +52,7 @@ func pivoting() {
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath:          targetCluster.GetKubeconfigPath(),
-		ClusterctlConfigPath:    os.Getenv("CONFIG_FILE_PATH"),
+		ClusterctlConfigPath:    e2eConfig.GetVariable("CONFIG_FILE_PATH"),
 		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
 		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
 		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
