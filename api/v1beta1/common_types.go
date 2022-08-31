@@ -23,6 +23,8 @@ import (
 const (
 	// UnhealthyAnnotation is the annotation that sets unhealthy status of BMH
 	UnhealthyAnnotation = "capi.metal3.io/unhealthy"
+
+	LiveISODiskFormat = "live-iso"
 )
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.

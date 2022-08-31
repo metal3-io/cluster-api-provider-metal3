@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -99,9 +100,12 @@ func (s *Metal3MachineSpec) IsValid() error {
 	if err != nil {
 		invalid = append(invalid, "Image.URL")
 	}
-	_, err = url.ParseRequestURI(s.Image.Checksum)
-	if err != nil {
-		invalid = append(invalid, "Image.Checksum")
+	if (s.Image.DiskFormat == nil || *s.Image.DiskFormat != LiveISODiskFormat) &&
+		(strings.HasPrefix(s.Image.Checksum, "http://") || strings.HasPrefix(s.Image.Checksum, "https://")) {
+		_, err = url.ParseRequestURI(s.Image.Checksum)
+		if err != nil {
+			invalid = append(invalid, "Image.Checksum")
+		}
 	}
 	if len(invalid) > 0 {
 		return errors.Errorf("Invalid fields from ProviderSpec: %v", invalid)
