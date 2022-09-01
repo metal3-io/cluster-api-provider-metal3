@@ -77,6 +77,7 @@ if [[ "${CAPM3_VERSION}" == "v1alpha5" ]]; then
     # building CAPM3 image while upgrade needs an old version
     unset CAPM3_LOCAL_IMAGE
     export CAPM3PATH="${M3PATH}/cluster-api-provider-metal3"
+    export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-release-0.5}"
 fi
 if [[ "${IMAGE_OS}" == "ubuntu" ]]; then
   export UPGRADED_IMAGE_NAME="UBUNTU_20.04_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}.qcow2"
