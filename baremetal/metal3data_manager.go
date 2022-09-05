@@ -537,20 +537,6 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 
 	// Remove finalizer from Metal3IPClaim since we no longer need it
 	ipClaim.Finalizers = Filter(ipClaim.Finalizers, infrav1.DataFinalizer)
-	// Remove Metal3Data ownerRef
-	newOwnerRefs := []metav1.OwnerReference{}
-	for _, ownerRef := range ipClaim.OwnerReferences {
-		oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
-		if err != nil {
-			return err
-		}
-		if ownerRef.Kind == "Metal3Data" && oGV.Group == infrav1.GroupVersion.Group {
-			continue
-		} else {
-			newOwnerRefs = append(newOwnerRefs, ownerRef)
-		}
-	}
-	ipClaim.OwnerReferences = newOwnerRefs
 	err = updateObject(ctx, m.client, ipClaim)
 	if err != nil {
 		return err

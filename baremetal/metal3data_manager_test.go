@@ -1329,8 +1329,8 @@ var _ = Describe("Metal3Data manager", func() {
 				if tc.injectDeleteErr {
 					// There was an error deleting the claim, so we expect it to still be there
 					Expect(err).To(BeNil())
-					// We expect the ownerRef to be gone
-					Expect(capm3IPClaim.OwnerReferences).To(BeEmpty())
+					// We expect the finalizer to be gone
+					Expect(capm3IPClaim.Finalizers).To(BeEmpty())
 				} else {
 					Expect(err).To(HaveOccurred())
 					Expect(apierrors.IsNotFound(err)).To(BeTrue())
@@ -1356,7 +1356,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			poolRef: corev1.TypedLocalObjectReference{Name: "abc"},
 		}),
-		Entry("Deletion error and ownerRef removal", testCaseReleaseAddressFromPool{
+		Entry("Deletion error and finalizer removal", testCaseReleaseAddressFromPool{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				TypeMeta: metav1.TypeMeta{
@@ -1367,12 +1367,9 @@ var _ = Describe("Metal3Data manager", func() {
 			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      metal3DataName + "-" + testPoolName,
-					Namespace: namespaceName,
-					OwnerReferences: []metav1.OwnerReference{{
-						Kind:       "Metal3Data",
-						APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
-					}},
+					Name:       metal3DataName + "-" + testPoolName,
+					Namespace:  namespaceName,
+					Finalizers: []string{infrav1.DataFinalizer},
 				},
 			},
 			injectDeleteErr: true,
