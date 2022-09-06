@@ -613,20 +613,6 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
 	data := []interface{}{}
 
-	// Ethernet links
-	for _, link := range networkLinks.Ethernets {
-		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
-		if err != nil {
-			return nil, err
-		}
-		data = append(data, map[string]interface{}{
-			"type":                 link.Type,
-			"id":                   link.Id,
-			"mtu":                  link.MTU,
-			"ethernet_mac_address": macAddress,
-		})
-	}
-
 	// Bond links
 	for _, link := range networkLinks.Bonds {
 		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
@@ -640,6 +626,20 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 			"ethernet_mac_address": macAddress,
 			"bond_mode":            link.BondMode,
 			"bond_links":           link.BondLinks,
+		})
+	}
+
+	// Ethernet links
+	for _, link := range networkLinks.Ethernets {
+		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, map[string]interface{}{
+			"type":                 link.Type,
+			"id":                   link.Id,
+			"mtu":                  link.MTU,
+			"ethernet_mac_address": macAddress,
 		})
 	}
 
