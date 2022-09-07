@@ -1188,7 +1188,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectRequeue: true,
 		}),
-		Entry("IPClaim with deletion timestamp", testCaseGetAddressFromPool{
+		Entry("Old IPClaim with deletion timestamp", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
@@ -1199,6 +1199,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 			},
 			poolName:        testPoolName,
+			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
 			expectedAddress: addressFromPool{},
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: metav1.ObjectMeta{
@@ -1225,8 +1226,56 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
+			expectRequeue: true,
+			expectError:   false,
+		}),
+		Entry("In-use IPClaim with deletion timestamp", testCaseGetAddressFromPool{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, "abc-def-ghi-jkl"),
+			},
+			poolName: testPoolName,
+			poolRef:  corev1.TypedLocalObjectReference{Name: testPoolName},
+			expectedAddress: addressFromPool{
+				address: ipamv1.IPAddressStr("192.168.0.10"),
+				prefix:  26,
+				gateway: ipamv1.IPAddressStr("192.168.0.1"),
+				dnsServers: []ipamv1.IPAddressStr{
+					"8.8.8.8",
+				},
+			},
+			ipClaim: &ipamv1.IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              metal3DataName + "-" + testPoolName,
+					Namespace:         namespaceName,
+					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Minute)},
+					Finalizers:        []string{"ipclaim.ipam.metal3.io"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "Metal3Data",
+							Name: metal3DataName,
+							UID:  "abc-def-ghi-jkl",
+						},
+					},
+				},
+				Status: ipamv1.IPClaimStatus{
+					Address: &corev1.ObjectReference{
+						Name:      "abc-192.168.0.10",
+						Namespace: namespaceName,
+					},
+				},
+			},
+			ipAddress: &ipamv1.IPAddress{
+				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
+				Spec: ipamv1.IPAddressSpec{
+					Address: ipamv1.IPAddressStr("192.168.0.10"),
+					Prefix:  26,
+					Gateway: (*ipamv1.IPAddressStr)(pointer.StringPtr("192.168.0.1")),
+					DNSServers: []ipamv1.IPAddressStr{
+						"8.8.8.8",
+					},
+				},
+			},
 			expectRequeue: false,
-			expectError:   true,
 		}),
 		Entry("IPPool with allocation error", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
@@ -1258,7 +1307,7 @@ var _ = Describe("Metal3Data manager", func() {
 			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
 			expectedAddress: addressFromPool{},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
+				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
 				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.11",
@@ -1266,8 +1315,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectRequeue: false,
-			expectError:   true,
+			expectRequeue: true,
+			expectError:   false,
 		}),
 		Entry("IPAddress found", testCaseGetAddressFromPool{
 			m3d: &infrav1.Metal3Data{
