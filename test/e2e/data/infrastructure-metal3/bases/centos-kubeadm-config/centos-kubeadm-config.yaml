@@ -163,9 +163,7 @@ spec:
     - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
     - nmcli connection up ironicendpoint
     - systemctl enable --now crio keepalived kubelet
-    - systemctl link /lib/systemd/system/monitor.keepalived.service
-    - systemctl enable monitor.keepalived.service
-    - systemctl start monitor.keepalived.service
+    - systemctl enable --now /lib/systemd/system/monitor.keepalived.service
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
 kind: KubeadmConfigTemplate
