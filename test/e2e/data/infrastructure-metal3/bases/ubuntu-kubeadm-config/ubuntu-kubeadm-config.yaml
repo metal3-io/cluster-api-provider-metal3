@@ -115,9 +115,7 @@ spec:
     - netplan apply
     - systemctl enable --now crio kubelet
     - if (curl -sk --max-time 10 https://${CLUSTER_APIENDPOINT_HOST}:${CLUSTER_APIENDPOINT_PORT}/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
-    - systemctl link /lib/systemd/system/monitor.keepalived.service
-    - systemctl enable monitor.keepalived.service
-    - systemctl start monitor.keepalived.service
+    - systemctl enable --now /lib/systemd/system/monitor.keepalived.service
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
 kind: KubeadmConfigTemplate
