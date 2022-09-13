@@ -33,6 +33,47 @@ sounds interesting](https://github.com/metal3-io/cluster-api-provider-metal3/iss
 Alternatively, read some of the docs on other controllers and try to write your
 own, file and fix any/all issues that come up, including gaps in documentation!
 
+## Versioning
+
+### Codebase and Go Modules
+
+> :warning: The project does not follow Go Modules guidelines for compatibility requirements for 1.x semver releases.
+Cluster API Provider Metal3 follows Cluster API release cadence and versioning which follows upstream Kubernetes semantic versioning. With the v1 release of our codebase, we guarantee the following:
+
+- A (*minor*) release CAN include:
+  - Introduction of new API versions, or new Kinds.
+  - Compatible API changes like field additions, deprecation notices, etc.
+  - Breaking API changes for deprecated APIs, fields, or code.
+  - Features, promotion or removal of feature gates.
+  - And more!
+
+- A (*patch*) release SHOULD only include backwards compatible set of bugfixes.
+
+These guarantees extend to all code exposed in our Go Module, including
+*types from dependencies in public APIs*.
+Types and functions not in public APIs are not considered part of the guarantee.
+The test module, and experiments do not provide any backward compatible guarantees.
+
+#### Backporting
+
+We only accept backports of critical bugs, security issues, or bugs without easy workarounds, any
+backport MUST not be breaking for either API or behavioral changes.
+We generally do not accept PRs against older release branches.
+
+## Branches
+
+Cluster API Provider Metal3 has two types of branches: the *main* branch and
+*release-X* branches.
+
+The *main* branch is where development happens. All the latest and
+greatest code, including breaking changes, happens on main.
+
+The *release-X* branches contain stable, backwards compatible code. On every
+major or minor release, a new branch is created. It is from these
+branches that minor and patch releases are tagged. In some cases, it may
+be necessary to open PRs for bugfixes directly against stable branches, but
+this should generally not be the case.
+
 ## Contributing a Patch
 
 1. If you haven't already done so, sign a Contributor License Agreement (see
@@ -42,11 +83,17 @@ own, file and fix any/all issues that come up, including gaps in documentation!
 
 All code PR must be labeled with one of
 
-- ⚠️ (:warning:, major or breaking changes)
-- ✨ (:sparkles:, minor or feature additions)
-- 🐛 (:bug:, patch and bugfixes)
-- 📖 (:book:, documentation or proposals)
-- 🌱 (:seedling:, minor or other)
+- ⚠️ (`:warning:`, major or breaking changes)
+- ✨ (`:sparkles:`, feature additions)
+- 🐛 (`:bug:`, patch and bugfixes)
+- 📖 (`:book:`, documentation or proposals)
+- 🌱 (`:seedling:`, minor or other)
+
+Individual commits should not be tagged separately, but will generally be
+assumed to match the PR. For instance, if you have a bugfix in with
+a breaking change, it's generally encouraged to submit the bugfix
+separately, but if you must put them in one PR, mark the commit
+separately.
 
 All changes must be code reviewed. Coding conventions and standards are
 explained in the official [developer
@@ -57,7 +104,7 @@ mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in your PRs.
 
 ## Backporting a Patch
 
-Cluster API maintains older versions through `release-X.Y` branches. We accept
+Cluster API Provider Metal3 maintains older versions through `release-X.Y` branches. We accept
 backports of bug fixes to the most recent
 release branch. For example, if the most recent branch is `release-0.2`, and the
 `main` branch is under active
@@ -114,3 +161,34 @@ order to be assigned an issue or pull request, you must be a member of the
 
 Metal3 maintainers can assign you an issue or pull request by leaving a
 `/assign <your Github ID>` comment on the issue or pull request.
+
+### Commands and Workflow
+
+Cluster API Provider Metal3 follows the standard Kubernetes workflow: any PR
+needs `lgtm` and `approved` labels, and PRs must pass the tests before being merged.
+See [the contributor docs](https://github.com/kubernetes/community/blob/master/contributors/guide/pull-requests.md#the-testing-and-merge-workflow) for more info.
+
+We use the same priority and kind labels as Kubernetes. See the labels
+tab in GitHub for the full list.
+
+The standard Kubernetes comment commands should work in
+Cluster API Provider Metal3. See [Prow](https://prow.apps.test.metal3.io/command-help)
+for a command reference.
+
+## Release Process
+
+Minor and patch releases are generally done immediately after a feature or
+bugfix is landed, or sometimes a series of features tied together.
+
+Minor releases will only be tagged on the *most recent* major release
+branch, except in exceptional circumstances. Patches will be backported
+to maintained stable versions, as needed.
+
+Major releases are done shortly after a breaking change is merged -- once
+a breaking change is merged, the next release *must* be a major revision.
+We don't intend to have a lot of these, so we may put off merging breaking
+PRs until a later date.
+
+### Exact Steps
+
+Refer to the [releasing document](./docs/releasing.md) for the exact steps.
