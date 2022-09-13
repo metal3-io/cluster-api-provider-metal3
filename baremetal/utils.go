@@ -187,20 +187,20 @@ func deleteSecret(ctx context.Context, cl client.Client, name string,
 	return nil
 }
 
-// fetchMetadata fetches the Metal3DataTemplate object.
+// fetchM3DataTemplate returns the Metal3DataTemplate object.
 func fetchM3DataTemplate(ctx context.Context,
 	templateRef *corev1.ObjectReference, cl client.Client, mLog logr.Logger,
 	clusterName string,
 ) (*infrav1.Metal3DataTemplate, error) {
-	// If the user did not specify a DataTemplate, just keep going.
+	// If the user did not specify a Metal3DataTemplate, just keep going.
 	if templateRef == nil {
 		return nil, nil
 	}
 	if templateRef.Name == "" {
-		return nil, errors.New("Metadata name not set")
+		return nil, errors.New("Metal3DataTemplate name not set")
 	}
 
-	// Fetch the Metal3 metadata.
+	// Fetch the Metal3DataTemplate.
 	metal3DataTemplate := &infrav1.Metal3DataTemplate{}
 	metal3DataTemplateName := types.NamespacedName{
 		Namespace: templateRef.Namespace,
@@ -208,14 +208,14 @@ func fetchM3DataTemplate(ctx context.Context,
 	}
 	if err := cl.Get(ctx, metal3DataTemplateName, metal3DataTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Metadata not found, requeuing")
+			mLog.Info("Metal3DataTemplate is not found, requeuing")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
-		err := errors.Wrap(err, "Failed to get metadata")
+		err := errors.Wrap(err, "Failed to get Metal3DataTemplate")
 		return nil, err
 	}
 
-	// Verify that this Metal3Data belongs to the correct cluster.
+	// Verify that this Metal3DataTemplate belongs to the correct cluster.
 	if clusterName != metal3DataTemplate.Spec.ClusterName {
 		return nil, errors.New("Metal3DataTemplate associated with another cluster")
 	}
@@ -223,6 +223,7 @@ func fetchM3DataTemplate(ctx context.Context,
 	return metal3DataTemplate, nil
 }
 
+// fetchM3DataClaim returns the Metal3DataClaim object.
 func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string,
 ) (*infrav1.Metal3DataClaim, error) {
@@ -234,15 +235,16 @@ func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3DataClaimName, m3DataClaim); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Data Claim not found")
+			mLog.Info("Metal3DataClaim is not found, requeuing")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
-		err := errors.Wrap(err, "Failed to get metadata claim")
+		err := errors.Wrap(err, "Failed to get Metal3DataClaim")
 		return nil, err
 	}
 	return m3DataClaim, nil
 }
 
+// fetchM3Data returns the Metal3Data object.
 func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string,
 ) (*infrav1.Metal3Data, error) {
@@ -254,15 +256,16 @@ func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3DataName, m3Data); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Rendered data not found, requeuing")
+			mLog.Info("Metal3Data is not found, requeuing")
 			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 		}
-		err := errors.Wrap(err, "Failed to get metadata")
+		err := errors.Wrap(err, "Failed to get Metal3Data")
 		return nil, err
 	}
 	return m3Data, nil
 }
 
+// getM3Machine returns the Metal3Machine object.
 func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 	name, namespace string, dataTemplate *infrav1.Metal3DataTemplate,
 	requeueifNotFound bool,
@@ -276,11 +279,14 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 	err := cl.Get(ctx, key, tmpM3Machine)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
+			mLog.Info("Metal3Machine is not found")
 			if requeueifNotFound {
+				mLog.Info("Metal3Machine is not found, requeuing")
 				return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 			}
 			return nil, nil
 		}
+		err := errors.Wrap(err, "Failed to get Metal3Machine")
 		return nil, err
 	}
 

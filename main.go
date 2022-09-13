@@ -48,21 +48,22 @@ import (
 )
 
 var (
-	myscheme                    = runtime.NewScheme()
-	setupLog                    = ctrl.Log.WithName("setup")
-	waitForMetal3Controller     = false
-	metricsBindAddr             string
-	enableLeaderElection        bool
-	leaderElectionLeaseDuration time.Duration
-	leaderElectionRenewDeadline time.Duration
-	leaderElectionRetryPeriod   time.Duration
-	syncPeriod                  time.Duration
-	webhookPort                 int
-	webhookCertDir              string
-	healthAddr                  string
-	watchNamespace              string
-	watchFilterValue            string
-	logOptions                  = logs.NewOptions()
+	myscheme                        = runtime.NewScheme()
+	setupLog                        = ctrl.Log.WithName("setup")
+	waitForMetal3Controller         = false
+	metricsBindAddr                 string
+	enableLeaderElection            bool
+	leaderElectionLeaseDuration     time.Duration
+	leaderElectionRenewDeadline     time.Duration
+	leaderElectionRetryPeriod       time.Duration
+	syncPeriod                      time.Duration
+	webhookPort                     int
+	webhookCertDir                  string
+	healthAddr                      string
+	watchNamespace                  string
+	watchFilterValue                string
+	logOptions                      = logs.NewOptions()
+	enableBMHNameBasedPreallocation bool
 )
 
 func init() {
@@ -128,6 +129,10 @@ func main() {
 	// Setup the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
 
+	if enableBMHNameBasedPreallocation {
+		baremetal.EnableBMHNameBasedPreallocation = enableBMHNameBasedPreallocation
+	}
+
 	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
@@ -156,6 +161,13 @@ func initFlags(fs *pflag.FlagSet) {
 		"leader-elect",
 		false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.",
+	)
+
+	fs.BoolVar(
+		&enableBMHNameBasedPreallocation,
+		"enableBMHNameBasedPreallocation",
+		false,
+		"If set to true, it enables PreAllocation field to use Metal3IPClaim name structured with BaremetalHost and M3IPPool names",
 	)
 
 	fs.DurationVar(
