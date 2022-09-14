@@ -51,8 +51,8 @@ var _ = Describe("Testing nodes remediation [remediation]", func() {
 		targetCluster = createTargetCluster()
 
 		// Run Metal3Remediation test first, doesn't work after remediation...
-		By("Running Metal3Remediation tests")
-		metal3remediation()
+		// By("Running Metal3Remediation tests")
+		// metal3remediation()
 
 		By("Running remediation tests")
 		remediation()

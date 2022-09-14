@@ -127,7 +127,7 @@ E2E_OUT_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
 E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
 
-SKIP_CLEANUP ?= false
+SKIP_CLEANUP ?= true
 EPHEMERAL_TEST ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
@@ -150,7 +150,7 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## --------------------------------------
 ## E2E Testing
 ## --------------------------------------
-GINKGO_FOCUS  ?=
+GINKGO_FOCUS  ?= remediation
 GINKGO_SKIP ?=
 
 # TODO (Mohammed) select the test in JJB
