@@ -48,7 +48,9 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 			managementCluster = targetCluster
 			pivoting()
 		}
-
+		// inject failure
+		By("Remove Ironic deployment from target cluster")
+		removeIronicDeploymentOnTarget()
 		certRotation(managementCluster.GetClientSet(), managementCluster.GetClient())
 		nodeReuse(managementCluster.GetClient())
 
