@@ -537,9 +537,26 @@ func (m *DataManager) getAddressFromM3Pool(ctx context.Context, poolRef corev1.T
 	}
 
 	if !ipClaim.DeletionTimestamp.IsZero() {
-		// This Metal3IPClaim is about to be deleted so we cannot use it. Requeue.
-		m.Log.Info("Found IPClaim with deletion timestamp, requeuing.", "IPClaim", ipClaim)
-		return addressFromPool{}, true, nil
+		// Is it "our" ipClaim, or does it belong to an old and deleted Metal3Data with the same name?
+		matchingOwnerRef := false
+		for _, ownerRef := range ipClaim.OwnerReferences {
+			if ownerRef.UID == m.Data.GetUID() {
+				matchingOwnerRef = true
+			}
+		}
+		if !matchingOwnerRef {
+			// It is not our IPClaim so we should not use it. Attempt to remove finalizer if it is still there.
+			m.Log.Info("Found old IPClaim with deletion timestamp. Attempting to clean up and requeue.", "IPClaim", ipClaim)
+			if Contains(ipClaim.Finalizers, infrav1.DataFinalizer) {
+				ipClaim.Finalizers = Filter(ipClaim.Finalizers, infrav1.DataFinalizer)
+				err = updateObject(ctx, m.client, ipClaim)
+				if err != nil {
+					m.Log.Info("Failed to remove finalizer from old IPClaim", "IPClaim", ipClaim, "error", err)
+				}
+			}
+			return addressFromPool{}, true, nil
+		}
+		m.Log.Info("IPClaim has deletion timestamp but is still in use!", "IPClaim", ipClaim)
 	}
 
 	if ipClaim.Status.ErrorMessage != nil {
@@ -563,8 +580,10 @@ func (m *DataManager) getAddressFromM3Pool(ctx context.Context, poolRef corev1.T
 
 	if err := m.client.Get(ctx, addressNamespacedName, ipAddress); err != nil {
 		if apierrors.IsNotFound(err) {
+			m.Log.Info("IPAddress not found, requeuing", "IPAddress", ipClaim.Status.Address.Name)
 			return addressFromPool{}, true, nil
 		}
+		m.Log.Error(err, "Unable to get IPAddress.", "IPAddress", ipClaim.Status.Address.Name)
 		return addressFromPool{}, false, err
 	}
 
