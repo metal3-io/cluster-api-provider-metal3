@@ -17,12 +17,18 @@ limitations under the License.
 package v1beta1
 
 import (
+	"net/url"
+	"strings"
+
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
 const (
 	// UnhealthyAnnotation is the annotation that sets unhealthy status of BMH.
 	UnhealthyAnnotation = "capi.metal3.io/unhealthy"
+
+	LiveISODiskFormat = "live-iso"
 )
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
@@ -67,8 +73,37 @@ type Image struct {
 	// +optional
 	ChecksumType *string `json:"checksumType,omitempty"`
 
-	// DiskFormat contains the image disk format
+	// DiskFormat contains the image disk format.
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk;live-iso
 	// +optional
 	DiskFormat *string `json:"format,omitempty"`
+}
+
+// Validate performs validation on [Image], returning a list of field errors using the provided base path.
+// It is intended to be used in the validation webhooks of resources containing [Image].
+func (i *Image) Validate(base field.Path) field.ErrorList {
+	var errors field.ErrorList
+
+	if i.URL == "" {
+		errors = append(errors, field.Required(base.Child("URL"), "cannot be empty"))
+	} else {
+		_, err := url.ParseRequestURI(i.URL)
+		if err != nil {
+			errors = append(errors, field.Invalid(base.Child("URL"), i.URL, "not a valid URL"))
+		}
+	}
+	// Checksum is not required for live-iso.
+	if i.DiskFormat == nil || *i.DiskFormat != LiveISODiskFormat {
+		if i.Checksum == "" {
+			errors = append(errors, field.Required(base.Child("Checksum"), "cannot be empty"))
+		}
+
+		if strings.HasPrefix(i.Checksum, "http://") || strings.HasPrefix(i.Checksum, "https://") {
+			_, err := url.ParseRequestURI(i.Checksum)
+			if err != nil {
+				errors = append(errors, field.Invalid(base.Child("Checksum"), i.Checksum, "not a valid URL"))
+			}
+		}
+	}
+	return errors
 }

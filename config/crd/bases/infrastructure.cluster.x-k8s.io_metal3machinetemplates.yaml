@@ -373,7 +373,7 @@ spec:
                             - sha512
                             type: string
                           format:
-                            description: DiskFormat contains the image disk format
+                            description: DiskFormat contains the image disk format.
                             enum:
                             - raw
                             - qcow2
