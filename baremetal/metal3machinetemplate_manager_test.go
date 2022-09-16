@@ -22,8 +22,7 @@ import (
 	"github.com/go-logr/logr"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
