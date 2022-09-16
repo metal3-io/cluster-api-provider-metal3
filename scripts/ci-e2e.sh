@@ -48,6 +48,8 @@ pushd ${M3_DEV_ENV_PATH}
 make install_requirements configure_host 
 # shellcheck disable=SC1091
 source lib/common.sh
+# shellcheck disable=SC1091
+source lib/releases.sh
 clone_repos
 # The old path ends with '/..', making cp to copy the content of the directory instead of the whole one.  
 REPO_ROOT=$(realpath "$REPO_ROOT") 
