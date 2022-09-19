@@ -127,6 +127,11 @@ Or use parallel for faster tests. Note that these tests run in multiple VMs by c
 - **/test-ubuntu-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on Ubuntu
 - **/test-centos-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.2 branch:
+
+- **/test-ubuntu-e2e-release-1-2** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
+- **/test-centos-e2e-release-1-2** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
+
 Release-0.5 branch:
 
 - **/test-ubuntu-e2e-release-0-5** runs e2e tests with CAPM3 API version v1alpha5 and branch release-0.5 on Ubuntu
