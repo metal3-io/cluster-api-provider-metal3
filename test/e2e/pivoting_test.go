@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -115,46 +114,31 @@ func pivoting() {
 	Expect(controlPlane).ToNot(BeNil())
 
 	By("Check if BMH is in provisioned state")
-	Eventually(func() error {
+	Eventually(func(g Gomega) {
 		bmhList := &bmov1alpha1.BareMetalHostList{}
-		if err := targetCluster.GetClient().List(ctx, bmhList, client.InNamespace(namespace)); err != nil {
-			return err
-		}
+		g.Expect(targetCluster.GetClient().List(ctx, bmhList, client.InNamespace(namespace))).To(Succeed())
 		for _, bmh := range bmhList.Items {
-			if !bmh.WasProvisioned() {
-				return errors.New("BMHs cannot be provisioned")
-			}
+			g.Expect(bmh.WasProvisioned()).To(BeTrue())
 		}
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(BeNil())
+	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
 
 	By("Check if metal3machines become ready.")
-	Eventually(func() error {
+	Eventually(func(g Gomega) {
 		m3Machines := &infrav1.Metal3MachineList{}
-		if err := targetCluster.GetClient().List(ctx, m3Machines, client.InNamespace(namespace)); err != nil {
-			return err
-		}
+		g.Expect(targetCluster.GetClient().List(ctx, m3Machines, client.InNamespace(namespace)))
 		for _, m3Machine := range m3Machines.Items {
-			if !m3Machine.Status.Ready {
-				return errors.New("Metal3Machines cannot be ready")
-			}
+			g.Expect(m3Machine.Status.Ready).To(BeTrue())
 		}
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(BeNil())
+	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
 
 	By("Check if machines become running.")
-	Eventually(func() error {
+	Eventually(func(g Gomega) {
 		machines := &clusterv1.MachineList{}
-		if err := targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace)); err != nil {
-			return err
-		}
+		g.Expect(targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
 		for _, machine := range machines.Items {
-			if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
-				return errors.New("Machines cannot be in the Running state")
-			}
+			g.Expect(strings.EqualFold(machine.Status.Phase, "running")).To(BeTrue())
 		}
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(BeNil())
+	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Succeed())
 
 	By("PIVOTING TESTS PASSED!")
 }
@@ -348,31 +332,21 @@ func rePivoting() {
 	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
 
 	By("Check if metal3machines become ready.")
-	Eventually(func() error {
+	Eventually(func(g Gomega) {
 		m3Machines := &infrav1.Metal3MachineList{}
-		if err := bootstrapClusterProxy.GetClient().List(ctx, m3Machines, client.InNamespace(namespace)); err != nil {
-			return err
-		}
+		g.Expect(bootstrapClusterProxy.GetClient().List(ctx, m3Machines, client.InNamespace(namespace))).Should(Succeed())
 		for _, m3Machine := range m3Machines.Items {
-			if !m3Machine.Status.Ready {
-				return errors.New("Metal3Machines cannot be ready")
-			}
+			g.Expect(m3Machine.Status.Ready).To(BeTrue())
 		}
-		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
 
 	By("Check if machines become running.")
-	Eventually(func() error {
+	Eventually(func(g Gomega) {
 		machines := &clusterv1.MachineList{}
-		if err := bootstrapClusterProxy.GetClient().List(ctx, machines, client.InNamespace(namespace)); err != nil {
-			return err
-		}
+		g.Expect(bootstrapClusterProxy.GetClient().List(ctx, machines, client.InNamespace(namespace))).Should(Succeed())
 		for _, machine := range machines.Items {
-			if !strings.EqualFold(machine.Status.Phase, "running") { // Case insensitive comparison
-				return errors.New("Machines cannot be in the Running state")
-			}
+			g.Expect(strings.EqualFold(machine.Status.Phase, "running")).To(BeTrue())
 		}
-		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Succeed())
 
 	By("RE-PIVOTING TEST PASSED!")
