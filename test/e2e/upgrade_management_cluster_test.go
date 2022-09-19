@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -175,18 +174,13 @@ func upgradeManagementCluster() {
 		Expect(err).To(BeNil())
 
 		By("Check if BMH is in provisioned state")
-		Eventually(func() error {
+		Eventually(func(g Gomega) {
 			bmhList := &bmov1alpha1.BareMetalHostList{}
-			if err := upgradeClusterClient.List(ctx, bmhList, client.InNamespace(namespace)); err != nil {
-				return err
-			}
+			g.Expect(upgradeClusterClient.List(ctx, bmhList, client.InNamespace(namespace))).Should(Succeed())
 			for _, bmh := range bmhList.Items {
-				if !bmh.WasProvisioned() {
-					return errors.New("BMHs cannot be provisioned")
-				}
+				g.Expect(bmh.WasProvisioned()).To(BeTrue())
 			}
-			return nil
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(BeNil())
+		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(Succeed())
 
 		Logf("Apply the available BMHs CRs")
 		cmd = exec.Command("kubectl", "apply", "-f", "/opt/metal3-dev-env/bmhosts_crs.yaml", "-n", namespace, "--kubeconfig", upgradeClusterProxy.GetKubeconfigPath())

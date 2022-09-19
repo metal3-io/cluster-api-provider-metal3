@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -77,14 +76,10 @@ func remediation() {
 	scaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
 
 	Logf("Waiting for 2 BMHs to be in Available state")
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		if err != nil {
-			Logf("Error: %v", err)
-			return err
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)).To(HaveLen(newReplicaCount + len(workerM3Machines)))
-		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	// Calling an inspection tests here for now until we have a parallelism enabled in e2e framework.
@@ -99,73 +94,60 @@ func remediation() {
 	Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed(), "Failed to delete worker Machine")
 
 	Logf("Waiting for worker BMH to be in Available state")
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		g.Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: workerBmh.Name}, &workerBmh)).To(Succeed())
 		g.Expect(workerBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable))
-		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	Logf("Waiting for 2 BMHs to be Provisioned")
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		if err != nil {
-			Logf("Error: %v", err)
-			return err
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 		provisioningBMHs := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)
-		if len(provisioningBMHs) != 2 {
-			return errors.New("Waiting for 2 BMHs to be Provisioned")
-		}
-		return nil
+		g.Expect(provisioningBMHs).To(HaveLen(2))
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Scaling up machine deployment to 3 replicas")
 	scaleMachineDeployment(ctx, bootstrapClient, clusterName, namespace, 3)
 
 	By("Waiting for one BMH to start provisioning")
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		if err != nil {
-			Logf("Error: %v", err)
-			return err
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(1))
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
+	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
-	Logf("Verifying that only one BMH starts provisioning")
-	Consistently(func() error {
+	By("Waiting for one BMH to become provisioned")
+	Eventually(func(g Gomega) {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		if err != nil {
-			Logf("Error: %v", err)
-			return err
-		}
-		Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
-		Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(1))
-		return nil
-	}, e2eConfig.GetIntervals(specName, "monitor-provisioning")...)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
+	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
+
+	Logf("Verifying that the unhealthy BMH doesn't go to provisioning")
+	Consistently(func(g Gomega) {
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
+		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(0))
+	}, e2eConfig.GetIntervals(specName, "monitor-provisioning")...).Should(Succeed())
 
 	Logf("Annotating BMH as healthy")
 	annotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, nil)
 
 	Byf("Waiting for all (%d) BMHs to be Provisioned", allMachinesCount)
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		if err != nil {
-			Logf("Error: %v", err)
-			return err
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(allMachinesCount))
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
+	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Waiting for all Machines to be Running")
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		machines := clusterv1.MachineList{}
 		g.Expect(bootstrapClient.List(ctx, &machines, client.InNamespace(namespace))).To(Succeed())
 		g.Expect(filterMachinesByPhase(machines.Items, "Running")).To(HaveLen(allMachinesCount))
-		return nil
-	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...)
+	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("UNHEALTHY ANNOTATION CHECK PASSED!")
 
@@ -173,11 +155,10 @@ func remediation() {
 	scaleMachineDeployment(ctx, bootstrapClient, clusterName, namespace, 1)
 
 	By("Waiting for 2 BMHs to be in Available state")
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		bmhs := bmov1alpha1.BareMetalHostList{}
 		g.Expect(bootstrapClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 		g.Expect(filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateAvailable)).To(HaveLen(2))
-		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Testing Metal3DataTemplate reference")
@@ -232,16 +213,12 @@ func remediation() {
 	Expect(helper.Patch(ctx, &deployment)).To(Succeed())
 
 	By("Waiting for 2 BMHs to be in Available state")
-	Eventually(func(g Gomega) error {
+	Eventually(func(g Gomega) {
 		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		if err != nil {
-			Logf("Error: %v", err)
-			return err
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 		filtered := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
 		Logf("There are %d BMHs in state %s", len(filtered), bmov1alpha1.StateAvailable)
 		g.Expect(filtered).To(HaveLen(2))
-		return nil
 	}, e2eConfig.GetIntervals(specName, "wait-machine-remediation")...).Should(Succeed())
 
 	By("Waiting for single Metal3Data to refer to the old template")
