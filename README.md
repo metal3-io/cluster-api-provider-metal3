@@ -132,6 +132,11 @@ Release-1.2 branch:
 - **/test-ubuntu-e2e-release-1-2** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
 - **/test-centos-e2e-release-1-2** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
 
+Release-1.1 branch:
+
+- **/test-ubuntu-e2e-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on Ubuntu
+- **/test-centos-e2e-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on CentOS
+
 Release-0.5 branch:
 
 - **/test-ubuntu-e2e-release-0-5** runs e2e tests with CAPM3 API version v1alpha5 and branch release-0.5 on Ubuntu
