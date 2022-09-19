@@ -7,9 +7,8 @@ require (
 	github.com/go-logr/logr v1.2.0
 	github.com/golang/mock v1.6.0
 	github.com/jinzhu/copier v0.3.2
-	github.com/metal3-io/baremetal-operator/apis v0.1.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v0.0.0-20220617070006-b1bd226927ae
+	github.com/metal3-io/ip-address-manager/api v0.0.0-20220919134804-85c769255248
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.17.0
 	github.com/pkg/errors v0.9.1
