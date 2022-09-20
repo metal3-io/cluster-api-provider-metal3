@@ -205,6 +205,89 @@ func filterNodeCondition(conditions []corev1.NodeCondition, conditionType corev1
 	return filtered
 }
 
+// listBareMetalHosts logs the names, provisioning status, consumer and power status
+// of all BareMetalHosts matching the opts. Similar to kubectl get baremetalhosts.
+func listBareMetalHosts(ctx context.Context, c client.Client, opts ...client.ListOption) {
+	bmhs := bmov1alpha1.BareMetalHostList{}
+	Expect(c.List(ctx, &bmhs, opts...)).To(Succeed())
+	Logf("Listing BareMetalHosts:")
+	Logf("Name	Status	Consumer	Online")
+	Logf("---------------------------------------------------------------------------------")
+	for _, bmh := range bmhs.Items {
+		consumer := ""
+		if bmh.Spec.ConsumerRef != nil {
+			consumer = bmh.Spec.ConsumerRef.Name
+		}
+		Logf("%s	%s	%s	%t", bmh.GetName(), bmh.Status.Provisioning.State, consumer, bmh.Status.PoweredOn)
+	}
+	Logf("---------------------------------------------------------------------------------")
+	Logf("%d BareMetalHosts in total", len(bmhs.Items))
+	Logf("=================================================================================")
+}
+
+// listMetal3Machines logs the names, ready status and provider ID of all Metal3Machines in the namespace.
+// Similar to kubectl get metal3machines.
+func listMetal3Machines(ctx context.Context, c client.Client, opts ...client.ListOption) {
+	metal3Machines := infrav1.Metal3MachineList{}
+	Expect(c.List(ctx, &metal3Machines, opts...)).To(Succeed())
+	Logf("Listing Metal3Machines:")
+	Logf("Name	Ready	Provider ID")
+	Logf("---------------------------------------------------------------------------------")
+	for _, metal3Machine := range metal3Machines.Items {
+		providerID := ""
+		if metal3Machine.Spec.ProviderID != nil {
+			providerID = *metal3Machine.Spec.ProviderID
+		}
+		Logf("%s	%t	%s", metal3Machine.GetName(), metal3Machine.Status.Ready, providerID)
+	}
+	Logf("---------------------------------------------------------------------------------")
+	Logf("%d Metal3Machines in total", len(metal3Machines.Items))
+	Logf("=================================================================================")
+}
+
+// listMachines logs the names, status phase, provider ID and Kubernetes version
+// of all Machines in the namespace. Similar to kubectl get machines.
+func listMachines(ctx context.Context, c client.Client, opts ...client.ListOption) {
+	machines := clusterv1.MachineList{}
+	Expect(c.List(ctx, &machines, opts...)).To(Succeed())
+	Logf("Listing Machines:")
+	Logf("Name	Status	Provider ID	Version")
+	Logf("---------------------------------------------------------------------------------")
+	for _, machine := range machines.Items {
+		providerID := ""
+		if machine.Spec.ProviderID != nil {
+			providerID = *machine.Spec.ProviderID
+		}
+		Logf("%s	%s	%s	%s", machine.GetName(), machine.Status.GetTypedPhase(), providerID, *machine.Spec.Version)
+	}
+	Logf("---------------------------------------------------------------------------------")
+	Logf("%d Machines in total", len(machines.Items))
+	Logf("=================================================================================")
+}
+
+// listNodes logs the names, status and Kubernetes version of all Nodes.
+// Similar to kubectl get nodes.
+func listNodes(ctx context.Context, c client.Client) {
+	nodes := corev1.NodeList{}
+	Expect(c.List(ctx, &nodes)).To(Succeed())
+	Logf("Listing Nodes:")
+	Logf("Name	Status	Version")
+	Logf("---------------------------------------------------------------------------------")
+	for _, node := range nodes.Items {
+		ready := "NotReady"
+		if node.Status.Conditions != nil {
+			readyCondition := filterNodeCondition(node.Status.Conditions, corev1.NodeReady)
+			Expect(readyCondition).To(HaveLen(1))
+			if readyCondition[0].Status == corev1.ConditionTrue {
+				ready = "Ready"
+			}
+		}
+		Logf("%s	%s	%s", node.Name, ready, node.Status.NodeInfo.KubeletVersion)
+	}
+	Logf("---------------------------------------------------------------------------------")
+	Logf("%d Nodes in total", len(nodes.Items))
+	Logf("=================================================================================")
+}
 
 type waitForNumInput struct {
 	Client    client.Client
@@ -221,6 +304,7 @@ func waitForNumBmhInState(ctx context.Context, state bmov1alpha1.ProvisioningSta
 		g.Expect(input.Client.List(ctx, &bmhList, input.Options...)).To(Succeed())
 		g.Expect(filterBmhsByProvisioningState(bmhList.Items, state)).To(HaveLen(input.Replicas))
 	}, input.Intervals...).Should(Succeed())
+	listBareMetalHosts(ctx, input.Client, input.Options...)
 }
 
 // waitForNumMetal3MachinesReady will wait for the given number of M3Ms to be ready.
@@ -237,6 +321,7 @@ func waitForNumMetal3MachinesReady(ctx context.Context, input waitForNumInput) {
 		}
 		g.Expect(numReady).To(BeEquivalentTo(input.Replicas))
 	}, input.Intervals...).Should(Succeed())
+	listMetal3Machines(ctx, input.Client, input.Options...)
 }
 
 // waitForNumMachinesInState will wait for the given number of Machines to be in the given state.
@@ -246,6 +331,7 @@ func waitForNumMachinesInState(ctx context.Context, phase clusterv1.MachinePhase
 		return machine.Status.GetTypedPhase() == phase
 	}
 	waitForNumMachines(ctx, inPhase, input)
+	listMachines(ctx, input.Client, input.Options...)
 }
 
 // waitForNumMachines will wait for the given number of Machines to be accepted by the accept function.
@@ -257,6 +343,7 @@ func waitForNumMachines(ctx context.Context, accept func(clusterv1.Machine) bool
 		g.Expect(input.Client.List(ctx, &machineList, input.Options...)).To(Succeed())
 		g.Expect(filterMachines(machineList.Items, accept)).To(HaveLen(input.Replicas))
 	}, input.Intervals...).Should(Succeed())
+	listMachines(ctx, input.Client, input.Options...)
 }
 
 // Get the machine object given its object name.

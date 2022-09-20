@@ -131,6 +131,9 @@ func upgradeManagementCluster() {
 		| Pivot to run ironic/BMO and resources on target |
 		*--------------------------------------------------*/
 		By("Start pivoting")
+		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listNodes(ctx, upgradeClusterClient)
+
 		By("Remove Ironic containers from the source cluster")
 		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 		if ephemeralCluster == KIND {
@@ -185,6 +188,9 @@ func upgradeManagementCluster() {
 			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-provisioned"),
 		})
 
+		listBareMetalHosts(ctx, upgradeClusterClient, client.InNamespace(namespace))
+		listNodes(ctx, upgradeClusterClient)
+
 		Logf("Apply the available BMHs CRs")
 		cmd = exec.Command("kubectl", "apply", "-f", "/opt/metal3-dev-env/bmhosts_crs.yaml", "-n", namespace, "--kubeconfig", upgradeClusterProxy.GetKubeconfigPath())
 		output, err = cmd.CombinedOutput()
@@ -198,6 +204,9 @@ func upgradeManagementCluster() {
 			Replicas:  2,
 			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
 		})
+
+		listBareMetalHosts(ctx, upgradeClusterClient, client.InNamespace(namespace))
+		listNodes(ctx, upgradeClusterClient)
 
 		/*-------------------------------*
 		| Create a test workload cluster |
@@ -255,6 +264,8 @@ func upgradeManagementCluster() {
 			}
 			g.Expect(n).To(Equal(2))
 		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Succeed())
+
+		listBareMetalHosts(ctx, upgradeClusterClient, client.InNamespace(namespace))
 
 		By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
 

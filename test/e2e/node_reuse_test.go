@@ -49,6 +49,11 @@ func nodeReuse(clusterClient client.Client) {
 	Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControlplane)
 	Logf("NUMBER OF WORKER BMH: %v", numberOfWorkers)
 
+	listBareMetalHosts(ctx, clusterClient, client.InNamespace(namespace))
+	listMetal3Machines(ctx, clusterClient, client.InNamespace(namespace))
+	listMachines(ctx, clusterClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClusterClient)
+
 	By("Untaint all CP nodes before scaling down machinedeployment")
 	controlplaneNodes := getControlplaneNodes(clientSet)
 	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
@@ -188,6 +193,11 @@ func nodeReuse(clusterClient client.Client) {
 		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
 	})
 
+	listBareMetalHosts(ctx, clusterClient, client.InNamespace(namespace))
+	listMetal3Machines(ctx, clusterClient, client.InNamespace(namespace))
+	listMachines(ctx, clusterClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClusterClient)
+
 	By("Untaint CP nodes after upgrade of two controlplane nodes")
 	controlplaneNodes = getControlplaneNodes(clientSet)
 	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
@@ -247,6 +257,11 @@ func nodeReuse(clusterClient client.Client) {
 		Replicas:  numberOfControlplane,
 		Intervals: e2eConfig.GetIntervals(specName, "wait-cp-available"),
 	})
+
+	listBareMetalHosts(ctx, clusterClient, client.InNamespace(namespace))
+	listMetal3Machines(ctx, clusterClient, client.InNamespace(namespace))
+	listMachines(ctx, clusterClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClusterClient)
 
 	By("Get MachineDeployment")
 	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
@@ -372,6 +387,11 @@ func nodeReuse(clusterClient client.Client) {
 	By("Check difference between before and after upgrade mappings in MachineDeployment")
 	equal = reflect.DeepEqual(mdBmhBeforeUpgrade, mdBmhAfterUpgrade)
 	Expect(equal).To(BeTrue(), "The same BMHs were not reused in MachineDeployment")
+
+	listBareMetalHosts(ctx, clusterClient, client.InNamespace(namespace))
+	listMetal3Machines(ctx, clusterClient, client.InNamespace(namespace))
+	listMachines(ctx, clusterClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClusterClient)
 
 	By("Scale controlplane up to 3")
 	scaleKubeadmControlPlane(ctx, clusterClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 3)

@@ -28,6 +28,11 @@ const bmoPath = "BMOPATH"
 
 func pivoting() {
 	Logf("Starting pivoting tests")
+	listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+	listMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+	listNodes(ctx, targetCluster.GetClient())
+
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 	if ephemeralCluster == KIND {

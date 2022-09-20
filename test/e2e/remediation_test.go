@@ -53,6 +53,11 @@ func remediation() {
 	workerNodeName := workerMachineName
 	vmName := bmhToVMName(workerBmh)
 
+	listBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
+
 	By("Checking that rebooted node becomes Ready")
 	Logf("Marking a BMH '%s' for reboot", workerBmh.GetName())
 	annotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
@@ -70,6 +75,10 @@ func remediation() {
 	By("Power cycling 2 control plane nodes")
 	powerCycle(ctx, bootstrapClient, targetClient, bmhsAndMachines[1:3], specName)
 
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
+
 	By("Testing unhealthy and inspection annotations")
 	By("Scaling down KCP to 1 replica")
 	newReplicaCount := 1
@@ -81,8 +90,16 @@ func remediation() {
 		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-remediation"),
 	})
 
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
+
 	// Calling an inspection tests here for now until we have a parallelism enabled in e2e framework.
 	inspection()
+
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
 
 	Logf("Start checking unhealthy annotation")
 	Logf("Annotating BMH as unhealthy")
@@ -104,6 +121,10 @@ func remediation() {
 		Replicas:  2,
 		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-remediation"),
 	})
+
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
 
 	By("Scaling up machine deployment to 3 replicas")
 	scaleMachineDeployment(ctx, bootstrapClient, clusterName, namespace, 3)
@@ -149,6 +170,10 @@ func remediation() {
 
 	By("UNHEALTHY ANNOTATION CHECK PASSED!")
 
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
+
 	By("Scaling machine deployment down to 1")
 	scaleMachineDeployment(ctx, bootstrapClient, clusterName, namespace, 1)
 	By("Waiting for 2 old workers to deprovision")
@@ -158,6 +183,10 @@ func remediation() {
 		Replicas:  2,
 		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-remediation"),
 	})
+
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
 
 	By("Testing Metal3DataTemplate reference")
 	Logf("Creating a new Metal3DataTemplate")
@@ -225,6 +254,10 @@ func remediation() {
 		filtered := filterM3DataByReference(datas.Items, m3dataTemplateName)
 		g.Expect(filtered).To(HaveLen(1))
 	}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
+
+	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listMachines(ctx, bootstrapClient, client.InNamespace(namespace))
+	listNodes(ctx, targetClient)
 
 	By("Scaling up KCP to 3 replicas")
 	scaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, 3)
