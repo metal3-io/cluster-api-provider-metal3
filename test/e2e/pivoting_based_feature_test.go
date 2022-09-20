@@ -67,8 +67,8 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 func createTargetCluster() (targetCluster framework.ClusterProxy) {
 	By("Creating a high available cluster")
 
-	controlPlaneMachineCount = int64(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-	workerMachineCount = int64(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+	controlPlaneMachineCount = int64(numberOfControlplane)
+	workerMachineCount = int64(numberOfWorkers)
 	result := &clusterctl.ApplyClusterTemplateAndWaitResult{}
 
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

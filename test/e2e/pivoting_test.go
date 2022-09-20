@@ -6,14 +6,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -113,32 +111,29 @@ func pivoting() {
 	})
 	Expect(controlPlane).ToNot(BeNil())
 
-	By("Check if BMH is in provisioned state")
-	Eventually(func(g Gomega) {
-		bmhList := &bmov1alpha1.BareMetalHostList{}
-		g.Expect(targetCluster.GetClient().List(ctx, bmhList, client.InNamespace(namespace))).To(Succeed())
-		for _, bmh := range bmhList.Items {
-			g.Expect(bmh.WasProvisioned()).To(BeTrue())
-		}
-	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
+	By("Check that BMHs are in provisioned state")
+	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+		Client:    targetCluster.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-object-provisioned"),
+	})
 
 	By("Check if metal3machines become ready.")
-	Eventually(func(g Gomega) {
-		m3Machines := &infrav1.Metal3MachineList{}
-		g.Expect(targetCluster.GetClient().List(ctx, m3Machines, client.InNamespace(namespace)))
-		for _, m3Machine := range m3Machines.Items {
-			g.Expect(m3Machine.Status.Ready).To(BeTrue())
-		}
-	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
+	waitForNumMetal3MachinesReady(ctx, waitForNumInput{
+		Client:    targetCluster.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-object-provisioned"),
+	})
 
-	By("Check if machines become running.")
-	Eventually(func(g Gomega) {
-		machines := &clusterv1.MachineList{}
-		g.Expect(targetCluster.GetClient().List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-		for _, machine := range machines.Items {
-			g.Expect(strings.EqualFold(machine.Status.Phase, "running")).To(BeTrue())
-		}
-	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Succeed())
+	By("Check that all machines become running.")
+	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+		Client:    targetCluster.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("PIVOTING TESTS PASSED!")
 }
@@ -321,33 +316,29 @@ func rePivoting() {
 	})
 	Expect(controlPlane).ToNot(BeNil())
 
-	By("Check if BMH is in provisioned state")
-	Eventually(func(g Gomega) {
-		bmhList := &bmov1alpha1.BareMetalHostList{}
-		g.Expect(bootstrapClusterProxy.GetClient().List(ctx, bmhList, client.InNamespace(namespace))).To(Succeed())
-		for _, bmh := range bmhList.Items {
-			g.Expect(bmh.WasProvisioned()).To(BeTrue())
-			g.Expect(bmh.Spec.Online).To(BeTrue())
-		}
-	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
+	By("Check that BMHs are in provisioned state")
+	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+		Client:    bootstrapClusterProxy.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  4,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-object-provisioned"),
+	})
 
 	By("Check if metal3machines become ready.")
-	Eventually(func(g Gomega) {
-		m3Machines := &infrav1.Metal3MachineList{}
-		g.Expect(bootstrapClusterProxy.GetClient().List(ctx, m3Machines, client.InNamespace(namespace))).Should(Succeed())
-		for _, m3Machine := range m3Machines.Items {
-			g.Expect(m3Machine.Status.Ready).To(BeTrue())
-		}
-	}, e2eConfig.GetIntervals(specName, "wait-object-provisioned")...).Should(Succeed())
+	waitForNumMetal3MachinesReady(ctx, waitForNumInput{
+		Client:    bootstrapClusterProxy.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  4,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-object-provisioned"),
+	})
 
-	By("Check if machines become running.")
-	Eventually(func(g Gomega) {
-		machines := &clusterv1.MachineList{}
-		g.Expect(bootstrapClusterProxy.GetClient().List(ctx, machines, client.InNamespace(namespace))).Should(Succeed())
-		for _, machine := range machines.Items {
-			g.Expect(strings.EqualFold(machine.Status.Phase, "running")).To(BeTrue())
-		}
-	}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Succeed())
+	By("Check that all machines become running.")
+	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+		Client:    bootstrapClusterProxy.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  4,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("RE-PIVOTING TEST PASSED!")
 }

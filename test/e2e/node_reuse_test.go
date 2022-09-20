@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -29,14 +28,11 @@ import (
 func nodeReuse(clusterClient client.Client) {
 	Logf("Starting node reuse tests")
 	var (
-		targetClusterClient  = targetCluster.GetClient()
-		clientSet            = targetCluster.GetClientSet()
-		kubernetesVersion    = e2eConfig.GetVariable("KUBERNETES_VERSION")
-		upgradedK8sVersion   = e2eConfig.GetVariable("UPGRADED_K8S_VERSION")
-		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-		numberOfWorkers      = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-		numberOfAllBmh       = numberOfControlplane + numberOfWorkers
-		controlplaneTaints   = []corev1.Taint{{Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule},
+		targetClusterClient = targetCluster.GetClient()
+		clientSet           = targetCluster.GetClientSet()
+		kubernetesVersion   = e2eConfig.GetVariable("KUBERNETES_VERSION")
+		upgradedK8sVersion  = e2eConfig.GetVariable("UPGRADED_K8S_VERSION")
+		controlplaneTaints  = []corev1.Taint{{Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule},
 			{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}}
 		imageNamePrefix string
 	)
@@ -61,14 +57,12 @@ func nodeReuse(clusterClient client.Client) {
 	scaleMachineDeployment(ctx, clusterClient, clusterName, namespace, 0)
 
 	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkers)
-	Eventually(
-		func(g Gomega) {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			filtered := filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateAvailable)
-			g.Expect(len(filtered)).To(Equal(numberOfWorkers))
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...,
-	).Should(Succeed())
+	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfWorkers,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+	})
 
 	By("Get the provisioned BMH names and UUIDs")
 	kcpBmhBeforeUpgrade := getProvisionedBmhNamesUuids(clusterClient)
@@ -137,93 +131,74 @@ func nodeReuse(clusterClient client.Client) {
 	Expect(err).To(BeNil(), "Failed to patch KubeadmControlPlane")
 
 	By("Check if only a single machine is in Deleting state and no other new machines are in Provisioning state")
-	Eventually(
-		func(g Gomega) {
-			machines := &clusterv1.MachineList{}
-			g.Expect(clusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-			deletingCount := 0
-			for _, machine := range machines.Items {
-				Expect(machine.Status.GetTypedPhase() == clusterv1.MachinePhaseProvisioning).To(BeFalse()) // Ensure no machine is provisioning
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseDeleting {
-					deletingCount++
-				}
-			}
-			g.Expect(deletingCount).To(Equal(1))
-		}, e2eConfig.GetIntervals(specName, "wait-machine-deleting")...,
-	).Should(Succeed())
+	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseDeleting, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  1,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-deleting"),
+	})
+	// Since we do scale in, no Machine should start provisioning yet (the old must be deleted first)
+	machineList := &clusterv1.MachineList{}
+	Expect(clusterClient.List(ctx, machineList, client.InNamespace(namespace))).To(Succeed())
+	Expect(filterMachinesByPhase(machineList.Items, clusterv1.MachinePhaseProvisioning)).To(HaveLen(0))
 
 	Byf("Wait until 1 BMH is in deprovisioning state")
-	deprovisioningBmh := []bmov1alpha1.BareMetalHost{}
-	Eventually(
-		func(g Gomega) {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			deprovisioningBmh = filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateDeprovisioning)
-			g.Expect(len(deprovisioningBmh)).To(Equal(1))
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning")...,
-	).Should(Succeed(), "No BMH is in deprovisioning state")
+	waitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  1,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning"),
+	})
+
+	Logf("Find the deprovisioning BMH")
+	bmhList := bmov1alpha1.BareMetalHostList{}
+	Expect(clusterClient.List(ctx, &bmhList, client.InNamespace(namespace))).To(Succeed())
+	deprovisioningBmhs := filterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
+	Expect(deprovisioningBmhs).To(HaveLen(1))
+	key := types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: namespace}
 
 	By("Wait until above deprovisioning BMH is in available state again")
 	Eventually(
 		func(g Gomega) {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-
-			bmh, err := getBmhByName(bmhs.Items, deprovisioningBmh[0].Name)
-			g.Expect(err).To(BeNil())
-			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable), "The BMH [%s] is not available yet", deprovisioningBmh[0].Name)
+			bmh := bmov1alpha1.BareMetalHost{}
+			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
+			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable))
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-available")...,
 	).Should(Succeed())
 
 	By("Check if just deprovisioned BMH re-used for the next provisioning")
 	Eventually(
 		func(g Gomega) {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-
-			bmh, err := getBmhByName(bmhs.Items, deprovisioningBmh[0].Name)
-			g.Expect(err).To(BeNil())
-			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioning), "The BMH [%s]  is not provisioning yet", deprovisioningBmh[0].Name)
+			bmh := bmov1alpha1.BareMetalHost{}
+			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
+			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioning))
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-available-provisioning")...,
 	).Should(Succeed())
 
 	Byf("Wait until two machines become running and updated with the new %s k8s version", upgradedK8sVersion)
-	Eventually(
-		func(g Gomega) {
-			machines := &clusterv1.MachineList{}
-			g.Expect(clusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-
-			runningUpgradedLen := 0
-			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
-					runningUpgradedLen++
-					Logf("Machine [%v] is upgraded to k8s version (%v) and in running state", machine.Name, upgradedK8sVersion)
-				}
-			}
-			g.Expect(runningUpgradedLen).To(Equal(2))
-		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
-	).Should(Succeed())
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		upgraded := *machine.Spec.Version == upgradedK8sVersion
+		return (running && upgraded)
+	}
+	waitForNumMachines(ctx, runningAndUpgraded, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  2,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("Untaint CP nodes after upgrade of two controlplane nodes")
 	controlplaneNodes = getControlplaneNodes(clientSet)
 	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
 
 	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
-	Eventually(
-		func(g Gomega) {
-			machines := &clusterv1.MachineList{}
-			g.Expect(clusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-
-			runningUpgradedLen := 0
-			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
-					runningUpgradedLen++
-					Logf("Machine [%v] is upgraded to k8s version (%v) and in running state", machine.Name, upgradedK8sVersion)
-				}
-			}
-			g.Expect(runningUpgradedLen).To(Equal(numberOfControlplane))
-		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
-	).Should(Succeed())
+	waitForNumMachines(ctx, runningAndUpgraded, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfControlplane,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("Get the provisioned BMH names and UUIDs after upgrade")
 	kcpBmhAfterUpgrade := getProvisionedBmhNamesUuids(clusterClient)
@@ -266,16 +241,12 @@ func nodeReuse(clusterClient client.Client) {
 	scaleKubeadmControlPlane(ctx, clusterClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 1)
 
 	Byf("Wait until controlplane is scaled down and %d BMHs are Available", numberOfControlplane)
-	Eventually(
-		func(g Gomega) {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-
-			availableBmhs := filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateAvailable)
-			availableBmhsLength := len(availableBmhs)
-			g.Expect(availableBmhsLength).To(Equal(numberOfControlplane), "BMHs available are %d not equal to %d", availableBmhsLength, numberOfControlplane)
-		}, e2eConfig.GetIntervals(specName, "wait-cp-available")...,
-	).Should(Succeed())
+	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfControlplane,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-cp-available"),
+	})
 
 	By("Get MachineDeployment")
 	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
@@ -295,26 +266,21 @@ func nodeReuse(clusterClient client.Client) {
 	By("Scale the worker up to 1 to start testing MachineDeployment")
 	scaleMachineDeployment(ctx, clusterClient, clusterName, namespace, 1)
 
-	Byf("Wait until %d more BMH becomes provisioned", numberOfWorkers)
-	Eventually(
-		func(g Gomega) int {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			provisionedBmhs := filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateProvisioned)
-			return len(provisionedBmhs)
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...,
-	).Should(Equal(2))
+	Byf("Wait until the worker BMH becomes provisioned")
+	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  2,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-provisioned"),
+	})
 
-	Byf("Wait until %d more machine becomes running", numberOfWorkers)
-	Eventually(
-		func(g Gomega) int {
-			machines := &clusterv1.MachineList{}
-			g.Expect(clusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-
-			runningMachines := filterMachinesByStatusPhase(machines.Items, clusterv1.MachinePhaseRunning)
-			return len(runningMachines)
-		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
-	).Should(Equal(2))
+	Byf("Wait until the worker machine becomes running")
+	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  2,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("Get the provisioned BMH names and UUIDs before starting upgrade in MachineDeployment")
 	mdBmhBeforeUpgrade := getProvisionedBmhNamesUuids(clusterClient)
@@ -357,24 +323,25 @@ func nodeReuse(clusterClient client.Client) {
 	Expect(err).To(BeNil(), "Failed to patch MachineDeployment")
 
 	Byf("Wait until %d BMH(s) in deprovisioning state", numberOfWorkers)
-	deprovisioningBmh = []bmov1alpha1.BareMetalHost{}
-	Eventually(
-		func(g Gomega) int {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			deprovisioningBmh = filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateDeprovisioning)
-			return len(deprovisioningBmh)
-		},
-		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning")...,
-	).Should(Equal(numberOfWorkers), "Deprovisioning BMHs are not equal to %d", numberOfWorkers)
+	waitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfWorkers,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning"),
+	})
+
+	Logf("Find the deprovisioning BMH")
+	bmhList = bmov1alpha1.BareMetalHostList{}
+	Expect(clusterClient.List(ctx, &bmhList, client.InNamespace(namespace))).To(Succeed())
+	deprovisioningBmhs = filterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
+	Expect(deprovisioningBmhs).To(HaveLen(1))
+	key = types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: namespace}
 
 	By("Wait until the above deprovisioning BMH is in available state again")
 	Eventually(
 		func(g Gomega) {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			bmh, err := getBmhByName(bmhs.Items, deprovisioningBmh[0].Name)
-			g.Expect(err).To(BeNil())
+			bmh := bmov1alpha1.BareMetalHost{}
+			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
 			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable))
 		},
 		e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning-available")...,
@@ -383,30 +350,21 @@ func nodeReuse(clusterClient client.Client) {
 	By("Check if just deprovisioned BMH re-used for next provisioning")
 	Eventually(
 		func(g Gomega) {
-			bmhs := bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			bmh, err := getBmhByName(bmhs.Items, deprovisioningBmh[0].Name)
-			g.Expect(err).To(BeNil())
+			bmh := bmov1alpha1.BareMetalHost{}
+			key := types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: namespace}
+			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
 			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioning))
 		},
 		e2eConfig.GetIntervals(specName, "wait-bmh-available-provisioning")...,
 	).Should(Succeed())
 
 	Byf("Wait until worker machine becomes running and updated with new %s k8s version", upgradedK8sVersion)
-	Eventually(
-		func(g Gomega) int {
-			machines := &clusterv1.MachineList{}
-			g.Expect(clusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-			runningUpgradedLen := 0
-			for _, machine := range machines.Items {
-				if machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning && *machine.Spec.Version == upgradedK8sVersion {
-					runningUpgradedLen++
-					Logf("Machine [%v] is upgraded to (%v) and running", machine.Name, upgradedK8sVersion)
-				}
-			}
-			return runningUpgradedLen
-		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
-	).Should(Equal(2))
+	waitForNumMachines(ctx, runningAndUpgraded, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  2,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("Get provisioned BMH names and UUIDs after upgrade in MachineDeployment")
 	mdBmhAfterUpgrade := getProvisionedBmhNamesUuids(clusterClient)
@@ -417,27 +375,20 @@ func nodeReuse(clusterClient client.Client) {
 
 	By("Scale controlplane up to 3")
 	scaleKubeadmControlPlane(ctx, clusterClient, client.ObjectKey{Namespace: namespace, Name: clusterName}, 3)
-
-	Byf("Wait until all %d bmhs are provisioned", numberOfAllBmh)
-	Eventually(
-		func(g Gomega) {
-			bmhs = bmov1alpha1.BareMetalHostList{}
-			g.Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
-			provisionedBmh := filterBmhsByProvisioningState(bmhs.Items, bmov1alpha1.StateProvisioned)
-			g.Expect(len(provisionedBmh)).To(Equal(numberOfAllBmh))
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...,
-	).Should(Succeed())
+	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-provisioned"),
+	})
 
 	Byf("Wait until all %d machine(s) become(s) running", numberOfAllBmh)
-	Eventually(
-		func(g Gomega) int {
-			machines := &clusterv1.MachineList{}
-			g.Expect(clusterClient.List(ctx, machines, client.InNamespace(namespace))).To(Succeed())
-			runningMachines := filterMachinesByStatusPhase(machines.Items, clusterv1.MachinePhaseRunning)
-			return len(runningMachines)
-		},
-		e2eConfig.GetIntervals(specName, "wait-machine-running")...,
-	).Should(Equal(numberOfAllBmh))
+	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 
 	By("NODE REUSE TESTS PASSED!")
 }
@@ -562,22 +513,4 @@ func deleteTaint(taints []corev1.Taint, taintsToDelete []corev1.Taint) ([]corev1
 		}
 	}
 	return newTaints, deleted
-}
-
-func filterMachinesByStatusPhase(machines []clusterv1.Machine, phase clusterv1.MachinePhase) (result []clusterv1.Machine) {
-	for _, machine := range machines {
-		if machine.Status.GetTypedPhase() == phase {
-			result = append(result, machine)
-		}
-	}
-	return
-}
-
-func getBmhByName(bmhs []bmov1alpha1.BareMetalHost, name string) (bmov1alpha1.BareMetalHost, error) {
-	for _, bmh := range bmhs {
-		if bmh.Name == name {
-			return bmh, nil
-		}
-	}
-	return bmov1alpha1.BareMetalHost{}, errors.New("BMH is not found")
 }
