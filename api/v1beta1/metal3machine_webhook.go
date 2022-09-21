@@ -53,29 +53,8 @@ func (c *Metal3Machine) ValidateDelete() error {
 
 func (c *Metal3Machine) validate() error {
 	var allErrs field.ErrorList
-	if len(c.Spec.Image.URL) == 0 {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "Image", "URL"),
-				c.Spec.Image.URL,
-				"is required",
-			),
-		)
-	}
 
-	// Checksum is not required for live-iso.
-	if len(c.Spec.Image.Checksum) == 0 && (c.Spec.Image.DiskFormat == nil || *c.Spec.Image.DiskFormat != "live-iso") {
-		allErrs = append(
-			allErrs,
-			field.Invalid(
-				field.NewPath("spec", "Image", "Checksum"),
-				c.Spec.Image.Checksum,
-				"is required",
-			),
-		)
-
-	}
+	allErrs = append(allErrs, c.Spec.Image.Validate(*field.NewPath("Spec", "Image"))...)
 
 	if len(allErrs) == 0 {
 		return nil

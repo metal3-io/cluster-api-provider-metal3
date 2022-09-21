@@ -508,7 +508,7 @@ spec:
                     - sha512
                     type: string
                   format:
-                    description: DiskFormat contains the image disk format
+                    description: DiskFormat contains the image disk format.
                     enum:
                     - raw
                     - qcow2
@@ -571,7 +571,7 @@ spec:
             - image
             type: object
           status:
-            description: Metal3MachineStatus defines the observed state of Metal3Machine
+            description: Metal3MachineStatus defines the observed state of Metal3Machine.
             properties:
               addresses:
                 description: Addresses is a list of addresses assigned to the machine.
