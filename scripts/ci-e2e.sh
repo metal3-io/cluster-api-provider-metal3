@@ -61,7 +61,7 @@ make launch_mgmt_cluster verify
 if [ -f "${PWD}/tests/scripts/generate-template.sh"  ]; then
   ./tests/scripts/generate-template.sh
   DEV_ENV_CLUSTER_TEMPLATE="${REPO_ROOT}/templates/test/cluster-template-prow-ha-m3-dev-env.yaml"
-  TEMPLATE_DIR_SRC="vm-setup/roles/run_tests/files/manifests/"
+  TEMPLATE_DIR_SRC="tests/roles/run_tests/files/manifests/"
   echo -n > "${DEV_ENV_CLUSTER_TEMPLATE}"
   # shellcheck disable=SC2045
   for file in $(ls -d ${TEMPLATE_DIR_SRC}*); do
