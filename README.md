@@ -17,13 +17,11 @@ cluster on top of bare metal infrastructure using Metal3.
 
 ## Compatibility with Cluster API
 
-| CAPM3 version | Cluster API version | CAPM3 Release |
-|---------------|---------------------|---------------|
-| ~~v1alpha4~~  | ~~v1alpha3~~        | ~~v0.4.X~~    |
-| v1alpha5      | v1alpha4            | v0.5.X        |
-| v1beta1       | v1beta1             | v1.1.X        |
-
-**Note:** We have stopped supporting CAPM3 v1alpha4 API version.
+| CAPM3 version | Cluster API version | CAPM3 Release | CAPI Release |
+|---------------|---------------------|---------------|--------------|
+| v1alpha5      | v1alpha4            | v0.5.X        | v0.4.X       | 
+| v1beta1       | v1beta1             | v1.1.X        | v1.1.X       |
+| v1beta1       | v1beta1             | v1.2.X        | v1.2.X       |
 
 ## Deploying the metal3 provider
 
@@ -41,8 +39,8 @@ provider:
   when running the clusterctl and set the level of the logging verbose with a positive integer number, ie. -v5.
 
     ```shell
-    clusterctl init --core cluster-api:v1.1.5 --bootstrap kubeadm:v1.1.5 \
-        --control-plane kubeadm:v1.1.5 -v5
+    clusterctl init --core cluster-api:v1.2.2 --bootstrap kubeadm:v1.2.2 \
+        --control-plane kubeadm:v1.2.2 -v5
     ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API Provider Metal3 CRDs and controllers.
@@ -54,7 +52,7 @@ provider:
     You can also specify the provider version by appending a version tag to the provider name as follows:
 
     ```shell
-    clusterctl init --infrastructure metal3:v1.1.2
+    clusterctl init --infrastructure metal3:v1.2.0
     ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install cert-manager for Baremetal Operator,
