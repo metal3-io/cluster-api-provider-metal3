@@ -41,7 +41,23 @@ You must have docker installed.
 
 ### Process
 
+There are two ways to do the release: automated (using GitHub workflow) or manual.
+The processes are as follows:
+
 For version v0.x.y:
+
+#### Automated Process
+
+1. Create an annotated tag `git tag -a -s v0.x.y -m v0.x.y`.
+1. Push the tag to the GitHub repository `git push origin v0.x.y`
+   NB: `origin` should be the name of the remote pointing to
+   `github.com/metal3-io/cluster-api-provider-metal3`.
+1. Check the tag is existent in upstream repository. If it is,
+   GitHub workflow should have automatically created  a draft
+   release for you. Please make sure the release notes are checked
+   thoroughly before it is published.
+
+#### Manual Process
 
 1. Run `make release-notes` to create the release notes . Copy the output and sort
    manually the items that need to be sorted.
@@ -88,12 +104,11 @@ If you just created a release branch (i.e. minor version release), you should
 modify the image for CAPM3 deployment in this branch to be tagged with the
 branch name. The image will then follow the branch.
 
-### Create a new tag for Ironic and BMO images
+### Create a new tag for Ironic image
 
 After releasing v0.x.y version of CAPM3, create an annotated tag with `capm3`
-prefix + release version in [Ironic-image](https://github.com/metal3-io/ironic-image)
-and [Baremetal Operator](https://github.com/metal3-io/baremetal-operator.git) Github
-repositories. NB: origin should be the name of the remote pointing to
+prefix + release version in [Ironic-image](https://github.com/metal3-io/ironic-image) Github
+repository. NB: origin should be the name of the remote pointing to
 Metal3 upstream repositories.
 
 ```bash
@@ -102,12 +117,6 @@ git clone https://github.com/metal3-io/ironic-image.git
 cd ironic-image
 git tag capm3-v0.x.y
 git push origin capm3-v0.x.y
-
-# Baremetal Oprator
-git clone https://github.com/metal3-io/baremetal-operator.git
-cd baremetal-operator
-git tag capm3-v0.x.y
-git push origin capm3-v0.x.y
 ```
 
-After this, both Ironic and BMO container images will be created automatically with `capm3-v0.x.y` tag in Quay.
+After this, Ironic container image will be created automatically with `capm3-v0.x.y` tag in Quay.
