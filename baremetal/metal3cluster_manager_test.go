@@ -358,7 +358,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 			Expect(len(descendants.Items)).To(Equal(tc.ExpectedDescendants))
 		},
-		descendantsTestCases...,
+		descendantsTestCases,
 	)
 
 	DescribeTable("Test Count Descendants",
@@ -374,7 +374,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 			Expect(nbDescendants).To(Equal(tc.ExpectedDescendants))
 		},
-		descendantsTestCases...,
+		descendantsTestCases,
 	)
 })
 
