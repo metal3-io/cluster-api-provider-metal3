@@ -60,10 +60,10 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
 if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
   export CAPI_FROM_RELEASE="${CAPIRELEASE}"
-  export CAPI_TO_RELEASE="${CAPI_TO_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.1.")}"
+  export CAPI_TO_RELEASE="${CAPI_TO_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.2.")}"
 
   export CAPM3_FROM_RELEASE="${CAPM3RELEASE}"
-  export CAPM3_TO_RELEASE="${CAPM3_TO_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v1.1.")}"
+  export CAPM3_TO_RELEASE="${CAPM3_TO_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v1.2.")}"
 else
   export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v0.4.")}"
   export CAPI_TO_RELEASE="${CAPIRELEASE}"
