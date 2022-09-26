@@ -1,3 +1,4 @@
 resources:
 - cluster-with-kcp.yaml
 - md.yaml
+- crs.yaml
