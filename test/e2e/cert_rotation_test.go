@@ -20,8 +20,8 @@ import (
 func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) {
 	Logf("Start the certificate rotation test")
 	By("Check if Ironic pod is running")
-	ironicNamespace := e2eConfig.GetVariable("NAMEPREFIX") + "-system"
-	ironicDeploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
+	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
+	ironicDeploymentName := "ironic"
 	ironicDeployment, err := getDeployment(clusterClient, ironicDeploymentName, ironicNamespace)
 	Eventually(func() error {
 		ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)

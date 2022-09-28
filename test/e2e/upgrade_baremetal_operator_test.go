@@ -11,16 +11,14 @@ import (
 func upgradeBMO(clientSet *kubernetes.Clientset) {
 	Logf("Starting BMO containers upgrade tests")
 	var (
-		namePrefix = e2eConfig.GetVariable("NAMEPREFIX")
 		// BMO and Ironic share namespace
 		bmoNamespace      = e2eConfig.GetVariable("IRONIC_NAMESPACE")
-		bmoDeployName     = namePrefix + "-controller-manager"
+		bmoDeployName     = "baremetal-operator-controller-manager"
 		containerRegistry = e2eConfig.GetVariable("CONTAINER_REGISTRY")
 		bmoImageTag       = e2eConfig.GetVariable("UPGRADED_BMO_IMAGE_TAG")
 		bmoImage          = containerRegistry + "/metal3-io/baremetal-operator:" + bmoImageTag
 	)
 
-	Logf("namePrefix %v", namePrefix)
 	Logf("bmoNamespace %v", bmoNamespace)
 	Logf("bmoDeployName %v", bmoDeployName)
 	Logf("containerRegistry %v", containerRegistry)

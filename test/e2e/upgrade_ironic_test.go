@@ -11,15 +11,13 @@ import (
 func upgradeIronic(clientSet *kubernetes.Clientset) {
 	Logf("Starting ironic containers upgrade tests")
 	var (
-		namePrefix        = e2eConfig.GetVariable("NAMEPREFIX")
 		ironicNamespace   = e2eConfig.GetVariable("IRONIC_NAMESPACE")
-		ironicDeployName  = namePrefix + "-ironic"
+		ironicDeployName  = "ironic"
 		containerRegistry = e2eConfig.GetVariable("CONTAINER_REGISTRY")
 		ironicImageTag    = e2eConfig.GetVariable("IRONIC_IMAGE_TAG")
 		mariadbImageTag   = e2eConfig.GetVariable("MARIADB_IMAGE_TAG")
 	)
 
-	Logf("namePrefix %v", namePrefix)
 	Logf("ironicNamespace %v", ironicNamespace)
 	Logf("ironicDeployName %v", ironicDeployName)
 	Logf("containerRegistry %v", containerRegistry)

@@ -143,14 +143,14 @@ func pivoting() {
 }
 
 func installIronic(clusterProxy framework.ClusterProxy) {
-	path := fmt.Sprintf("%s/ironic/", e2eConfig.GetVariable(tempKustomizations))
+	path := fmt.Sprintf("%s/ironic.yaml", e2eConfig.GetVariable(tempKustomizations))
 	yaml, err := os.ReadFile(path)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(clusterProxy.Apply(ctx, yaml)).To(Succeed())
 }
 
 func installBareMetalOperator(clusterProxy framework.ClusterProxy) {
-	path := fmt.Sprintf("%s/bmo/", e2eConfig.GetVariable(tempKustomizations))
+	path := fmt.Sprintf("%s/bmo.yaml", e2eConfig.GetVariable(tempKustomizations))
 	yaml, err := os.ReadFile(path)
 	Expect(err).NotTo(HaveOccurred())
 	Expect(clusterProxy.Apply(ctx, yaml)).To(Succeed())
@@ -177,14 +177,14 @@ func removeIronicContainers() {
 }
 
 func removeIronicDeployment() {
-	deploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
+	deploymentName := "ironic"
 	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
 	err := bootstrapClusterProxy.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "Failed to delete Ironic from the source cluster")
 }
 
 func removeIronicDeploymentOnTarget() {
-	deploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
+	deploymentName := "ironic"
 	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
 	err := targetCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
 	Expect(err).To(BeNil(), "Failed to delete Ironic from the target cluster")
