@@ -117,6 +117,7 @@ variables:
   NAMEPREFIX: "baremetal-operator"
   IRONIC_DATA_DIR: "${DEV_ENV_WORKING_DIR}/ironic"
   BMOPATH: "${M3PATH}/baremetal-operator"
+  TEMP_KUSTOMIZATIONS: "${M3_DEV_ENV_PATH}/config.tmp"
   IRONIC_TLS_SETUP: "true"
   IRONIC_BASIC_AUTH: "true"
   RESTART_CONTAINER_CERTIFICATE_UPDATED: "true"

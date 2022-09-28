@@ -149,10 +149,10 @@ func upgradeManagementCluster() {
 		labelBMOCRDs(nil)
 
 		By("Install BMO")
-		installIronicBMO(upgradeClusterProxy, "false", "true")
+		installBareMetalOperator(upgradeClusterProxy)
 
 		By("Install Ironic in the target cluster")
-		installIronicBMO(upgradeClusterProxy, "true", "false")
+		installIronic(upgradeClusterProxy)
 
 		By("Add labels to BMO CRDs in the target cluster")
 		labelBMOCRDs(upgradeClusterProxy)

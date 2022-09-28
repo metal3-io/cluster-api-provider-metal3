@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -26,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const bmoPath = "BMOPATH"
+const tempKustomizations = "TEMP_KUSTOMIZATIONS"
 
 func pivoting() {
 	Logf("Starting pivoting tests")
@@ -67,10 +66,10 @@ func pivoting() {
 	labelHDCRDs(nil)
 
 	By("Install BMO")
-	installIronicBMO(targetCluster, "false", "true")
+	installBareMetalOperator(targetCluster)
 
 	By("Install Ironic in the target cluster")
-	installIronicBMO(targetCluster, "true", "false")
+	installIronic(targetCluster)
 
 	By("Add labels to BMO CRDs in the target cluster")
 	labelBMOCRDs(targetCluster)
@@ -143,48 +142,18 @@ func pivoting() {
 	By("PIVOTING TESTS PASSED!")
 }
 
-func installIronicBMO(targetCluster framework.ClusterProxy, isIronic, isBMO string) {
-	ironicTLSSetup := "IRONIC_TLS_SETUP"
-	ironicBasicAuth := "IRONIC_BASIC_AUTH"
-	ironicHost := os.Getenv("CLUSTER_PROVISIONING_IP")
-	path := fmt.Sprintf("%s/tools/", e2eConfig.GetVariable(bmoPath))
-	args := []string{
-		isBMO,
-		isIronic,
-		e2eConfig.GetVariable(ironicTLSSetup),
-		e2eConfig.GetVariable(ironicBasicAuth),
-		"true",
-	}
-	env := []string{
-		fmt.Sprintf("IRONIC_HOST=%s", ironicHost),
-		fmt.Sprintf("IRONIC_HOST_IP=%s", ironicHost),
-		fmt.Sprintf("KUBECTL_ARGS=--kubeconfig=%s", targetCluster.GetKubeconfigPath()),
-		fmt.Sprintf("NAMEPREFIX=%s", e2eConfig.GetVariable("NAMEPREFIX")),
-		fmt.Sprintf("RESTART_CONTAINER_CERTIFICATE_UPDATED=%s", e2eConfig.GetVariable("RESTART_CONTAINER_CERTIFICATE_UPDATED")),
-		"USER=ubuntu",
-	}
-	cmd := exec.Command("./deploy.sh", args...)
-	cmd.Dir = path
-	cmd.Env = append(env, os.Environ()...)
+func installIronic(clusterProxy framework.ClusterProxy) {
+	path := fmt.Sprintf("%s/ironic/", e2eConfig.GetVariable(tempKustomizations))
+	yaml, err := os.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(clusterProxy.Apply(ctx, yaml)).To(Succeed())
+}
 
-	outputPipe, er := cmd.StdoutPipe()
-	Expect(er).To(BeNil(), "Cannot get the stdout from the command")
-	errorPipe, er := cmd.StderrPipe()
-	Expect(er).To(BeNil(), "Cannot get the stderr from the command")
-	err := cmd.Start()
-	Expect(err).To(BeNil(), "Failed to deploy Ironic")
-	data, er := io.ReadAll(outputPipe)
-	Expect(er).To(BeNil(), "Cannot get the stdout from the command")
-	if len(data) > 0 {
-		Logf("Output of the shell: %s\n", string(data))
-	}
-	errorData, er := io.ReadAll(errorPipe)
-	Expect(er).To(BeNil(), "Cannot get the stderr from the command")
-	err = cmd.Wait()
-	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
-	}
-	Expect(err).To(BeNil(), "Failed to deploy Ironic")
+func installBareMetalOperator(clusterProxy framework.ClusterProxy) {
+	path := fmt.Sprintf("%s/bmo/", e2eConfig.GetVariable(tempKustomizations))
+	yaml, err := os.ReadFile(path)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(clusterProxy.Apply(ctx, yaml)).To(Succeed())
 }
 
 func removeIronicContainers() {
@@ -283,7 +252,7 @@ func rePivoting() {
 		Expect(err).To(BeNil(), "Cannot run local ironic")
 	} else {
 		By("Install Ironic in the target cluster")
-		installIronicBMO(bootstrapClusterProxy, "true", "false")
+		installIronic(bootstrapClusterProxy)
 	}
 
 	By("Ensure API servers are stable before doing move")
