@@ -221,6 +221,9 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 	}
 
 	r.Log.Info("Adding Unhealthy annotation to host", "host", host.Name)
+	if host.Annotations == nil {
+		host.Annotations = make(map[string]string, 1)
+	}
 	host.Annotations[infrav1.UnhealthyAnnotation] = "capm3/UnhealthyNode"
 	return helper.Patch(ctx, host)
 }
