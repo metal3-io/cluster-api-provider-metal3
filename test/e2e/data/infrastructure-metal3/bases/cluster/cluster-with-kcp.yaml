@@ -1,6 +1,8 @@
 apiVersion: cluster.x-k8s.io/${CAPI_VERSION}
 kind: Cluster
 metadata:
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:

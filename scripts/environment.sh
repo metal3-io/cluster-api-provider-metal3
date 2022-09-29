@@ -111,3 +111,6 @@ if [[ $CAPM3_VERSION == "v1alpha5" ]]; then
 else
   export PROVIDER_ID_FORMAT="metal3://{{ ds.meta_data.providerid }}"
 fi
+
+# Enable the ClusterResourceSet feature flag
+export EXP_CLUSTER_RESOURCE_SET="true"

@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -85,7 +84,6 @@ func createTargetCluster() (targetCluster framework.ClusterProxy) {
 			ControlPlaneMachineCount: &controlPlaneMachineCount,
 			WorkerMachineCount:       &workerMachineCount,
 		},
-		CNIManifestPath:              e2eConfig.GetVariable(capi_e2e.CNIPath),
 		WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
 		WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 		WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
