@@ -17,7 +17,6 @@ import (
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
-	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,10 +103,6 @@ func upgradeManagementCluster() {
 		upgradeClusterProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		upgradeClusterClient := upgradeClusterProxy.GetClient()
 
-		// Apply CNI
-		cniYaml, err := os.ReadFile(e2eConfig.GetVariable(capi_e2e.CNIPath))
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(upgradeClusterProxy.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
 		By("Initializing the workload cluster with older versions of providers")
 
 		contract := e2eConfig.GetVariable("CAPI_VERSION")
