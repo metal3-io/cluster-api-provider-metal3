@@ -15,7 +15,6 @@ package remote
 
 import (
 	"context"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -72,6 +71,7 @@ preferences: {}
 users:
 - name: kubernetes-admin
 `
+			_ = validKubeConfig
 			validSecret = &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test1-kubeconfig",
