@@ -16,7 +16,6 @@ func inspection() {
 	Logf("Starting inspection tests")
 
 	var (
-		numberOfWorkers       = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 		numberOfAvailableBMHs = 2 * numberOfWorkers
 	)
 
@@ -32,21 +31,19 @@ func inspection() {
 		}
 	}
 
-	Byf("Waiting for %d BMHs to be in Inspecting state", numberOfAvailableBMHs)
-	Eventually(func(g Gomega) {
-		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		g.Expect(err).NotTo(HaveOccurred())
-		inspectingBMHs := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateInspecting)
-		g.Expect(inspectingBMHs).To(HaveLen(numberOfAvailableBMHs))
-	}, e2eConfig.GetIntervals(specName, "wait-bmh-inspecting")...).Should(Succeed())
+	waitForNumBmhInState(ctx, bmov1alpha1.StateInspecting, waitForNumInput{
+		Client:    bootstrapClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAvailableBMHs,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-inspecting"),
+	})
 
-	Byf("Waiting for %d BMHs to be in Available state", numberOfAvailableBMHs)
-	Eventually(func(g Gomega) {
-		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-		g.Expect(err).NotTo(HaveOccurred())
-		availableBMHs := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
-		g.Expect(availableBMHs).To(HaveLen(numberOfAvailableBMHs))
-	}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
+	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+		Client:    bootstrapClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfAvailableBMHs,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+	})
 
 	By("INSPECTION TESTS PASSED!")
 }

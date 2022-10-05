@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -58,6 +59,16 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 	})
 
 	AfterEach(func() {
+		Logf("Logging state of bootstrap cluster")
+		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listNodes(ctx, bootstrapClusterProxy.GetClient())
+		Logf("Logging state of target cluster")
+		listBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+		listMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+		listMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+		listNodes(ctx, targetCluster.GetClient())
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
@@ -66,8 +77,8 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 func createTargetCluster() (targetCluster framework.ClusterProxy) {
 	By("Creating a high available cluster")
 
-	controlPlaneMachineCount = int64(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-	workerMachineCount = int64(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+	controlPlaneMachineCount = int64(numberOfControlplane)
+	workerMachineCount = int64(numberOfWorkers)
 	result := &clusterctl.ApplyClusterTemplateAndWaitResult{}
 
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

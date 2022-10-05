@@ -19,29 +19,25 @@ var _ = Describe("When testing live iso [live-iso]", func() {
 })
 
 func liveIsoTest() {
-	var (
-		liveISOImageURL = e2eConfig.GetVariable("LIVE_ISO_IMAGE")
-	)
 	BeforeEach(func() {
 		validateGlobals(specName)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
 	It("Should update the BMH with live ISO", func() {
+		liveISOImageURL := e2eConfig.GetVariable("LIVE_ISO_IMAGE")
 		Logf("Starting live ISO test")
 		bootstrapClient := bootstrapClusterProxy.GetClient()
+		listBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
 
-		By("Waiting for all BMHs to be in Available state")
-		Eventually(
-			func(g Gomega) {
-				bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-				Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
-				filtered := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
-				g.Expect(len(filtered)).To(Equal(len(bmhs)))
-				Logf("One or more BMHs are not available yet")
-			}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
+		waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+			Client:    bootstrapClient,
+			Options:   []client.ListOption{client.InNamespace(namespace)},
+			Replicas:  numberOfAllBmh,
+			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+		})
 
-		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace)
 		Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
 		var isoBmh bmov1alpha1.BareMetalHost
 		for _, bmh := range bmhs {
@@ -71,6 +67,7 @@ func liveIsoTest() {
 			g.Expect(isoBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioned), fmt.Sprintf("BMH %s is not in provisioned state", isoBmh.Name))
 			Logf("BMH %s is in %s state", isoBmh.Name, isoBmh.Status.Provisioning.State)
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(Succeed())
+		listBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
 
 		vmName := bmhToVMName(isoBmh)
 		serialLogFile := fmt.Sprintf("/var/log/libvirt/qemu/%s-serial0.log", vmName)
@@ -90,9 +87,8 @@ func liveIsoTest() {
 
 		bootstrapClient := bootstrapClusterProxy.GetClient()
 
-		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
+		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace)
 		Expect(err).NotTo(HaveOccurred(), "Error getting all BMHs")
-		bmhsLen := len(bmhs)
 
 		for _, bmh := range bmhs {
 			Logf("Checking BMH %s", bmh.Name)
@@ -104,13 +100,12 @@ func liveIsoTest() {
 			}
 		}
 		By("Waiting for deprovisioned live ISO image booted BMH to be available")
-		Eventually(
-			func(g Gomega) {
-				bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace, specName)
-				Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
-				filtered := filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)
-				g.Expect(len(filtered)).To(Equal(bmhsLen))
-			}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
+		waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+			Client:    bootstrapClient,
+			Options:   []client.ListOption{client.InNamespace(namespace)},
+			Replicas:  numberOfAllBmh,
+			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+		})
 		By("live ISO image booted BMH deprovisioned successfully")
 	})
 }

@@ -72,6 +72,10 @@ var (
 
 	kubeconfigPath string
 	e2eTestsPath   string
+
+	numberOfControlplane int
+	numberOfWorkers      int
+	numberOfAllBmh       int
 )
 
 func init() {
@@ -105,6 +109,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	By(fmt.Sprintf("Loading the e2e test configuration from %q", configPath))
 	e2eConfig = loadE2EConfig(configPath)
+	numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+	numberOfWorkers = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+	numberOfAllBmh = numberOfControlplane + numberOfWorkers
 
 	By(fmt.Sprintf("Creating a clusterctl local repository into %q", artifactFolder))
 	clusterctlConfigPath = createClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))

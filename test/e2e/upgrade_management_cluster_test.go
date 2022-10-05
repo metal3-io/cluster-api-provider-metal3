@@ -63,7 +63,7 @@ func upgradeManagementCluster() {
 		err = os.Chmod(clusterctlBinaryPath, 0744)
 		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
 
-		By("Creating a high available cluster")
+		By("Creating a cluster")
 		Logf("Getting the cluster template yaml")
 		upgradeClusterTemplate := clusterctl.ConfigClusterWithBinary(ctx, clusterctlBinaryPath, clusterctl.ConfigClusterInput{
 			KubeconfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
@@ -87,18 +87,22 @@ func upgradeManagementCluster() {
 		Expect(bootstrapClusterProxy.Apply(ctx, upgradeClusterTemplate)).To(Succeed())
 
 		By("Waiting for the machines to be running")
-		Eventually(func() (int, error) {
+		// Note: We cannot use waitForNumMachinesInState because these are v1alpha4 Machines!
+		Eventually(func(g Gomega) {
 			n := 0
 			machineList := &clusterv1alpha4.MachineList{}
-			if err := bootstrapClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels{clusterv1.ClusterLabelName: clusterName}); err == nil {
-				for _, machine := range machineList.Items {
-					if strings.EqualFold(machine.Status.Phase, "running") {
-						n++
-					}
+			opts := []client.ListOption{
+				client.InNamespace(namespace),
+				client.MatchingLabels{clusterv1.ClusterLabelName: clusterName},
+			}
+			g.Expect(bootstrapClusterProxy.GetClient().List(ctx, machineList, opts...)).To(Succeed())
+			for _, machine := range machineList.Items {
+				if machine.Status.GetTypedPhase() == clusterv1alpha4.MachinePhaseRunning {
+					n++
 				}
 			}
-			return n, nil
-		}, e2eConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Equal(2))
+			g.Expect(n).To(Equal(2))
+		}, e2eConfig.GetIntervals(specName, "wait-worker-nodes")...).Should(Succeed())
 
 		upgradeClusterProxy := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 		upgradeClusterClient := upgradeClusterProxy.GetClient()
@@ -122,6 +126,9 @@ func upgradeManagementCluster() {
 		| Pivot to run ironic/BMO and resources on target |
 		*--------------------------------------------------*/
 		By("Start pivoting")
+		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listNodes(ctx, upgradeClusterClient)
+
 		By("Remove Ironic containers from the source cluster")
 		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 		if ephemeralCluster == KIND {
@@ -168,14 +175,16 @@ func upgradeManagementCluster() {
 		Logf("move: %v", string(output))
 		Expect(err).To(BeNil())
 
-		By("Check if BMH is in provisioned state")
-		Eventually(func(g Gomega) {
-			bmhList := &bmov1alpha1.BareMetalHostList{}
-			g.Expect(upgradeClusterClient.List(ctx, bmhList, client.InNamespace(namespace))).Should(Succeed())
-			for _, bmh := range bmhList.Items {
-				g.Expect(bmh.WasProvisioned()).To(BeTrue())
-			}
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(Succeed())
+		By("Check that BMHs are in provisioned state")
+		waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+			Client:    upgradeClusterClient,
+			Options:   []client.ListOption{client.InNamespace(namespace)},
+			Replicas:  numberOfAllBmh,
+			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-provisioned"),
+		})
+
+		listBareMetalHosts(ctx, upgradeClusterClient, client.InNamespace(namespace))
+		listNodes(ctx, upgradeClusterClient)
 
 		Logf("Apply the available BMHs CRs")
 		cmd = exec.Command("kubectl", "apply", "-f", "/opt/metal3-dev-env/bmhosts_crs.yaml", "-n", namespace, "--kubeconfig", upgradeClusterProxy.GetKubeconfigPath())
@@ -184,11 +193,15 @@ func upgradeManagementCluster() {
 		Expect(err).To(BeNil())
 
 		Logf("Waiting for 2 BMHs to be in Available state")
-		Eventually(func(g Gomega) {
-			bmhs, err := getAllBmhs(ctx, upgradeClusterClient, namespace, specName)
-			g.Expect(err).To(BeNil())
-			g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateAvailable)).To(HaveLen(2))
-		}, e2eConfig.GetIntervals(specName, "wait-bmh-available")...).Should(Succeed())
+		waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+			Client:    upgradeClusterClient,
+			Options:   []client.ListOption{client.InNamespace(namespace)},
+			Replicas:  2,
+			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+		})
+
+		listBareMetalHosts(ctx, upgradeClusterClient, client.InNamespace(namespace))
+		listNodes(ctx, upgradeClusterClient)
 
 		/*-------------------------------*
 		| Create a test workload cluster |
@@ -230,18 +243,24 @@ func upgradeManagementCluster() {
 		Expect(upgradeClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
 
 		By("Waiting for the machines to be running")
-		Eventually(func() (int, error) {
-			var n int
+		// Note: We cannot use waitForNumMachinesInState because these are v1alpha4 Machines!
+		Eventually(func(g Gomega) {
+			n := 0
 			machineList := &clusterv1alpha4.MachineList{}
-			if err := upgradeClusterClient.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName}); err == nil {
-				for _, machine := range machineList.Items {
-					if strings.EqualFold(machine.Status.Phase, "running") {
-						n++
-					}
+			opts := []client.ListOption{
+				client.InNamespace(namespace),
+				client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName},
+			}
+			g.Expect(upgradeClusterClient.List(ctx, machineList, opts...)).To(Succeed())
+			for _, machine := range machineList.Items {
+				if machine.Status.GetTypedPhase() == clusterv1alpha4.MachinePhaseRunning {
+					n++
 				}
 			}
-			return n, nil
-		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Equal(2))
+			g.Expect(n).To(Equal(2))
+		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...).Should(Succeed())
+
+		listBareMetalHosts(ctx, upgradeClusterClient, client.InNamespace(namespace))
 
 		By("THE MANAGEMENT CLUSTER WITH OLDER VERSION OF PROVIDERS WORKS!")
 

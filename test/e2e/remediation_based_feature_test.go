@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type vmState string
@@ -59,6 +60,10 @@ var _ = Describe("Testing nodes remediation [remediation]", func() {
 	})
 
 	AfterEach(func() {
+		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		listNodes(ctx, targetCluster.GetClient())
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
