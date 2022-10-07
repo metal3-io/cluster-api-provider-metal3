@@ -82,7 +82,7 @@ func upgradeManagementCluster() {
 
 		Expect(upgradeClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
-		Logf("Applying the cluster template yaml to the cluster: \n%v\n", string(upgradeClusterTemplate))
+		Logf("Applying the cluster template yaml to the cluster")
 
 		Expect(bootstrapClusterProxy.Apply(ctx, upgradeClusterTemplate)).To(Succeed())
 
@@ -179,7 +179,7 @@ func upgradeManagementCluster() {
 		waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
 			Client:    upgradeClusterClient,
 			Options:   []client.ListOption{client.InNamespace(namespace)},
-			Replicas:  numberOfAllBmh,
+			Replicas:  2,
 			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-provisioned"),
 		})
 
@@ -237,7 +237,6 @@ func upgradeManagementCluster() {
 			LogFolder: filepath.Join(artifactFolder, "clusters", upgradeClusterProxy.GetName()),
 		})
 		Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
-		Logf("%v ", string(workloadClusterTemplate))
 
 		Logf("Applying the cluster template yaml to the cluster")
 		Expect(upgradeClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
