@@ -110,6 +110,9 @@ variables:
   CNI: "/tmp/calico.yaml"
   KUBERNETES_VERSION: "v1.24.0"
   UPGRADED_K8S_VERSION: "v1.24.1"
+  # INIT_WITH_KUBERNETES_VERSION will be used here
+  # https://github.com/kubernetes-sigs/cluster-api/blob/bb377163f141d69b7a61479756ee96891f6670bd/test/e2e/clusterctl_upgrade.go#L170
+  INIT_WITH_KUBERNETES_VERSION: ${FROM_K8S_VERSION}
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   APIVersion: "infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}"
@@ -129,6 +132,8 @@ variables:
   # Pin Calico version
   CALICO_PATCH_RELEASE: "v3.21.0"
   CALICO_MINOR_RELEASE: "v3.21"
+  # Pin CertManager for upgrade tests
+  CERT_MANAGER_RELEASE: v1.5.3
   # Default vars for the template, those values could be overridden by the env-vars.
   CAPI_VERSION: "v1beta1"
   CAPM3_VERSION: "v1beta1"
@@ -149,6 +154,7 @@ variables:
   IMAGE_CHECKSUM_TYPE: "md5"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: "0s"
+
 intervals:
   default/wait-controllers: ["5m", "10s"]
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created

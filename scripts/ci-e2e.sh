@@ -58,19 +58,11 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_basic_auth.sh"
 # shellcheck disable=SC1091,SC1090
 source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
-if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
-  export CAPI_FROM_RELEASE="${CAPIRELEASE}"
-  export CAPI_TO_RELEASE="${CAPI_TO_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.2.")}"
-
-  export CAPM3_FROM_RELEASE="${CAPM3RELEASE}"
-  export CAPM3_TO_RELEASE="${CAPM3_TO_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v1.2.")}"
-else
-  export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v0.4.")}"
-  export CAPI_TO_RELEASE="${CAPIRELEASE}"
-
-  export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v0.5.")}"
-  export CAPM3_TO_RELEASE="${CAPM3RELEASE}"
-fi
+# Parameterize e2e_config
+export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v0.4.")}"
+export CAPI_TO_RELEASE="${CAPIRELEASE}"
+export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v0.5.")}"
+export CAPM3_TO_RELEASE="${CAPM3RELEASE}"
 
 # image for live iso testing
 export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"
