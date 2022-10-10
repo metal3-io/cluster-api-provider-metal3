@@ -65,9 +65,11 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 		listMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		listNodes(ctx, bootstrapClusterProxy.GetClient())
 		Logf("Logging state of target cluster")
-		listBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-		listMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-		listMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+		if !ephemeralTest {
+			listBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			listMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			listMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+		}
 		listNodes(ctx, targetCluster.GetClient())
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
