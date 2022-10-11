@@ -2,7 +2,9 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -73,6 +75,19 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 			listMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 		}
 		listNodes(ctx, targetCluster.GetClient())
+		By("Reinstate Ironic containers and BMH")
+		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
+		if ephemeralCluster == KIND {
+			bmoPath := e2eConfig.GetVariable("BMOPATH")
+			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
+			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
+			stdoutStderr, err := cmd.CombinedOutput()
+			fmt.Printf("%s\n", stdoutStderr)
+			Expect(err).To(BeNil(), "Cannot run local ironic")
+		} else {
+			By("Install Ironic in the target cluster")
+			installIronicBMO(bootstrapClusterProxy, "true", "false")
+		}
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
