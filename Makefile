@@ -159,7 +159,7 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## --------------------------------------
 ## E2E Testing
 ## --------------------------------------
-GINKGO_FOCUS  ?= ephemeral
+GINKGO_FOCUS  ?= 
 GINKGO_SKIP ?=
 
 # TODO (Mohammed) select the test in JJB

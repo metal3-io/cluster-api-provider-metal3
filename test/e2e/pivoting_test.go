@@ -201,24 +201,35 @@ func removeIronicContainers() {
 	for _, container := range ironicContainerList {
 		d := 1 * time.Minute
 		err = dockerClient.ContainerStop(ctx, container, &d)
-		Expect(err).To(BeNil(), "Unable to stop the container %s: %v", container, err)
+		if err != nil {
+			Logf("Unable to stop the container %s: %v", container, err)
+		}
 		err = dockerClient.ContainerRemove(ctx, container, removeOptions)
-		Expect(err).To(BeNil(), "Unable to delete the container %s: %v", container, err)
+		if err != nil {
+			Logf("Unable to delete the container %s: %v", container, err)
+		}
+
 	}
 }
 
-func removeIronicDeployment() {
+func removeIronicDeployment() error {
 	deploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
 	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
 	err := bootstrapClusterProxy.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "Failed to delete Ironic from the source cluster")
+	if err != nil {
+		Logf("Failed to delete Ironic from the source cluster")
+	}
+	return err
 }
 
-func removeIronicDeploymentOnTarget() {
+func removeIronicDeploymentOnTarget() error {
 	deploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
 	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
 	err := targetCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
-	Expect(err).To(BeNil(), "Failed to delete Ironic from the target cluster")
+	if err != nil {
+		Logf("Failed to delete Ironic from the target cluster")
+	}
+	return err
 }
 
 func labelBMOCRDs(targetCluster framework.ClusterProxy) {

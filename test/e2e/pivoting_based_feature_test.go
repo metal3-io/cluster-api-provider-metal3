@@ -56,10 +56,6 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 		certRotation(managementCluster.GetClientSet(), managementCluster.GetClient())
 		nodeReuse(managementCluster.GetClient())
 
-		if !ephemeralTest {
-			rePivoting()
-		}
-
 	})
 
 	AfterEach(func() {
@@ -73,21 +69,11 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 			listBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 			listMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 			listMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			rePivoting()
 		}
+
 		listNodes(ctx, targetCluster.GetClient())
-		By("Reinstate Ironic containers and BMH")
-		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-		if ephemeralCluster == KIND {
-			bmoPath := e2eConfig.GetVariable("BMOPATH")
-			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
-			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
-			stdoutStderr, err := cmd.CombinedOutput()
-			fmt.Printf("%s\n", stdoutStderr)
-			Expect(err).To(BeNil(), "Cannot run local ironic")
-		} else {
-			By("Install Ironic in the target cluster")
-			installIronicBMO(bootstrapClusterProxy, "true", "false")
-		}
+
 		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
@@ -120,4 +106,29 @@ func createTargetCluster() (targetCluster framework.ClusterProxy) {
 	}, result)
 	targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 	return targetCluster
+}
+
+func restoreBootstrapcluster() {
+	// remove ironic if it exists
+	// delete all resources
+	// reinstall ironic
+	By("Reinstate Ironic containers and BMH")
+	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
+	if ephemeralCluster == KIND {
+		bmoPath := e2eConfig.GetVariable("BMOPATH")
+		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
+		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
+		stdoutStderr, err := cmd.CombinedOutput()
+		fmt.Printf("%s\n", stdoutStderr)
+		Expect(err).To(BeNil(), "Cannot run local ironic")
+	} else {
+		By("Install Ironic in the target cluster")
+		installIronicBMO(bootstrapClusterProxy, "true", "false")
+	}
+	// apply bmh
+	const workDir = "/opt/metal3-dev-env/"
+	resource, err := os.ReadFile(filepath.Join(workDir, "bmhosts_crs.yaml"))
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(bootstrapClusterProxy.Apply(ctx, resource, []string{"-n", namespace}...)).ShouldNot(HaveOccurred())
+	// run verify tests
 }

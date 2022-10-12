@@ -63,14 +63,6 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 	}
 }
-func restoreBootstrapcluster() {
-	// remove ironic if it exists
-	//remove bmo if exists
-	// delete all resources
-	// reinstall ironic and bmo
-	// apply bmh
-	// run verify tests
-}
 
 // downloadFile will download a url and store it in local filepath.
 func downloadFile(filePath string, url string) error {
