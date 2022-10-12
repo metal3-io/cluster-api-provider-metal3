@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 
@@ -254,16 +253,11 @@ func validateGlobals(specName string) {
 }
 
 func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface string) {
-	calicoManifestURL := fmt.Sprintf("https://docs.projectcalico.org/archive/%s/manifests/calico.yaml", config.GetVariable("CALICO_MINOR_RELEASE"))
+	calicoManifestURL := fmt.Sprintf("https://raw.githubusercontent.com/projectcalico/calico/%s/manifests/calico.yaml", config.GetVariable("CALICO_PATCH_RELEASE"))
 	err := downloadFile(calicoYaml, calicoManifestURL)
 	Expect(err).To(BeNil(), "Unable to download Calico manifest")
 	cniYaml, err := os.ReadFile(calicoYaml)
 	Expect(err).To(BeNil(), "Unable to read Calico manifest")
-
-	Logf("Replace the calico version with the pinned one")
-	regex := regexp.MustCompile("image: docker.io/calico/(.+):v(.+)")
-	replacement := fmt.Sprintf("image: docker.io/calico/$1:%s", config.GetVariable("CALICO_PATCH_RELEASE"))
-	cniYaml = []byte(regex.ReplaceAllString(string(cniYaml), replacement))
 
 	Logf("Replace the default CIDR with the one set in $POD_CIDR")
 	podCIDR := config.GetVariable("POD_CIDR")
