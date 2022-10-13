@@ -49,7 +49,7 @@ linters:
 
 linters-settings:
   gosec:
-    go: "1.17"
+    go: "1.18"
     severity: medium
     confidence: medium
     excludes:
@@ -94,9 +94,9 @@ linters-settings:
     allow-leading-space: false
     require-specific: true
   staticcheck:
-    go: "1.17"
+    go: "1.18"
   stylecheck:
-    go: "1.17"
+    go: "1.18"
   gocritic:
     enabled-tags:
       - experimental
@@ -115,7 +115,7 @@ linters-settings:
     - whyNoLint
     - wrapperFunc
   unused:
-    go: "1.17"
+    go: "1.18"
 issues:
   exclude-rules:
     - path: test/e2e
