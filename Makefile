@@ -82,9 +82,9 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= IfNotPresent
 
-OS := linux
+ENVTEST_OS := linux
 ifeq ($(shell uname -s), Darwin)
-	OS := darwin
+	ENVTEST_OS := darwin
 endif
 ARCH ?= amd64
 
@@ -101,7 +101,7 @@ help:  ## Display this help
 
 .PHONY: unit
 unit: $(SETUP_ENVTEST) ## Run unit test
-	source <($(SETUP_ENVTEST) use -p env --os $(OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
+	source <($(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
 	go test ./controllers/... ./baremetal/... \
 		-ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
