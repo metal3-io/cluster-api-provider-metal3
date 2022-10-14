@@ -55,7 +55,7 @@ ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
 
-ENVTEST_K8S_VERSION := 1.23.x
+ENVTEST_K8S_VERSION := 1.25.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
