@@ -53,6 +53,9 @@ KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
+SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
+
+ENVTEST_K8S_VERSION := 1.25.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -79,6 +82,12 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= IfNotPresent
 
+OS := linux
+ifeq ($(shell uname -s), Darwin)
+	OS := darwin
+endif
+ARCH ?= amd64
+
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -91,8 +100,8 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: unit
-unit: ## Run unit test
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; \
+unit: $(SETUP_ENVTEST) ## Run unit test
+	source <($(SETUP_ENVTEST) use -p env --os $(OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
 	go test ./controllers/... ./baremetal/... \
 		-ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
@@ -211,6 +220,9 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kubebuilder.sh
+
+$(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 .PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
