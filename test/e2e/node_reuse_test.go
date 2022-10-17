@@ -2,10 +2,7 @@ package e2e
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"reflect"
-	"strings"
 	"time"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -30,11 +27,10 @@ func nodeReuse(clusterClient client.Client) {
 	var (
 		targetClusterClient = targetCluster.GetClient()
 		clientSet           = targetCluster.GetClientSet()
-		kubernetesVersion   = e2eConfig.GetVariable("KUBERNETES_VERSION")
-		upgradedK8sVersion  = e2eConfig.GetVariable("UPGRADED_K8S_VERSION")
+		kubernetesVersion   = e2eConfig.GetVariable("FROM_K8S_VERSION")
+		upgradedK8sVersion  = e2eConfig.GetVariable("KUBERNETES_VERSION")
 		controlplaneTaints  = []corev1.Taint{{Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule},
 			{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}}
-		imageNamePrefix string
 	)
 
 	const (
@@ -73,44 +69,7 @@ func nodeReuse(clusterClient client.Client) {
 	kcpBmhBeforeUpgrade := getProvisionedBmhNamesUuids(clusterClient)
 
 	By("Download image")
-	osType := strings.ToLower(os.Getenv("OS"))
-	Expect(osType).ToNot(Equal(""))
-	if osType != "centos" {
-		imageNamePrefix = "UBUNTU_22.04_NODE_IMAGE_K8S"
-	} else {
-		imageNamePrefix = "CENTOS_9_NODE_IMAGE_K8S"
-	}
-	imageName := fmt.Sprintf("%s_%s.qcow2", imageNamePrefix, upgradedK8sVersion)
-	Logf("IMAGE_NAME: %v", imageName)
-	rawImageName := fmt.Sprintf("%s_%s-raw.img", imageNamePrefix, upgradedK8sVersion)
-	Logf("RAW_IMAGE_NAME: %v", rawImageName)
-	imageLocation := fmt.Sprintf("%s_%s/", artifactoryURL, upgradedK8sVersion)
-	Logf("IMAGE_LOCATION: %v", imageLocation)
-	imageURL := fmt.Sprintf("%s/%s", imagesURL, rawImageName)
-	Logf("IMAGE_URL: %v", imageURL)
-	imageChecksum := fmt.Sprintf("%s/%s.md5sum", imagesURL, rawImageName)
-	Logf("IMAGE_CHECKSUM: %v", imageChecksum)
-
-	// Check if node image with upgraded k8s version exist, if not download it
-	if _, err := os.Stat(fmt.Sprintf("%s/%s", ironicImageDir, rawImageName)); err == nil {
-		Logf("Local image %v is found", rawImageName)
-	} else if os.IsNotExist(err) {
-		Logf("Local image %v/%v is not found", ironicImageDir, rawImageName)
-		err = downloadFile(fmt.Sprintf("%s/%s", ironicImageDir, imageName), fmt.Sprintf("%s/%s", imageLocation, imageName))
-		Expect(err).To(BeNil())
-		cmd := exec.Command("qemu-img", "convert", "-O", "raw", fmt.Sprintf("%s/%s", ironicImageDir, imageName), fmt.Sprintf("%s/%s", ironicImageDir, rawImageName))
-		err = cmd.Run()
-		Expect(err).To(BeNil())
-		cmd = exec.Command("md5sum", fmt.Sprintf("%s/%s", ironicImageDir, rawImageName))
-		output, err := cmd.CombinedOutput()
-		Expect(err).To(BeNil())
-		md5sum := strings.Fields(string(output))[0]
-		err = os.WriteFile(fmt.Sprintf("%s/%s.md5sum", ironicImageDir, rawImageName), []byte(md5sum), 0777)
-		Expect(err).To(BeNil())
-	} else {
-		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)
-		os.Exit(1)
-	}
+	imageURL, imageChecksum := ensureImage(upgradedK8sVersion)
 	By("Update KCP Metal3MachineTemplate with upgraded image to boot and set nodeReuse field to 'True'")
 	m3machineTemplateName := fmt.Sprintf("%s-controlplane", clusterName)
 	updateNodeReuse(true, m3machineTemplateName, clusterClient)

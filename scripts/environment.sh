@@ -49,8 +49,8 @@ else
 fi
 
 export FROM_K8S_VERSION="v1.24.1"
-export KUBERNETES_VERSION=${FROM_K8S_VERSION}
-export UPGRADED_K8S_VERSION="v1.25.2"
+export KUBERNETES_VERSION="v1.25.2"
+
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
@@ -62,16 +62,7 @@ export PATH=$PATH:$HOME/.krew/bin
 # Upgrade test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
   export NUM_NODES=${NUM_NODES:-"5"}
-  export FROM_K8S_VERSION="v1.23.8"
-  export KUBERNETES_VERSION=${FROM_K8S_VERSION}
-fi
-
-if [[ "${IMAGE_OS}" == "ubuntu" ]]; then
-  export UPGRADED_IMAGE_NAME="UBUNTU_22.04_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}.qcow2"
-  export UPGRADED_RAW_IMAGE_NAME="UBUNTU_22.04_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}-raw.img"
-else
-  export UPGRADED_IMAGE_NAME="CENTOS_9_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}.qcow2"
-  export UPGRADED_RAW_IMAGE_NAME="CENTOS_9_NODE_IMAGE_K8S_${UPGRADED_K8S_VERSION}-raw.img"
+  export KUBERNETES_VERSION="v1.23.8"
 fi
 
 # Exported to the cluster templates

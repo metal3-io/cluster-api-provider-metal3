@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -62,6 +63,51 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 			Namespace: namespace,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 	}
+}
+
+const (
+	artifactoryURL = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
+	imagesURL      = "http://172.22.0.1/images"
+	ironicImageDir = "/opt/metal3-dev-env/ironic/html/images"
+)
+
+func ensureImage(k8sVersion string) (imageURL string, imageChecksum string) {
+	osType := strings.ToLower(os.Getenv("OS"))
+	Expect(osType).To(BeElementOf([]string{"ubuntu", "centos"}))
+	imageNamePrefix := "CENTOS_9_NODE_IMAGE_K8S"
+	if osType != "centos" {
+		imageNamePrefix = "UBUNTU_22.04_NODE_IMAGE_K8S"
+	}
+	imageName := fmt.Sprintf("%s_%s.qcow2", imageNamePrefix, k8sVersion)
+	rawImageName := fmt.Sprintf("%s_%s-raw.img", imageNamePrefix, k8sVersion)
+	imageLocation := fmt.Sprintf("%s_%s/", artifactoryURL, k8sVersion)
+	imageURL = fmt.Sprintf("%s/%s", imagesURL, rawImageName)
+	imageChecksum = fmt.Sprintf("%s/%s.md5sum", imagesURL, rawImageName)
+
+	// Check if node image with upgraded k8s version exist, if not download it
+	imagePath := filepath.Join(ironicImageDir, imageName)
+	rawImagePath := filepath.Join(ironicImageDir, rawImageName)
+	if _, err := os.Stat(rawImagePath); err == nil {
+		Logf("Local image %v already exists", rawImagePath)
+	} else if os.IsNotExist(err) {
+		Logf("Local image %v is not found \nDownloading..", rawImagePath)
+		err = downloadFile(imagePath, fmt.Sprintf("%s/%s", imageLocation, imageName))
+		Expect(err).To(BeNil())
+		cmd := exec.Command("qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
+		err = cmd.Run()
+		Expect(err).To(BeNil())
+		cmd = exec.Command("md5sum", rawImagePath) // #nosec G204:gosec
+		output, err := cmd.CombinedOutput()
+		Expect(err).To(BeNil())
+		md5sum := strings.Fields(string(output))[0]
+		err = os.WriteFile(fmt.Sprintf("%s/%s.md5sum", ironicImageDir, rawImageName), []byte(md5sum), 0544)
+		Expect(err).To(BeNil())
+		Logf("Image: %v downloaded", rawImagePath)
+	} else {
+		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)
+		os.Exit(1)
+	}
+	return imageURL, imageChecksum
 }
 
 // downloadFile will download a url and store it in local filepath.
