@@ -52,13 +52,19 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 		certRotation(managementCluster.GetClientSet(), managementCluster.GetClient())
 		nodeReuse(managementCluster.GetClient())
 
-		if !ephemeralTest {
-			rePivoting()
-		}
-
 	})
 
 	AfterEach(func() {
+		if !ephemeralTest {
+			// Dump the target cluster resources before re-pivoting.
+			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+				Lister:    targetCluster.GetClient(),
+				Namespace: namespace,
+				LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
+			})
+
+			rePivoting()
+		}
 		Logf("Logging state of bootstrap cluster")
 		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		listMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
