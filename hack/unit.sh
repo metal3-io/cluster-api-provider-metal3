@@ -17,6 +17,6 @@ else
     --volume "${PWD}:/capm3:ro,z" \
     --entrypoint sh \
     --workdir /capm3 \
-    docker.io/golang:1.17 \
+    docker.io/golang:1.18 \
     /capm3/hack/unit.sh "${@}"
 fi;

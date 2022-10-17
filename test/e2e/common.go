@@ -67,7 +67,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 // downloadFile will download a url and store it in local filepath.
 func downloadFile(filePath string, url string) error {
 	// Get the data
-	resp, err := http.Get(url) //nolint:noctx // NB: as we're just implementing an external interface we won't be able to get a context here.
+	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}

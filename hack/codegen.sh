@@ -38,6 +38,6 @@ else
     --volume "${PWD}:/capm3:rw,z" \
     --entrypoint sh \
     --workdir /capm3 \
-    docker.io/golang:1.17 \
+    docker.io/golang:1.18 \
     /capm3/hack/codegen.sh
 fi;
