@@ -214,7 +214,7 @@ func removeIronicDeployment() {
 	Expect(err).To(BeNil(), "Failed to delete Ironic from the source cluster")
 }
 
-func removeIronicDeploymentOnTarget() {
+func removeIronicDeploymentOnTarget(targetCluster framework.ClusterProxy) {
 	deploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
 	ironicNamespace := e2eConfig.GetVariable("IRONIC_NAMESPACE")
 	err := targetCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
@@ -270,7 +270,7 @@ func labelHDCRDs(targetCluster framework.ClusterProxy) {
 func rePivoting() {
 	Logf("Start the re-pivoting test")
 	By("Remove Ironic deployment from target cluster")
-	removeIronicDeploymentOnTarget()
+	removeIronicDeploymentOnTarget(targetCluster)
 
 	By("Reinstate Ironic containers and BMH")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
