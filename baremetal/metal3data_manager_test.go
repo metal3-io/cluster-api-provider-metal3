@@ -1104,7 +1104,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 	)
 
-	type testCaseGetAddressFromPool struct {
+	type testCaseAddressFromClaim struct {
 		m3d             *infrav1.Metal3Data
 		m3dt            *infrav1.Metal3DataTemplate
 		poolName        string
@@ -1119,7 +1119,7 @@ var _ = Describe("Metal3Data manager", func() {
 	}
 
 	DescribeTable("Test GetAddressFromPool",
-		func(tc testCaseGetAddressFromPool) {
+		func(tc testCaseAddressFromClaim) {
 			objects := []client.Object{}
 			if tc.ipAddress != nil {
 				objects = append(objects, tc.ipAddress)
@@ -1135,8 +1135,8 @@ var _ = Describe("Metal3Data manager", func() {
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			poolAddress, requeue, err := dataMgr.getAddressFromM3Pool(
-				context.TODO(), tc.poolRef,
+			poolAddress, requeue, err := dataMgr.addressFromM3Claim(
+				context.TODO(), tc.poolRef, tc.ipClaim,
 			)
 			if tc.expectError {
 				if tc.m3dt != nil {
@@ -1173,7 +1173,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Expect(capm3IPClaim.Finalizers).To(ContainElement(infrav1.DataFinalizer))
 			}
 		},
-		Entry("IPClaim without allocation", testCaseGetAddressFromPool{
+		Entry("IPClaim without allocation", testCaseAddressFromClaim{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
@@ -1188,7 +1188,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectRequeue: true,
 		}),
-		Entry("Old IPClaim with deletion timestamp", testCaseGetAddressFromPool{
+		Entry("Old IPClaim with deletion timestamp", testCaseAddressFromClaim{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
@@ -1229,7 +1229,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 			expectError:   false,
 		}),
-		Entry("In-use IPClaim with deletion timestamp", testCaseGetAddressFromPool{
+		Entry("In-use IPClaim with deletion timestamp", testCaseAddressFromClaim{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, "abc-def-ghi-jkl"),
 			},
@@ -1277,7 +1277,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectRequeue: false,
 		}),
-		Entry("IPPool with allocation error", testCaseGetAddressFromPool{
+		Entry("IPPool with allocation error", testCaseAddressFromClaim{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 			},
@@ -1293,7 +1293,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError:     true,
 			expectDataError: true,
 		}),
-		Entry("IPAddress not found", testCaseGetAddressFromPool{
+		Entry("IPAddress not found", testCaseAddressFromClaim{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
@@ -1318,7 +1318,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue: true,
 			expectError:   false,
 		}),
-		Entry("IPAddress found", testCaseGetAddressFromPool{
+		Entry("IPAddress found", testCaseAddressFromClaim{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
