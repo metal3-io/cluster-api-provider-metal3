@@ -48,13 +48,9 @@ else
   export EPHEMERAL_CLUSTER="minikube"
 fi
 
-# Until the upgrade process starts with CAPI v0.4.x
-# CAPM3 v0.5.x and K8s v1.23.x it is not possible to set
-# the starting version of k8s in the target cluster (FROM_K8S_VERSION)
-# higher than v1.23.x
-export FROM_K8S_VERSION="v1.23.8"
+export FROM_K8S_VERSION="v1.24.1"
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
-export UPGRADED_K8S_VERSION="v1.24.1"
+export UPGRADED_K8S_VERSION="v1.25.2"
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
@@ -65,7 +61,9 @@ export PATH=$PATH:$HOME/.krew/bin
 
 # Upgrade test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
-  export NUM_NODES=${NUM_NODES:-"5"} 
+  export NUM_NODES=${NUM_NODES:-"5"}
+  export FROM_K8S_VERSION="v1.23.8"
+  export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 fi
 
 if [[ "${IMAGE_OS}" == "ubuntu" ]]; then
