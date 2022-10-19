@@ -101,7 +101,7 @@ help:  ## Display this help
 
 .PHONY: unit
 unit: $(SETUP_ENVTEST) ## Run unit test
-	source <($(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
+	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
 	go test ./controllers/... ./baremetal/... \
 		-ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
