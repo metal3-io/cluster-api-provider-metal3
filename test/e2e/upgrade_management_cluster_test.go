@@ -20,7 +20,7 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [upgrade]", fu
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
-		imageURL, imageChecksum := ensureImage(e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"))
+		imageURL, imageChecksum := EnsureImage(e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"))
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
@@ -135,7 +135,7 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 func preInitFunc(clusterProxy framework.ClusterProxy) {
 	installCertManager := func(clusterProxy framework.ClusterProxy) {
 		certManagerLink := fmt.Sprintf("https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml", e2eConfig.GetVariable("CERT_MANAGER_RELEASE"))
-		err := downloadFile("/tmp/certManager.yaml", certManagerLink)
+		err := DownloadFile("/tmp/certManager.yaml", certManagerLink)
 		Expect(err).To(BeNil(), "Unable to download certmanager manifest")
 		certManagerYaml, err := os.ReadFile("/tmp/certManager.yaml")
 		Expect(err).ShouldNot(HaveOccurred())

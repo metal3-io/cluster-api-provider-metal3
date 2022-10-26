@@ -35,6 +35,7 @@ export GO111MODULE=on
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TOOLS_DIR := hack/tools
 APIS_DIR := api
+TEST_DIR := test
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
 
@@ -178,7 +179,8 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 	for image in $(E2E_CONTAINERS); do \
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
-	time go test -v -timeout 24h --tags=e2e ./test/e2e/... -args \
+	cd test; \
+	time go test -v -timeout 24h --tags=e2e ./e2e/... -args \
 		--ginkgo.timeout=6h --ginkgo.v --ginkgo.trace --ginkgo.show-node-events --ginkgo.no-color=$(GINKGO_NOCOLOR) \
 		--ginkgo.junit-report="junit.e2e_suite.1.xml" \
 		--ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
@@ -223,7 +225,8 @@ $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); ./install_kubebuilder.sh
 
 $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
+	cd $(TOOLS_DIR); go get sigs.k8s.io/controller-runtime/tools/setup-envtest; \
+	go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 .PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
@@ -277,6 +280,8 @@ modules: ## Runs go mod to ensure proper vendoring.
 	cd $(TOOLS_DIR); go mod verify
 	cd $(APIS_DIR); go mod tidy
 	cd $(APIS_DIR); go mod verify
+	cd $(TEST_DIR); go mod tidy
+	cd $(TEST_DIR); go mod verify
 
 .PHONY: generate
 generate: ## Generate code

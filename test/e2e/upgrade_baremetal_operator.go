@@ -53,7 +53,7 @@ func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
 
 	By("Waiting for BMO update to rollout")
 	Eventually(func() bool {
-		return deploymentRolledOut(ctx, clientSet, bmoDeployName, bmoNamespace, deploy.Status.ObservedGeneration+1)
+		return DeploymentRolledOut(ctx, clientSet, bmoDeployName, bmoNamespace, deploy.Status.ObservedGeneration+1)
 	},
 		input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...,
 	).Should(Equal(true))

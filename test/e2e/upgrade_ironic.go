@@ -59,7 +59,7 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 
 	By("Waiting for ironic update to rollout")
 	Eventually(func() bool {
-		return deploymentRolledOut(ctx, clientSet, ironicDeployName, ironicNamespace, deploy.Status.ObservedGeneration+1)
+		return DeploymentRolledOut(ctx, clientSet, ironicDeployName, ironicNamespace, deploy.Status.ObservedGeneration+1)
 	},
 		input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...,
 	).Should(Equal(true))

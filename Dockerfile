@@ -27,8 +27,10 @@ ENV GOPROXY=$goproxy
 # Copy the Go Modules manifests
 COPY go.mod go.mod
 COPY api/go.mod api/go.mod
+COPY test/go.mod test/go.mod
 COPY go.sum go.sum
 COPY api/go.sum api/go.sum
+COPY test/go.sum test/go.sum
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download

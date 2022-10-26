@@ -50,12 +50,12 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
 	targetClient := input.TargetCluster.GetClient()
 
-	controlplaneM3Machines, workerM3Machines := getMetal3Machines(ctx, bootstrapClient, input.ClusterName, input.Namespace)
+	controlplaneM3Machines, workerM3Machines := GetMetal3Machines(ctx, bootstrapClient, input.ClusterName, input.Namespace)
 	Expect(controlplaneM3Machines).To(HaveLen(numberOfControlplane))
 	Expect(workerM3Machines).To(HaveLen(numberOfWorkers))
 
 	getBmhFromM3Machine := func(m3Machine infrav1.Metal3Machine) (result bmov1alpha1.BareMetalHost) {
-		Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: metal3MachineToBmhName(m3Machine)}, &result)).To(Succeed())
+		Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: Metal3MachineToBmhName(m3Machine)}, &result)).To(Succeed())
 		return result
 	}
 
@@ -71,19 +71,19 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	workerM3Machine := workerM3Machines[0]
 	workerBmh := getBmhFromM3Machine(workerM3Machine)
 
-	workerMachineName, err := metal3MachineToMachineName(workerM3Machine)
+	workerMachineName, err := Metal3MachineToMachineName(workerM3Machine)
 	Expect(err).ToNot(HaveOccurred())
 	workerNodeName := workerMachineName
-	vmName := bmhToVMName(workerBmh)
+	vmName := BmhToVMName(workerBmh)
 
-	listBareMetalHosts(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	By("Checking that rebooted node becomes Ready")
 	Logf("Marking a BMH '%s' for reboot", workerBmh.GetName())
-	annotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
+	AnnotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
 	waitForVmsState([]string{vmName}, shutoff, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
 	waitForVmsState([]string{vmName}, running, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
 	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: defaultNamespace, Name: workerNodeName}, corev1.ConditionTrue, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
@@ -98,24 +98,24 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	By("Power cycling 2 control plane nodes")
 	powerCycle(ctx, bootstrapClient, targetClient, bmhsAndMachines[1:3], input.SpecName, input.E2EConfig)
 
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	By("Testing unhealthy and inspection annotations")
 	By("Scaling down KCP to 1 replica")
 	newReplicaCount := 1
-	scaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+	ScaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation"),
 	})
 
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	// Calling an inspection tests here for now until we have a parallelism enabled in e2e framework.
 	inspection(ctx, func() InspectionInput {
@@ -128,16 +128,16 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 		}
 	})
 
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	Logf("Start checking unhealthy annotation")
 	Logf("Annotating BMH as unhealthy")
-	annotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, pointer.String(""))
+	AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, pointer.String(""))
 
 	By("Deleting a worker machine")
-	workerMachine := getMachine(ctx, bootstrapClient, client.ObjectKey{Namespace: input.Namespace, Name: workerMachineName})
+	workerMachine := GetMachine(ctx, bootstrapClient, client.ObjectKey{Namespace: input.Namespace, Name: workerMachineName})
 	Expect(bootstrapClient.Delete(ctx, &workerMachine)).To(Succeed(), "Failed to delete worker Machine")
 
 	Logf("Waiting for worker BMH to be in Available state")
@@ -146,20 +146,20 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 		g.Expect(workerBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable))
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation")...).Should(Succeed())
 
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation"),
 	})
 
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	By("Scaling up machine deployment to 3 replicas")
-	scaleMachineDeployment(ctx, bootstrapClient, input.ClusterName, input.Namespace, 3)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioning, waitForNumInput{
+	ScaleMachineDeployment(ctx, bootstrapClient, input.ClusterName, input.Namespace, 3)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioning, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  1,
@@ -167,7 +167,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	})
 
 	By("Waiting for one BMH to become provisioned")
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  3,
@@ -176,15 +176,15 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	Logf("Verifying that the unhealthy BMH doesn't go to provisioning")
 	Consistently(func(g Gomega) {
-		bmhs, err := getAllBmhs(ctx, bootstrapClient, input.Namespace)
+		bmhs, err := GetAllBmhs(ctx, bootstrapClient, input.Namespace)
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
-		g.Expect(filterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(0))
+		g.Expect(FilterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
+		g.Expect(FilterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(0))
 	}, input.E2EConfig.GetIntervals(input.SpecName, "monitor-provisioning")...).Should(Succeed())
 
 	Logf("Annotating BMH as healthy and waiting for them all to be provisioned")
-	annotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, nil)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, nil)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -192,7 +192,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	})
 
 	By("Waiting for all Machines to be Running")
-	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -201,23 +201,23 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	By("UNHEALTHY ANNOTATION CHECK PASSED!")
 
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	By("Scaling machine deployment down to 1")
-	scaleMachineDeployment(ctx, bootstrapClient, input.ClusterName, input.Namespace, 1)
+	ScaleMachineDeployment(ctx, bootstrapClient, input.ClusterName, input.Namespace, 1)
 	By("Waiting for 2 old workers to deprovision")
-	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation"),
 	})
 
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	By("Testing Metal3DataTemplate reference")
 	Logf("Creating a new Metal3DataTemplate")
@@ -271,7 +271,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	Expect(helper.Patch(ctx, &deployment)).To(Succeed())
 
 	By("Waiting for the old worker to deprovision")
-	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
@@ -286,13 +286,13 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 		g.Expect(filtered).To(HaveLen(1))
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...).Should(Succeed())
 
-	listMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClient)
+	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClient)
 
 	By("Scaling up KCP to 3 replicas")
-	scaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, 3)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	ScaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, 3)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -300,7 +300,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	})
 
 	Byf("Waiting for all %d machines to be Running", numberOfAllBmh)
-	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -334,15 +334,15 @@ func (btms bmhToMachineSlice) getBMHs() (hosts []bmov1alpha1.BareMetalHost) {
 
 func (btms bmhToMachineSlice) getVMNames() (names []string) {
 	for _, host := range btms.getBMHs() {
-		names = append(names, bmhToVMName(host))
+		names = append(names, BmhToVMName(host))
 	}
 	return
 }
 
-func (btms bmhToMachineSlice) getMachineNames() (names []string) {
+func (btms bmhToMachineSlice) GetMachineNames() (names []string) {
 	for _, ms := range btms {
 		if ms.metal3machine != nil {
-			name, err := metal3MachineToMachineName(*ms.metal3machine)
+			name, err := Metal3MachineToMachineName(*ms.metal3machine)
 			Expect(err).NotTo(HaveOccurred())
 			names = append(names, name)
 		}
@@ -352,7 +352,7 @@ func (btms bmhToMachineSlice) getMachineNames() (names []string) {
 
 func (btms bmhToMachineSlice) getNodeNames() []string {
 	// nodes have the same names as machines
-	return btms.getMachineNames()
+	return btms.GetMachineNames()
 }
 
 // listVms returns the names of libvirt VMs having given state.
@@ -443,14 +443,14 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 
 	Logf("Marking %d BMHs for power off", len(machines))
 	for _, set := range machines {
-		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))
+		AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))
 	}
 	waitForVmsState(machines.getVMNames(), shutoff, specName, e2eConfig.GetIntervals(specName, "wait-vm-state")...)
 
 	// power on
 	Logf("Marking %d BMHs for power on", len(machines))
 	for _, set := range machines {
-		annotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)
+		AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)
 	}
 
 	waitForVmsState(machines.getVMNames(), running, specName, e2eConfig.GetIntervals(specName, "wait-vm-state")...)
