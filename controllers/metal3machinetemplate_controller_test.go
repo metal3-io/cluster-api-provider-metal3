@@ -206,7 +206,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 
 			result, err := testReconciler.Reconcile(context.TODO(), tc.common.testRequest)
 			Expect(result).To(Equal(tc.common.expectedResult))
-			evaluateM3MTemplateTestError(tc.common.expectedError, err)
+			evaluateTestError(tc.common.expectedError, err)
 			mockController.Finish()
 		},
 		Entry("M3MTemplate haven't been found",
@@ -288,7 +288,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 
 			result, err := testReconciler.reconcileNormal(context.TODO(), m)
 			Expect(result).To(Equal(tc.common.expectedResult))
-			evaluateM3MTemplateTestError(tc.common.expectedError, err)
+			evaluateTestError(tc.common.expectedError, err)
 			mockController.Finish()
 		},
 		Entry("updateAutomatedCleaningMode should Fail",
@@ -318,12 +318,3 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 			}),
 	)
 })
-
-func evaluateM3MTemplateTestError(expected *string, actual error) {
-	if expected == nil {
-		Expect(actual).To(BeNil())
-	} else {
-		Expect(expected).ToNot(BeNil())
-		Ω(actual.Error()).Should(ContainSubstring(*expected))
-	}
-}

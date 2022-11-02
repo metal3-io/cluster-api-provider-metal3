@@ -58,6 +58,7 @@ const (
 	metal3machineName      = "controller-testmetal3machine"
 	namespaceName          = "controller-testns"
 	metal3DataTemplateName = "controller-testmetal3datatemplate"
+	metal3RemediationName  = "controller-testmetal3remediation"
 	baremetalhostName      = "controller-testbaremetalhostname"
 	metal3DataName         = "controller-testmetal3dataname"
 	metal3DataClaimName    = "baremetal-testmetal3dataclaim"
@@ -413,5 +414,14 @@ func testObjectMeta(name string, namespace string, uid string) metav1.ObjectMeta
 		Name:      name,
 		Namespace: namespace,
 		UID:       types.UID(uid),
+	}
+}
+
+func evaluateTestError(expected *string, actual error) {
+	if expected == nil {
+		Expect(actual).To(BeNil())
+	} else {
+		Expect(expected).ToNot(BeNil())
+		Expect(actual.Error()).To(ContainSubstring(*expected))
 	}
 }
