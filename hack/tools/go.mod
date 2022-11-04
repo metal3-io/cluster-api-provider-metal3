@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/hack/tools
 
-go 1.18
+go 1.19
 
 require (
 	github.com/drone/envsubst v1.0.3
@@ -208,7 +208,7 @@ require (
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
 	mvdan.cc/unparam v0.0.0-20220706161116-678bad134442 // indirect
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20221007015352-8ad090e0663e // indirect
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20221101153446-c2f04bb7d909 // indirect
 	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
 	sigs.k8s.io/kustomize/api v0.11.4 // indirect
 	sigs.k8s.io/kustomize/cmd/config v0.10.6 // indirect
