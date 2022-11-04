@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -101,7 +101,7 @@ func pivoting() {
 		ToKubeconfigPath:     targetCluster.GetKubeconfigPath(),
 		Namespace:            namespace,
 	})
-	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-bootstrap", "clusterctl-move.log"))
+	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-bootstrap", "logs", namespace, "clusterctl-move.log"))
 
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    targetCluster.GetClient(),
@@ -304,7 +304,7 @@ func rePivoting() {
 		Namespace:            namespace,
 	})
 
-	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-pivot", "clusterctl-move.log"))
+	LogFromFile(filepath.Join(artifactFolder, "clusters", clusterName+"-pivot", "logs", namespace, "clusterctl-move.log"))
 
 	By("Check that the re-pivoted cluster is up and running")
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{

@@ -21,8 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
@@ -359,7 +358,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 			Expect(len(descendants.Items)).To(Equal(tc.ExpectedDescendants))
 		},
-		descendantsTestCases...,
+		descendantsTestCases,
 	)
 
 	DescribeTable("Test Count Descendants",
@@ -375,7 +374,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 			Expect(nbDescendants).To(Equal(tc.ExpectedDescendants))
 		},
-		descendantsTestCases...,
+		descendantsTestCases,
 	)
 })
 
