@@ -23,15 +23,15 @@ require (
 	k8s.io/component-base v0.24.2
 	k8s.io/klog/v2 v2.60.1
 	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9
-	sigs.k8s.io/cluster-api v1.2.4
-	sigs.k8s.io/cluster-api/test v1.2.4
+	sigs.k8s.io/cluster-api v1.2.5
+	sigs.k8s.io/cluster-api/test v1.2.5
 	sigs.k8s.io/controller-runtime v0.12.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.4
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.2.5
 
 replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 
