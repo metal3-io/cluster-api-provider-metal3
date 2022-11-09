@@ -443,10 +443,15 @@ delete-examples:
 ## Release
 ## --------------------------------------
 
+## latest git tag for the commit, e.g., v1.2.1
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+ifneq (,$(findstring -,$(RELEASE_TAG)))
+    PRE_RELEASE=true
+endif
+# the previous release tag, e.g., v1.2.0, excluding pre-release tags
+PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := releasenotes
-PREVIOUS_TAG ?= $(shell git tag -l | grep -B 1 $(RELEASE_TAG) | head -n 1)
 
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
@@ -463,7 +468,11 @@ release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publis
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
-	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/releasenotes.md
+	if [ -n "${PRE_RELEASE}" ]; then \
+	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/metal3-io/cluster-api-provider-metal3/issues/new/)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	else \
+	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	fi
 
 .PHONY: release
 release:
