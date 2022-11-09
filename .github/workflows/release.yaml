@@ -8,6 +8,7 @@ name: release
 
 jobs:
   build:
+    name: tag release
     runs-on: ubuntu-latest
     steps:
       - name: Export RELEASE_TAG var
@@ -28,4 +29,4 @@ jobs:
         with:
           draft: true
           files: out/*
-          body_path: releasenotes/releasenotes.md
+          body_path: releasenotes/${{ env.RELEASE_TAG }}.md
