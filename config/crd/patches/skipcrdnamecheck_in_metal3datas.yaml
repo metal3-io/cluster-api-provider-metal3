@@ -1,0 +1,10 @@
+# The following patch adds "clusterctl.cluster.x-k8s.io/skip-crd-name-preflight-check" 
+# CAPI annotation for clusterctl to inject annotation into the CRD. See more why this is needed
+# here: https://github.com/kubernetes-sigs/cluster-api/issues/5686#issuecomment-1238255937
+# CRD conversion requires k8s 1.13 or later.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    clusterctl.cluster.x-k8s.io/skip-crd-name-preflight-check: ""
+  name: metal3datas.infrastructure.cluster.x-k8s.io
