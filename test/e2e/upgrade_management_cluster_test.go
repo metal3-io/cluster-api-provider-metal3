@@ -26,18 +26,19 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [upgrade]", fu
 	})
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
-			E2EConfig:                 e2eConfig,
-			ClusterctlConfigPath:      clusterctlConfigPath,
-			BootstrapClusterProxy:     bootstrapClusterProxy,
-			ArtifactFolder:            artifactFolder,
-			SkipCleanup:               true, // TODO(mboukhalfa): Parameterize after merging https://github.com/kubernetes-sigs/cluster-api/pull/7373
-			InitWithProvidersContract: "v1alpha4",
-			InitWithBinary:            e2eConfig.GetVariable("INIT_WITH_BINARY"),
-			PreInit:                   preInitFunc,
-			PreWaitForCluster:         preWaitForCluster,
-			PreUpgrade:                preUpgrade,
-			MgmtFlavor:                osType,
-			WorkloadFlavor:            osType,
+			E2EConfig:                   e2eConfig,
+			ClusterctlConfigPath:        clusterctlConfigPath,
+			BootstrapClusterProxy:       bootstrapClusterProxy,
+			ArtifactFolder:              artifactFolder,
+			SkipCleanup:                 skipCleanup,
+			InitWithProvidersContract:   "v1alpha4",
+			InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
+			PreInit:                     preInitFunc,
+			PreWaitForCluster:           preWaitForCluster,
+			PreUpgrade:                  preUpgrade,
+			PreCleanupManagementCluster: preCleanupManagementCluster,
+			MgmtFlavor:                  osType,
+			WorkloadFlavor:              osType,
 		}
 	})
 })
@@ -151,4 +152,28 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 func preUpgrade(clusterProxy framework.ClusterProxy) {
 	upgradeIronic(clusterProxy.GetClientSet())
 	upgradeBMO(clusterProxy.GetClientSet())
+}
+
+// preCleanupManagementCluster hook should be called from ClusterctlUpgradeSpec before cleaning the target management cluster
+// it moves back Ironic to the bootstrap cluster.
+func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
+	// Reinstall ironic
+	reInstallIronic := func() {
+		By("Reinstate Ironic containers and BMH")
+		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
+		if ephemeralCluster == KIND {
+			By("Install Ironic in the source cluster as containers")
+			bmoPath := e2eConfig.GetVariable("BMOPATH")
+			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
+			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
+			stdoutStderr, err := cmd.CombinedOutput()
+			fmt.Printf("%s\n", stdoutStderr)
+			Expect(err).To(BeNil(), "Cannot run local ironic")
+		} else {
+			By("Install Ironic in the source cluster as deployments")
+			installIronicBMO(bootstrapClusterProxy, "true", "false")
+		}
+	}
+	removeIronicDeploymentOnTarget(clusterProxy)
+	reInstallIronic()
 }
