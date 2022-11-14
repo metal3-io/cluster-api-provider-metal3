@@ -10,7 +10,6 @@ linters:
   enable:
     - asciicheck
     - bodyclose
-    - deadcode
     - depguard
     - dogsled
     - errcheck
@@ -36,20 +35,18 @@ linters:
     - revive
     - rowserrcheck
     - staticcheck
-    - structcheck
     - stylecheck
     - thelper
     - typecheck
     - unconvert
     - unused
-    - varcheck
     - whitespace
   # Run with --fast=false for more extensive checks
   fast: true
 
 linters-settings:
   gosec:
-    go: "1.18"
+    go: "1.19"
     severity: medium
     confidence: medium
     excludes:
@@ -68,6 +65,8 @@ linters-settings:
           alias: apierrors
         - pkg: k8s.io/apimachinery/pkg/util/errors
           alias: kerrors
+        - pkg: k8s.io/component-base/logs/api/v1
+          alias: logsv1
         # Controller Runtime
         - pkg: sigs.k8s.io/controller-runtime
           alias: ctrl
@@ -94,9 +93,9 @@ linters-settings:
     allow-leading-space: false
     require-specific: true
   staticcheck:
-    go: "1.18"
+    go: "1.19"
   stylecheck:
-    go: "1.18"
+    go: "1.19"
   gocritic:
     enabled-tags:
       - experimental
@@ -115,7 +114,7 @@ linters-settings:
     - whyNoLint
     - wrapperFunc
   unused:
-    go: "1.18"
+    go: "1.19"
 issues:
   exclude-rules:
     - path: test/e2e
