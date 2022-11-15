@@ -15,7 +15,7 @@ import (
 
 const workDir = "/opt/metal3-dev-env/"
 
-var _ = Describe("When testing cluster upgrade v1alpha5 > current [upgrade]", func() {
+var _ = Describe("When testing cluster upgrade v1alpha5 > custom [upgrade]", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
@@ -31,8 +31,12 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [upgrade]", fu
 			BootstrapClusterProxy:       bootstrapClusterProxy,
 			ArtifactFolder:              artifactFolder,
 			SkipCleanup:                 skipCleanup,
-			InitWithProvidersContract:   "v1alpha4",
 			InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
+			InitWithProvidersContract:   "v1alpha4",
+			CoreProvider:                "capi-system/cluster-api:v1.3.0-beta.1",
+			BootstrapProviders:          []string{"capi-kubeadm-bootstrap-system/kubeadm:v1.3.0-beta.1"},
+			ControlPlaneProviders:       []string{"capi-kubeadm-control-plane-system/kubeadm:v1.3.0-beta.1"},
+			InfrastructureProviders:     []string{"capm3-system/metal3:v1.3.99"},
 			PreInit:                     preInitFunc,
 			PreWaitForCluster:           preWaitForCluster,
 			PreUpgrade:                  preUpgrade,

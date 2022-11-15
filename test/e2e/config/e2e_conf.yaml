@@ -95,7 +95,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: ${CAPM3_TO_RELEASE}
+  - name: v1.3.99
     value: "${PWD}/config/default"
     contract: v1beta1
     files:
