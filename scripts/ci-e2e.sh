@@ -69,3 +69,4 @@ export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/
 
 # run e2e tests
 make e2e-tests
+sleep infinity
