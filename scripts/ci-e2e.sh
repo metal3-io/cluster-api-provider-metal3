@@ -28,14 +28,13 @@ export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
-export CAPM3RELEASE="v1.3.99"
 EOF
 
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1
 make
 popd  || exit 1
-
+rm -rf "$HOME/.cluster-api/"
 # Binaries checked below should have been installed by metal3-dev-env make.
 # Verify they are available and have correct versions.
 PATH=$PATH:/usr/local/go/bin
@@ -69,4 +68,4 @@ export CAPM3_TO_RELEASE="v1.3.99"
 export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"
 
 # run e2e tests
-make e2e-tests || sleep infinity
+make e2e-tests
