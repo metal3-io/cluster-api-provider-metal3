@@ -28,6 +28,7 @@ export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
+export CAPM3RELEASE="v1.3.99"
 EOF
 
 # Run make devenv to boot the source cluster
