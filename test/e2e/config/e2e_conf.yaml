@@ -96,15 +96,16 @@ providers:
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
   - name: ${CAPM3_TO_RELEASE}
-    value: "${PWD}/config/default"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/${CAPM3_TO_RELEASE}/infrastructure-components.yaml"
+    type: "url"
     contract: v1beta1
     files:
     - sourcePath: "../data/infrastructure-metal3/v1beta1/metadata.yaml"
       targetName: "metadata.yaml"
     - sourcePath: "../_out/cluster-template-ubuntu.yaml"
       targetName: "cluster-template-ubuntu.yaml"
-    - sourcePath: "../_out/cluster-template-centos.yaml"
-      targetName: "cluster-template-centos.yaml"
+    - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
 
 variables:
   CNI: "/tmp/calico.yaml"
