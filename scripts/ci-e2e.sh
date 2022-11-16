@@ -28,7 +28,7 @@ export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
-export CAPM3RELEASE=v1.3.99
+export CAPM3RELEASE="v1.3.0-beta.0"
 EOF
 
 # Run make devenv to boot the source cluster
@@ -63,7 +63,7 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v0.4.")}"
 export CAPI_TO_RELEASE="${CAPIRELEASE}"
 export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "v0.5.")}"
-export CAPM3_TO_RELEASE="v1.3.99"
+export CAPM3_TO_RELEASE="v1.3.0-beta.0"
 
 # image for live iso testing
 export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"

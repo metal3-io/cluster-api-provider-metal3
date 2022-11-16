@@ -27,9 +27,9 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-  - name: ${CAPI_TO_RELEASE}
+  - name: v1.3.0-beta.1
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_TO_RELEASE}/core-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0-beta.1/core-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -49,9 +49,9 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-  - name: ${CAPI_TO_RELEASE}
+  - name: v1.3.0-beta.1
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_TO_RELEASE}/bootstrap-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0-beta.1/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -71,9 +71,9 @@ providers:
         new: --metrics-addr=:8080
     files:
       - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-  - name: ${CAPI_TO_RELEASE}
+  - name: v1.3.0-beta.1
     # Use manifest from source files
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_TO_RELEASE}/control-plane-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0-beta.1/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -95,7 +95,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.3.99
+  - name: v1.3.0-beta.0
     value: "${PWD}/config/default"
     contract: v1beta1
     files:
