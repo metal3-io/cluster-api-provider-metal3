@@ -24,47 +24,27 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [upgrade]", fu
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
-	if strings.Contains(os.Getenv("CAPI_TO_RELEASE"), "-") {
-		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-			return capi_e2e.ClusterctlUpgradeSpecInput{
-				E2EConfig:                   e2eConfig,
-				ClusterctlConfigPath:        clusterctlConfigPath,
-				BootstrapClusterProxy:       bootstrapClusterProxy,
-				ArtifactFolder:              artifactFolder,
-				SkipCleanup:                 skipCleanup,
-				InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
-				InitWithProvidersContract:   "v1alpha4",
-				CoreProvider:                fmt.Sprintf("capi-system/cluster-api:%s", os.Getenv("CAPI_TO_RELEASE")),
-				BootstrapProviders:          []string{fmt.Sprintf("capi-kubeadm-bootstrap-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
-				ControlPlaneProviders:       []string{fmt.Sprintf("capi-kubeadm-control-plane-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
-				InfrastructureProviders:     []string{fmt.Sprintf("capm3-system/metal3:%s", os.Getenv("CAPM3_TO_RELEASE"))},
-				PreInit:                     preInitFunc,
-				PreWaitForCluster:           preWaitForCluster,
-				PreUpgrade:                  preUpgrade,
-				PreCleanupManagementCluster: preCleanupManagementCluster,
-				MgmtFlavor:                  osType,
-				WorkloadFlavor:              osType,
-			}
-		})
-	} else {
-		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-			return capi_e2e.ClusterctlUpgradeSpecInput{
-				E2EConfig:                   e2eConfig,
-				ClusterctlConfigPath:        clusterctlConfigPath,
-				BootstrapClusterProxy:       bootstrapClusterProxy,
-				ArtifactFolder:              artifactFolder,
-				SkipCleanup:                 skipCleanup,
-				InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
-				InitWithProvidersContract:   "v1alpha4",
-				PreInit:                     preInitFunc,
-				PreWaitForCluster:           preWaitForCluster,
-				PreUpgrade:                  preUpgrade,
-				PreCleanupManagementCluster: preCleanupManagementCluster,
-				MgmtFlavor:                  osType,
-				WorkloadFlavor:              osType,
-			}
-		})
-	}
+	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+		return capi_e2e.ClusterctlUpgradeSpecInput{
+			E2EConfig:                   e2eConfig,
+			ClusterctlConfigPath:        clusterctlConfigPath,
+			BootstrapClusterProxy:       bootstrapClusterProxy,
+			ArtifactFolder:              artifactFolder,
+			SkipCleanup:                 skipCleanup,
+			InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
+			InitWithProvidersContract:   "v1alpha4",
+			CoreProvider:                fmt.Sprintf("capi-system/cluster-api:%s", os.Getenv("CAPI_TO_RELEASE")),
+			BootstrapProviders:          []string{fmt.Sprintf("capi-kubeadm-bootstrap-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
+			ControlPlaneProviders:       []string{fmt.Sprintf("capi-kubeadm-control-plane-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
+			InfrastructureProviders:     []string{"capm3-system/metal3:v1.2.1"},
+			PreInit:                     preInitFunc,
+			PreWaitForCluster:           preWaitForCluster,
+			PreUpgrade:                  preUpgrade,
+			PreCleanupManagementCluster: preCleanupManagementCluster,
+			MgmtFlavor:                  osType,
+			WorkloadFlavor:              osType,
+		}
+	})
 })
 
 // preWaitForCluster is a hook function that should be called from ClusterctlUpgradeSpec before waiting for the cluster to spin up
