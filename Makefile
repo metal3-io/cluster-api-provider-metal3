@@ -183,7 +183,7 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 		-ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
-		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
+		-e2e.skip-resource-cleanup=true \
 		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 	rm $(E2E_CONF_FILE_ENVSUBST)

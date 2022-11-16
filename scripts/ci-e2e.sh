@@ -68,4 +68,4 @@ export CAPM3_TO_RELEASE="${CAPM3RELEASE}"
 export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"
 
 # run e2e tests
-make e2e-tests
+make e2e-tests || sleep infinity
