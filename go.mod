@@ -10,8 +10,8 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.1.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v0.0.0-20220919121103-31c03f129143
-	github.com/onsi/ginkgo/v2 v2.4.0
-	github.com/onsi/gomega v1.22.1
+	github.com/onsi/ginkgo/v2 v2.5.0
+	github.com/onsi/gomega v1.24.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	gopkg.in/yaml.v2 v2.4.0
@@ -23,15 +23,15 @@ require (
 	k8s.io/component-base v0.25.0
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
-	sigs.k8s.io/cluster-api v1.3.0-beta.1
-	sigs.k8s.io/cluster-api/test v1.3.0-beta.1
+	sigs.k8s.io/cluster-api v1.3.0-rc.0
+	sigs.k8s.io/cluster-api/test v1.3.0-rc.0
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/yaml v1.3.0
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.0-beta.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.0-rc.0
 
 replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 
@@ -116,10 +116,10 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
-	golang.org/x/net v0.1.0 // indirect
+	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
-	golang.org/x/sys v0.1.0 // indirect
-	golang.org/x/term v0.1.0 // indirect
+	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220722155302-e5dcc9cfc0b9 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
