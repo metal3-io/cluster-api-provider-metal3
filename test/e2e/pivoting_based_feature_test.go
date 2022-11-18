@@ -41,7 +41,7 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 	})
 
 	It("Should get a management cluster then test cert rotation and node reuse", func() {
-		targetCluster = createTargetCluster()
+		targetCluster = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
 		managementCluster := bootstrapClusterProxy
 		// If not running ephemeral test, use the target cluster for management
 		if !ephemeralTest {
@@ -82,13 +82,14 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 
 })
 
-func createTargetCluster() (targetCluster framework.ClusterProxy) {
+func createTargetCluster(k8sVersion string) (targetCluster framework.ClusterProxy) {
 	By("Creating a high available cluster")
-
+	imageURL, imageChecksum := ensureImage(k8sVersion)
+	os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+	os.Setenv("IMAGE_RAW_URL", imageURL)
 	controlPlaneMachineCount = int64(numberOfControlplane)
 	workerMachineCount = int64(numberOfWorkers)
 	result := &clusterctl.ApplyClusterTemplateAndWaitResult{}
-
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy: bootstrapClusterProxy,
 		ConfigCluster: clusterctl.ConfigClusterInput{
@@ -99,7 +100,7 @@ func createTargetCluster() (targetCluster framework.ClusterProxy) {
 			Flavor:                   osType,
 			Namespace:                namespace,
 			ClusterName:              clusterName,
-			KubernetesVersion:        e2eConfig.GetVariable("FROM_K8S_VERSION"),
+			KubernetesVersion:        k8sVersion,
 			ControlPlaneMachineCount: &controlPlaneMachineCount,
 			WorkerMachineCount:       &workerMachineCount,
 		},

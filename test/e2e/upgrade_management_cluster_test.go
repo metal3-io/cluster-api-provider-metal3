@@ -20,7 +20,9 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [upgrade]", fu
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
-
+		imageURL, imageChecksum := ensureImage(e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"))
+		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
