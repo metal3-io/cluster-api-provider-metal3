@@ -455,8 +455,6 @@ github.com/mattn/go-runewidth v0.0.13/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 h1:I0XW9+e1XWDxdcEniV4rQAIOPUGDq67JSCiRCgGCZLI=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/metal3-io/ip-address-manager/api v0.0.0-20220919121103-31c03f129143 h1:/YjWM26KaLP7MRvM5ohvzRETIgTf56uDerfJJlLviz0=
-github.com/metal3-io/ip-address-manager/api v0.0.0-20220919121103-31c03f129143/go.mod h1:vXQGPBzfdZxVYTPDvVAnTgwW+uJ2Cr0tKq0nraNouv4=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20221109122800-a505a415c34c h1:p9Uy3VWGSxkPYyd0xTPM03vKil93ZT7bNrAKpG/hVIM=
 github.com/metal3-io/ip-address-manager/api v0.0.0-20221109122800-a505a415c34c/go.mod h1:FAovfa/DK3etr+Tt0JS1nHU2hHBayOyQY1GVA74oiXc=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
@@ -1298,8 +1296,8 @@ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30/go.mod h1:fEO7lRTdivWO2qYVCVG7dEADOMo/MLDCVr8So2g88Uw=
-sigs.k8s.io/cluster-api v1.2.5 h1:Am4W5ITO0v5FUNkfCuD6gwE29phDt1gyQY9EGWnTYIU=
-sigs.k8s.io/cluster-api v1.2.5/go.mod h1:Ye5gn15u+q6VcE+Se7nBMSo6INm55F+zBcCiWzrjxFc=
+sigs.k8s.io/cluster-api v1.2.6 h1:wueslUK8LdTH8rOI697WIj1jutbaGY3a24t4XjZvLI8=
+sigs.k8s.io/cluster-api v1.2.6/go.mod h1:Ye5gn15u+q6VcE+Se7nBMSo6INm55F+zBcCiWzrjxFc=
 sigs.k8s.io/controller-runtime v0.12.3 h1:FCM8xeY/FI8hoAfh/V4XbbYMY20gElh9yh+A98usMio=
 sigs.k8s.io/controller-runtime v0.12.3/go.mod h1:qKsk4WE6zW2Hfj0G4v10EnNB2jMG1C+NTb8h+DwCoU0=
 sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 h1:kDi4JBNAsJWfz1aEXhO8Jg87JJaPNLh5tIzYHgStQ9Y=
