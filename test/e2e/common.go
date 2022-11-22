@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"text/tabwriter"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
@@ -38,6 +39,24 @@ func LogFromFile(logFile string) {
 	data, err := os.ReadFile(filepath.Clean(logFile))
 	Expect(err).To(BeNil(), "No log file found")
 	Logf(string(data))
+}
+
+// logTable print a formatted table into the e2e logs.
+func logTable(title string, rows [][]string) {
+	getRowFormatted := func(row []string) string {
+		rowFormatted := ""
+		for i := range row {
+			rowFormatted = fmt.Sprintf("%s\t%s\t", rowFormatted, row[i])
+		}
+		return rowFormatted
+	}
+	w := tabwriter.NewWriter(GinkgoWriter, 0, 0, 2, ' ', tabwriter.TabIndent)
+	fmt.Fprintln(w, title)
+	for _, r := range rows {
+		fmt.Fprintln(w, getRowFormatted(r))
+	}
+	fmt.Fprintln(w, "")
+	w.Flush()
 }
 
 func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
@@ -256,19 +275,19 @@ func filterNodeCondition(conditions []corev1.NodeCondition, conditionType corev1
 func listBareMetalHosts(ctx context.Context, c client.Client, opts ...client.ListOption) {
 	bmhs := bmov1alpha1.BareMetalHostList{}
 	Expect(c.List(ctx, &bmhs, opts...)).To(Succeed())
-	Logf("Listing BareMetalHosts:")
-	Logf("Name	Status	Consumer	Online")
-	Logf("---------------------------------------------------------------------------------")
-	for _, bmh := range bmhs.Items {
+
+	rows := make([][]string, len(bmhs.Items)+1)
+	// Add column names
+	rows[0] = []string{"Name:", "Status:", "Consumer:", "Online:"}
+
+	for i, bmh := range bmhs.Items {
 		consumer := ""
 		if bmh.Spec.ConsumerRef != nil {
 			consumer = bmh.Spec.ConsumerRef.Name
 		}
-		Logf("%s	%s	%s	%t", bmh.GetName(), bmh.Status.Provisioning.State, consumer, bmh.Status.PoweredOn)
+		rows[i+1] = []string{bmh.GetName(), fmt.Sprint(bmh.Status.Provisioning.State), consumer, fmt.Sprint(bmh.Status.PoweredOn)}
 	}
-	Logf("---------------------------------------------------------------------------------")
-	Logf("%d BareMetalHosts in total", len(bmhs.Items))
-	Logf("=================================================================================")
+	logTable("Listing BareMetalHosts", rows)
 }
 
 // listMetal3Machines logs the names, ready status and provider ID of all Metal3Machines in the namespace.
@@ -276,19 +295,18 @@ func listBareMetalHosts(ctx context.Context, c client.Client, opts ...client.Lis
 func listMetal3Machines(ctx context.Context, c client.Client, opts ...client.ListOption) {
 	metal3Machines := infrav1.Metal3MachineList{}
 	Expect(c.List(ctx, &metal3Machines, opts...)).To(Succeed())
-	Logf("Listing Metal3Machines:")
-	Logf("Name	Ready	Provider ID")
-	Logf("---------------------------------------------------------------------------------")
-	for _, metal3Machine := range metal3Machines.Items {
+
+	rows := make([][]string, len(metal3Machines.Items)+1)
+	// Add column names
+	rows[0] = []string{"Name:", "Ready:", "Provider ID:"}
+	for i, metal3Machine := range metal3Machines.Items {
 		providerID := ""
 		if metal3Machine.Spec.ProviderID != nil {
 			providerID = *metal3Machine.Spec.ProviderID
 		}
-		Logf("%s	%t	%s", metal3Machine.GetName(), metal3Machine.Status.Ready, providerID)
+		rows[i+1] = []string{metal3Machine.GetName(), fmt.Sprint(metal3Machine.Status.Ready), providerID}
 	}
-	Logf("---------------------------------------------------------------------------------")
-	Logf("%d Metal3Machines in total", len(metal3Machines.Items))
-	Logf("=================================================================================")
+	logTable("Listing Metal3Machines", rows)
 }
 
 // listMachines logs the names, status phase, provider ID and Kubernetes version
@@ -296,19 +314,18 @@ func listMetal3Machines(ctx context.Context, c client.Client, opts ...client.Lis
 func listMachines(ctx context.Context, c client.Client, opts ...client.ListOption) {
 	machines := clusterv1.MachineList{}
 	Expect(c.List(ctx, &machines, opts...)).To(Succeed())
-	Logf("Listing Machines:")
-	Logf("Name	Status	Provider ID	Version")
-	Logf("---------------------------------------------------------------------------------")
-	for _, machine := range machines.Items {
+
+	rows := make([][]string, len(machines.Items)+1)
+	// Add column names
+	rows[0] = []string{"Name:", "Status:", "Provider ID:", "Version:"}
+	for i, machine := range machines.Items {
 		providerID := ""
 		if machine.Spec.ProviderID != nil {
 			providerID = *machine.Spec.ProviderID
 		}
-		Logf("%s	%s	%s	%s", machine.GetName(), machine.Status.GetTypedPhase(), providerID, *machine.Spec.Version)
+		rows[i+1] = []string{machine.GetName(), fmt.Sprint(machine.Status.GetTypedPhase()), providerID, *machine.Spec.Version}
 	}
-	Logf("---------------------------------------------------------------------------------")
-	Logf("%d Machines in total", len(machines.Items))
-	Logf("=================================================================================")
+	logTable("Listing Machines", rows)
 }
 
 // listNodes logs the names, status and Kubernetes version of all Nodes.
@@ -316,10 +333,11 @@ func listMachines(ctx context.Context, c client.Client, opts ...client.ListOptio
 func listNodes(ctx context.Context, c client.Client) {
 	nodes := corev1.NodeList{}
 	Expect(c.List(ctx, &nodes)).To(Succeed())
-	Logf("Listing Nodes:")
-	Logf("Name	Status	Version")
-	Logf("---------------------------------------------------------------------------------")
-	for _, node := range nodes.Items {
+
+	rows := make([][]string, len(nodes.Items)+1)
+	// Add column names
+	rows[0] = []string{"Name:", "Status:", "Version:"}
+	for i, node := range nodes.Items {
 		ready := "NotReady"
 		if node.Status.Conditions != nil {
 			readyCondition := filterNodeCondition(node.Status.Conditions, corev1.NodeReady)
@@ -328,11 +346,9 @@ func listNodes(ctx context.Context, c client.Client) {
 				ready = "Ready"
 			}
 		}
-		Logf("%s	%s	%s", node.Name, ready, node.Status.NodeInfo.KubeletVersion)
+		rows[i+1] = []string{node.Name, ready, node.Status.NodeInfo.KubeletVersion}
 	}
-	Logf("---------------------------------------------------------------------------------")
-	Logf("%d Nodes in total", len(nodes.Items))
-	Logf("=================================================================================")
+	logTable("Listing Nodes", rows)
 }
 
 type waitForNumInput struct {
@@ -377,7 +393,6 @@ func waitForNumMachinesInState(ctx context.Context, phase clusterv1.MachinePhase
 		return machine.Status.GetTypedPhase() == phase
 	}
 	waitForNumMachines(ctx, inPhase, input)
-	listMachines(ctx, input.Client, input.Options...)
 }
 
 // waitForNumMachines will wait for the given number of Machines to be accepted by the accept function.
