@@ -103,7 +103,7 @@ help:  ## Display this help
 unit: $(SETUP_ENVTEST) ## Run unit test
 	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
 	go test ./controllers/... ./baremetal/... \
-		-ginkgo.noColor=$(GINKGO_NOCOLOR) \
+		--ginkgo.no-color=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
 		$(GINKGO_TEST_FLAGS) \
 		-coverprofile ./cover.out; \
@@ -178,9 +178,10 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 	for image in $(E2E_CONTAINERS); do \
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
-	time go test -v -timeout 24h -tags=e2e ./test/e2e/... -args \
-		-ginkgo.timeout=6h -ginkgo.v -ginkgo.trace -ginkgo.progress -ginkgo.noColor=$(GINKGO_NOCOLOR) \
-		-ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
+	time go test -v -timeout 24h --tags=e2e ./test/e2e/... -args \
+		--ginkgo.timeout=6h --ginkgo.v --ginkgo.trace --ginkgo.progress --ginkgo.no-color=$(GINKGO_NOCOLOR) \
+		--ginkgo.junit-report="junit.e2e_suite.1.xml" \
+		--ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \

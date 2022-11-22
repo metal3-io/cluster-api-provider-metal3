@@ -24,8 +24,8 @@ function get_latest_release() {
   else
     release="$(curl -H "Authorization: token ${GITHUB_TOKEN}" -sL "${1}")" || ( set -x && exit 1 )
   fi
-  # This gets the latest release as vx.y.z , ignoring any version with a suffix starting with - , for example -rc0
-  release_tag="$(echo "$release" | jq -r "[.[].tag_name | select( startswith(\"${2:-""}\")) | select(contains(\"-\")==false)] | max ")"
+  # This gets the latest release as vx.y.z or vx.y.z-rc.0, including any version with a suffix starting with - , for example -rc.0
+  release_tag="$(echo "$release" | jq -r "[.[].tag_name | select( startswith(\"${2:-""}\"))] | max ")"
 
   if [[ "$release_tag" == "null" ]]; then
     set -x
@@ -37,7 +37,7 @@ function get_latest_release() {
 }
 
 CAPIRELEASEPATH="${CAPIRELEASEPATH:-https://api.github.com/repos/${CAPI_BASE_URL:-kubernetes-sigs/cluster-api}/releases}"
-export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.2.")}"
+export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.3.")}"
 
 cat <<EOF > tilt-settings.json
 {

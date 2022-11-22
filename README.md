@@ -22,6 +22,7 @@ cluster on top of bare metal infrastructure using Metal3.
 | v1alpha5      | v1alpha4            | v0.5.X        | v0.4.X       | 
 | v1beta1       | v1beta1             | v1.1.X        | v1.1.X       |
 | v1beta1       | v1beta1             | v1.2.X        | v1.2.X       |
+| v1beta1       | v1beta1             | v1.3.X        | v1.3.X       |
 
 ## Deploying the metal3 provider
 
@@ -39,8 +40,8 @@ provider:
   when running the clusterctl and set the level of the logging verbose with a positive integer number, ie. -v5.
 
     ```shell
-    clusterctl init --core cluster-api:v1.3.0-beta.1 --bootstrap kubeadm:v1.3.0-beta.1 \
-        --control-plane kubeadm:v1.3.0-beta.1 -v5
+    clusterctl init --core cluster-api:v1.3.0-rc.0 --bootstrap kubeadm:v1.3.0-rc.0 \
+        --control-plane kubeadm:v1.3.0-rc.0 -v5
     ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API Provider Metal3 CRDs and controllers.
