@@ -11,23 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type vmState string
-
-const (
-	running vmState = "running"
-	paused  vmState = "paused"
-	shutoff vmState = "shutoff"
-	other   vmState = "other"
-)
-
-const (
-	rebootAnnotation    = "reboot.metal3.io"
-	poweroffAnnotation  = "reboot.metal3.io/poweroff"
-	unhealthyAnnotation = "capi.metal3.io/unhealthy"
-)
-
-const defaultNamespace = "default"
-
 var _ = Describe("Testing nodes remediation [remediation]", func() {
 
 	var (
@@ -53,10 +36,29 @@ var _ = Describe("Testing nodes remediation [remediation]", func() {
 
 		// Run Metal3Remediation test first, doesn't work after remediation...
 		By("Running Metal3Remediation tests")
-		metal3remediation()
+		metal3remediation(ctx, func() Metal3RemediationInput {
+			return Metal3RemediationInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				TargetCluster:         targetCluster,
+				SpecName:              specName,
+				ClusterName:           clusterName,
+				Namespace:             namespace,
+			}
+		})
 
 		By("Running remediation tests")
-		remediation()
+		remediation(ctx, func() RemediationInput {
+			return RemediationInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				TargetCluster:         targetCluster,
+				SpecName:              specName,
+				ClusterName:           clusterName,
+				Namespace:             namespace,
+				ClusterctlConfigPath:  clusterctlConfigPath,
+			}
+		})
 	})
 
 	AfterEach(func() {

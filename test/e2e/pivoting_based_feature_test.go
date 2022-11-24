@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,13 +20,10 @@ var (
 	namespace                = "metal3"
 	clusterName              = "test1"
 	clusterctlLogFolder      string
-	controlplaneListOptions  metav1.ListOptions
 	targetCluster            framework.ClusterProxy
 	controlPlaneMachineCount int64
 	workerMachineCount       int64
 )
-
-const KIND = "kind"
 
 var _ = Describe("Testing features in ephemeral or target cluster", func() {
 
@@ -46,24 +42,62 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 		// If not running ephemeral test, use the target cluster for management
 		if !ephemeralTest {
 			managementCluster = targetCluster
-			pivoting()
+			pivoting(ctx, func() PivotingInput {
+				return PivotingInput{
+					E2EConfig:             e2eConfig,
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					TargetCluster:         targetCluster,
+					SpecName:              specName,
+					ClusterName:           clusterName,
+					Namespace:             namespace,
+					ArtifactFolder:        artifactFolder,
+					ClusterctlConfigPath:  clusterctlConfigPath,
+				}
+			})
 		}
 
-		certRotation(managementCluster.GetClientSet(), managementCluster.GetClient())
-		nodeReuse(managementCluster.GetClient())
+		certRotation(ctx, func() CertRotationInput {
+			return CertRotationInput{
+				E2EConfig:         e2eConfig,
+				ManagementCluster: managementCluster,
+				SpecName:          specName,
+			}
+		})
 
+		nodeReuse(ctx, func() NodeReuseInput {
+			return NodeReuseInput{
+				E2EConfig:         e2eConfig,
+				ManagementCluster: managementCluster,
+				TargetCluster:     targetCluster,
+				SpecName:          specName,
+				ClusterName:       clusterName,
+				Namespace:         namespace,
+			}
+		})
 	})
 
 	AfterEach(func() {
 		if !ephemeralTest {
 			// Dump the target cluster resources before re-pivoting.
+			Logf("Dump the target cluster resources before re-pivoting")
 			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 				Lister:    targetCluster.GetClient(),
 				Namespace: namespace,
 				LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
 			})
 
-			rePivoting()
+			rePivoting(ctx, func() RePivotingInput {
+				return RePivotingInput{
+					E2EConfig:             e2eConfig,
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					TargetCluster:         targetCluster,
+					SpecName:              specName,
+					ClusterName:           clusterName,
+					Namespace:             namespace,
+					ArtifactFolder:        artifactFolder,
+					ClusterctlConfigPath:  clusterctlConfigPath,
+				}
+			})
 		}
 		Logf("Logging state of bootstrap cluster")
 		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
