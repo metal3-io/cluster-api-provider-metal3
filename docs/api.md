@@ -287,9 +287,9 @@ The fields are:
   follows the format definition that can be found
   [here](https://docs.openstack.org/nova/latest/_downloads/9119ca7ac90aa2990e762c08baea3a36/network_data.json).
 
-* **hostSelector** -- Specify criteria for matching labels on `BareMetalHost`
-  objects. This can be used to limit the set of available `BareMetalHost`
-  objects chosen for this `Machine`.
+* **hostSelector** -- Specify criteria for matching labels and namespace on
+  `BareMetalHost` objects. This can be used to limit the set of available
+  `BareMetalHost` objects chosen for this `Machine`.
 
 * **automatedCleaningMode** -- An interface to enable or disable Ironic automated cleaning during provisioning
   or deprovisioning of a host. When set to `disabled`, automated cleaning will be skipped, where
@@ -327,12 +327,15 @@ the generated Metal3Data object and the secrets generated for this machine.
 
 ### hostSelector Examples
 
-The `hostSelector field has two possible optional sub-fields:
+The `hostSelector field has three possible optional sub-fields:
 
 * **matchLabels** -- Key/value pairs of labels that must match exactly.
 
 * **matchExpressions** -- A set of expressions that must evaluate to true for
   the labels on a `BareMetalHost`.
+
+* **namespace** -- Namespace where to look for BareMetalHosts. If empty, look
+  for BareMetalHosts in the namespace of Metal3Machine
 
 Valid operators include:
 
@@ -389,7 +392,7 @@ spec:
             values: [‘a’, ‘b’, ‘c’]
 ```
 
-Example 3: Only consider `BareMetalHost` with `key1` set to `value1` AND `key2`
+Example 4: Only consider `BareMetalHost` with `key1` set to `value1` AND `key2`
 set to `value2` AND `key3` set to either `a`, `b`, or `c`.
 
 ```yaml
@@ -404,6 +407,19 @@ spec:
           - key: key3
             operator: in
             values: [‘a’, ‘b’, ‘c’]
+```
+
+Example 5: Only consider `BareMetalHost` with label `key1` set to `value1`
+located in namespace `my-bmh-ns`
+
+```yaml
+spec:
+  providerSpec:
+    value:
+      hostSelector:
+        matchLabels:
+          key1: value1
+        namespace: my-bmh-ns
 ```
 
 ### Metal3Machine example

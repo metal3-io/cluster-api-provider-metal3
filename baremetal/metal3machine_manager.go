@@ -850,9 +850,13 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error) {
 	// get list of BMH.
 	hosts := bmov1alpha1.BareMetalHostList{}
+
 	// without this ListOption, all namespaces would be including in the listing.
 	opts := &client.ListOptions{
 		Namespace: m.Metal3Machine.Namespace,
+	}
+	if m.Metal3Machine.Spec.HostSelector.Namespace != "" {
+		opts.Namespace = m.Metal3Machine.Spec.HostSelector.Namespace
 	}
 
 	err := m.client.List(ctx, &hosts, opts)
@@ -934,11 +938,11 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 				default:
 					continue
 				}
-				m.Log.Info("Host matched hostSelector for Metal3Machine, adding it to availableHosts list", "host", host.Name)
+				m.Log.Info("Host matched hostSelector for Metal3Machine, adding it to availableHosts list", "host", host.Name, "namespace", host.Namespace)
 				availableHosts = append(availableHosts, &hosts.Items[i])
 			}
 		} else {
-			m.Log.Info("Host did not match hostSelector for Metal3Machine", "host", host.Name)
+			m.Log.Info("Host did not match hostSelector for Metal3Machine", "host", host.Name, "namespace", host.Namespace)
 		}
 	}
 

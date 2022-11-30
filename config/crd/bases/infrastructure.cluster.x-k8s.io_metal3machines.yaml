@@ -469,9 +469,9 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               hostSelector:
-                description: HostSelector specifies matching criteria for labels on
-                  BareMetalHosts. This is used to limit the set of BareMetalHost objects
-                  considered for claiming for a metal3machine.
+                description: HostSelector specifies matching criteria for labels and
+                  namespace on BareMetalHosts. This is used to limit the set of BareMetalHost
+                  objects considered for claiming for a metal3machine.
                 properties:
                   matchExpressions:
                     description: Label match expressions that must be true on a chosen
@@ -501,6 +501,10 @@ spec:
                     description: Key/value pairs of labels that must exist on a chosen
                       BareMetalHost
                     type: object
+                  namespace:
+                    description: Namespace where to look for BareMetalHosts. If empty,
+                      look for BareMetalHosts in the namespace of Metal3Machine
+                    type: string
                 type: object
               image:
                 description: Image is the image to be provisioned.

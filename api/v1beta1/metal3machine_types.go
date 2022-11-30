@@ -49,9 +49,9 @@ type Metal3MachineSpec struct {
 	// +optional
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
 
-	// HostSelector specifies matching criteria for labels on BareMetalHosts.
-	// This is used to limit the set of BareMetalHost objects considered for
-	// claiming for a metal3machine.
+	// HostSelector specifies matching criteria for labels and namespace on
+	// BareMetalHosts. This is used to limit the set of BareMetalHost objects
+	// considered for claiming for a metal3machine.
 	// +optional
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
 
