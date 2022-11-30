@@ -76,6 +76,11 @@ type Metal3ClusterStatus struct {
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
+	// FailureDomains specifies the failure domains available in the cluster.
+	// This will be used by Cluster API to try and spread the machines across failure domains
+	// +optional
+	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+
 	// Ready denotes that the Metal3 cluster (infrastructure) is ready. In
 	// Baremetal case, it does not mean anything for now as no infrastructure
 	// steps need to be performed. Required by Cluster API. Set to True by the

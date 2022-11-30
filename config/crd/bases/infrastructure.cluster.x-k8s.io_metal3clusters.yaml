@@ -228,6 +228,27 @@ spec:
                   - type
                   type: object
                 type: array
+              failureDomains:
+                additionalProperties:
+                  description: FailureDomainSpec is the Schema for Cluster API failure
+                    domains. It allows controllers to understand how many failure
+                    domains a cluster can optionally span across.
+                  properties:
+                    attributes:
+                      additionalProperties:
+                        type: string
+                      description: Attributes is a free form map of attributes an
+                        infrastructure provider might use or require.
+                      type: object
+                    controlPlane:
+                      description: ControlPlane determines if this failure domain
+                        is suitable for use by control plane machines.
+                      type: boolean
+                  type: object
+                description: FailureDomains specifies the failure domains available
+                  in the cluster. This will be used by Cluster API to try and spread
+                  the machines across failure domains
+                type: object
               failureMessage:
                 description: FailureMessage indicates that there is a fatal problem
                   reconciling the state, and will be set to a descriptive error message.

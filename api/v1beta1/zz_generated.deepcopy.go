@@ -431,6 +431,13 @@ func (in *Metal3ClusterStatus) DeepCopyInto(out *Metal3ClusterStatus) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.FailureDomains != nil {
+		in, out := &in.FailureDomains, &out.FailureDomains
+		*out = make(apiv1beta1.FailureDomains, len(*in))
+		for key, val := range *in {
+			(*out)[key] = *val.DeepCopy()
+		}
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(apiv1beta1.Conditions, len(*in))
@@ -857,6 +864,11 @@ func (in *Metal3MachineSpec) DeepCopyInto(out *Metal3MachineSpec) {
 	}
 	if in.AutomatedCleaningMode != nil {
 		in, out := &in.AutomatedCleaningMode, &out.AutomatedCleaningMode
+		*out = new(string)
+		**out = **in
+	}
+	if in.FailureDomain != nil {
+		in, out := &in.FailureDomain, &out.FailureDomain
 		*out = new(string)
 		**out = **in
 	}

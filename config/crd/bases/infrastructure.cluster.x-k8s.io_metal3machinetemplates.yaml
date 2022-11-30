@@ -322,6 +322,10 @@ spec:
                             type: string
                         type: object
                         x-kubernetes-map-type: atomic
+                      failureDomain:
+                        description: FailureDomain is the failure domain the machine
+                          will be created in.
+                        type: string
                       hostSelector:
                         description: HostSelector specifies matching criteria for
                           labels on BareMetalHosts. This is used to limit the set

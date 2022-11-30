@@ -72,6 +72,8 @@ const (
 	ProviderIDPrefix = "metal3://"
 	// ProviderLabelPrefix is a label prefix for ProviderID.
 	ProviderLabelPrefix = "metal3.io/uuid"
+	// FailureDomainLabelPrefix is a label prefix for FailureDomains
+	FailureDomainLabelPrefix = "infrastructure.cluster.x-k8s.io/failure-domain"
 )
 
 var (
@@ -827,6 +829,14 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 		r, err := labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
 		if err != nil {
 			m.Log.Error(err, "Failed to create MatchExpression requirement, not choosing host")
+			return nil, nil, err
+		}
+		reqs = append(reqs, *r)
+	}
+	if m.Metal3Machine.Spec.FailureDomain != nil {
+		r, err := labels.NewRequirement(FailureDomainLabelPrefix, selection.Equals, []string{*m.Metal3Machine.Spec.FailureDomain})
+		if err != nil {
+			m.Log.Error(err, "Failed to create FailureDomain MatchLabel requirement, not choosing host")
 			return nil, nil, err
 		}
 		reqs = append(reqs, *r)

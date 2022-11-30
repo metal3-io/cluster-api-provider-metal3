@@ -76,6 +76,10 @@ type Metal3MachineSpec struct {
 	// +kubebuilder:validation:Enum:=metadata;disabled
 	// +optional
 	AutomatedCleaningMode *string `json:"automatedCleaningMode,omitempty"`
+
+	// FailureDomain is the failure domain the machine will be created in.
+	// +optional
+	FailureDomain *string `json:"failureDomain,omitempty"`
 }
 
 // Metal3MachineStatus defines the observed state of Metal3Machine.
