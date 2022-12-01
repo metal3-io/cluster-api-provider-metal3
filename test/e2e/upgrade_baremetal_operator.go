@@ -1,22 +1,33 @@
 package e2e
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
-func upgradeBMO(clientSet *kubernetes.Clientset) {
+type upgradeBMOInput struct {
+	E2EConfig         *clusterctl.E2EConfig
+	ManagementCluster framework.ClusterProxy
+	SpecName          string
+}
+
+func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
 	Logf("Starting BMO containers upgrade tests")
+	input := inputGetter()
 	var (
-		namePrefix = e2eConfig.GetVariable("NAMEPREFIX")
+		clientSet  = input.ManagementCluster.GetClientSet()
+		namePrefix = input.E2EConfig.GetVariable("NAMEPREFIX")
 		// BMO and Ironic share namespace
-		bmoNamespace      = e2eConfig.GetVariable("IRONIC_NAMESPACE")
+		bmoNamespace      = input.E2EConfig.GetVariable("IRONIC_NAMESPACE")
 		bmoDeployName     = namePrefix + "-controller-manager"
-		containerRegistry = e2eConfig.GetVariable("CONTAINER_REGISTRY")
-		bmoImageTag       = e2eConfig.GetVariable("UPGRADED_BMO_IMAGE_TAG")
+		containerRegistry = input.E2EConfig.GetVariable("CONTAINER_REGISTRY")
+		bmoImageTag       = input.E2EConfig.GetVariable("UPGRADED_BMO_IMAGE_TAG")
 		bmoImage          = containerRegistry + "/metal3-io/baremetal-operator:" + bmoImageTag
 	)
 
@@ -44,7 +55,7 @@ func upgradeBMO(clientSet *kubernetes.Clientset) {
 	Eventually(func() bool {
 		return deploymentRolledOut(ctx, clientSet, bmoDeployName, bmoNamespace, deploy.Status.ObservedGeneration+1)
 	},
-		e2eConfig.GetIntervals(specName, "wait-deployment")...,
+		input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...,
 	).Should(Equal(true))
 
 	By("BMO UPGRADE TESTS PASSED!")

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
@@ -14,17 +15,28 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) {
+type CertRotationInput struct {
+	E2EConfig         *clusterctl.E2EConfig
+	ManagementCluster framework.ClusterProxy
+	SpecName          string
+}
+
+func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	Logf("Start the certificate rotation test")
+	input := inputGetter()
+	clientSet := input.ManagementCluster.GetClientSet()
+	clusterClient := input.ManagementCluster.GetClient()
 	By("Check if Ironic pod is running")
-	ironicNamespace := e2eConfig.GetVariable("NAMEPREFIX") + "-system"
-	ironicDeploymentName := e2eConfig.GetVariable("NAMEPREFIX") + "-ironic"
-	ironicDeployment, err := getDeployment(clusterClient, ironicDeploymentName, ironicNamespace)
+	ironicNamespace := input.E2EConfig.GetVariable("NAMEPREFIX") + "-system"
+	ironicDeploymentName := input.E2EConfig.GetVariable("NAMEPREFIX") + "-ironic"
+	ironicDeployment, err := getDeployment(ctx, clusterClient, ironicDeploymentName, ironicNamespace)
 	Eventually(func() error {
-		ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)
+		ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
 		if err != nil {
 			return err
 		}
@@ -32,8 +44,8 @@ func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) 
 			return nil
 		}
 
-		return errors.New("Ironic pod is not in running state")
-	}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(BeNil())
+		return errors.New("ironic pod is not in running state")
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...).Should(BeNil())
 
 	time.Sleep(5 * time.Minute)
 
@@ -42,7 +54,7 @@ func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) 
 	containerNumRestart["ironic-httpd"] = 0
 	containerNumRestart["mariadb"] = 0
 	Expect(err).To(BeNil())
-	ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)
+	ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
 	Expect(err).To(BeNil())
 	for _, container := range ironicPod.Status.ContainerStatuses {
 		if _, exist := containerNumRestart[container.Name]; exist {
@@ -63,7 +75,7 @@ func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) 
 
 	By("Wait for containers in the ironic pod to be restarted")
 	Eventually(func() error {
-		ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)
+		ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
 		if err != nil {
 			return err
 		}
@@ -90,12 +102,12 @@ func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) 
 			}
 			return nil
 		}
-		return errors.New("Ironic pod is not in running state")
-	}, e2eConfig.GetIntervals(specName, "wait-pod-restart")...).Should(BeNil())
+		return errors.New("ironic pod is not in running state")
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-pod-restart")...).Should(BeNil())
 	By("CERTIFICATE ROTATION TESTS PASSED!")
 }
 
-func getDeployment(clusterClient client.Client, deploymentName string, namespace string) (*appv1.Deployment, error) {
+func getDeployment(ctx context.Context, clusterClient client.Client, deploymentName string, namespace string) (*appv1.Deployment, error) {
 	deployment := &appv1.Deployment{}
 	namespaceName := client.ObjectKey{
 		Name:      deploymentName,
@@ -108,7 +120,7 @@ func getDeployment(clusterClient client.Client, deploymentName string, namespace
 	return deployment, nil
 }
 
-func getPodFromDeployment(clientSet *kubernetes.Clientset, deployment *appv1.Deployment, namespace string) (*corev1.Pod, error) {
+func getPodFromDeployment(ctx context.Context, clientSet *kubernetes.Clientset, deployment *appv1.Deployment, namespace string) (*corev1.Pod, error) {
 	labelMap, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
 	Expect(err).To(BeNil())
 	option := metav1.ListOptions{

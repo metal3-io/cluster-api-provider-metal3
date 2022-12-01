@@ -147,18 +147,47 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 	// Remove ironic
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	if ephemeralCluster == KIND {
-		removeIronicContainers()
-	} else {
-		removeIronicDeployment()
+	isIronicDeployment := true
+	if ephemeralCluster == Kind {
+		isIronicDeployment = false
 	}
+	removeIronic(ctx, func() RemoveIronicInput {
+		return RemoveIronicInput{
+			ManagementCluster: bootstrapClusterProxy,
+			IsDeployment:      isIronicDeployment,
+			Namespace:         e2eConfig.GetVariable(ironicNamespace),
+			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
+		}
+	})
 	// install bmo
 	By("Install BMO")
-	installIronicBMO(clusterProxy, "false", "true")
+	installIronicBMO(func() installIronicBMOInput {
+		return installIronicBMOInput{
+			ManagementCluster:          clusterProxy,
+			BMOPath:                    e2eConfig.GetVariable(bmoPath),
+			deployIronic:               false,
+			deployBMO:                  true,
+			deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
+			DeployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
+			NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
+			RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
+		}
+	})
 
 	// install ironic
 	By("Install Ironic in the target cluster")
-	installIronicBMO(clusterProxy, "true", "false")
+	installIronicBMO(func() installIronicBMOInput {
+		return installIronicBMOInput{
+			ManagementCluster:          clusterProxy,
+			BMOPath:                    e2eConfig.GetVariable(bmoPath),
+			deployIronic:               true,
+			deployBMO:                  false,
+			deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
+			DeployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
+			NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
+			RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
+		}
+	})
 
 	// Export capi/capm3 versions
 	os.Setenv("CAPI_VERSION", "v1alpha4")
@@ -179,8 +208,20 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 // preUpgrade hook should be called from ClusterctlUpgradeSpec before upgrading the management cluster
 // it upgrades Ironic and BMO before upgrading the providers.
 func preUpgrade(clusterProxy framework.ClusterProxy) {
-	upgradeIronic(clusterProxy.GetClientSet())
-	upgradeBMO(clusterProxy.GetClientSet())
+	upgradeIronic(ctx, func() upgradeIronicInput {
+		return upgradeIronicInput{
+			E2EConfig:         e2eConfig,
+			ManagementCluster: clusterProxy,
+			SpecName:          specName,
+		}
+	})
+	upgradeBMO(ctx, func() upgradeBMOInput {
+		return upgradeBMOInput{
+			E2EConfig:         e2eConfig,
+			ManagementCluster: clusterProxy,
+			SpecName:          specName,
+		}
+	})
 }
 
 // preCleanupManagementCluster hook should be called from ClusterctlUpgradeSpec before cleaning the target management cluster
@@ -190,7 +231,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 	reInstallIronic := func() {
 		By("Reinstate Ironic containers and BMH")
 		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-		if ephemeralCluster == KIND {
+		if ephemeralCluster == Kind {
 			By("Install Ironic in the source cluster as containers")
 			bmoPath := e2eConfig.GetVariable("BMOPATH")
 			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
@@ -200,9 +241,27 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 			Expect(err).To(BeNil(), "Cannot run local ironic")
 		} else {
 			By("Install Ironic in the source cluster as deployments")
-			installIronicBMO(bootstrapClusterProxy, "true", "false")
+			installIronicBMO(func() installIronicBMOInput {
+				return installIronicBMOInput{
+					ManagementCluster:          bootstrapClusterProxy,
+					BMOPath:                    e2eConfig.GetVariable(bmoPath),
+					deployIronic:               true,
+					deployBMO:                  false,
+					deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
+					DeployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
+					NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
+					RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
+				}
+			})
 		}
 	}
-	removeIronicDeploymentOnTarget(clusterProxy)
+	removeIronic(ctx, func() RemoveIronicInput {
+		return RemoveIronicInput{
+			ManagementCluster: clusterProxy,
+			IsDeployment:      true,
+			Namespace:         e2eConfig.GetVariable(ironicNamespace),
+			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
+		}
+	})
 	reInstallIronic()
 }

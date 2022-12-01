@@ -1,22 +1,33 @@
 package e2e
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 )
 
-func upgradeIronic(clientSet *kubernetes.Clientset) {
+type upgradeIronicInput struct {
+	E2EConfig         *clusterctl.E2EConfig
+	ManagementCluster framework.ClusterProxy
+	SpecName          string
+}
+
+func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 	Logf("Starting ironic containers upgrade tests")
+	input := inputGetter()
 	var (
-		namePrefix        = e2eConfig.GetVariable("NAMEPREFIX")
-		ironicNamespace   = e2eConfig.GetVariable("IRONIC_NAMESPACE")
+		clientSet         = input.ManagementCluster.GetClientSet()
+		namePrefix        = input.E2EConfig.GetVariable("NAMEPREFIX")
+		ironicNamespace   = input.E2EConfig.GetVariable("IRONIC_NAMESPACE")
 		ironicDeployName  = namePrefix + "-ironic"
-		containerRegistry = e2eConfig.GetVariable("CONTAINER_REGISTRY")
-		ironicImageTag    = e2eConfig.GetVariable("IRONIC_IMAGE_TAG")
-		mariadbImageTag   = e2eConfig.GetVariable("MARIADB_IMAGE_TAG")
+		containerRegistry = input.E2EConfig.GetVariable("CONTAINER_REGISTRY")
+		ironicImageTag    = input.E2EConfig.GetVariable("IRONIC_IMAGE_TAG")
+		mariadbImageTag   = input.E2EConfig.GetVariable("MARIADB_IMAGE_TAG")
 	)
 
 	Logf("namePrefix %v", namePrefix)
@@ -50,7 +61,7 @@ func upgradeIronic(clientSet *kubernetes.Clientset) {
 	Eventually(func() bool {
 		return deploymentRolledOut(ctx, clientSet, ironicDeployName, ironicNamespace, deploy.Status.ObservedGeneration+1)
 	},
-		e2eConfig.GetIntervals(specName, "wait-deployment")...,
+		input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...,
 	).Should(Equal(true))
 
 	By("IRONIC CONTAINERS UPGRADE TESTS PASSED!")

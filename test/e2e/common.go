@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -27,6 +28,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type vmState string
+
+const (
+	running        vmState = "running"
+	paused         vmState = "paused"
+	shutoff        vmState = "shutoff"
+	other          vmState = "other"
+	artifactoryURL         = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
+	imagesURL              = "http://172.22.0.1/images"
+	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
+)
+
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
 }
@@ -39,6 +52,13 @@ func LogFromFile(logFile string) {
 	data, err := os.ReadFile(filepath.Clean(logFile))
 	Expect(err).To(BeNil(), "No log file found")
 	Logf(string(data))
+}
+
+// return only the boolean value from ParseBool.
+func getBool(s string) bool {
+	b, err := strconv.ParseBool(s)
+	Expect(err).To(BeNil())
+	return b
 }
 
 // logTable print a formatted table into the e2e logs.
@@ -83,12 +103,6 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 	}
 }
-
-const (
-	artifactoryURL = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
-	imagesURL      = "http://172.22.0.1/images"
-	ironicImageDir = "/opt/metal3-dev-env/ironic/html/images"
-)
 
 func ensureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	osType := strings.ToLower(os.Getenv("OS"))
