@@ -615,6 +615,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			}, "",
 		)
+		m3mconfig6, infrastructureRef6 := newConfig("",
+			map[string]string{"key1": "value1"}, []infrav1.HostSelectorRequirement{}, namespaceName,
+		)
 
 		type testCaseChooseHost struct {
 			Machine          *clusterv1.Machine
@@ -815,6 +818,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef}},
 				M3Machine:        m3mconfig5,
 				ExpectedHostName: "",
+			}),
+			Entry("Pick host with non-empty namespace selector", testCaseChooseHost{
+				Machine:          newMachine(machineName, "", infrastructureRef6),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithLabel, *availableHost}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: hostWithLabel.Name,
 			}),
 		)
 	})
