@@ -589,13 +589,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		}
 
 		m3mconfig, infrastructureRef := newConfig("", map[string]string{},
-			[]infrav1.HostSelectorRequirement{},
+			[]infrav1.HostSelectorRequirement{}, "",
 		)
 		m3mconfig2, infrastructureRef2 := newConfig("",
-			map[string]string{"key1": "value1"}, []infrav1.HostSelectorRequirement{},
+			map[string]string{"key1": "value1"}, []infrav1.HostSelectorRequirement{}, "",
 		)
 		m3mconfig3, infrastructureRef3 := newConfig("",
-			map[string]string{"boguskey": "value"}, []infrav1.HostSelectorRequirement{},
+			map[string]string{"boguskey": "value"}, []infrav1.HostSelectorRequirement{}, "",
 		)
 		m3mconfig4, infrastructureRef4 := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{
@@ -604,7 +604,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Operator: "in",
 					Values:   []string{"abc", "value1", "123"},
 				},
-			},
+			}, "",
 		)
 		m3mconfig5, infrastructureRef5 := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{
@@ -613,7 +613,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Operator: "pancakes",
 					Values:   []string{"abc", "value1", "123"},
 				},
-			},
+			}, "",
 		)
 
 		type testCaseChooseHost struct {
@@ -1050,7 +1050,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
 
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
-				map[string]string{}, []infrav1.HostSelectorRequirement{},
+				map[string]string{}, []infrav1.HostSelectorRequirement{}, "",
 			)
 			machine := newMachine(machineName, "", infrastructureRef)
 
@@ -1139,7 +1139,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
 
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
-				map[string]string{}, []infrav1.HostSelectorRequirement{},
+				map[string]string{}, []infrav1.HostSelectorRequirement{}, "",
 			)
 			machine := newMachine(machineName, "", infrastructureRef)
 
@@ -4643,7 +4643,7 @@ func setupSchemeMm() *runtime.Scheme {
 
 func newConfig(userDataNamespace string,
 	labels map[string]string, reqs []infrav1.HostSelectorRequirement,
-) (*infrav1.Metal3Machine, *corev1.ObjectReference) {
+	namespaceSelector string) (*infrav1.Metal3Machine, *corev1.ObjectReference) {
 	config := infrav1.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespaceName,
@@ -4661,6 +4661,7 @@ func newConfig(userDataNamespace string,
 			HostSelector: infrav1.HostSelector{
 				MatchLabels:      labels,
 				MatchExpressions: reqs,
+				Namespace:        namespaceSelector,
 			},
 		},
 		Status: infrav1.Metal3MachineStatus{
