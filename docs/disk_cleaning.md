@@ -6,14 +6,14 @@ feature from Cluster-api-provider-metal3 (CAPM3) Custom Resources (CR).
 ## Table of Contents
 
 - [Ironic automated cleaning in Metal3](#ironic-automated-cleaning-in-metal3)
-  - [Table of Contents](#table-of-contents)
-  - [What is automated cleaning](#what-is-automated-cleaning)
-  - [How to enable/disable automated cleaning via Metal3](#how-to-enabledisabled-automated-cleaning-via-metal3)
-    - [Via ironic.conf](#via-ironicconf)
-    - [Via CAPM3 APIs](#via-capm3-apis)
-      - [Which resources do I need to edit](#which-resources-do-i-need-to-edit)
-      - [When should I edit my CRs to disable cleaning](#when-should-i-edit-my-crs-to-disable-cleaning)
-      - [Selective configuration](#selective-configuration)
+   - [Table of Contents](#table-of-contents)
+   - [What is automated cleaning](#what-is-automated-cleaning)
+   - [How to enable/disable automated cleaning via Metal3](#how-to-enabledisabled-automated-cleaning-via-metal3)
+      - [Via ironic.conf](#via-ironicconf)
+      - [Via CAPM3 APIs](#via-capm3-apis)
+         - [Which resources do I need to edit](#which-resources-do-i-need-to-edit)
+         - [When should I edit my CRs to disable cleaning](#when-should-i-edit-my-crs-to-disable-cleaning)
+         - [Selective configuration](#selective-configuration)
 
 How we refer to these objects later on:
 
