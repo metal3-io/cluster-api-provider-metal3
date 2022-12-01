@@ -262,7 +262,7 @@ type RemoveIronicInput struct {
 
 func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
-	if input.IsDeployment == true {
+	if input.IsDeployment {
 		deploymentName := input.NamePrefix + "-ironic"
 		ironicNamespace := input.Namespace
 		err := input.ManagementCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
