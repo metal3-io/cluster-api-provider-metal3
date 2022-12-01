@@ -43,6 +43,11 @@ type HostSelector struct {
 
 	// Label match expressions that must be true on a chosen BareMetalHost
 	MatchExpressions []HostSelectorRequirement `json:"matchExpressions,omitempty"`
+
+	// Namespace where to look for BareMetalHosts. If empty, look for
+	// BareMetalHosts in the namespace of Metal3Machine
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
 }
 
 type HostSelectorRequirement struct {

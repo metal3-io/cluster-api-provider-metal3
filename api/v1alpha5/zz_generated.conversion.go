@@ -753,6 +753,7 @@ func Convert_v1beta1_FromPool_To_v1alpha5_FromPool(in *v1beta1.FromPool, out *Fr
 func autoConvert_v1alpha5_HostSelector_To_v1beta1_HostSelector(in *HostSelector, out *v1beta1.HostSelector, s conversion.Scope) error {
 	out.MatchLabels = *(*map[string]string)(unsafe.Pointer(&in.MatchLabels))
 	out.MatchExpressions = *(*[]v1beta1.HostSelectorRequirement)(unsafe.Pointer(&in.MatchExpressions))
+	out.Namespace = in.Namespace
 	return nil
 }
 
@@ -764,6 +765,7 @@ func Convert_v1alpha5_HostSelector_To_v1beta1_HostSelector(in *HostSelector, out
 func autoConvert_v1beta1_HostSelector_To_v1alpha5_HostSelector(in *v1beta1.HostSelector, out *HostSelector, s conversion.Scope) error {
 	out.MatchLabels = *(*map[string]string)(unsafe.Pointer(&in.MatchLabels))
 	out.MatchExpressions = *(*[]HostSelectorRequirement)(unsafe.Pointer(&in.MatchExpressions))
+	out.Namespace = in.Namespace
 	return nil
 }
 
