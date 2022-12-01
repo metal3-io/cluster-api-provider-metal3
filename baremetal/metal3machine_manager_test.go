@@ -819,7 +819,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3Machine:        m3mconfig5,
 				ExpectedHostName: "",
 			}),
-			Entry("Pick host with non-empty namespace selector", testCaseChooseHost{
+			Entry("Pick host using non-empty namespace selector", testCaseChooseHost{
 				Machine:          newMachine(machineName, "", infrastructureRef6),
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithLabel, *availableHost}},
 				M3Machine:        m3mconfig6,
