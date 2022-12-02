@@ -64,6 +64,13 @@ if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
   export NUM_NODES=${NUM_NODES:-"5"}
 fi
 
+# Integration test environment vars and config
+if [[ ${GINKGO_FOCUS:-} == "integration" ]]; then
+  export NUM_NODES=${NUM_NODES:-"2"}
+  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
+fi
+
 # Exported to the cluster templates
 # Generate user ssh key
 if [ ! -f "${HOME}/.ssh/id_rsa" ]; then

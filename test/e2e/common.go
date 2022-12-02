@@ -38,6 +38,8 @@ const (
 	artifactoryURL         = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
 	imagesURL              = "http://172.22.0.1/images"
 	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
+	osTypeCentos           = "centos"
+	osTypeUbuntu           = "ubuntu"
 )
 
 func Byf(format string, a ...interface{}) {
@@ -106,9 +108,9 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 
 func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	osType := strings.ToLower(os.Getenv("OS"))
-	Expect(osType).To(BeElementOf([]string{"ubuntu", "centos"}))
+	Expect(osType).To(BeElementOf([]string{osTypeUbuntu, osTypeCentos}))
 	imageNamePrefix := "CENTOS_9_NODE_IMAGE_K8S"
-	if osType != "centos" {
+	if osType != osTypeCentos {
 		imageNamePrefix = "UBUNTU_22.04_NODE_IMAGE_K8S"
 	}
 	imageName := fmt.Sprintf("%s_%s.qcow2", imageNamePrefix, k8sVersion)

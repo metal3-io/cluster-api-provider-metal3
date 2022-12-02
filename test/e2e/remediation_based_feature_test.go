@@ -32,7 +32,7 @@ var _ = Describe("Testing nodes remediation [remediation]", func() {
 
 	It("Should create a cluster and and run remediation based tests", func() {
 		By("Creating target cluster")
-		targetCluster = createTargetCluster(e2eConfig.GetVariable("KUBERNETES_VERSION"))
+		targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("KUBERNETES_VERSION"))
 
 		// Run Metal3Remediation test first, doesn't work after remediation...
 		By("Running Metal3Remediation tests")

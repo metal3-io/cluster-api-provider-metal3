@@ -168,6 +168,7 @@ _SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-ginkgo.skip="$(arg)")
 endif
 .PHONY: e2e-tests
 e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
+export CONTAINER_RUNTIME
 e2e-tests: e2e-substitutions cluster-templates ## This target should be called from scripts/ci-e2e.sh
 	for image in $(E2E_CONTAINERS); do \
 		$(CONTAINER_RUNTIME) pull $$image; \
