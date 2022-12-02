@@ -25,7 +25,8 @@ function get_latest_release() {
     release="$(curl -H "Authorization: token ${GITHUB_TOKEN}" -sL "${1}")" || ( set -x && exit 1 )
   fi
   # This gets the latest release as vx.y.z or vx.y.z-rc.0, including any version with a suffix starting with - , for example -rc.0
-  release_tag="$(echo "$release" | jq -r "[.[].tag_name | select( startswith(\"${2:-""}\"))] | max ")"
+  # This relies on the order of the Github release page + select filter
+  release_tag="$(echo "$release" | jq -r "[.[].tag_name | select( startswith(\"${2:-}\"))] | .[0]")"
 
   if [[ "$release_tag" == "null" ]]; then
     set -x
