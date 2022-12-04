@@ -10,7 +10,7 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.1.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v0.0.0-20220919121103-31c03f129143
-	github.com/onsi/ginkgo/v2 v2.5.0
+	github.com/onsi/ginkgo/v2 v2.5.1
 	github.com/onsi/gomega v1.24.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
