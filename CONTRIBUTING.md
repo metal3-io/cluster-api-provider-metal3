@@ -11,9 +11,9 @@ GitHub pull requests. Those guidelines are the same as the
 - [Finding Things That Need Help](#finding-things-that-need-help)
 - [Contributing a Patch](#contributing-a-patch)
 - [Backporting a Patch](#backporting-a-patch)
-  - [Merge Approval](#merge-approval)
-  - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
-  - [Issue and Pull Request Management](#issue-and-pull-request-management)
+   - [Merge Approval](#merge-approval)
+   - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
+   - [Issue and Pull Request Management](#issue-and-pull-request-management)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -41,11 +41,11 @@ own, file and fix any/all issues that come up, including gaps in documentation!
 Cluster API Provider Metal3 follows Cluster API release cadence and versioning which follows upstream Kubernetes semantic versioning. With the v1 release of our codebase, we guarantee the following:
 
 - A (*minor*) release CAN include:
-  - Introduction of new API versions, or new Kinds.
-  - Compatible API changes like field additions, deprecation notices, etc.
-  - Breaking API changes for deprecated APIs, fields, or code.
-  - Features, promotion or removal of feature gates.
-  - And more!
+   - Introduction of new API versions, or new Kinds.
+   - Compatible API changes like field additions, deprecation notices, etc.
+   - Breaking API changes for deprecated APIs, fields, or code.
+   - Features, promotion or removal of feature gates.
+   - And more!
 
 - A (*patch*) release SHOULD only include backwards compatible set of bugfixes.
 

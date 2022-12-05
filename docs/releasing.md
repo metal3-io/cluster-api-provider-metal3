@@ -4,7 +4,7 @@
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 - [Prerequisites](#prerequisites)
-  - [`docker`](#docker)
+   - [`docker`](#docker)
 - [Output](#output)
   - [Expected artifacts](#expected-artifacts)
   - [Artifact locations](#artifact-locations)
@@ -26,10 +26,10 @@ You must have docker installed.
 1. A container image of the shared cluster-api-provider-metal3 manager
 1. A git tag
 1. A release on Github containing:
-    - A manifest file - `infrastructure-components.yaml`
-    - A metadata file - `metadata.yaml`
-    - A cluster template - `cluster-template.yaml`
-    - A file containing an example of variables to set - `example_variables.rc`
+     - A manifest file - `infrastructure-components.yaml`
+     - A metadata file - `metadata.yaml`
+     - A cluster template - `cluster-template.yaml`
+     - A file containing an example of variables to set - `example_variables.rc`
 
 ### Artifact locations
 
