@@ -179,7 +179,7 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
 	time go test -v -timeout 24h --tags=e2e ./test/e2e/... -args \
-		--ginkgo.timeout=6h --ginkgo.v --ginkgo.trace --ginkgo.progress --ginkgo.no-color=$(GINKGO_NOCOLOR) \
+		--ginkgo.timeout=6h --ginkgo.v --ginkgo.trace --ginkgo.show-node-events --ginkgo.no-color=$(GINKGO_NOCOLOR) \
 		--ginkgo.junit-report="junit.e2e_suite.1.xml" \
 		--ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
