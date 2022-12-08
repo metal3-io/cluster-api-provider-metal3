@@ -53,7 +53,7 @@ provider:
     You can also specify the provider version by appending a version tag to the provider name as follows:
 
     ```shell
-    clusterctl init --infrastructure metal3:v1.2.0
+    clusterctl init --infrastructure metal3:v1.3.0
     ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install cert-manager for Baremetal Operator,
@@ -125,6 +125,11 @@ Or use parallel for faster tests. Note that these tests run in multiple VMs by c
 
 - **/test-ubuntu-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on Ubuntu
 - **/test-centos-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on CentOS
+
+Release-1.3 branch:
+
+- **/test-ubuntu-e2e-release-1-3** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on Ubuntu
+- **/test-centos-e2e-release-1-3** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on CentOS
 
 Release-1.2 branch:
 
