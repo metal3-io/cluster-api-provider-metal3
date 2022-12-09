@@ -7,9 +7,9 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/golang/mock v1.6.0
 	github.com/jinzhu/copier v0.3.2
-	github.com/metal3-io/baremetal-operator/apis v0.1.1
+	github.com/metal3-io/baremetal-operator/apis v0.2.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v0.0.0-20220919121103-31c03f129143
+	github.com/metal3-io/ip-address-manager/api v0.0.0-20221208094636-8892d31b812f
 	github.com/onsi/ginkgo/v2 v2.5.1
 	github.com/onsi/gomega v1.24.1
 	github.com/pkg/errors v0.9.1
@@ -87,7 +87,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.1.1 // indirect
+	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.2.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
