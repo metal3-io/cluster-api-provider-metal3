@@ -214,12 +214,18 @@ func installIronicBMO(inputGetter func() installIronicBMOInput) {
 
 	ironicHost := os.Getenv("CLUSTER_PROVISIONING_IP")
 	path := fmt.Sprintf("%s/tools/", input.BMOPath)
-	args := []string{
-		strconv.FormatBool(input.deployBMO),
-		strconv.FormatBool(input.deployIronic),
-		strconv.FormatBool(input.DeployIronicBasicAuth),
-		strconv.FormatBool(input.deployIronicTLSSetup),
-		"true",
+	args := []string{}
+	if input.deployBMO {
+		args = append(args, "-b")
+	}
+	if input.deployIronic {
+		args = append(args, "-i")
+	}
+	if !input.deployBasicAuth {
+		args = append(args, "-n")
+	}
+	if input.deployIronicTLSSetup {
+		args = append(args, "-t")
 	}
 	env := []string{
 		fmt.Sprintf("IRONIC_HOST=%s", ironicHost),
