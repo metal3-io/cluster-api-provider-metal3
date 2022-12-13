@@ -28,16 +28,16 @@ func liveIsoTest() {
 		liveISOImageURL := e2eConfig.GetVariable("LIVE_ISO_IMAGE")
 		Logf("Starting live ISO test")
 		bootstrapClient := bootstrapClusterProxy.GetClient()
-		listBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
+		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
 
-		waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 			Client:    bootstrapClient,
 			Options:   []client.ListOption{client.InNamespace(namespace)},
 			Replicas:  numberOfAllBmh,
 			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
 		})
 
-		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace)
+		bmhs, err := GetAllBmhs(ctx, bootstrapClient, namespace)
 		Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
 		var isoBmh bmov1alpha1.BareMetalHost
 		for _, bmh := range bmhs {
@@ -67,9 +67,9 @@ func liveIsoTest() {
 			g.Expect(isoBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioned), fmt.Sprintf("BMH %s is not in provisioned state", isoBmh.Name))
 			Logf("BMH %s is in %s state", isoBmh.Name, isoBmh.Status.Provisioning.State)
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(Succeed())
-		listBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
+		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
 
-		vmName := bmhToVMName(isoBmh)
+		vmName := BmhToVMName(isoBmh)
 		serialLogFile := fmt.Sprintf("/var/log/libvirt/qemu/%s-serial0.log", vmName)
 
 		By("Reading serial logs to verify the node was booted from live ISO image")
@@ -87,7 +87,7 @@ func liveIsoTest() {
 
 		bootstrapClient := bootstrapClusterProxy.GetClient()
 
-		bmhs, err := getAllBmhs(ctx, bootstrapClient, namespace)
+		bmhs, err := GetAllBmhs(ctx, bootstrapClient, namespace)
 		Expect(err).NotTo(HaveOccurred(), "Error getting all BMHs")
 
 		for _, bmh := range bmhs {
@@ -100,7 +100,7 @@ func liveIsoTest() {
 			}
 		}
 		By("Waiting for deprovisioned live ISO image booted BMH to be available")
-		waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 			Client:    bootstrapClient,
 			Options:   []client.ListOption{client.InNamespace(namespace)},
 			Replicas:  numberOfAllBmh,

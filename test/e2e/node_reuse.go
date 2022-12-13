@@ -62,20 +62,20 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControlplane)
 	Logf("NUMBER OF WORKER BMH: %v", numberOfWorkers)
 
-	listBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClusterClient)
+	ListBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClusterClient)
 
 	By("Untaint all CP nodes before scaling down machinedeployment")
 	controlplaneNodes := getControlplaneNodes(ctx, clientSet)
 	untaintNodes(ctx, targetClusterClient, controlplaneNodes, controlplaneTaints)
 
 	By("Scale down MachineDeployment to 0")
-	scaleMachineDeployment(ctx, managementClusterClient, input.ClusterName, input.Namespace, 0)
+	ScaleMachineDeployment(ctx, managementClusterClient, input.ClusterName, input.Namespace, 0)
 
 	Byf("Wait until the worker is scaled down and %d BMH(s) Available", numberOfWorkers)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfWorkers,
@@ -86,7 +86,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	kcpBmhBeforeUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, managementClusterClient)
 
 	By("Download image")
-	imageURL, imageChecksum := ensureImage(upgradedK8sVersion)
+	imageURL, imageChecksum := EnsureImage(upgradedK8sVersion)
 	By("Update KCP Metal3MachineTemplate with upgraded image to boot and set nodeReuse field to 'True'")
 	m3machineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
 	updateNodeReuse(ctx, input.Namespace, true, m3machineTemplateName, managementClusterClient)
@@ -112,7 +112,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Expect(err).To(BeNil(), "Failed to patch KubeadmControlPlane")
 
 	By("Check if only a single machine is in Deleting state and no other new machines are in Provisioning state")
-	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseDeleting, waitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseDeleting, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  1,
@@ -121,10 +121,10 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	// Since we do scale in, no Machine should start provisioning yet (the old must be deleted first)
 	machineList := &clusterv1.MachineList{}
 	Expect(managementClusterClient.List(ctx, machineList, client.InNamespace(input.Namespace))).To(Succeed())
-	Expect(filterMachinesByPhase(machineList.Items, clusterv1.MachinePhaseProvisioning)).To(HaveLen(0))
+	Expect(FilterMachinesByPhase(machineList.Items, clusterv1.MachinePhaseProvisioning)).To(HaveLen(0))
 
 	Byf("Wait until 1 BMH is in deprovisioning state")
-	waitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  1,
@@ -134,7 +134,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Logf("Find the deprovisioning BMH")
 	bmhList := bmov1alpha1.BareMetalHostList{}
 	Expect(managementClusterClient.List(ctx, &bmhList, client.InNamespace(input.Namespace))).To(Succeed())
-	deprovisioningBmhs := filterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
+	deprovisioningBmhs := FilterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
 	Expect(deprovisioningBmhs).To(HaveLen(1))
 	key := types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: input.Namespace}
 
@@ -162,24 +162,24 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		upgraded := *machine.Spec.Version == upgradedK8sVersion
 		return (running && upgraded)
 	}
-	waitForNumMachines(ctx, runningAndUpgraded, waitForNumInput{
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
 	})
 
-	listBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClusterClient)
+	ListBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClusterClient)
 
 	By("Untaint CP nodes after upgrade of two controlplane nodes")
 	controlplaneNodes = getControlplaneNodes(ctx, clientSet)
 	untaintNodes(ctx, targetClusterClient, controlplaneNodes, controlplaneTaints)
 
 	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
-	waitForNumMachines(ctx, runningAndUpgraded, waitForNumInput{
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfControlplane,
@@ -224,20 +224,20 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	}
 
 	By("Scale the controlplane down to 1")
-	scaleKubeadmControlPlane(ctx, managementClusterClient, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, 1)
+	ScaleKubeadmControlPlane(ctx, managementClusterClient, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, 1)
 
 	Byf("Wait until controlplane is scaled down and %d BMHs are Available", numberOfControlplane)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfControlplane,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-cp-available"),
 	})
 
-	listBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClusterClient)
+	ListBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClusterClient)
 
 	By("Get MachineDeployment")
 	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
@@ -255,10 +255,10 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	pointMDtoM3mt(ctx, input.Namespace, input.ClusterName, m3machineTemplateName, machineDeploy.Name, managementClusterClient)
 
 	By("Scale the worker up to 1 to start testing MachineDeployment")
-	scaleMachineDeployment(ctx, managementClusterClient, input.ClusterName, input.Namespace, 1)
+	ScaleMachineDeployment(ctx, managementClusterClient, input.ClusterName, input.Namespace, 1)
 
 	Byf("Wait until the worker BMH becomes provisioned")
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
@@ -266,7 +266,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 
 	Byf("Wait until the worker machine becomes running")
-	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
@@ -283,7 +283,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		if item.Status.Provisioning.State == bmov1alpha1.StateAvailable {
 			// We make sure that all available BMHs are choosable by removing nodeReuse label
 			// set on them while testing KCP node reuse scenario previously.
-			deleteNodeReuseLabelFromHost(ctx, managementClusterClient, item, nodeReuseLabel)
+			DeleteNodeReuseLabelFromHost(ctx, managementClusterClient, item, nodeReuseLabel)
 		}
 	}
 
@@ -314,7 +314,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Expect(err).To(BeNil(), "Failed to patch MachineDeployment")
 
 	Byf("Wait until %d BMH(s) in deprovisioning state", numberOfWorkers)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfWorkers,
@@ -324,7 +324,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Logf("Find the deprovisioning BMH")
 	bmhList = bmov1alpha1.BareMetalHostList{}
 	Expect(managementClusterClient.List(ctx, &bmhList, client.InNamespace(input.Namespace))).To(Succeed())
-	deprovisioningBmhs = filterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
+	deprovisioningBmhs = FilterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
 	Expect(deprovisioningBmhs).To(HaveLen(1))
 	key = types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: input.Namespace}
 
@@ -350,7 +350,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	).Should(Succeed())
 
 	Byf("Wait until worker machine becomes running and updated with new %s k8s version", upgradedK8sVersion)
-	waitForNumMachines(ctx, runningAndUpgraded, waitForNumInput{
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
@@ -364,14 +364,14 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	equal = reflect.DeepEqual(mdBmhBeforeUpgrade, mdBmhAfterUpgrade)
 	Expect(equal).To(BeTrue(), "The same BMHs were not reused in MachineDeployment")
 
-	listBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
-	listNodes(ctx, targetClusterClient)
+	ListBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClusterClient)
 
 	By("Scale controlplane up to 3")
-	scaleKubeadmControlPlane(ctx, managementClusterClient, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, 3)
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	ScaleKubeadmControlPlane(ctx, managementClusterClient, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, 3)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -379,7 +379,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 
 	Byf("Wait until all %d machine(s) become(s) running", numberOfAllBmh)
-	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,

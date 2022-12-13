@@ -100,25 +100,25 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 			})
 		}
 		Logf("Logging state of bootstrap cluster")
-		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		listMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		listMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		listNodes(ctx, bootstrapClusterProxy.GetClient())
+		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListNodes(ctx, bootstrapClusterProxy.GetClient())
 		Logf("Logging state of target cluster")
 		if !ephemeralTest {
-			listBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-			listMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-			listMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			ListBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 		}
-		listNodes(ctx, targetCluster.GetClient())
-		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		ListNodes(ctx, targetCluster.GetClient())
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
 })
 
 func createTargetCluster(k8sVersion string) (targetCluster framework.ClusterProxy) {
 	By("Creating a high available cluster")
-	imageURL, imageChecksum := ensureImage(k8sVersion)
+	imageURL, imageChecksum := EnsureImage(k8sVersion)
 	os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 	os.Setenv("IMAGE_RAW_URL", imageURL)
 	controlPlaneMachineCount = int64(numberOfControlplane)

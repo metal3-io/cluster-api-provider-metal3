@@ -33,22 +33,22 @@ func metal3remediation(ctx context.Context, inputGetter func() Metal3Remediation
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
 	targetClient := input.TargetCluster.GetClient()
 
-	_, workerM3Machines := getMetal3Machines(ctx, bootstrapClient, input.ClusterName, input.Namespace)
+	_, workerM3Machines := GetMetal3Machines(ctx, bootstrapClient, input.ClusterName, input.Namespace)
 	Expect(len(workerM3Machines)).To(BeNumerically(">", 0))
 
 	getBmhFromM3Machine := func(m3Machine infrav1.Metal3Machine) (result bmov1alpha1.BareMetalHost) {
-		Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: metal3MachineToBmhName(m3Machine)}, &result)).To(Succeed())
+		Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: Metal3MachineToBmhName(m3Machine)}, &result)).To(Succeed())
 		return result
 	}
 
 	workerM3Machine := workerM3Machines[0]
 	workerBmh := getBmhFromM3Machine(workerM3Machine)
 
-	workerMachineName, err := metal3MachineToMachineName(workerM3Machine)
+	workerMachineName, err := Metal3MachineToMachineName(workerM3Machine)
 	Expect(err).ToNot(HaveOccurred())
-	workerMachine := getMachine(ctx, bootstrapClient, client.ObjectKey{Namespace: input.Namespace, Name: workerMachineName})
+	workerMachine := GetMachine(ctx, bootstrapClient, client.ObjectKey{Namespace: input.Namespace, Name: workerMachineName})
 	workerNodeName := workerMachineName
-	vmName := bmhToVMName(workerBmh)
+	vmName := BmhToVMName(workerBmh)
 
 	By("Creating a Metal3Remediation resource")
 	timeout := metav1.Duration{Duration: 30 * time.Minute}

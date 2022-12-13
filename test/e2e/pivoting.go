@@ -54,10 +54,10 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
-	listBareMetalHosts(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
-	listMetal3Machines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
-	listMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
-	listNodes(ctx, input.TargetCluster.GetClient())
+	ListBareMetalHosts(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
+	ListMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
+	ListNodes(ctx, input.TargetCluster.GetClient())
 
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
@@ -172,7 +172,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Expect(controlPlane).ToNot(BeNil())
 
 	By("Check that BMHs are in provisioned state")
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    input.TargetCluster.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -180,7 +180,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 
 	By("Check if metal3machines become ready.")
-	waitForNumMetal3MachinesReady(ctx, waitForNumInput{
+	WaitForNumMetal3MachinesReady(ctx, WaitForNumInput{
 		Client:    input.TargetCluster.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -188,7 +188,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 
 	By("Check that all machines become running.")
-	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    input.TargetCluster.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -419,7 +419,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	Expect(controlPlane).ToNot(BeNil())
 
 	By("Check that BMHs are in provisioned state")
-	waitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, waitForNumInput{
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    input.BootstrapClusterProxy.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  4,
@@ -427,7 +427,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("Check if metal3machines become ready.")
-	waitForNumMetal3MachinesReady(ctx, waitForNumInput{
+	WaitForNumMetal3MachinesReady(ctx, WaitForNumInput{
 		Client:    input.BootstrapClusterProxy.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  4,
@@ -435,7 +435,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("Check that all machines become running.")
-	waitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, waitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    input.BootstrapClusterProxy.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  4,

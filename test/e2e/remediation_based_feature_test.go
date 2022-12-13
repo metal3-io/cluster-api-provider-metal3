@@ -62,11 +62,11 @@ var _ = Describe("Testing nodes remediation [remediation]", func() {
 	})
 
 	AfterEach(func() {
-		listBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		listMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		listMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		listNodes(ctx, targetCluster.GetClient())
-		dumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListNodes(ctx, targetCluster.GetClient())
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
 })

@@ -48,22 +48,46 @@ For version v0.x.y:
 
 #### Automated Process
 
-1. Create an annotated tag `git tag -a -s v0.x.y -m v0.x.y`.
-1. Push the tag to the GitHub repository `git push origin v0.x.y`
+1. Create annotated tags:
+
+   ```bash
+   git tag -a -s v0.x.y -m v0.x.y
+   git tag -a -s test/v0.x.y -m test/v0.x.y
+   ```
+
+1. Push the tags to the GitHub repository:
+
+   ```bash
+   git push origin v0.x.y
+   git push origin test/v0.x.y
+   ```
+
    NB: `origin` should be the name of the remote pointing to
    `github.com/metal3-io/cluster-api-provider-metal3`.
-1. Check the tag is existent in upstream repository. If it is,
-   GitHub workflow should have automatically created  a draft
-   release for you. Please make sure the release notes are checked
-   thoroughly before it is published.
+1. Check the tags are existent in upstream repository. If they are,
+   GitHub workflow should have automatically created draft releases
+   for you. Please make sure the release notes are checked
+   thoroughly before they are published.
 
 #### Manual Process
 
 1. Run `make release-notes` to create the release notes . Copy the output and sort
    manually the items that need to be sorted.
-1. Create an annotated tag `git tag -a v0.x.y -m v0.x.y`. To use your GPG
-   signature when pushing the tag, use `git tag -s [...]` instead
-1. Push the tag to the GitHub repository `git push origin v0.x.y`
+1. Create annotated tags:
+
+   ```bash
+   git tag -a -s v0.x.y -m v0.x.y
+   git tag -a -s test/v0.x.y -m test/v0.x.y
+   ```
+
+   To use your GPG signature when pushing the tag, use `git tag -s [...]` instead
+1. Push the tags to the GitHub repository:
+
+   ```bash
+   git push origin v0.x.y
+   git push origin test/v0.x.y
+   ```
+
    NB: `origin` should be the name of the remote pointing to
    `github.com/metal3-io/cluster-api-provider-metal3`
 1. Run `make release` to build artifacts (the image is automatically built by CI)
