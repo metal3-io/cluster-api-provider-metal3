@@ -76,8 +76,8 @@ For version v0.x.y:
 1. Create annotated tags:
 
    ```bash
-   git push origin v0.x.y
-   git push origin test/v0.x.y
+   git tag -a -s v0.x.y -m v0.x.y
+   git tag -a -s test/v0.x.y -m test/v0.x.y
    ```
 
    To use your GPG signature when pushing the tag, use `git tag -s [...]` instead
