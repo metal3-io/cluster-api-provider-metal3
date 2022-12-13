@@ -45,7 +45,7 @@ Cluster API Provider Metal3 follows Cluster API release cadence and versioning w
    - Compatible API changes like field additions, deprecation notices, etc.
    - Breaking API changes for deprecated APIs, fields, or code.
    - Features, promotion or removal of feature gates.
-   - And more!
+   - And  more!
 
 - A (*patch*) release SHOULD only include backwards compatible set of bugfixes.
 
