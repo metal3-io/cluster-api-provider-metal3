@@ -454,12 +454,12 @@ delete-examples:
 ## Release
 ## --------------------------------------
 
-## latest git tag for the commit, e.g., v1.2.1
+## latest git tag for the commit, e.g., v1.3.0
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
 ifneq (,$(findstring -,$(RELEASE_TAG)))
     PRE_RELEASE=true
 endif
-# the previous release tag, e.g., v1.2.0, excluding pre-release tags
+# the previous release tag, e.g., v1.3.0, excluding pre-release tags
 PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := releasenotes
