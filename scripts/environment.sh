@@ -50,6 +50,7 @@ fi
 
 export FROM_K8S_VERSION="v1.25.2"
 export KUBERNETES_VERSION="v1.26.0"
+export PATCH_KUBERNETES_VERSION="v1.26.1"
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}

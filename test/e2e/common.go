@@ -14,6 +14,7 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -367,6 +368,21 @@ func ListNodes(ctx context.Context, c client.Client) {
 	logTable("Listing Nodes", rows)
 }
 
+// ListIPPools logs the names, namespace, cluster and age of all IPPools in the namespace.
+// Similar to kubectl get ippools.
+func ListIPPools(ctx context.Context, c client.Client, opts ...client.ListOption) {
+	IPPools := ipamv1.IPPoolList{}
+	Expect(c.List(ctx, &IPPools, opts...)).To(Succeed())
+
+	rows := make([][]string, len(IPPools.Items)+1)
+	// Add column names
+	rows[0] = []string{"Name:", "Namepace:"}
+	for i, ippool := range IPPools.Items {
+		rows[i+1] = []string{ippool.GetName(), ippool.GetNamespace()}
+	}
+	logTable("Listing IPPools", rows)
+}
+
 type WaitForNumInput struct {
 	Client    client.Client
 	Options   []client.ListOption
@@ -443,6 +459,81 @@ func GetMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 	}
 
 	return controlplane, workers
+}
+
+func GetIPPools(ctx context.Context, c client.Client, cluster, namespace string) ([]ipamv1.IPPool, []ipamv1.IPPool) {
+	var bmv4, provisioning []ipamv1.IPPool
+	allIPPools := &ipamv1.IPPoolList{}
+	Expect(c.List(ctx, allIPPools, client.InNamespace(namespace))).To(Succeed())
+
+	for _, ippool := range allIPPools.Items {
+		if strings.Contains(ippool.ObjectMeta.Name, "baremetalv4") {
+			bmv4 = append(bmv4, ippool)
+		} else {
+			provisioning = append(provisioning, ippool)
+		}
+	}
+
+	return bmv4, provisioning
+}
+
+// GetIPPoolIndexes finds status indexes in IPPool
+// and returns the indexes.
+func GetIPPoolIndexes(ctx context.Context, ippool ipamv1.IPPool, poolName string, c client.Client) (map[string]ipamv1.IPAddressStr, error) {
+	allocations := ippool.Status.Allocations
+	m3DataList, m3MachineList := infrav1.Metal3DataList{}, infrav1.Metal3MachineList{}
+
+	// var newAllocations map[string]ipamv1.IPAddressStr
+	var newAllocations map[string]ipamv1.IPAddressStr
+	for m3data_poolName, ipaddress := range allocations {
+		fmt.Println("datapoolName:", m3data_poolName, "=>", "ipaddress:", ipaddress)
+		m3dataName := strings.Split(m3data_poolName, "-"+poolName)[0]
+		m3dataObj := FilterMetal3DatasByName(m3DataList.Items, m3dataName)
+		m3mName, err := Metal3DataToMachineName(m3dataObj[0])
+		if err != nil {
+			return nil, nil
+		}
+		m3mObj := FilterMetal3MachinesByName(m3MachineList.Items, m3mName)
+		getBmhFromM3Machine := func(m3Machine infrav1.Metal3Machine) (result bmov1alpha1.BareMetalHost) {
+			Expect(c.Get(ctx, client.ObjectKey{Namespace: m3Machine.Namespace, Name: Metal3MachineToBmhName(m3Machine)}, &result)).To(Succeed())
+			return result
+		}
+		bmh := getBmhFromM3Machine(m3mObj[0])
+		newAllocations[bmh.Name] = ipaddress
+	}
+	return newAllocations, nil
+}
+
+// Metal3DataToMachineName finds the relevant owner reference in Metal3Data
+// and returns the name of corresponding Metal3Machine.
+func Metal3DataToMachineName(m3data infrav1.Metal3Data) (string, error) {
+	ownerReferences := m3data.GetOwnerReferences()
+	for _, reference := range ownerReferences {
+		if reference.Kind == "Metal3Machine" {
+			return reference.Name, nil
+		}
+	}
+	return "", fmt.Errorf("metal3Data missing a \"Metal3Machine\" kind owner reference")
+}
+
+// FilterMetal3DatasByName returns a filtered list of m3data object with specific name.
+func FilterMetal3DatasByName(m3datas []infrav1.Metal3Data, name string) (result []infrav1.Metal3Data) {
+	for _, m3data := range m3datas {
+		if m3data.ObjectMeta.Name == name {
+			result = append(result, m3data)
+		}
+	}
+	return
+}
+
+// FilterMetal3MachinesByName returns a filtered list of m3machine object with specific name.
+func FilterMetal3MachinesByName(m3ms []infrav1.Metal3Machine, name string) (result []infrav1.Metal3Machine) {
+	for _, m3m := range m3ms {
+		if m3m.ObjectMeta.Name == name {
+			result = append(result, m3m)
+		}
+	}
+	return
 }
 
 // Metal3MachineToMachineName finds the relevant owner reference in Metal3Machine
