@@ -121,10 +121,11 @@ variables:
   BMOPATH: "${M3PATH}/baremetal-operator"
   IRONIC_TLS_SETUP: "true"
   IRONIC_BASIC_AUTH: "true"
+  IRONIC_KEEPALIVED: "true"
+  IRONIC_USE_MARIADB: "false"
   RESTART_CONTAINER_CERTIFICATE_UPDATED: "true"
   CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-main}"
-  MARIADB_IMAGE_TAG: "${MARIADB_IMAGE_TAG:-main}"
   UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
 
   INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/clusterctl-{OS}-{ARCH}"
