@@ -7,19 +7,19 @@ require (
 	github.com/jinzhu/copier v0.3.5
 	github.com/metal3-io/baremetal-operator/apis v0.2.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/onsi/ginkgo/v2 v2.5.1
+	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.25.4
 	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v0.25.4
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
-	sigs.k8s.io/cluster-api v1.3.0
-	sigs.k8s.io/cluster-api/test v1.3.0
+	sigs.k8s.io/cluster-api v1.3.1
+	sigs.k8s.io/cluster-api/test v1.3.1
 	sigs.k8s.io/controller-runtime v0.13.1
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.1
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
 
@@ -130,4 +130,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.3.0
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.3.1
