@@ -8,7 +8,7 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.2.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v0.0.0-20221208094636-8892d31b812f
-	github.com/onsi/ginkgo/v2 v2.5.1
+	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
@@ -20,14 +20,14 @@ require (
 	k8s.io/component-base v0.25.0
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
-	sigs.k8s.io/cluster-api v1.3.0
+	sigs.k8s.io/cluster-api v1.3.1
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/yaml v1.3.0
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.1
 
 replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 
