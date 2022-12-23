@@ -150,3 +150,19 @@ spec:
           kubeletExtraArgs:
             node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
 ${WORKERS_KUBEADM_EXTRA_CONFIG}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3DataTemplate
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-template
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: Metal3DataTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers-template
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
