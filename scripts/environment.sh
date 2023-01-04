@@ -62,7 +62,6 @@ export PATH=$PATH:$HOME/.krew/bin
 # Upgrade test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
   export NUM_NODES=${NUM_NODES:-"5"}
-  export KUBERNETES_VERSION="v1.23.8"
 fi
 
 # Exported to the cluster templates
