@@ -40,7 +40,7 @@ var _ = Describe("Kubernetes version upgrade in target nodes [upgrade]", func() 
 
 	It("Should create a cluster and and run k8s_upgrade tests", func() {
 		By("Creating target cluster")
-		targetCluster = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
+		targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
 
 		By("Running Kubernetes Upgrade tests")
 		upgradeKubernetes(ctx, func() upgradeKubernetesInput {

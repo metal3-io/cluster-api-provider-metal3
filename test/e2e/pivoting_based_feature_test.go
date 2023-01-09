@@ -8,7 +8,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,6 +22,8 @@ var (
 	targetCluster            framework.ClusterProxy
 	controlPlaneMachineCount int64
 	workerMachineCount       int64
+	generalContainers        []string
+	ironicContainers         []string
 )
 
 var _ = Describe("Testing features in ephemeral or target cluster", func() {
@@ -37,7 +38,7 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 	})
 
 	It("Should get a management cluster then test cert rotation and node reuse", func() {
-		targetCluster = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
+		targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
 		managementCluster := bootstrapClusterProxy
 		// If not running ephemeral test, use the target cluster for management
 		if !ephemeralTest {
@@ -116,14 +117,14 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 
 })
 
-func createTargetCluster(k8sVersion string) (targetCluster framework.ClusterProxy) {
+func createTargetCluster(k8sVersion string) (framework.ClusterProxy, *clusterctl.ApplyClusterTemplateAndWaitResult) {
 	By("Creating a high available cluster")
 	imageURL, imageChecksum := EnsureImage(k8sVersion)
 	os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 	os.Setenv("IMAGE_RAW_URL", imageURL)
 	controlPlaneMachineCount = int64(numberOfControlplane)
 	workerMachineCount = int64(numberOfWorkers)
-	result := &clusterctl.ApplyClusterTemplateAndWaitResult{}
+	result := clusterctl.ApplyClusterTemplateAndWaitResult{}
 	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 		ClusterProxy: bootstrapClusterProxy,
 		ConfigCluster: clusterctl.ConfigClusterInput{
@@ -141,7 +142,8 @@ func createTargetCluster(k8sVersion string) (targetCluster framework.ClusterProx
 		WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
 		WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
 		WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-	}, result)
-	targetCluster = bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-	return targetCluster
+	}, &result)
+	targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+	return targetCluster, &result
 }
+
