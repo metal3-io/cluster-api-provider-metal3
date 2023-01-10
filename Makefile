@@ -186,8 +186,11 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 	rm $(E2E_CONF_FILE_ENVSUBST)
 
 ## --------------------------------------
-## Binaries
+## Build
 ## --------------------------------------
+
+.PHONY: build
+build: binaries build-api build-e2e ## Builds all CAPM3 modules
 
 .PHONY: binaries
 binaries: manager ## Builds and installs all binaries
@@ -195,6 +198,16 @@ binaries: manager ## Builds and installs all binaries
 .PHONY: manager
 manager: ## Build manager binary.
 	go build -o $(BIN_DIR)/manager .
+
+# Check that api package can be built
+.PHONY: build-api
+build-api:
+	cd $(APIS_DIR); go build ./...
+
+# Check that e2e package can be built
+.PHONY: build-e2e
+build-e2e:
+	cd $(TEST_DIR); go build ./...
 
 ## --------------------------------------
 ## Tooling Binaries

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,14 +60,14 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
-	ironicContainers = []string{
+	ironicContainers := []string{
 		"ironic",
 		"ironic-inspector",
 		"ironic-endpoint-keepalived",
 		"ironic-log-watch",
 		"dnsmasq",
 	}
-	generalContainers = []string{
+	generalContainers := []string{
 		"httpd-infra",
 		"registry",
 		"sushy-tools",
@@ -75,9 +76,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Fetch container logs")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	fetchContainerLogs(&generalContainers)
+	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
 	if ephemeralCluster == Kind {
-		fetchContainerLogs(&ironicContainers)
+		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
 	}
 
 	By("Remove Ironic containers from the source cluster")
@@ -465,4 +466,31 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("RE-PIVOTING TEST PASSED!")
+}
+
+func createDirIfNotExist(dirPath string) {
+	err := os.MkdirAll(dirPath, 0750)
+	if err != nil && os.IsNotExist(err) {
+		log.Fatal(err)
+	}
+}
+
+// fetchContainerLogs uses the `containerCommand` to get the logs of all `containerNames` and put them in the `folder`.
+func fetchContainerLogs(containerNames *[]string, folder string, containerCommand string) {
+	By("Create directories and storing container logs")
+	for _, name := range *containerNames {
+		logDir := filepath.Join(folder, containerCommand, name)
+		By(fmt.Sprintf("Create log directory for container %s at %s", name, logDir))
+		createDirIfNotExist(logDir)
+		By(fmt.Sprintf("Fetch logs for container %s", name))
+		cmd := exec.Command("sudo", containerCommand, "logs", name) // #nosec G204:gosec
+		out, err := cmd.Output()
+		if err != nil {
+			writeErr := os.WriteFile(filepath.Join(logDir, "stderr.log"), []byte(err.Error()), 0444)
+			Expect(writeErr).ToNot(HaveOccurred())
+			log.Fatal(err)
+		}
+		writeErr := os.WriteFile(filepath.Join(logDir, "stdout.log"), out, 0444)
+		Expect(writeErr).ToNot(HaveOccurred())
+	}
 }
