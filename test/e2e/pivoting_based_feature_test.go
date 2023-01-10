@@ -146,4 +146,3 @@ func createTargetCluster(k8sVersion string) (framework.ClusterProxy, *clusterctl
 	targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 	return targetCluster, &result
 }
-

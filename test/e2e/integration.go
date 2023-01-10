@@ -37,4 +37,3 @@ func fetchContainerLogs(containerNames *[]string) {
 		Expect(writeErr).ToNot(HaveOccurred())
 	}
 }
-
