@@ -43,6 +43,6 @@ else
     --volume "${PWD}:/capm3:ro,z"  \
     --entrypoint sh \
     --workdir /capm3 \
-    registry.hub.docker.com/library/golang:1.19 \
+    docker.io/golang:1.19 \
     /capm3/hack/gomod.sh "${@}"
 fi;
