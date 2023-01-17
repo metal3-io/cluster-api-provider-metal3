@@ -1,6 +1,7 @@
 # -*- mode: Python -*-
 
 envsubst_cmd = "./hack/tools/bin/envsubst"
+sec_ctx_cmd = "./hack/tools/remove_sec_ctx.py"
 
 update_settings(k8s_upsert_timeout_secs=60)  # on first tilt up, often can take longer than 30 seconds
 
@@ -60,7 +61,7 @@ def load_provider_tiltfiles(provider_repos):
 def deploy_capi():
     version = settings.get("capi_version")
     capi_uri = "https://github.com/kubernetes-sigs/cluster-api/releases/download/{}/cluster-api-components.yaml".format(version)
-    cmd = "curl -sSL {} | {} | kubectl apply -f -".format(capi_uri, envsubst_cmd)
+    cmd = "curl -sSL {} | {} | {} | kubectl apply -f -".format(capi_uri, envsubst_cmd, sec_ctx_cmd)
     local(cmd, quiet=True)
     if settings.get("extra_args"):
         extra_args = settings.get("extra_args")
@@ -203,7 +204,6 @@ def enable_provider(name):
     )
 
     if p.get("kustomize_config"):
-
         # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
         # are not available and their placeholders will be replaced with the empty string when we call kustomize +
         # envsubst below.
@@ -212,9 +212,10 @@ def enable_provider(name):
 
         # Apply the kustomized yaml for this provider
         if name == "metal3-bmo":
-          yaml = str(kustomizesub(context + "/config"))
+            yaml = str(kustomizesub(context + "/config"))
         else:
-          yaml = str(kustomizesub(context + "/config/default"))
+            yaml = str(kustomizesub(context + "/config/default"))
+        yaml = strip_sec_ctx(yaml)
         k8s_yaml(blob(yaml))
         get_controller_name(name)
     else:
@@ -343,6 +344,22 @@ def envsubst(yaml):
 def kustomizesub(folder):
     yaml = local('bash hack/kustomize-sub.sh {}'.format(folder), quiet=True)
     return yaml
+
+def strip_sec_ctx(yaml):
+    # strip security contexts so tilt's live update keeps working
+    # even if there is strict securitycontexts in place for controllers
+    output = []
+    yamls = decode_yaml_stream(yaml)
+    for data in yamls:
+        if data.get("kind") == "Deployment":
+            spec = data["spec"]["template"]["spec"]
+            spec["securityContext"] = {}
+            for container in spec.get("containers", []):
+                container["securityContext"] = {}
+        output.append(str(encode_yaml(data)))
+
+    return "---\n".join(output)
+
 
 ##############################
 # Actual work happens here
