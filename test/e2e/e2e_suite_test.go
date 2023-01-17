@@ -290,6 +290,6 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 
 	yamlOut, err := printYaml(yamlDocuments)
 	Expect(err).To(BeNil())
-	err = os.WriteFile(calicoYaml, yamlOut, 0664)
+	err = os.WriteFile(calicoYaml, yamlOut, 0600)
 	Expect(err).To(BeNil(), "Cannot print out the update to the file")
 }

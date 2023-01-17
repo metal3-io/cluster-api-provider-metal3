@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -59,196 +60,196 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
-    ironicContainers = []string{
-        "ironic",
-        "ironic-inspector",
-        "ironic-endpoint-keepalived",
-        "ironic-log-watch",
-        "dnsmasq",
-    }
-    generalContainers = []string{
-        "httpd-infra",
-        "registry",
-        "sushy-tools",
-        "vbmc",
-    }
+	ironicContainers := []string{
+		"ironic",
+		"ironic-inspector",
+		"ironic-endpoint-keepalived",
+		"ironic-log-watch",
+		"dnsmasq",
+	}
+	generalContainers := []string{
+		"httpd-infra",
+		"registry",
+		"sushy-tools",
+		"vbmc",
+	}
 
-    By("Fetch container logs")
-    ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-    fetchContainerLogs(&generalContainers)
-    if ephemeralCluster == Kind {
-        fetchContainerLogs(&ironicContainers)
-    }
+	By("Fetch container logs")
+	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
+	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
+	if ephemeralCluster == Kind {
+		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
+	}
 
-    By("Remove Ironic containers from the source cluster")
-    isIronicDeployment := true
-    if ephemeralCluster == Kind {
-        isIronicDeployment = false
-    }
-    removeIronic(ctx, func() RemoveIronicInput {
-        return RemoveIronicInput{
-            ManagementCluster: input.BootstrapClusterProxy,
-            IsDeployment:      isIronicDeployment,
-            Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
-            NamePrefix:        input.E2EConfig.GetVariable(NamePrefix),
-        }
-    })
+	By("Remove Ironic containers from the source cluster")
+	isIronicDeployment := true
+	if ephemeralCluster == Kind {
+		isIronicDeployment = false
+	}
+	removeIronic(ctx, func() RemoveIronicInput {
+		return RemoveIronicInput{
+			ManagementCluster: input.BootstrapClusterProxy,
+			IsDeployment:      isIronicDeployment,
+			Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
+			NamePrefix:        input.E2EConfig.GetVariable(NamePrefix),
+		}
+	})
 
-    By("Create Ironic namespace")
-    targetClusterClientSet := input.TargetCluster.GetClientSet()
-    ironicNamespace := &corev1.Namespace{
-        ObjectMeta: metav1.ObjectMeta{
-            Name: input.E2EConfig.GetVariable(ironicNamespace),
-        },
-    }
-    _, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
-    Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
+	By("Create Ironic namespace")
+	targetClusterClientSet := input.TargetCluster.GetClientSet()
+	ironicNamespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: input.E2EConfig.GetVariable(ironicNamespace),
+		},
+	}
+	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespace, metav1.CreateOptions{})
+	Expect(err).To(BeNil(), "Unable to create the Ironic namespace")
 
-    By("Initialize Provider component in target cluster")
-    clusterctl.Init(ctx, clusterctl.InitInput{
-        KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
-        ClusterctlConfigPath:    input.E2EConfig.GetVariable("CONFIG_FILE_PATH"),
-        CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
-        BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
-        ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
-        InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
-        LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting"),
-    })
+	By("Initialize Provider component in target cluster")
+	clusterctl.Init(ctx, clusterctl.InitInput{
+		KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath:    input.E2EConfig.GetVariable("CONFIG_FILE_PATH"),
+		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
+		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
+		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
+		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
+		LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting"),
+	})
 
-    LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting", "clusterctl-init.log"))
+	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting", "clusterctl-init.log"))
 
-    By("Add labels to BMO CRDs")
-    labelBMOCRDs(nil)
-    By("Add Labels to hardwareData CRDs")
-    labelHDCRDs(nil)
+	By("Add labels to BMO CRDs")
+	labelBMOCRDs(nil)
+	By("Add Labels to hardwareData CRDs")
+	labelHDCRDs(nil)
 
-    By("Install BMO")
-    installIronicBMO(func() installIronicBMOInput {
-        return installIronicBMOInput{
-            ManagementCluster:          input.TargetCluster,
-            BMOPath:                    input.E2EConfig.GetVariable(bmoPath),
-            deployIronic:               false,
-            deployBMO:                  true,
-            deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
-            DeployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
-            NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
-            RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
-        }
-    })
+	By("Install BMO")
+	installIronicBMO(func() installIronicBMOInput {
+		return installIronicBMOInput{
+			ManagementCluster:          input.TargetCluster,
+			BMOPath:                    input.E2EConfig.GetVariable(bmoPath),
+			deployIronic:               false,
+			deployBMO:                  true,
+			deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
+			DeployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+			NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
+			RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
+		}
+	})
 
-    By("Install Ironic in the target cluster")
-    installIronicBMO(func() installIronicBMOInput {
-        return installIronicBMOInput{
-            ManagementCluster:          input.TargetCluster,
-            BMOPath:                    input.E2EConfig.GetVariable(bmoPath),
-            deployIronic:               true,
-            deployBMO:                  false,
-            deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
-            DeployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
-            NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
-            RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
-        }
-    })
+	By("Install Ironic in the target cluster")
+	installIronicBMO(func() installIronicBMOInput {
+		return installIronicBMOInput{
+			ManagementCluster:          input.TargetCluster,
+			BMOPath:                    input.E2EConfig.GetVariable(bmoPath),
+			deployIronic:               true,
+			deployBMO:                  false,
+			deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
+			DeployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+			NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
+			RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
+		}
+	})
 
-    By("Add labels to BMO CRDs in the target cluster")
-    labelBMOCRDs(input.TargetCluster)
-    By("Add Labels to hardwareData CRDs in the target cluster")
-    labelHDCRDs(input.TargetCluster)
-    By("Ensure API servers are stable before doing move")
-    // Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.
-    // More specifically, we were observing the test failing to get objects from the API server during move, so we
-    // are now testing the API servers are stable before starting move.
-    Consistently(func() error {
-        kubeSystem := &corev1.Namespace{}
-        return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-    }, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
-    Consistently(func() error {
-        kubeSystem := &corev1.Namespace{}
-        return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-    }, "5s", "100ms").Should(BeNil(), "Failed to assert target API server stability")
+	By("Add labels to BMO CRDs in the target cluster")
+	labelBMOCRDs(input.TargetCluster)
+	By("Add Labels to hardwareData CRDs in the target cluster")
+	labelHDCRDs(input.TargetCluster)
+	By("Ensure API servers are stable before doing move")
+	// Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.
+	// More specifically, we were observing the test failing to get objects from the API server during move, so we
+	// are now testing the API servers are stable before starting move.
+	Consistently(func() error {
+		kubeSystem := &corev1.Namespace{}
+		return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+	}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
+	Consistently(func() error {
+		kubeSystem := &corev1.Namespace{}
+		return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
+	}, "5s", "100ms").Should(BeNil(), "Failed to assert target API server stability")
 
-    By("Moving the cluster to self hosted")
-    clusterctl.Move(ctx, clusterctl.MoveInput{
-        LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
-        ClusterctlConfigPath: input.ClusterctlConfigPath,
-        FromKubeconfigPath:   input.BootstrapClusterProxy.GetKubeconfigPath(),
-        ToKubeconfigPath:     input.TargetCluster.GetKubeconfigPath(),
-        Namespace:            input.Namespace,
-    })
-    LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap", "logs", input.Namespace, "clusterctl-move.log"))
+	By("Moving the cluster to self hosted")
+	clusterctl.Move(ctx, clusterctl.MoveInput{
+		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+		FromKubeconfigPath:   input.BootstrapClusterProxy.GetKubeconfigPath(),
+		ToKubeconfigPath:     input.TargetCluster.GetKubeconfigPath(),
+		Namespace:            input.Namespace,
+	})
+	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap", "logs", input.Namespace, "clusterctl-move.log"))
 
-    pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
-        Getter:    input.TargetCluster.GetClient(),
-        Namespace: input.Namespace,
-        Name:      input.ClusterName,
-    }, input.E2EConfig.GetIntervals(input.SpecName, "wait-cluster")...)
+	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
+		Getter:    input.TargetCluster.GetClient(),
+		Namespace: input.Namespace,
+		Name:      input.ClusterName,
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-cluster")...)
 
-    controlPlane := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
-        Lister:      input.TargetCluster.GetClient(),
-        ClusterName: pivotingCluster.Name,
-        Namespace:   pivotingCluster.Namespace,
-    })
-    Expect(controlPlane).ToNot(BeNil())
+	controlPlane := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+		Lister:      input.TargetCluster.GetClient(),
+		ClusterName: pivotingCluster.Name,
+		Namespace:   pivotingCluster.Namespace,
+	})
+	Expect(controlPlane).ToNot(BeNil())
 
-    By("Check that BMHs are in provisioned state")
-    WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
-        Client:    input.TargetCluster.GetClient(),
-        Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-        Replicas:  numberOfAllBmh,
-        Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-object-provisioned"),
-    })
+	By("Check that BMHs are in provisioned state")
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
+		Client:    input.TargetCluster.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-object-provisioned"),
+	})
 
-    By("Check if metal3machines become ready.")
-    WaitForNumMetal3MachinesReady(ctx, WaitForNumInput{
-        Client:    input.TargetCluster.GetClient(),
-        Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-        Replicas:  numberOfAllBmh,
-        Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-object-provisioned"),
-    })
+	By("Check if metal3machines become ready.")
+	WaitForNumMetal3MachinesReady(ctx, WaitForNumInput{
+		Client:    input.TargetCluster.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-object-provisioned"),
+	})
 
-    By("Check that all machines become running.")
-    WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
-        Client:    input.TargetCluster.GetClient(),
-        Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-        Replicas:  numberOfAllBmh,
-        Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
-    })
+	By("Check that all machines become running.")
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
+		Client:    input.TargetCluster.GetClient(),
+		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
+		Replicas:  numberOfAllBmh,
+		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
+	})
 
-    By("PIVOTING TESTS PASSED!")
+	By("PIVOTING TESTS PASSED!")
 }
 
 type installIronicBMOInput struct {
-    ManagementCluster          framework.ClusterProxy
-    BMOPath                    string
-    deployIronic               bool
-    deployBMO                  bool
-    deployIronicTLSSetup       bool
-    DeployIronicBasicAuth      bool
-    NamePrefix                 string
-    RestartContainerCertUpdate bool
+	ManagementCluster          framework.ClusterProxy
+	BMOPath                    string
+	deployIronic               bool
+	deployBMO                  bool
+	deployIronicTLSSetup       bool
+	DeployIronicBasicAuth      bool
+	NamePrefix                 string
+	RestartContainerCertUpdate bool
 }
 
 func installIronicBMO(inputGetter func() installIronicBMOInput) {
-    input := inputGetter()
+	input := inputGetter()
 
-    ironicHost := os.Getenv("CLUSTER_PROVISIONING_IP")
-    path := fmt.Sprintf("%s/tools/", input.BMOPath)
-    args := []string{
-        strconv.FormatBool(input.deployBMO),
-        strconv.FormatBool(input.deployIronic),
-        strconv.FormatBool(input.DeployIronicBasicAuth),
-        strconv.FormatBool(input.deployIronicTLSSetup),
-        "true",
-    }
-    env := []string{
-        fmt.Sprintf("IRONIC_HOST=%s", ironicHost),
-        fmt.Sprintf("IRONIC_HOST_IP=%s", ironicHost),
-        fmt.Sprintf("KUBECTL_ARGS=--kubeconfig=%s", input.ManagementCluster.GetKubeconfigPath()),
-        fmt.Sprintf("NAMEPREFIX=%s", input.NamePrefix),
-        fmt.Sprintf("RESTART_CONTAINER_CERTIFICATE_UPDATED=%s", strconv.FormatBool(input.RestartContainerCertUpdate)),
-        "USER=ubuntu",
-    }
-    cmd := exec.Command("./deploy.sh", args...) // #nosec G204:gosec
+	ironicHost := os.Getenv("CLUSTER_PROVISIONING_IP")
+	path := fmt.Sprintf("%s/tools/", input.BMOPath)
+	args := []string{
+		strconv.FormatBool(input.deployBMO),
+		strconv.FormatBool(input.deployIronic),
+		strconv.FormatBool(input.DeployIronicBasicAuth),
+		strconv.FormatBool(input.deployIronicTLSSetup),
+		"true",
+	}
+	env := []string{
+		fmt.Sprintf("IRONIC_HOST=%s", ironicHost),
+		fmt.Sprintf("IRONIC_HOST_IP=%s", ironicHost),
+		fmt.Sprintf("KUBECTL_ARGS=--kubeconfig=%s", input.ManagementCluster.GetKubeconfigPath()),
+		fmt.Sprintf("NAMEPREFIX=%s", input.NamePrefix),
+		fmt.Sprintf("RESTART_CONTAINER_CERTIFICATE_UPDATED=%s", strconv.FormatBool(input.RestartContainerCertUpdate)),
+		"USER=ubuntu",
+	}
+	cmd := exec.Command("./deploy.sh", args...) // #nosec G204:gosec
 	cmd.Dir = path
 	cmd.Env = append(env, os.Environ()...)
 
@@ -465,4 +466,31 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("RE-PIVOTING TEST PASSED!")
+}
+
+func createDirIfNotExist(dirPath string) {
+	err := os.MkdirAll(dirPath, 0750)
+	if err != nil && os.IsNotExist(err) {
+		log.Fatal(err)
+	}
+}
+
+// fetchContainerLogs uses the `containerCommand` to get the logs of all `containerNames` and put them in the `folder`.
+func fetchContainerLogs(containerNames *[]string, folder string, containerCommand string) {
+	By("Create directories and storing container logs")
+	for _, name := range *containerNames {
+		logDir := filepath.Join(folder, containerCommand, name)
+		By(fmt.Sprintf("Create log directory for container %s at %s", name, logDir))
+		createDirIfNotExist(logDir)
+		By(fmt.Sprintf("Fetch logs for container %s", name))
+		cmd := exec.Command("sudo", containerCommand, "logs", name) // #nosec G204:gosec
+		out, err := cmd.Output()
+		if err != nil {
+			writeErr := os.WriteFile(filepath.Join(logDir, "stderr.log"), []byte(err.Error()), 0444)
+			Expect(writeErr).ToNot(HaveOccurred())
+			log.Fatal(err)
+		}
+		writeErr := os.WriteFile(filepath.Join(logDir, "stdout.log"), out, 0444)
+		Expect(writeErr).ToNot(HaveOccurred())
+	}
 }

@@ -75,7 +75,6 @@ type upgradeKubernetesInput struct {
 }
 
 func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetesInput) {
-
 	Logf("Starting Kubernetes upgrade tests")
 	input := inputGetter()
 	clusterClient := input.BootstrapClusterProxy.GetClient()

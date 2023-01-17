@@ -59,3 +59,6 @@ tilt-settings.json
 tilt_config.json
 
 github/
+
+go.work
+go.work.sum

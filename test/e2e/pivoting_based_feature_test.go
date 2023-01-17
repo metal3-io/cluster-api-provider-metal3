@@ -22,8 +22,6 @@ var (
 	targetCluster            framework.ClusterProxy
 	controlPlaneMachineCount int64
 	workerMachineCount       int64
-	generalContainers        []string
-	ironicContainers         []string
 )
 
 var _ = Describe("Testing features in ephemeral or target cluster", func() {
@@ -146,4 +144,3 @@ func createTargetCluster(k8sVersion string) (framework.ClusterProxy, *clusterctl
 	targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
 	return targetCluster, &result
 }
-

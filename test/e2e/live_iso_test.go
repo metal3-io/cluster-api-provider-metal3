@@ -91,6 +91,7 @@ func liveIsoTest() {
 		Expect(err).NotTo(HaveOccurred(), "Error getting all BMHs")
 
 		for _, bmh := range bmhs {
+			bmh := bmh // for gosec G601
 			Logf("Checking BMH %s", bmh.Name)
 			if bmh.Status.Provisioning.State == bmov1alpha1.StateProvisioned {
 				Logf("live ISO image booted BMH found %s", bmh.Name)

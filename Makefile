@@ -186,8 +186,11 @@ e2e-tests: e2e-substitutions cluster-templates ## This target should be called f
 	rm $(E2E_CONF_FILE_ENVSUBST)
 
 ## --------------------------------------
-## Binaries
+## Build
 ## --------------------------------------
+
+.PHONY: build
+build: binaries build-api build-e2e ## Builds all CAPM3 modules
 
 .PHONY: binaries
 binaries: manager ## Builds and installs all binaries
@@ -195,6 +198,16 @@ binaries: manager ## Builds and installs all binaries
 .PHONY: manager
 manager: ## Build manager binary.
 	go build -o $(BIN_DIR)/manager .
+
+# Check that api package can be built
+.PHONY: build-api
+build-api:
+	cd $(APIS_DIR); go build ./...
+
+# Check that e2e package can be built
+.PHONY: build-e2e
+build-e2e:
+	cd $(TEST_DIR); go build ./...
 
 ## --------------------------------------
 ## Tooling Binaries
@@ -242,20 +255,24 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v --timeout=10m
 	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --timeout=10m
+	cd $(TEST_DIR); ../$(GOLANGCI_LINT) run -v --timeout=10m
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(TEST_DIR); ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run go fmt against code
 fmt:
 	go fmt ./controllers/... ./baremetal/... .
 	cd $(APIS_DIR); go fmt  ./...
+	cd $(TEST_DIR); go fmt  ./...
 
 # Run go vet against code
 vet:
 	go vet ./controllers/... ./baremetal/... .
 	cd $(APIS_DIR); go vet  ./...
+	cd $(TEST_DIR); go fmt  ./...
 
 # Run manifest validation
 .PHONY: manifest-lint
