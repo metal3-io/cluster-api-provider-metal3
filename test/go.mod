@@ -14,12 +14,14 @@ require (
 	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v0.25.4
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
-	sigs.k8s.io/cluster-api v1.3.1
-	sigs.k8s.io/cluster-api/test v1.3.1
+	sigs.k8s.io/cluster-api v1.3.2
+	sigs.k8s.io/cluster-api/test v1.3.2
 	sigs.k8s.io/controller-runtime v0.13.1
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.2
+
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.3.2
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
 
@@ -129,5 +131,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
-
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.3.1
