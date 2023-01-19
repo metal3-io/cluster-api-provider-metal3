@@ -18,39 +18,50 @@ spec:
         controller-tools.k8s.io: "1.0"
     spec:
       containers:
-      - command:
-        - /manager
-        args:
-          - "--webhook-port=9443"
-          - "--enableBMHNameBasedPreallocation=${enableBMHNameBasedPreallocation:=false}"
-        image: controller:latest
-        imagePullPolicy: IfNotPresent
-        name: manager
-        env:
-          - name: POD_NAMESPACE
-            valueFrom:
-              fieldRef:
-                fieldPath: metadata.namespace
-        envFrom:
-          - configMapRef:
-              name: capm3fasttrack-configmap
-        ports:
-        - containerPort: 9440
-          name: healthz
-          protocol: TCP
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: healthz
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: healthz
+        - command:
+            - /manager
+          args:
+            - "--webhook-port=9443"
+            - "--enableBMHNameBasedPreallocation=${enableBMHNameBasedPreallocation:=false}"
+          image: controller:latest
+          imagePullPolicy: IfNotPresent
+          name: manager
+          env:
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          envFrom:
+            - configMapRef:
+                name: capm3fasttrack-configmap
+          ports:
+            - containerPort: 9440
+              name: healthz
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: healthz
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            runAsUser: 65532
+            runAsGroup: 65532
       terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: manager
       tolerations:
         - effect: NoSchedule
           key: node-role.kubernetes.io/master
         - effect: NoSchedule
           key: node-role.kubernetes.io/control-plane
-
