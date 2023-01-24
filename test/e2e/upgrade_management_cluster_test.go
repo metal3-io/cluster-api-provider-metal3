@@ -70,6 +70,14 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [upgrade]", fu
 			}
 		})
 	}
+
+	AfterEach(func() {
+		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListNodes(ctx, targetCluster.GetClient())
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+	})
 })
 
 // preWaitForCluster is a hook function that should be called from ClusterctlUpgradeSpec before waiting for the cluster to spin up
