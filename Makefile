@@ -55,6 +55,7 @@ KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
+GINKGO := "$(ROOT_DIR)/$(TOOLS_BIN_DIR)/ginkgo"
 
 ENVTEST_K8S_VERSION := 1.25.x
 
@@ -162,27 +163,30 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## --------------------------------------
 GINKGO_FOCUS  ?=
 GINKGO_SKIP ?=
+GINKGO_TIMEOUT ?= 6h
 
 ifneq ($(strip $(GINKGO_SKIP)),)
-_SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-ginkgo.skip="$(arg)")
+_SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-skip="$(arg)")
 endif
+
 .PHONY: e2e-tests
 e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
 export CONTAINER_RUNTIME
-e2e-tests: e2e-substitutions cluster-templates ## This target should be called from scripts/ci-e2e.sh
+e2e-tests: $(GINKGO) e2e-substitutions cluster-templates ## This target should be called from scripts/ci-e2e.sh
 	for image in $(E2E_CONTAINERS); do \
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
-	cd test; \
-	time go test -v -timeout 24h --tags=e2e ./e2e/... -args \
-		--ginkgo.timeout=6h --ginkgo.v --ginkgo.trace --ginkgo.show-node-events --ginkgo.no-color=$(GINKGO_NOCOLOR) \
-		--ginkgo.junit-report="junit.e2e_suite.1.xml" \
-		--ginkgo.focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) \
+
+	$(GINKGO) --timeout=$(GINKGO_TIMEOUT) -v --trace --tags=e2e  \
+		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
+		--junit-report="junit.e2e_suite.1.xml" \
+		--focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
 		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
+
 	rm $(E2E_CONF_FILE_ENVSUBST)
 
 ## --------------------------------------
@@ -217,23 +221,27 @@ $(CLUSTERCTL): go.mod ## Build clusterctl binary.
 	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
 
 $(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); ./install_kubebuilder.sh
+	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
 $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go get sigs.k8s.io/controller-runtime/tools/setup-envtest; \
+	cd $(TOOLS_DIR) && go get sigs.k8s.io/controller-runtime/tools/setup-envtest; \
 	go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
+
+$(GINKGO): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go get github.com/onsi/ginkgo/v2/ginkgo@v2.6.0
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/v2/ginkgo
 
 .PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
