@@ -145,4 +145,9 @@ Upgrade tests:
 
 - **/test-upgrade-e2e-main** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
 
+Integration tests:
+
+- **/test-ubuntu-integration-e2e-main** runs e2e integration tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-integration-e2e-main** runs e2e integration tests with CAPM3 API version v1beta1 and branch main on CentOS
+
 More info about e2e test can be found [here](docs/e2e-test.md)
