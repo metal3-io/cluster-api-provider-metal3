@@ -266,4 +266,24 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 		}
 	})
 	reInstallIronic()
+
+	//#nosec G204 -- We need to pass in the file name here.
+	cmd := exec.Command("bash", "-c", "kubectl apply -f bmhosts_crs.yaml  -n metal3")
+	cmd.Dir = workDir
+	output, err := cmd.CombinedOutput()
+	Logf("Applying bmh to meta3 namespace : \n %v", string(output))
+	Expect(err).To(BeNil())
+
+	// Clean env variables set for management upgrade, defaults are set in e2e config file
+	// Capi/capm3 versions
+	os.Unsetenv("CAPI_VERSION")
+	os.Unsetenv("CAPM3_VERSION")
+	// The provider id format
+	os.Unsetenv("PROVIDER_ID_FORMAT")
+	// IPs
+	os.Unsetenv("CLUSTER_APIENDPOINT_HOST")
+	os.Unsetenv("BAREMETALV4_POOL_RANGE_START")
+	os.Unsetenv("BAREMETALV4_POOL_RANGE_END")
+	os.Unsetenv("PROVISIONING_POOL_RANGE_START")
+	os.Unsetenv("PROVISIONING_POOL_RANGE_END")
 }
