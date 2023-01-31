@@ -31,6 +31,7 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	input := inputGetter()
 	clientSet := input.ManagementCluster.GetClientSet()
 	clusterClient := input.ManagementCluster.GetClient()
+	mariadbEnabled := input.E2EConfig.GetVariable(ironicMariadb) == "true"
 	By("Check if Ironic pod is running")
 	ironicNamespace := input.E2EConfig.GetVariable("NAMEPREFIX") + "-system"
 	ironicDeploymentName := input.E2EConfig.GetVariable("NAMEPREFIX") + "-ironic"
@@ -52,7 +53,9 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	By("Get the current number of time containers were restarted")
 	containerNumRestart := make(map[string]int32)
 	containerNumRestart["ironic-httpd"] = 0
-	containerNumRestart["mariadb"] = 0
+	if mariadbEnabled {
+		containerNumRestart["mariadb"] = 0
+	}
 	Expect(err).To(BeNil())
 	ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
 	Expect(err).To(BeNil())
@@ -66,7 +69,9 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	secretList := []string{
 		"ironic-cert",
 		"ironic-inspector-cert",
-		"mariadb-cert",
+	}
+	if mariadbEnabled {
+		secretList = append(secretList, "mariadb-cert")
 	}
 	for _, secretName := range secretList {
 		err := clientSet.CoreV1().Secrets(ironicNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
