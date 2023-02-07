@@ -62,6 +62,12 @@ var _ = Describe("Testing nodes remediation [remediation]", func() {
 	})
 
 	AfterEach(func() {
+		// Abort the test in case of failure and skipCleanup is true during keep VM trigger
+		if CurrentSpecReport().Failed() {
+			if skipCleanup {
+				AbortSuite("e2e test aborted and skip cleaning the VM", 4)
+			}
+		}
 		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))

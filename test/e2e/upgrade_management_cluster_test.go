@@ -232,6 +232,12 @@ func preUpgrade(clusterProxy framework.ClusterProxy) {
 // preCleanupManagementCluster hook should be called from ClusterctlUpgradeSpec before cleaning the target management cluster
 // it moves back Ironic to the bootstrap cluster.
 func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
+	// Abort the test in case of failure and skipCleanup is true during keep VM trigger
+	if CurrentSpecReport().Failed() {
+		if skipCleanup {
+			AbortSuite("e2e test aborted and skip cleaning the VM", 4)
+		}
+	}
 	// Reinstall ironic
 	reInstallIronic := func() {
 		By("Reinstate Ironic containers and BMH")
