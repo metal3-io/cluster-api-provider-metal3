@@ -116,32 +116,39 @@ The architecture with the components involved is documented [here](docs/architec
 
 To trigger e2e test on a PR, use the following phrases:
 
+### integration tests
+
+- **/test-ubuntu-integration-e2e-main** runs integration e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-integration-e2e-main** runs integration e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
+
+### Feature tests
+
 On main branch:
 
-- **/test-ubuntu-e2e-main** runs e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test-centos-e2e-main** runs e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
+- **/test-ubuntu-e2e-main** runs feature e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-e2e-main** runs feature e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
 
 Or use parallel for faster tests. Note that these tests run in multiple VMs by creating an independent VM for each test spec:
 
-- **/test-ubuntu-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test-centos-e2e-parallel-main** runs e2e parallel tests with CAPM3 API version v1beta1 and branch main on CentOS
+- **/test-ubuntu-e2e-parallel-main** runs feature e2e parallel tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-e2e-parallel-main** runs feature e2e parallel tests with CAPM3 API version v1beta1 and branch main on CentOS
 
 Release-1.3 branch:
 
-- **/test-ubuntu-e2e-release-1-3** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on Ubuntu
-- **/test-centos-e2e-release-1-3** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on CentOS
+- **/test-ubuntu-e2e-release-1-3** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on Ubuntu
+- **/test-centos-e2e-release-1-3** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on CentOS
 
 Release-1.2 branch:
 
-- **/test-ubuntu-e2e-release-1-2** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
-- **/test-centos-e2e-release-1-2** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
+- **/test-ubuntu-e2e-release-1-2** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
+- **/test-centos-e2e-release-1-2** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
 
 Release-1.1 branch:
 
 - **/test-ubuntu-e2e-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on Ubuntu
 - **/test-centos-e2e-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on CentOS
 
-Upgrade tests:
+### Upgrade tests
 
 - **/test-upgrade-e2e-main** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
 
