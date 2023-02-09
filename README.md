@@ -19,7 +19,7 @@ cluster on top of bare metal infrastructure using Metal3.
 
 | CAPM3 version | Cluster API version | CAPM3 Release | CAPI Release |
 |---------------|---------------------|---------------|--------------|
-| v1alpha5      | v1alpha4            | v0.5.X        | v0.4.X       | 
+| v1alpha5      | v1alpha4            | v0.5.X        | v0.4.X       |
 | v1beta1       | v1beta1             | v1.1.X        | v1.1.X       |
 | v1beta1       | v1beta1             | v1.2.X        | v1.2.X       |
 | v1beta1       | v1beta1             | v1.3.X        | v1.3.X       |
@@ -151,5 +151,21 @@ Release-1.1 branch:
 ### Upgrade tests
 
 - **/test-upgrade-e2e-main** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
+
+### Keep VM
+
+After the e2e test is completed, Jenkins executes another script to clean up the environment first and then deletes the VM. However, sometimes it may be desirable to keep the VM for debugging purposes. To avoid clean up
+and deletion operations, there are separate triggers phrases as below:
+
+- **/keep-test-ubuntu-e2e-main** run keep e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/keep-test-centos-e2e-main** run keep e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
+- **/keep-test-ubuntu-e2e-release-1-3** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on Ubuntu
+- **/keep-test-centos-e2e-release-1-3** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on CentOS
+- **/keep-test-ubuntu-e2e-release-1-2** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
+- **/keep-test-centos-e2e-release-1-2** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
+- **/keep-test-ubuntu-e2e-release-1-1** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on Ubuntu
+- **/keep-test-centos-e2e-release-1-1** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on CentOS
+
+Note: Test VM created with these phrases will not be kept forever but deleted after 24 hours.
 
 More info about e2e test can be found [here](docs/e2e-test.md)
