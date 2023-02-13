@@ -176,14 +176,17 @@ func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 	tc reconcileDeleteTestCase,
 ) *baremetal_mocks.MockMachineManagerInterface {
 	m := baremetal_mocks.NewMockMachineManagerInterface(ctrl)
+	m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
 	if tc.DeleteFails {
+		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
 		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
 		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().SetError(gomock.Any(), gomock.Any())
 		return m
 	} else if tc.DeleteRequeue {
+		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
 		m.EXPECT().Delete(context.TODO()).Return(&baremetal.RequeueAfterError{})
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
 		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
