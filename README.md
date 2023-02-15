@@ -165,6 +165,7 @@ and deletion operations, there are separate triggers phrases as below:
 - **/keep-test-centos-e2e-release-1-2** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
 - **/keep-test-ubuntu-e2e-release-1-1** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on Ubuntu
 - **/keep-test-centos-e2e-release-1-1** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on CentOS
+- **/keep-test-upgrade-e2e-main** runs keep e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
 
 Note: Test VM created with these phrases will not be kept forever but deleted after 24 hours.
 
