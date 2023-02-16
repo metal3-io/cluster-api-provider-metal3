@@ -7,8 +7,8 @@ Please do:
 
 In this repository security reports are handled according to the
 Metal3-io project's security policy. For more information about the security
-policy consult the User-Guide [here](https://metal3io.netlify.app/security_policy.html).
+policy consult the User-Guide [here](https://book.metal3.io/security_policy.html).
 
 Security vulnerability fixes can be ported to the currently supported release branches,
-more about the supported releases can be found [here](https://metal3io.netlify.app/version_support.html).
+more about the supported releases can be found [here](https://book.metal3.io/version_support.html).
 
