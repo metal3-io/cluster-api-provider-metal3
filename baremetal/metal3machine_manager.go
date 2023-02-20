@@ -93,7 +93,7 @@ type MachineManagerInterface interface {
 	Update(context.Context) error
 	HasAnnotation() bool
 	GetProviderIDAndBMHID() (string, *string)
-	SetNodeProviderID(context.Context, *string, *string, ClientGetter) error
+	SetNodeProviderID(context.Context, *string, ClientGetter) error
 	SetProviderID(string)
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
@@ -1332,8 +1332,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 type ClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error)
 
 // SetNodeProviderID sets the metal3 provider ID on the kubernetes node.
-func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID *string, providerIDOnM3M *string, clientFactory ClientGetter) error {
-	// todo: bmhID should not be trusted and needs to removed from the signature.
+func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M *string, clientFactory ClientGetter) error {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
@@ -1345,12 +1344,15 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID *string, p
 		m.Log.Info("unable to retrieve BMH name from Metal3Machine")
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
-	providerIDLegacy := "metal3://unknown"
-	nodeLabel := fmt.Sprintf("%s=unknown", ProviderLabelPrefix)
-	if bmhID != nil {
-		providerIDLegacy = fmt.Sprintf("metal3://%s", *bmhID)
-		nodeLabel = fmt.Sprintf("%s=%s", ProviderLabelPrefix, *bmhID)
+	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
+	if err != nil {
+		m.Log.Info("unable to retrieve BMH UID from Metal3Machine")
+		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
+
+	providerIDLegacy := fmt.Sprintf("metal3://%s", bmhUID)
+	nodeLabel := fmt.Sprintf("%s=%s", ProviderLabelPrefix, bmhUID)
+
 	providerIDNew := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
 
 	matchingNodesCount, err := m.getMatchingNodesWithoutLabelCount(ctx, providerIDLegacy, providerIDNew, providerIDOnM3M, clientFactory)
@@ -1370,10 +1372,6 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, bmhID *string, p
 	}
 	if matchingNodesCount == 1 {
 		return nil
-	}
-	if bmhID == nil {
-		m.Log.Info("requeuing, could not find the BMH ID yet.")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
@@ -1801,6 +1799,19 @@ func (m *MachineManager) getBmhNameFromM3Machine() (string, error) {
 	}
 	bmhName := valueParts[1]
 	return bmhName, nil
+}
+
+// getBmhUIDFromM3Machine retrieves bmhUID from m3m.
+func (m *MachineManager) getBmhUIDFromM3Machine(ctx context.Context) (string, error) {
+	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
+	if err != nil || host == nil {
+		errMessage := fmt.Sprintf("Failed to get a BaremetalHost for the metal3machine: %s", m.Metal3Machine.GetName())
+		return "", errors.New(errMessage)
+	}
+	if host.UID == "" {
+		return "", errors.New("Missing BaremetalHost UID")
+	}
+	return string(host.UID), nil
 }
 
 // getNodesWithLabel gets kubernetes nodes with a given label.
