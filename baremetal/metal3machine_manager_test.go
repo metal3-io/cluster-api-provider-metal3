@@ -2584,7 +2584,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 
-				err = machineMgr.SetNodeProviderID(context.TODO(), &tc.HostID,
+				err = machineMgr.SetNodeProviderID(context.TODO(),
 					&tc.ExpectedProviderID, m,
 				)
 
@@ -2677,7 +2677,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 				Expect(err).NotTo(HaveOccurred())
 
-				err = machineMgr.SetNodeProviderID(context.TODO(), &tc.HostID,
+				err = machineMgr.SetNodeProviderID(context.TODO(),
 					&tc.ExpectedProviderID, m,
 				)
 
