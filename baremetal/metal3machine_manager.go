@@ -1323,8 +1323,10 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 	// instead contains / to separate the names. In that case we return nil for
 	// the bmh ID to force the controller to fetch it differently.
 	if strings.Contains(bmhID, "/") {
+		m.Log.Info("ProviderID is in new format, it does not contain the BMH ID", "providerID", *providerID)
 		return *providerID, nil
 	}
+	m.Log.V(4).Info("ProviderID contains the BMH ID", "providerID", *providerID)
 	return *providerID, pointer.String(bmhID)
 }
 
@@ -1423,6 +1425,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 
 // SetProviderID sets the metal3 provider ID on the Metal3Machine.
 func (m *MachineManager) SetProviderID(providerID string) {
+	m.Log.Info("ProviderID set on the Metal3Machine", "providerID", providerID)
 	m.Metal3Machine.Spec.ProviderID = &providerID
 	m.Metal3Machine.Status.Ready = true
 	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
