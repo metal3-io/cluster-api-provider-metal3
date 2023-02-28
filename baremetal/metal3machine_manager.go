@@ -72,7 +72,7 @@ const (
 	ProviderIDPrefix = "metal3://"
 	// ProviderLabelPrefix is a label prefix for ProviderID.
 	ProviderLabelPrefix = "metal3.io/uuid"
-	// FailureDomainLabelPrefix is a label prefix for FailureDomains
+	// FailureDomainLabelPrefix is a label prefix for FailureDomains.
 	FailureDomainLabelPrefix = "infrastructure.cluster.x-k8s.io/failure-domain"
 )
 
