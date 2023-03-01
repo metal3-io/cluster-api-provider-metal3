@@ -54,10 +54,7 @@ KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
 KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
 ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
-SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
 GINKGO := "$(ROOT_DIR)/$(TOOLS_BIN_DIR)/ginkgo"
-
-ENVTEST_K8S_VERSION := 1.25.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
@@ -84,12 +81,6 @@ RBAC_ROOT ?= $(MANIFEST_ROOT)/rbac
 # Allow overriding the imagePullPolicy
 PULL_POLICY ?= IfNotPresent
 
-ENVTEST_OS := linux
-ifeq ($(shell uname -s), Darwin)
-	ENVTEST_OS := darwin
-endif
-ARCH ?= amd64
-
 ## --------------------------------------
 ## Help
 ## --------------------------------------
@@ -102,8 +93,8 @@ help:  ## Display this help
 ## --------------------------------------
 
 .PHONY: unit
-unit: $(SETUP_ENVTEST) ## Run unit test
-	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
+unit: ## Run unit test
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; \
 	go test ./controllers/... ./baremetal/... \
 		--ginkgo.no-color=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
@@ -234,10 +225,6 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
-
-$(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go get sigs.k8s.io/controller-runtime/tools/setup-envtest; \
-	go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 $(GINKGO): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go get github.com/onsi/ginkgo/v2/ginkgo@v2.6.0
