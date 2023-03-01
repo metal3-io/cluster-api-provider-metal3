@@ -104,15 +104,11 @@ help:  ## Display this help
 .PHONY: unit
 unit: $(SETUP_ENVTEST) ## Run unit test
 	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
-	go test ./controllers/... ./baremetal/... \
+	go test ./controllers/... ./baremetal/... ./$(APIS_DIR)/./... \
 		--ginkgo.no-color=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
 		$(GINKGO_TEST_FLAGS) \
 		-coverprofile ./cover.out; \
-	cd $(APIS_DIR); \
-	go test ./... \
-		$(GO_TEST_FLAGS) \
-		-coverprofile ./cover.out
 
 unit-cover: unit
 	go tool cover -func=./api/cover.out; \
