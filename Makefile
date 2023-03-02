@@ -103,19 +103,19 @@ help:  ## Display this help
 
 .PHONY: unit
 unit: $(SETUP_ENVTEST) ## Run unit test
-	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)); \
+	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)) && \
 	go test ./controllers/... ./baremetal/... \
 		--ginkgo.no-color=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
 		$(GINKGO_TEST_FLAGS) \
-		-coverprofile ./cover.out; \
-	cd $(APIS_DIR); \
+		-coverprofile ./cover.out && \
+	cd $(APIS_DIR) && \
 	go test ./... \
 		$(GO_TEST_FLAGS) \
 		-coverprofile ./cover.out
 
 unit-cover: unit
-	go tool cover -func=./api/cover.out; \
+	go tool cover -func=./api/cover.out
 	go tool cover -func=./cover.out
 
 unit-verbose: ## Run unit test
@@ -206,12 +206,12 @@ manager: ## Build manager binary.
 # Check that api package can be built
 .PHONY: build-api
 build-api:
-	cd $(APIS_DIR); go build ./...
+	cd $(APIS_DIR) && go build ./...
 
 # Check that e2e package can be built
 .PHONY: build-e2e
 build-e2e:
-	cd $(TEST_DIR); go build ./...
+	cd $(TEST_DIR) && go build ./...
 
 ## --------------------------------------
 ## Tooling Binaries
@@ -236,7 +236,7 @@ $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
 $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go get sigs.k8s.io/controller-runtime/tools/setup-envtest; \
+	cd $(TOOLS_DIR) && go get sigs.k8s.io/controller-runtime/tools/setup-envtest && \
 	go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 $(GINKGO): $(TOOLS_DIR)/go.mod
@@ -262,25 +262,25 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v --timeout=10m
-	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --timeout=10m
-	cd $(TEST_DIR); ../$(GOLANGCI_LINT) run -v --timeout=10m
+	cd $(APIS_DIR) && ../$(GOLANGCI_LINT) run -v --timeout=10m
+	cd $(TEST_DIR) && ../$(GOLANGCI_LINT) run -v --timeout=10m
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
-	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
-	cd $(TEST_DIR); ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(APIS_DIR) && ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(TEST_DIR) && ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run go fmt against code
 fmt:
 	go fmt ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR); go fmt  ./...
-	cd $(TEST_DIR); go fmt  ./...
+	cd $(APIS_DIR) && go fmt  ./...
+	cd $(TEST_DIR) && go fmt  ./...
 
 # Run go vet against code
 vet:
 	go vet ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR); go vet  ./...
-	cd $(TEST_DIR); go fmt  ./...
+	cd $(APIS_DIR) && go vet  ./...
+	cd $(TEST_DIR) && go fmt  ./...
 
 # Run manifest validation
 .PHONY: manifest-lint
@@ -295,12 +295,12 @@ manifest-lint:
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	go mod verify
-	cd $(TOOLS_DIR); go mod tidy
-	cd $(TOOLS_DIR); go mod verify
-	cd $(APIS_DIR); go mod tidy
-	cd $(APIS_DIR); go mod verify
-	cd $(TEST_DIR); go mod tidy
-	cd $(TEST_DIR); go mod verify
+	cd $(TOOLS_DIR) && go mod tidy
+	cd $(TOOLS_DIR) && go mod verify
+	cd $(APIS_DIR) && go mod tidy
+	cd $(APIS_DIR) && go mod verify
+	cd $(TEST_DIR) && go mod tidy
+	cd $(TEST_DIR) && go mod verify
 
 .PHONY: generate
 generate: ## Generate code
@@ -310,9 +310,9 @@ generate: ## Generate code
 .PHONY: generate-go
 generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUSTOMIZE) ## Runs Go related generate targets
 	go generate ./...
-	cd $(APIS_DIR); go generate ./...
+	cd $(APIS_DIR) && go generate ./...
 
-	cd ./api; ../$(CONTROLLER_GEN) \
+	cd ./api && ../$(CONTROLLER_GEN) \
 		paths=./... \
 		object:headerFile=../hack/boilerplate/boilerplate.generatego.txt
 
@@ -372,7 +372,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	cd $(APIS_DIR); ../$(CONTROLLER_GEN) \
+	cd $(APIS_DIR) && ../$(CONTROLLER_GEN) \
 		paths=./... \
 		crd:crdVersions=v1 \
 		output:crd:dir=../$(CRD_ROOT) \
