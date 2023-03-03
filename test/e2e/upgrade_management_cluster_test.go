@@ -86,6 +86,7 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 	// Split the <fileName> file into <resourceName>.yaml files based on the name of each resource and return list of the filename created
 	// so we can apply limited number on BMH in each namespace.
 	splitYAMLFile := func(fileName string, filePath string) []string {
+		//#nosec G204 -- This is just a test. We are not concerned with command injection
 		cmd := exec.Command("bash", "-c", fmt.Sprintf("cat %s | kubectl split-yaml -t {{.name}}.yaml -p.", fileName))
 		cmd.Dir = filePath
 		output, err := cmd.CombinedOutput()
@@ -235,6 +236,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 			By("Install Ironic in the source cluster as containers")
 			bmoPath := e2eConfig.GetVariable("BMOPATH")
 			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
+			//#nosec G204 -- This is just a test. We are not concerned with command injection
 			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 			stdoutStderr, err := cmd.CombinedOutput()
 			fmt.Printf("%s\n", stdoutStderr)
