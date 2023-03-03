@@ -154,8 +154,8 @@ github.com/cockroachdb/errors v1.2.4/go.mod h1:rQD95gz6FARkaKkQXUksEje/d9a6wBJoC
 github.com/cockroachdb/logtags v0.0.0-20190617123548-eb05cc24525f/go.mod h1:i/u985jwjWRlyHXQbwatDASoW0RMlZ/3i9yJHE2xLkI=
 github.com/coredns/caddy v1.1.0 h1:ezvsPrT/tA/7pYDBZxu0cT0VmWk75AfIaf6GSYCNMf0=
 github.com/coredns/caddy v1.1.0/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.18 h1:zs5PJm/VGZVje1ESRj6ZqyUuVsVfagExkbLU2QKV5mI=
-github.com/coredns/corefile-migration v1.0.18/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
+github.com/coredns/corefile-migration v1.0.20 h1:MdOkT6F3ehju/n9tgxlGct8XAajOX2vN+wG7To4BWSI=
+github.com/coredns/corefile-migration v1.0.20/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-oidc v2.1.0+incompatible/go.mod h1:CgnwVTmzoESiwO9qyAFEMiHoZ1nMCKZlZ9V6mm3/LKc=
@@ -1393,10 +1393,10 @@ rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30/go.mod h1:fEO7lRTdivWO2qYVCVG7dEADOMo/MLDCVr8So2g88Uw=
-sigs.k8s.io/cluster-api v1.2.10 h1:EzNMSZ+6BJ46HGNhCP2CxmJjwfD1u/DMjpBh90mejyg=
-sigs.k8s.io/cluster-api v1.2.10/go.mod h1:ZuiH8az7bIv0D6AzkbOrPUtiRAnKH9U1YnFC6nrk72I=
-sigs.k8s.io/cluster-api/test v1.2.10 h1:O6b/R1qZFThm9uII/SjxjcRPED6xvSCJSMKw3YIOwG0=
-sigs.k8s.io/cluster-api/test v1.2.10/go.mod h1:/bOh2uQ+sbK8Iy0GM6wYq52z867klX95NHgtOG29PEU=
+sigs.k8s.io/cluster-api v1.2.11 h1:rtx6fp05qESvtALUGIizUAci0kmiEoVBG786C05L1jU=
+sigs.k8s.io/cluster-api v1.2.11/go.mod h1:VB4qC2t1WjqzBtJvxx3VImb/hLpdXjiWxkdd7OX29mA=
+sigs.k8s.io/cluster-api/test v1.2.11 h1:lSkSs2q/eGCqNhnhdTdKQ+wz1l7emZB81bQJL367DOI=
+sigs.k8s.io/cluster-api/test v1.2.11/go.mod h1:iXCyt/916mWnKhU0xeCwgT7Xkn7jFbj/ArhIo07D8Kc=
 sigs.k8s.io/controller-runtime v0.12.3 h1:FCM8xeY/FI8hoAfh/V4XbbYMY20gElh9yh+A98usMio=
 sigs.k8s.io/controller-runtime v0.12.3/go.mod h1:qKsk4WE6zW2Hfj0G4v10EnNB2jMG1C+NTb8h+DwCoU0=
 sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 h1:kDi4JBNAsJWfz1aEXhO8Jg87JJaPNLh5tIzYHgStQ9Y=
