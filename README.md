@@ -40,8 +40,8 @@ provider:
   when running the clusterctl and set the level of the logging verbose with a positive integer number, ie. -v5.
 
     ```shell
-    clusterctl init --core cluster-api:v1.3.3 --bootstrap kubeadm:v1.3.3 \
-        --control-plane kubeadm:v1.3.3 -v5
+    clusterctl init --core cluster-api:v1.3.5 --bootstrap kubeadm:v1.3.5 \
+        --control-plane kubeadm:v1.3.5 -v5
     ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API Provider Metal3 CRDs and controllers.
