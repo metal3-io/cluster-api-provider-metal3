@@ -92,19 +92,19 @@ help:  ## Display this help
 
 .PHONY: unit
 unit: ## Run unit test
-	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs; \
+	source ./hack/fetch_ext_bins.sh; fetch_tools; setup_envs && \
 	go test ./controllers/... ./baremetal/... \
 		-ginkgo.noColor=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
 		$(GINKGO_TEST_FLAGS) \
 		-coverprofile ./cover.out; \
-	cd $(APIS_DIR); \
+	cd $(APIS_DIR) && \
 	go test ./... \
 		$(GO_TEST_FLAGS) \
 		-coverprofile ./cover.out
 
 unit-cover: unit
-	go tool cover -func=./api/cover.out; \
+	go tool cover -func=./api/cover.out
 	go tool cover -func=./cover.out
 
 unit-verbose: ## Run unit test
@@ -198,19 +198,19 @@ $(CLUSTERCTL): go.mod ## Build clusterctl binary.
 	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
 
 $(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR); ./install_kubebuilder.sh
+	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
 .PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
@@ -231,21 +231,21 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v --timeout=10m
-	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --timeout=10m
+	cd $(APIS_DIR) && ../$(GOLANGCI_LINT) run -v --timeout=10m
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
-	cd $(APIS_DIR); ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(APIS_DIR) && ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run go fmt against code
 fmt:
 	go fmt ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR); go fmt  ./...
+	cd $(APIS_DIR) && go fmt  ./...
 
 # Run go vet against code
 vet:
 	go vet ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR); go vet  ./...
+	cd $(APIS_DIR) && go vet  ./...
 
 # Run manifest validation
 .PHONY: manifest-lint
@@ -260,10 +260,10 @@ manifest-lint:
 modules: ## Runs go mod to ensure proper vendoring.
 	go mod tidy
 	go mod verify
-	cd $(TOOLS_DIR); go mod tidy
-	cd $(TOOLS_DIR); go mod verify
-	cd $(APIS_DIR); go mod tidy
-	cd $(APIS_DIR); go mod verify
+	cd $(TOOLS_DIR) && go mod tidy
+	cd $(TOOLS_DIR) && go mod verify
+	cd $(APIS_DIR) && go mod tidy
+	cd $(APIS_DIR) && go mod verify
 
 .PHONY: generate
 generate: ## Generate code
@@ -273,9 +273,9 @@ generate: ## Generate code
 .PHONY: generate-go
 generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUSTOMIZE) ## Runs Go related generate targets
 	go generate ./...
-	cd $(APIS_DIR); go generate ./...
+	cd $(APIS_DIR) && go generate ./...
 
-	cd ./api; ../$(CONTROLLER_GEN) \
+	cd ./api && ../$(CONTROLLER_GEN) \
 		paths=./... \
 		object:headerFile=../hack/boilerplate/boilerplate.generatego.txt
 
@@ -335,7 +335,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	cd $(APIS_DIR); ../$(CONTROLLER_GEN) \
+	cd $(APIS_DIR) && ../$(CONTROLLER_GEN) \
 		paths=./... \
 		crd:crdVersions=v1 \
 		output:crd:dir=../$(CRD_ROOT) \
