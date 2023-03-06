@@ -1,9 +1,9 @@
 # Cluster API Provider Metal3 for Managed Bare Metal Hardware
 
-[![Ubuntu Integration daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_integration_test_ubuntu&subject=Ubuntu%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_integration_test_ubuntu/)
-[![CentOS Integration daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_integration_test_centos&subject=CentOS%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_integration_test_centos/)
-[![Ubuntu e2e daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_test_ubuntu/&subject=Ubuntu%20E2E%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_test_ubuntu/)
-[![CentOS e2e daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_test_centos/&subject=CentOS%20E2E%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_test_centos/)
+[![Ubuntu E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_integration_test_ubuntu&subject=Ubuntu%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_integration_test_ubuntu/)
+[![CentOS E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_integration_test_centos&subject=Centos%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_integration_test_centos/)
+[![Ubuntu E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_feature_test_ubuntu/&subject=Ubuntu%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_feature_test_ubuntu/)
+[![CentOS E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_feature_test_centos/&subject=CentOS%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_feature_test_centos/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
@@ -118,55 +118,50 @@ To trigger e2e test on a PR, use the following phrases:
 
 ### integration tests
 
-- **/test-ubuntu-integration-e2e-main** runs integration e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test-centos-integration-e2e-main** runs integration e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
+- **/test-ubuntu-e2e-integration-main** runs integration e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-e2e-integration-main** runs integration e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
 
 ### Feature tests
 
 On main branch:
 
-- **/test-ubuntu-e2e-main** runs feature e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test-centos-e2e-main** runs feature e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
+- **/test-ubuntu-e2e-feature-main** runs e2e feature tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-e2e-feature-main** runs e2e feature tests with CAPM3 API version v1beta1 and branch main on CentOS
 
-Or use parallel for faster tests. Note that these tests run in multiple VMs by creating an independent VM for each test spec:
+Or use parallel prefix `parallel-` for faster tests. Note that these tests run in multiple VMs by creating an independent VM for each test spec:
 
-- **/test-ubuntu-e2e-parallel-main** runs feature e2e parallel tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test-centos-e2e-parallel-main** runs feature e2e parallel tests with CAPM3 API version v1beta1 and branch main on CentOS
+- **/parallel-test-ubuntu-e2e-feature-main** runs e2e feature tests in parallel with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/parallel-test-centos-e2e-feature-main** runs e2e feature tests in parallel with CAPM3 API version v1beta1 and branch main on CentOS
 
 Release-1.3 branch:
 
-- **/test-ubuntu-e2e-release-1-3** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on Ubuntu
-- **/test-centos-e2e-release-1-3** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on CentOS
+- **/test-ubuntu-e2e-feature-release-1-3** runs e2e feature tests with CAPM3 API version v1beta1 and branch release-1.3 on Ubuntu
+- **/test-centos-e2e-feature-release-1-3** runs e2e feature tests with CAPM3 API version v1beta1 and branch release-1.3 on CentOS
 
 Release-1.2 branch:
 
-- **/test-ubuntu-e2e-release-1-2** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
-- **/test-centos-e2e-release-1-2** runs feature e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
+- **/test-ubuntu-e2e-feature-release-1-2** runs e2e feature tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
+- **/test-centos-e2e-feature-release-1-2** runs e2e feature tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
 
 Release-1.1 branch:
 
-- **/test-ubuntu-e2e-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on Ubuntu
-- **/test-centos-e2e-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on CentOS
+- **/test-ubuntu-e2e-feature-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on Ubuntu
+- **/test-centos-e2e-feature-release-1-1** runs e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on CentOS
 
 ### Upgrade tests
 
-- **/test-upgrade-e2e-main** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
+- **/test-e2e-upgrade-main** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
 
 ### Keep VM
 
 After the e2e test is completed, Jenkins executes another script to clean up the environment first and then deletes the VM. However, sometimes it may be desirable to keep the VM for debugging purposes. To avoid clean up
-and deletion operations, there are separate triggers phrases as below:
+and deletion operations, use `keep-` prefix e.g:
 
-- **/keep-test-ubuntu-e2e-main** run keep e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/keep-test-centos-e2e-main** run keep e2e tests with CAPM3 API version v1beta1 and branch main on CentOS
-- **/keep-test-ubuntu-e2e-release-1-3** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on Ubuntu
-- **/keep-test-centos-e2e-release-1-3** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.3 on CentOS
-- **/keep-test-ubuntu-e2e-release-1-2** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on Ubuntu
-- **/keep-test-centos-e2e-release-1-2** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.2 on CentOS
-- **/keep-test-ubuntu-e2e-release-1-1** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on Ubuntu
-- **/keep-test-centos-e2e-release-1-1** run keep e2e tests with CAPM3 API version v1beta1 and branch release-1.1 on CentOS
-- **/keep-test-upgrade-e2e-main** runs keep e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
+- **/keep-test-ubuntu-e2e-integration-main** run keep e2e tests with CAPM3 API version v1beta1 and branch main on Ubuntu
 
-Note: Test VM created with these phrases will not be kept forever but deleted after 24 hours.
+Note:
+
+- Triggers follow the pattern: `/[keep-|parallel-]test-<os>-e2e-<type>-<branch>`
+- Test VM created with `keep-` prefix will not be kept forever but deleted after 24 hours.
 
 More info about e2e test can be found [here](docs/e2e-test.md)
