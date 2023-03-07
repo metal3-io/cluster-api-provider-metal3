@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 // Metal3RemediationReconciler reconciles a Metal3Remediation object.
@@ -456,8 +457,9 @@ func mergeMaps(prioritizedMap map[string]string, mapToMerge map[string]string) m
 }
 
 // SetupWithManager will add watches for Metal3Remediation controller.
-func (r *Metal3RemediationReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *Metal3RemediationReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.Metal3Remediation{}).
+		WithOptions(options).
 		Complete(r)
 }

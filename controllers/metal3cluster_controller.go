@@ -38,6 +38,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -192,7 +193,7 @@ func reconcileDelete(ctx context.Context,
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("Metal3Cluster"), mgr.GetClient(), &infrav1.Metal3Cluster{})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(
@@ -213,6 +214,7 @@ func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				},
 			),
 		).
+		WithOptions(options).
 		// Watches can be defined with predicates in the builder directly now, no need to do `Build()` and then add the watch to the returned controller: https://github.com/kubernetes-sigs/cluster-api/blob/b00bd08d02311919645a4868861d0f9ca0df35ea/util/predicates/cluster_predicates.go#L147-L164
 		Watches(
 			&source.Kind{Type: &clusterv1.Cluster{}},
