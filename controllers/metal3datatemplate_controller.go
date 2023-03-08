@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -160,9 +161,10 @@ func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 }
 
 // SetupWithManager will add watches for this controller.
-func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager) error {
+func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.Metal3DataTemplate{}).
+		WithOptions(options).
 		Watches(
 			&source.Kind{Type: &infrav1.Metal3DataClaim{}},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3DataClaimToMetal3DataTemplate),

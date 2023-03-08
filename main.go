@@ -45,26 +45,34 @@ import (
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
 
 var (
-	myscheme                        = runtime.NewScheme()
-	setupLog                        = ctrl.Log.WithName("setup")
-	waitForMetal3Controller         = false
-	metricsBindAddr                 string
-	enableLeaderElection            bool
-	leaderElectionLeaseDuration     time.Duration
-	leaderElectionRenewDeadline     time.Duration
-	leaderElectionRetryPeriod       time.Duration
-	syncPeriod                      time.Duration
-	webhookPort                     int
-	webhookCertDir                  string
-	healthAddr                      string
-	watchNamespace                  string
-	watchFilterValue                string
-	logOptions                      = logs.NewOptions()
-	enableBMHNameBasedPreallocation bool
+	myscheme                         = runtime.NewScheme()
+	setupLog                         = ctrl.Log.WithName("setup")
+	waitForMetal3Controller          = false
+	metricsBindAddr                  string
+	enableLeaderElection             bool
+	leaderElectionLeaseDuration      time.Duration
+	leaderElectionRenewDeadline      time.Duration
+	leaderElectionRetryPeriod        time.Duration
+	syncPeriod                       time.Duration
+	metal3MachineConcurrency         int
+	metal3ClusterConcurrency         int
+	metal3DataTemplateConcurrency    int
+	metal3DataConcurrency            int
+	metal3LabelSyncConcurrency       int
+	metal3MachineTemplateConcurrency int
+	metal3RemediationConcurrency     int
+	webhookPort                      int
+	webhookCertDir                   string
+	healthAddr                       string
+	watchNamespace                   string
+	watchFilterValue                 string
+	logOptions                       = logs.NewOptions()
+	enableBMHNameBasedPreallocation  bool
 )
 
 func init() {
@@ -142,14 +150,14 @@ func initFlags(fs *pflag.FlagSet) {
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logsv1.AddFlags(logOptions, fs)
 
-	flag.StringVar(
+	fs.StringVar(
 		&metricsBindAddr,
 		"metrics-bind-addr",
 		"localhost:8080",
 		"The address the metric endpoint binds to.",
 	)
 
-	flag.BoolVar(
+	fs.BoolVar(
 		&enableLeaderElection,
 		"leader-elect",
 		false,
@@ -184,7 +192,7 @@ func initFlags(fs *pflag.FlagSet) {
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&watchNamespace,
 		"namespace",
 		"",
@@ -198,33 +206,54 @@ func initFlags(fs *pflag.FlagSet) {
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
 	)
 
-	flag.DurationVar(
+	fs.DurationVar(
 		&syncPeriod,
 		"sync-period",
 		10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
 	)
 
-	flag.IntVar(
+	fs.IntVar(
 		&webhookPort,
 		"webhook-port",
 		9443,
 		"Webhook Server port",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&webhookCertDir,
 		"webhook-cert-dir",
 		"/tmp/k8s-webhook-server/serving-certs/",
 		"Webhook cert dir, only used when webhook-port is specified.",
 	)
 
-	flag.StringVar(
+	fs.StringVar(
 		&healthAddr,
 		"health-addr",
 		":9440",
 		"The address the health endpoint binds to.",
 	)
+
+	fs.IntVar(&metal3MachineConcurrency, "metal3machine-concurrency", 10,
+		"Number of metal3machines to process simultaneously")
+
+	fs.IntVar(&metal3ClusterConcurrency, "metal3cluster-concurrency", 10,
+		"Number of metal3clusters to process simultaneously")
+
+	fs.IntVar(&metal3DataTemplateConcurrency, "metal3datatemplate-concurrency", 10,
+		"Number of metal3datatemplates to process simultaneously")
+
+	fs.IntVar(&metal3DataConcurrency, "metal3data-concurrency", 10,
+		"Number of metal3data to process simultaneously")
+
+	fs.IntVar(&metal3LabelSyncConcurrency, "metal3labelsync-concurrency", 10,
+		"Number of metal3labelsyncs to process simultaneously")
+
+	fs.IntVar(&metal3MachineTemplateConcurrency, "metal3machinetemplate-concurrency", 10,
+		"Number of metal3machinetemplates to process simultaneously")
+
+	fs.IntVar(&metal3RemediationConcurrency, "metal3remediation-concurrency", 10,
+		"Number of metal3remediations to process simultaneously")
 }
 
 func waitForAPIs(cfg *rest.Config) error {
@@ -271,7 +300,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Machine"),
 		CapiClientGetter: infraremote.NewClusterClient,
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(metal3MachineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3MachineReconciler")
 		os.Exit(1)
 	}
@@ -281,7 +310,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Cluster"),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(metal3ClusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3ClusterReconciler")
 		os.Exit(1)
 	}
@@ -291,7 +320,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3DataTemplate"),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(metal3DataTemplateConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3DataTemplateReconciler")
 		os.Exit(1)
 	}
@@ -301,7 +330,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Data"),
 		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(metal3DataConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3DataReconciler")
 		os.Exit(1)
 	}
@@ -311,7 +340,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3LabelSync"),
 		CapiClientGetter: infraremote.NewClusterClient,
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(metal3LabelSyncConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3LabelSyncReconciler")
 		os.Exit(1)
 	}
@@ -320,7 +349,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:         mgr.GetClient(),
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:            ctrl.Log.WithName("controllers").WithName("Metal3MachineTemplate"),
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(metal3MachineTemplateConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3MachineTemplateReconciler")
 		os.Exit(1)
 	}
@@ -329,7 +358,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:         mgr.GetClient(),
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:            ctrl.Log.WithName("controllers").WithName("Metal3Remediation"),
-	}).SetupWithManager(ctx, mgr); err != nil {
+	}).SetupWithManager(ctx, mgr, concurrency(metal3RemediationConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3Remediation")
 		os.Exit(1)
 	}
@@ -375,4 +404,8 @@ func setupWebhooks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3RemediationTemplate")
 		os.Exit(1)
 	}
+}
+
+func concurrency(c int) controller.Options {
+	return controller.Options{MaxConcurrentReconciles: c}
 }
