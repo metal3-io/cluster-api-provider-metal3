@@ -200,10 +200,10 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 	os.Setenv("PROVIDER_ID_FORMAT", "metal3://{{ ds.meta_data.uuid }}")
 	// override default IPs for the workload cluster
 	os.Setenv("CLUSTER_APIENDPOINT_HOST", "192.168.111.250")
-	os.Setenv("BAREMETALV4_POOL_RANGE_START", "192.168.111.201")
-	os.Setenv("BAREMETALV4_POOL_RANGE_END", "192.168.111.240")
-	os.Setenv("PROVISIONING_POOL_RANGE_START", "172.22.0.201")
-	os.Setenv("PROVISIONING_POOL_RANGE_END", "172.22.0.240")
+	os.Setenv("IPAM_EXTERNALV4_POOL_RANGE_START", "192.168.111.201")
+	os.Setenv("IPAM_EXTERNALV4_POOL_RANGE_END", "192.168.111.240")
+	os.Setenv("IPAM_PROVISIONING_POOL_RANGE_START", "172.22.0.201")
+	os.Setenv("IPAM_PROVISIONING_POOL_RANGE_END", "172.22.0.240")
 }
 
 // preUpgrade hook should be called from ClusterctlUpgradeSpec before upgrading the management cluster
