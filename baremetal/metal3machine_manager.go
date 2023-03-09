@@ -1633,9 +1633,15 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 
 	// If it is not ready yet, wait.
 	if !metal3Data.Status.Ready {
+		m.Log.Info("Waiting for Metal3Data to become ready")
+		m.SetConditionMetal3MachineToFalse(infrav1.Metal3DataReadyCondition, infrav1.WaitingForMetal3DataReason, clusterv1.ConditionSeverityInfo, "")
 		// Secret generation not ready
 		return &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
+
+	// At this point, Metal3Data is ready
+	m.Log.Info("Metal3data is ready")
+	m.SetConditionMetal3MachineToTrue(infrav1.Metal3DataReadyCondition)
 
 	// Get the secrets if given in Metal3Data and not already set.
 	if m.Metal3Machine.Status.MetaData == nil &&
