@@ -595,7 +595,7 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 	}
 
 	if ipClaim.Status.ErrorMessage != nil {
-		m.Data.Status.ErrorMessage = pointer.StringPtr(fmt.Sprintf(
+		m.setError(ctx, fmt.Sprintf(
 			"IP Allocation for %v failed : %v", poolRef.Name, *ipClaim.Status.ErrorMessage,
 		))
 		return addressFromPool{}, false, errors.New(*m.Data.Status.ErrorMessage)

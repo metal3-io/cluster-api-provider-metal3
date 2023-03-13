@@ -3463,15 +3463,17 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseM3MetaData struct {
-		M3Machine          *infrav1.Metal3Machine
-		Machine            *clusterv1.Machine
-		DataClaim          *infrav1.Metal3DataClaim
-		Data               *infrav1.Metal3Data
-		ExpectError        bool
-		ExpectRequeue      bool
-		ExpectDataStatus   bool
-		ExpectSecretStatus bool
-		expectClaim        bool
+		M3Machine                            *infrav1.Metal3Machine
+		Machine                              *clusterv1.Machine
+		DataClaim                            *infrav1.Metal3DataClaim
+		Data                                 *infrav1.Metal3Data
+		ExpectError                          bool
+		ExpectRequeue                        bool
+		ExpectDataStatus                     bool
+		ExpectMetal3DataReadyCondition       bool
+		ExpectMetal3DataReadyConditionStatus bool
+		ExpectSecretStatus                   bool
+		expectClaim                          bool
 	}
 
 	DescribeTable("Test AssociateM3MetaData",
@@ -3626,6 +3628,17 @@ var _ = Describe("Metal3Machine manager", func() {
 			} else {
 				Expect(tc.M3Machine.Status.RenderedData).To(BeNil())
 			}
+			metal3DataReadyCondition := filterCondition(tc.M3Machine.Status.Conditions, infrav1.Metal3DataReadyCondition)
+			if tc.ExpectMetal3DataReadyCondition {
+				Expect(metal3DataReadyCondition).To(HaveLen(1))
+				if tc.ExpectMetal3DataReadyConditionStatus {
+					Expect(metal3DataReadyCondition[0].Status).To(Equal(corev1.ConditionTrue))
+				} else {
+					Expect(metal3DataReadyCondition[0].Status).To(Equal(corev1.ConditionFalse))
+				}
+			} else {
+				Expect(metal3DataReadyCondition).To(HaveLen(0))
+			}
 			if tc.ExpectSecretStatus {
 				if tc.Data.Spec.MetaData != nil {
 					Expect(tc.M3Machine.Status.MetaData).To(Equal(&corev1.SecretReference{
@@ -3649,15 +3662,17 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 		},
 		Entry("Should return nil if Data Spec is empty", testCaseM3MetaData{
-			M3Machine: newMetal3Machine("myName", nil, nil, nil, nil),
-			Machine:   nil,
+			M3Machine:                      newMetal3Machine("myName", nil, nil, nil, nil),
+			Machine:                        nil,
+			ExpectMetal3DataReadyCondition: false,
 		}),
 		Entry("Should requeue if there is no Data template", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
 				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
 			}, nil, nil),
-			Machine:       newMachine(machineName, "myName", nil),
-			ExpectRequeue: true,
+			Machine:                        newMachine(machineName, "myName", nil),
+			ExpectRequeue:                  true,
+			ExpectMetal3DataReadyCondition: false,
 		}),
 		Entry("Should requeue if Data claim without status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineSpec{
@@ -3733,8 +3748,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 			},
-			ExpectRequeue:    true,
-			ExpectDataStatus: true,
+			ExpectRequeue:                        true,
+			ExpectDataStatus:                     true,
+			ExpectMetal3DataReadyCondition:       true,
+			ExpectMetal3DataReadyConditionStatus: false,
 		}),
 		Entry("Should not error if Data is ready but no secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &infrav1.Metal3MachineStatus{
@@ -3750,8 +3767,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					Ready: true,
 				},
 			},
-			ExpectDataStatus:   true,
-			ExpectSecretStatus: true,
+			ExpectDataStatus:                     true,
+			ExpectSecretStatus:                   true,
+			ExpectMetal3DataReadyCondition:       true,
+			ExpectMetal3DataReadyConditionStatus: true,
 		}),
 		Entry("Should not error if Data is ready with secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, nil, &infrav1.Metal3MachineStatus{
@@ -3775,8 +3794,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					Ready: true,
 				},
 			},
-			ExpectDataStatus:   true,
-			ExpectSecretStatus: true,
+			ExpectDataStatus:                     true,
+			ExpectSecretStatus:                   true,
+			ExpectMetal3DataReadyCondition:       true,
+			ExpectMetal3DataReadyConditionStatus: true,
 		}),
 	)
 
@@ -4846,4 +4867,14 @@ func newSecret() *corev1.Secret {
 		},
 		Type: "Opaque",
 	}
+}
+
+func filterCondition(conditions clusterv1.Conditions, conditionType clusterv1.ConditionType) []clusterv1.Condition {
+	filtered := []clusterv1.Condition{}
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			filtered = append(filtered, conditions[i])
+		}
+	}
+	return filtered
 }

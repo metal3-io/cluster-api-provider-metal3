@@ -51,4 +51,9 @@ const (
 	MissingBMHReason = "MissingBMH"
 	// Could not set the ProviderID on the target cluster's Node object.
 	SettingProviderIDOnNodeFailedReason = "SettingProviderIDOnNodeFailed"
+	// Metal3DataReadyCondition reports a summary of Metal3Data status.
+	Metal3DataReadyCondition clusterv1.ConditionType = "Metal3DataReady"
+	// WaitingForMetal3DataReason used when waiting for Metal3Data
+	// to be ready before proceeding.
+	WaitingForMetal3DataReason = "WaitingForMetal3Data"
 )

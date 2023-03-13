@@ -186,6 +186,7 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 	conditions.SetSummary(metal3Machine,
 		conditions.WithConditions(
 			infrav1.AssociateBMHCondition,
+			infrav1.Metal3DataReadyCondition,
 			infrav1.KubernetesNodeReadyCondition,
 		),
 	)
@@ -195,6 +196,7 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			infrav1.AssociateBMHCondition,
+			infrav1.Metal3DataReadyCondition,
 			infrav1.KubernetesNodeReadyCondition,
 		}},
 		patch.WithStatusObservedGeneration{},
