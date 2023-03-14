@@ -27,7 +27,6 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/pointer"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -35,6 +34,7 @@ import (
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -90,6 +90,17 @@ func m3mMetaWithAnnotation() *metav1.ObjectMeta {
 		OwnerReferences: m3mOwnerRefs(),
 		Annotations: map[string]string{
 			baremetal.HostAnnotation: namespaceName + "/" + baremetalhostName,
+		},
+	}
+}
+
+func m3mMetaWithIncorrectAnnotation() *metav1.ObjectMeta {
+	return &metav1.ObjectMeta{
+		Name:            metal3machineName,
+		Namespace:       namespaceName,
+		OwnerReferences: m3mOwnerRefs(),
+		Annotations: map[string]string{
+			baremetal.HostAnnotation: "///incorrectFormat",
 		},
 	}
 }
@@ -428,7 +439,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		),
 		//Given: Machine, Metal3Machine (No Spec/Status), Cluster, Metal3Cluster.
 		// Cluster.Spec.Paused=true
-		//Expected: Requeue Expected
+		//Expected: Requeue Expected, set AssociateBMHCondition to Metal3MachinePaused
 		Entry("Should requeue when owner Cluster is paused",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -441,6 +452,17 @@ var _ = Describe("Reconcile metal3machine", func() {
 				RequeueExpected:         true,
 				ExpectedRequeueDuration: requeueAfter,
 				ClusterInfraReady:       true,
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
+						Type:   infrav1.AssociateBMHCondition,
+						Status: corev1.ConditionFalse,
+						Reason: infrav1.Metal3MachinePausedReason,
+					},
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionFalse,
+					},
+				},
 			},
 		),
 		//Given: Machine, Metal3Machine (No Spec/Status), Cluster, Metal3Cluster.
@@ -823,6 +845,62 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ClusterInfraReady:       true,
 				CheckBMHostCleaned:      true,
 				ExpectedOnlineStatus:    false,
+			},
+		),
+		// Our test Given: Machine, M3Machine(with incorrect Annotation), Cluster, Metal3Cluster.
+		// Expected: set AssociateBMHCondition to PauseAnnotationRemoveFailed, do not return error.
+		Entry("Should not return an error when Pause Annotation is not removed, set AssociateBMHCondition to PauseAnnotationRemoveFailed",
+			TestCaseReconcile{
+				Objects: []client.Object{
+					newMetal3Machine(metal3machineName, m3mMetaWithIncorrectAnnotation(), nil, nil, false),
+					machineWithBootstrap(),
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         false,
+				CheckBootStrapReady:     true,
+				ClusterInfraReady:       true,
+				ExpectedRequeueDuration: time.Second * 0,
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
+						Type:   infrav1.AssociateBMHCondition,
+						Status: corev1.ConditionFalse,
+						Reason: infrav1.PauseAnnotationRemoveFailedReason,
+					},
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionFalse,
+					},
+				},
+			},
+		),
+		// Our test Given: Machine, M3Machine(with incorrect Annotation), Cluster(paused), Metal3Cluster.
+		// Expected: set AssociateBMHCondition to PauseAnnotationSetFailed, do not return error.
+		Entry("Should not return an error when SetPauseAnnotation failed, should set Condition to PauseAnnotationSetFailed",
+			TestCaseReconcile{
+				Objects: []client.Object{
+					newMetal3Machine(metal3machineName, m3mMetaWithIncorrectAnnotation(), nil, nil, false),
+					machineWithBootstrap(),
+					newCluster(clusterName, clusterPauseSpec(), nil),
+					newMetal3Cluster(metal3ClusterName, nil, nil, nil, nil, false),
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         false,
+				CheckBootStrapReady:     true,
+				ClusterInfraReady:       true,
+				ExpectedRequeueDuration: time.Second * 0,
+				ConditionsExpected: clusterv1.Conditions{
+					clusterv1.Condition{
+						Type:   infrav1.AssociateBMHCondition,
+						Status: corev1.ConditionFalse,
+						Reason: infrav1.PauseAnnotationSetFailedReason,
+					},
+					clusterv1.Condition{
+						Type:   clusterv1.ReadyCondition,
+						Status: corev1.ConditionFalse,
+					},
+				},
 			},
 		),
 	)

@@ -44,6 +44,17 @@ const (
 	WaitingForBootstrapReadyReason = "WaitingForBootstrapReady"
 	// AssociateBMHFailedReason documents any errors while associating Metal3Machine with a BaremetalHost.
 	AssociateBMHFailedReason = "AssociateBMHFailed"
+	// WaitingForMetal3MachineOwnerRefReason is used when Metal3Machine is waiting for OwnerReference to be
+	// set before proceeding.
+	WaitingForMetal3MachineOwnerRefReason = "WaitingForM3MachineOwnerRef"
+	// Metal3MachinePausedReason is used when Metal3Machine or Cluster is paused.
+	Metal3MachinePausedReason = "Metal3MachinePaused"
+	// WaitingforMetal3ClusterReason is used when Metal3Machine is waiting for Metal3Cluster.
+	WaitingforMetal3ClusterReason = "WaitingforMetal3Cluster"
+	// PauseAnnotationRemoveFailedReason is used when failed to remove/check pause annotation on associated bmh.
+	PauseAnnotationRemoveFailedReason = "PauseAnnotationRemoveFailed"
+	// PauseAnnotationSetFailedReason is used when failed to set pause annotation on associated bmh.
+	PauseAnnotationSetFailedReason = "PauseAnnotationSetFailedReason"
 
 	// KubernetesNodeReadyCondition documents the transition of a Metal3Machine into a Kubernetes Node.
 	KubernetesNodeReadyCondition clusterv1.ConditionType = "KubernetesNodeReady"
@@ -56,4 +67,13 @@ const (
 	// WaitingForMetal3DataReason used when waiting for Metal3Data
 	// to be ready before proceeding.
 	WaitingForMetal3DataReason = "WaitingForMetal3Data"
+	// AssociateM3MetaDataFailedReason is used when failed to associate Metadata to Metal3Machine.
+	AssociateM3MetaDataFailedReason = "AssociateM3MetaDataFailed"
+	// DisassociateM3MetaDataFailedReason is used when failed to remove OwnerReference of Meta3DataTemplate.
+	DisassociateM3MetaDataFailedReason = "DisassociateM3MetaDataFailed"
+	// DeletingReason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
+	DeletingReason = "Deleting"
+	// DeletionFailedReason (Severity=Warning) documents a condition not in Status=True because the underlying object
+	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
+	DeletionFailedReason = "DeletionFailed"
 )
