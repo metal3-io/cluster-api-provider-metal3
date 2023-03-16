@@ -11,7 +11,6 @@ import (
 
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -77,42 +76,45 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 	})
 
 	AfterEach(func() {
-		if !ephemeralTest {
-			// Dump the target cluster resources before re-pivoting.
-			Logf("Dump the target cluster resources before re-pivoting")
-			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-				Lister:    targetCluster.GetClient(),
-				Namespace: namespace,
-				LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
-			})
 
-			rePivoting(ctx, func() RePivotingInput {
-				return RePivotingInput{
-					E2EConfig:             e2eConfig,
-					BootstrapClusterProxy: bootstrapClusterProxy,
-					TargetCluster:         targetCluster,
-					SpecName:              specName,
-					ClusterName:           clusterName,
-					Namespace:             namespace,
-					ArtifactFolder:        artifactFolder,
-					ClusterctlConfigPath:  clusterctlConfigPath,
-				}
-			})
-		}
-		Logf("Logging state of bootstrap cluster")
-		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		ListNodes(ctx, bootstrapClusterProxy.GetClient())
-		Logf("Logging state of target cluster")
-		if !ephemeralTest {
-			ListBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-			ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-			ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-		}
-		ListNodes(ctx, targetCluster.GetClient())
-		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
+	// AfterEach(func() {
+	// 	if !ephemeralTest {
+	// 		// Dump the target cluster resources before re-pivoting.
+	// 		Logf("Dump the target cluster resources before re-pivoting")
+	// 		framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+	// 			Lister:    targetCluster.GetClient(),
+	// 			Namespace: namespace,
+	// 			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
+	// 		})
+
+	// 		rePivoting(ctx, func() RePivotingInput {
+	// 			return RePivotingInput{
+	// 				E2EConfig:             e2eConfig,
+	// 				BootstrapClusterProxy: bootstrapClusterProxy,
+	// 				TargetCluster:         targetCluster,
+	// 				SpecName:              specName,
+	// 				ClusterName:           clusterName,
+	// 				Namespace:             namespace,
+	// 				ArtifactFolder:        artifactFolder,
+	// 				ClusterctlConfigPath:  clusterctlConfigPath,
+	// 			}
+	// 		})
+	// 	}
+	// 	Logf("Logging state of bootstrap cluster")
+	// 	ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+	// 	ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+	// 	ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+	// 	ListNodes(ctx, bootstrapClusterProxy.GetClient())
+	// 	Logf("Logging state of target cluster")
+	// 	if !ephemeralTest {
+	// 		ListBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+	// 		ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+	// 		ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+	// 	}
+	// 	ListNodes(ctx, targetCluster.GetClient())
+	// 	DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+	// })
 
 })
 
