@@ -56,7 +56,7 @@ func liveIsoTest() {
 			URL:          liveISOImageURL,
 			Checksum:     "",
 			ChecksumType: "",
-			DiskFormat:   pointer.StringPtr("live-iso"),
+			DiskFormat:   pointer.String("live-iso"),
 		}
 		Expect(bootstrapClient.Update(ctx, &isoBmh)).NotTo(HaveOccurred())
 		isoBmhName := isoBmh.Name

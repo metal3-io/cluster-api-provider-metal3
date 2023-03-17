@@ -172,7 +172,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 			Cluster: newCluster(clusterName),
 			BMCluster: newMetal3Cluster(metal3ClusterName,
 				bmcOwnerRef, nil, &infrav1.Metal3ClusterStatus{
-					FailureMessage: pointer.StringPtr("cba"),
+					FailureMessage: pointer.String("cba"),
 				},
 			),
 		}),
@@ -315,7 +315,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: clusterName,
+							clusterv1.ClusterNameLabel: clusterName,
 						},
 					},
 				},
@@ -330,7 +330,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: clusterName,
+							clusterv1.ClusterNameLabel: clusterName,
 						},
 					},
 				},

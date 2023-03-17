@@ -206,7 +206,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1.Machine
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels(map[string]string{
-			clusterv1.ClusterLabelName: cluster.Name,
+			clusterv1.ClusterNameLabel: cluster.Name,
 		}),
 	}
 

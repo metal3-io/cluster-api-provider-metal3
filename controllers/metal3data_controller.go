@@ -89,7 +89,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, nil
 		}
 		if cluster == nil {
-			metadataLog.Info("This metadata is not yet associated with a cluster using the label : <name of cluster>", "label", clusterv1.ClusterLabelName)
+			metadataLog.Info("This metadata is not yet associated with a cluster using the label : <name of cluster>", "label", clusterv1.ClusterNameLabel)
 			return ctrl.Result{}, nil
 		}
 	}

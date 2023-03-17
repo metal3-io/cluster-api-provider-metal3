@@ -133,7 +133,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[clusterv1.ClusterLabelName],
+		m.Log, m.Data.Labels[clusterv1.ClusterNameLabel],
 	)
 	if err != nil {
 		return err
@@ -243,7 +243,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// Create the owner Ref for the secret
 	ownerRefs := []metav1.OwnerReference{
 		{
-			Controller: pointer.BoolPtr(true),
+			Controller: pointer.Bool(true),
 			APIVersion: m.Data.APIVersion,
 			Kind:       m.Data.Kind,
 			Name:       m.Data.Name,
@@ -259,7 +259,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return err
 		}
 		if err := createSecret(ctx, m.client, m.Data.Spec.MetaData.Name,
-			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterLabelName],
+			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterNameLabel],
 			ownerRefs, map[string][]byte{"metaData": metadata},
 		); err != nil {
 			return err
@@ -274,7 +274,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return err
 		}
 		if err := createSecret(ctx, m.client, m.Data.Spec.NetworkData.Name,
-			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterLabelName],
+			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterNameLabel],
 			ownerRefs, map[string][]byte{"networkData": networkData},
 		); err != nil {
 			return err
@@ -296,7 +296,7 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[clusterv1.ClusterLabelName],
+		m.Log, m.Data.Labels[clusterv1.ClusterNameLabel],
 	)
 	if err != nil {
 		return err
@@ -483,7 +483,7 @@ func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocatio
 				Kind:       m.Data.Kind,
 				Name:       m.Data.Name,
 				UID:        m.Data.UID,
-				Controller: pointer.BoolPtr(true),
+				Controller: pointer.Bool(true),
 			},
 		},
 		Labels: m.Data.Labels,
@@ -503,7 +503,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	}
 
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[clusterv1.ClusterLabelName],
+		m.Log, m.Data.Labels[clusterv1.ClusterNameLabel],
 	)
 	if err != nil {
 		return reconciledClaim{m3Claim: ipClaim}, err

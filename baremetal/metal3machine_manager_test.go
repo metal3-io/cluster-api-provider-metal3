@@ -58,7 +58,7 @@ const (
 var Bmhuid = types.UID("4d25a2c2-46e4-11ec-81d3-0242ac130003")
 var ProviderID = fmt.Sprintf("metal3://%s", Bmhuid)
 
-var testImageDiskFormat = pointer.StringPtr("raw")
+var testImageDiskFormat = pointer.String("raw")
 
 func m3mSpec() *infrav1.Metal3MachineSpec {
 	return &infrav1.Metal3MachineSpec{
@@ -76,7 +76,7 @@ func m3mSpecAll() *infrav1.Metal3MachineSpec {
 		Image: infrav1.Image{
 			URL:          testImageURL,
 			Checksum:     testImageChecksumURL,
-			ChecksumType: pointer.StringPtr("sha512"),
+			ChecksumType: pointer.String("sha512"),
 			DiskFormat:   testImageDiskFormat,
 		},
 		HostSelector: infrav1.HostSelector{},
@@ -189,7 +189,7 @@ func m3mObjectMetaWithValidAnnotations() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Labels: map[string]string{
-			clusterv1.ClusterLabelName: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 		Annotations: map[string]string{
 			HostAnnotation: namespaceName + "/" + baremetalhostName,
@@ -203,7 +203,7 @@ func bmhObjectMetaWithValidCAPM3PausedAnnotations() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: []metav1.OwnerReference{},
 		Labels: map[string]string{
-			clusterv1.ClusterLabelName: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 		Annotations: map[string]string{
 			bmov1alpha1.PausedAnnotation: PausedAnnotationKey,
@@ -356,7 +356,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("no ProviderID", infrav1.Metal3Machine{}),
 		Entry("existing ProviderID", infrav1.Metal3Machine{
 			Spec: infrav1.Metal3MachineSpec{
-				ProviderID: pointer.StringPtr("wrong"),
+				ProviderID: pointer.String("wrong"),
 			},
 			Status: infrav1.Metal3MachineStatus{
 				Ready: true,
@@ -383,7 +383,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("provisioned", testCaseProvisioned{
 			M3Machine: infrav1.Metal3Machine{
 				Spec: infrav1.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abc"),
+					ProviderID: pointer.String("abc"),
 				},
 				Status: infrav1.Metal3MachineStatus{
 					Ready: true,
@@ -394,7 +394,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("missing ready", testCaseProvisioned{
 			M3Machine: infrav1.Metal3Machine{
 				Spec: infrav1.Metal3MachineSpec{
-					ProviderID: pointer.StringPtr("abc"),
+					ProviderID: pointer.String("abc"),
 				},
 			},
 			ExpectTrue: false,
@@ -465,7 +465,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("No errors", infrav1.Metal3Machine{}),
 		Entry("Overwrite existing error message", infrav1.Metal3Machine{
 			Status: infrav1.Metal3MachineStatus{
-				FailureMessage: pointer.StringPtr("cba"),
+				FailureMessage: pointer.String("cba"),
 			},
 		}),
 	)
@@ -668,7 +668,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							},
 						},
 						Labels: map[string]string{
-							clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+							clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 						},
 					},
 					Spec: clusterv1.MachineSpec{
@@ -693,7 +693,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							},
 						},
 						Labels: map[string]string{
-							clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+							clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 						},
 					},
 					Spec: clusterv1.MachineSpec{
@@ -772,7 +772,7 @@ var _ = Describe("Metal3Machine manager", func() {
 								},
 							},
 							Labels: map[string]string{
-								clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+								clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 							},
 						},
 						Spec: clusterv1.MachineSpec{
@@ -1454,7 +1454,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						Name:      machineName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.MachineControlPlaneLabelName: "labelHere",
+							clusterv1.MachineControlPlaneLabel: "labelHere",
 						},
 					},
 				},
@@ -1681,8 +1681,8 @@ var _ = Describe("Metal3Machine manager", func() {
 					&savedCred,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedHost.Labels[clusterv1.ClusterLabelName]).To(Equal(""))
-				Expect(savedCred.Labels[clusterv1.ClusterLabelName]).To(Equal(""))
+				Expect(savedHost.Labels[clusterv1.ClusterNameLabel]).To(Equal(""))
+				Expect(savedCred.Labels[clusterv1.ClusterNameLabel]).To(Equal(""))
 				// Other labels are not removed
 				Expect(savedHost.Labels["foo"]).To(Equal("bar"))
 				Expect(savedCred.Labels["foo"]).To(Equal("bar"))
@@ -1835,7 +1835,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("Foobar"),
+						DataSecretName: pointer.String("Foobar"),
 					},
 				},
 			},
@@ -1884,7 +1884,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr(metal3machineName + "-user-data"),
+						DataSecretName: pointer.String(metal3machineName + "-user-data"),
 					},
 				},
 			},
@@ -2045,7 +2045,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr(metal3machineName + "-user-data")},
+						DataSecretName: pointer.String(metal3machineName + "-user-data")},
 				},
 			},
 			MachineSet: &clusterv1.MachineSet{
@@ -2085,7 +2085,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: clusterName,
+						clusterv1.ClusterNameLabel: clusterName,
 					},
 					Annotations: map[string]string{
 						HostAnnotation:                           namespaceName + "/" + baremetalhostName,
@@ -2108,7 +2108,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: pointer.StringPtr(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: pointer.String(infrav1.CleaningModeDisabled),
 						},
 					},
 					NodeReuse: true,
@@ -2139,12 +2139,12 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr(metal3machineName + "-user-data")},
+						DataSecretName: pointer.String(metal3machineName + "-user-data")},
 				},
 			},
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
@@ -2166,7 +2166,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: clusterName,
+						clusterv1.ClusterNameLabel: clusterName,
 					},
 					Annotations: map[string]string{
 						HostAnnotation:                           namespaceName + "/" + baremetalhostName,
@@ -2189,7 +2189,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: pointer.StringPtr(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: pointer.String(infrav1.CleaningModeDisabled),
 						},
 					},
 					NodeReuse: true,
@@ -2524,7 +2524,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Empty providerID", testCaseGetProviderIDAndBMHID{}),
 		Entry("Provider ID set", testCaseGetProviderIDAndBMHID{
-			providerID:    pointer.StringPtr(ProviderID),
+			providerID:    pointer.String(ProviderID),
 			expectedBMHID: string(Bmhuid),
 		}),
 	)
@@ -2860,7 +2860,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("Foobar"),
+						DataSecretName: pointer.String("Foobar"),
 					},
 				},
 			},
@@ -2888,7 +2888,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("Foobar"),
+						DataSecretName: pointer.String("Foobar"),
 					},
 				},
 			},
@@ -2920,7 +2920,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							Name:      "abc",
 							Namespace: "def",
 						},
-						DataSecretName: pointer.StringPtr("Foobar"),
+						DataSecretName: pointer.String("Foobar"),
 					},
 				},
 			},
@@ -2933,7 +2933,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("test-data-secret-name"),
+						DataSecretName: pointer.String("test-data-secret-name"),
 					},
 				},
 			},
@@ -2945,7 +2945,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("test-data-secret-name"),
+						DataSecretName: pointer.String("test-data-secret-name"),
 					},
 				},
 			},
@@ -3030,8 +3030,8 @@ var _ = Describe("Metal3Machine manager", func() {
 					&savedCred,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedHost.Labels[clusterv1.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
-				Expect(savedCred.Labels[clusterv1.ClusterLabelName]).To(Equal(tc.Machine.Spec.ClusterName))
+				Expect(savedHost.Labels[clusterv1.ClusterNameLabel]).To(Equal(tc.Machine.Spec.ClusterName))
+				Expect(savedCred.Labels[clusterv1.ClusterNameLabel]).To(Equal(tc.Machine.Spec.ClusterName))
 			}
 		},
 		Entry("Associate empty machine, Metal3 machine spec nil",
@@ -3975,7 +3975,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -4004,7 +4004,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -4031,7 +4031,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -4051,7 +4051,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
 			},
@@ -4071,7 +4071,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineDeploymentLabelName: "cluster.x-k8s.io/deployment-name",
+						clusterv1.MachineDeploymentNameLabel: "cluster.x-k8s.io/deployment-name",
 					},
 				},
 			},
@@ -4520,7 +4520,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "cluster.x-k8s.io/control-plane",
+						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -4824,7 +4824,7 @@ func newBareMetalHost(name string,
 			Namespace: namespaceName,
 			UID:       uid,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 				"foo":                      "bar",
 			},
 		}
@@ -4861,7 +4861,7 @@ func newBMCSecret(name string, clusterlabel bool) *corev1.Secret {
 			Name:      name,
 			Namespace: namespaceName,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 				"foo":                      "bar",
 			},
 		}

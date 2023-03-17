@@ -52,7 +52,7 @@ func TestMetal3MachineValidation(t *testing.T) {
 
 	validIso := valid.DeepCopy()
 	validIso.Spec.Image.Checksum = ""
-	validIso.Spec.Image.DiskFormat = pointer.StringPtr(LiveISODiskFormat)
+	validIso.Spec.Image.DiskFormat = pointer.String(LiveISODiskFormat)
 
 	tests := []struct {
 		name      string

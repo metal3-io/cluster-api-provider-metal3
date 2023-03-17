@@ -125,7 +125,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				Spec: infrav1.Metal3DataSpec{},
 				Status: infrav1.Metal3DataStatus{
-					ErrorMessage: pointer.StringPtr("Error Happened"),
+					ErrorMessage: pointer.String("Error Happened"),
 				},
 			},
 		}),
@@ -344,7 +344,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("XX:XX:XX:XX:XX:XX"),
 									},
 								},
 							},
@@ -375,8 +375,8 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			expectReady:         true,
-			expectedMetadata:    pointer.StringPtr("Hello"),
-			expectedNetworkData: pointer.StringPtr("Bye"),
+			expectedMetadata:    pointer.String("Hello"),
+			expectedNetworkData: pointer.String("Bye"),
 		}),
 		Entry("secrets do not exist", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
@@ -405,7 +405,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("XX:XX:XX:XX:XX:XX"),
 									},
 								},
 							},
@@ -444,8 +444,8 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, bmhuid),
 			},
 			expectReady:         true,
-			expectedMetadata:    pointer.StringPtr(fmt.Sprintf("String-1: String-1\nproviderid: %s\n", providerid)),
-			expectedNetworkData: pointer.StringPtr("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
+			expectedMetadata:    pointer.String(fmt.Sprintf("String-1: String-1\nproviderid: %s\n", providerid)),
+			expectedNetworkData: pointer.String("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
@@ -474,7 +474,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("XX:XX:XX:XX:XX:XX"),
 									},
 								},
 							},
@@ -521,7 +521,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("XX:XX:XX:XX:XX:XX"),
 									},
 								},
 							},
@@ -700,7 +700,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev4{
 									{
 										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: pointer.StringPtr("abcd-5"),
+											FromIPPool: pointer.String("abcd-5"),
 										},
 									},
 								},
@@ -712,7 +712,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd-7"),
+											FromIPPool: pointer.String("abcd-7"),
 										},
 									},
 								},
@@ -723,7 +723,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev4{
 									{
 										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: pointer.StringPtr("abcd-8"),
+											FromIPPool: pointer.String("abcd-8"),
 										},
 									},
 								},
@@ -734,7 +734,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd-9"),
+											FromIPPool: pointer.String("abcd-9"),
 										},
 									},
 								},
@@ -745,7 +745,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd-10"),
+											FromIPPool: pointer.String("abcd-10"),
 										},
 									},
 								},
@@ -830,7 +830,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev4{
 									{
 										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: pointer.StringPtr("abcd-2"),
+											FromIPPool: pointer.String("abcd-2"),
 										},
 									},
 								},
@@ -856,7 +856,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd-2"),
+											FromIPPool: pointer.String("abcd-2"),
 										},
 									},
 								},
@@ -881,7 +881,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev4{
 									{
 										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: pointer.StringPtr("abcd"),
+											FromIPPool: pointer.String("abcd"),
 										},
 									},
 								},
@@ -905,7 +905,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd"),
+											FromIPPool: pointer.String("abcd"),
 										},
 									},
 								},
@@ -929,7 +929,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd"),
+											FromIPPool: pointer.String("abcd"),
 										},
 									},
 								},
@@ -1034,7 +1034,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev4{
 									{
 										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: pointer.StringPtr("abcd-5"),
+											FromIPPool: pointer.String("abcd-5"),
 										},
 									},
 								},
@@ -1046,7 +1046,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd-7"),
+											FromIPPool: pointer.String("abcd-7"),
 										},
 									},
 								},
@@ -1057,7 +1057,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev4{
 									{
 										Gateway: infrav1.NetworkGatewayv4{
-											FromIPPool: pointer.StringPtr("abcd-8"),
+											FromIPPool: pointer.String("abcd-8"),
 										},
 									},
 								},
@@ -1068,7 +1068,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd-9"),
+											FromIPPool: pointer.String("abcd-9"),
 										},
 									},
 								},
@@ -1079,7 +1079,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Routes: []infrav1.NetworkDataRoutev6{
 									{
 										Gateway: infrav1.NetworkGatewayv6{
-											FromIPPool: pointer.StringPtr("abcd-10"),
+											FromIPPool: pointer.String("abcd-10"),
 										},
 									},
 								},
@@ -1219,7 +1219,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Spec: ipamv1.IPAddressSpec{
 					Address: ipamv1.IPAddressStr("192.168.0.10"),
 					Prefix:  26,
-					Gateway: (*ipamv1.IPAddressStr)(pointer.StringPtr("192.168.0.1")),
+					Gateway: (*ipamv1.IPAddressStr)(pointer.String("192.168.0.1")),
 					DNSServers: []ipamv1.IPAddressStr{
 						"8.8.8.8",
 					},
@@ -1268,7 +1268,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Spec: ipamv1.IPAddressSpec{
 					Address: ipamv1.IPAddressStr("192.168.0.10"),
 					Prefix:  26,
-					Gateway: (*ipamv1.IPAddressStr)(pointer.StringPtr("192.168.0.1")),
+					Gateway: (*ipamv1.IPAddressStr)(pointer.String("192.168.0.1")),
 					DNSServers: []ipamv1.IPAddressStr{
 						"8.8.8.8",
 					},
@@ -1286,7 +1286,7 @@ var _ = Describe("Metal3Data manager", func() {
 			ipClaim: &ipamv1.IPClaim{
 				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
 				Status: ipamv1.IPClaimStatus{
-					ErrorMessage: pointer.StringPtr("Error happened"),
+					ErrorMessage: pointer.String("Error happened"),
 				},
 			},
 			expectError:     true,
@@ -1348,7 +1348,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Spec: ipamv1.IPAddressSpec{
 					Address: ipamv1.IPAddressStr("192.168.0.10"),
 					Prefix:  26,
-					Gateway: (*ipamv1.IPAddressStr)(pointer.StringPtr("192.168.0.1")),
+					Gateway: (*ipamv1.IPAddressStr)(pointer.String("192.168.0.1")),
 					DNSServers: []ipamv1.IPAddressStr{
 						"8.8.8.8",
 					},
@@ -1484,7 +1484,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("XX:XX:XX:XX:XX:XX"),
 									},
 								},
 							},
@@ -1500,7 +1500,7 @@ var _ = Describe("Metal3Data manager", func() {
 											Network: "10.0.0.0",
 											Prefix:  16,
 											Gateway: infrav1.NetworkGatewayv4{
-												String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
+												String: (*ipamv1.IPAddressv4Str)(pointer.String("192.168.1.1")),
 											},
 											Services: infrav1.NetworkDataServicev4{
 												DNS: []ipamv1.IPAddressv4Str{
@@ -1581,7 +1581,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										FromHostInterface: pointer.StringPtr("eth0"),
+										FromHostInterface: pointer.String("eth0"),
 									},
 								},
 							},
@@ -1647,7 +1647,7 @@ var _ = Describe("Metal3Data manager", func() {
 					(ipamv1.IPAddressStr)("8.8.8.8"),
 					(ipamv1.IPAddressStr)("2001::8888"),
 				},
-				DNSFromIPPool: pointer.StringPtr("pool1"),
+				DNSFromIPPool: pointer.String("pool1"),
 			},
 			poolAddresses: map[string]addressFromPool{
 				"pool1": {
@@ -1678,7 +1678,7 @@ var _ = Describe("Metal3Data manager", func() {
 					(ipamv1.IPAddressStr)("8.8.8.8"),
 					(ipamv1.IPAddressStr)("2001::8888"),
 				},
-				DNSFromIPPool: pointer.StringPtr("pool1"),
+				DNSFromIPPool: pointer.String("pool1"),
 			},
 			poolAddresses: map[string]addressFromPool{
 				"pool2": {
@@ -1715,7 +1715,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:   "eth0",
 						MTU:  1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+							String: pointer.String("XX:XX:XX:XX:XX:XX"),
 						},
 					},
 				},
@@ -1737,7 +1737,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:   "eth0",
 						MTU:  1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							FromHostInterface: pointer.StringPtr("eth2"),
+							FromHostInterface: pointer.String("eth2"),
 						},
 					},
 				},
@@ -1756,7 +1756,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:       "bond0",
 						MTU:      1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+							String: pointer.String("XX:XX:XX:XX:XX:XX"),
 						},
 						BondLinks: []string{"eth0"},
 					},
@@ -1781,7 +1781,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:       "bond0",
 						MTU:      1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							FromHostInterface: pointer.StringPtr("eth2"),
+							FromHostInterface: pointer.String("eth2"),
 						},
 						BondLinks: []string{"eth0"},
 					},
@@ -1801,7 +1801,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:     "bond0",
 						MTU:    1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+							String: pointer.String("XX:XX:XX:XX:XX:XX"),
 						},
 						VlanLink: "eth0",
 					},
@@ -1826,7 +1826,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:     "bond0",
 						MTU:    1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							FromHostInterface: pointer.StringPtr("eth2"),
+							FromHostInterface: pointer.String("eth2"),
 						},
 						VlanLink: "eth0",
 					},
@@ -1877,7 +1877,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "10.0.0.0",
 								Prefix:  16,
 								Gateway: infrav1.NetworkGatewayv4{
-									FromIPPool: pointer.StringPtr("abc"),
+									FromIPPool: pointer.String("abc"),
 								},
 								Services: infrav1.NetworkDataServicev4{
 									DNS: []ipamv1.IPAddressv4Str{
@@ -1951,7 +1951,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "2001::",
 								Prefix:  64,
 								Gateway: infrav1.NetworkGatewayv6{
-									FromIPPool: pointer.StringPtr("abc"),
+									FromIPPool: pointer.String("abc"),
 								},
 								Services: infrav1.NetworkDataServicev6{
 									DNS: []ipamv1.IPAddressv6Str{
@@ -2017,7 +2017,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "10.0.0.0",
 								Prefix:  16,
 								Gateway: infrav1.NetworkGatewayv4{
-									String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
+									String: (*ipamv1.IPAddressv4Str)(pointer.String("192.168.1.1")),
 								},
 								Services: infrav1.NetworkDataServicev4{
 									DNS: []ipamv1.IPAddressv4Str{
@@ -2066,7 +2066,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "2001::",
 								Prefix:  64,
 								Gateway: infrav1.NetworkGatewayv6{
-									String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("fe80::2001:1")),
+									String: (*ipamv1.IPAddressv6Str)(pointer.String("fe80::2001:1")),
 								},
 								Services: infrav1.NetworkDataServicev6{
 									DNS: []ipamv1.IPAddressv6Str{
@@ -2115,7 +2115,7 @@ var _ = Describe("Metal3Data manager", func() {
 								Network: "2001::",
 								Prefix:  64,
 								Gateway: infrav1.NetworkGatewayv6{
-									String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("fe80::2001:1")),
+									String: (*ipamv1.IPAddressv6Str)(pointer.String("fe80::2001:1")),
 								},
 								Services: infrav1.NetworkDataServicev6{
 									DNS: []ipamv1.IPAddressv6Str{
@@ -2161,21 +2161,21 @@ var _ = Describe("Metal3Data manager", func() {
 				Network: "192.168.0.0",
 				Prefix:  24,
 				Gateway: infrav1.NetworkGatewayv4{
-					String: (*ipamv1.IPAddressv4Str)(pointer.StringPtr("192.168.1.1")),
+					String: (*ipamv1.IPAddressv4Str)(pointer.String("192.168.1.1")),
 				},
 			},
 			{
 				Network: "10.0.0.0",
 				Prefix:  16,
 				Gateway: infrav1.NetworkGatewayv4{
-					FromIPPool: pointer.StringPtr("abc"),
+					FromIPPool: pointer.String("abc"),
 				},
 				Services: infrav1.NetworkDataServicev4{
 					DNS: []ipamv1.IPAddressv4Str{
 						ipamv1.IPAddressv4Str("8.8.8.8"),
 						ipamv1.IPAddressv4Str("8.8.4.4"),
 					},
-					DNSFromIPPool: pointer.StringPtr("abc"),
+					DNSFromIPPool: pointer.String("abc"),
 				},
 			},
 		}
@@ -2227,21 +2227,21 @@ var _ = Describe("Metal3Data manager", func() {
 				Network: "2001::0",
 				Prefix:  96,
 				Gateway: infrav1.NetworkGatewayv6{
-					String: (*ipamv1.IPAddressv6Str)(pointer.StringPtr("2001::1")),
+					String: (*ipamv1.IPAddressv6Str)(pointer.String("2001::1")),
 				},
 			},
 			{
 				Network: "fe80::0",
 				Prefix:  64,
 				Gateway: infrav1.NetworkGatewayv6{
-					FromIPPool: pointer.StringPtr("abc"),
+					FromIPPool: pointer.String("abc"),
 				},
 				Services: infrav1.NetworkDataServicev6{
 					DNS: []ipamv1.IPAddressv6Str{
 						ipamv1.IPAddressv6Str("fe80:2001::8888"),
 						ipamv1.IPAddressv6Str("fe80:2001::8844"),
 					},
-					DNSFromIPPool: pointer.StringPtr("abc"),
+					DNSFromIPPool: pointer.String("abc"),
 				},
 			},
 		}
@@ -2336,13 +2336,13 @@ var _ = Describe("Metal3Data manager", func() {
 		},
 		Entry("String", testCaseGetLinkMacAddress{
 			mac: &infrav1.NetworkLinkEthernetMac{
-				String: pointer.StringPtr("XX:XX:XX:XX:XX:XX"),
+				String: pointer.String("XX:XX:XX:XX:XX:XX"),
 			},
 			expectedMAC: "XX:XX:XX:XX:XX:XX",
 		}),
 		Entry("from host interface", testCaseGetLinkMacAddress{
 			mac: &infrav1.NetworkLinkEthernetMac{
-				FromHostInterface: pointer.StringPtr("eth1"),
+				FromHostInterface: pointer.String("eth1"),
 			},
 			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
@@ -2367,7 +2367,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("from host interface not found", testCaseGetLinkMacAddress{
 			mac: &infrav1.NetworkLinkEthernetMac{
-				FromHostInterface: pointer.StringPtr("eth2"),
+				FromHostInterface: pointer.String("eth2"),
 			},
 			bmh: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),

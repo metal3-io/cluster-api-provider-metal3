@@ -578,7 +578,7 @@ func m3mObjectMeta() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
-			clusterv1.ClusterLabelName: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 		Annotations: map[string]string{
 			baremetal.HostAnnotation: namespaceName + "/" + baremetalhostName,

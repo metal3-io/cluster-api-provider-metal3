@@ -160,7 +160,7 @@ func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
-			clusterv1.ClusterLabelName: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 	}
 }
@@ -286,7 +286,7 @@ func newMachine(clusterName, machineName string, metal3machineName string, nodeR
 			Name:      machineName,
 			Namespace: namespaceName,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 	}

@@ -364,7 +364,7 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(o client.Object) []ctr
 		return nil
 	}
 
-	labels := map[string]string{clusterv1.ClusterLabelName: c.Name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: c.Name}
 	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace),
 		client.MatchingLabels(labels),
@@ -408,7 +408,7 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(o client.Object)
 		return result
 	}
 
-	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
 	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Metal3Machines")
@@ -520,7 +520,7 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(obj client.Object) 
 
 // setErrorM3Machine sets the ErrorMessage and ErrorReason fields on the metal3machine.
 func setErrorM3Machine(m3m *infrav1.Metal3Machine, message string, reason capierrors.MachineStatusError) {
-	m3m.Status.FailureMessage = pointer.StringPtr(message)
+	m3m.Status.FailureMessage = pointer.String(message)
 	m3m.Status.FailureReason = &reason
 }
 

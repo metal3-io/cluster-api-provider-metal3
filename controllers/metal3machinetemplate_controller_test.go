@@ -106,7 +106,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 						},
 					},
 					Spec: infrav1.Metal3MachineSpec{
-						AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
+						AutomatedCleaningMode: utils.String(infrav1.CleaningModeDisabled),
 					},
 				},
 				M3MTemplate: &infrav1.Metal3MachineTemplate{
@@ -121,7 +121,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					Spec: infrav1.Metal3MachineTemplateSpec{
 						Template: infrav1.Metal3MachineTemplateResource{
 							Spec: infrav1.Metal3MachineSpec{
-								AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
+								AutomatedCleaningMode: utils.String(infrav1.CleaningModeDisabled),
 							},
 						},
 					},
@@ -142,7 +142,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 						},
 					},
 					Spec: infrav1.Metal3MachineSpec{
-						AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
+						AutomatedCleaningMode: utils.String(infrav1.CleaningModeDisabled),
 					},
 				},
 				M3MTemplate: &infrav1.Metal3MachineTemplate{
@@ -157,7 +157,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					Spec: infrav1.Metal3MachineTemplateSpec{
 						Template: infrav1.Metal3MachineTemplateResource{
 							Spec: infrav1.Metal3MachineSpec{
-								AutomatedCleaningMode: utils.StringPtr(infrav1.CleaningModeDisabled),
+								AutomatedCleaningMode: utils.String(infrav1.CleaningModeDisabled),
 							},
 						},
 					},
