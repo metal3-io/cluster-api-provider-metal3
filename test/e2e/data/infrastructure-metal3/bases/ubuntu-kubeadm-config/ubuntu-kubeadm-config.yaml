@@ -112,6 +112,7 @@ spec:
     - systemctl enable --now keepalived
     - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
     preKubeadmCommands:
+    - sed -i "s/MACAddressPolicy=persistent/MACAddressPolicy=none/g" /usr/lib/systemd/network/99-default.link
     - netplan apply
     - systemctl enable --now crio kubelet
     - if (curl -sk --max-time 10 https://${CLUSTER_APIENDPOINT_HOST}:${CLUSTER_APIENDPOINT_PORT}/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
@@ -146,5 +147,6 @@ spec:
           registries = ['${REGISTRY}']
         path: /etc/containers/registries.conf
       preKubeadmCommands:
+      - sed -i "s/MACAddressPolicy=persistent/MACAddressPolicy=none/g" /usr/lib/systemd/network/99-default.link
       - netplan apply
       - systemctl enable --now crio kubelet
