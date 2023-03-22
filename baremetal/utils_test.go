@@ -130,8 +130,8 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: namespaceName,
 		},
 		Spec: infrav1.Metal3MachineSpec{
-			ProviderID:            pointer.StringPtr("abcdef"),
-			AutomatedCleaningMode: pointer.StringPtr("metadata"),
+			ProviderID:            pointer.String("abcdef"),
+			AutomatedCleaningMode: pointer.String("metadata"),
 		},
 		Status: infrav1.Metal3MachineStatus{
 			Ready: true,
@@ -144,7 +144,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: namespaceName,
 		},
 		Spec: infrav1.Metal3MachineSpec{
-			ProviderID: pointer.StringPtr("abcdefg"),
+			ProviderID: pointer.String("abcdefg"),
 		},
 		Status: infrav1.Metal3MachineStatus{
 			Ready: true,
@@ -409,7 +409,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedSecret.ObjectMeta.Labels).To(Equal(map[string]string{
-				clusterv1.ClusterLabelName: "ghi",
+				clusterv1.ClusterNameLabel: "ghi",
 			}))
 			Expect(savedSecret.ObjectMeta.OwnerReferences).To(Equal(ownerRef))
 			Expect(savedSecret.Data).To(Equal(content))

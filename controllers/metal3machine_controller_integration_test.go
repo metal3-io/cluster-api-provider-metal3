@@ -254,7 +254,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				}
 			}
 			if tc.LabelExpected {
-				Expect(objMeta.Labels[clusterv1.ClusterLabelName]).NotTo(BeNil())
+				Expect(objMeta.Labels[clusterv1.ClusterNameLabel]).NotTo(BeNil())
 			}
 			if tc.CheckBMFinalizer {
 				Expect(baremetal.Contains(testBMmachine.Finalizers, infrav1.MachineFinalizer)).To(BeTrue())
@@ -267,10 +267,10 @@ var _ = Describe("Reconcile metal3machine", func() {
 					Expect(testBMmachine.Spec.ProviderID).To(Equal(oldProviderID))
 				} else {
 					if tc.CheckBMProviderIDNew {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.String(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
 							testBMHost.ObjectMeta.Namespace, testBMHost.ObjectMeta.Name, testBMmachine.ObjectMeta.Name))))
 					} else {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.StringPtr(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.String(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
 							string(testBMHost.ObjectMeta.UID)))))
 					}
 				}
@@ -526,8 +526,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 								// Checking the pointers,
 								// CheckBMHostProvisioned is true
-								ChecksumType: pointer.StringPtr("sha512"),
-								DiskFormat:   pointer.StringPtr("raw"),
+								ChecksumType: pointer.String("sha512"),
+								DiskFormat:   pointer.String("raw"),
 							},
 						}, nil, false,
 					),
@@ -646,7 +646,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1.Metal3MachineSpec{
-							ProviderID: pointer.StringPtr(providerID),
+							ProviderID: pointer.String(providerID),
 							Image: infrav1.Image{
 								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",

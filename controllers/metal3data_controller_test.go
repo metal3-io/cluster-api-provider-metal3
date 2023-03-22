@@ -142,7 +142,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 					},
 				},
@@ -153,7 +153,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 					},
@@ -166,7 +166,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 					},
@@ -181,7 +181,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 					},
@@ -196,7 +196,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},
@@ -217,7 +217,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},
@@ -235,7 +235,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},
@@ -255,7 +255,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1.ClusterLabelName: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},

@@ -124,12 +124,12 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		if tc.GetProviderIDFails {
 			m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
-				pointer.StringPtr(string(bmhuid)), nil,
+				pointer.String(string(bmhuid)), nil,
 			)
 			provID = ""
 		} else {
 			m.EXPECT().GetProviderIDAndBMHID().Return(
-				providerID, pointer.StringPtr(string(bmhuid)),
+				providerID, pointer.String(string(bmhuid)),
 			)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		}
@@ -596,8 +596,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				err := fakeClient.Get(context.TODO(), reqs[0].NamespacedName, &req)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(req.Labels[clusterv1.ClusterLabelName]).To(Equal(tc.Cluster.Name),
-					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[clusterv1.ClusterLabelName])
+				Expect(req.Labels[clusterv1.ClusterNameLabel]).To(Equal(tc.Cluster.Name),
+					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[clusterv1.ClusterNameLabel])
 			} else {
 				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
 

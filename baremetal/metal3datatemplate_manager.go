@@ -318,7 +318,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			Labels:    dataClaim.Labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					Controller: pointer.BoolPtr(true),
+					Controller: pointer.Bool(true),
 					APIVersion: m.DataTemplate.APIVersion,
 					Kind:       m.DataTemplate.Kind,
 					Name:       m.DataTemplate.Name,
@@ -357,7 +357,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	// the new state
 	if err := createObject(ctx, m.client, dataObject); err != nil {
 		if ok := errors.As(err, &requeueAfterError); !ok {
-			dataClaim.Status.ErrorMessage = pointer.StringPtr("Failed to create associated Metal3Data object")
+			dataClaim.Status.ErrorMessage = pointer.String("Failed to create associated Metal3Data object")
 		}
 		return indexes, err
 	}
@@ -397,14 +397,14 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 		}
 		err := m.client.Get(ctx, key, tmpM3Data)
 		if err != nil && !apierrors.IsNotFound(err) {
-			dataClaim.Status.ErrorMessage = pointer.StringPtr("Failed to get associated Metal3Data object")
+			dataClaim.Status.ErrorMessage = pointer.String("Failed to get associated Metal3Data object")
 			return indexes, err
 		} else if err == nil {
 			// Delete the secret with metadata
 			fmt.Println(tmpM3Data.Name)
 			err = m.client.Delete(ctx, tmpM3Data)
 			if err != nil && !apierrors.IsNotFound(err) {
-				dataClaim.Status.ErrorMessage = pointer.StringPtr("Failed to delete associated Metal3Data object")
+				dataClaim.Status.ErrorMessage = pointer.String("Failed to delete associated Metal3Data object")
 				return indexes, err
 			}
 		}

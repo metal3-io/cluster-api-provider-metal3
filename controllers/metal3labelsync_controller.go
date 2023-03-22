@@ -291,7 +291,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Objec
 		return nil
 	}
 
-	labels := map[string]string{clusterv1.ClusterLabelName: cluster.Name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
 	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Machines")

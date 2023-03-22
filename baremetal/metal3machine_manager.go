@@ -210,10 +210,10 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
-			if m.Cluster.Name == host.Labels[clusterv1.ClusterLabelName] && annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
+			if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
 				delete(host.Annotations, bmov1alpha1.PausedAnnotation)
-			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterLabelName] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
+			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
 				return nil
 			}
@@ -282,7 +282,7 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 		return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
 	}
 	if host.Status.Provisioning.State == bmov1alpha1.StateProvisioned {
-		return pointer.StringPtr(string(host.ObjectMeta.UID)), nil
+		return pointer.String(string(host.ObjectMeta.UID)), nil
 	}
 	m.Log.Info("Provisioning BaremetalHost, requeuing")
 	// Do not requeue since BMH update will trigger a reconciliation
@@ -525,8 +525,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			m.Log.Info("BMC credential not found for BareMetalhost", "host", host.Name)
 		} else if errBMC == nil && tmpBMCSecret != nil {
 			m.Log.Info("Deleting cluster label from BMC credential", "bmccredential", host.Spec.BMC.CredentialsName)
-			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1.ClusterLabelName] == m.Machine.Spec.ClusterName {
-				delete(tmpBMCSecret.Labels, clusterv1.ClusterLabelName)
+			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
+				delete(tmpBMCSecret.Labels, clusterv1.ClusterNameLabel)
 				errBMC = updateObject(ctx, m.client, tmpBMCSecret)
 				if errBMC != nil {
 					if ok := errors.As(errBMC, &hasRequeueAfterError); !ok {
@@ -700,8 +700,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return err
 		}
 
-		if host.Labels != nil && host.Labels[clusterv1.ClusterLabelName] == m.Machine.Spec.ClusterName {
-			delete(host.Labels, clusterv1.ClusterLabelName)
+		if host.Labels != nil && host.Labels[clusterv1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
+			delete(host.Labels, clusterv1.ClusterNameLabel)
 		}
 
 		m.Log.Info("Removing Paused Annotation (if any)")
@@ -1083,7 +1083,7 @@ func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmov1alpha
 		if tmpBMCSecret.Labels == nil {
 			tmpBMCSecret.Labels = make(map[string]string)
 		}
-		tmpBMCSecret.Labels[clusterv1.ClusterLabelName] = m.Machine.Spec.ClusterName
+		tmpBMCSecret.Labels[clusterv1.ClusterNameLabel] = m.Machine.Spec.ClusterName
 		return updateObject(ctx, m.client, tmpBMCSecret)
 	}
 
@@ -1095,7 +1095,7 @@ func (m *MachineManager) setHostLabel(ctx context.Context, host *bmov1alpha1.Bar
 	if host.Labels == nil {
 		host.Labels = make(map[string]string)
 	}
-	host.Labels[clusterv1.ClusterLabelName] = m.Machine.Spec.ClusterName
+	host.Labels[clusterv1.ClusterNameLabel] = m.Machine.Spec.ClusterName
 
 	return nil
 }
@@ -1325,7 +1325,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 	if strings.Contains(bmhID, "/") {
 		return *providerID, nil
 	}
-	return *providerID, pointer.StringPtr(bmhID)
+	return *providerID, pointer.String(bmhID)
 }
 
 // ClientGetter prototype.
@@ -1490,13 +1490,13 @@ func setOwnerRefInList(refList []metav1.OwnerReference, controller bool,
 			Kind:       objType.Kind,
 			Name:       objMeta.Name,
 			UID:        objMeta.UID,
-			Controller: pointer.BoolPtr(controller),
+			Controller: pointer.Bool(controller),
 		})
 	} else {
 		// The UID and the APIVersion might change due to move or version upgrade.
 		refList[index].APIVersion = objType.APIVersion
 		refList[index].UID = objMeta.UID
-		refList[index].Controller = pointer.BoolPtr(controller)
+		refList[index].Controller = pointer.Bool(controller)
 	}
 	return refList, nil
 }
@@ -1570,7 +1570,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 					Kind:       m.Metal3Machine.Kind,
 					Name:       m.Metal3Machine.Name,
 					UID:        m.Metal3Machine.UID,
-					Controller: pointer.BoolPtr(true),
+					Controller: pointer.Bool(true),
 				},
 			},
 			Labels: m.Metal3Machine.Labels,

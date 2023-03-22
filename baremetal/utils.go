@@ -130,7 +130,7 @@ func createSecret(ctx context.Context, cl client.Client, name string,
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 			OwnerReferences: ownerRefs,
 		},
