@@ -57,6 +57,9 @@ ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
 GINKGO := "$(ROOT_DIR)/$(TOOLS_BIN_DIR)/ginkgo"
 
+# Helper function to get dependency version from go.mod
+get_go_version = $(shell go list -m $1 | awk '{print $$2}')
+GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
 ENVTEST_K8S_VERSION := 1.25.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
@@ -240,7 +243,7 @@ $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
 	go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 $(GINKGO): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go get github.com/onsi/ginkgo/v2/ginkgo@v2.6.0
+	cd $(TOOLS_DIR) && go get github.com/onsi/ginkgo/v2/ginkgo@$(GINGKO_VER)
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/v2/ginkgo
 
 .PHONY: $(KUSTOMIZE)
