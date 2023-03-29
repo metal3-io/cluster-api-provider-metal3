@@ -80,7 +80,7 @@ var _ = Describe("Metal3Data manager", func() {
 				}
 				if tc.m3d != nil && !tc.m3d.DeletionTimestamp.IsZero() {
 					if tc.releaseLeasesRequeue {
-						m.EXPECT().ReleaseLeases(context.TODO()).Return(&baremetal.RequeueAfterError{})
+						m.EXPECT().ReleaseLeases(context.TODO()).Return(baremetal.WithTransientError(errors.New(""), requeueAfter))
 					} else if tc.releaseLeasesError {
 						m.EXPECT().ReleaseLeases(context.TODO()).Return(errors.New(""))
 					} else {
@@ -294,7 +294,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m.EXPECT().SetFinalizer()
 
 				if tc.createSecretsRequeue {
-					m.EXPECT().Reconcile(context.TODO()).Return(&baremetal.RequeueAfterError{})
+					m.EXPECT().Reconcile(context.TODO()).Return(baremetal.WithTransientError(errors.New(""), requeueAfter))
 				} else if tc.createSecretsError {
 					m.EXPECT().Reconcile(context.TODO()).Return(errors.New(""))
 				} else {
@@ -354,7 +354,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m := baremetal_mocks.NewMockDataManagerInterface(gomockCtrl)
 
 			if tc.ReleaseLeasesRequeue {
-				m.EXPECT().ReleaseLeases(context.TODO()).Return(&baremetal.RequeueAfterError{})
+				m.EXPECT().ReleaseLeases(context.TODO()).Return(baremetal.WithTransientError(errors.New(""), requeueAfter))
 			} else if tc.ReleaseLeasesError {
 				m.EXPECT().ReleaseLeases(context.TODO()).Return(errors.New(""))
 			} else {

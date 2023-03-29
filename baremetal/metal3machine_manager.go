@@ -76,11 +76,9 @@ const (
 
 var (
 	// Capm3FastTrack is the variable fetched from the CAPM3_FAST_TRACK environment variable.
-	Capm3FastTrack       = os.Getenv("CAPM3_FAST_TRACK")
-	hasRequeueAfterError HasRequeueAfterError
-	notFoundErr          *NotFoundError
-	requeueAfterError    *RequeueAfterError
-	associateBMHMutex    sync.Mutex
+	Capm3FastTrack    = os.Getenv("CAPM3_FAST_TRACK")
+	notFoundErr       *NotFoundError
+	associateBMHMutex sync.Mutex
 )
 
 // MachineManagerInterface is an interface for a MachineManager.
@@ -274,14 +272,12 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 	// look for associated BMH
 	host, _, err := m.getHost(ctx)
 	if err != nil {
-		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
-			capierrors.CreateMachineError,
-		)
 		return nil, err
 	}
 	if host == nil {
-		m.Log.Info("BaremetalHost not associated, requeuing")
-		return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "BareMetalHost not associated, requeuing"
+		m.Log.Info(errMessage)
+		return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if host.Status.Provisioning.State == bmov1alpha1.StateProvisioned {
 		return pointer.String(string(host.ObjectMeta.UID)), nil
@@ -311,9 +307,6 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
-		m.SetError("Failed to get the BaremetalHost for the Metal3Machine",
-			capierrors.CreateMachineError,
-		)
 		return err
 	}
 
@@ -321,16 +314,12 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	if host == nil {
 		host, helper, err = m.chooseHost(ctx)
 		if err != nil {
-			if ok := errors.As(err, &hasRequeueAfterError); !ok {
-				m.SetError("Failed to pick a BaremetalHost for the Metal3Machine",
-					capierrors.CreateMachineError,
-				)
-			}
 			return err
 		}
 		if host == nil {
-			m.Log.Info("No available host found. Requeuing.")
-			return &RequeueAfterError{RequeueAfter: requeueAfter}
+			errMessage := "No available host found. Requeuing."
+			m.Log.Info(errMessage)
+			return WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 		m.Log.Info("Associating machine with host", "host", host.Name)
 	} else {
@@ -341,31 +330,16 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// ReconcileNormal function
 	err = m.getUserDataSecretName(ctx, host)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to set the UserData for the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
 	err = m.setHostLabel(ctx, host)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to set the Cluster label in the BareMetalHost",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
 	err = m.setHostConsumerRef(ctx, host)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
@@ -373,22 +347,12 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// specs, nothing to wait for.
 	if m.Metal3Machine.Spec.DataTemplate == nil {
 		if err = m.setHostSpec(ctx, host); err != nil {
-			if ok := errors.As(err, &hasRequeueAfterError); !ok {
-				m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
-					capierrors.CreateMachineError,
-				)
-			}
 			return err
 		}
 	}
 
 	err = m.setBMCSecretLabel(ctx, host)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
@@ -398,7 +362,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		if ok := errors.As(err, &aggr); ok {
 			for _, kerr := range aggr.Errors() {
 				if apierrors.IsConflict(kerr) {
-					return &RequeueAfterError{}
+					return WithTransientError(nil, requeueAfter)
 				}
 			}
 		}
@@ -407,11 +371,6 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	err = m.ensureAnnotation(ctx, host)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to annotate the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
@@ -433,11 +392,6 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		}
 
 		if err = m.setHostSpec(ctx, host); err != nil {
-			if ok := errors.As(err, &hasRequeueAfterError); !ok {
-				m.SetError("Failed to set the BaremetalHost Specs",
-					capierrors.CreateMachineError,
-				)
-			}
 			return err
 		}
 
@@ -448,7 +402,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 			if ok := errors.As(err, &aggr); ok {
 				for _, kerr := range aggr.Errors() {
 					if apierrors.IsConflict(kerr) {
-						return &RequeueAfterError{}
+						return WithTransientError(kerr, requeueAfter)
 					}
 				}
 			}
@@ -501,7 +455,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		Capm3FastTrack = "false"
 		m.Log.Info("Capm3FastTrack is not set, setting it to default value false")
 	}
-
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
 		return err
@@ -535,7 +488,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				delete(tmpBMCSecret.Labels, clusterv1.ClusterNameLabel)
 				errBMC = updateObject(ctx, m.client, tmpBMCSecret)
 				if errBMC != nil {
-					if ok := errors.As(errBMC, &hasRequeueAfterError); !ok {
+					var reconcileError ReconcileError
+					if !(errors.As(errBMC, &reconcileError) && reconcileError.IsTransient()) {
 						m.Log.Info("Failed to delete the clusterLabel from BMC Secret")
 					}
 					return errBMC
@@ -594,8 +548,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				return err
 			}
 
-			m.Log.Info("Deprovisioning BaremetalHost, requeuing")
-			return &RequeueAfterError{}
+			errMessage := "Deprovisioning BareMetalHost, requeuing"
+			m.Log.Info(errMessage)
+			return WithTransientError(errors.New(errMessage), 0*time.Second)
 		}
 
 		waiting := true
@@ -612,8 +567,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			waiting = host.Status.PoweredOn
 		}
 		if waiting {
-			m.Log.Info("Deprovisioning BaremetalHost, requeuing")
-			return &RequeueAfterError{RequeueAfter: requeueAfter}
+			errMessage := "Deprovisioning BareMetalHost, requeuing"
+			m.Log.Info(errMessage)
+			return WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 
 		if m.Cluster != nil {
@@ -688,11 +644,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 					m.Metal3Machine.Namespace,
 				)
 				if err != nil {
-					if ok := errors.As(err, &hasRequeueAfterError); !ok {
-						m.SetError("Failed to delete userdata secret",
-							capierrors.DeleteMachineError,
-						)
-					}
 					return err
 				}
 			}
@@ -721,7 +672,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return err
 		}
 	}
-
 	m.Log.Info("finished deleting metal3 machine")
 	return nil
 }
@@ -739,37 +689,23 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 	if host == nil {
-		return errors.Errorf("host not found for machine %s", m.Machine.Name)
+		errMessage := fmt.Sprintf("BareMetalHost not found for machine %s", m.Machine.Name)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 
 	if err := m.WaitForM3Metadata(ctx); err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to get the DataTemplate",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
 	// ensure that the BMH specs are correctly set.
 	err = m.setHostConsumerRef(ctx, host)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
 	// ensure that the BMH specs are correctly set.
 	err = m.setHostSpec(ctx, host)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
-			m.SetError("Failed to associate the BaremetalHost to the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-		}
 		return err
 	}
 
@@ -977,8 +913,9 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 				randomHost := rHost.Int64()
 				chosenHost = hostsInAvailableStateWithNodeReuse[randomHost]
 			} else if len(hostsInNotAvailableStateWithNodeReuse) != 0 {
-				m.Log.Info("Found host(s) with nodeReuseLabelName in not-available state, requeuing the host", "notAvailabeHostCount", len(hostsInNotAvailableStateWithNodeReuse), "hoststate", host.Status.Provisioning.State, "host", host.Name)
-				return nil, nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+				errMessage := fmt.Sprint("Found BareMetalHost(s) with nodeReuseLabelName in not-available state, requeuing the BareMetalHost", "notAvailabeHostCount", len(hostsInNotAvailableStateWithNodeReuse), "hoststate", host.Status.Provisioning.State, "host", host.Name)
+				m.Log.Info(errMessage)
+				return nil, nil, WithTransientError(errors.New(errMessage), requeueAfter)
 			}
 		}
 	} else {
@@ -1255,7 +1192,7 @@ func (m *MachineManager) SetConditionMetal3MachineToTrue(t clusterv1.ConditionTy
 }
 
 // clearError removes the ErrorMessage from the machine's Status if set. Returns
-// nil if ErrorMessage was already nil. Returns a RequeueAfterError if the
+// nil if ErrorMessage was already nil. Returns a Transient error if the
 // machine was updated.
 func (m *MachineManager) clearError() {
 	if m.Metal3Machine.Status.FailureMessage != nil || m.Metal3Machine.Status.FailureReason != nil {
@@ -1347,13 +1284,15 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 	m3mName := m.Metal3Machine.GetName()
 	bmhName, err := m.getBmhNameFromM3Machine()
 	if err != nil {
-		m.Log.Info("unable to retrieve BMH name from Metal3Machine")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "unable to retrieve BMH name from Metal3Machine"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
 	if err != nil {
-		m.Log.Info("unable to retrieve BMH UID from Metal3Machine")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "unable to retrieve BMH UID from Metal3Machine"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 
 	providerIDLegacy := fmt.Sprintf("metal3://%s", bmhUID)
@@ -1367,28 +1306,33 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 		return errors.Wrap(err, "More than one node using the same providerID")
 	}
 	if err != nil {
-		m.Log.Info("error retrieving node, requeuing")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "error retrieving node, requeuing"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if !m.Metal3Cluster.Spec.NoCloudProvider && matchingNodesCount == 0 {
 		// The node could either be still running cloud-init or
 		// kubernetes has not set the node.spec.ProviderID field yet.
-		m.Log.Info("Some target nodes do not have spec.providerID field set yet, requeuing")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "Some target nodes do not have spec.providerID field set yet, requeuing"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if matchingNodesCount == 1 {
 		return nil
 	}
 	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
-		m.Log.Info("error retrieving node, requeuing")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "error retrieving node, requeuing"
+		m.Log.Info(errMessage)
+
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if countNodesWithLabel == 0 {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case.
-		m.Log.Info("requeuing, could not find node with label", "nodelabel", nodeLabel)
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := fmt.Sprint("requeuing, could not find node with label", "nodelabel", nodeLabel)
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if countNodesWithLabel > 1 {
 		return errors.Wrap(err, fmt.Sprintf("Found multiple target nodes with the same label: (%s)", nodeLabel))
@@ -1559,7 +1503,8 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 		m.Metal3Machine.Name, m.Metal3Machine.Namespace,
 	)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
+		var reconcileError ReconcileError
+		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			return err
 		}
 	} else {
@@ -1613,14 +1558,14 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 			return err
 		}
 		if metal3DataClaim == nil {
-			return &RequeueAfterError{}
+			return WithTransientError(errors.New("Metal3DataClaim is empty, requeuing"), requeueAfter)
 		}
 
 		if metal3DataClaim.Status.RenderedData != nil &&
 			metal3DataClaim.Status.RenderedData.Name != "" {
 			m.Metal3Machine.Status.RenderedData = metal3DataClaim.Status.RenderedData
 		} else {
-			return &RequeueAfterError{RequeueAfter: requeueAfter}
+			return WithTransientError(errors.New("Waiting for Metal3DataTemplate to be available"), requeueAfter)
 		}
 	}
 
@@ -1637,10 +1582,11 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 
 	// If it is not ready yet, wait.
 	if !metal3Data.Status.Ready {
-		m.Log.Info("Waiting for Metal3Data to become ready")
+		errMessage := "Waiting for Metal3Data to become ready"
+		m.Log.Info(errMessage)
 		m.SetConditionMetal3MachineToFalse(infrav1.Metal3DataReadyCondition, infrav1.WaitingForMetal3DataReason, clusterv1.ConditionSeverityInfo, "")
 		// Secret generation not ready
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 
 	// At this point, Metal3Data is ready
@@ -1688,7 +1634,8 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		m.Metal3Machine.Name, m.Metal3Machine.Namespace,
 	)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
+		var reconcileError ReconcileError
+		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			return err
 		}
 		return nil
@@ -1912,17 +1859,17 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]strin
 		}
 		// duplicates due to the same, at least, two instances of legacy OR new OR unknown formats being used in multiple nodes.
 		if len(nodes) > 1 {
-			errMsg := fmt.Sprintf("providerID %s is in use by multiple nodes: (%s)", providerID, matchingNodes)
-			m.Log.Info(errMsg)
-			return errors.New(errMsg)
+			errMessage := fmt.Sprintf("providerID %s is in use by multiple nodes: (%s)", providerID, matchingNodes)
+			m.Log.Info(errMessage)
+			return errors.New(errMessage)
 		}
 	}
 	// duplicates due to both the legacy AND new providerIDs being used by multiple nodes.
 	if duplicateUsageCounter > 1 {
 		duplicateNodesNames := strings.Join(duplicateNodes, ",")
-		errMsg := fmt.Sprintf("both providerIDs (%s and %s) cannot be used at the same time by node: (%s)", providerIDLegacy, providerIDNew, duplicateNodesNames)
-		m.Log.Info(errMsg)
-		return errors.New(errMsg)
+		errMessage := fmt.Sprintf("both providerIDs (%s and %s) cannot be used at the same time by node: (%s)", providerIDLegacy, providerIDNew, duplicateNodesNames)
+		m.Log.Info(errMessage)
+		return errors.New(errMessage)
 	}
 	return nil
 }

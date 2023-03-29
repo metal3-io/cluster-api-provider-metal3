@@ -127,7 +127,7 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 
 	err := metadataMgr.Reconcile(ctx)
 	if err != nil {
-		return checkRequeueError(err, "Failed to create secrets")
+		return checkReconcileError(err, "Failed to create secrets")
 	}
 	return ctrl.Result{}, nil
 }
@@ -137,7 +137,7 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 ) (ctrl.Result, error) {
 	err := metadataMgr.ReleaseLeases(ctx)
 	if err != nil {
-		return checkRequeueError(err, "Failed to release IP address leases")
+		return checkReconcileError(err, "Failed to release IP address leases")
 	}
 
 	metadataMgr.UnsetFinalizer()

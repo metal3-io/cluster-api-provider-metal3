@@ -113,7 +113,8 @@ func (m *DataManager) Reconcile(ctx context.Context) error {
 	m.clearError(ctx)
 
 	if err := m.createSecrets(ctx); err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); ok {
+		var reconcileError ReconcileError
+		if errors.As(err, &reconcileError) && reconcileError.IsTransient() {
 			return err
 		}
 		m.setError(ctx, errors.Cause(err).Error())
@@ -220,8 +221,9 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
 	}
 	if capiMachine == nil {
-		m.Log.Info("Waiting for Machine Controller to set OwnerRef on Metal3Machine")
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "Waiting for Machine Controller to set OwnerRef on Metal3Machine"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	m.Log.Info("Fetched Machine")
 
@@ -231,7 +233,9 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return err
 	}
 	if bmh == nil {
-		return &RequeueAfterError{RequeueAfter: requeueAfter}
+		errMessage := "Waiting for BareMetalHost to become available"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	m.Log.Info("Fetched BMH")
 
@@ -328,7 +332,7 @@ type reconciledClaim struct {
 // getAddressesFromPool allocates IP addresses from all IP pools referenced by a [Metal3DataTemplate].
 // It does so by creating IP claims for each referenced pool. It will check whether the claim was fulfilled
 // and return a map containing all pools and addresses. If some claims are not fulfilled yet, it will
-// return a [RequeueAfterError], indicating that some addresses were not fully allocated yet.
+// return a Transient type ReconcileError, indicating that some addresses were not fully allocated yet.
 func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	m3dt infrav1.Metal3DataTemplate,
 ) (map[string]addressFromPool, error) {
@@ -388,7 +392,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 
 	m.Log.Info("done allocating addresses", "addresses", addresses, "requeue", requeue)
 	if requeue {
-		return addresses, &RequeueAfterError{RequeueAfter: requeueAfter}
+		return addresses, WithTransientError(nil, requeueAfter)
 	}
 	return addresses, nil
 }
@@ -620,7 +624,8 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 		return reconciledClaim{m3Claim: ipClaim}, nil
 	}
 
-	if ok := errors.As(err, &hasRequeueAfterError); !ok {
+	var reconcileError ReconcileError
+	if !errors.As(err, &reconcileError) {
 		return reconciledClaim{m3Claim: ipClaim}, err
 	}
 
@@ -651,7 +656,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 		return reconciledClaim{m3Claim: ipClaim}, err
 	}
 	if bmh == nil {
-		return reconciledClaim{m3Claim: ipClaim}, &RequeueAfterError{RequeueAfter: requeueAfter}
+		return reconciledClaim{m3Claim: ipClaim}, WithTransientError(nil, requeueAfter)
 	}
 	m.Log.Info("Fetched BMH")
 
@@ -659,7 +664,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if err == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
 	}
-	if ok := errors.As(err, &hasRequeueAfterError); !ok {
+	if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 		return reconciledClaim{m3Claim: ipClaim}, err
 	}
 
@@ -683,7 +688,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	}
 	err = createObject(ctx, m.client, ipClaim)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
+		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			return reconciledClaim{m3Claim: ipClaim}, err
 		}
 	}
@@ -783,7 +788,8 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 	}
 	ipClaim, err = fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err != nil {
-		if ok := errors.As(err, &hasRequeueAfterError); !ok {
+		var reconcileError ReconcileError
+		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			return err
 		}
 		return nil
@@ -1373,7 +1379,7 @@ func (m *DataManager) getM3Machine(ctx context.Context, m3dt *infrav1.Metal3Data
 
 	if err := m.client.Get(ctx, claimNamespacedName, capm3DataClaim); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+			return nil, WithTransientError(nil, requeueAfter)
 		}
 		return nil, err
 	}
@@ -1413,8 +1419,9 @@ func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3ClaimName, metal3IPClaim); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Address claim not found, requeuing")
-			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+			errMessage := "Address claim not found, requeuing"
+			mLog.Info(errMessage)
+			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 		err := errors.Wrap(err, "Failed to get address claim")
 		return nil, err
