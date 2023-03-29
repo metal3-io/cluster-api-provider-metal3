@@ -39,14 +39,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
 	machineControllerName = "Metal3Machine-controller"
 )
-
-var hasRequeueAfterError baremetal.HasRequeueAfterError
 
 // Metal3MachineReconciler reconciles a Metal3Machine object.
 type Metal3MachineReconciler struct {
@@ -218,9 +217,9 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// if the machine is already provisioned, update and return
 	if machineMgr.IsProvisioned() {
 		errType := capierrors.UpdateMachineError
-		return checkMachineError(machineMgr, machineMgr.Update(ctx),
-			"Failed to update the Metal3Machine", errType,
-		)
+		err := machineMgr.Update(ctx)
+		return checkMachineError(machineMgr, err,
+			"Failed to update the Metal3Machine", errType)
 	}
 
 	// Make sure bootstrap data is available and populated. If not, return, we
@@ -239,8 +238,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		if err != nil {
 			machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.AssociateBMHFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
-				"failed to associate the Metal3Machine to a BaremetalHost", errType,
-			)
+				"failed to associate the Metal3Machine to a BareMetalHost", errType)
 		}
 	}
 	// Update Condition to reflect that we have an associated BMH
@@ -251,26 +249,23 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if err != nil {
 		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.AssociateM3MetaDataFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return checkMachineError(machineMgr, err,
-			"Failed to get the Metal3Metadata", errType,
-		)
+			"Failed to get the Metal3Metadata", errType)
 	}
 
 	err = machineMgr.Update(ctx)
 	if err != nil {
 		return checkMachineError(machineMgr, err,
-			"failed to update BaremetalHost", errType,
-		)
+			"failed to update BareMetalHost", errType)
 	}
 
 	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
 	if bmhID == nil {
 		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
 		if err != nil {
-			r.Log.Error(err, "Failed to get the providerID for the metal3machine", "providerID", providerID)
+			r.Log.Error(err, "Failed to get the providerID for the Metal3Machine", "providerID", providerID)
 			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.MissingBMHReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
-				"failed to get the providerID for the metal3machine", errType,
-			)
+				"failed to get the providerID for the Metal3Machine", errType)
 		}
 	}
 	if providerID != "" || bmhID != nil {
@@ -280,8 +275,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			r.Log.Error(err, "Failed to set the target node providerID", "providerID", providerID)
 			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
-				"failed to set the target node providerID", errType,
-			)
+				"failed to set the target node providerID", errType)
 		}
 		// Make sure Spec.ProviderID is set and mark the capm3Machine ready
 		machineMgr.SetProviderID(providerID)
@@ -302,15 +296,13 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	if err := machineMgr.Delete(ctx); err != nil {
 		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return checkMachineError(machineMgr, err,
-			"failed to delete Metal3Machine", errType,
-		)
+			"failed to delete Metal3Machine", errType)
 	}
 
 	if err := machineMgr.DissociateM3Metadata(ctx); err != nil {
 		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DisassociateM3MetaDataFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return checkMachineError(machineMgr, err,
-			"failed to dissociate Metadata", errType,
-		)
+			"failed to dissociate Metadata", errType)
 	}
 
 	// metal3machine is marked for deletion and ready to be deleted,
@@ -535,14 +527,20 @@ func clearErrorM3Machine(m3m *infrav1.Metal3Machine) {
 }
 
 func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,
-	errMessage string, errType capierrors.MachineStatusError,
-) (ctrl.Result, error) {
+	errMessage string, errType capierrors.MachineStatusError) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
-	if ok := errors.As(err, &hasRequeueAfterError); ok {
-		return ctrl.Result{Requeue: true, RequeueAfter: hasRequeueAfterError.GetRequeueAfter()}, nil
+
+	var reconcileError baremetal.ReconcileError
+	if errors.As(err, &reconcileError) {
+		if reconcileError.IsTransient() {
+			return reconcile.Result{Requeue: true, RequeueAfter: reconcileError.GetRequeueAfter()}, nil
+		}
+		if reconcileError.IsTerminal() {
+			machineMgr.SetError(errMessage, errType)
+			return reconcile.Result{}, nil
+		}
 	}
-	machineMgr.SetError(errMessage, errType)
 	return ctrl.Result{}, errors.Wrap(err, errMessage)
 }
