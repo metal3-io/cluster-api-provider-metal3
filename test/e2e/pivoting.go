@@ -212,7 +212,7 @@ type installIronicBMOInput struct {
 func installIronicBMO(inputGetter func() installIronicBMOInput) {
 	input := inputGetter()
 
-	ironicHost := os.Getenv("CLUSTER_PROVISIONING_IP")
+	ironicHost := os.Getenv("CLUSTER_BARE_METAL_PROVISIONER_IP")
 	path := fmt.Sprintf("%s/tools/", input.BMOPath)
 	args := []string{
 		strconv.FormatBool(input.deployBMO),
