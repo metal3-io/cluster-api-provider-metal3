@@ -19,7 +19,7 @@ set -o nounset
 set -o pipefail
 set -x
 
-KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
+KUBE_ROOT="$(dirname "${BASH_SOURCE[0]}")/.."
 BIN_ROOT="${KUBE_ROOT}/hack/tools/bin"
 MINIMUM_KUSTOMIZE_VERSION=4.4.1
 
@@ -27,46 +27,46 @@ goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"
 
 # Ensure the kustomize tool exists and is a viable version, or installs it
-verify_kustomize_version() {
-
-  # If kustomize is not available on the path, get it
-  if ! [ -x "$(command -v "$BIN_ROOT"/kustomize)" ]; then
-    if [[ "${OSTYPE}" == "linux-gnu" ]]; then
-      echo 'kustomize not found, installing'
-      if ! [ -d "${BIN_ROOT}" ]; then
-        mkdir -p "${BIN_ROOT}"
-      fi
-      archive_name="kustomize-v${MINIMUM_KUSTOMIZE_VERSION}.tar.gz"
-      curl -sLo "${BIN_ROOT}/${archive_name}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${goos}_${goarch}.tar.gz"
-      tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
-      chmod +x "${BIN_ROOT}/kustomize"
-      rm "${BIN_ROOT}/${archive_name}"
-    elif [[ "${OSTYPE}" == "darwin"* ]]; then
-      echo 'kustomize not found, installing'
-      if ! [ -d "${BIN_ROOT}" ]; then
-        mkdir -p "${BIN_ROOT}"
-      fi
-      archive_name="kustomize-v${MINIMUM_KUSTOMIZE_VERSION}.tar.gz"
-      curl -sLo "${BIN_ROOT}/${archive_name}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_darwin_${goarch}.tar.gz"
-      tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
-      chmod +x "${BIN_ROOT}/kustomize"
-      rm "${BIN_ROOT}/${archive_name}"
-    else
-      echo "Missing required binary in path: kustomize"
-      return 2
+verify_kustomize_version()
+{
+    # If kustomize is not available on the path, get it
+    if ! [ -x "$(command -v "${BIN_ROOT}"/kustomize)" ]; then
+        if [[ "${OSTYPE}" == "linux-gnu" ]]; then
+            echo 'kustomize not found, installing'
+            if ! [ -d "${BIN_ROOT}" ]; then
+                mkdir -p "${BIN_ROOT}"
+            fi
+            archive_name="kustomize-v${MINIMUM_KUSTOMIZE_VERSION}.tar.gz"
+            curl -sLo "${BIN_ROOT}/${archive_name}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_${goos}_${goarch}.tar.gz"
+            tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
+            chmod +x "${BIN_ROOT}/kustomize"
+            rm "${BIN_ROOT}/${archive_name}"
+        elif [[ "${OSTYPE}" == "darwin"* ]]; then
+            echo 'kustomize not found, installing'
+            if ! [ -d "${BIN_ROOT}" ]; then
+                mkdir -p "${BIN_ROOT}"
+            fi
+            archive_name="kustomize-v${MINIMUM_KUSTOMIZE_VERSION}.tar.gz"
+            curl -sLo "${BIN_ROOT}/${archive_name}" "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${MINIMUM_KUSTOMIZE_VERSION}/kustomize_v${MINIMUM_KUSTOMIZE_VERSION}_darwin_${goarch}.tar.gz"
+            tar -zvxf "${BIN_ROOT}/${archive_name}" -C "${BIN_ROOT}/"
+            chmod +x "${BIN_ROOT}/kustomize"
+            rm "${BIN_ROOT}/${archive_name}"
+        else
+            echo "Missing required binary in path: kustomize"
+            return 2
+        fi
     fi
-  fi
 
-  local kustomize_version
-  kustomize_version=$("$BIN_ROOT"/kustomize version)
-  if [[ "${MINIMUM_KUSTOMIZE_VERSION}" != $(echo -e "${MINIMUM_KUSTOMIZE_VERSION}\n${kustomize_version}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
-    cat <<EOF
+    local kustomize_version
+    kustomize_version=$("${BIN_ROOT}"/kustomize version)
+    if [[ "${MINIMUM_KUSTOMIZE_VERSION}" != $(echo -e "${MINIMUM_KUSTOMIZE_VERSION}\n${kustomize_version}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
+        cat << EOF
 Detected kustomize version: ${kustomize_version}.
 Requires ${MINIMUM_KUSTOMIZE_VERSION} or greater.
 Please install ${MINIMUM_KUSTOMIZE_VERSION} or later.
 EOF
-    return 2
-  fi
+        return 2
+    fi
 }
 
 verify_kustomize_version

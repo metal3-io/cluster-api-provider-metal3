@@ -2,7 +2,7 @@
 
 set -eux
 
-IS_CONTAINER=${IS_CONTAINER:-false}
+IS_CONTAINER="${IS_CONTAINER:-false}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 K8S_VERSION="${K8S_VERSION:-master}"
 
@@ -22,18 +22,18 @@ K8S_VERSION="${K8S_VERSION:-master}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
     "${KUBECONFORM_PATH:-}"kubeconform --strict --ignore-missing-schemas \
-    --kubernetes-version "${K8S_VERSION}" \
-    --ignore-filename-pattern kustom --ignore-filename-pattern patch \
-    --ignore-filename-pattern clusterctl \
-    --output tap \
-    config/ examples/
+        --kubernetes-version "${K8S_VERSION}" \
+        --ignore-filename-pattern kustom --ignore-filename-pattern patch \
+        --ignore-filename-pattern clusterctl \
+        --output tap \
+        config/ examples/
 else
-  "${CONTAINER_RUNTIME}" run --rm \
-    --env IS_CONTAINER=TRUE \
-    --env KUBECONFORM_PATH="/" \
-    --volume "${PWD}:/workdir:ro,z" \
-    --entrypoint sh \
-    --workdir /workdir \
-    ghcr.io/yannh/kubeconform:v0.5.0-alpine@sha256:ae1583859c7c9683b2f044a9cc911d9427030cd48ec33eeff6c0f23396780da9 \
-    /workdir/hack/manifestlint.sh "${@}"
-fi;
+    "${CONTAINER_RUNTIME}" run --rm \
+        --env IS_CONTAINER=TRUE \
+        --env KUBECONFORM_PATH="/" \
+        --volume "${PWD}:/workdir:ro,z" \
+        --entrypoint sh \
+        --workdir /workdir \
+        ghcr.io/yannh/kubeconform:v0.5.0-alpine@sha256:ae1583859c7c9683b2f044a9cc911d9427030cd48ec33eeff6c0f23396780da9 \
+        /workdir/hack/manifestlint.sh "$@"
+fi
