@@ -14,6 +14,9 @@ jobs:
     permissions:
       contents: write
     name: tag release
+    # This workflow is only of value to the metal3-io/cluster-api-provider-metal3 repository and
+    # would always fail in forks
+    if: github.repository == 'metal3-io/cluster-api-provider-metal3'
     runs-on: ubuntu-latest
     steps:
       - name: Export RELEASE_TAG var
