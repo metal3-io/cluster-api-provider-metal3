@@ -7,7 +7,7 @@
 
 set -eux
 
-IS_CONTAINER=${IS_CONTAINER:-false}
+IS_CONTAINER="${IS_CONTAINER:-false}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then

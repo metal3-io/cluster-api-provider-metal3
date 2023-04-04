@@ -17,5 +17,5 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-root=$(dirname "${BASH_SOURCE[0]}")
-"$root/tools/bin/kustomize" build "$1" | "$root/tools/bin/envsubst"
+root="$(dirname "${BASH_SOURCE[0]}")"
+"${root}/tools/bin/kustomize" build "$1" | "${root}/tools/bin/envsubst"

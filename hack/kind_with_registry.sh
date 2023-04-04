@@ -21,8 +21,8 @@ set -o pipefail
 KIND_CLUSTER_NAME="${KIND_CLUSTER_NAME:-capm3}"
 
 if [[ "$(kind get clusters)" =~ .*"${KIND_CLUSTER_NAME}".* ]]; then
-  echo "cluster already exists, moving on"
-  exit 0
+    echo "cluster already exists, moving on"
+    exit 0
 fi
 
 # create registry container unless it already exists
@@ -31,17 +31,17 @@ kind_network='kind'
 reg_name='registry'
 reg_port='5000'
 case "${kind_version}" in
-  "kind v0.7."* | "kind v0.6."* | "kind v0.5."*)
-    kind_network='bridge'
-    ;;
+    "kind v0.7."* | "kind v0.6."* | "kind v0.5."*)
+        kind_network='bridge'
+        ;;
 esac
 
 # create registry container unless it already exists
-running="$(docker inspect -f '{{.State.Running}}' "${reg_name}" 2>/dev/null || true)"
+running="$(docker inspect -f '{{.State.Running}}' "${reg_name}" 2> /dev/null || true)"
 if [ "${running}" != 'true' ]; then
-  docker run \
-    -d --restart=always -p "${reg_port}:5000" --name "${reg_name}" \
-    registry:2
+    docker run \
+        -d --restart=always -p "${reg_port}:5000" --name "${reg_name}" \
+        registry:2
 fi
 
 reg_host="${reg_name}"
@@ -51,7 +51,7 @@ fi
 echo "Registry Host: ${reg_host}"
 
 # create a cluster with the local registry enabled in containerd
-cat <<EOF | kind create cluster --name "${KIND_CLUSTER_NAME}" --config=-
+cat << EOF | kind create cluster --name "${KIND_CLUSTER_NAME}" --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 containerdConfigPatches:
@@ -61,18 +61,18 @@ containerdConfigPatches:
 EOF
 
 for node in $(kind get nodes --name "${KIND_CLUSTER_NAME}"); do
-  kubectl annotate node "${node}" tilt.dev/registry=localhost:${reg_port};
+    kubectl annotate node "${node}" tilt.dev/registry=localhost:${reg_port}
 done
 
 if [ "${kind_network}" != "bridge" ]; then
-  containers=$(docker network inspect ${kind_network} -f "{{range .Containers}}{{.Name}} {{end}}")
-  needs_connect="true"
-  for c in $containers; do
-    if [ "$c" = "${reg_name}" ]; then
-      needs_connect="false"
+    containers=$(docker network inspect ${kind_network} -f "{{range .Containers}}{{.Name}} {{end}}")
+    needs_connect="true"
+    for c in $containers; do
+        if [ "$c" = "${reg_name}" ]; then
+            needs_connect="false"
+        fi
+    done
+    if [ "${needs_connect}" = "true" ]; then
+        docker network connect "${kind_network}" "${reg_name}" || true
     fi
-  done
-  if [ "${needs_connect}" = "true" ]; then
-    docker network connect "${kind_network}" "${reg_name}" || true
-  fi
 fi
