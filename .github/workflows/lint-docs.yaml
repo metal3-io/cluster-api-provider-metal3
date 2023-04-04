@@ -9,6 +9,9 @@ on:
 jobs:
   markdown-link-check:
     name: Broken Links
+    # This workflow is only of value to the metal3-io/cluster-api-provider-metal3 repository and
+    # would always fail in forks
+    if: github.repository == 'metal3-io/cluster-api-provider-metal3'
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
