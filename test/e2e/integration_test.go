@@ -1,6 +1,8 @@
 package e2e
 
 import (
+	"path/filepath"
+
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -26,6 +28,13 @@ var _ = Describe("When testing integration [integration]", func() {
 				ArtifactFolder:        artifactFolder,
 				ClusterctlConfigPath:  clusterctlConfigPath,
 			}
+		})
+		// Fetch the target cluster resources before re-pivoting.
+		By("Fetch the target cluster resources before re-pivoting")
+		framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+			Lister:    targetCluster.GetClient(),
+			Namespace: namespace,
+			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
 		})
 		By("Repivot objects to the source cluster")
 		rePivoting(ctx, func() RePivotingInput {
