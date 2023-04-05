@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -eux pipefail
+set -euxo pipefail
 
 REPO_ROOT=$(realpath "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"/..)
 cd "${REPO_ROOT}"
