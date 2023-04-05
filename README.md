@@ -156,7 +156,11 @@ Release-1.1 branch:
 
 ### Upgrade tests
 
-- **/test-e2e-upgrade-main** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
+We run upgrade test on main branch from different releases:
+
+- **/test-e2e-upgrade-main-from-release-0-5** runs e2e upgrade tests from CAPM3 API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch main on Ubuntu
+
+- **/test-e2e-upgrade-main-from-release-1-1** runs e2e upgrade tests from CAPM3 API version v1beta1/branch release-1.1 to CAPM3 API version v1beta1/branch main on Ubuntu
 
 ### Keep VM
 
