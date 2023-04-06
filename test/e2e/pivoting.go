@@ -83,6 +83,19 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
 	}
 
+	By("Fetch target cluster kubeconfig for target cluster log collection")
+	kubeconfigPath := input.TargetCluster.GetKubeconfigPath()
+	os.Setenv("KUBE_CONFIG", kubeconfigPath)
+	Logf("Save kubeconfig in temp folder for project-infra target log collection")
+	// TODO(smoshiur1237): This is a workaround to copy the target kubeconfig and enable project-infra
+	// target log collection. There is possibility to handle the kubeconfig in better way.
+	// KubeconfigPathTemp will be used by project-infra target log collection only incase of failed e2e test
+	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
+	cmd := exec.Command("cp", kubeconfigPath, kubeconfigPathTemp) // #nosec G204:gosec
+	stdoutStderr, er := cmd.CombinedOutput()
+	Logf("%s\n", stdoutStderr)
+	Expect(er).To(BeNil(), "Cannot fetch target cluster kubeconfig")
+
 	By("Remove Ironic containers from the source cluster")
 	isIronicDeployment := true
 	if ephemeralCluster == Kind {
@@ -393,6 +406,21 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
+	By("Fetch logs from target cluster")
+	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
+	cmd.Dir = path
+	outputPipe, _ := cmd.StdoutPipe()
+	errorPipe, _ := cmd.StderrPipe()
+	_ = cmd.Start()
+	data, _ := io.ReadAll(outputPipe)
+	if len(data) > 0 {
+		Logf("Output of the shell: %s\n", string(data))
+	}
+	errorData, _ := io.ReadAll(errorPipe)
+	if len(errorData) > 0 {
+		Logf("Error of the shell: %v\n", string(errorData))
+	}
 	By("Remove Ironic deployment from target cluster")
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
