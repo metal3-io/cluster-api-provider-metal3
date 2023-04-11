@@ -61,7 +61,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kubeconfigPath := input.TargetCluster.GetKubeconfigPath()
-	os.Setenv("KUBE_CONFIG", kubeconfigPath)
+	os.Setenv("KUBECONFIG_WORKLOAD", kubeconfigPath)
 	Logf("Save kubeconfig in temp folder for project-infra target log collection")
 	// TODO(smoshiur1237): This is a workaround to copy the target kubeconfig and enable project-infra
 	// target log collection. There is possibility to handle the kubeconfig in better way.
@@ -376,6 +376,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	if len(errorData) > 0 {
 		Logf("Error of the shell: %v\n", string(errorData))
 	}
+	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	By("Remove Ironic deployment from target cluster")
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
