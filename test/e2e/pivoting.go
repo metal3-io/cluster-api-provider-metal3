@@ -59,6 +59,22 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
+	By("Fetch manifest for ephemeral cluster")
+	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
+	cmd.Dir = path
+	outputPipe, _ := cmd.StdoutPipe()
+	errorPipe, _ := cmd.StderrPipe()
+	_ = cmd.Start()
+	data, _ := io.ReadAll(outputPipe)
+	if len(data) > 0 {
+		Logf("Output of the shell: %s\n", string(data))
+	}
+	errorData, _ := io.ReadAll(errorPipe)
+	if len(errorData) > 0 {
+		Logf("Error of the shell: %v\n", string(errorData))
+	}
+
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kubeconfigPath := input.TargetCluster.GetKubeconfigPath()
 	os.Setenv("KUBECONFIG_WORKLOAD", kubeconfigPath)
@@ -67,7 +83,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	// target log collection. There is possibility to handle the kubeconfig in better way.
 	// KubeconfigPathTemp will be used by project-infra target log collection only incase of failed e2e test
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
-	cmd := exec.Command("cp", kubeconfigPath, kubeconfigPathTemp) // #nosec G204:gosec
+	cmd = exec.Command("cp", kubeconfigPath, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
 	Logf("%s\n", stdoutStderr)
 	Expect(er).To(BeNil(), "Cannot fetch target cluster kubeconfig")
