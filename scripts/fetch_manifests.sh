@@ -1,8 +1,20 @@
 #!/bin/bash
 
 set -x
-DIR_NAME="/tmp/manifests/bootstrap"
-mkdir -p "${DIR_NAME}"
+
+# Initial manifest directory before pivot
+DIR_NAME="/tmp/manifests/bootstrap-before-pivot"
+
+# Check if manifest directory exists.
+# If doesn't exits, will create the directory for before pivot manifest.
+# If exits, that means it will create directory for manifest after re-pivot.
+if [ -d "${DIR_NAME}" ]; then
+  # Manifest directory after re-pivot
+  DIR_NAME="/tmp/manifests/bootstrap-after-repivot"
+  mkdir -p "${DIR_NAME}"
+else
+  mkdir -p "${DIR_NAME}"
+fi
 
 manifests=(
   bmh
