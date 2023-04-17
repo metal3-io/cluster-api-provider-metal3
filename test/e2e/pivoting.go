@@ -83,7 +83,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
 	}
 
-	By("Fetch manifest for ephemeral cluster")
+	By("Fetch manifest for ephemeral cluster before pivot")
 	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
 	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
 	cmd.Dir = path
@@ -533,6 +533,22 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Replicas:  numberOfAllBmh,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
 	})
+
+	By("Fetch manifest for ephemeral cluster after re-pivot")
+	path = filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd = exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
+	cmd.Dir = path
+	outputPipe, _ = cmd.StdoutPipe()
+	errorPipe, _ = cmd.StderrPipe()
+	_ = cmd.Start()
+	data, _ = io.ReadAll(outputPipe)
+	if len(data) > 0 {
+		Logf("Output of the shell: %s\n", string(data))
+	}
+	errorData, _ = io.ReadAll(errorPipe)
+	if len(errorData) > 0 {
+		Logf("Error of the shell: %v\n", string(errorData))
+	}
 
 	By("RE-PIVOTING TEST PASSED!")
 }
