@@ -454,8 +454,8 @@ github.com/mattn/go-runewidth v0.0.13/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 h1:I0XW9+e1XWDxdcEniV4rQAIOPUGDq67JSCiRCgGCZLI=
 github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/metal3-io/ip-address-manager/api v0.0.0-20221109122800-a505a415c34c h1:p9Uy3VWGSxkPYyd0xTPM03vKil93ZT7bNrAKpG/hVIM=
-github.com/metal3-io/ip-address-manager/api v0.0.0-20221109122800-a505a415c34c/go.mod h1:FAovfa/DK3etr+Tt0JS1nHU2hHBayOyQY1GVA74oiXc=
+github.com/metal3-io/ip-address-manager/api v1.2.2 h1:HxI8qQhcZIXBjAkb83U4E9iZ7dTUqOz6SptRMBFRIcA=
+github.com/metal3-io/ip-address-manager/api v1.2.2/go.mod h1:lHK6WHjAtF8yC8Semez2ZHC/7Fkx0Dv+IzQXUt7o8uk=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/miekg/dns v1.1.26/go.mod h1:bPDLeHnStXmXAq1m/Ch/hvfNHr14JKNPMBo3VZKjuso=
 github.com/miekg/dns v1.1.41/go.mod h1:p6aan82bvRIyn+zDIv9xYNUpwa73JcSh9BKwknJysuI=
