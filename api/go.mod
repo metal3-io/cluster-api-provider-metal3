@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/google/gofuzz v1.2.0
-	github.com/metal3-io/ip-address-manager/api v0.0.0-20220919121103-31c03f129143
+	github.com/metal3-io/ip-address-manager/api v1.3.1
 	github.com/onsi/gomega v1.24.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.7.0
