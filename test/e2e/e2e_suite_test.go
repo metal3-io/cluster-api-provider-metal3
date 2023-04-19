@@ -21,6 +21,7 @@ import (
 	"gopkg.in/yaml.v3"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -162,6 +163,7 @@ func initScheme() *runtime.Scheme {
 	framework.TryAddDefaultSchemes(sc)
 	Expect(clusterv1alpha4.AddToScheme(sc))
 	Expect(bmov1alpha1.AddToScheme(sc)).To(Succeed())
+	Expect(ipamv1.AddToScheme(sc)).To(Succeed())
 	Expect(infrav1.AddToScheme(sc)).To(Succeed())
 
 	return sc

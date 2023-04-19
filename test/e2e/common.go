@@ -14,6 +14,7 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -54,6 +55,22 @@ func LogFromFile(logFile string) {
 	data, err := os.ReadFile(filepath.Clean(logFile))
 	Expect(err).To(BeNil(), "No log file found")
 	Logf(string(data))
+}
+
+func GetIPPools(ctx context.Context, c client.Client, cluster, namespace string) ([]ipamv1.IPPool, []ipamv1.IPPool) {
+	var bmv4, provisioning []ipamv1.IPPool
+	allIPPools := &ipamv1.IPPoolList{}
+	Expect(c.List(ctx, allIPPools, client.InNamespace(namespace))).To(Succeed())
+
+	for _, ippool := range allIPPools.Items {
+		if strings.Contains(ippool.ObjectMeta.Name, "baremetalv4") {
+			bmv4 = append(bmv4, ippool)
+		} else {
+			provisioning = append(provisioning, ippool)
+		}
+	}
+
+	return bmv4, provisioning
 }
 
 // return only the boolean value from ParseBool.
