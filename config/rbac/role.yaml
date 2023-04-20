@@ -273,6 +273,26 @@ rules:
   - get
   - watch
 - apiGroups:
+  - ipam.metal3.io
+  resources:
+  - ippools
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ipam.metal3.io
+  resources:
+  - ippools/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - metal3.io
   resources:
   - baremetalhosts
