@@ -83,31 +83,23 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
 	}
 
-	By("Fetch manifest for ephemeral cluster before pivot")
+	By("Fetch manifest for bootstrap cluster before pivot")
+	kconfigPathBootstrap := input.BootstrapClusterProxy.GetKubeconfigPath()
+	os.Setenv("KUBECONFIG_BOOTSTRAP", kconfigPathBootstrap)
 	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
 	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
 	cmd.Dir = path
-	outputPipe, _ := cmd.StdoutPipe()
-	errorPipe, _ := cmd.StderrPipe()
-	_ = cmd.Start()
-	data, _ := io.ReadAll(outputPipe)
-	if len(data) > 0 {
-		Logf("Output of the shell: %s\n", string(data))
-	}
-	errorData, _ := io.ReadAll(errorPipe)
-	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
-	}
+	_ = cmd.Run()
 
 	By("Fetch target cluster kubeconfig for target cluster log collection")
-	kubeconfigPath := input.TargetCluster.GetKubeconfigPath()
-	os.Setenv("KUBECONFIG_WORKLOAD", kubeconfigPath)
+	kconfigPathWorkload := input.TargetCluster.GetKubeconfigPath()
+	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
 	Logf("Save kubeconfig in temp folder for project-infra target log collection")
 	// TODO(smoshiur1237): This is a workaround to copy the target kubeconfig and enable project-infra
 	// target log collection. There is possibility to handle the kubeconfig in better way.
 	// KubeconfigPathTemp will be used by project-infra target log collection only incase of failed e2e test
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
-	cmd = exec.Command("cp", kubeconfigPath, kubeconfigPathTemp) // #nosec G204:gosec
+	cmd = exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
 	Logf("%s\n", stdoutStderr)
 	Expect(er).To(BeNil(), "Cannot fetch target cluster kubeconfig")
@@ -422,22 +414,25 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
+
 	By("Fetch logs from target cluster")
 	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
 	cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
 	cmd.Dir = path
-	outputPipe, _ := cmd.StdoutPipe()
 	errorPipe, _ := cmd.StderrPipe()
 	_ = cmd.Start()
-	data, _ := io.ReadAll(outputPipe)
-	if len(data) > 0 {
-		Logf("Output of the shell: %s\n", string(data))
-	}
 	errorData, _ := io.ReadAll(errorPipe)
 	if len(errorData) > 0 {
 		Logf("Error of the shell: %v\n", string(errorData))
 	}
+
+	By("Fetch manifest for workload cluster after pivot")
+	path = filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd = exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
+	cmd.Dir = path
+	_ = cmd.Run()
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
+
 	By("Remove Ironic deployment from target cluster")
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
@@ -534,21 +529,12 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
 	})
 
-	By("Fetch manifest for ephemeral cluster after re-pivot")
+	By("Fetch manifest for bootstrap cluster after re-pivot")
 	path = filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
 	cmd = exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
 	cmd.Dir = path
-	outputPipe, _ = cmd.StdoutPipe()
-	errorPipe, _ = cmd.StderrPipe()
-	_ = cmd.Start()
-	data, _ = io.ReadAll(outputPipe)
-	if len(data) > 0 {
-		Logf("Output of the shell: %s\n", string(data))
-	}
-	errorData, _ = io.ReadAll(errorPipe)
-	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
-	}
+	_ = cmd.Run()
+	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 
 	By("RE-PIVOTING TEST PASSED!")
 }
