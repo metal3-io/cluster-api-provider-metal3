@@ -15,7 +15,7 @@ settings = {
     "kind_cluster_name": "capm3",
     "capi_version": "$CAPIRELEASE",
     "kubernetes_version": "$KUBERNETES_VERSION",
-    "cert_manager_version": "v1.10.0",
+    "cert_manager_version": "v1.11.1",
     "enable_providers": [],
 }
 
