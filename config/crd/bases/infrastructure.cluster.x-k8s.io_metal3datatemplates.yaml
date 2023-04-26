@@ -897,16 +897,24 @@ spec:
                       to be rendered as dns servers.
                     items:
                       properties:
+                        apiGroup:
+                          description: APIGroup is the api group of the IP pool.
+                          type: string
                         key:
                           description: Key will be used as the key to set in the metadata
                             map for cloud-init
                           type: string
+                        kind:
+                          description: Kind is the kind of the IP pool
+                          type: string
                         name:
-                          description: Name is the name of the IPPool used to fetch
+                          description: Name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
                           type: string
                       required:
+                      - apiGroup
                       - key
+                      - kind
                       - name
                       type: object
                     type: array
@@ -995,16 +1003,24 @@ spec:
                       be rendered as gateway addresses.
                     items:
                       properties:
+                        apiGroup:
+                          description: APIGroup is the api group of the IP pool.
+                          type: string
                         key:
                           description: Key will be used as the key to set in the metadata
                             map for cloud-init
                           type: string
+                        kind:
+                          description: Kind is the kind of the IP pool
+                          type: string
                         name:
-                          description: Name is the name of the IPPool used to fetch
+                          description: Name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
                           type: string
                       required:
+                      - apiGroup
                       - key
+                      - kind
                       - name
                       type: object
                     type: array
@@ -1042,16 +1058,24 @@ spec:
                       to be rendered as ip addresses.
                     items:
                       properties:
+                        apiGroup:
+                          description: APIGroup is the api group of the IP pool.
+                          type: string
                         key:
                           description: Key will be used as the key to set in the metadata
                             map for cloud-init
                           type: string
+                        kind:
+                          description: Kind is the kind of the IP pool
+                          type: string
                         name:
-                          description: Name is the name of the IPPool used to fetch
+                          description: Name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
                           type: string
                       required:
+                      - apiGroup
                       - key
+                      - kind
                       - name
                       type: object
                     type: array
@@ -1099,16 +1123,24 @@ spec:
                       be rendered as network prefixes.
                     items:
                       properties:
+                        apiGroup:
+                          description: APIGroup is the api group of the IP pool.
+                          type: string
                         key:
                           description: Key will be used as the key to set in the metadata
                             map for cloud-init
                           type: string
+                        kind:
+                          description: Kind is the kind of the IP pool
+                          type: string
                         name:
-                          description: Name is the name of the IPPool used to fetch
+                          description: Name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
                           type: string
                       required:
+                      - apiGroup
                       - key
+                      - kind
                       - name
                       type: object
                     type: array
@@ -1300,12 +1332,35 @@ spec:
                           description: NetworkDataIPv4 represents an ipv4 static network
                             object.
                           properties:
+                            fromPoolRef:
+                              description: FromPoolRef is a reference to a IP pool
+                                to allocate an address from.
+                              properties:
+                                apiGroup:
+                                  description: APIGroup is the group for the resource
+                                    being referenced. If APIGroup is not specified,
+                                    the specified Kind must be in the core API group.
+                                    For any other third-party types, APIGroup is required.
+                                  type: string
+                                kind:
+                                  description: Kind is the type of resource being
+                                    referenced
+                                  type: string
+                                name:
+                                  description: Name is the name of resource being
+                                    referenced
+                                  type: string
+                              required:
+                              - kind
+                              - name
+                              type: object
+                              x-kubernetes-map-type: atomic
                             id:
                               description: ID is the network ID (name)
                               type: string
                             ipAddressFromIPPool:
                               description: IPAddressFromIPPool contains the name of
-                                the IPPool to use to get an ip address
+                                the IP pool to use to get an ip address
                               type: string
                             link:
                               description: Link is the link on which the network applies
@@ -1362,7 +1417,6 @@ spec:
                               type: array
                           required:
                           - id
-                          - ipAddressFromIPPool
                           - link
                           type: object
                         type: array
@@ -1439,6 +1493,29 @@ spec:
                           description: NetworkDataIPv6 represents an ipv6 static network
                             object.
                           properties:
+                            fromPoolRef:
+                              description: FromPoolRef is a reference to a IP pool
+                                to allocate an address from.
+                              properties:
+                                apiGroup:
+                                  description: APIGroup is the group for the resource
+                                    being referenced. If APIGroup is not specified,
+                                    the specified Kind must be in the core API group.
+                                    For any other third-party types, APIGroup is required.
+                                  type: string
+                                kind:
+                                  description: Kind is the type of resource being
+                                    referenced
+                                  type: string
+                                name:
+                                  description: Name is the name of resource being
+                                    referenced
+                                  type: string
+                              required:
+                              - kind
+                              - name
+                              type: object
+                              x-kubernetes-map-type: atomic
                             id:
                               description: ID is the network ID (name)
                               type: string
