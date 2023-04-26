@@ -1,13 +1,17 @@
-# ip-address-manager releasing
+# cluster-api-provider-metal3 releasing
 
 This document details the steps to create a release for
-`ip-address-manager` aka IPAM.
+`cluster-api-provider-metal3` aka CAPM3.
 
 ## Before making a release
 
 Things you should do before making a release:
 
 - Uplift controller Go modules to use latest corresponding CAPI modules
+- Uplift BMO's `apis` and `pkg/hardwareutils` dependencies
+- Uplift IPAM `api` dependency,
+  [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/image_patch.yaml),
+  and [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml)
 - Uplift any other direct/indirect dependency to close any public
   vulnerabilities
 
@@ -22,18 +26,18 @@ Creating a release requires repository `write` permissions for:
 These permissions are implicit for the org admins and repository admins.
 Release team member gets his/her permissions via `metal3-release-team`
 membership. This GitHub team has the required permissions in each repository
-required to release IPAM. Adding person to the team gives him/her the necessary
+required to release CAPM3. Adding person to the team gives him/her the necessary
 rights  in all relevant repositories in the organization. Individual persons
 should not be given permissions directly.
 
 ## Process
 
-IPAM uses [semantic versioning](https://semver.org). For version `v1.x.y`:
+CAPM3 uses [semantic versioning](https://semver.org). For version `v1.x.y`:
 
 ### Repository setup
 
 Clone the repository:
-`git clone git@github.com:metal3-io/ip-address-manager`
+`git clone git@github.com:metal3-io/cluster-api-provider-metal3`
 
 or if using existing repository, verify your intended remote is set to
 `metal3-io`: `git remote -v`. For this document, we assume it is `origin`.
@@ -65,6 +69,8 @@ We also need to create one or more tags for the Go modules ecosystem:
 - For any subdirectory with `go.mod` in it (excluding `hack/tools`), create
   another Git tag with directory prefix, ie.
   `git tag -s -a api/v1.x.y -m api/v1.x.y`.
+  For CAPM3, these directories are: `api` and `test`. This enables the
+  tags to be used as a Go module version for any downstream users.
 
 ### Release artifacts
 
@@ -74,15 +80,18 @@ the release workflow. For a release, we should have the following artifacts:
 Git tags pushed:
 
 - Primary release tag: `v1.x.y`
-- Go module tag: `api/v1.x.y`
+- Go module tags: `api/v1.x.y`, `test/v1.x.y`
 
 Container images built and tagged at Quay registry:
 
-- [ip-address-manager:v1.x.y](https://quay.io/repository/metal3-io/ip-address-manager?tab=tags)
+- [cluster-api-provider-metal3:v1.x.y](https://quay.io/repository/metal3-io/cluster-api-provider-metal3?tab=tags)
 
 Files included in the release page:
 
-- A manifest file - `ipam-components.yaml`
+- A manifest file - `infrastructure-components.yaml`
+- A metadata file - `metadata.yaml`
+- A cluster template - `cluster-template.yaml`
+- A file containing an example of variables to set - `example_variables.rc`
 
 ### Release notes
 
@@ -101,23 +110,8 @@ Next step is to clean up the release note manually.
 - If it is a release candidate (RC) or a pre-release, tick pre-release box.
 - Publish the release.
 
-## Impact on Metal3 if new minor was released
+## Additional actions outside this repository
 
-Patch release process is complete, but further additional actions are required
-in the Metal3 project to take in the new major/minor release. These steps are
-documented in
-[CAPM3 release process](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/docs/releasing.md)
-
-## Announcements
-
-We announce the release in Kubernetes slack on `#cluster-api-baremetal` channel
-and through the `metal3-dev` group mailing list.
-
-```text
-Hey folks,
-
-CAPM3 v1.x.y, IPAM v1.x.y and BMO v0.x.y minor releases are out now :tada::metal3:!
-Release notes can be found here: CAPM3 release notes,  IPAM release notes and BMO release notes.
-
-Thanks to all our contributors!
-```
+Further additional actions are required in the Metal3 project. Continue with the
+[Metal3 release process](https://github.com/metal3-io/metal3-docs/pull/321)
+(TODO: update after merge).
