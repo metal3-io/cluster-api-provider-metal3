@@ -23,6 +23,7 @@ cluster on top of bare metal infrastructure using Metal3.
 | v1beta1       | v1beta1             | v1.1.X        | v1.1.X       |
 | v1beta1       | v1beta1             | v1.2.X        | v1.2.X       |
 | v1beta1       | v1beta1             | v1.3.X        | v1.3.X       |
+| v1beta1       | v1beta1             | v1.4.X        | v1.4.X       |
 
 ## Deploying the metal3 provider
 
@@ -53,7 +54,7 @@ provider:
     You can also specify the provider version by appending a version tag to the provider name as follows:
 
     ```shell
-    clusterctl init --infrastructure metal3:v1.3.0
+    clusterctl init --infrastructure metal3:v1.4.0
     ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install cert-manager for Baremetal Operator,
@@ -132,6 +133,11 @@ Or use parallel prefix `parallel-` for faster tests. Note that these tests run i
 
 - **/parallel-test-ubuntu-e2e-feature-main** runs e2e feature tests in parallel with CAPM3 API version v1beta1 and branch main on Ubuntu
 - **/parallel-test-centos-e2e-feature-main** runs e2e feature tests in parallel with CAPM3 API version v1beta1 and branch main on CentOS
+
+Release-1.4 branch:
+
+- **/test-ubuntu-e2e-feature-release-1-4** runs e2e feature tests with CAPM3 API version v1beta1 and branch release-1.4 on Ubuntu
+- **/test-centos-e2e-feature-release-1-4** runs e2e feature tests with CAPM3 API version v1beta1 and branch release-1.4 on CentOS
 
 Release-1.3 branch:
 
