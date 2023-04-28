@@ -1,10 +1,9 @@
 # Cluster API Provider Metal3 for Managed Bare Metal Hardware
 
-[![Ubuntu Integration daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_integration_test_ubuntu&subject=Ubuntu%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_integration_test_ubuntu/)
-[![CentOS Integration daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_integration_test_centos&subject=CentOS%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_integration_test_centos/)
-[![Ubuntu e2e daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_test_ubuntu/&subject=Ubuntu%20E2E%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_test_ubuntu/)
-[![CentOS e2e daily main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_test_centos/&subject=CentOS%20E2E%20daily%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_test_centos/)
-
+[![Ubuntu E2E Integration 1.3 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-3_integration_test_ubuntu&subject=Ubuntu%20e2e%20integration%201.3)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-3_integration_test_ubuntu/)
+[![CentOS E2E Integration 1.3 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-3_integration_test_centos&subject=Centos%20e2e%20integration%201.3)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-3_integration_test_centos/)
+[![Ubuntu E2E feature 1.3 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-3_e2e_feature_test_ubuntu/&subject=Ubuntu%20E2E%20feature%201.3)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-3_e2e_feature_test_ubuntu/)
+[![CentOS E2E feature 1.3 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-3_e2e_feature_test_centos/&subject=CentOS%20E2E%20feature%201.3)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-3_e2e_feature_test_centos/)
 Kubernetes-native declarative infrastructure for Metal3.
 
 ## What is the Cluster API Provider Metal3
@@ -19,7 +18,7 @@ cluster on top of bare metal infrastructure using Metal3.
 
 | CAPM3 version | Cluster API version | CAPM3 Release | CAPI Release |
 |---------------|---------------------|---------------|--------------|
-| v1alpha5      | v1alpha4            | v0.5.X        | v0.4.X       | 
+| v1alpha5      | v1alpha4            | v0.5.X        | v0.4.X       |
 | v1beta1       | v1beta1             | v1.1.X        | v1.1.X       |
 | v1beta1       | v1beta1             | v1.2.X        | v1.2.X       |
 | v1beta1       | v1beta1             | v1.3.X        | v1.3.X       |
