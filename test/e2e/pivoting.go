@@ -59,6 +59,19 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
+	By("Fetch target cluster kubeconfig for target cluster log collection")
+	kubeconfigPath := input.TargetCluster.GetKubeconfigPath()
+	os.Setenv("KUBECONFIG_WORKLOAD", kubeconfigPath)
+	Logf("Save kubeconfig in temp folder for project-infra target log collection")
+	// TODO(smoshiur1237): This is a workaround to copy the target kubeconfig and enable project-infra
+	// target log collection. There is possibility to handle the kubeconfig in better way.
+	// KubeconfigPathTemp will be used by project-infra target log collection only incase of failed e2e test
+	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
+	cmd := exec.Command("cp", kubeconfigPath, kubeconfigPathTemp) // #nosec G204:gosec
+	stdoutStderr, er := cmd.CombinedOutput()
+	Logf("%s\n", stdoutStderr)
+	Expect(er).To(BeNil(), "Cannot fetch target cluster kubeconfig")
+
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 	isIronicDeployment := true
@@ -348,6 +361,22 @@ type RePivotingInput struct {
 func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	Logf("Start the re-pivoting test")
 	input := inputGetter()
+	By("Fetch logs from target cluster")
+	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
+	cmd.Dir = path
+	outputPipe, _ := cmd.StdoutPipe()
+	errorPipe, _ := cmd.StderrPipe()
+	_ = cmd.Start()
+	data, _ := io.ReadAll(outputPipe)
+	if len(data) > 0 {
+		Logf("Output of the shell: %s\n", string(data))
+	}
+	errorData, _ := io.ReadAll(errorPipe)
+	if len(errorData) > 0 {
+		Logf("Error of the shell: %v\n", string(errorData))
+	}
+	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	By("Remove Ironic deployment from target cluster")
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
