@@ -62,3 +62,6 @@ github/
 
 go.work
 go.work.sum
+
+# Development containers (https://containers.dev/)
+.devcontainer
