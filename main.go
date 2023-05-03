@@ -67,6 +67,8 @@ var (
 	metal3LabelSyncConcurrency       int
 	metal3MachineTemplateConcurrency int
 	metal3RemediationConcurrency     int
+	restConfigQPS                    float32
+	restConfigBurst                  int
 	webhookPort                      int
 	webhookCertDir                   string
 	healthAddr                       string
@@ -100,6 +102,8 @@ func main() {
 
 	ctrl.SetLogger(klogr.New())
 	restConfig := ctrl.GetConfigOrDie()
+	restConfig.QPS = restConfigQPS
+	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     myscheme,
@@ -256,6 +260,12 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&metal3RemediationConcurrency, "metal3remediation-concurrency", 10,
 		"Number of metal3remediations to process simultaneously")
+
+	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
+		"Maximum queries per second from the controller client to the Kubernetes API server. Default 20")
+
+	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
 }
 
 func waitForAPIs(cfg *rest.Config) error {
