@@ -1,7 +1,7 @@
 # Cluster API Provider Metal3 for Managed Bare Metal Hardware
 
-[![Ubuntu E2E Integration 1.4 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-4_integration_test_ubuntu&subject=Ubuntu%20e2e%20integration%201.4)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-4_integration_test_ubuntu/)
-[![CentOS E2E Integration 1.4 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-4_integration_test_centos&subject=Centos%20e2e%20integration%201.4)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-4_integration_test_centos/)
+[![Ubuntu E2E Integration 1.4 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-4_e2e_integration_test_ubuntu&subject=Ubuntu%20e2e%20integration%201.4)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-4_integration_test_ubuntu/)
+[![CentOS E2E Integration 1.4 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-4_e2e_integration_test_centos&subject=Centos%20e2e%20integration%201.4)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-4_integration_test_centos/)
 [![Ubuntu E2E feature 1.4 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-4_e2e_feature_test_ubuntu/&subject=Ubuntu%20E2E%20feature%201.4)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-4_e2e_feature_test_ubuntu/)
 [![CentOS E2E feature 1.4 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-4_e2e_feature_test_centos/&subject=CentOS%20E2E%20feature%201.4)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-4_e2e_feature_test_centos/)
 
