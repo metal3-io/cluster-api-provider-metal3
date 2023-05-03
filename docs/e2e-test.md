@@ -102,3 +102,14 @@ For instance, to skip the upgrade E2E tests set `GINKGO_SKIP="[upgrade]"`
 Both Ironic and BMO upgrade tests currently only check that a new version can be rolled out (by going from `latest` to `main`).
 However, they do not actually upgrade from some older release to a newer since they are not yet integrated with the e2e upgrade test.
 The idea is to move them to the e2e upgrade test and then upgrade Ironic and BMO together with CAPM3 from the previous minor release to the latest.
+
+### Test matrix for k8s version
+
+Current e2e tests use the following Kubernetes versions for source and target clusters:
+
+| tests | source cluster | target init  | target final  |
+| ----------- | ------------ | ----------- | ------------- |
+| integration | v1.26.4 | v1.26.4 | x |
+| remediation | v1.26.4 | v1.26.4 | x |
+| pivot based feature | v1.26.4 | v1.25.2 | v1.26.4 |
+| upgrade | v1.26.4 | v1.25.2 | v1.26.4 |
