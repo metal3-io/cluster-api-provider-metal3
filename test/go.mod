@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 go 1.19
 
 require (
-	github.com/docker/docker v20.10.21+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/jinzhu/copier v0.3.5
 	github.com/metal3-io/baremetal-operator/apis v0.2.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
@@ -14,14 +14,14 @@ require (
 	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v0.25.4
 	k8s.io/utils v0.0.0-20220823124924-e9cbc92d1a73
-	sigs.k8s.io/cluster-api v1.3.5
-	sigs.k8s.io/cluster-api/test v1.3.5
+	sigs.k8s.io/cluster-api v1.3.7
+	sigs.k8s.io/cluster-api/test v1.3.7
 	sigs.k8s.io/controller-runtime v0.13.1
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.5
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.3.7
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.3.5
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.3.7
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
 
@@ -127,7 +127,7 @@ require (
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221205233837-bacb3aba404b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/kind v0.17.0 // indirect
+	sigs.k8s.io/kind v0.18.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
