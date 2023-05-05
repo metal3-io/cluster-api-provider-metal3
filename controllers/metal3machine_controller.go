@@ -266,6 +266,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if bmhID == nil {
 		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
 		if err != nil {
+			r.Log.Error(err, "Failed to get the providerID for the metal3machine", "providerID", providerID)
 			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.MissingBMHReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to get the providerID for the metal3machine", errType,
@@ -276,6 +277,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		// Set the providerID on the node if no Cloud provider
 		err = machineMgr.SetNodeProviderID(ctx, &providerID, r.CapiClientGetter)
 		if err != nil {
+			r.Log.Error(err, "Failed to set the target node providerID", "providerID", providerID)
 			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to set the target node providerID", errType,
