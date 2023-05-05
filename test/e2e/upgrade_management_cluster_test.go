@@ -162,7 +162,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 	})
 	// install bmo
 	By("Install BMO")
-	installIronicBMO(func() installIronicBMOInput {
+	installIronicBMO(ctx, func() installIronicBMOInput {
 		return installIronicBMOInput{
 			ManagementCluster:          clusterProxy,
 			BMOPath:                    e2eConfig.GetVariable(bmoPath),
@@ -172,14 +172,17 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 			deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 			deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
 			deployIronicMariadb:        getBool(e2eConfig.GetVariable(ironicMariadb)),
+			Namespace:                  e2eConfig.GetVariable(ironicNamespace),
 			NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
 			RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
+			E2EConfig:                  e2eConfig,
+			SpecName:                   specName,
 		}
 	})
 
 	// install ironic
 	By("Install Ironic in the target cluster")
-	installIronicBMO(func() installIronicBMOInput {
+	installIronicBMO(ctx, func() installIronicBMOInput {
 		return installIronicBMOInput{
 			ManagementCluster:          clusterProxy,
 			BMOPath:                    e2eConfig.GetVariable(bmoPath),
@@ -189,8 +192,11 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 			deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 			deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
 			deployIronicMariadb:        getBool(e2eConfig.GetVariable(ironicMariadb)),
+			Namespace:                  e2eConfig.GetVariable(ironicNamespace),
 			NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
 			RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
+			E2EConfig:                  e2eConfig,
+			SpecName:                   specName,
 		}
 	})
 
@@ -253,7 +259,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 			Expect(err).To(BeNil(), "Cannot run local ironic")
 		} else {
 			By("Install Ironic in the source cluster as deployments")
-			installIronicBMO(func() installIronicBMOInput {
+			installIronicBMO(ctx, func() installIronicBMOInput {
 				return installIronicBMOInput{
 					ManagementCluster:          bootstrapClusterProxy,
 					BMOPath:                    e2eConfig.GetVariable(bmoPath),
@@ -263,8 +269,11 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 					deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 					deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
 					deployIronicMariadb:        getBool(e2eConfig.GetVariable(ironicMariadb)),
+					Namespace:                  e2eConfig.GetVariable(ironicNamespace),
 					NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
 					RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
+					E2EConfig:                  e2eConfig,
+					SpecName:                   specName,
 				}
 			})
 		}
