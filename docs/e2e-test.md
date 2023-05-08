@@ -107,9 +107,9 @@ The idea is to move them to the e2e upgrade test and then upgrade Ironic and BMO
 
 Current e2e tests use the following Kubernetes versions for source and target clusters:
 
-| tests | source cluster | target init  | target final  |
+| tests | bootstrap cluster | metal3 cluster init  | metal3 cluster final  |
 | ----------- | ------------ | ----------- | ------------- |
-| integration | v1.26.4 | v1.26.4 | x |
-| remediation | v1.26.4 | v1.26.4 | x |
-| pivot based feature | v1.26.4 | v1.25.2 | v1.26.4 |
-| upgrade | v1.26.4 | v1.25.2 | v1.26.4 |
+| integration | v1.27.1 | v1.27.1 | x |
+| remediation | v1.27.1 | v1.27.1 | x |
+| pivot based feature | v1.27.1 | v1.26.4 | v1.27.1 |
+| upgrade | v1.27.1 | v1.26.4 | v1.27.1 |

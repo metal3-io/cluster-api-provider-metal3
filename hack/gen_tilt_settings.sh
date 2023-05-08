@@ -49,6 +49,6 @@ cat << EOF > tilt-settings.json
 {
     "capi_version": "${CAPIRELEASE}",
     "cert_manager_version": "v1.11.1",
-    "kubernetes_version": "${KUBERNETES_VERSION:-v1.26.4}"
+    "kubernetes_version": "${KUBERNETES_VERSION:-v1.27.1}"
 }
 EOF
