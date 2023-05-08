@@ -7,6 +7,9 @@ This document details the steps to create a release for
 
 Things you should do before making a release:
 
+- Check the
+  [Metal3 release process](https://github.com/metal3-io/metal3-docs/blob/main/processes/releasing.md)
+  for high-level process and possible follow-up actions
 - Uplift controller Go modules to use latest corresponding CAPI modules
 - Uplift BMO's `apis` and `pkg/hardwareutils` dependencies
 - Uplift IPAM `api` dependency,
@@ -68,9 +71,10 @@ We also need to create one or more tags for the Go modules ecosystem:
 
 - For any subdirectory with `go.mod` in it (excluding `hack/tools`), create
   another Git tag with directory prefix, ie.
-  `git tag -s -a api/v1.x.y -m api/v1.x.y`.
+  `git tag -s api/v1.x.y -m api/v1.x.y`.
   For CAPM3, these directories are: `api` and `test`. This enables the
   tags to be used as a Go module version for any downstream users.
+  **NOTE**: Do not create annotated tags for go modules.
 
 ### Release artifacts
 
@@ -110,8 +114,33 @@ Next step is to clean up the release note manually.
 - If it is a release candidate (RC) or a pre-release, tick pre-release box.
 - Publish the release.
 
+## Post-release actions for new release branches
+
+Some post-release actions are needed if new minor or major branch was created.
+
+### Branch protection rules
+
+Branch protection rules need to be applied to the new release branch. Copy the
+settings after the previous release branch, with the exception of
+`Required tests` selection. Required tests can only be selected after new
+keywords are implemented in Jenkins JJB, and project-infra, and have been run
+at least once in the PR targeting the branch in question.
+
+### Update README.md and build badges
+
+Update `README.md` with release specific information, both on `main` and
+in the new `release-1.x` branch as necessary.
+
+[Example](https://github.com/metal3-io/cluster-api-provider-metal3/pull/949)
+
+In the `release-1.x` branch, update the build badges in the `README.md` to point
+to correct Jenkins jobs, so the build statuses of the release branch are
+visible.
+
+[Example](https://github.com/metal3-io/cluster-api-provider-metal3/pull/951)
+
 ## Additional actions outside this repository
 
-Further additional actions are required in the Metal3 project. Continue with the
-[Metal3 release process](https://github.com/metal3-io/metal3-docs/pull/321)
-(TODO: update after merge).
+Further additional actions are required in the Metal3 project after CAPM3
+release. For that, please continue following the instructions provided in
+[Metal3 release process](https://github.com/metal3-io/metal3-docs/blob/main/processes/releasing.md)
