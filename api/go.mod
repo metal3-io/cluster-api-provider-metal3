@@ -5,14 +5,14 @@ go 1.19
 require (
 	github.com/google/gofuzz v1.2.0
 	github.com/metal3-io/ip-address-manager/api v1.4.0
-	github.com/onsi/gomega v1.27.4
+	github.com/onsi/gomega v1.27.5
 	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.8.0
 	k8s.io/api v0.26.1
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
-	sigs.k8s.io/cluster-api v1.4.0
+	sigs.k8s.io/cluster-api v1.4.2
 	sigs.k8s.io/controller-runtime v0.14.5
 
 )
@@ -69,7 +69,7 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.0
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.2
 
 replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
 
