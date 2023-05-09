@@ -160,14 +160,15 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
 		}
 	})
-	// install bmo
-	By("Install BMO")
+
+	// install ironic
+	By("Install Ironic in the target cluster")
 	installIronicBMO(ctx, func() installIronicBMOInput {
 		return installIronicBMOInput{
 			ManagementCluster:          clusterProxy,
 			BMOPath:                    e2eConfig.GetVariable(bmoPath),
-			deployIronic:               false,
-			deployBMO:                  true,
+			deployIronic:               true,
+			deployBMO:                  false,
 			deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
 			deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 			deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
@@ -180,14 +181,14 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 		}
 	})
 
-	// install ironic
-	By("Install Ironic in the target cluster")
+	// install bmo
+	By("Install BMO")
 	installIronicBMO(ctx, func() installIronicBMOInput {
 		return installIronicBMOInput{
 			ManagementCluster:          clusterProxy,
 			BMOPath:                    e2eConfig.GetVariable(bmoPath),
-			deployIronic:               true,
-			deployBMO:                  false,
+			deployIronic:               false,
+			deployBMO:                  true,
 			deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
 			deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 			deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
