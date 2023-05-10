@@ -7,13 +7,24 @@ GitHub pull requests. Those guidelines are the same as the
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Certificate of Origin](#certificate-of-origin)
-- [Finding Things That Need Help](#finding-things-that-need-help)
-- [Contributing a Patch](#contributing-a-patch)
-- [Backporting a Patch](#backporting-a-patch)
-   - [Merge Approval](#merge-approval)
-   - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
-   - [Issue and Pull Request Management](#issue-and-pull-request-management)
+- [How to Contribute](#how-to-contribute)
+   - [Certificate of Origin](#certificate-of-origin)
+   - [Finding Things That Need Help](#finding-things-that-need-help)
+   - [Versioning](#versioning)
+      - [Codebase and Go Modules](#codebase-and-go-modules)
+         - [Backporting](#backporting)
+   - [Branches](#branches)
+      - [Support and guarantees](#support-and-guarantees)
+      - [Removal of v1alpha5 apiVersion](#removal-of-v1alpha5-apiversion)
+   - [Contributing a Patch](#contributing-a-patch)
+   - [Backporting a Patch](#backporting-a-patch)
+   - [Breaking Changes](#breaking-changes)
+      - [Merge Approval](#merge-approval)
+      - [Google Doc Viewing Permissions](#google-doc-viewing-permissions)
+      - [Issue and Pull Request Management](#issue-and-pull-request-management)
+      - [Commands and Workflow](#commands-and-workflow)
+   - [Release Process](#release-process)
+      - [Exact Steps](#exact-steps)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -73,6 +84,46 @@ major or minor release, a new branch is created. It is from these
 branches that minor and patch releases are tagged. In some cases, it may
 be necessary to open PRs for bugfixes directly against stable branches, but
 this should generally not be the case.
+
+### Support and guarantees
+
+Cluster API Provider Metal3 maintains the most recent release/releases for all supported API and contract versions. Support for this section refers to the ability to backport and release patch versions;
+[backport policy](#backporting) is defined above.
+
+- The API version is determined from the GroupVersion defined in the top-level `api/` package.
+- The EOL date of each API Version is determined from the last release available once a new API version is published.
+
+| API Version  | Supported Until                                                              |
+| ------------ | ---------------------------------------------------------------------------- |
+| **v1beta1**  | TBD (current latest)                                                         |
+| **v1alpha5** | EOL since 2022-09-30 ([apiVersion removal](#removal-of-v1alpha5-apiversion)) |
+
+- For the current stable API version (v1beta1) we support the two most recent minor releases; older minor releases are immediately unsupported when a new major/minor release is available.
+- For older API versions we only support the most recent minor release until the API version reaches EOL.
+- We will maintain test coverage for all supported minor releases and for one additional release for the current stable API version in case we have to do an emergency patch release.
+  For example, if v1.5 and v1.4 are currently supported, we will also maintain test coverage for v1.3 for one additional release cycle. When v1.6 is released, tests for v1.3 will be removed.
+
+| Minor Release | API Version  | Supported Until                                     |
+| ------------- | ------------ | --------------------------------------------------- |
+| v1.4.x        | **v1beta1**  | when v1.6.0 will be released                        |
+| v1.3.x        | **v1beta1**  | when v1.5.0 will be released, tentatively July 2023 |
+| v1.2.x        | **v1beta1**  | EOL since 2023-05-17                                |
+| v1.1.x        | **v1beta1**  | EOL since 2023-05-17                                |
+| v0.5.x        | **v1alpha4** | EOL since 2022-09-30 - API version EOL              |
+| v0.4.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL              |
+
+(*) Previous support policy applies, older minor releases were immediately unsupported when a new major/minor release was available
+
+- Exceptions can be filed with maintainers and taken into consideration on a case-by-case basis.
+
+### Removal of v1alpha5 apiVersion
+
+We are going to remove the v1alpha5 apiVersion in upcoming releases:
+
+- v1.7
+   - v1alpha5 apiVersion will be removed from the CRDs
+
+For more details and latest information please see the following issue: [Removing v1alpha5 apiVersion](https://github.com/metal3-io/cluster-api-provider-metal3/issues/971).
 
 ## Contributing a Patch
 
