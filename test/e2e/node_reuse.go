@@ -90,7 +90,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	m3machineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
 	updateNodeReuse(ctx, input.Namespace, true, m3machineTemplateName, managementClusterClient)
 	newM3machineTemplateName := fmt.Sprintf("%s-new-controlplane", input.ClusterName)
-	createNewM3machineTemplate(ctx, input.Namespace, newM3machineTemplateName, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "raw", "md5")
+	createNewM3machineTemplate(ctx, input.Namespace, newM3machineTemplateName, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "sha256", "raw")
 
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
@@ -280,7 +280,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	By("Set nodeReuse field to 'True' and create new Metal3MachineTemplate for MD with upgraded image to boot")
 	updateNodeReuse(ctx, input.Namespace, true, m3machineTemplateName, managementClusterClient)
 	newM3machineTemplateName = fmt.Sprintf("%s-new-workers", input.ClusterName)
-	createNewM3machineTemplate(ctx, input.Namespace, newM3machineTemplateName, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "raw", "md5")
+	createNewM3machineTemplate(ctx, input.Namespace, newM3machineTemplateName, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "sha256", "raw")
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
@@ -488,8 +488,8 @@ func createNewM3machineTemplate(ctx context.Context, namespace string, newM3mach
 
 	newM3MachineTemplate.Spec.Template.Spec.Image.URL = imageURL
 	newM3MachineTemplate.Spec.Template.Spec.Image.Checksum = imageChecksum
-	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = &checksumType
-	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = &imageFormat
+	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = &imageFormat
+	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = &checksumType
 	newM3MachineTemplate.ObjectMeta.Name = newM3machineTemplateName
 
 	Expect(clusterClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")

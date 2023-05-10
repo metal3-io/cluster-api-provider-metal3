@@ -38,7 +38,7 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 			},
 			ErrorExpected: false,
 			Name:          "Valid Image with Image.Checksum as URL",
@@ -46,14 +46,14 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-				Checksum: "eaf8a382ec9912336d893a22b3ac25cc",
+				Checksum: "f7600f7a274d974a236c4da5161265859c32da93a7c8de6a77d560378a1384ef",
 			},
 			ErrorExpected: false,
-			Name:          "Valid Image with Image.Checksum as md5 sum",
+			Name:          "Valid Image with Image.Checksum as sha256 sum",
 		},
 		{
 			Image: Image{
-				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 			},
 			ErrorExpected: true,
 			Name:          "missing Image.URL",
@@ -68,7 +68,7 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "test url",
-				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 			},
 			ErrorExpected: true,
 			Name:          "Invalid URL Image.URL",
