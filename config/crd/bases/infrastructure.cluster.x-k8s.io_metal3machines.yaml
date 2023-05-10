@@ -149,7 +149,8 @@ spec:
                 description: Image is the image to be provisioned.
                 properties:
                   checksum:
-                    description: Checksum is a md5sum value or a URL to retrieve one.
+                    description: Checksum is a md5sum, sha256sum or sha512sum value
+                      or a URL to retrieve one.
                     type: string
                   checksumType:
                     description: ChecksumType is the checksum algorithm for the image.
@@ -506,7 +507,8 @@ spec:
                 description: Image is the image to be provisioned.
                 properties:
                   checksum:
-                    description: Checksum is a md5sum value or a URL to retrieve one.
+                    description: Checksum is a md5sum, sha256sum or sha512sum value
+                      or a URL to retrieve one.
                     type: string
                   checksumType:
                     description: ChecksumType is the checksum algorithm for the image.

@@ -42,7 +42,7 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 				Spec: Metal3MachineSpec{
 					Image: Image{
 						URL:      "http://abc.com/image",
-						Checksum: "http://abc.com/image.md5sum",
+						Checksum: "http://abc.com/image.sha256sum",
 					},
 				},
 			},

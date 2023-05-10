@@ -79,7 +79,7 @@ func downloadFile(filePath string, url string) error {
 	}
 	defer func() {
 		err := out.Close()
-		Expect(err).To(BeNil(), "Error closing file")
+		Expect(err).To(BeNil(), fmt.Sprintf("Error closing file: %s", filePath))
 	}()
 
 	// Write the body to file
