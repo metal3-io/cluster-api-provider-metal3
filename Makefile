@@ -239,7 +239,7 @@ $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
 $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go get sigs.k8s.io/controller-runtime/tools/setup-envtest && \
+	cd $(TOOLS_DIR) && \
 	go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 $(GINKGO): $(TOOLS_DIR)/go.mod

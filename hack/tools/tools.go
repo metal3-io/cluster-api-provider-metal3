@@ -26,6 +26,7 @@ import (
 	_ "github.com/golangci/golangci-lint/cmd/golangci-lint"
 	_ "github.com/jteeuwen/go-bindata/go-bindata"
 	_ "k8s.io/code-generator/cmd/conversion-gen"
+	_ "sigs.k8s.io/controller-runtime/tools/setup-envtest"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
 	_ "sigs.k8s.io/kustomize/kustomize/v4"
 	_ "sigs.k8s.io/testing_frameworks/integration"
