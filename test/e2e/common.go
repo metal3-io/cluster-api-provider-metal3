@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"net/http"
@@ -79,6 +80,24 @@ func logTable(title string, rows [][]string) {
 	w.Flush()
 }
 
+// getSha256Hash return sha256 hash of given file.
+func getSha256Hash(filename string) ([]byte, error) {
+	file, err := os.Open(filepath.Clean(filename))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err := file.Close()
+		Expect(err).To(BeNil(), fmt.Sprintf("Error closing file: %s", filename))
+	}()
+	hash := sha256.New()
+	_, err = io.Copy(hash, file)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
+}
+
 func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := clusterProxy.GetClient()
@@ -115,7 +134,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	rawImageName := fmt.Sprintf("%s_%s-raw.img", imageNamePrefix, k8sVersion)
 	imageLocation := fmt.Sprintf("%s_%s/", artifactoryURL, k8sVersion)
 	imageURL = fmt.Sprintf("%s/%s", imagesURL, rawImageName)
-	imageChecksum = fmt.Sprintf("%s/%s.md5sum", imagesURL, rawImageName)
+	imageChecksum = fmt.Sprintf("%s/%s.sha256sum", imagesURL, rawImageName)
 
 	// Check if node image with upgraded k8s version exist, if not download it
 	imagePath := filepath.Join(ironicImageDir, imageName)
@@ -129,11 +148,9 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		cmd := exec.Command("qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
 		err = cmd.Run()
 		Expect(err).To(BeNil())
-		cmd = exec.Command("md5sum", rawImagePath) // #nosec G204:gosec
-		output, err := cmd.CombinedOutput()
+		sha256sum, err := getSha256Hash(rawImagePath)
 		Expect(err).To(BeNil())
-		md5sum := strings.Fields(string(output))[0]
-		err = os.WriteFile(fmt.Sprintf("%s/%s.md5sum", ironicImageDir, rawImageName), []byte(md5sum), 0544)
+		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), sha256sum, 0544)
 		Expect(err).To(BeNil())
 		Logf("Image: %v downloaded", rawImagePath)
 	} else {
@@ -159,7 +176,7 @@ func DownloadFile(filePath string, url string) error {
 	}
 	defer func() {
 		err := out.Close()
-		Expect(err).To(BeNil(), "Error closing file")
+		Expect(err).To(BeNil(), fmt.Sprintf("Error closing file: %s", filePath))
 	}()
 
 	// Write the body to file

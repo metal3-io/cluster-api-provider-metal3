@@ -90,7 +90,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	By("Update KCP Metal3MachineTemplate with upgraded image to boot and set nodeReuse field to 'True'")
 	m3machineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
 	updateNodeReuse(ctx, input.Namespace, true, m3machineTemplateName, managementClusterClient)
-	updateBootImage(ctx, input.Namespace, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "raw", "md5")
+	updateBootImage(ctx, input.Namespace, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "sha256", "raw")
 
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
@@ -289,7 +289,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 
 	By("Update MD Metal3MachineTemplate with upgraded image to boot and set nodeReuse field to 'True'")
 	updateNodeReuse(ctx, input.Namespace, true, m3machineTemplateName, managementClusterClient)
-	updateBootImage(ctx, input.Namespace, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "raw", "md5")
+	updateBootImage(ctx, input.Namespace, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "sha256", "raw")
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
@@ -446,8 +446,8 @@ func updateBootImage(ctx context.Context, namespace string, m3machineTemplateNam
 	Expect(err).NotTo(HaveOccurred())
 	m3machineTemplate.Spec.Template.Spec.Image.URL = imageURL
 	m3machineTemplate.Spec.Template.Spec.Image.Checksum = imageChecksum
-	m3machineTemplate.Spec.Template.Spec.Image.DiskFormat = &checksumType
-	m3machineTemplate.Spec.Template.Spec.Image.ChecksumType = &imageFormat
+	m3machineTemplate.Spec.Template.Spec.Image.DiskFormat = &imageFormat
+	m3machineTemplate.Spec.Template.Spec.Image.ChecksumType = &checksumType
 	Expect(helper.Patch(ctx, &m3machineTemplate)).To(Succeed())
 }
 
