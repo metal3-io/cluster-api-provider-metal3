@@ -68,9 +68,9 @@ This is the URL of the image to deploy. It should be a qcow2 image. For example:
 
 #### IMAGE_CHECKSUM
 
-This is the URL of the md5sum of the image to deploy. For example:
+This is the URL of the md5sum, sha256sum or sha512sum of the image to deploy. For example:
 
-`IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"`
+`IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.sha256sum"`
 
 #### NODE_DRAIN_TIMEOUT
 

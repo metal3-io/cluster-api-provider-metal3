@@ -522,7 +522,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
 							Image: infrav1.Image{
-								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 								// Checking the pointers,
 								// CheckBMHostProvisioned is true
@@ -562,7 +562,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithOwnerRef(), &infrav1.Metal3MachineSpec{
 							Image: infrav1.Image{
-								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 								// No ChecksumType and DiskFormat given to test without them
 								// CheckBMHostProvisioned is true
@@ -596,7 +596,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1.Metal3MachineSpec{
 							Image: infrav1.Image{
-								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 							},
 						}, nil, false,
@@ -648,7 +648,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						&infrav1.Metal3MachineSpec{
 							ProviderID: pointer.String(providerID),
 							Image: infrav1.Image{
-								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 							},
 						}, nil, false,
@@ -707,7 +707,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
 						Image: infrav1.Image{
-							Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+							Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 							URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 						},
 					}, nil, false),

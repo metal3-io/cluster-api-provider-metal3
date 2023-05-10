@@ -113,7 +113,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
 	m3machineTemplateName := fmt.Sprintf("%s-controlplane", clusterName)
 	newM3machineTemplateName := fmt.Sprintf("%s-new-controlplane", clusterName)
-	createNewM3machineTemplate(ctx, namespace, newM3machineTemplateName, m3machineTemplateName, clusterClient, imageURL, imageChecksum, "raw", "md5")
+	createNewM3machineTemplate(ctx, namespace, newM3machineTemplateName, m3machineTemplateName, clusterClient, imageURL, imageChecksum, "sha256", "raw")
 
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
@@ -182,7 +182,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	By("Create new Metal3MachineTemplate for MD with upgraded image to boot")
 	m3machineTemplateName = fmt.Sprintf("%s-workers", clusterName)
 	newM3machineTemplateName = fmt.Sprintf("%s-new-workers", clusterName)
-	createNewM3machineTemplate(ctx, namespace, newM3machineTemplateName, m3machineTemplateName, clusterClient, imageURL, imageChecksum, "raw", "md5")
+	createNewM3machineTemplate(ctx, namespace, newM3machineTemplateName, m3machineTemplateName, clusterClient, imageURL, imageChecksum, "sha256", "raw")
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	helper, err = patch.NewHelper(machineDeploy, clusterClient)
