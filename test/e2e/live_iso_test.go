@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("When testing live iso [live-iso]", func() {
+var _ = Describe("When testing live iso [live-iso] [features]", func() {
 	liveIsoTest()
 })
 
