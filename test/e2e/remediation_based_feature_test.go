@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Testing nodes remediation [remediation]", func() {
+var _ = Describe("Testing nodes remediation [remediation] [features]", func() {
 
 	var (
 		ctx                 = context.TODO()
