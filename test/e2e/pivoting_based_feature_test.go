@@ -110,9 +110,9 @@ var _ = Describe("Testing features in ephemeral or target cluster", func() {
 			ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 		}
 		ListNodes(ctx, targetCluster.GetClient())
-		// // Abort the test in case of failure and skipCleanup is true during keep VM trigger
+		// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
 		if CurrentSpecReport().Failed() {
-			if skipCleanup {
+			if keepTestEnv {
 				AbortSuite("e2e test aborted and skip cleaning the VM", 4)
 			}
 		}
