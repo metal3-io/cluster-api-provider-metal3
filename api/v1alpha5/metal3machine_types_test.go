@@ -41,7 +41,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 				UserData: &corev1.SecretReference{
 					Name: "worker-user-data",
@@ -54,7 +54,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 				UserData: &corev1.SecretReference{
 					Name:      "worker-user-data",
@@ -67,7 +67,7 @@ func TestSpecIsValid(t *testing.T) {
 		{
 			Spec: Metal3MachineSpec{
 				Image: Image{
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 				UserData: &corev1.SecretReference{
 					Name: "worker-user-data",
@@ -92,7 +92,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 			},
 			ErrorExpected: false,
@@ -102,7 +102,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 				UserData: &corev1.SecretReference{
 					Namespace: "otherns",
@@ -115,7 +115,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 				HostSelector: HostSelector{},
 			},
@@ -126,7 +126,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 				HostSelector: HostSelector{
 					MatchLabels: map[string]string{"key": "value"},
@@ -139,7 +139,7 @@ func TestSpecIsValid(t *testing.T) {
 			Spec: Metal3MachineSpec{
 				Image: Image{
 					URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum",
+					Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 				},
 				HostSelector: HostSelector{
 					MatchLabels: map[string]string{"key": "value", "key2": "value2"},

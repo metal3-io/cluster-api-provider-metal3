@@ -64,7 +64,7 @@ type Image struct {
 	// URL is a location of an image to deploy.
 	URL string `json:"url"`
 
-	// Checksum is a md5sum value or a URL to retrieve one.
+	// Checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
 	Checksum string `json:"checksum"`
 
 	// ChecksumType is the checksum algorithm for the image.
