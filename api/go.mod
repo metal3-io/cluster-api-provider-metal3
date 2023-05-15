@@ -71,6 +71,4 @@ require (
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.2
 
-replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
-
 replace github.com/coredns/corefile-migration => github.com/coredns/corefile-migration v1.0.17

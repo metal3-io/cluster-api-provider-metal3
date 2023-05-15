@@ -29,7 +29,7 @@ replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.2
 
-replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
+replace github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -39,7 +39,7 @@ require (
 	github.com/coredns/caddy v1.1.0 // indirect
 	github.com/coredns/corefile-migration v1.0.20 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/docker/distribution v2.8.1+incompatible // indirect
+	github.com/docker/distribution v2.8.2+incompatible // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
