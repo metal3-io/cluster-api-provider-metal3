@@ -29,7 +29,7 @@ replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
 replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.6
 
-replace github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
+replace github.com/docker/distribution => github.com/docker/distribution v2.8.2+incompatible
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
