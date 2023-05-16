@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"time"
@@ -91,7 +92,7 @@ func nodeReuse(clusterClient client.Client) {
 	Logf("IMAGE_URL: %v", imageURL)
 	imageChecksum := fmt.Sprintf("%s/%s.sha256sum", imagesURL, rawImageName)
 	Logf("IMAGE_CHECKSUM: %v", imageChecksum)
-
+	rawImagePath := filepath.Join(ironicImageDir, rawImageName)
 	// Check if node image with upgraded k8s version exist, if not download it
 	if _, err := os.Stat(fmt.Sprintf("%s/%s", ironicImageDir, rawImageName)); err == nil {
 		Logf("Local image %v is found", rawImageName)
@@ -102,11 +103,10 @@ func nodeReuse(clusterClient client.Client) {
 		cmd := exec.Command("qemu-img", "convert", "-O", "raw", fmt.Sprintf("%s/%s", ironicImageDir, imageName), fmt.Sprintf("%s/%s", ironicImageDir, rawImageName))
 		err = cmd.Run()
 		Expect(err).To(BeNil())
-		cmd = exec.Command("sha256sum", fmt.Sprintf("%s/%s", ironicImageDir, rawImageName))
-		output, err := cmd.CombinedOutput()
+		sha256sum, err := getSha256Hash(rawImagePath)
 		Expect(err).To(BeNil())
-		sha256sum := strings.Fields(string(output))[0]
-		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(sha256sum), 0777)
+		formattedSha256sum := fmt.Sprintf("%x", sha256sum)
+		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0544)
 		Expect(err).To(BeNil())
 	} else {
 		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)

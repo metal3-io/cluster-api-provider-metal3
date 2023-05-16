@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"net/http"
@@ -61,6 +62,24 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 			Namespace: namespace,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 	}
+}
+
+// getSha256Hash return sha256 hash of given file.
+func getSha256Hash(filename string) ([]byte, error) {
+	file, err := os.Open(filepath.Clean(filename))
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		err := file.Close()
+		Expect(err).To(BeNil(), fmt.Sprintf("Error closing file: %s", filename))
+	}()
+	hash := sha256.New()
+	_, err = io.Copy(hash, file)
+	if err != nil {
+		return nil, err
+	}
+	return hash.Sum(nil), nil
 }
 
 // downloadFile will download a url and store it in local filepath.
