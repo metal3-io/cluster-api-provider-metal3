@@ -241,7 +241,7 @@ metadata:
 spec:
   image:
     url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
-    checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.md5sum
+    checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum
 ```
 
 Metal3Machine, after reconciliation
@@ -260,7 +260,7 @@ metadata:
 spec:
   hostSelector: {}
   image:
-    checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.md5sum
+    checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum
     url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
   |----------------------------------------------------------------------------|
@@ -314,23 +314,23 @@ spec:
     address: ipmi://192.168.111.1:6231
     credentialsName: node-1-bmc-secret
   bootMACAddress: 00:b2:8c:ee:22:98
-  |----------------------------------------------------------------------------|
-  |# consumerRef refers to the linked Metal3Machine is added by 'CAPM3'        |
-  |consumerRef:                                                                |
-  |  apiVersion: infrastructure.cluster.x-k8s.io/v1beta1                      |
-  |  kind: Metal3Machine                                                       |
-  |  name: test1-controlplane-0                                                |
-  |  namespace: metal3                                                         |
-  |# Image comes from 'Metal3Machine' and is added by 'CAPM3'                  |
-  |image:                                                                      |
-  |  checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.md5sum|
-  |  url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img            |
-  |online: true                                                                |
-  |# UserData comes from 'Metal3Machine' and is added by 'CAPBK'               |
-  |userData:                                                                   |
-  |  name: test1-controlplane-0-user-data                                      |
-  |  namespace: metal3                                                         |
-  |----------------------------------------------------------------------------|
+  |-------------------------------------------------------------------------------|
+  |# consumerRef refers to the linked Metal3Machine is added by 'CAPM3'           |
+  |consumerRef:                                                                   |
+  |  apiVersion: infrastructure.cluster.x-k8s.io/v1beta1                          |
+  |  kind: Metal3Machine                                                          |
+  |  name: test1-controlplane-0                                                   |
+  |  namespace: metal3                                                            |
+  |# Image comes from 'Metal3Machine' and is added by 'CAPM3'                     |
+  |image:                                                                         |
+  |  checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum|
+  |  url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img               |
+  |online: true                                                                   |
+  |# UserData comes from 'Metal3Machine' and is added by 'CAPBK'                  |
+  |userData:                                                                      |
+  |  name: test1-controlplane-0-user-data                                         |
+  |  namespace: metal3                                                            |
+  |-------------------------------------------------------------------------------|
 status:
   goodCredentials:
     credentials:
@@ -345,7 +345,7 @@ status:
   provisioning:
     ID: 75450b93-0476-45b7-8629-d1eebbdc558b
     image:
-      checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.md5sum
+      checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum
       url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
     state: provisioned
   triedCredentials:

@@ -89,7 +89,7 @@ func nodeReuse(clusterClient client.Client) {
 	Logf("IMAGE_LOCATION: %v", imageLocation)
 	imageURL := fmt.Sprintf("%s/%s", imagesURL, rawImageName)
 	Logf("IMAGE_URL: %v", imageURL)
-	imageChecksum := fmt.Sprintf("%s/%s.md5sum", imagesURL, rawImageName)
+	imageChecksum := fmt.Sprintf("%s/%s.sha256sum", imagesURL, rawImageName)
 	Logf("IMAGE_CHECKSUM: %v", imageChecksum)
 
 	// Check if node image with upgraded k8s version exist, if not download it
@@ -102,11 +102,11 @@ func nodeReuse(clusterClient client.Client) {
 		cmd := exec.Command("qemu-img", "convert", "-O", "raw", fmt.Sprintf("%s/%s", ironicImageDir, imageName), fmt.Sprintf("%s/%s", ironicImageDir, rawImageName))
 		err = cmd.Run()
 		Expect(err).To(BeNil())
-		cmd = exec.Command("md5sum", fmt.Sprintf("%s/%s", ironicImageDir, rawImageName))
+		cmd = exec.Command("sha256sum", fmt.Sprintf("%s/%s", ironicImageDir, rawImageName))
 		output, err := cmd.CombinedOutput()
 		Expect(err).To(BeNil())
-		md5sum := strings.Fields(string(output))[0]
-		err = os.WriteFile(fmt.Sprintf("%s/%s.md5sum", ironicImageDir, rawImageName), []byte(md5sum), 0777)
+		sha256sum := strings.Fields(string(output))[0]
+		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(sha256sum), 0777)
 		Expect(err).To(BeNil())
 	} else {
 		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)
@@ -115,7 +115,7 @@ func nodeReuse(clusterClient client.Client) {
 	By("Update KCP Metal3MachineTemplate with upgraded image to boot and set nodeReuse field to 'True'")
 	m3machineTemplateName := fmt.Sprintf("%s-controlplane", clusterName)
 	updateNodeReuse(true, m3machineTemplateName, clusterClient)
-	updateBootImage(m3machineTemplateName, clusterClient, imageURL, imageChecksum, "raw", "md5")
+	updateBootImage(m3machineTemplateName, clusterClient, imageURL, imageChecksum, "raw", "sha256")
 
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
@@ -332,7 +332,7 @@ func nodeReuse(clusterClient client.Client) {
 
 	By("Update MD Metal3MachineTemplate with upgraded image to boot and set nodeReuse field to 'True'")
 	updateNodeReuse(true, m3machineTemplateName, clusterClient)
-	updateBootImage(m3machineTemplateName, clusterClient, imageURL, imageChecksum, "raw", "md5")
+	updateBootImage(m3machineTemplateName, clusterClient, imageURL, imageChecksum, "raw", "sha256")
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
