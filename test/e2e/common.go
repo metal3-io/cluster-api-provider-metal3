@@ -152,7 +152,8 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		Expect(err).To(BeNil())
 		sha256sum, err := getSha256Hash(rawImagePath)
 		Expect(err).To(BeNil())
-		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), sha256sum, 0544)
+		formattedSha256sum := fmt.Sprintf("%x", sha256sum)
+		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0544)
 		Expect(err).To(BeNil())
 		Logf("Image: %v downloaded", rawImagePath)
 	} else {
