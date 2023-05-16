@@ -48,7 +48,7 @@ import (
 
 const (
 	testImageURL              = "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2"
-	testImageChecksumURL      = "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.md5sum"
+	testImageChecksumURL      = "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum"
 	testUserDataSecretName    = "worker-user-data"
 	testMetaDataSecretName    = "worker-metadata"
 	testNetworkDataSecretName = "worker-network-data"
