@@ -83,7 +83,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f1e
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda
@@ -164,10 +164,10 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f10
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
-      deviceName: /dev/sda  
+      deviceName: /dev/sda
     state: ready
 ---
 apiVersion: metal3.io/v1alpha1
@@ -245,7 +245,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f11
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda
@@ -326,7 +326,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f12
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda
@@ -407,7 +407,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f13
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda
@@ -488,7 +488,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f14
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda
@@ -569,7 +569,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f15
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda 
@@ -650,7 +650,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f16
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda
@@ -731,7 +731,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f17
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda
@@ -812,7 +812,7 @@ status:
     ID: be02cfb3-7b24-47c7-b9b8-d69207d86f18
     bootMode: legacy
     image:
-      checksum: http://172.22.0.1/images/centos-updated.qcow2.md5sum
+      checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
       deviceName: /dev/sda

@@ -3,8 +3,8 @@ export SERVICE_CIDR='"10.96.0.0/12"'
 export API_ENDPOINT_HOST="192.168.111.249"
 export API_ENDPOINT_PORT="6443"
 export IMAGE_URL="http://192.168.0.1/ubuntu.qcow2"
-export IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.md5sum"
-export IMAGE_CHECKSUM_TYPE="md5"
+export IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.sha256sum"
+export IMAGE_CHECKSUM_TYPE="sha256"
 export IMAGE_FORMAT="qcow2"
 export CTLPLANE_KUBEADM_EXTRA_CONFIG="
     preKubeadmCommands:
