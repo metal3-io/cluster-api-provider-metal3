@@ -25,38 +25,6 @@ spec:
       owner: root:root
       path: /usr/local/bin/retrieve.configuration.files.sh
       permissions: "0755"
-    - content: |
-        #!/bin/bash
-        while :; do
-          curl -sk https://127.0.0.1:6443/healthz 1>&2 > /dev/null
-          isOk=$?
-          isActive=$(systemctl show -p ActiveState keepalived.service | cut -d'=' -f2)
-          if [ $isOk == "0" ] &&  [ $isActive != "active" ]; then
-            logger 'API server is healthy, however keepalived is not running, starting keepalived'
-            echo 'API server is healthy, however keepalived is not running, starting keepalived'
-            sudo systemctl start keepalived.service
-          elif [ $isOk != "0" ] &&  [ $isActive == "active" ]; then
-            logger 'API server is not healthy, however keepalived running, stopping keepalived'
-            echo 'API server is not healthy, however keepalived running, stopping keepalived'
-            sudo systemctl stop keepalived.service
-          fi
-          sleep 5
-        done
-      owner: root:root
-      path: /usr/local/bin/monitor.keepalived.sh
-      permissions: "0755"
-    - path: /lib/systemd/system/monitor.keepalived.service
-      owner: root:root
-      content: |
-        [Unit]
-        Description=Monitors keepalived adjusts status with that of API server
-        After=syslog.target network-online.target
-        [Service]
-        Type=simple
-        Restart=always
-        ExecStart=/usr/local/bin/monitor.keepalived.sh
-        [Install]
-        WantedBy=multi-user.target
     - path: /etc/keepalived/keepalived.conf
       content: |
         ! Configuration File for keepalived
@@ -69,6 +37,15 @@ spec:
             smtp_server localhost
             smtp_connect_timeout 30
         }
+
+        vrrp_script k8s_api_check {
+            script "curl -sk https://127.0.0.1:6443/healthz"
+            interval 5
+            timeout 5
+            rise 3
+            fall 3
+        }
+
         vrrp_instance VI_1 {
             state MASTER
             interface eth1
@@ -77,6 +54,9 @@ spec:
             advert_int 1
             virtual_ipaddress {
                 ${CLUSTER_APIENDPOINT_HOST}
+            }
+            track_script {
+                k8s_api_check
             }
         }
     - path: /etc/NetworkManager/system-connections/eth0.nmconnection
@@ -89,16 +69,17 @@ spec:
         interface-name=eth0
         master=ironicendpoint
         slave-type=bridge
-        autoconnect=yes
-        autoconnect-priority=999
     - content: |
         [connection]
         id=ironicendpoint
         type=bridge
         interface-name=ironicendpoint
+        autoconnect=yes
+        autoconnect-priority=1
 
         [bridge]
         stp=false
+        interface-name=ironicendpoint
 
         [ipv4]
         address1={{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
@@ -149,19 +130,21 @@ spec:
           provider-id: ${PROVIDER_ID_FORMAT}
           runtime-request-timeout: 5m
         name: '{{ ds.meta_data.name }}'
-    postKubeadmCommands:
-    - mkdir -p /home/${IMAGE_USERNAME}/.kube
-    - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube
-    - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
-    - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
     preKubeadmCommands:
-    - systemctl restart NetworkManager.service
-    - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
-    - nmcli connection up eth0
-    - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
-    - nmcli connection up ironicendpoint
-    - systemctl enable --now crio keepalived kubelet
-    - systemctl enable --now /lib/systemd/system/monitor.keepalived.service
+      - systemctl restart NetworkManager.service
+      - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
+      - nmcli connection up ironicendpoint
+      - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
+      - nmcli connection up eth0
+      - systemctl enable --now keepalived
+      - sleep 60
+      - systemctl enable --now crio kubelet
+    postKubeadmCommands:
+      - mkdir -p /home/${IMAGE_USERNAME}/.kube
+      - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube
+      - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
+      - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
+
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
 kind: KubeadmConfigTemplate
@@ -243,8 +226,9 @@ spec:
           registries = ['${REGISTRY}']
       preKubeadmCommands:
       - systemctl restart NetworkManager.service
-      - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
-      - nmcli connection up eth0
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint
+      - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
+      - nmcli connection up eth0
       - systemctl enable --now crio kubelet
+      - sleep 120

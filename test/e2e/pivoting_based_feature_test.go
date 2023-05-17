@@ -8,6 +8,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,6 +78,24 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 	})
 
 	AfterEach(func() {
+		Logf("Logging state of bootstrap cluster")
+		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListNodes(ctx, bootstrapClusterProxy.GetClient())
+		Logf("Logging state of target cluster")
+		if !ephemeralTest {
+			ListBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+		}
+		ListNodes(ctx, targetCluster.GetClient())
+		// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
+		if CurrentSpecReport().Failed() {
+			if keepTestEnv {
+				AbortSuite("e2e test aborted and skip cleaning the VM", 4)
+			}
+		}
 		if !ephemeralTest {
 			// Dump the target cluster resources before re-pivoting.
 			Logf("Dump the target cluster resources before re-pivoting")
@@ -97,24 +117,6 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 					ClusterctlConfigPath:  clusterctlConfigPath,
 				}
 			})
-		}
-		Logf("Logging state of bootstrap cluster")
-		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
-		ListNodes(ctx, bootstrapClusterProxy.GetClient())
-		Logf("Logging state of target cluster")
-		if !ephemeralTest {
-			ListBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-			ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-			ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-		}
-		ListNodes(ctx, targetCluster.GetClient())
-		// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
-		if CurrentSpecReport().Failed() {
-			if keepTestEnv {
-				AbortSuite("e2e test aborted and skip cleaning the VM", 4)
-			}
 		}
 		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
@@ -148,5 +150,10 @@ func createTargetCluster(k8sVersion string) (framework.ClusterProxy, *clusterctl
 		WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 	}, &result)
 	targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+	framework.WaitForPodListCondition(ctx, framework.WaitForPodListConditionInput{
+		Lister:      targetCluster.GetClient(),
+		ListOptions: &client.ListOptions{LabelSelector: labels.Everything(), Namespace: "kube-system"},
+		Condition:   framework.PhasePodCondition(corev1.PodRunning),
+	}, e2eConfig.GetIntervals(specName, "wait-all-pod-to-be-running-on-target-cluster")...)
 	return targetCluster, &result
 }
