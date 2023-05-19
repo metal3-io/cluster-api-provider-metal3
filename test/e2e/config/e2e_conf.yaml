@@ -132,7 +132,7 @@ variables:
   INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/clusterctl-{OS}-{ARCH}"
   PROVIDER_ID_FORMAT: "metal3://{{ ds.meta_data.providerid }}"
   # Pin Calico version
-  CALICO_PATCH_RELEASE: "v3.24.1"
+  CALICO_PATCH_RELEASE: "v3.25.1"
   # Pin CertManager for upgrade tests
   CERT_MANAGER_RELEASE: v1.11.1
   # Default vars for the template, those values could be overridden by the env-vars.
