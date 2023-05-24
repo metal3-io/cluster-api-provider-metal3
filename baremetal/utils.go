@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"strings"
+	"time"
 
 	// comment for go-lint.
 	"github.com/go-logr/logr"
@@ -80,7 +81,7 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object)
 					notFound = false
 				}
 				if apierrors.IsConflict(kerr) {
-					return &RequeueAfterError{}
+					return WithTransientError(errors.New("Updating object failed"), 0*time.Second)
 				}
 			}
 		} else {
@@ -96,7 +97,7 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object)
 func updateObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.UpdateOption) error {
 	err := cl.Update(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsConflict(err) {
-		return &RequeueAfterError{}
+		return WithTransientError(errors.New("Update object conflicts"), requeueAfter)
 	}
 	return err
 }
@@ -104,7 +105,7 @@ func updateObject(ctx context.Context, cl client.Client, obj client.Object, opts
 func createObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.CreateOption) error {
 	err := cl.Create(ctx, obj.DeepCopyObject().(client.Object), opts...)
 	if apierrors.IsAlreadyExists(err) {
-		return &RequeueAfterError{}
+		return WithTransientError(errors.New("Object already exists"), requeueAfter)
 	}
 	return err
 }
@@ -208,8 +209,9 @@ func fetchM3DataTemplate(ctx context.Context,
 	}
 	if err := cl.Get(ctx, metal3DataTemplateName, metal3DataTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Metal3DataTemplate is not found, requeuing")
-			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+			errMessage := "Metal3DataTemplate is not found, requeuing"
+			mLog.Info(errMessage)
+			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 		err := errors.Wrap(err, "Failed to get Metal3DataTemplate")
 		return nil, err
@@ -235,8 +237,9 @@ func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3DataClaimName, m3DataClaim); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Metal3DataClaim is not found, requeuing")
-			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+			errMessage := "Metal3DataClaim is not found, requeuing"
+			mLog.Info(errMessage)
+			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 		err := errors.Wrap(err, "Failed to get Metal3DataClaim")
 		return nil, err
@@ -256,8 +259,9 @@ func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3DataName, m3Data); err != nil {
 		if apierrors.IsNotFound(err) {
-			mLog.Info("Metal3Data is not found, requeuing")
-			return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+			errMessage := "Metal3Data is not found, requeuing"
+			mLog.Info(errMessage)
+			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 		err := errors.Wrap(err, "Failed to get Metal3Data")
 		return nil, err
@@ -281,8 +285,9 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 		if apierrors.IsNotFound(err) {
 			mLog.Info("Metal3Machine is not found")
 			if requeueifNotFound {
-				mLog.Info("Metal3Machine is not found, requeuing")
-				return nil, &RequeueAfterError{RequeueAfter: requeueAfter}
+				errMessage := "Metal3Machine is not found, requeuing"
+				mLog.Info(errMessage)
+				return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 			}
 			return nil, nil
 		}

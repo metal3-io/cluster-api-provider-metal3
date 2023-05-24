@@ -353,10 +353,11 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	}
 
 	// Create the Metal3Data object. If we get a conflict (that will set
-	// HasRequeueAfterError), then requeue to retrigger the reconciliation with
+	// TransientType ReconcileError), then requeue to retrigger the reconciliation with
 	// the new state
 	if err := createObject(ctx, m.client, dataObject); err != nil {
-		if ok := errors.As(err, &requeueAfterError); !ok {
+		var reconcileError ReconcileError
+		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			dataClaim.Status.ErrorMessage = pointer.String("Failed to create associated Metal3Data object")
 		}
 		return indexes, err

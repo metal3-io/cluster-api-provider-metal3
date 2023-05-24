@@ -1596,10 +1596,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectedResult == nil {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
-				ok := errors.As(err, &requeueAfterError)
-
-				Expect(ok).To(BeTrue())
-				Expect(requeueAfterError.Error()).To(Equal(tc.ExpectedResult.Error()))
+				var reconcileError ReconcileError
+				Expect(errors.As(err, &reconcileError)).To(BeTrue())
+				Expect(reconcileError.IsTransient()).To(BeTrue())
 			}
 
 			if tc.Host != nil {
@@ -1725,7 +1724,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef:     consumerRef(),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			Secret:                  newSecret(),
 			ExpectedBMHOnlineStatus: false,
 		}),
@@ -1738,7 +1737,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef:     consumerRef(),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			Secret:                  newSecret(),
 			ExpectedBMHOnlineStatus: false,
 		}),
@@ -1762,7 +1761,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
-			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
+			ExpectedResult:      ReconcileError{nil, TransientErrorType, time.Second * 30},
 			Secret:              newSecret(),
 		}),
 		Entry("Externally provisioned host should be powered down", testCaseDelete{
@@ -1774,7 +1773,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mObjectMetaWithValidAnnotations(),
 			),
 			ExpectedConsumerRef: consumerRef(),
-			ExpectedResult:      &RequeueAfterError{RequeueAfter: time.Second * 30},
+			ExpectedResult:      ReconcileError{nil, TransientErrorType, time.Second * 30},
 			Secret:              newSecret(),
 		}),
 		Entry("Consumer ref should be removed from externally provisioned host",
@@ -1947,7 +1946,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "false",
@@ -1960,7 +1959,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "true",
@@ -1973,7 +1972,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			ExpectedConsumerRef:     consumerRef(),
 			Secret:                  newSecret(),
 			capm3fasttrack:          "false",
@@ -1986,7 +1985,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "true",
 			Secret:                  newSecret(),
@@ -1999,7 +1998,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
@@ -2012,7 +2011,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, m3mSecretStatus(),
 				m3mObjectMetaWithValidAnnotations(),
 			),
-			ExpectedResult:          &RequeueAfterError{},
+			ExpectedResult:          ReconcileError{},
 			ExpectedConsumerRef:     consumerRef(),
 			capm3fasttrack:          "",
 			Secret:                  newSecret(),
@@ -2993,7 +2992,8 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			err = machineMgr.Associate(context.TODO())
 			if tc.ExpectRequeue {
-				ok := errors.As(err, &hasRequeueAfterError)
+				var reconcileError ReconcileError
+				ok := errors.As(err, &reconcileError)
 				fmt.Println(errors.Cause(err))
 				Expect(ok).To(BeTrue())
 			} else {
@@ -3192,7 +3192,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			err = machineMgr.Update(context.TODO())
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+				Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -3509,9 +3509,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.ExpectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -3630,9 +3630,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.ExpectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -3834,9 +3834,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.ExpectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())

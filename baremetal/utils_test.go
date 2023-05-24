@@ -253,7 +253,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			err := updateObject(context.TODO(), k8sClient, obj)
 			if tc.ExpectedError {
 				Expect(err).To(HaveOccurred())
-				Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+				Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(obj.Spec).To(Equal(tc.TestObject.Spec))
@@ -271,7 +271,7 @@ var _ = Describe("Metal3 manager utils", func() {
 				Expect(savedObject.ResourceVersion).NotTo(Equal(tc.TestObject.ResourceVersion))
 				err := updateObject(context.TODO(), k8sClient, obj)
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+				Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 			}
 			err = k8sClient.Delete(context.TODO(), tc.TestObject)
 			if err != nil {
@@ -300,7 +300,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			err := createObject(context.TODO(), k8sClient, obj)
 			if tc.ExpectedError {
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+				Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(obj.Spec).To(Equal(tc.TestObject.Spec))
@@ -475,9 +475,9 @@ var _ = Describe("Metal3 manager utils", func() {
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.ExpectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -559,9 +559,9 @@ var _ = Describe("Metal3 manager utils", func() {
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.ExpectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -613,9 +613,9 @@ var _ = Describe("Metal3 manager utils", func() {
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.ExpectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
