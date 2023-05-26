@@ -85,15 +85,19 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(obj.ValidateCreate()).NotTo(Succeed())
+				_, err := obj.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(obj.ValidateCreate()).To(Succeed())
+				_, err := obj.ValidateCreate()
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			obj.Spec.Index = -1
-			g.Expect(obj.ValidateCreate()).NotTo(Succeed())
+			_, err := obj.ValidateCreate()
+			g.Expect(err).To(HaveOccurred())
 
-			g.Expect(obj.ValidateDelete()).To(Succeed())
+			_, err = obj.ValidateDelete()
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -279,9 +283,11 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(newData.ValidateUpdate(oldData)).NotTo(Succeed())
+				_, err := newData.ValidateUpdate(oldData)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(newData.ValidateUpdate(oldData)).To(Succeed())
+				_, err := newData.ValidateUpdate(oldData)
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}

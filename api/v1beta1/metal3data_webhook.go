@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (c *Metal3Data) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -40,7 +41,7 @@ func (c *Metal3Data) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Data) ValidateCreate() error {
+func (c *Metal3Data) ValidateCreate() (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
 	if (c.Spec.TemplateReference != "" && c.Name != c.Spec.TemplateReference+"-"+strconv.Itoa(c.Spec.Index)) ||
 		(c.Spec.TemplateReference == "" && c.Name != c.Spec.Template.Name+"-"+strconv.Itoa(c.Spec.Index)) {
@@ -64,17 +65,17 @@ func (c *Metal3Data) ValidateCreate() error {
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Data) ValidateUpdate(old runtime.Object) error {
+func (c *Metal3Data) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
 	oldMetal3Data, ok := old.(*Metal3Data)
 	if !ok || oldMetal3Data == nil {
-		return apierrors.NewInternalError(errors.New("unable to convert existing object"))
+		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
 	}
 
 	if c.Spec.Index != oldMetal3Data.Spec.Index {
@@ -140,12 +141,12 @@ func (c *Metal3Data) ValidateUpdate(old runtime.Object) error {
 	}
 
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Data) ValidateDelete() error {
-	return nil
+func (c *Metal3Data) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
