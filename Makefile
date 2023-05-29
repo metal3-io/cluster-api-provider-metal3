@@ -165,7 +165,7 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## --------------------------------------
 ## E2E Testing
 ## --------------------------------------
-GINKGO_FOCUS  ?=
+GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
 GINKGO_TIMEOUT ?= 6h
 

@@ -8,7 +8,7 @@ function clone_repo() {
   if [[ -d "${REPO_PATH}" && "${FORCE_REPO_UPDATE}" == "true" ]]; then
     rm -rf "${REPO_PATH}"
   fi
-  if [ ! -d "${REPO_PATH}" ] ; then
+  if [ ! -d "${REPO_PATH}" ]; then
     git clone "${REPO_URL}" "${REPO_PATH}"
     pushd "${REPO_PATH}" || exit 1
     git checkout "${REPO_BRANCH}"
@@ -18,28 +18,28 @@ function clone_repo() {
 }
 
 function os_check() {
-    # Check OS type and version
-    # shellcheck disable=SC1091
-    source /etc/os-release
-    export DISTRO="${ID}${VERSION_ID%.*}"
-    export OS="${ID}"
-    export OS_VERSION_ID=$VERSION_ID
-    export SUPPORTED_DISTROS=(centos8 centos9 rhel8 ubuntu20 ubuntu22)
+  # Check OS type and version
+  # shellcheck disable=SC1091
+  source /etc/os-release
+  export DISTRO="${ID}${VERSION_ID%.*}"
+  export OS="${ID}"
+  export OS_VERSION_ID=$VERSION_ID
+  export SUPPORTED_DISTROS=(centos8 centos9 rhel8 ubuntu20 ubuntu22)
 
-    if [[ ! "${SUPPORTED_DISTROS[*]}" =~ $DISTRO ]]; then
-        echo "Supported OS distros for the host are: CentOS Stream 8/9 or RHEL8/9 or Ubuntu20.04 or Ubuntu22.04"
-        exit 1
-    fi
+  if [[ ! "${SUPPORTED_DISTROS[*]}" =~ $DISTRO ]]; then
+    echo "Supported OS distros for the host are: CentOS Stream 8/9 or RHEL8/9 or Ubuntu20.04 or Ubuntu22.04"
+    exit 1
+  fi
 }
 
 os_check
 
 if [[ "${OS}" == ubuntu ]]; then
-    export IMAGE_OS="ubuntu"
-    export CONTAINER_RUNTIME="docker"
+  export IMAGE_OS="ubuntu"
+  export CONTAINER_RUNTIME="docker"
 else
-    export IMAGE_OS="centos"
-    export CONTAINER_RUNTIME="podman"
+  export IMAGE_OS="centos"
+  export CONTAINER_RUNTIME="podman"
 fi
 
 if [ "${CONTAINER_RUNTIME}" == "docker" ]; then

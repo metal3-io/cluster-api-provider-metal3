@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,15 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Testing nodes remediation [remediation] [features]", func() {
-
-	var (
-		ctx                 = context.TODO()
-		specName            = "metal3"
-		namespace           = "metal3"
-		clusterName         = "test1"
-		clusterctlLogFolder string
-	)
+var _ = Describe("When testing ip reuse [ip-reuse] [features]", func() {
 
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
@@ -29,34 +20,16 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", func() {
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
-
-	It("Should create a cluster and run remediation based tests", func() {
-		By("Creating target cluster")
-		targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("KUBERNETES_VERSION"))
-
-		// Run Metal3Remediation test first, doesn't work after remediation...
-		By("Running Metal3Remediation tests")
-		metal3remediation(ctx, func() Metal3RemediationInput {
-			return Metal3RemediationInput{
+	It("Should create a workload cluster then verify ip allocation reuse while upgrading k8s", func() {
+		IPReuse(ctx, func() IPReuseInput {
+			targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
+			return IPReuseInput{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				TargetCluster:         targetCluster,
 				SpecName:              specName,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
-			}
-		})
-
-		By("Running remediation tests")
-		remediation(ctx, func() RemediationInput {
-			return RemediationInput{
-				E2EConfig:             e2eConfig,
-				BootstrapClusterProxy: bootstrapClusterProxy,
-				TargetCluster:         targetCluster,
-				SpecName:              specName,
-				ClusterName:           clusterName,
-				Namespace:             namespace,
-				ClusterctlConfigPath:  clusterctlConfigPath,
 			}
 		})
 	})
@@ -74,5 +47,4 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", func() {
 		}
 		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
-
 })
