@@ -38,7 +38,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("Metal3Data manager", func() {
@@ -100,7 +99,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.m3m != nil {
 				objects = append(objects, tc.m3m)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
+
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
@@ -181,7 +181,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.networkdataSecret != nil {
 				objects = append(objects, tc.networkdataSecret)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
@@ -570,7 +570,7 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
@@ -663,7 +663,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 				Spec:       tc.m3dtSpec,
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 			dataMgr, err := NewDataManager(fakeClient, m3d,
 				logr.Discard(),
 			)
@@ -1041,7 +1041,8 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
 				Spec:       tc.m3dtSpec,
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
+
 			dataMgr, err := NewDataManager(fakeClient, m3d,
 				logr.Discard(),
 			)
@@ -1229,7 +1230,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
+
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
@@ -1472,7 +1474,7 @@ var _ = Describe("Metal3Data manager", func() {
 				objects = append(objects, tc.ipClaim)
 			}
 			fake := &releaseAddressFromPoolFakeClient{
-				Client:          fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build(),
+				Client:          fakeClientWithObjects(setupScheme(), objects...),
 				injectDeleteErr: tc.injectDeleteErr,
 			}
 			dataMgr, err := NewDataManager(fake, tc.m3d,
@@ -1555,7 +1557,7 @@ var _ = Describe("Metal3Data manager", func() {
 	}
 
 	DescribeTable("ensureIPClaim", func(tc testCaseEnsureClaim) {
-		fc := fakeClient(tc.ipClaim)
+		fc := fakeClientWithObjects(setupScheme(), tc.ipClaim)
 		m3d := &infrav1.Metal3Data{
 			ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 		}
@@ -1636,7 +1638,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
+
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)
@@ -1776,7 +1779,8 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ipClaim != nil {
 				objects = append(objects, tc.ipClaim)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
+
 			dataMgr, err := NewDataManager(fakeClient, tc.m3d,
 				logr.Discard(),
 			)

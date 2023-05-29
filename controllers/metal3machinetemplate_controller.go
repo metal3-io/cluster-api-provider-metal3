@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -121,7 +120,7 @@ func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, 
 		For(&infrav1.Metal3MachineTemplate{}).
 		WithOptions(options).
 		Watches(
-			&source.Kind{Type: &infrav1.Metal3Machine{}},
+			&infrav1.Metal3Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3MachinesToMetal3MachineTemplate),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -130,7 +129,7 @@ func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, 
 
 // Metal3MachinesToMetal3MachineTemplate is a handler.ToRequestsFunc to be used to enqeue
 // requests for reconciliation of Metal3MachineTemplates.
-func (r *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(o client.Object) []ctrl.Request {
+func (r *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(_ context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 	if m3m, ok := o.(*infrav1.Metal3Machine); ok {
 		if m3m.Annotations[clonedFromGroupKind] == "" && m3m.Annotations[clonedFromGroupKind] != infrav1.ClonedFromGroupKind {

@@ -235,15 +235,34 @@ func testObjectReference(name string) *corev1.ObjectReference {
 	}
 }
 
-func fakeClient(objects ...client.Object) client.Client {
+func fakeClientWithObjects(scheme *runtime.Scheme, objects ...client.Object) client.Client {
 	objs := []client.Object{}
 	for _, o := range objects {
 		if o != nil && reflect.ValueOf(o).Kind() == reflect.Ptr && !reflect.ValueOf(o).IsNil() {
 			objs = append(objs, o)
 		}
 	}
-	return fake.NewClientBuilder().
-		WithScheme(setupScheme()).
-		WithObjects(objs...).
-		Build()
+
+	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...)
+	for _, v := range objs {
+		clientBuilder = clientBuilder.WithStatusSubresource(v.(client.Object))
+	}
+
+	return clientBuilder.Build()
+}
+
+func fakeClientWithRuntimeObjects(scheme *runtime.Scheme, initRuntimeObjs ...runtime.Object) client.Client {
+	objs := []runtime.Object{}
+	for _, o := range initRuntimeObjs {
+		if o != nil && reflect.ValueOf(o).Kind() == reflect.Ptr && !reflect.ValueOf(o).IsNil() {
+			objs = append(objs, o)
+		}
+	}
+
+	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...)
+	for _, v := range objs {
+		clientBuilder = clientBuilder.WithStatusSubresource(v.(client.Object))
+	}
+
+	return clientBuilder.Build()
 }

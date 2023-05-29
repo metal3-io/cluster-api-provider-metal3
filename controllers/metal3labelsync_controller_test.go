@@ -35,7 +35,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -310,13 +309,13 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				tc.Machine,
 				tc.M3Machine,
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 			r := Metal3LabelSyncReconciler{
 				Client: fakeClient,
 				Log:    logr.Discard(),
 			}
 			obj := client.Object(tc.M3Cluster)
-			reqs := r.Metal3ClusterToBareMetalHosts(obj)
+			reqs := r.Metal3ClusterToBareMetalHosts(ctx, obj)
 			Expect(reflect.DeepEqual(reqs, tc.ExpectRequests)).To(Equal(true),
 				"Expected %v but got %v", tc.ExpectRequests, reqs)
 		},
@@ -405,7 +404,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 					objects = append(objects, tc.metal3Machine)
 				}
 
-				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 				corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
 					Name: nodeName,
 				}}).CoreV1()
@@ -536,7 +535,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 					tc.Cluster,
 					tc.Machine,
 				}
-				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 				corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
 					Name: nodeName,
 				}}).CoreV1()

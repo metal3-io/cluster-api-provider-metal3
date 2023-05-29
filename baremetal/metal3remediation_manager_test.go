@@ -292,7 +292,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			host := bmov1alpha1.BareMetalHost{
 				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), &host)
 
 			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, tc.M3Machine, nil,
 				logr.Discard(),
@@ -381,7 +381,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test SetUnhealthyAnnotation",
 		func(tc testCaseSetAnnotation) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Host).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), tc.Host)
+
 			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, tc.M3Machine, nil,
 				logr.Discard(),
 			)
@@ -833,7 +834,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		}
 
 		It("should set and remove the power off annotation as requested", func() {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(bmhost, m3machine, remediation).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), bmhost, m3machine, remediation)
 
 			remediationMgr, err := NewRemediationManager(fakeClient, nil, remediation, m3machine, nil,
 				logr.Discard(),
@@ -951,7 +952,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 		}
 
 		It("Should find, update and delete node", func() {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(cluster, m3Remediation, capiMachine).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), cluster, m3Remediation, capiMachine)
+
 			corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
 				Name: node.Name,
 			}}).CoreV1()

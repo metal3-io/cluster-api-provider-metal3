@@ -33,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -52,7 +51,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 	DescribeTable("Reconcile tests metal3Cluster",
 		func(tc TestCaseReconcileBMC) {
 			testclstr := &infrav1.Metal3Cluster{}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), tc.Objects...)
 
 			r := &Metal3ClusterReconciler{
 				Client:           fakeClient,

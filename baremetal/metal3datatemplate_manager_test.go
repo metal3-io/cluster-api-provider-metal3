@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var timeNow = metav1.Now()
@@ -145,7 +144,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.indexes {
 				objects = append(objects, address)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
@@ -252,7 +252,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, claim := range tc.dataClaims {
 				objects = append(objects, claim)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
@@ -446,7 +447,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			if tc.dataObject != nil {
 				objects = append(objects, tc.dataObject)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template2,
 				logr.Discard(),
 			)
@@ -613,7 +615,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
@@ -761,7 +764,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)

@@ -224,7 +224,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 var _ = Describe("Metal3Remediation controller", func() {
 	var goMockCtrl *gomock.Controller
 	var testReconciler *Metal3RemediationReconciler
-	var fakeClient client.WithWatch
+	var fakeClient client.Client
 	var objects []client.Object
 
 	defaultTestRequest := ctrl.Request{
@@ -257,7 +257,7 @@ var _ = Describe("Metal3Remediation controller", func() {
 				if tc.Machine != nil {
 					objects = append(objects, tc.Machine)
 				}
-				fakeClient = fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient = fakeClientWithObjects(setupScheme(), objects...)
 			}
 			testReconciler = &Metal3RemediationReconciler{
 				Client:         fakeClient,

@@ -68,7 +68,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			if tc.cluster != nil {
 				objects = append(objects, tc.cluster)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 
 			if tc.managerError {
 				mf.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
@@ -332,7 +332,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		func(tc TestCaseM3DCToM3DT) {
 			r := Metal3DataTemplateReconciler{}
 			obj := client.Object(tc.DataClaim)
-			reqs := r.Metal3DataClaimToMetal3DataTemplate(obj)
+			reqs := r.Metal3DataClaimToMetal3DataTemplate(ctx, obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))

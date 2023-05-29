@@ -28,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utils "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 var _ = Describe("Metal3MachineTemplate manager", func() {
@@ -45,7 +44,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				tc.M3MachineTemplate,
 				tc.M3MachineList,
 			}
-			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithRuntimeObjects(objects...).Build()
+			fakeClient := fakeClientWithRuntimeObjects(setupSchemeMm(), objects...)
 			templateMgr, err := NewMachineTemplateManager(fakeClient, tc.M3MachineTemplate,
 				tc.M3MachineList, logr.Discard(),
 			)

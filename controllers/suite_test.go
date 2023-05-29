@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"k8s.io/klog/v2/klogr"
@@ -36,7 +37,9 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -62,6 +65,10 @@ const (
 	baremetalhostName      = "controller-testbaremetalhostname"
 	metal3DataName         = "controller-testmetal3dataname"
 	metal3DataClaimName    = "baremetal-testmetal3dataclaim"
+)
+
+var (
+	ctx = ctrl.SetupSignalHandler()
 )
 
 func init() {
@@ -424,4 +431,36 @@ func evaluateTestError(expected *string, actual error) {
 		Expect(expected).ToNot(BeNil())
 		Expect(actual.Error()).To(ContainSubstring(*expected))
 	}
+}
+
+func fakeClientWithObjects(scheme *runtime.Scheme, objects ...client.Object) client.Client {
+	objs := []client.Object{}
+	for _, o := range objects {
+		if o != nil && reflect.ValueOf(o).Kind() == reflect.Ptr && !reflect.ValueOf(o).IsNil() {
+			objs = append(objs, o)
+		}
+	}
+
+	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...)
+	for _, v := range objs {
+		clientBuilder = clientBuilder.WithStatusSubresource(v.(client.Object))
+	}
+
+	return clientBuilder.Build()
+}
+
+func fakeClientWithRuntimeObjects(scheme *runtime.Scheme, initRuntimeObjs ...runtime.Object) client.Client {
+	objs := []runtime.Object{}
+	for _, o := range initRuntimeObjs {
+		if o != nil && reflect.ValueOf(o).Kind() == reflect.Ptr && !reflect.ValueOf(o).IsNil() {
+			objs = append(objs, o)
+		}
+	}
+
+	clientBuilder := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...)
+	for _, v := range objs {
+		clientBuilder = clientBuilder.WithStatusSubresource(v.(client.Object))
+	}
+
+	return clientBuilder.Build()
 }

@@ -387,7 +387,7 @@ func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
 	if tc.BMCluster != nil {
 		objects = append(objects, tc.BMCluster)
 	}
-	fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+	fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 
 	return &ClusterManager{
 		client:        fakeClient,
@@ -409,7 +409,7 @@ func descendantsSetup(tc descendantsTestCase) *ClusterManager {
 	for _, machine := range tc.Machines {
 		objects = append(objects, machine)
 	}
-	fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+	fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 
 	return &ClusterManager{
 		client:        fakeClient,

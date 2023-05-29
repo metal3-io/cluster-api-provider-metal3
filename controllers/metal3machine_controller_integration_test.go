@@ -44,7 +44,6 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -197,7 +196,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			testBMHost := &bmov1alpha1.BareMetalHost{}
 			oldProviderID := testBMmachine.Spec.ProviderID
 
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), tc.Objects...)
 			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {

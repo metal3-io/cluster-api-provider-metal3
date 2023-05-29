@@ -93,7 +93,7 @@ users:
 		})
 
 		It("should create a non-nil client when given valid kubeconfig", func() {
-			client := fake.NewClientBuilder().WithRuntimeObjects(validSecret).Build()
+			client := fake.NewClientBuilder().WithRuntimeObjects(validSecret).WithStatusSubresource(validSecret).Build()
 			c, err := NewClusterClient(context.TODO(), client, clusterWithValidKubeConfig)
 			Expect(err).To(BeNil())
 			Expect(c).To(Not(BeNil()))
@@ -105,7 +105,7 @@ users:
 			Expect(err.Error()).To(ContainSubstring("not found"))
 		})
 		It("should error with some other error with invalid kubeconfig", func() {
-			client := fake.NewClientBuilder().WithRuntimeObjects(invalidSecret).Build()
+			client := fake.NewClientBuilder().WithRuntimeObjects(invalidSecret).WithStatusSubresource(invalidSecret).Build()
 			_, err := NewClusterClient(context.TODO(), client, clusterWithInvalidKubeConfig)
 			Expect(err).To(HaveOccurred())
 			Expect(apierrors.IsNotFound(err)).To(BeFalse())

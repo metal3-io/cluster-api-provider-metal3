@@ -69,7 +69,7 @@ var _ = Describe("Metal3Data manager", func() {
 				if tc.cluster != nil {
 					objects = append(objects, tc.cluster)
 				}
-				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient := fakeClientWithObjects(setupScheme(), objects...)
 
 				if tc.managerError {
 					mf.EXPECT().NewDataManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
@@ -405,12 +405,12 @@ var _ = Describe("Metal3Data manager", func() {
 					OwnerReferences: tc.ownerRefs,
 				},
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(ipClaim).Build()
+			fakeClient := fakeClientWithObjects(setupScheme(), ipClaim)
 			m3DataReconciler := Metal3DataReconciler{
 				Client: fakeClient,
 			}
 			obj := client.Object(ipClaim)
-			reqs := m3DataReconciler.Metal3IPClaimToMetal3Data(obj)
+			reqs := m3DataReconciler.Metal3IPClaimToMetal3Data(ctx, obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},
 		Entry("No OwnerRefs", testCaseMetal3IPClaimToMetal3Data{

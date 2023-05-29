@@ -637,7 +637,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				if tc.M3Machine != nil {
 					objects = append(objects, tc.M3Machine)
 				}
-				fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient := fakeClientWithObjects(setupScheme(), objects...)
+
+				// check again
 				machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 					tc.M3Machine, logr.Discard(),
 				)
@@ -829,10 +831,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Test Set BMH Pause Annotation",
 		func(tc testCaseSetPauseAnnotation) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
-				tc.Host,
-				tc.M3Machine).Build()
-
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), tc.Host, tc.M3Machine)
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, tc.M3Machine, logr.Discard())
 			Expect(err).NotTo(HaveOccurred())
 
@@ -945,10 +944,10 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Test Remove BMH Pause Annotation",
 		func(tc testCaseRemovePauseAnnotation) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
-				tc.Host,
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), tc.Host,
 				tc.M3Machine,
-				tc.Cluster).Build()
+				tc.Cluster)
+
 			machineMgr, err := NewMachineManager(fakeClient,
 				tc.Cluster,
 				nil,
@@ -1047,7 +1046,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Test SetHostSpec",
 		func(tc testCaseSetHostSpec) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), tc.Host)
 
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
 				map[string]string{}, []infrav1.HostSelectorRequirement{},
@@ -1136,7 +1135,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Test SetHostConsumerRef",
 		func(tc testCaseSetHostSpec) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), tc.Host)
 
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
 				map[string]string{}, []infrav1.HostSelectorRequirement{},
@@ -1211,7 +1210,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Namespace: namespaceName,
 			},
 		}
-		fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
+		fakeClient := fakeClientWithObjects(setupScheme(), &host)
 
 		type testCaseExists struct {
 			Machine   *clusterv1.Machine
@@ -1263,8 +1262,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Namespace: namespaceName,
 			},
 		}
-		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(&host).Build()
-
+		fakeClient := fakeClientWithObjects(setupSchemeMm(), &host)
 		type testCaseGetHost struct {
 			Machine       *clusterv1.Machine
 			M3Machine     *infrav1.Metal3Machine
@@ -1322,7 +1320,8 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Test Get and Set Provider ID",
 		func(tc testCaseGetSetProviderID) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), tc.Host)
+
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 				tc.M3Machine, logr.Discard(),
 			)
@@ -1414,7 +1413,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Namespace: namespaceName,
 			},
 		}
-		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(&host).Build()
+		fakeClient := fakeClientWithObjects(setupSchemeMm(), &host)
 
 		DescribeTable("Test small functions",
 			func(tc testCaseSmallFunctions) {
@@ -1475,7 +1474,8 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	DescribeTable("Test EnsureAnnotation",
 		func(tc testCaseEnsureAnnotation) {
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.M3Machine).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), tc.M3Machine)
+
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, &tc.Machine,
 				tc.M3Machine, logr.Discard(),
 			)
@@ -1584,7 +1584,9 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			Capm3FastTrack = tc.capm3fasttrack
 
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 
 			machineMgr, err := NewMachineManager(fakeClient, tc.Cluster, nil, tc.Machine,
 				tc.M3Machine, logr.Discard(),
@@ -2214,7 +2216,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 		DescribeTable("Test UpdateMachineStatus",
 			func(tc testCaseUpdateMachineStatus) {
-				fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(&tc.M3Machine).Build()
+				fakeClient := fakeClientWithObjects(setupSchemeMm(), &tc.M3Machine)
 
 				machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 					&tc.M3Machine, logr.Discard(),
@@ -2550,7 +2552,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Test SetNodeProviderID",
 			func(tc testCaseSetNodePoviderID) {
 				BMHHost := newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, tc.HostID)
-				fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(BMHHost).Build()
+				fakeClient := fakeClientWithObjects(s, BMHHost)
+
 				corev1Client := clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1()
 				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
 					clientcorev1.CoreV1Interface, error,
@@ -2667,7 +2670,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Test SetNodeProviderID with noCloudProvider set to false",
 			func(tc testCaseSetNodePoviderID) {
 				BMHHost := newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, tc.HostID)
-				fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(BMHHost).Build()
+				fakeClient := fakeClientWithObjects(s, BMHHost)
+
 				corev1Client := clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1()
 				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
 					clientcorev1.CoreV1Interface, error,
@@ -2785,7 +2789,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.Secret != nil {
 				objects = append(objects, tc.Secret)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 				tc.M3Machine, logr.Discard(),
@@ -2983,7 +2989,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.BMCSecret != nil {
 				objects = append(objects, tc.BMCSecret)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 				tc.M3Machine, logr.Discard(),
@@ -3182,7 +3190,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				tc.M3Machine,
 				tc.Machine,
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 				tc.M3Machine, logr.Discard(),
@@ -3499,8 +3509,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.DataClaim != nil {
 				objects = append(objects, tc.DataClaim)
 			}
-			fakeCleint := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
-			machineMgr, err := NewMachineManager(fakeCleint, nil, nil, tc.Machine, tc.M3Machine,
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine, tc.M3Machine,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -3524,7 +3535,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 			if tc.expectClaim {
 				dataTemplate := infrav1.Metal3DataClaim{}
-				err = fakeCleint.Get(context.TODO(),
+				err = fakeClient.Get(context.TODO(),
 					client.ObjectKey{
 						Name:      tc.M3Machine.Name,
 						Namespace: tc.M3Machine.Namespace,
@@ -3620,7 +3631,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.Data != nil {
 				objects = append(objects, tc.Data)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine, tc.M3Machine,
 				logr.Discard(),
 			)
@@ -3824,7 +3837,8 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.DataClaim != nil {
 				objects = append(objects, tc.DataClaim)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine, tc.M3Machine,
 				logr.Discard(),
 			)
@@ -3934,7 +3948,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.Host != nil {
 				objects = append(objects, tc.Host)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 				nil, logr.Discard(),
@@ -4098,7 +4112,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.Host != nil {
 				objects = append(objects, tc.Host)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil,
 				nil, logr.Discard(),
@@ -4159,7 +4175,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.Machine != nil {
 				objects = append(objects, tc.Machine)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, tc.Machine,
 				nil, logr.Discard(),
 			)
@@ -4254,7 +4272,9 @@ var _ = Describe("Metal3Machine manager", func() {
 					objects = append(objects, &tc.MachineSetList.DeepCopy().Items[i])
 				}
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 			machineMgr, err := NewMachineSetManager(fakeClient, tc.Machine,
 				tc.MachineSetList, logr.Discard(),
 			)
@@ -4456,7 +4476,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				objects = append(objects, tc.Machine)
 			}
 
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fakeClientWithObjects(setupSchemeMm(), objects...)
+
+			// check again
 			machineMgr, err := NewMachineSetManager(fakeClient, tc.Machine,
 				tc.MachineSetList,
 				logr.Discard(),

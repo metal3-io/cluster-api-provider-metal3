@@ -61,7 +61,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 	var mockController *gomock.Controller
 	var testReconciler *Metal3MachineTemplateReconciler
 	var fakeClientBuilder *fake.ClientBuilder
-	var fakeClient client.WithWatch
+	var fakeClient client.Client
 	var m *baremetal_mocks.MockTemplateManagerInterface
 	var mf *baremetal_mocks.MockManagerFactoryInterface
 	var objects []client.Object
@@ -83,7 +83,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 		func(tc TestCaseM3MtoM3MT) {
 			r := Metal3MachineTemplateReconciler{}
 			obj := client.Object(tc.M3Machine)
-			reqs := r.Metal3MachinesToMetal3MachineTemplate(obj)
+			reqs := r.Metal3MachinesToMetal3MachineTemplate(ctx, obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
@@ -180,7 +180,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 				if tc.common.m3mTemplate != nil {
 					objects = append(objects, tc.common.m3mTemplate)
 				}
-				fakeClient = fakeClientBuilder.WithScheme(setupScheme()).WithObjects(objects...).Build()
+				fakeClient = fakeClientWithObjects(setupScheme(), objects...)
 			}
 
 			testReconciler = &Metal3MachineTemplateReconciler{
@@ -268,7 +268,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 			fakeClientBuilder = fake.NewClientBuilder()
 			objects = []client.Object{}
 			objects = append(objects, tc.common.m3mTemplate)
-			fakeClient = fakeClientBuilder.WithScheme(setupScheme()).WithObjects(objects...).Build()
+			fakeClient = fakeClientWithObjects(setupScheme(), objects...)
 
 			if tc.failedUpdateAutomatedCleaningMode {
 				m.EXPECT().UpdateAutomatedCleaningMode(context.TODO()).Return(
