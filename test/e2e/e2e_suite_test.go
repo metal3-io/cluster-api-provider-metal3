@@ -266,7 +266,9 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 
 	Logf("Replace the default CIDR with the one set in $POD_CIDR")
 	podCIDR := config.GetVariable("POD_CIDR")
+	calicoContainerRegistry := config.GetVariable("DOCKER_HUB_PROXY")
 	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
+	cniYaml = []byte(strings.Replace(string(cniYaml), "docker.io", calicoContainerRegistry, -1))
 
 	yamlDocuments, err := splitYAML(cniYaml)
 	Expect(err).To(BeNil(), "Cannot unmarshal the calico yaml elements to golang objects")
