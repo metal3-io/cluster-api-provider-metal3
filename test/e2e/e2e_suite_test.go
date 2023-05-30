@@ -16,7 +16,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/jinzhu/copier"
 	"gopkg.in/yaml.v3"
@@ -96,6 +98,7 @@ func init() {
 }
 
 func TestE2e(t *testing.T) {
+	ctrl.SetLogger(klog.Background())
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "E2e Suite")
 }

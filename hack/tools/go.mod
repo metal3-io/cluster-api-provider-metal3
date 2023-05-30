@@ -8,7 +8,7 @@ require (
 	github.com/golangci/golangci-lint v1.47.1
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	k8s.io/code-generator v0.27.3
-	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20230510161459-7571f4b9a942
+	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20230620070423-a784ee78d04b
 	sigs.k8s.io/controller-tools v0.12.0
 	sigs.k8s.io/kustomize/kustomize/v4 v4.5.7
 	sigs.k8s.io/testing_frameworks v0.1.2
@@ -203,7 +203,7 @@ require (
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
-	k8s.io/utils v0.0.0-20221107191617-1a15be271d1d // indirect
+	k8s.io/utils v0.0.0-20230209194617-a36077c30491 // indirect
 	mvdan.cc/gofumpt v0.3.1 // indirect
 	mvdan.cc/interfacer v0.0.0-20180901003855-c20040233aed // indirect
 	mvdan.cc/lint v0.0.0-20170908181259-adc824a0674b // indirect
