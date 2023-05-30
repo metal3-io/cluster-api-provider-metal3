@@ -32,6 +32,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/discovery"
@@ -46,7 +47,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -105,20 +109,40 @@ func main() {
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
+
+	var watchNamespaces []string
+	if watchNamespace != "" {
+		watchNamespaces = []string{watchNamespace}
+	}
+
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     myscheme,
 		MetricsBindAddress:         metricsBindAddr,
+		LeaderElection:             enableLeaderElection,
+		LeaderElectionID:           "controller-leader-election-capm3",
 		LeaseDuration:              &leaderElectionLeaseDuration,
 		RenewDeadline:              &leaderElectionRenewDeadline,
 		RetryPeriod:                &leaderElectionRetryPeriod,
-		LeaderElection:             enableLeaderElection,
-		LeaderElectionID:           "controller-leader-election-capm3",
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-		SyncPeriod:                 &syncPeriod,
-		Port:                       webhookPort,
-		CertDir:                    webhookCertDir,
 		HealthProbeBindAddress:     healthAddr,
-		Namespace:                  watchNamespace,
+		Cache: cache.Options{
+			Namespaces: watchNamespaces,
+			SyncPeriod: &syncPeriod,
+		},
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port:    webhookPort,
+				CertDir: webhookCertDir,
+			},
+		),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
