@@ -177,7 +177,7 @@ intervals:
   default/wait-bmh-inspecting: ["10m", "2s"]
   default/wait-machine-deleting: ["7m", "2s"]
   default/wait-bmh-deprovisioning-available: ["7m", "500ms"]
-  default/wait-bmh-available-provisioning: ["5m", "2s"]
+  default/wait-bmh-available-provisioning: ["15m", "2s"]
   default/wait-machine-running: ["50m", "20s"]
   default/wait-bmh-provisioned: ["50m", "20s"]
   default/wait-pod-restart: ["6m", "10s"]
