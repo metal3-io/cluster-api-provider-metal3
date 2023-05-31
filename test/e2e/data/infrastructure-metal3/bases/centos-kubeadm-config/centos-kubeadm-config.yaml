@@ -131,6 +131,7 @@ spec:
           runtime-request-timeout: 5m
         name: '{{ ds.meta_data.name }}'
     preKubeadmCommands:
+      - rm /etc/cni/net.d/*
       - systemctl restart NetworkManager.service
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint
@@ -225,6 +226,7 @@ spec:
           [registries.insecure]
           registries = ['${REGISTRY}']
       preKubeadmCommands:
+      - rm /etc/cni/net.d/*
       - systemctl restart NetworkManager.service
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint
