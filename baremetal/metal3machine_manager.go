@@ -24,6 +24,7 @@ import (
 	"math/big"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	// comment for go-lint.
@@ -79,6 +80,7 @@ var (
 	hasRequeueAfterError HasRequeueAfterError
 	notFoundErr          *NotFoundError
 	requeueAfterError    *RequeueAfterError
+	associateBMHMutex    sync.Mutex
 )
 
 // MachineManagerInterface is an interface for a MachineManager.
@@ -291,6 +293,10 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 
 // Associate associates a machine and is invoked by the Machine Controller.
 func (m *MachineManager) Associate(ctx context.Context) error {
+	// Parallel attempts to associate is problematic since the same BMH
+	// could be selected for multiple M3Ms. Therefore we use a mutex lock here.
+	associateBMHMutex.Lock()
+	defer associateBMHMutex.Unlock()
 	m.Log.Info("Associating machine", "machine", m.Machine.Name)
 
 	// load and validate the config
