@@ -15,6 +15,7 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -461,6 +462,76 @@ func GetMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 	}
 
 	return controlplane, workers
+}
+
+// GetIPPools return baremetal and provisioning IPPools.
+func GetIPPools(ctx context.Context, c client.Client, cluster, namespace string) ([]ipamv1.IPPool, []ipamv1.IPPool) {
+	var bmv4IPPool, provisioningIPPool []ipamv1.IPPool
+	allIPPools := &ipamv1.IPPoolList{}
+	Expect(c.List(ctx, allIPPools, client.InNamespace(namespace))).To(Succeed())
+
+	for _, ippool := range allIPPools.Items {
+		if strings.Contains(ippool.ObjectMeta.Name, "baremetalv4") {
+			bmv4IPPool = append(bmv4IPPool, ippool)
+		} else {
+			provisioningIPPool = append(provisioningIPPool, ippool)
+		}
+	}
+
+	return bmv4IPPool, provisioningIPPool
+}
+
+// GenerateIPPoolPreallocations fetches the current allocated IPs from an IPPool and returns a new map concatenating BMH and IPPool names as a
+// key and an IPAddress as a value.
+func GenerateIPPoolPreallocations(ctx context.Context, ippool ipamv1.IPPool, poolName string, c client.Client) (map[string]ipamv1.IPAddressStr, error) {
+	allocations := ippool.Status.Allocations
+	m3DataList, m3MachineList := infrav1.Metal3DataList{}, infrav1.Metal3MachineList{}
+	Expect(c.List(ctx, &m3DataList, &client.ListOptions{})).To(Succeed())
+	Expect(c.List(ctx, &m3MachineList, &client.ListOptions{})).To(Succeed())
+	newAllocations := make(map[string]ipamv1.IPAddressStr)
+	for m3dataPoolName, ipaddress := range allocations {
+		fmt.Println("datapoolName:", m3dataPoolName, "=>", "ipaddress:", ipaddress)
+		BMHName := strings.Split(m3dataPoolName, "-"+poolName)[0]
+		Logf("poolName: %s", poolName)
+		Logf("BMHName: %s", BMHName)
+		newAllocations[BMHName+"-"+ippool.Name] = ipaddress
+	}
+	return newAllocations, nil
+}
+
+// Metal3DataToMachineName finds the relevant owner reference in Metal3Data
+// and returns the name of corresponding Metal3Machine.
+func Metal3DataToMachineName(m3data infrav1.Metal3Data) (string, error) {
+	ownerReferences := m3data.GetOwnerReferences()
+	for _, reference := range ownerReferences {
+		if reference.Kind == "Metal3Machine" {
+			return reference.Name, nil
+		}
+	}
+	return "", fmt.Errorf("metal3Data missing a \"Metal3Machine\" kind owner reference")
+}
+
+// FilterMetal3DatasByName returns a filtered list of m3data objects with specific name.
+func FilterMetal3DatasByName(m3datas []infrav1.Metal3Data, name string) (result []infrav1.Metal3Data) {
+	Logf("m3datas: %v", m3datas)
+	Logf("looking for name: %s", name)
+	for _, m3data := range m3datas {
+		Logf("m3data: %v", m3data)
+		if m3data.ObjectMeta.Name == name {
+			result = append(result, m3data)
+		}
+	}
+	return result
+}
+
+// FilterMetal3MachinesByName returns a filtered list of m3machine objects with specific name.
+func FilterMetal3MachinesByName(m3ms []infrav1.Metal3Machine, name string) (result []infrav1.Metal3Machine) {
+	for _, m3m := range m3ms {
+		if m3m.ObjectMeta.Name == name {
+			result = append(result, m3m)
+		}
+	}
+	return result
 }
 
 // Metal3MachineToMachineName finds the relevant owner reference in Metal3Machine

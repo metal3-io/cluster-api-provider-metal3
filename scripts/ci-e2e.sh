@@ -17,7 +17,6 @@ sudo chown "${USER}":"${USER}" ${WORKING_DIR}
 M3_DEV_ENV_REPO="https://github.com/metal3-io/metal3-dev-env.git"
 M3_DEV_ENV_BRANCH=main
 M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
-
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
 # Config devenv
@@ -29,7 +28,10 @@ export KUBERNETES_VERSION=${KUBERNETES_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 EOF
-
+if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
+    mkdir "${HOME}/.cluster-api/"
+    echo "enableBMHNameBasedPreallocation: true" >"${HOME}/.cluster-api/clusterctl.yaml"
+fi
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1
 make
