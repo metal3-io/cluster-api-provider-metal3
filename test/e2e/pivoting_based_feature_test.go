@@ -30,7 +30,7 @@ var (
 
 const KIND = "kind"
 
-var _ = Describe("Testing features in ephemeral or target cluster", func() {
+var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [features]", func() {
 
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
