@@ -30,6 +30,8 @@ const (
 	bmoPath                    = "BMOPATH"
 	ironicTLSSetup             = "IRONIC_TLS_SETUP"
 	ironicBasicAuth            = "IRONIC_BASIC_AUTH"
+	ironicKeepalived           = "IRONIC_KEEPALIVED"
+	ironicMariadb              = "IRONIC_USE_MARIADB"
 	Kind                       = "kind"
 	NamePrefix                 = "NAMEPREFIX"
 	restartContainerCertUpdate = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
@@ -129,7 +131,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			deployIronic:               false,
 			deployBMO:                  true,
 			deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
-			DeployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+			deployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+			deployIronicKeepalived:     getBool(input.E2EConfig.GetVariable(ironicKeepalived)),
+			deployIronicMariadb:        getBool(input.E2EConfig.GetVariable(ironicMariadb)),
 			NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
 			RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
 		}
@@ -143,7 +147,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			deployIronic:               true,
 			deployBMO:                  false,
 			deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
-			DeployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+			deployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+			deployIronicKeepalived:     getBool(input.E2EConfig.GetVariable(ironicKeepalived)),
+			deployIronicMariadb:        getBool(input.E2EConfig.GetVariable(ironicMariadb)),
 			NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
 			RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
 		}
@@ -223,7 +229,9 @@ type installIronicBMOInput struct {
 	deployIronic               bool
 	deployBMO                  bool
 	deployIronicTLSSetup       bool
-	DeployIronicBasicAuth      bool
+	deployIronicBasicAuth      bool
+	deployIronicKeepalived     bool
+	deployIronicMariadb        bool
 	NamePrefix                 string
 	RestartContainerCertUpdate bool
 }
@@ -233,13 +241,27 @@ func installIronicBMO(inputGetter func() installIronicBMOInput) {
 
 	ironicHost := os.Getenv("CLUSTER_BARE_METAL_PROVISIONER_IP")
 	path := fmt.Sprintf("%s/tools/", input.BMOPath)
-	args := []string{
-		strconv.FormatBool(input.deployBMO),
-		strconv.FormatBool(input.deployIronic),
-		strconv.FormatBool(input.DeployIronicBasicAuth),
-		strconv.FormatBool(input.deployIronicTLSSetup),
-		"true",
+
+	args := []string{}
+	if input.deployBMO {
+		args = append(args, "-b")
 	}
+	if input.deployIronic {
+		args = append(args, "-i")
+	}
+	if input.deployIronicTLSSetup {
+		args = append(args, "-t")
+	}
+	if !input.deployIronicBasicAuth {
+		args = append(args, "-n")
+	}
+	if input.deployIronicKeepalived {
+		args = append(args, "-k")
+	}
+	if input.deployIronicMariadb {
+		args = append(args, "-m")
+	}
+
 	env := []string{
 		fmt.Sprintf("IRONIC_HOST=%s", ironicHost),
 		fmt.Sprintf("IRONIC_HOST_IP=%s", ironicHost),
@@ -414,7 +436,9 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 				deployIronic:               true,
 				deployBMO:                  false,
 				deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
-				DeployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+				deployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+				deployIronicKeepalived:     getBool(input.E2EConfig.GetVariable(ironicKeepalived)),
+				deployIronicMariadb:        getBool(input.E2EConfig.GetVariable(ironicMariadb)),
 				NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
 				RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
 			}

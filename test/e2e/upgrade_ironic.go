@@ -27,7 +27,6 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 		ironicDeployName  = namePrefix + "-ironic"
 		containerRegistry = input.E2EConfig.GetVariable("CONTAINER_REGISTRY")
 		ironicImageTag    = input.E2EConfig.GetVariable("IRONIC_IMAGE_TAG")
-		mariadbImageTag   = input.E2EConfig.GetVariable("MARIADB_IMAGE_TAG")
 	)
 
 	Logf("namePrefix %v", namePrefix)
@@ -35,7 +34,6 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 	Logf("ironicDeployName %v", ironicDeployName)
 	Logf("containerRegistry %v", containerRegistry)
 	Logf("ironicImageTag %v", ironicImageTag)
-	Logf("mariadbImageTag %v", mariadbImageTag)
 
 	By("Upgrading ironic image based containers")
 	deploy, err := clientSet.AppsV1().Deployments(ironicNamespace).Get(ctx, ironicDeployName, metav1.GetOptions{})
@@ -48,9 +46,6 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 			"ironic-log-watch",
 			"ironic-inspector":
 			deploy.Spec.Template.Spec.Containers[i].Image = containerRegistry + "/metal3-io/ironic:" + ironicImageTag
-		case
-			"mariadb":
-			deploy.Spec.Template.Spec.Containers[i].Image = containerRegistry + "/metal3-io/mariadb:" + mariadbImageTag
 		}
 	}
 
