@@ -17,7 +17,7 @@ import (
 
 const workDir = "/opt/metal3-dev-env/"
 
-var _ = Describe("When testing cluster upgrade v1alpha5/v1.1 > current [upgrade]", func() {
+var _ = Describe("When testing cluster upgrade v1alpha5 > current [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
