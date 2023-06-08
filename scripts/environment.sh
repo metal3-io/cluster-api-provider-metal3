@@ -60,7 +60,7 @@ export CAPM3_LOCAL_IMAGE="${CAPM3PATH}"
 export PATH=$PATH:$HOME/.krew/bin
 
 # Upgrade test environment vars and config
-if [[ ${GINKGO_FOCUS:-} = .*-upgrade ]]; then
+if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
   export NUM_NODES=${NUM_NODES:-"5"}
 fi
 
