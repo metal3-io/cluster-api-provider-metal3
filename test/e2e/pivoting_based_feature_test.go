@@ -8,6 +8,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -148,5 +150,10 @@ func createTargetCluster(k8sVersion string) (framework.ClusterProxy, *clusterctl
 		WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
 	}, &result)
 	targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
+	framework.WaitForPodListCondition(ctx, framework.WaitForPodListConditionInput{
+		Lister:      targetCluster.GetClient(),
+		ListOptions: &client.ListOptions{LabelSelector: labels.Everything(), Namespace: "kube-system"},
+		Condition:   framework.PhasePodCondition(corev1.PodRunning),
+	}, e2eConfig.GetIntervals(specName, "wait-all-pod-to-be-running-on-target-cluster")...)
 	return targetCluster, &result
 }
