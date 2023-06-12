@@ -51,6 +51,7 @@ linters-settings:
     confidence: medium
     excludes:
       - G107
+      - G306
   importas:
     no-unaliased: true
     alias:

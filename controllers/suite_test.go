@@ -229,7 +229,7 @@ func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *cluster
 	}
 }
 
-func newMetal3Cluster(baremetalName string, ownerRef *metav1.OwnerReference, spec *infrav1.Metal3ClusterSpec, status *infrav1.Metal3ClusterStatus, annotation map[string]string, pausedAnnotation bool) *infrav1.Metal3Cluster {
+func newMetal3Cluster(metal3ClusterName string, ownerRef *metav1.OwnerReference, spec *infrav1.Metal3ClusterSpec, status *infrav1.Metal3ClusterStatus, annotation map[string]string, pausedAnnotation bool) *infrav1.Metal3Cluster {
 	if spec == nil {
 		spec = &infrav1.Metal3ClusterSpec{}
 	}

@@ -328,7 +328,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// A machine bootstrap not ready case is caught in the controller
 	// ReconcileNormal function
-	err = m.getUserDataSecretName(ctx, host)
+	err = m.getUserDataSecretName(ctx)
 	if err != nil {
 		return err
 	}
@@ -415,10 +415,10 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 }
 
 // getUserDataSecretName gets the UserDataSecretName from the machine and exposes it as a secret
-// for the BareMetalHost. The UserDataSecretName might already be in a secret with
+// for the BareMetalHost through Metal3Machine. The UserDataSecretName might already be in a secret with
 // CABPK v0.3.0+, but if it is in a different namespace than the BareMetalHost,
 // then we need to create the secret.
-func (m *MachineManager) getUserDataSecretName(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+func (m *MachineManager) getUserDataSecretName(_ context.Context) error {
 	if m.Metal3Machine.Status.UserData != nil {
 		return nil
 	}
@@ -986,7 +986,7 @@ func (m *MachineManager) nodeReuseLabelMatches(ctx context.Context, host *bmov1a
 }
 
 // nodeReuseLabelExists returns true if host contains nodeReuseLabelName label.
-func (m *MachineManager) nodeReuseLabelExists(ctx context.Context, host *bmov1alpha1.BareMetalHost) bool {
+func (m *MachineManager) nodeReuseLabelExists(_ context.Context, host *bmov1alpha1.BareMetalHost) bool {
 	if host == nil {
 		return false
 	}
@@ -1034,7 +1034,7 @@ func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmov1alpha
 }
 
 // setHostLabel will set the set cluster.x-k8s.io/cluster-name to bmh.
-func (m *MachineManager) setHostLabel(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+func (m *MachineManager) setHostLabel(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
 	if host.Labels == nil {
 		host.Labels = make(map[string]string)
 	}
@@ -1046,7 +1046,7 @@ func (m *MachineManager) setHostLabel(ctx context.Context, host *bmov1alpha1.Bar
 // setHostSpec will ensure the host's Spec is set according to the machine's
 // details. It will then update the host via the kube API. If UserData does not
 // include a Namespace, it will default to the Metal3Machine's namespace.
-func (m *MachineManager) setHostSpec(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
 	// We only want to update the image setting if the host does not
 	// already have an image.
 	//
@@ -1098,7 +1098,7 @@ func (m *MachineManager) setHostSpec(ctx context.Context, host *bmov1alpha1.Bare
 
 // setHostConsumerRef will ensure the host's Spec is set to link to this
 // Metal3Machine.
-func (m *MachineManager) setHostConsumerRef(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+func (m *MachineManager) setHostConsumerRef(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
 	host.Spec.ConsumerRef = &corev1.ObjectReference{
 		Kind:       "Metal3Machine",
 		Name:       m.Metal3Machine.Name,
@@ -1129,7 +1129,7 @@ func (m *MachineManager) setHostConsumerRef(ctx context.Context, host *bmov1alph
 
 // ensureAnnotation makes sure the machine has an annotation that references the
 // host and uses the API to update the machine if necessary.
-func (m *MachineManager) ensureAnnotation(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+func (m *MachineManager) ensureAnnotation(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
 	annotations := m.Metal3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string)
@@ -1202,7 +1202,7 @@ func (m *MachineManager) clearError() {
 }
 
 // updateMachineStatus updates a Metal3Machine object's status.
-func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
 	addrs := m.nodeAddresses(host)
 
 	metal3MachineOld := m.Metal3Machine.DeepCopy()
@@ -1651,7 +1651,7 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 }
 
 // getKubeadmControlPlaneName retrieves the KubeadmControlPlane object corresponding to the CAPI machine.
-func (m *MachineManager) getKubeadmControlPlaneName(ctx context.Context) (string, error) {
+func (m *MachineManager) getKubeadmControlPlaneName(_ context.Context) (string, error) {
 	m.Log.Info("Fetching KubeadmControlPlane name")
 	if m.Machine == nil {
 		return "", errors.New("Could not find corresponding machine object")

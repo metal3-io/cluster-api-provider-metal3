@@ -75,7 +75,7 @@ func (r *Metal3RemediationTemplate) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) ValidateUpdate(old runtime.Object) error {
+func (r *Metal3RemediationTemplate) ValidateUpdate(_ runtime.Object) error {
 	metal3remediationtemplatelog.Info("validate update", "name", r.Name)
 	return r.validate()
 }

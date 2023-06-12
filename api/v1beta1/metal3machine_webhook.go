@@ -42,7 +42,7 @@ func (c *Metal3Machine) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Machine) ValidateUpdate(old runtime.Object) error {
+func (c *Metal3Machine) ValidateUpdate(_ runtime.Object) error {
 	return c.validate()
 }
 

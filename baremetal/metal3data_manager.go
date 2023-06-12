@@ -99,12 +99,12 @@ func (m *DataManager) UnsetFinalizer() {
 }
 
 // clearError clears error message from Metal3Data status.
-func (m *DataManager) clearError(ctx context.Context) {
+func (m *DataManager) clearError(_ context.Context) {
 	m.Data.Status.ErrorMessage = nil
 }
 
 // setError sets error message to Metal3Data status.
-func (m *DataManager) setError(ctx context.Context, msg string) {
+func (m *DataManager) setError(_ context.Context, msg string) {
 	m.Data.Status.ErrorMessage = &msg
 }
 
@@ -854,7 +854,7 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 }
 
 // addressFromClaim retrieves the IPAddress for a CAPI IPAddressClaim.
-func (m *DataManager) addressFromClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference, claim *caipamv1.IPAddressClaim) (addressFromPool, bool, error) {
+func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalObjectReference, claim *caipamv1.IPAddressClaim) (addressFromPool, bool, error) {
 	if claim == nil {
 		return addressFromPool{}, true, errors.New("no claim provided")
 	}

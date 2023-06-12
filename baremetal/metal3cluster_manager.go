@@ -93,7 +93,7 @@ func (s *ClusterManager) UnsetFinalizer() {
 }
 
 // Create creates a cluster manager for the cluster.
-func (s *ClusterManager) Create(ctx context.Context) error {
+func (s *ClusterManager) Create(_ context.Context) error {
 	config := s.Metal3Cluster.Spec
 	err := config.IsValid()
 	if err != nil {
