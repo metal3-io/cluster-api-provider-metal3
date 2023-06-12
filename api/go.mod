@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/api
 
-go 1.19
+go 1.20
 
 require (
 	github.com/google/gofuzz v1.2.0
