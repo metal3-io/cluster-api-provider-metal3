@@ -88,7 +88,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
+			Expect(remediationMgr.HasFinalizer()).To(Equal(false))
 			remediationMgr.SetFinalizer()
+			Expect(remediationMgr.HasFinalizer()).To(Equal(true))
 
 			Expect(tc.Metal3Remediation.ObjectMeta.Finalizers).To(ContainElement(
 				infrav1.RemediationFinalizer,
