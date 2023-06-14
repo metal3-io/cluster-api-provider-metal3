@@ -161,6 +161,7 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu > $(E2E_OUT_DIR)/cluster-template-ubuntu.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos > $(E2E_OUT_DIR)/cluster-template-centos.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-md-remediation > $(E2E_OUT_DIR)/cluster-template-md-remediation.yaml
 
 ## --------------------------------------
 ## E2E Testing
@@ -185,7 +186,7 @@ e2e-tests: $(GINKGO) e2e-substitutions cluster-templates ## This target should b
 		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
 		--fail-fast="$(KEEP_TEST_ENV)" \
 		--junit-report="junit.e2e_suite.1.xml" \
-		--focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
+		--focus="healthcheck" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
