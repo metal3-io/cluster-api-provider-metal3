@@ -342,8 +342,8 @@ github.com/mattn/go-isatty v0.0.17/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/matttproud/golang_protobuf_extensions v1.0.4 h1:mmDVorXM7PCGKw94cs5zkfA9PSy5pEvNWRP0ET0TIVo=
 github.com/matttproud/golang_protobuf_extensions v1.0.4/go.mod h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=
-github.com/metal3-io/baremetal-operator/apis v0.3.0 h1:Sjql7SlF6h8n4AcIGOArjqwOI6P5vSCDPYWbxxNh2AQ=
-github.com/metal3-io/baremetal-operator/apis v0.3.0/go.mod h1:Qi0u7QCID9FGf20NQ5mwD/3/0uqRmYxHGauKRJkiVFg=
+github.com/metal3-io/baremetal-operator/apis v0.3.1 h1:oc2j80sycyquKCTDjG9VlRvESNLJt6KivYd7A2kLnf8=
+github.com/metal3-io/baremetal-operator/apis v0.3.1/go.mod h1:yDY2x0vBph8L68TCL7GS/DxBkqoHn5bGO0k0bzVuDXY=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.3.0 h1:6w8ZfOlLEIw2ecQ8OGuT5qnX5Yq5a9NEK/fmC58mxGk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.3.0/go.mod h1:Dck2B6BQX3L+AE2Xe+LzrVPP1A/zQkhCU/aSVbsi7Nw=
 github.com/metal3-io/ip-address-manager/api v1.4.0 h1:9wQWSRTwPFDh4HqiAQLw4Sb8uTGRMEwPblx5pfZhYNo=
