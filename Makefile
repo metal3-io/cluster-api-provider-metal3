@@ -153,13 +153,6 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 GINKGO_FOCUS  ?=
 GINKGO_SKIP ?=
 
-# TODO (Mohammed) select the test in JJB
-ifeq ($(GINKGO_FOCUS),upgrade)
-GINKGO_FOCUS := upgrade
-else
-GINKGO_SKIP := upgrade
-endif
-
 ifneq ($(strip $(GINKGO_SKIP)),)
 _SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-ginkgo.skip="$(arg)")
 endif
