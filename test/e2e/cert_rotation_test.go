@@ -40,7 +40,6 @@ func certRotation(clientSet *kubernetes.Clientset, clusterClient client.Client) 
 	By("Get the current number of time containers were restarted")
 	containerNumRestart := make(map[string]int32)
 	containerNumRestart["ironic-httpd"] = 0
-	containerNumRestart["mariadb"] = 0
 	Expect(err).To(BeNil())
 	ironicPod, err := getPodFromDeployment(clientSet, ironicDeployment, ironicNamespace)
 	Expect(err).To(BeNil())
