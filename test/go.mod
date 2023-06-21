@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 go 1.19
 
 require (
-	github.com/docker/docker v20.10.24+incompatible
+	github.com/docker/docker v24.0.2+incompatible
 	github.com/jinzhu/copier v0.3.5
 	github.com/metal3-io/baremetal-operator/apis v0.3.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
@@ -96,7 +96,6 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.6.1 // indirect
