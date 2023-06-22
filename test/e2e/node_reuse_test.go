@@ -54,9 +54,15 @@ func nodeReuse(clusterClient client.Client) {
 	Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControlplane)
 	Logf("NUMBER OF WORKER BMH: %v", numberOfWorkers)
 
-	By("Untaint all CP nodes before scaling down machinedeployment")
-	controlplaneNodes := getControlplaneNodes(clientSet)
-	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
+	By("Untaint all CP nodes before scaling down machinedeployment [node_reuse]")
+	for controlplaneNodesPresent := 0; controlplaneNodesPresent < numberOfControlplane; {
+		for untaintedNodeCount := 1; untaintedNodeCount > 0; {
+			controlplaneNodes := getControlplaneNodes(ctx, clientSet)
+			controlplaneNodesPresent = len(controlplaneNodes.Items)
+			untaintedNodeCount = untaintNodes(ctx, targetClusterClient, controlplaneNodes, controlplaneTaints)
+			time.Sleep(10 * time.Second)
+		}
+	}
 
 	By("Scale down MachineDeployment to 0")
 	scaleMachineDeployment(ctx, clusterClient, clusterName, namespace, 0)
@@ -133,6 +139,11 @@ func nodeReuse(clusterClient client.Client) {
 			"version": "%s"
 		}
 	}`, upgradedK8sVersion))
+
+	Logf("Disable tainting of CP nodes during the remainder of the node reuse test [node_reuse]")
+	kcpObj.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.Taints = emptyTaint
+	kcpObj.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.Taints = emptyTaint
+
 	err := clusterClient.Patch(ctx, kcpObj, client.RawPatch(types.MergePatchType, patch))
 	Expect(err).To(BeNil(), "Failed to patch KubeadmControlPlane")
 
@@ -204,10 +215,6 @@ func nodeReuse(clusterClient client.Client) {
 		}, e2eConfig.GetIntervals(specName, "wait-machine-running")...,
 	).Should(Succeed())
 
-	By("Untaint CP nodes after upgrade of two controlplane nodes")
-	controlplaneNodes = getControlplaneNodes(clientSet)
-	untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
-
 	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version", numberOfControlplane, upgradedK8sVersion)
 	Eventually(
 		func(g Gomega) {
@@ -251,15 +258,6 @@ func nodeReuse(clusterClient client.Client) {
 			break
 		}
 		time.Sleep(30 * time.Second)
-	}
-
-	By("Untaint all CP nodes")
-	// The rest of CP nodes may take time to be untaintable
-	// We have untainted the 2 first CPs
-	for untaintedNodeCount := 0; untaintedNodeCount < numberOfControlplane-2; {
-		controlplaneNodes = getControlplaneNodes(clientSet)
-		untaintedNodeCount = untaintNodes(targetClusterClient, controlplaneNodes, controlplaneTaints)
-		time.Sleep(10 * time.Second)
 	}
 
 	By("Scale the controlplane down to 1")
