@@ -22,6 +22,8 @@ updates:
       # Ignore k8s and its transitives modules as they are upgraded manually
       # together with controller-runtime.
       - dependency-name: "k8s.io/*"
+      # ignore ipam, as it needs more than just gomod
+      - dependency-name: "github.com/metal3-io/ip-address-manager/api"
     commit-message:
       prefix: ":seedling:"
     labels:
@@ -36,6 +38,8 @@ updates:
       # Ignore k8s and its transitives modules as they are upgraded manually
       # together with controller-runtime.
       - dependency-name: "k8s.io/*"
+      # ignore ipam, as it needs more than just gomod
+      - dependency-name: "github.com/metal3-io/ip-address-manager/api"
     commit-message:
       prefix: ":seedling:"
     labels:
@@ -50,6 +54,8 @@ updates:
       # Ignore k8s and its transitives modules as they are upgraded manually
       # together with controller-runtime.
       - dependency-name: "k8s.io/*"
+      # ignore ipam, as it needs more than just gomod
+      - dependency-name: "github.com/metal3-io/ip-address-manager/api"
     commit-message:
       prefix: ":seedling:"
     labels:
