@@ -79,7 +79,7 @@ require (
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.3.0 // indirect
-	github.com/metal3-io/ip-address-manager/api v1.4.0 // indirect
+	github.com/metal3-io/ip-address-manager/api v1.4.1 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
