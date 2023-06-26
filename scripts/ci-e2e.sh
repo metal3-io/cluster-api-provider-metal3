@@ -77,12 +77,27 @@ fi
 export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "${CAPI_UPGRADE_FROM_RELEASE}")}"
 # The e2e config file parameter for the capi release compatible with main (capm3 next version)
 export CAPI_TO_RELEASE="${CAPIRELEASE}"
+# K8s support based on https://cluster-api.sigs.k8s.io/reference/versions.html#core-provider-cluster-api-controller
 case ${CAPI_FROM_RELEASE} in
 v0.4*)
     export CONTRACT_FROM="v1alpha4"
+    export INIT_WITH_KUBERNETES_VERSION="v1.23.8"
     ;;
-v1.*)
+v1.2*)
     export CONTRACT_FROM="v1beta1"
+    export INIT_WITH_KUBERNETES_VERSION="v1.26.4"
+    ;;
+v1.3*)
+    export CONTRACT_FROM="v1beta1"
+    export INIT_WITH_KUBERNETES_VERSION="v1.26.4"
+    ;;
+v1.4*)
+    export CONTRACT_FROM="v1beta1"
+    export INIT_WITH_KUBERNETES_VERSION="v1.27.1"
+    ;;
+*)
+    echo "UNKNOWN CAPI_FROM_RELEASE !"
+    exit 1
     ;;
 esac
 export CONTRACT_TO="v1beta1"
