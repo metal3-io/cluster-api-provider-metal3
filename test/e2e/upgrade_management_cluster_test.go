@@ -41,6 +41,8 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [clusterctl-up
 				InitWithBootstrapProviders:      []string{fmt.Sprintf("kubeadm:%s", os.Getenv("CAPI_FROM_RELEASE"))},
 				InitWithControlPlaneProviders:   []string{fmt.Sprintf("kubeadm:%s", os.Getenv("CAPI_FROM_RELEASE"))},
 				InitWithInfrastructureProviders: []string{fmt.Sprintf("metal3:%s", os.Getenv("CAPM3_FROM_RELEASE"))},
+				InitWithKubernetesVersion:       e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
+				WorkloadKubernetesVersion:       e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
 				InitWithBinary:                  e2eConfig.GetVariable("INIT_WITH_BINARY"),
 				PreInit: func(clusterProxy framework.ClusterProxy) {
 					preInitFunc(clusterProxy)
@@ -56,6 +58,7 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [clusterctl-up
 			}
 		})
 	} else {
+
 		isPreRelease := strings.Contains(os.Getenv("CAPI_TO_RELEASE"), "-")
 
 		if isPreRelease {
@@ -72,6 +75,8 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [clusterctl-up
 					ControlPlaneProviders:       []string{fmt.Sprintf("capi-kubeadm-control-plane-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
 					InfrastructureProviders:     []string{fmt.Sprintf("capm3-system/metal3:%s", os.Getenv("CAPM3_TO_RELEASE"))},
 					InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
+					InitWithKubernetesVersion:   e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
+					WorkloadKubernetesVersion:   e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
 					PreInit:                     preInitFunc,
 					PreWaitForCluster:           preWaitForCluster,
 					PreUpgrade:                  preUpgrade,
