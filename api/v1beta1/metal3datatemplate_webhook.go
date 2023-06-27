@@ -18,11 +18,9 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
@@ -39,53 +37,7 @@ func (c *Metal3DataTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &Metal3DataTemplate{}
 var _ webhook.Validator = &Metal3DataTemplate{}
 
-func defaultPoolToM3IPAM(p *FromPool) {
-	if p.APIGroup == "" {
-		p.APIGroup = "ipam.metal3.io"
-	}
-	if p.Kind == "" {
-		p.Kind = "IPPool"
-	}
-}
-
-func defaultRefToM3IPAM(r *corev1.TypedLocalObjectReference) {
-	if r.APIGroup == nil || *r.APIGroup == "" {
-		r.APIGroup = pointer.String("ipam.metal3.io")
-	}
-	if r.Kind == "" {
-		r.Kind = "IPPool"
-	}
-}
-
-func (c *Metal3DataTemplate) Default() {
-	if c.Spec.MetaData != nil {
-		for k := range c.Spec.MetaData.IPAddressesFromPool {
-			defaultPoolToM3IPAM(&c.Spec.MetaData.IPAddressesFromPool[k])
-		}
-		for k := range c.Spec.MetaData.PrefixesFromPool {
-			defaultPoolToM3IPAM(&c.Spec.MetaData.PrefixesFromPool[k])
-		}
-		for k := range c.Spec.MetaData.GatewaysFromPool {
-			defaultPoolToM3IPAM(&c.Spec.MetaData.GatewaysFromPool[k])
-		}
-		for k := range c.Spec.MetaData.DNSServersFromPool {
-			defaultPoolToM3IPAM(&c.Spec.MetaData.DNSServersFromPool[k])
-		}
-	}
-	if c.Spec.NetworkData != nil {
-		for k, network := range c.Spec.NetworkData.Networks.IPv4 {
-			if network.FromPoolRef != nil && network.FromPoolRef.Name != "" {
-				defaultRefToM3IPAM(c.Spec.NetworkData.Networks.IPv4[k].FromPoolRef)
-			}
-		}
-
-		for k, network := range c.Spec.NetworkData.Networks.IPv6 {
-			if network.FromPoolRef != nil && network.FromPoolRef.Name != "" {
-				defaultRefToM3IPAM(c.Spec.NetworkData.Networks.IPv6[k].FromPoolRef)
-			}
-		}
-	}
-}
+func (c *Metal3DataTemplate) Default() {}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3DataTemplate) ValidateCreate() error {
