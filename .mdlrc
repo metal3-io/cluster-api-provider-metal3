@@ -1,2 +1,0 @@
-#Disable line-length for some code examples in getting-started
-rules "~MD013", "~MD005"

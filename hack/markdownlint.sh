@@ -7,7 +7,7 @@ CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
     TOP_DIR="${1:-.}"
-    find "${TOP_DIR}" -type d \( -path ./vendor -o -path ./.github \) -prune -o -name '*.md' -exec mdl --style all --warnings {} \+
+    find "${TOP_DIR}" -type d -path ./.github -prune -o -name '*.md' -exec mdl --style all --rules "~MD013" --warnings {} \+
 else
     "${CONTAINER_RUNTIME}" run --rm \
         --env IS_CONTAINER=TRUE \

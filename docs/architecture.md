@@ -2,28 +2,28 @@
 
 ## Introduction
 
-The ```cluster-api-provider-metal3 (CAPM3)``` is one of the controllers
-involved in managing the life cycle of kubernetes clusters on Metal3
-Machines. This document describes the components involved and their roles. It
-also discusses the flow of information from one CR to another with the help of
-the controllers. As to avoid ambiguity, we will refer to the physical or virtual
-machines managed by the controllers as Bare Metal Servers. And, the kubernetes
-resources (CRs) representing them as Metal3 Machines (M3M).
+The `cluster-api-provider-metal3 (CAPM3)` is one of the controllers involved in
+managing the life cycle of kubernetes clusters on Metal3 Machines. This document
+describes the components involved and their roles. It also discusses the flow of
+information from one CR to another with the help of the controllers. As to avoid
+ambiguity, we will refer to the physical or virtual machines managed by the
+controllers as Bare Metal Servers. And, the kubernetes resources (CRs)
+representing them as Metal3 Machines (M3M).
 
 ## Components
 
-The ```cluster-api-provider-metal3 (CAPM3)``` controller is responsible for
-watching and reconciling multiple resources. However, it is important to see
-other controllers and custom resources (CRs) involved in the process. The
-ultimate goal of the interaction between the controllers and CRs is to provision
-a kubernetes cluster on Bare Metal Servers. To that end, the controllers
-perform different actions on one or more relevant CRs.
+The `cluster-api-provider-metal3 (CAPM3)` controller is responsible for watching
+and reconciling multiple resources. However, it is important to see other
+controllers and custom resources (CRs) involved in the process. The ultimate
+goal of the interaction between the controllers and CRs is to provision a
+kubernetes cluster on Bare Metal Servers. To that end, the controllers perform
+different actions on one or more relevant CRs.
 
 The following diagram shows the different controllers and CRs involved. The
-CAPI, CABPK and CAPM3 controllers are beyond the scope of this document.
-With respect to CAPM3, we focus on what CRS it `watches` and `reconciles`. The
-arrows in black show which CRs the controller `reconciles` while the one in red
-show that a related controller is `watching` another CR.
+CAPI, CABPK and CAPM3 controllers are beyond the scope of this document. With
+respect to CAPM3, we focus on what CRS it `watches` and `reconciles`. The arrows
+in black show which CRs the controller `reconciles` while the one in red show
+that a related controller is `watching` another CR.
 
 ![components](images/components.png)
 
@@ -34,22 +34,21 @@ Similarly, it watches `Cluster` CR and makes changes on a related
 
 The left most components, BMO controller and BareMetalHost(BMH) CR, are the
 closest to the Bare Metal Server. If one wants to changes the state of a Metal3
-Machine, they modify the BMH CR. Upon change to the BMH, BMO interacts
-with Ironic to make changes on the Bare Metal Server.
+Machine, they modify the BMH CR. Upon change to the BMH, BMO interacts with
+Ironic to make changes on the Bare Metal Server.
 
 During the initial introspection and state changes, the above logic works in the
- opposite direction as well. Information gathered during introspection or any
- state changes on the Bare Metal Server, results in BMO learning about the
- change(s) via Ironic and a chain of events starts. Once BMO learns about the
- changes, it makes the required
-changes on the BMH.
+opposite direction as well. Information gathered during introspection or any
+state changes on the Bare Metal Server, results in BMO learning about the
+change(s) via Ironic and a chain of events starts. Once BMO learns about the
+changes, it makes the required changes on the BMH.
 
 As discussed above, the management of Bare Metal Servers requires the
 interaction of multiple controllers via multiple CRs. However, the interaction
 is performed on a specified number of fields on each CR. i.e. A controller
 `watches` a specified number of fields in each CR and makes changes on a set of
- fields. Before seeing the relationship, we need to see the CRs at two
-  stages, before and after provisioning a control plane machine.
+fields. Before seeing the relationship, we need to see the CRs at two stages,
+before and after provisioning a control plane machine.
 
 ---
 
@@ -229,6 +228,7 @@ status:
 ```
 
 ---
+
 ### Metal3Machine
 
 Metal3Machine, User provided Configuration
@@ -303,6 +303,8 @@ spec:
 
 BareMetalHost, after reconciliation
 
+<!-- markdownlint-disable MD013 -->
+
 ```yaml
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -355,6 +357,8 @@ status:
     credentialsVersion: "1435"
 ```
 
+<!-- markdownlint-enable MD013 -->
+
 ### KubeadmConfig
 
 KubeadmConfig, user provided Configuration
@@ -367,9 +371,9 @@ metadata:
 spec:
   initConfiguration:
     nodeRegistration:
-      name: '{{ ds.meta_data.name }}'
+      name: "{{ ds.meta_data.name }}"
       kubeletExtraArgs:
-        node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+        node-labels: "metal3.io/uuid={{ ds.meta_data.uuid }}"
   preKubeadmCommands: <list of commands>
   postKubeadmCommands: <list of commands>
   files: <list of files>
@@ -421,14 +425,15 @@ status:
 ```
 
 ---
+
 #### Flow of information
 
 As was shown on the above CRs, some of the fields are introduced in one CR and
 they travel through multiple CRs to reach the BMH, which is the closest to the
 Bare Metal Server. There is also a movement of information from the
 virtual/physical machines towards the CRs, but this is beyond the scope of this
- document. Some of the fields are added by users, while the others are by the
- relevant controllers.
+document. Some of the fields are added by users, while the others are by the
+relevant controllers.
 
 We have added the source of relevant fields as comments in the above yaml files.
 The following sequence diagram shows the flow of information (fields) across
@@ -438,9 +443,9 @@ multiple CRs with the help of controllers.
 
 #### Some relevant fields
 
-```apiEndpoint:``` IP:Port of a load balancer (keepalived VIP)
+`apiEndpoint:` IP:Port of a load balancer (keepalived VIP)
 
-```image:``` OS image for the Metal3 Machine
+`image:` OS image for the Metal3 Machine
 
 The following fields are used to make a relationship between CRs.
 
