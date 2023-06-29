@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"math/rand"
@@ -91,6 +92,12 @@ func main() {
 	ctrl.SetLogger(klogr.New())
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
+
+	tlsOptionOverrides, err := GetTLSOptionOverrideFuncs()
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     myscheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -105,6 +112,7 @@ func main() {
 		CertDir:                    webhookCertDir,
 		HealthProbeBindAddress:     healthAddr,
 		Namespace:                  watchNamespace,
+		TLSOpts:                    tlsOptionOverrides,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -375,4 +383,20 @@ func setupWebhooks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3RemediationTemplate")
 		os.Exit(1)
 	}
+}
+
+// GetTLSOptionOverrideFuncs returns a list of TLS configuration overrides to be used
+// by the webhook server.
+func GetTLSOptionOverrideFuncs() ([]func(*tls.Config), error) {
+	var tlsOptions []func(config *tls.Config)
+
+	tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
+		cfg.MinVersion = tls.VersionTLS12
+	})
+
+	tlsOptions = append(tlsOptions, func(cfg *tls.Config) {
+		cfg.MaxVersion = tls.VersionTLS13
+	})
+
+	return tlsOptions, nil
 }
