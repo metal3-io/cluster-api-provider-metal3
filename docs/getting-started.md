@@ -12,8 +12,8 @@ The pre-requisite for the deployment of CAPM3 are the following:
 - Ironic up and running (inside or outside of the cluster)
 - BareMetalHost resources created for all hardware nodes and in "ready" or
   "available" state
-- all cluster-related CRs (inc. BareMetalHosts and related) must be in the
-  same namespace. This is due to the use of owner references.
+- all cluster-related CRs (inc. BareMetalHosts and related) must be in the same
+  namespace. This is due to the use of owner references.
 
 ### Using clusterctl
 
@@ -21,8 +21,8 @@ Please refer to
 [Clusterctl documentation](https://main.cluster-api.sigs.k8s.io/clusterctl/overview.html).
 Once the [Pre-requisites](#pre-requisites) are fulfilled, you can follow the
 normal clusterctl flow for the `init`, `config`, `upgrade`, `move` and `delete`
-workflow. Please refer to the [Pivoting Ironic](#pivoting-or-updating-ironic) section for
-additional information on the `move` process.
+workflow. Please refer to the [Pivoting Ironic](#pivoting-or-updating-ironic)
+section for additional information on the `move` process.
 
 #### Cluster templates variables
 
@@ -68,13 +68,17 @@ This is the URL of the image to deploy. It should be a qcow2 image. For example:
 
 #### IMAGE_CHECKSUM
 
-This is the URL of the md5sum, sha256sum or sha512sum of the image to deploy. For example:
+This is the URL of the md5sum, sha256sum or sha512sum of the image to deploy.
+For example:
 
 `IMAGE_CHECKSUM="http://192.168.0.1/ubuntu.qcow2.sha256sum"`
 
 #### NODE_DRAIN_TIMEOUT
 
-This variable sets the nodeDrainTimout for cluster, controlplane and machinedeployment template. Users can set desired value in seconds ("300s") or minutes ("5m"). If it is not set, default value will be "0s" which will not make any change in the current deployment. For example:
+This variable sets the nodeDrainTimout for cluster, controlplane and
+machinedeployment template. Users can set desired value in seconds ("300s") or
+minutes ("5m"). If it is not set, default value will be "0s" which will not make
+any change in the current deployment. For example:
 
 `NODE_DRAIN_TIMEOUT="300s"`
 
@@ -91,6 +95,8 @@ critical to maintain the indentation. The allowed keys are :
 - format
 
 Here is an example for Ubuntu:
+
+<!-- markdownlint-disable MD013 -->
 
 ```bash
 CTLPLANE_KUBEADM_EXTRA_CONFIG="
@@ -165,6 +171,8 @@ CTLPLANE_KUBEADM_EXTRA_CONFIG="
 "
 ```
 
+<!-- markdownlint-enable MD013 -->
+
 #### WORKERS_KUBEADM_EXTRA_CONFIG
 
 This contains the extra configuration to pass in KubeadmConfig for workers. It
@@ -178,6 +186,8 @@ is critical to maintain the indentation. The allowed keys are :
 - format
 
 Here is an example for Ubuntu:
+
+<!-- markdownlint-disable MD013 -->
 
 ```bash
 WORKERS_KUBEADM_EXTRA_CONFIG="
@@ -212,45 +222,47 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
 "
 ```
 
+<!-- markdownlint-enable MD013 -->
+
 ## Pivoting or updating Ironic
 
 Before running the `move` command of Clusterctl, elements such as Ironic if
-applicable, need to be moved to the target cluster. It is recommended to
-scale down the Ironic pod in the origin cluster before deploying it on the
-target cluster to prevent issues with a duplicated DHCP server.
+applicable, need to be moved to the target cluster. It is recommended to scale
+down the Ironic pod in the origin cluster before deploying it on the target
+cluster to prevent issues with a duplicated DHCP server.
 
-Both for pivoting or updating Ironic, it is critical that the cluster is in
-a stable situation. No operations on BareMetal hosts shall be on-going,
-otherwise they might fail. Similarly, in order to prevent conflict during
-the pivoting of the DHCP server, we recommend to have no BareMetalHosts
-running IPA (in `ready` state with `fasttrack` option enabled) during the
-the pivoting. It could otherwise result in IP address conflicts or changes
-of the IP address of a running host that would not be supported by Ironic.
+Both for pivoting or updating Ironic, it is critical that the cluster is in a
+stable situation. No operations on BareMetal hosts shall be on-going, otherwise
+they might fail. Similarly, in order to prevent conflict during the pivoting of
+the DHCP server, we recommend to have no BareMetalHosts running IPA (in `ready`
+state with `fasttrack` option enabled) during the the pivoting. It could
+otherwise result in IP address conflicts or changes of the IP address of a
+running host that would not be supported by Ironic.
 
-In the case of a self-hosted cluster, special care must be paid to Ironic.
-Since Ironic runs on the target cluster, updating the target cluster means
-that Ironic will need to be moved between nodes of the cluster. This results
-in similar issues as pivoting. The following points should be ensured to run
-a target cluster upgrade:
+In the case of a self-hosted cluster, special care must be paid to Ironic. Since
+Ironic runs on the target cluster, updating the target cluster means that Ironic
+will need to be moved between nodes of the cluster. This results in similar
+issues as pivoting. The following points should be ensured to run a target
+cluster upgrade:
 
-- no unnecessary hosts are running IPA during the upgrade to limit the amount
-  of conflicts
+- no unnecessary hosts are running IPA during the upgrade to limit the amount of
+  conflicts
 - When upgrading the K8S node or group of nodes that run Ironic currently, only
   one node at a time should be upgraded, and no other parallel upgrade
   operations should be happening.
 - All nodes that are hosting Ironic or have connectivity to the provisioning
-  network must be using a static IP address. If not, Ironic might not come
-  up since Keepalived will not be starting. In addition, if using DHCP,
-  conflicts could happen. We highly recommend that ALL nodes with connectivity
-  to the provisioning network are using static IP addresses, using
-  Metal3DataTemplates for example.
+  network must be using a static IP address. If not, Ironic might not come up
+  since Keepalived will not be starting. In addition, if using DHCP, conflicts
+  could happen. We highly recommend that ALL nodes with connectivity to the
+  provisioning network are using static IP addresses, using Metal3DataTemplates
+  for example.
 - Ironic should always be the first component upgraded, before a CAPM3 / BMO
   upgrade using clusterctl for example, or before nodes upgrades. This is to
   ensure that the cluster is in a stable condition while upgrading Ironic.
 
-**Important Note:**
-Currently, when target cluster is up and node appears, CAPM3 will fetch the node
-and set the providerID value to BMH UUID, meaning that it is not advisable to
-directly map the K.Node <---> BMH after pivoting. However, if needed, we can
-still find the providerID value in Metal3Machine Spec. which enables us to do
-the mapping with an intermediary step, i.e K.Node <--> M3Machine <--> BMH.
+**Important Note:** Currently, when target cluster is up and node appears, CAPM3
+will fetch the node and set the providerID value to BMH UUID, meaning that it is
+not advisable to directly map the K.Node <---> BMH after pivoting. However, if
+needed, we can still find the providerID value in Metal3Machine Spec. which
+enables us to do the mapping with an intermediary step, i.e K.Node <-->
+M3Machine <--> BMH.
