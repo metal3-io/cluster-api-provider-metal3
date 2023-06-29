@@ -393,14 +393,14 @@ func filterM3DataByReference(datas []infrav1.Metal3Data, referenceName string) (
 	return
 }
 
-func waitForVmsState(vmNames []string, state vmState, specName string, interval ...interface{}) {
+func waitForVmsState(vmNames []string, state vmState, _ string, interval ...interface{}) {
 	Byf("Waiting for VMs %v to become '%s'", vmNames, state)
 	Eventually(func() []string {
 		return listVms(state)
 	}, interval...).Should(ContainElements(vmNames))
 }
 
-func monitorNodesStatus(ctx context.Context, g Gomega, c client.Client, namespace string, names []string, status corev1.ConditionStatus, specName string, interval ...interface{}) {
+func monitorNodesStatus(ctx context.Context, g Gomega, c client.Client, namespace string, names []string, status corev1.ConditionStatus, _ string, interval ...interface{}) {
 	Byf("Ensuring Nodes %v consistently have ready=%s status", names, status)
 	g.Consistently(
 		func() error {
@@ -429,7 +429,7 @@ func assertNodeStatus(ctx context.Context, client client.Client, name client.Obj
 	return fmt.Errorf("node %s missing condition \"Ready\"", name.Name)
 }
 
-func waitForNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status corev1.ConditionStatus, specName string, interval ...interface{}) {
+func waitForNodeStatus(ctx context.Context, client client.Client, name client.ObjectKey, status corev1.ConditionStatus, _ string, interval ...interface{}) {
 	Byf("Waiting for Node '%s' to have ready=%s status", name, status)
 	Eventually(
 		func() error { return assertNodeStatus(ctx, client, name, status) },

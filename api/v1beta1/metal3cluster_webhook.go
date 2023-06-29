@@ -45,7 +45,7 @@ func (c *Metal3Cluster) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Cluster) ValidateUpdate(old runtime.Object) error {
+func (c *Metal3Cluster) ValidateUpdate(_ runtime.Object) error {
 	return c.validate()
 }
 

@@ -1,0 +1,34 @@
+name: golangci-lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+# Remove all permissions from GITHUB_TOKEN except metadata.
+permissions: {}
+
+jobs:
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        working-directory:
+          - ""
+          - test
+          - api
+    steps:
+      - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
+      - name: Calculate go version
+        id: vars
+        run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
+      - name: Set up Go
+        uses: actions/setup-go@fac708d6674e30b6ba41289acaab6d4b75aa0753 # v4.0.1
+        with:
+          go-version: ${{ steps.vars.outputs.go_version }}
+      - name: golangci-lint-${{matrix.working-directory}}
+        uses: golangci/golangci-lint-action@08e2f20817b15149a52b5b3ebe7de50aff2ba8c5 # v3.4.0
+        with:
+          version: v1.52.1
+          working-directory: ${{matrix.working-directory}}

@@ -167,7 +167,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 // DownloadFile will download a url and store it in local filepath.
 func DownloadFile(filePath string, url string) error {
 	// Get the data
-	resp, err := http.Get(url)
+	resp, err := http.Get(url) //nolint:noctx
 	if err != nil {
 		return err
 	}
@@ -448,7 +448,7 @@ func GetMachine(ctx context.Context, c client.Client, name client.ObjectKey) (re
 	return
 }
 
-func GetMetal3Machines(ctx context.Context, c client.Client, cluster, namespace string) ([]infrav1.Metal3Machine, []infrav1.Metal3Machine) {
+func GetMetal3Machines(ctx context.Context, c client.Client, _, namespace string) ([]infrav1.Metal3Machine, []infrav1.Metal3Machine) {
 	var controlplane, workers []infrav1.Metal3Machine
 	allMachines := &infrav1.Metal3MachineList{}
 	Expect(c.List(ctx, allMachines, client.InNamespace(namespace))).To(Succeed())
@@ -465,7 +465,7 @@ func GetMetal3Machines(ctx context.Context, c client.Client, cluster, namespace 
 }
 
 // GetIPPools return baremetal and provisioning IPPools.
-func GetIPPools(ctx context.Context, c client.Client, cluster, namespace string) ([]ipamv1.IPPool, []ipamv1.IPPool) {
+func GetIPPools(ctx context.Context, c client.Client, _, namespace string) ([]ipamv1.IPPool, []ipamv1.IPPool) {
 	var bmv4IPPool, provisioningIPPool []ipamv1.IPPool
 	allIPPools := &ipamv1.IPPoolList{}
 	Expect(c.List(ctx, allIPPools, client.InNamespace(namespace))).To(Succeed())

@@ -21,7 +21,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-func TestMetal3MachineDefault(t *testing.T) {
+func TestMetal3MachineDefault(_ *testing.T) {
 	// No-op because we do not default anything in M3M yet
 	c := &Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{

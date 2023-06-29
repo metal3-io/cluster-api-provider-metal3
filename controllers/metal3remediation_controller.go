@@ -457,7 +457,7 @@ func mergeMaps(prioritizedMap map[string]string, mapToMerge map[string]string) m
 }
 
 // SetupWithManager will add watches for Metal3Remediation controller.
-func (r *Metal3RemediationReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Metal3RemediationReconciler) SetupWithManager(_ context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.Metal3Remediation{}).
 		WithOptions(options).

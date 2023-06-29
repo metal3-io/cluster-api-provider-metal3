@@ -20,6 +20,7 @@ SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
 
+GO_VERSION ?= 1.20.4
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell go env GOPROXY)
 ifeq ($(GOPROXY),)
@@ -229,8 +230,8 @@ $(CLUSTERCTL): go.mod ## Build clusterctl binary.
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(GOLANGCI_LINT): $(TOOLS_DIR)/go.mod # Build golangci-lint from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/golangci-lint github.com/golangci/golangci-lint/cmd/golangci-lint
+$(GOLANGCI_LINT): 
+		hack/ensure-golangci-lint.sh $(TOOLS_DIR)/$(BIN_DIR)
 
 $(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
@@ -655,3 +656,6 @@ verify-modules: modules
 	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
 		echo "go module files are out of date"; exit 1; \
 	fi
+
+go-version: ## Print the go version we use to compile our binaries and images
+	@echo $(GO_VERSION)
