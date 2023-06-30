@@ -17,7 +17,7 @@ import (
 
 const workDir = "/opt/metal3-dev-env/"
 
-var _ = Describe("When testing cluster upgrade v1alpha5 > current [clusterctl-upgrade]", func() {
+var _ = Describe(fmt.Sprintf("When testing cluster upgrade from releases %s > current [clusterctl-upgrade]", os.Getenv("CAPM3_FROM_RELEASE")), func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
@@ -123,7 +123,6 @@ var _ = Describe("When testing cluster upgrade v1alpha5 > current [clusterctl-up
 			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
 		})
 		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
-		By("Upgrade management test passed")
 	})
 })
 
