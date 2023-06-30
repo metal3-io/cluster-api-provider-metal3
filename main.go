@@ -266,8 +266,8 @@ func initFlags(fs *pflag.FlagSet) {
 		"The address the health endpoint binds to.",
 	)
 
-	fs.IntVar(&metal3MachineConcurrency, "metal3machine-concurrency", 10,
-		"Number of metal3machines to process simultaneously")
+	fs.IntVar(&metal3MachineConcurrency, "metal3machine-concurrency", 1,
+		"Number of metal3machines to process simultaneously. WARNING! Currently not safe to set > 1.")
 
 	fs.IntVar(&metal3ClusterConcurrency, "metal3cluster-concurrency", 10,
 		"Number of metal3clusters to process simultaneously")
