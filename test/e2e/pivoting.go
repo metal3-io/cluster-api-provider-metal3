@@ -211,6 +211,15 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap", "logs", input.Namespace, "clusterctl-move.log"))
 
+	By("Remove BMO deployment from the source cluster")
+	RemoveDeployment(ctx, func() RemoveDeploymentInput {
+		return RemoveDeploymentInput{
+			ManagementCluster: input.BootstrapClusterProxy,
+			Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
+			Name:              input.E2EConfig.GetVariable(NamePrefix) + "-controller-manager",
+		}
+	})
+
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.TargetCluster.GetClient(),
 		Namespace: input.Namespace,
@@ -339,9 +348,13 @@ func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
 	if input.IsDeployment {
 		deploymentName := input.NamePrefix + "-ironic"
-		ironicNamespace := input.Namespace
-		err := input.ManagementCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
-		Expect(err).To(BeNil(), "Failed to delete Ironic from the source cluster")
+		RemoveDeployment(ctx, func() RemoveDeploymentInput {
+			return RemoveDeploymentInput{
+				ManagementCluster: input.ManagementCluster,
+				Namespace:         input.Namespace,
+				Name:              deploymentName,
+			}
+		})
 	} else {
 		ironicContainerList := []string{
 			"ironic",
@@ -361,6 +374,21 @@ func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 			Expect(err).To(BeNil(), "Unable to delete the container %s: %v", container, err)
 		}
 	}
+}
+
+type RemoveDeploymentInput struct {
+	ManagementCluster framework.ClusterProxy
+	Namespace         string
+	Name              string
+}
+
+func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentInput) {
+	input := inputGetter()
+
+	deploymentName := input.Name
+	ironicNamespace := input.Namespace
+	err := input.ManagementCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
+	Expect(err).To(BeNil(), "Failed to delete %s Deployment", deploymentName)
 }
 
 func labelBMOCRDs(targetCluster framework.ClusterProxy) {
@@ -454,6 +482,26 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 			NamePrefix:        input.E2EConfig.GetVariable(NamePrefix),
 		}
 	})
+
+	By("Reinstate BMO in Source cluster")
+	installIronicBMO(ctx, func() installIronicBMOInput {
+		return installIronicBMOInput{
+			ManagementCluster:          input.BootstrapClusterProxy,
+			BMOPath:                    input.E2EConfig.GetVariable(bmoPath),
+			deployIronic:               false,
+			deployBMO:                  true,
+			deployIronicTLSSetup:       getBool(input.E2EConfig.GetVariable(ironicTLSSetup)),
+			deployIronicBasicAuth:      getBool(input.E2EConfig.GetVariable(ironicBasicAuth)),
+			deployIronicKeepalived:     getBool(input.E2EConfig.GetVariable(ironicKeepalived)),
+			deployIronicMariadb:        getBool(input.E2EConfig.GetVariable(ironicMariadb)),
+			Namespace:                  input.E2EConfig.GetVariable(ironicNamespace),
+			NamePrefix:                 input.E2EConfig.GetVariable(NamePrefix),
+			RestartContainerCertUpdate: getBool(input.E2EConfig.GetVariable(restartContainerCertUpdate)),
+			E2EConfig:                  input.E2EConfig,
+			SpecName:                   input.SpecName,
+		}
+	})
+
 	By("Reinstate Ironic containers and BMH")
 	// TODO(mboukhalfa): add this local ironic deployment case to installIronicBMO function
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
