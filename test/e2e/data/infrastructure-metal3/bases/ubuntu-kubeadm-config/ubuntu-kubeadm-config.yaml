@@ -87,7 +87,6 @@ spec:
       nodeRegistration:
         kubeletExtraArgs:
           cgroup-driver: systemd
-          container-runtime: remote
           container-runtime-endpoint: unix:///var/run/crio/crio.sock
           feature-gates: AllAlpha=false
           node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
@@ -98,7 +97,6 @@ spec:
       nodeRegistration:
         kubeletExtraArgs:
           cgroup-driver: systemd
-          container-runtime: remote
           container-runtime-endpoint: unix:///var/run/crio/crio.sock
           feature-gates: AllAlpha=false
           node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
