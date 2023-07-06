@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 var (
@@ -69,21 +70,21 @@ func (r *Metal3RemediationTemplate) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) ValidateCreate() error {
+func (r *Metal3RemediationTemplate) ValidateCreate() (admission.Warnings, error) {
 	metal3remediationtemplatelog.Info("validate create", "name", r.Name)
-	return r.validate()
+	return nil, r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) ValidateUpdate(_ runtime.Object) error {
+func (r *Metal3RemediationTemplate) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
 	metal3remediationtemplatelog.Info("validate update", "name", r.Name)
-	return r.validate()
+	return nil, r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) ValidateDelete() error {
+func (r *Metal3RemediationTemplate) ValidateDelete() (admission.Warnings, error) {
 	metal3remediationtemplatelog.Info("validate delete", "name", r.Name)
-	return nil
+	return nil, nil
 }
 
 func (r *Metal3RemediationTemplate) validate() error {

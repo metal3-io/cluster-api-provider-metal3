@@ -73,9 +73,11 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				g.Expect(tt.c.ValidateCreate()).NotTo(Succeed())
+				_, err := tt.c.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(tt.c.ValidateCreate()).To(Succeed())
+				_, err := tt.c.ValidateCreate()
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -197,9 +199,11 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(newDataClaim.ValidateUpdate(oldDataClaim)).NotTo(Succeed())
+				_, err := newDataClaim.ValidateUpdate(oldDataClaim)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(newDataClaim.ValidateUpdate(oldDataClaim)).To(Succeed())
+				_, err := newDataClaim.ValidateUpdate(oldDataClaim)
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}

@@ -8,14 +8,29 @@ export CAPM3PATH="${REPO_ROOT}"
 export WORKING_DIR=/opt/metal3-dev-env
 FORCE_REPO_UPDATE="${FORCE_REPO_UPDATE:-false}"
 
+export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-main}"
+
+# Starting from CAPI v1.5.0 version cluster-api config folder location has changed
+# to XDG_CONFIG_HOME folder. Following code defines the cluster-api config folder 
+# location according to CAPM3(since CAPM3 minor versions are aligned to CAPI 
+# minors versions) release branch 
+
+if [[ ${CAPM3RELEASEBRANCH} == "main" ]]; then
+    # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
+    CONFIG_FOLDER="${XDG_CONFIG_HOME:-$HOME/.config}"
+    export CAPI_CONFIG_FOLDER="${CONFIG_FOLDER}/cluster-api" 
+else
+    export CAPI_CONFIG_FOLDER="${HOME}/.cluster-api"
+fi
+
 # shellcheck source=./scripts/environment.sh
 source "${REPO_ROOT}/scripts/environment.sh"
 
 # Clone dev-env repo
 sudo mkdir -p ${WORKING_DIR}
 sudo chown "${USER}":"${USER}" ${WORKING_DIR}
-M3_DEV_ENV_REPO="https://github.com/metal3-io/metal3-dev-env.git"
-M3_DEV_ENV_BRANCH=main
+M3_DEV_ENV_REPO="https://github.com/Nordix/metal3-dev-env.git"
+M3_DEV_ENV_BRANCH=bump-capi-v1.5
 M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
@@ -29,8 +44,8 @@ export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 EOF
 if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
-    mkdir "${HOME}/.cluster-api/"
-    echo "enableBMHNameBasedPreallocation: true" >"${HOME}/.cluster-api/clusterctl.yaml"
+    mkdir -p "$CAPI_CONFIG_FOLDER"
+    echo "enableBMHNameBasedPreallocation: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
 fi
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1

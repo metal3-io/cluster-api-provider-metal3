@@ -252,7 +252,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, claim := range tc.dataClaims {
 				objects = append(objects, claim)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).WithStatusSubresource(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
@@ -352,6 +352,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Name:              "abcf",
 						Namespace:         namespaceName,
 						DeletionTimestamp: &timeNow,
+						Finalizers:        []string{"ipclaim.ipam.metal3.io"},
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
 						Template: corev1.ObjectReference{

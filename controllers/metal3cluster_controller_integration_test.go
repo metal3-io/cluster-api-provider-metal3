@@ -52,7 +52,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 	DescribeTable("Reconcile tests metal3Cluster",
 		func(tc TestCaseReconcileBMC) {
 			testclstr := &infrav1.Metal3Cluster{}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).WithStatusSubresource(tc.Objects...).Build()
 
 			r := &Metal3ClusterReconciler{
 				Client:           fakeClient,
@@ -207,6 +207,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 							Name:              metal3ClusterName,
 							Namespace:         namespaceName,
 							DeletionTimestamp: &deletionTimestamp,
+							Finalizers:        []string{"foo"},
 							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef()},
 						},
 						Spec: *bmcSpec(),
@@ -229,6 +230,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 							Name:              metal3ClusterName,
 							Namespace:         namespaceName,
 							DeletionTimestamp: &deletionTimestamp,
+							Finalizers:        []string{"foo"},
 							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef()},
 						},
 						Spec: *bmcSpec(),

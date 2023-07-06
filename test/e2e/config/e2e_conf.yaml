@@ -95,7 +95,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.4.99
+  - name: v1.5.99
     value: "${PWD}/config/default"
     files:
     - sourcePath: "../data/infrastructure-metal3/main/metadata.yaml"
@@ -138,7 +138,7 @@ variables:
   # Default vars for the template, those values could be overridden by the env-vars.
   CAPI_VERSION: "v1beta1"
   CAPM3_VERSION: "v1beta1"
-  CONFIG_FILE_PATH: "${HOME}/.cluster-api/clusterctl.yaml"
+  CONFIG_FILE_PATH: "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"

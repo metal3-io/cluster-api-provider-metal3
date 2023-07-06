@@ -174,11 +174,15 @@ func TestMetal3RemediationTemplateValidation(t *testing.T) {
 		}
 
 		if tt.expectErr {
-			g.Expect(m3rt.ValidateCreate()).NotTo(Succeed())
-			g.Expect(m3rt.ValidateUpdate(m3rt)).NotTo(Succeed())
+			_, err := m3rt.ValidateCreate()
+			g.Expect(err).To(HaveOccurred())
+			_, err = m3rt.ValidateUpdate(m3rt)
+			g.Expect(err).To(HaveOccurred())
 		} else {
-			g.Expect(m3rt.ValidateCreate()).To(Succeed())
-			g.Expect(m3rt.ValidateUpdate(m3rt)).To(Succeed())
+			_, err := m3rt.ValidateCreate()
+			g.Expect(err).NotTo(HaveOccurred())
+			_, err = m3rt.ValidateUpdate(m3rt)
+			g.Expect(err).NotTo(HaveOccurred())
 		}
 	}
 }

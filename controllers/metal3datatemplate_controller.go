@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -171,7 +170,7 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 		For(&infrav1.Metal3DataTemplate{}).
 		WithOptions(options).
 		Watches(
-			&source.Kind{Type: &infrav1.Metal3DataClaim{}},
+			&infrav1.Metal3DataClaim{},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3DataClaimToMetal3DataTemplate),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -181,7 +180,7 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 // Metal3DataClaimToMetal3DataTemplate will return a reconcile request for a
 // Metal3DataTemplate if the event is for a
 // Metal3DataClaim and that Metal3DataClaim references a Metal3DataTemplate.
-func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(obj client.Object) []ctrl.Request {
+func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(_ context.Context, obj client.Object) []ctrl.Request {
 	if m3dc, ok := obj.(*infrav1.Metal3DataClaim); ok {
 		if m3dc.Spec.Template.Name != "" {
 			namespace := m3dc.Spec.Template.Namespace

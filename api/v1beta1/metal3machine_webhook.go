@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (c *Metal3Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -37,18 +38,18 @@ func (c *Metal3Machine) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Machine) ValidateCreate() error {
-	return c.validate()
+func (c *Metal3Machine) ValidateCreate() (admission.Warnings, error) {
+	return nil, c.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Machine) ValidateUpdate(_ runtime.Object) error {
-	return c.validate()
+func (c *Metal3Machine) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+	return nil, c.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Machine) ValidateDelete() error {
-	return nil
+func (c *Metal3Machine) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 func (c *Metal3Machine) validate() error {

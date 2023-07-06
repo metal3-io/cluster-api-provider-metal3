@@ -368,7 +368,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 
 			obj := client.Object(tc.M3Cluster)
-			reqs := r.Metal3ClusterToMetal3Machines(obj)
+			reqs := r.Metal3ClusterToMetal3Machines(context.Background(), obj)
 
 			m3machineNames := make([]string, len(reqs))
 			for i := range reqs {
@@ -428,7 +428,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		func(tc TestCaseBMHToM3M) {
 			r := Metal3MachineReconciler{}
 			obj := client.Object(tc.Host)
-			reqs := r.BareMetalHostToMetal3Machines(obj)
+			reqs := r.BareMetalHostToMetal3Machines(context.Background(), obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
@@ -498,7 +498,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: infrav1.Metal3DataClaimSpec{},
 			}
 			obj := client.Object(dataClaim)
-			reqs := r.Metal3DataClaimToMetal3Machines(obj)
+			reqs := r.Metal3DataClaimToMetal3Machines(context.Background(), obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
@@ -583,7 +583,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Client: fakeClient,
 			}
 			obj := client.Object(tc.Cluster)
-			reqs := r.ClusterToMetal3Machines(obj)
+			reqs := r.ClusterToMetal3Machines(context.Background(), obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
@@ -639,7 +639,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Client: fakeClient,
 			}
 			obj := client.Object(ipClaim)
-			reqs := r.Metal3DataToMetal3Machines(obj)
+			reqs := r.Metal3DataToMetal3Machines(context.Background(), obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},
 		Entry("No OwnerRefs", testCaseMetal3DataToMetal3Machines{

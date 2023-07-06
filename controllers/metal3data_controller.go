@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -151,7 +150,7 @@ func (r *Metal3DataReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		For(&infrav1.Metal3Data{}).
 		WithOptions(options).
 		Watches(
-			&source.Kind{Type: &ipamv1.IPClaim{}},
+			&ipamv1.IPClaim{},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -160,7 +159,7 @@ func (r *Metal3DataReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 
 // Metal3IPClaimToMetal3Data will return a reconcile request for a Metal3Data if the event is for a
 // Metal3IPClaim and that Metal3IPClaim references a Metal3Data.
-func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(obj client.Object) []ctrl.Request {
+func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(_ context.Context, obj client.Object) []ctrl.Request {
 	requests := []ctrl.Request{}
 	if m3dc, ok := obj.(*ipamv1.IPClaim); ok {
 		for _, ownerRef := range m3dc.OwnerReferences {

@@ -156,6 +156,7 @@ var _ = Describe("Metal3Data manager", func() {
 							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
+						Finalizers:        []string{"foo"},
 					},
 				},
 				expectManager: true,
@@ -169,6 +170,7 @@ var _ = Describe("Metal3Data manager", func() {
 							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
+						Finalizers:        []string{"foo"},
 					},
 				},
 				expectManager:        true,
@@ -184,6 +186,7 @@ var _ = Describe("Metal3Data manager", func() {
 							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
+						Finalizers:        []string{"foo"},
 					},
 				},
 				expectManager:      true,
@@ -410,7 +413,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Client: fakeClient,
 			}
 			obj := client.Object(ipClaim)
-			reqs := m3DataReconciler.Metal3IPClaimToMetal3Data(obj)
+			reqs := m3DataReconciler.Metal3IPClaimToMetal3Data(context.Background(), obj)
 			Expect(reqs).To(Equal(tc.expectedRequests))
 		},
 		Entry("No OwnerRefs", testCaseMetal3IPClaimToMetal3Data{
