@@ -32,6 +32,7 @@ type NodeReuseInput struct {
 	Namespace         string
 }
 
+// NodeReuse verifies the feature of reusing the same node after upgrading kcp/md nodes.
 func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Logf("Starting node reuse tests [node_reuse]")
 	input := inputGetter()

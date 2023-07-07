@@ -11,6 +11,33 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+/*
+ * Remediation-based Tests
+ * This test focus on verifying the effectiveness of fixes or remedial actions taken to address node failures.
+ * These tests involve simulating failure scenarios, triggering the remediation process, and then verifying that the remediation actions successfully restore the nodes to the desired state.
+ *
+ * Test Types:
+ * 1. Metal3Remediation Test: This test specifically evaluates the Metal3 Remediation Controller's node deletion feature in the reboot remediation strategy.
+ * 2. Remediation Test: This test focuses on verifying various annotations and actions related to remediation in the CAPM3 (Cluster API Provider for Metal3).
+ *
+ * Metal3Remediation Test:
+ * - Retrieve the list of Metal3 machines associated with the worker nodes.
+ * - Identify the target worker Metal3Machine and its corresponding BareMetalHost (BMH) object.
+ * - Create a Metal3Remediation resource with a remediation strategy of type "Reboot" and a specified timeout.
+ * - Wait for the associated virtual machine (VM) to power off.
+ * - Wait for the node (VM) to be deleted.
+ * - Wait for the VM to power on.
+ * - Wait for the node to be in a ready state.
+ * - Delete the Metal3Remediation resource.
+ * - Verify that the Metal3Remediation resource has been successfully deleted.
+ *
+ * Remediation Test:
+ * - Reboot Annotation: Mark a worker BMH for reboot and wait for the associated VM to transition to the "shutoff" state and then to the "running" state.
+ * - Poweroff Annotation: Verify the power off and power on actions by turning off and on the specified machines.
+ * - Inspection Annotation: Run an inspection test alongside the remediation steps to verify the inspection annotation functionality.
+ * - Unhealthy Annotation: Mark a BMH as unhealthy and ensure it is not picked up for provisioning.
+ * - Metal3 Data Template: Create a new Metal3DataTemplate (M3DT), create a new Metal3MachineTemplate (M3MT), and update the MachineDeployment (MD) to point to the new M3MT. Wait for the old worker to deprovision.
+ */
 var _ = Describe("Testing nodes remediation [remediation] [features]", func() {
 
 	var (

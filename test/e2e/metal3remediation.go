@@ -27,6 +27,34 @@ type Metal3RemediationInput struct {
 	Namespace             string
 }
 
+/*
+ * Metal3 Remediation Test
+ *
+ * This test evaluates node deletion in reboot remediation feature added to CAPM3 Remediation Controller.
+ * issue #392: Reboot remediation is incomplete
+ * PR #668: Fix reboot remediation by adding node deletion
+ * This test evaluates the reboot remediation strategy with an enhancement of node deletion in the CAPM3 (Cluster API Provider for Metal3) Remediation Controller.
+ *
+ * Tested Feature:
+ * - Delete Node in Reboot Remediation
+ *
+ * Workflow:
+ * 1. Retrieve the Metal3Machines associated with the worker nodes in the cluster.
+ * 2. Identify the target worker machine node its associated BMH object corresponding to the Metal3Machine.
+ * 3. Create a Metal3Remediation resource, specifying the remediation strategy as "Reboot" with a retry limit and timeout.
+ * 4. Wait for the VM (Virtual Machine) associated with target BMH to power off.
+ * 5. Wait for the target worker node to be deleted from the cluster.
+ * 6. Wait for the VMs to power on.
+ * 7. Verify that the target worker node becomes ready.
+ * 8. Verify that the Metal3Remediation resource is successfully delete
+ *
+ * Metal3Remediation test ensures that Metal3 Remediation Controller can effectively remediate worker nodes by orchestrating
+ * the reboot process and validating the successful recovery of the nodes. It helps ensure the stability and
+ * resiliency of the cluster by allowing workloads to be seamlessly migrated from unhealthy nodes to healthy node
+ *
+ * TODO: Add full metal3remediation test issue #1060: Add Healthcheck Test to E2E for CAPM3.
+ */
+
 func metal3remediation(ctx context.Context, inputGetter func() Metal3RemediationInput) {
 	Logf("Starting metal3 remediation tests")
 	input := inputGetter()

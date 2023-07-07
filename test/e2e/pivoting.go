@@ -50,6 +50,7 @@ type PivotingInput struct {
 	ClusterctlConfigPath  string
 }
 
+// Pivoting implements a test that verifies successful moving of management resources (CRs, BMO, Ironic) to a target cluster after initializing it with Provider components.
 func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Logf("Starting pivoting tests")
 	input := inputGetter()

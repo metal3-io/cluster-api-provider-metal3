@@ -17,6 +17,7 @@ type upgradeBMOInput struct {
 	SpecName          string
 }
 
+// upgradeBMO upgrades BMO image to the latest.
 func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
 	Logf("Starting BMO containers upgrade tests")
 	input := inputGetter()

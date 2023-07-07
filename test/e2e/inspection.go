@@ -24,6 +24,7 @@ type InspectionInput struct {
 	SpecName              string
 }
 
+// Inspection test request inspection on all the available BMH using annotation.
 func inspection(ctx context.Context, inputGetter func() InspectionInput) {
 	Logf("Starting inspection tests")
 	input := inputGetter()

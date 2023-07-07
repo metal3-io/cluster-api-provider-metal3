@@ -40,6 +40,40 @@ type RemediationInput struct {
 	ClusterctlConfigPath  string
 }
 
+/*
+ * Remediation Test
+ * The remediation test focuses on verifying various annotations and actions related to remediation in the CAPM3.
+ * It ensures that the cluster can recover from different failure scenarios and perform necessary actions for remediation.
+ *
+ * Test Steps:
+ *   - 1. Reboot Annotation: This step marks a worker BareMetalHost (BMH) for reboot and waits for the associated Virtual Machine (VM) to transition to the "shutoff" state and then to the "running" state.
+ *   - 2. Poweroff Annotation: The test verifies the power off and power on actions by turning off and on the specified machines.
+ *   - 3. Inspection Annotation: The test runs an inspection test alongside the remediation steps. The inspection test verifies the inspection annotation functionality.
+ *   - 4. Unhealthy Annotation: This step tests the unhealthy annotation by marking a BMH as unhealthy and ensuring it is not picked up for provisioning.
+ *   - 5. Metal3 Data Template: The test creates a new Metal3DataTemplate (M3DT), then creates a new Metal3MachineTemplate (M3MT), and updates the MachineDeployment (MD) to point to the new M3MT. It then waits for the old worker to deprovision.
+ *
+ * The following code snippet represents the workflow of the remediation test:
+ *
+ * // Function: remediation
+ *
+ * 	func remediation(ctx context.Context, inputGetter func() RemediationInput) {
+ * 		Logf("Starting remediation tests")
+ * 		input := inputGetter()
+ * 		// Step 1: Reboot Annotation
+ * 		// ...
+ * 		// Step 2: Poweroff Annotation
+ * 		// ...
+ * 		// Step 3: Inspection Annotation
+ * 		// ...
+ * 		// Step 4: Unhealthy Annotation
+ * 		// ...
+ * 		// Step 5: Metal3 Data Template
+ * 		// ...
+ * 		Logf("REMEDIATION TESTS PASSED!")
+ * 	}
+ *
+ * The remediation test ensures that the CAPM3 can effectively remediate worker nodes by performing necessary actions and annotations. It helps ensure the stability and resiliency of the cluster by allowing the cluster to recover from failure scenarios and successfully restore nodes to the desired state.
+ */
 func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	Logf("Starting remediation tests")
 	input := inputGetter()

@@ -80,6 +80,7 @@ type upgradeKubernetesInput struct {
 	Namespace             string
 }
 
+// upgradeKubernetes implements a test upgrading the cluster nodes from an old k8s version to a newer version.
 func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetesInput) {
 	Logf("Starting Kubernetes upgrade tests")
 	input := inputGetter()
