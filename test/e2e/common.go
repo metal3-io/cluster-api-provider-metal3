@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -104,6 +106,8 @@ func getSha256Hash(filename string) ([]byte, error) {
 func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	client := clusterProxy.GetClient()
+
+	clusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
 	// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
@@ -553,4 +557,64 @@ func Metal3MachineToBmhName(m3machine infrav1.Metal3Machine) string {
 // Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object.
 func BmhToVMName(host bmov1alpha1.BareMetalHost) string {
 	return strings.ReplaceAll(host.Name, "-", "_")
+}
+
+func BmhNameToVMName(hostname string) string {
+	return strings.ReplaceAll(hostname, "-", "_")
+}
+
+func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
+	allMetal3Machines := &infrav1.Metal3MachineList{}
+	Expect(cli.List(ctx, allMetal3Machines, client.InNamespace(m.Namespace))).To(Succeed())
+	for _, machine := range allMetal3Machines.Items {
+		name, err := Metal3MachineToMachineName(machine)
+		if err != nil {
+			Logf("error getting Machine name from Metal3machine: %s", err)
+		} else if name == m.Name {
+			return BmhNameToVMName(Metal3MachineToBmhName(machine)), nil
+		}
+	}
+	return "", fmt.Errorf("no matching Metal3Machine found for current Machine")
+}
+
+type Metal3LogCollector struct{}
+
+func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Client, m *clusterv1.Machine, outputPath string) error {
+	VMName, err := MachineToVMName(ctx, cli, m)
+	if err != nil {
+		return fmt.Errorf("error while fetching the VM name: %w", err)
+	}
+
+	qemuFolder := path.Join(outputPath, VMName)
+	if err := os.MkdirAll(qemuFolder, 0o750); err != nil {
+		fmt.Fprintf(GinkgoWriter, "couldn't create directory %q : %s\n", qemuFolder, err)
+	}
+
+	serialLog := fmt.Sprintf("/var/log/libvirt/qemu/%s-serial0.log", VMName)
+	if _, err := os.Stat(serialLog); os.IsNotExist(err) {
+		return fmt.Errorf("error finding the serial log: %w", err)
+	}
+
+	copyCmd := fmt.Sprintf("sudo cp %s %s", serialLog, qemuFolder)
+	cmd := exec.Command("/bin/sh", "-c", copyCmd) // #nosec G204:gosec
+	if output, err := cmd.Output(); err != nil {
+		return fmt.Errorf("something went wrong when executing '%s': %w, output: %s", cmd.String(), err, output)
+	}
+	setPermsCmd := fmt.Sprintf("sudo chmod -v 777 %s", path.Join(qemuFolder, filepath.Base(serialLog)))
+	cmd = exec.Command("/bin/sh", "-c", setPermsCmd) // #nosec G204:gosec
+	output, err := cmd.Output()
+	if err != nil {
+		return fmt.Errorf("error changing file permissions after copying: %w, output: %s", err, output)
+	}
+
+	Logf("Successfully collected logs for machine %s", m.Name)
+	return nil
+}
+
+func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
+	return fmt.Errorf("CollectMachinePoolLog not implemented")
+}
+
+func (Metal3LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
+	return fmt.Errorf("CollectInfrastructureLogs not implemented")
 }
