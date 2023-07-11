@@ -39,7 +39,7 @@ body:
     attributes:
       label: Anything else we need to know?
 
- - type: textarea
+  - type: textarea
     id: templateLabel
     attributes:
       label: Label(s) to be applied
