@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 go 1.20
 
 require (
-	github.com/docker/docker v24.0.2+incompatible
+	github.com/docker/docker v24.0.4+incompatible
 	github.com/jinzhu/copier v0.3.5
 	github.com/metal3-io/baremetal-operator/apis v0.3.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
