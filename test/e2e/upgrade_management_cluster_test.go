@@ -169,9 +169,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 			deployIronic:               false,
 			deployBMO:                  true,
 			deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
-			deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
-			deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
-			deployIronicMariadb:        getBool(e2eConfig.GetVariable(ironicMariadb)),
+			DeployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 			NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
 			RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
 		}
@@ -186,9 +184,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 			deployIronic:               true,
 			deployBMO:                  false,
 			deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
-			deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
-			deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
-			deployIronicMariadb:        getBool(e2eConfig.GetVariable(ironicMariadb)),
+			DeployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 			NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
 			RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
 		}
@@ -254,9 +250,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 					deployIronic:               true,
 					deployBMO:                  false,
 					deployIronicTLSSetup:       getBool(e2eConfig.GetVariable(ironicTLSSetup)),
-					deployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
-					deployIronicKeepalived:     getBool(e2eConfig.GetVariable(ironicKeepalived)),
-					deployIronicMariadb:        getBool(e2eConfig.GetVariable(ironicMariadb)),
+					DeployIronicBasicAuth:      getBool(e2eConfig.GetVariable(ironicBasicAuth)),
 					NamePrefix:                 e2eConfig.GetVariable(NamePrefix),
 					RestartContainerCertUpdate: getBool(e2eConfig.GetVariable(restartContainerCertUpdate)),
 				}
