@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-logr/logr"
 
@@ -400,21 +401,21 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		),
 	)
 
-	It("Test checkRequeueError", func() {
-		result, err := checkRequeueError(nil, "")
+	It("Test checkReconcileError", func() {
+		result, err := checkReconcileError(nil, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		result, err = checkRequeueError(errors.New("def"), "abc")
+		result, err = checkReconcileError(errors.New("def"), "abc")
 		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		result, err = checkRequeueError(&baremetal.RequeueAfterError{}, "abc")
+		result, err = checkReconcileError(baremetal.WithTransientError(errors.New("Failed"), 0*time.Second), "abc")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 
-		result, err = checkRequeueError(
-			&baremetal.RequeueAfterError{RequeueAfter: requeueAfter}, "abc",
+		result, err = checkReconcileError(
+			baremetal.WithTransientError(errors.New("Failed"), requeueAfter), "abc",
 		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}))

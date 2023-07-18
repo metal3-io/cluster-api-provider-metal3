@@ -96,7 +96,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			m.EXPECT().Update(context.TODO()).MaxTimes(0)
 			m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
-			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			return m
 		}
 		m.EXPECT().Associate(context.TODO()).Return(nil)
@@ -113,7 +112,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			errors.New("Failed"),
 		)
 		m.EXPECT().SetProviderID(bmhuid).MaxTimes(0)
-		m.EXPECT().SetError(gomock.Any(), gomock.Any())
 		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.MissingBMHReason, clusterv1.ConditionSeverityError, gomock.Any())
 		return m
 	}
@@ -140,7 +138,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 				SetNodeProviderID(context.TODO(), gomock.Eq(&provID), nil).
 				Return(errors.New("Failed"))
 			m.EXPECT().SetProviderID(string(bmhuid)).MaxTimes(0)
-			m.EXPECT().SetError(gomock.Any(), gomock.Any())
 			m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition,
 				infrav1.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, gomock.Any())
 			return m
@@ -183,11 +180,10 @@ func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
 		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
-		m.EXPECT().SetError(gomock.Any(), gomock.Any())
 		return m
 	} else if tc.DeleteRequeue {
 		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
-		m.EXPECT().Delete(context.TODO()).Return(&baremetal.RequeueAfterError{})
+		m.EXPECT().Delete(context.TODO()).Return(baremetal.WithTransientError(errors.New("failed"), requeueAfter))
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
 		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
 		return m
@@ -317,7 +313,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			func(tc reconcileDeleteTestCase) {
 				m := setReconcileDeleteExpectations(gomockCtrl, tc)
 				res, err := bmReconcile.reconcileDelete(context.TODO(), m)
-
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())
 				} else {

@@ -109,9 +109,9 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError || tc.expectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -190,9 +190,9 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError || tc.expectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 				return
 			}
@@ -579,9 +579,9 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError || tc.expectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -672,9 +672,9 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError || tc.expectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -1051,9 +1051,9 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.expectError || tc.expectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
@@ -1239,7 +1239,7 @@ var _ = Describe("Metal3Data manager", func() {
 			)
 			if tc.expectError {
 				if tc.m3dt != nil {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
 					Expect(err).To(HaveOccurred())
 				}
@@ -3342,9 +3342,9 @@ var _ = Describe("Metal3Data manager", func() {
 			if tc.ExpectError || tc.ExpectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.ExpectRequeue {
-					Expect(err).To(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).To(BeAssignableToTypeOf(ReconcileError{}))
 				} else {
-					Expect(err).NotTo(BeAssignableToTypeOf(&RequeueAfterError{}))
+					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
 			} else {
 				Expect(err).NotTo(HaveOccurred())
