@@ -122,8 +122,7 @@ variables:
   IRONIC_TLS_SETUP: "true"
   IRONIC_BASIC_AUTH: "true"
   IRONIC_KEEPALIVED: "true"
-  # Enabling Mariadb instead of SQLite. This can be set to false once SQLite issue is resolved
-  IRONIC_USE_MARIADB: "true"
+  IRONIC_USE_MARIADB: "false"
   RESTART_CONTAINER_CERTIFICATE_UPDATED: "true"
   CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
   DOCKER_HUB_PROXY: "${DOCKER_HUB_PROXY:-docker.io}"
