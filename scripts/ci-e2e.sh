@@ -21,14 +21,12 @@ M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
 # Config devenv
-# Enabling Mariadb instead of SQLite. This can be set to false once SQLite issue is resolved
 cat <<-EOF > "${M3_DEV_ENV_PATH}/config_${USER}.sh"
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
 export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${FROM_K8S_VERSION}
 export IMAGE_OS=${IMAGE_OS}
-export IRONIC_USE_MARIADB="true"
 export FORCE_REPO_UPDATE="false"
 EOF
 
