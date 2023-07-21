@@ -65,7 +65,7 @@ if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
 fi
 
 # Integration test environment vars and config
-if [[ ${GINKGO_FOCUS:-} == "integration" ]]; then
+if [[ ${GINKGO_FOCUS:-} == "integration" || ${GINKGO_FOCUS:-} == "basic" ]]; then
   export NUM_NODES=${NUM_NODES:-"2"}
   export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
   export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
