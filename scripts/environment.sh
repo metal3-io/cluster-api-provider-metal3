@@ -48,8 +48,8 @@ else
   export EPHEMERAL_CLUSTER="minikube"
 fi
 
-export FROM_K8S_VERSION="v1.24.9"
-export KUBERNETES_VERSION="v1.25.2"
+export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.25.5"}
+export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.26.4"}
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
@@ -60,9 +60,8 @@ export CAPM3_LOCAL_IMAGE="${CAPM3PATH}"
 export PATH=$PATH:$HOME/.krew/bin
 
 # Upgrade test environment vars and config
-if [[ ${GINKGO_FOCUS:-} == "upgrade" ]]; then
+if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
   export NUM_NODES=${NUM_NODES:-"5"}
-  export KUBERNETES_VERSION="v1.23.8"
 fi
 
 # Exported to the cluster templates
