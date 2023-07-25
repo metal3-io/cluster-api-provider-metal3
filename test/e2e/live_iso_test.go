@@ -14,10 +14,28 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+/*
+ * The purpose of the live-iso feature in Metal3 is to allow booting a BareMetalHost with a live ISO image instead of deploying an image to the local disk using the IPA deploy ramdisk. This feature is useful in scenarios where reducing boot time for ephemeral workloads is desired, or when integrating with third-party installers distributed as a CD image.
+ *
+ * This test demonstrates the usage of the live-iso feature. It performs the following steps:
+ *
+ * 	The live ISO image URL is retrieved from the test configuration.
+ * 	The list of bare metal hosts (BMHs) in the namespace is displayed.
+ * 	It waits for all BMHs to be in the "Available" state.
+ * 	It retrieves all BMHs and selects the first available BMH that supports the "redfish-virtualmedia" mechanism for provisioning the live image.
+ * 	The selected BMH is updated with the live ISO image URL and marked as online.
+ * 	It waits for the BMH to transition to the "Provisioned" state, indicating successful booting from the live ISO image.
+ * 	The list of BMHs in the namespace is displayed.
+ * 	Serial logs are read to verify that the node was booted from the live ISO image.
+ * 	The test is considered passed.
+ */
+
 var _ = Describe("When testing live iso [live-iso] [features]", func() {
 	liveIsoTest()
 })
 
+// Live iso tests provision live-iso image on host
+// it lists all the bmh and selects the one supporting redfish-virtualmedia for provisioning the live image.
 func liveIsoTest() {
 	BeforeEach(func() {
 		validateGlobals(specName)

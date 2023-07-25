@@ -17,6 +17,7 @@ type upgradeIronicInput struct {
 	SpecName          string
 }
 
+// upgradeIronic upgrades ironic image to the latest.
 func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 	Logf("Starting ironic containers upgrade tests")
 	input := inputGetter()
