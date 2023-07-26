@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -320,7 +321,7 @@ func installIronicBMO(ctx context.Context, inputGetter func() installIronicBMOIn
 
 	deploymentNameList := []string{}
 	if input.deployIronic {
-		deploymentNameList = append(deploymentNameList, "-ironic")
+		deploymentNameList = append(deploymentNameList, "-ironic", "-ironic-common")
 	}
 	if input.deployBMO {
 		deploymentNameList = append(deploymentNameList, "-controller-manager")
@@ -347,14 +348,18 @@ type RemoveIronicInput struct {
 func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
 	if input.IsDeployment {
-		deploymentName := input.NamePrefix + "-ironic"
-		RemoveDeployment(ctx, func() RemoveDeploymentInput {
-			return RemoveDeploymentInput{
-				ManagementCluster: input.ManagementCluster,
-				Namespace:         input.Namespace,
-				Name:              deploymentName,
+		deployments, _ := input.ManagementCluster.GetClientSet().AppsV1().Deployments(input.Namespace).List(ctx, metav1.ListOptions{})
+		for _, deployment := range deployments.Items {
+			if strings.HasPrefix(deployment.GetObjectMeta().GetName(), input.NamePrefix+"-ironic") {
+				RemoveDeployment(ctx, func() RemoveDeploymentInput {
+					return RemoveDeploymentInput{
+						ManagementCluster: input.ManagementCluster,
+						Namespace:         input.Namespace,
+						Name:              deployment.GetObjectMeta().GetName(),
+					}
+				})
 			}
-		})
+		}
 	} else {
 		ironicContainerList := []string{
 			"ironic",
