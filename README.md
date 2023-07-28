@@ -129,12 +129,33 @@ The architecture with the components involved is documented
 
 To trigger e2e test on a PR, use the following phrases:
 
-### integration tests
+### Integration tests
 
 - **/test-ubuntu-e2e-integration-main** runs integration e2e tests with CAPM3
   API version v1beta1 and branch main on Ubuntu
 - **/test-centos-e2e-integration-main** runs integration e2e tests with CAPM3
   API version v1beta1 and branch main on CentOS
+
+Release-1.4 branch:
+
+- **/test-ubuntu-e2e-integration-release-1-4** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.4 on Ubuntu
+- **/test-centos-e2e-integration-release-1-4** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.4 on CentOS
+
+Release-1.3 branch:
+
+- **/test-ubuntu-e2e-integration-release-1-3** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.3 on Ubuntu
+- **/test-centos-e2e-integration-release-1-3** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.3 on CentOS
+
+## Basic tests
+
+Unlike integration tests, basic tests focus on the target cluster creation without involving pivoting from the bootstrap cluster.
+To run basic tests, replace `integration` with `basic` for instance:
+
+- **/test-ubuntu-e2e-basic-main** runs basic e2e tests with main branch on Ubuntu
 
 ### Feature tests
 
