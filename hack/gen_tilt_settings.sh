@@ -17,8 +17,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-get_latest_release()
-{
+get_latest_release() {
     set +x
     if [ -z "${GITHUB_TOKEN:-}" ]; then
         release="$(curl -sL "$1")" || {
@@ -45,10 +44,10 @@ get_latest_release()
 CAPIRELEASEPATH="${CAPIRELEASEPATH:-https://api.github.com/repos/${CAPI_BASE_URL:-kubernetes-sigs/cluster-api}/releases}"
 export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.3.")}"
 
-cat << EOF > tilt-settings.json
+cat <<EOF >tilt-settings.json
 {
     "capi_version": "${CAPIRELEASE}",
     "cert_manager_version": "v1.11.1",
-    "kubernetes_version": "${KUBERNETES_VERSION:-v1.27.1}"
+    "kubernetes_version": "${KUBERNETES_VERSION:-v1.27.4}"
 }
 EOF

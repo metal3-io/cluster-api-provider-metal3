@@ -93,7 +93,7 @@ v1.3*)
     ;;
 v1.4*)
     export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.27.1"
+    export INIT_WITH_KUBERNETES_VERSION="v1.27.4"
     ;;
 *)
     echo "UNKNOWN CAPI_FROM_RELEASE !"
