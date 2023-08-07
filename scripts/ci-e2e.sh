@@ -81,7 +81,7 @@ export CAPI_TO_RELEASE="${CAPIRELEASE}"
 case ${CAPI_FROM_RELEASE} in
 v0.4*)
     export CONTRACT_FROM="v1alpha4"
-    export INIT_WITH_KUBERNETES_VERSION="v1.23.8"
+    export INIT_WITH_KUBERNETES_VERSION="v1.23.17"
     ;;
 v1.2*)
     export CONTRACT_FROM="v1beta1"
