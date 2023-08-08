@@ -1,10 +1,12 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"os/exec"
@@ -13,12 +15,14 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -569,12 +573,101 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 	for _, machine := range allMetal3Machines.Items {
 		name, err := Metal3MachineToMachineName(machine)
 		if err != nil {
-			Logf("error getting Machine name from Metal3machine: %s", err)
+			Logf("error getting Machine name from Metal3machine: %w", err)
 		} else if name == m.Name {
 			return BmhNameToVMName(Metal3MachineToBmhName(machine)), nil
 		}
 	}
 	return "", fmt.Errorf("no matching Metal3Machine found for current Machine")
+}
+
+func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
+	m3Machine := &infrav1.Metal3Machine{}
+	err := cli.Get(ctx, types.NamespacedName{
+		Namespace: m.Spec.InfrastructureRef.Namespace,
+		Name:      m.Spec.InfrastructureRef.Name},
+		m3Machine)
+
+	if err != nil {
+		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name, err)
+	}
+	m3DataList := &infrav1.Metal3DataList{}
+	m3Data := &infrav1.Metal3Data{}
+	err = cli.List(ctx, m3DataList)
+	if err != nil {
+		return "", fmt.Errorf("coudln't list Metal3Data objects: %w", err)
+	}
+	for i, m3d := range m3DataList.Items {
+		for _, owner := range m3d.OwnerReferences {
+			if owner.Name == m3Machine.Name {
+				m3Data = &m3DataList.Items[i]
+			}
+		}
+	}
+	if m3Data.Name == "" {
+		return "", fmt.Errorf("couldn't find a matching Metal3Data object")
+	}
+
+	IPAddresses := &ipamv1.IPAddressList{}
+	IPAddress := &ipamv1.IPAddress{}
+	err = cli.List(ctx, IPAddresses)
+	if err != nil {
+		return "", fmt.Errorf("couldn't list IPAddress objects: %w", err)
+	}
+	for i, ip := range IPAddresses.Items {
+		for _, owner := range ip.OwnerReferences {
+			if owner.Name == m3Data.Name {
+				IPAddress = &IPAddresses.Items[i]
+			}
+		}
+	}
+	if IPAddress.Name == "" {
+		return "", fmt.Errorf("couldn't find a matching IPAddress object")
+	}
+
+	return string(IPAddress.Spec.Address), nil
+}
+
+func runCommand(logFolder, filename, machineIP, user, command string) error {
+	home := os.Getenv("HOME")
+	privkey, err := os.ReadFile(path.Join(home, "/.ssh/id_rsa"))
+	if err != nil {
+		return fmt.Errorf("couldn't read private key")
+	}
+	signer, err := ssh.ParsePrivateKey(privkey)
+	if err != nil {
+		return fmt.Errorf("couldn't form a signer from ssh key: %w", err)
+	}
+	cfg := &ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil },
+		Timeout:         60 * time.Second,
+	}
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", machineIP), cfg)
+	if err != nil {
+		return fmt.Errorf("couldn't dial the machinehost at %s : %w", machineIP, err)
+	}
+	defer client.Close()
+	session, err := client.NewSession()
+	if err != nil {
+		return fmt.Errorf("couldn't open a new session: %w", err)
+	}
+	logFile := path.Join(logFolder, filename)
+	var stdoutBuf bytes.Buffer
+	var stderrBuf bytes.Buffer
+	session.Stdout = &stdoutBuf
+	session.Stderr = &stderrBuf
+	if err := session.Run("sudo " + command + "\n"); err != nil {
+		return fmt.Errorf("unable to send command %q: %w", "sudo "+command, err)
+	}
+	result := strings.TrimSuffix(stdoutBuf.String(), "\n") + "\n" + strings.TrimSuffix(stderrBuf.String(), "\n")
+	if err := os.WriteFile(logFile, []byte(result), 0o777); err != nil {
+		return fmt.Errorf("error writing log file: %w", err)
+	}
+	return nil
 }
 
 type Metal3LogCollector struct{}
@@ -605,6 +698,35 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 	output, err := cmd.Output()
 	if err != nil {
 		return fmt.Errorf("error changing file permissions after copying: %w, output: %s", err, output)
+	}
+
+	kubeadmCP := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+		Lister:      cli,
+		ClusterName: m.Spec.ClusterName,
+		Namespace:   m.Namespace,
+	})
+
+	if len(kubeadmCP.Spec.KubeadmConfigSpec.Users) < 1 {
+		return fmt.Errorf("no valid credentials found: KubeadmConfigSpec.Users is empty")
+	}
+	creds := kubeadmCP.Spec.KubeadmConfigSpec.Users[0]
+
+	ip, err := MachineToIPAddress(ctx, cli, m)
+	if err != nil {
+		return fmt.Errorf("couldn't get IP address of machine: %w", err)
+	}
+
+	commands := map[string]string{
+		"cloud-final.log": "journalctl --no-pager -u cloud-final",
+		"kubelet.log":     "journalctl --no-pager -u kubelet.service",
+		"containerd.log":  "journalctl --no-pager -u containerd.service",
+	}
+
+	for title, cmd := range commands {
+		err = runCommand(outputPath, title, ip, creds.Name, cmd)
+		if err != nil {
+			return fmt.Errorf("couldn't gather logs: %w", err)
+		}
 	}
 
 	Logf("Successfully collected logs for machine %s", m.Name)
