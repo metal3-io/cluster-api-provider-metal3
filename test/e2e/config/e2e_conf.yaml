@@ -111,7 +111,7 @@ variables:
   KUBERNETES_VERSION: "v1.25.2"
   # INIT_WITH_KUBERNETES_VERSION will be used here
   # https://github.com/kubernetes-sigs/cluster-api/blob/bb377163f141d69b7a61479756ee96891f6670bd/test/e2e/clusterctl_upgrade.go#L170
-  INIT_WITH_KUBERNETES_VERSION: "${INIT_WITH_KUBERNETES_VERSION}"
+  INIT_WITH_KUBERNETES_VERSION: ${KUBERNETES_VERSION}
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   APIVersion: "infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}"
