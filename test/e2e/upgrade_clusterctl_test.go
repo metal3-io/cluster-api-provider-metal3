@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -49,6 +50,7 @@ var _ = Describe(fmt.Sprintf("When testing cluster upgrade from releases %s > cu
 					// Override capi/capm3 versions exported in preInit
 					os.Setenv("CAPI_VERSION", "v1beta1")
 					os.Setenv("CAPM3_VERSION", "v1beta1")
+					os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 				},
 				PreWaitForCluster:           preWaitForCluster,
 				PreUpgrade:                  preUpgrade,
@@ -197,6 +199,21 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 		Expect(clusterProxy.Apply(ctx, certManagerYaml)).ShouldNot(HaveOccurred())
 	}
 
+	By("Fetch manifest for bootstrap cluster")
+	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
+	cmd.Dir = path
+	_ = cmd.Run()
+
+	By("Fetch target cluster kubeconfig for target cluster log collection")
+	kconfigPathWorkload := clusterProxy.GetKubeconfigPath()
+	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
+	Logf("Save kubeconfig in temp folder for project-infra target log collection")
+	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
+	cmd = exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
+	stdoutStderr, er := cmd.CombinedOutput()
+	Logf("%s\n", stdoutStderr)
+	Expect(er).To(BeNil(), "Cannot fetch target cluster kubeconfig")
 	// install certmanager
 	installCertManager(clusterProxy)
 	// Remove ironic
@@ -295,10 +312,36 @@ func preUpgrade(clusterProxy framework.ClusterProxy) {
 func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 	// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
 	if CurrentSpecReport().Failed() {
+		// Fetch logs in case of failure in management cluster
+		By("Fetch logs from management cluster")
+		path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+		cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
+		cmd.Dir = path
+		errorPipe, _ := cmd.StderrPipe()
+		_ = cmd.Start()
+		errorData, _ := io.ReadAll(errorPipe)
+		if len(errorData) > 0 {
+			Logf("Error of the shell: %v\n", string(errorData))
+		}
+
 		if keepTestEnv {
 			AbortSuite("e2e test aborted and skip cleaning the VM", 4)
 		}
 	}
+	// Fetch logs from management cluster
+	By("Fetch logs from management cluster")
+	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
+	cmd.Dir = path
+	errorPipe, _ := cmd.StderrPipe()
+	_ = cmd.Start()
+	errorData, _ := io.ReadAll(errorPipe)
+	if len(errorData) > 0 {
+		Logf("Error of the shell: %v\n", string(errorData))
+	}
+	os.Unsetenv("KUBECONFIG_WORKLOAD")
+	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
+
 	// Reinstall ironic
 	reInstallIronic := func() {
 		By("Reinstate Ironic containers and BMH")

@@ -13,6 +13,9 @@ do
   for POD in ${PODS}
   do
     mkdir -p "${DIR_NAME}/${NAMESPACE}/${POD}"
+    kubectl --kubeconfig="${KUBECONFIG_WORKLOAD}" describe pods -n "${NAMESPACE}" "${POD}" \
+      > "${DIR_NAME}/${NAMESPACE}/${POD}/stdout_describe.log" \
+      2> "${DIR_NAME}/${NAMESPACE}/${POD}/stderr_describe.log"
     CONTAINERS="$(kubectl --kubeconfig="${KUBECONFIG_WORKLOAD}" get pods -n "${NAMESPACE}" "${POD}" -o jsonpath='{.spec.containers[*].name}')"
     for CONTAINER in ${CONTAINERS}
     do
