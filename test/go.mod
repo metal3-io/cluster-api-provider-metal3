@@ -104,15 +104,15 @@ require (
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/valyala/fastjson v1.6.3 // indirect
-	golang.org/x/crypto v0.3.0 // indirect
-	golang.org/x/mod v0.7.0 // indirect
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/crypto v0.12.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/oauth2 v0.3.0 // indirect
-	golang.org/x/sys v0.5.0 // indirect
-	golang.org/x/term v0.5.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
+	golang.org/x/term v0.11.0 // indirect
+	golang.org/x/text v0.12.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
-	golang.org/x/tools v0.4.0 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221206210731-b1a01be3a5f6 // indirect
