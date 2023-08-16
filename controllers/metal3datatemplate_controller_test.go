@@ -142,6 +142,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Name:              metal3DataTemplateName,
 					Namespace:         namespaceName,
 					DeletionTimestamp: &timestampNow,
+					Finalizers:        []string{"foo"},
 				},
 				Spec: infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
@@ -153,6 +154,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Name:              metal3DataTemplateName,
 					Namespace:         namespaceName,
 					DeletionTimestamp: &timestampNow,
+					Finalizers:        []string{"foo"},
 				},
 				Spec: infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
@@ -332,7 +334,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		func(tc TestCaseM3DCToM3DT) {
 			r := Metal3DataTemplateReconciler{}
 			obj := client.Object(tc.DataClaim)
-			reqs := r.Metal3DataClaimToMetal3DataTemplate(obj)
+			reqs := r.Metal3DataClaimToMetal3DataTemplate(context.Background(), obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))

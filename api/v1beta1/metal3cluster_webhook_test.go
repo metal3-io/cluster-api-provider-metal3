@@ -73,11 +73,15 @@ func TestMetal3ClusterValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				g.Expect(tt.c.ValidateCreate()).NotTo(Succeed())
-				g.Expect(tt.c.ValidateUpdate(nil)).NotTo(Succeed())
+				_, err := tt.c.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				_, err = tt.c.ValidateUpdate(nil)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(tt.c.ValidateCreate()).To(Succeed())
-				g.Expect(tt.c.ValidateUpdate(nil)).To(Succeed())
+				_, err := tt.c.ValidateCreate()
+				g.Expect(err).NotTo(HaveOccurred())
+				_, err = tt.c.ValidateUpdate(nil)
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}

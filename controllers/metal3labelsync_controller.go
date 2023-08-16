@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 var (
@@ -263,7 +262,7 @@ func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ct
 		For(&bmov1alpha1.BareMetalHost{}).
 		WithOptions(options).
 		Watches(
-			&source.Kind{Type: &infrav1.Metal3Cluster{}},
+			&infrav1.Metal3Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3ClusterToBareMetalHosts),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -272,7 +271,7 @@ func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ct
 
 // Metal3ClusterToBareMetalHosts is a handler.ToRequestsFunc to be used to enqeue
 // requests for reconciliation of BareMetalHosts' label updates.
-func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Object) []ctrl.Request {
+func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 	c, ok := o.(*infrav1.Metal3Cluster)
 	if !ok {
@@ -282,7 +281,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Objec
 		return nil
 	}
 	log := r.Log.WithValues("Metal3ClusterToBareMetalHosts", c.Name, "Namespace", c.Namespace)
-	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:
 		return nil
@@ -293,7 +292,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Objec
 
 	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
 	capiMachineList := &clusterv1.MachineList{}
-	if err := r.Client.List(context.TODO(), capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.Client.List(ctx, capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Machines")
 		return nil
 	}
@@ -306,7 +305,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(o client.Objec
 			name = client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}
 		}
 		capm3Machine := &infrav1.Metal3Machine{}
-		if err := r.Client.Get(context.TODO(), name, capm3Machine); err != nil {
+		if err := r.Client.Get(ctx, name, capm3Machine); err != nil {
 			log.Error(err, "failed to get Metal3Machine")
 			continue
 		}

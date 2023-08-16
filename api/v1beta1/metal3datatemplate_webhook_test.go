@@ -59,12 +59,14 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				g.Expect(tt.c.ValidateCreate()).NotTo(Succeed())
+				_, err := tt.c.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(tt.c.ValidateCreate()).To(Succeed())
+				_, err := tt.c.ValidateCreate()
+				g.Expect(err).NotTo(HaveOccurred())
 			}
-
-			g.Expect(tt.c.ValidateDelete()).To(Succeed())
+			_, err := tt.c.ValidateDelete()
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
 }
@@ -200,9 +202,11 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(newDT.ValidateUpdate(oldDT)).NotTo(Succeed())
+				_, err := newDT.ValidateUpdate(oldDT)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(newDT.ValidateUpdate(oldDT)).To(Succeed())
+				_, err := newDT.ValidateUpdate(oldDT)
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}

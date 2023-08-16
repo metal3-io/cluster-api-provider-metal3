@@ -23,6 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // log is for logging in this package.
@@ -45,19 +46,19 @@ func (r *Metal3Remediation) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3Remediation) ValidateCreate() error {
-	return r.validate()
+func (r *Metal3Remediation) ValidateCreate() (admission.Warnings, error) {
+	return nil, r.validate()
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3Remediation) ValidateUpdate(_ runtime.Object) error {
-	return r.validate()
+func (r *Metal3Remediation) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+	return nil, r.validate()
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3Remediation) ValidateDelete() error {
+func (r *Metal3Remediation) ValidateDelete() (admission.Warnings, error) {
 	metal3remediationlog.Info("validate delete", "name", r.Name)
-	return nil
+	return nil, nil
 }
 
 func (r *Metal3Remediation) validate() error {

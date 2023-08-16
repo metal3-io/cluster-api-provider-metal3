@@ -316,7 +316,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				Log:    logr.Discard(),
 			}
 			obj := client.Object(tc.M3Cluster)
-			reqs := r.Metal3ClusterToBareMetalHosts(obj)
+			reqs := r.Metal3ClusterToBareMetalHosts(context.Background(), obj)
 			Expect(reflect.DeepEqual(reqs, tc.ExpectRequests)).To(Equal(true),
 				"Expected %v but got %v", tc.ExpectRequests, reqs)
 		},

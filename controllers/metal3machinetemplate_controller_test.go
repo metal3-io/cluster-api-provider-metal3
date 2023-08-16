@@ -83,7 +83,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 		func(tc TestCaseM3MtoM3MT) {
 			r := Metal3MachineTemplateReconciler{}
 			obj := client.Object(tc.M3Machine)
-			reqs := r.Metal3MachinesToMetal3MachineTemplate(obj)
+			reqs := r.Metal3MachinesToMetal3MachineTemplate(context.Background(), obj)
 
 			if tc.ExpectRequest {
 				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))

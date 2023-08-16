@@ -78,6 +78,7 @@ func m3mMetaWithDeletion() *metav1.ObjectMeta {
 		Name:              metal3machineName,
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
+		Finalizers:        []string{"foo"},
 		OwnerReferences:   m3mOwnerRefs(),
 		Annotations:       map[string]string{},
 	}
@@ -110,6 +111,7 @@ func m3mMetaWithAnnotationDeletion() *metav1.ObjectMeta {
 		Name:              metal3machineName,
 		Namespace:         namespaceName,
 		DeletionTimestamp: &deletionTimestamp,
+		Finalizers:        []string{"foo"},
 		OwnerReferences:   m3mOwnerRefs(),
 		Annotations: map[string]string{
 			baremetal.HostAnnotation: namespaceName + "/" + baremetalhostName,
@@ -197,7 +199,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			testBMHost := &bmov1alpha1.BareMetalHost{}
 			oldProviderID := testBMmachine.Spec.ProviderID
 
-			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).WithStatusSubresource(tc.Objects...).Build()
 			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {
