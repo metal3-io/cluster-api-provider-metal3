@@ -10,6 +10,7 @@ Things you should do before making a release:
 - Check the
   [Metal3 release process](https://github.com/metal3-io/metal3-docs/blob/main/processes/releasing.md)
   for high-level process and possible follow-up actions
+- Check and uplift CAPI go module if its not the latest in root, `api/` and `test/` go modules and `cluster-api/test` module in `test/` go module.
 - Uplift controller Go modules to use latest corresponding CAPI modules
 - Uplift BMO's `apis` and `pkg/hardwareutils` dependencies
 - Uplift IPAM `api` dependency,
