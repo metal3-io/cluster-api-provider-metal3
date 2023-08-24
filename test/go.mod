@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 go 1.19
 
 require (
-	github.com/docker/docker v20.10.24+incompatible
+	github.com/docker/docker v24.0.5+incompatible
 	github.com/jinzhu/copier v0.3.5
 	github.com/metal3-io/baremetal-operator/apis v0.3.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
@@ -14,14 +14,14 @@ require (
 	k8s.io/apimachinery v0.26.1
 	k8s.io/client-go v0.26.1
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
-	sigs.k8s.io/cluster-api v1.4.2
-	sigs.k8s.io/cluster-api/test v1.4.2
+	sigs.k8s.io/cluster-api v1.4.5
+	sigs.k8s.io/cluster-api/test v1.4.5
 	sigs.k8s.io/controller-runtime v0.14.5
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.2
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.4.5
 
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.4.2
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.4.5
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
 
@@ -96,7 +96,6 @@ require (
 	github.com/prometheus/common v0.37.0 // indirect
 	github.com/prometheus/procfs v0.8.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/cobra v1.6.1 // indirect
@@ -117,8 +116,8 @@ require (
 	golang.org/x/tools v0.7.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
+	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
@@ -129,7 +128,7 @@ require (
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221205233837-bacb3aba404b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/kind v0.18.0 // indirect
+	sigs.k8s.io/kind v0.20.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
