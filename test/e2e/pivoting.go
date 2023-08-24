@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -19,6 +18,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 
 	dockerTypes "github.com/docker/docker/api/types"
+	containertypes "github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	framework "sigs.k8s.io/cluster-api/test/framework"
@@ -319,9 +319,9 @@ func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 		dockerClient, err := docker.NewClientWithOpts()
 		Expect(err).To(BeNil(), "Unable to get docker client")
 		removeOptions := dockerTypes.ContainerRemoveOptions{}
+		stopTimeout := 60
 		for _, container := range ironicContainerList {
-			d := 1 * time.Minute
-			err = dockerClient.ContainerStop(ctx, container, &d)
+			err = dockerClient.ContainerStop(ctx, container, containertypes.StopOptions{Timeout: &stopTimeout})
 			Expect(err).To(BeNil(), "Unable to stop the container %s: %v", container, err)
 			err = dockerClient.ContainerRemove(ctx, container, removeOptions)
 			Expect(err).To(BeNil(), "Unable to delete the container %s: %v", container, err)
