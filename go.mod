@@ -7,7 +7,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/metal3-io/baremetal-operator/apis v0.3.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.4.1
+	github.com/metal3-io/ip-address-manager/api v1.4.2
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.5
 	github.com/pkg/errors v0.9.1
