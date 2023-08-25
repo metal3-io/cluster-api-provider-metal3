@@ -21,10 +21,6 @@ require (
 	sigs.k8s.io/controller-runtime v0.15.1
 )
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.5.0
-
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.5.0
-
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
 
 require (
