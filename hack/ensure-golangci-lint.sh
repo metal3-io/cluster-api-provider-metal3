@@ -60,10 +60,10 @@ download_and_install_golangci_lint()
     KERNEL_OS="$(uname | tr '[:upper:]' '[:lower:]')"
     ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
     GOLANGCI_LINT="golangci-lint"
-    GOLANGCI_VERSION="1.52.1"
+    GOLANGCI_VERSION="1.54.2"
     case "${KERNEL_OS}" in
-        darwin) GOLANGCI_SHA256="d21a157d37e5bc56cd7d5b39610c72974ffc5cb23a718579f56b735e008950c2" ;; 
-        linux) GOLANGCI_SHA256="f31a6dc278aff92843acdc2671f17c753c6e2cb374d573c336479e92daed161f"  ;;
+        darwin) GOLANGCI_SHA256="7b33fb1be2f26b7e3d1f3c10ce9b2b5ce6d13bb1d8468a4b2ba794f05b4445e1" ;;
+        linux) GOLANGCI_SHA256="a9f14b33473c65fcfbf411ec054b53a87dbb849f4e09ee438f1ee76dbf3f3d4e" ;;
       *) 
         echo >&2 "error:${KERNEL_OS} not supported. Please obtain the binary and calculate sha256 manually."
         exit 1
