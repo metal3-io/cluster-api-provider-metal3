@@ -100,15 +100,15 @@ v0.4*)
     ;;
 v1.2*)
     export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.26.4"
+    export INIT_WITH_KUBERNETES_VERSION="v1.27.4"
     ;;
 v1.3*)
     export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.26.4"
+    export INIT_WITH_KUBERNETES_VERSION="v1.27.4"
     ;;
 v1.4*)
     export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.27.4"
+    export INIT_WITH_KUBERNETES_VERSION="v1.28.1"
     ;;
 *)
     echo "UNKNOWN CAPI_FROM_RELEASE !"
