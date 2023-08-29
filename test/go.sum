@@ -96,8 +96,8 @@ github.com/cncf/xds/go v0.0.0-20210312221358-fbca930ec8ed/go.mod h1:eXthEFrGJvWH
 github.com/coredns/caddy v1.1.0/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
 github.com/coredns/caddy v1.1.1 h1:2eYKZT7i6yxIfGP3qLJoJ7HAsDJqYB+X68g4NYjSrE0=
 github.com/coredns/caddy v1.1.1/go.mod h1:A6ntJQlAWuQfFlsd9hvigKbo2WS0VUs2l1e2F+BawD4=
-github.com/coredns/corefile-migration v1.0.20 h1:MdOkT6F3ehju/n9tgxlGct8XAajOX2vN+wG7To4BWSI=
-github.com/coredns/corefile-migration v1.0.20/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
+github.com/coredns/corefile-migration v1.0.21 h1:W/DCETrHDiFo0Wj03EyMkaQ9fwsmSgqTCQDHpceaSsE=
+github.com/coredns/corefile-migration v1.0.21/go.mod h1:XnhgULOEouimnzgn0t4WPuFDN2/PJQcTxdWKC5eXNGE=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.13+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-semver v0.3.0/go.mod h1:nnelYz7RCh+5ahJtPPxZlU+153eP4D4r3EedlOD2RNk=
@@ -939,10 +939,10 @@ k8s.io/utils v0.0.0-20221128185143-99ec85e7a448/go.mod h1:OLgZIPagt7ERELqWJFomSt
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
-sigs.k8s.io/cluster-api v1.4.5 h1:Xwi9cuL3FOR1gB6FhhKi7EEadY4m3CdJAesyx9/kxUo=
-sigs.k8s.io/cluster-api v1.4.5/go.mod h1:HSiT5mE5uuxctGBiQcRJrZ6/iH+CCVmTvOryxSBcBG8=
-sigs.k8s.io/cluster-api/test v1.4.5 h1:0ZuQre03UaxRXgiK3wQjtJNZGebw1xFaPvKFDOi3KaM=
-sigs.k8s.io/cluster-api/test v1.4.5/go.mod h1:OMWLTfmTeFqMtprBE1zCDDpYect1M5jcEYYTSY7AgSA=
+sigs.k8s.io/cluster-api v1.4.6 h1:ZOAtQsPW7zh2iY7RdvvUozPR7OYRDCPSFEBS0979Vys=
+sigs.k8s.io/cluster-api v1.4.6/go.mod h1:B+QIe/B4Yp+NqMSd6f36Oh+7pIgalsClAX976rIn9J0=
+sigs.k8s.io/cluster-api/test v1.4.6 h1:a+sVWioQfir1Bw7fQJbd162RFjgiWX2078Yh3fEm4qw=
+sigs.k8s.io/cluster-api/test v1.4.6/go.mod h1:SBKZ9SR50acvjQyE/d+tVB88jky7mbVDZ4UURdEkNjk=
 sigs.k8s.io/controller-runtime v0.14.5 h1:6xaWFqzT5KuAQ9ufgUaj1G/+C4Y1GRkhrxl+BJ9i+5s=
 sigs.k8s.io/controller-runtime v0.14.5/go.mod h1:WqIdsAY6JBsjfc/CqO0CORmNtoCtE4S6qbPc9s68h+0=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
