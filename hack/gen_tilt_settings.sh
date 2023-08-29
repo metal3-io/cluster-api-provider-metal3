@@ -47,7 +47,7 @@ export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1
 cat <<EOF >tilt-settings.json
 {
     "capi_version": "${CAPIRELEASE}",
-    "cert_manager_version": "v1.11.1",
+    "cert_manager_version": "v1.12.3",
     "kubernetes_version": "${KUBERNETES_VERSION:-v1.28.1}"
 }
 EOF
