@@ -19,7 +19,7 @@ set -o nounset
 set -o pipefail
 
 GOPATH_BIN="$(go env GOPATH)/bin/"
-MINIMUM_KUBECTL_VERSION=v1.19.0
+MINIMUM_KUBECTL_VERSION=v1.28.1
 
 # Ensure the kubectl tool exists and is a viable version, or installs it
 verify_kubectl_version()
@@ -40,7 +40,7 @@ verify_kubectl_version()
     fi
 
     local kubectl_version
-    IFS=" " read -ra kubectl_version <<< "$(kubectl version --client --short)"
+    IFS=" " read -ra kubectl_version <<< "$(kubectl version --client)"
     if [[ "${MINIMUM_KUBECTL_VERSION}" != $(echo -e "${MINIMUM_KUBECTL_VERSION}\n${kubectl_version[2]}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]; then
         cat << EOF
 Detected kubectl version: ${kubectl_version[2]}.
