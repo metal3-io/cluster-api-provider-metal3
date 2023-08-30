@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/docker/docker v24.0.5+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.3.1
+	github.com/metal3-io/baremetal-operator/apis v0.4.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.4.1-0.20230801074326-623678ce1ae7
 	github.com/onsi/ginkgo/v2 v2.12.0
@@ -66,7 +66,7 @@ require (
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20210720184732-4bb14d4b1be1 // indirect
 	github.com/google/safetext v0.0.0-20220905092116-b49f7bc46da2 // indirect
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/huandu/xstrings v1.4.0 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
@@ -77,7 +77,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.3.0 // indirect
+	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.4.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -103,6 +103,7 @@ require (
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.14.0 // indirect
 	golang.org/x/oauth2 v0.10.0 // indirect
