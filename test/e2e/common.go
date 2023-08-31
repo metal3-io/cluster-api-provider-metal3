@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -744,4 +745,27 @@ func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Clie
 
 func (Metal3LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
 	return fmt.Errorf("CollectInfrastructureLogs not implemented")
+}
+
+// LabelCRD is adding the specified labels to the CRD crdName. Existing labels with matching keys will be overwritten.
+func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[string]string) error {
+	crd := &apiextensionsv1.CustomResourceDefinition{}
+	err := c.Get(ctx, client.ObjectKey{Name: crdName}, crd)
+	if err != nil {
+		return err
+	}
+	// Apply labels to the CRD
+	if crd.Labels == nil {
+		crd.Labels = make(map[string]string)
+	}
+	for key, value := range labels {
+		crd.Labels[key] = value
+	}
+	// Update the CRD
+	err = c.Update(ctx, crd)
+	if err != nil {
+		return err
+	}
+	Logf("CRD '%s' labeled successfully\n", crdName)
+	return nil
 }
