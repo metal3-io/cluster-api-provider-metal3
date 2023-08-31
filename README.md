@@ -25,6 +25,7 @@ Metal3.
 | v1beta1       | v1beta1             | v1.2.X        |  v1.2.X        |
 | v1beta1       | v1beta1             | v1.3.X        |  v1.3.X        |
 | v1beta1       | v1beta1             | v1.4.X        |  v1.4.X        |
+| v1beta1       | v1beta1             | v1.5.X        |  v1.5.X        |
 
 ## Deploying the metal3 provider
 
@@ -58,7 +59,7 @@ need to be manually installed. Example flow of installing Metal3 provider:
    provider name as follows:
 
    ```shell
-   clusterctl init --infrastructure metal3:v1.4.0
+   clusterctl init --infrastructure metal3:v1.5.0
    ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install
@@ -136,6 +137,13 @@ To trigger e2e test on a PR, use the following phrases:
 - **/test-centos-e2e-integration-main** runs integration e2e tests with CAPM3
   API version v1beta1 and branch main on CentOS
 
+Release-1.5 branch:
+
+- **/test-ubuntu-e2e-integration-release-1-5** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.5 on Ubuntu
+- **/test-centos-e2e-integration-release-1-5** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.5 on CentOS
+
 Release-1.4 branch:
 
 - **/test-ubuntu-e2e-integration-release-1-4** runs integration e2e tests with CAPM3
@@ -174,6 +182,13 @@ in multiple VMs by creating an independent VM for each test spec:
 - **/parallel-test-centos-e2e-feature-main** runs e2e feature tests in parallel
   with CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.5 branch:
+
+- **/test-ubuntu-e2e-feature-release-1-5** runs e2e feature tests with CAPM3 API
+  version v1beta1 and branch release-1.5 on Ubuntu
+- **/test-centos-e2e-feature-release-1-5** runs e2e feature tests with CAPM3 API
+  version v1beta1 and branch release-1.5 on CentOS
+
 Release-1.4 branch:
 
 - **/test-ubuntu-e2e-feature-release-1-4** runs e2e feature tests with CAPM3 API
@@ -187,13 +202,6 @@ Release-1.3 branch:
   version v1beta1 and branch release-1.3 on Ubuntu
 - **/test-centos-e2e-feature-release-1-3** runs e2e feature tests with CAPM3 API
   version v1beta1 and branch release-1.3 on CentOS
-
-Release-1.2 branch:
-
-- **/test-ubuntu-e2e-feature-release-1-2** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.2 on Ubuntu
-- **/test-centos-e2e-feature-release-1-2** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.2 on CentOS
 
 ### Upgrade tests
 
@@ -215,6 +223,10 @@ We run upgrade test on main branch from different releases:
 
 - **/test-e2e-upgrade-main-from-release-1-4** runs e2e upgrade tests from CAPM3
   API version v1beta1/branch release-1.4 to CAPM3 API version v1beta1/branch
+  main on Ubuntu
+
+- **/test-e2e-upgrade-main-from-release-1-5** runs e2e upgrade tests from CAPM3
+  API version v1beta1/branch release-1.5 to CAPM3 API version v1beta1/branch
   main on Ubuntu
 
 ### Keep VM
