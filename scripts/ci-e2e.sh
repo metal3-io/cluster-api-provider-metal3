@@ -63,8 +63,8 @@ source "${REPO_ROOT}/hack/ensure-go.sh"
 source "${REPO_ROOT}/hack/ensure-kind.sh"
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
-# shellcheck source=./hack/ensure-kustomize.sh
-source "${REPO_ROOT}/hack/ensure-kustomize.sh"
+# Ensure kustomize
+make kustomize
 
 # shellcheck disable=SC1091,SC1090
 source "${M3_DEV_ENV_PATH}/lib/images.sh"
