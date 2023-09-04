@@ -48,7 +48,8 @@ endif
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
@@ -169,7 +170,6 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## --------------------------------------
 ## E2E Testing
 ## --------------------------------------
-##@ e2e tests:
 
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
@@ -180,9 +180,10 @@ _SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-skip="$(arg)")
 endif
 
 .PHONY: e2e-tests
-e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
-export CONTAINER_RUNTIME
-e2e-tests: $(GINKGO) e2e-substitutions cluster-templates ## This target should be called from scripts/ci-e2e.sh
+e2e-tests: CONTAINER_RUNTIME?=docker # Env variable can override this default
+export CONTAINER_RUNTIME 
+
+e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be called from scripts/ci-e2e.sh
 	for image in $(E2E_CONTAINERS); do \
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
@@ -224,7 +225,7 @@ build-api: ## Builds api directory.
 build-e2e: ## Builds test directory.
 	cd $(TEST_DIR) && go build ./...
 
-$(CLUSTERCTL): go.mod ## Build clusterctl binary.
+$(CLUSTERCTL): go.mod
 	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 ## --------------------------------------
@@ -232,13 +233,16 @@ $(CLUSTERCTL): go.mod ## Build clusterctl binary.
 ## --------------------------------------
 ##@ tools:
 
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod ## Build controller-gen from tools folder.
+$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(GOLANGCI_LINT): ## golangci-lint
+$(GOLANGCI_LINT):
 	hack/ensure-golangci-lint.sh $(TOOLS_DIR)/$(BIN_DIR)
 
-$(MOCKGEN): $(TOOLS_DIR)/go.mod ## Build mockgen from tools folder.
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
+
+$(MOCKGEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
@@ -255,7 +259,7 @@ $(GINKGO): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go get github.com/onsi/ginkgo/v2/ginkgo@$(GINGKO_VER)
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/v2/ginkgo
 
-$(ENVSUBST): ## Build envsubst from tools folder.
+$(ENVSUBST):
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/envsubst-drone github.com/drone/envsubst/cmd/envsubst
 	ln -sf envsubst-drone $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)
@@ -264,7 +268,7 @@ $(ENVSUBST): ## Build envsubst from tools folder.
 $(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
 
 .PHONY: $(KUSTOMIZE)
-$(KUSTOMIZE): $(TOOLS_DIR)/go.mod ## Build kustomize from tools folder.
+$(KUSTOMIZE): $(TOOLS_DIR)/go.mod 
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/$(KUSTOMIZE_BIN) sigs.k8s.io/kustomize/kustomize/v5
 
 .PHONY: $(ENVSUBST_BIN)
@@ -671,5 +675,6 @@ verify-modules: modules
 		echo "go module files are out of date"; exit 1; \
 	fi
 
+##@ helpers:
 go-version: ## Print the go version we use to compile our binaries and images
 	@echo $(GO_VERSION)
