@@ -48,11 +48,13 @@ endif
 # Binaries.
 CLUSTERCTL := $(BIN_DIR)/clusterctl
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
-GOLANGCI_LINT := $(TOOLS_BIN_DIR)/golangci-lint
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
-KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE := $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)
 ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
@@ -98,12 +100,13 @@ ARCH ?= amd64
 ## Help
 ## --------------------------------------
 
-help:  ## Display this help
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+help:  # Display this help
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[0-9A-Za-z_-]+:.*?##/ { printf "  \033[36m%-50s\033[0m %s\n", $$1, $$2 } /^\$$\([0-9A-Za-z_-]+\):.*?##/ { gsub("_","-", $$1); printf "  \033[36m%-50s\033[0m %s\n", tolower(substr($$1, 3, length($$1)-7)), $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
+##@ tests:
 
 .PHONY: unit
 unit: $(SETUP_ENVTEST) ## Run unit test
@@ -156,6 +159,7 @@ e2e-substitutions: $(ENVSUBST)
 ## --------------------------------------
 ## Templates
 ## --------------------------------------
+##@ templates
 E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/test/e2e/data/infrastructure-metal3
 .PHONY: cluster-templates
 cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
@@ -166,6 +170,7 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## --------------------------------------
 ## E2E Testing
 ## --------------------------------------
+
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
 GINKGO_TIMEOUT ?= 6h
@@ -175,9 +180,10 @@ _SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-skip="$(arg)")
 endif
 
 .PHONY: e2e-tests
-e2e-tests: CONTAINER_RUNTIME?=docker ## Env variable can override this default
-export CONTAINER_RUNTIME
-e2e-tests: $(GINKGO) e2e-substitutions cluster-templates ## This target should be called from scripts/ci-e2e.sh
+e2e-tests: CONTAINER_RUNTIME?=docker # Env variable can override this default
+export CONTAINER_RUNTIME 
+
+e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be called from scripts/ci-e2e.sh
 	for image in $(E2E_CONTAINERS); do \
 		$(CONTAINER_RUNTIME) pull $$image; \
 	done
@@ -199,6 +205,7 @@ e2e-tests: $(GINKGO) e2e-substitutions cluster-templates ## This target should b
 ## --------------------------------------
 ## Build
 ## --------------------------------------
+##@ build:
 
 .PHONY: build
 build: binaries build-api build-e2e ## Builds all CAPM3 modules
@@ -210,30 +217,32 @@ binaries: manager ## Builds and installs all binaries
 manager: ## Build manager binary.
 	go build -o $(BIN_DIR)/manager .
 
-# Check that api package can be built
 .PHONY: build-api
-build-api:
+build-api: ## Builds api directory.
 	cd $(APIS_DIR) && go build ./...
 
-# Check that e2e package can be built
 .PHONY: build-e2e
-build-e2e:
+build-e2e: ## Builds test directory.
 	cd $(TEST_DIR) && go build ./...
+
+$(CLUSTERCTL): go.mod
+	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
-
-$(CLUSTERCTL): go.mod ## Build clusterctl binary.
-	go build -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
+##@ tools:
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
-$(GOLANGCI_LINT): 
-		hack/ensure-golangci-lint.sh $(TOOLS_DIR)/$(BIN_DIR)
+$(GOLANGCI_LINT):
+	hack/ensure-golangci-lint.sh $(TOOLS_DIR)/$(BIN_DIR)
 
-$(MOCKGEN): $(TOOLS_DIR)/go.mod # Build mockgen from tools folder.
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
+
+$(MOCKGEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
@@ -250,14 +259,17 @@ $(GINKGO): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go get github.com/onsi/ginkgo/v2/ginkgo@$(GINGKO_VER)
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/v2/ginkgo
 
-.PHONY: $(KUSTOMIZE)
-$(KUSTOMIZE): # Download kustomize using hack script into tools folder.
-	hack/ensure-kustomize.sh
-
-$(ENVSUBST): ## Build envsubst from tools folder.
+$(ENVSUBST):
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/envsubst-drone github.com/drone/envsubst/cmd/envsubst
 	ln -sf envsubst-drone $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)
+
+.PHONY: $(KUSTOMIZE_BIN)
+$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
+
+.PHONY: $(KUSTOMIZE)
+$(KUSTOMIZE): $(TOOLS_DIR)/go.mod 
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/$(KUSTOMIZE_BIN) sigs.k8s.io/kustomize/kustomize/v5
 
 .PHONY: $(ENVSUBST_BIN)
 $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
@@ -265,6 +277,7 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 ## --------------------------------------
 ## Linting
 ## --------------------------------------
+##@ linters:
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
@@ -297,6 +310,7 @@ manifest-lint:
 ## --------------------------------------
 ## Generate
 ## --------------------------------------
+##@ generate:
 
 .PHONY: modules
 modules: ## Runs go mod to ensure proper vendoring.
@@ -397,6 +411,7 @@ generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configuratio
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
+##@ docker buils:
 
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
@@ -486,6 +501,7 @@ delete-examples:
 ## --------------------------------------
 ## Release
 ## --------------------------------------
+##@ release:
 
 ## latest git tag for the commit, e.g., v1.4.0
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
@@ -530,6 +546,7 @@ release:
 ## --------------------------------------
 ## Development
 ## --------------------------------------
+##@ development:
 
 .PHONY: create-cluster
 create-cluster: $(CLUSTERCTL) ## Create a development Kubernetes cluster using examples
@@ -612,6 +629,7 @@ kind-reset: ## Destroys the "capm3" kind cluster.
 ## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------
+##@ clean:
 
 .PHONY: clean
 clean: ## Remove all generated files
@@ -657,5 +675,6 @@ verify-modules: modules
 		echo "go module files are out of date"; exit 1; \
 	fi
 
+##@ helpers:
 go-version: ## Print the go version we use to compile our binaries and images
 	@echo $(GO_VERSION)
