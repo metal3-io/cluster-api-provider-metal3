@@ -93,7 +93,8 @@ spec:
           prefix: 0
     services:
       dns:
-      - 8.8.8.8
+      - 1.0.0.1
+      - 8.8.4.4
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
 kind: KubeadmConfigTemplate
