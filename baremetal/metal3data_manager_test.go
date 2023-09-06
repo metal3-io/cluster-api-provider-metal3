@@ -69,7 +69,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 	)
 
-	It("Test error handling", func() {
+	It("should be able to set and clear errors", func() {
 		data := &infrav1.Metal3Data{}
 		dataMgr, err := NewDataManager(nil, data,
 			logr.Discard(),
@@ -91,7 +91,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectedErrorSet bool
 	}
 
-	DescribeTable("Test CreateSecret",
+	DescribeTable("Test Reconcile",
 		func(tc testCaseReconcile) {
 			objects := []client.Object{}
 			if tc.m3dt != nil {
@@ -157,7 +157,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectedNetworkData *string
 	}
 
-	DescribeTable("Test CreateSecret",
+	DescribeTable("Test createSecrets",
 		func(tc testCaseCreateSecrets) {
 			objects := []client.Object{}
 			if tc.m3dt != nil {
@@ -624,21 +624,21 @@ var _ = Describe("Metal3Data manager", func() {
 		expectRequeue bool
 	}
 
-	DescribeTable("Test GetAddressesFromPool",
+	DescribeTable("Test getAddressesFromPool",
 		func(tc testCaseGetAddressesFromPool) {
 			objects := []client.Object{}
-			for _, poolName := range tc.m3IPClaims {
-				pool := &ipamv1.IPClaim{
-					ObjectMeta: testObjectMeta(metal3DataName+"-"+poolName, namespaceName, ""),
+			for _, claimName := range tc.m3IPClaims {
+				claim := &ipamv1.IPClaim{
+					ObjectMeta: testObjectMeta(metal3DataName+"-"+claimName, namespaceName, ""),
 					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference("abc"),
 					},
 				}
-				objects = append(objects, pool)
+				objects = append(objects, claim)
 			}
-			for _, poolName := range tc.ipClaims {
+			for _, claimName := range tc.ipClaims {
 				claim := &caipamv1.IPAddressClaim{
-					ObjectMeta: testObjectMeta(metal3DataName+"-"+poolName, namespaceName, ""),
+					ObjectMeta: testObjectMeta(metal3DataName+"-"+claimName, namespaceName, ""),
 					Spec: caipamv1.IPAddressClaimSpec{
 						PoolRef: corev1.TypedLocalObjectReference{
 							Name:     "abc",
@@ -1003,7 +1003,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectRequeue bool
 	}
 
-	DescribeTable("Test ReleaseAddressesFromPool",
+	DescribeTable("Test releaseAddressesFromPool",
 		func(tc testCaseReleaseAddressesFromPool) {
 			objects := []client.Object{}
 			for _, poolName := range tc.m3IPClaims {
@@ -1217,7 +1217,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectClaim     bool
 	}
 
-	DescribeTable("Test GetAddressFromM3Claim",
+	DescribeTable("Test addressFromM3Claim",
 		func(tc testCaseAddressFromM3Claim) {
 			objects := []client.Object{}
 			if tc.ipAddress != nil {
@@ -1627,7 +1627,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectClaim     bool
 	}
 
-	DescribeTable("Test GetAddressFromClaim",
+	DescribeTable("Test addressFromClaim",
 		func(tc testCaseAddressFromClaim) {
 			objects := []client.Object{}
 			if tc.ipAddress != nil {

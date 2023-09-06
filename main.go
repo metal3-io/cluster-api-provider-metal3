@@ -160,9 +160,7 @@ func main() {
 	// Setup the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
 
-	if enableBMHNameBasedPreallocation {
-		baremetal.EnableBMHNameBasedPreallocation = enableBMHNameBasedPreallocation
-	}
+	baremetal.EnableBMHNameBasedPreallocation = enableBMHNameBasedPreallocation
 
 	setupChecks(mgr)
 	setupReconcilers(ctx, mgr)

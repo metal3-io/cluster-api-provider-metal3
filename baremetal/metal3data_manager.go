@@ -619,6 +619,7 @@ func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocatio
 // ensureM3IPClaim ensures that a claim for a referenced pool exists.
 // It returns the claim and whether to fetch the claim again when fetching IP addresses.
 func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
+	m.Log.Info("Ensuring M3IPClaim for Metal3Data", "Metal3Data", m.Data.Name)
 	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
@@ -638,7 +639,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if m3dt == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
 	}
-	m.Log.Info("Fetched Metal3DataTemplate")
+	m.Log.Info("Fetched Metal3DataTemplate", "Metal3DataTemplate", m3dt.Name)
 
 	// Fetch the Metal3Machine, to get the related info
 	m3m, err := m.getM3Machine(ctx, m3dt)
@@ -648,7 +649,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if m3m == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
 	}
-	m.Log.Info("Fetched Metal3Machine")
+	m.Log.Info("Fetched Metal3Machine", "Metal3Machine", m3m.Name)
 
 	// Fetch the BMH associated with the M3M
 	bmh, err := getHost(ctx, m3m, m.client, m.Log)
@@ -656,9 +657,9 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 		return reconciledClaim{m3Claim: ipClaim}, err
 	}
 	if bmh == nil {
-		return reconciledClaim{m3Claim: ipClaim}, WithTransientError(nil, requeueAfter)
+		return reconciledClaim{m3Claim: ipClaim}, WithTransientError(errors.New("no associated BMH yet"), requeueAfter)
 	}
-	m.Log.Info("Fetched BMH")
+	m.Log.Info("Fetched BMH", "BMH", bmh.Name)
 
 	ipClaim, err = fetchM3IPClaim(ctx, m.client, m.Log, bmh.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err == nil {
@@ -668,6 +669,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 		return reconciledClaim{m3Claim: ipClaim}, err
 	}
 
+	m.Log.Info("Creating Metal3IPClaim")
 	var ObjMeta *metav1.ObjectMeta
 	if EnableBMHNameBasedPreallocation {
 		// if EnableBMHNameBasedPreallocation enabled, name of the m3IPClaim is based on the BMH name
@@ -693,6 +695,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 		}
 	}
 
+	m.Log.Info("Metal3IPClaim created successfully", "Metal3IPClaim", ipClaim.Name)
 	return reconciledClaim{m3Claim: ipClaim, fetchAgain: true}, nil
 }
 
@@ -1419,7 +1422,7 @@ func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3ClaimName, metal3IPClaim); err != nil {
 		if apierrors.IsNotFound(err) {
-			errMessage := "Address claim not found, requeuing"
+			errMessage := "Address claim not found"
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
