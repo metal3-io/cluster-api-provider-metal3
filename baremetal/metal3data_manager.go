@@ -596,6 +596,9 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate) (map[string]corev1.Type
 // will be added to Data labels in case preallocation is enabled.
 func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocationEnabled bool) *metav1.ObjectMeta {
 	if preallocationEnabled {
+		if m.Data.Labels == nil {
+			m.Data.Labels = map[string]string{}
+		}
 		m.Data.Labels[DataLabelName] = m.Data.Name
 		m.Data.Labels[PoolLabelName] = poolRefName
 	}
