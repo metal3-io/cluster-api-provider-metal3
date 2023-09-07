@@ -3,21 +3,26 @@
 This document details the steps to create a release for
 `cluster-api-provider-metal3` aka CAPM3.
 
+**NOTE**: Always follow
+[release documentation from the main branch](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/docs/releasing.md).
+Release documentation in release branches may be outdated.
+
 ## Before making a release
 
-Things you should do before making a release:
+Things you should check before making a release:
 
 - Check the
   [Metal3 release process](https://github.com/metal3-io/metal3-docs/blob/main/processes/releasing.md)
   for high-level process and possible follow-up actions
-- Check and uplift CAPI go module if its not the latest in root, `api/` and `test/` go modules and `cluster-api/test` module in `test/` go module.
-- Uplift controller Go modules to use latest corresponding CAPI modules
-- Uplift BMO's `apis` and `pkg/hardwareutils` dependencies
+- Verify CAPI go module is uplifted in root, `api/` and `test/` go modules and
+  `cluster-api/test` module in `test/` go module.
+- Verify controller Go modules use latest corresponding CAPI modules
+- Verify BMO's `apis` and `pkg/hardwareutils` dependencies are the latest
 - Uplift IPAM `api` dependency,
   [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/image_patch.yaml),
   and [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml)
-- Uplift any other direct/indirect dependency to close any public
-  vulnerabilities
+- Verify any other direct or indirect dependency is uplifted to close any
+  public vulnerabilities
 
 ## Permissions
 
@@ -65,8 +70,16 @@ This triggers two things:
 
 - GitHub action workflow for automated release process creates a draft release
   in GitHub repository with correct content, comparing the pushed tag to
-  previous tag
-- Quay starts building release image with the release tag
+  previous tag. Running actions are visible on the
+  [Actions](https://github.com/metal3-io/cluster-api-provider-metal3/actions)
+  page, and draft release will be visible on top of the
+  [Releases](https://github.com/metal3-io/cluster-api-provider-metal3/releases)
+  page.
+- Quay starts building release image with the release tag. Make sure the
+  release is built successfully in
+  [Quay builds page](https://quay.io/repository/metal3-io/cluster-api-provider-metal3?tab=builds).
+  If the release tag build is not visible, check if the build trigger is
+  enabled. Quay disables build trigger sometimes when build has failed few times.
 
 We also need to create one or more tags for the Go modules ecosystem:
 
@@ -75,7 +88,9 @@ We also need to create one or more tags for the Go modules ecosystem:
   `git tag -s api/v1.x.y -m api/v1.x.y`.
   For CAPM3, these directories are: `api` and `test`. This enables the
   tags to be used as a Go module version for any downstream users.
-  **NOTE**: Do not create annotated tags for go modules.
+  **NOTE**: Do not create annotated tags for Go modules. Release notes expects
+  only the main tag to be annotated, otherwise it might create incorrect
+  release notes.
 
 ### Release artifacts
 
@@ -104,11 +119,10 @@ Next step is to clean up the release note manually.
 
 - Check for duplicates, reverts, and incorrect classifications of PRs, and
   whatever release creation tagged to be manually checked.
-- For any superseded PRs (like CAPI uplifts, or commit revertions) that provide
-  no value to the release, create a summary line in `Superseded` section with
-  the PR ids and summary title. This way the changes are acknowledged to be part
-  of the release, but not overwhelming the important changes contained by the
-  release.
+- For any superseded PRs (like same dependency uplifted multiple times, or
+  commit revertions) that provide no value to the release, move them to
+  Superseded section. This way the changes are acknowledged to be part of the
+  release, but not overwhelming the important changes contained by the release.
 - If the release you're making is not a new major release, new minor release,
   or a new patch release from the latest release branch, uncheck the box for
   latest release.
