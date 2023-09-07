@@ -111,6 +111,10 @@ v1.4*)
     export CONTRACT_FROM="v1beta1"
     export INIT_WITH_KUBERNETES_VERSION="v1.28.1"
     ;;
+v1.5*)
+    export CONTRACT_FROM="v1beta1"
+    export INIT_WITH_KUBERNETES_VERSION="v1.28.1"
+    ;;
 *)
     echo "UNKNOWN CAPI_FROM_RELEASE !"
     exit 1
