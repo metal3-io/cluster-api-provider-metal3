@@ -41,6 +41,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+type testCaseEnsureM3Claim struct {
+	poolRef          corev1.TypedLocalObjectReference
+	ipClaim          *ipamv1.IPClaim
+	expectError      bool
+	expectFetchAgain bool
+	expectClaim      bool
+}
+
 var _ = Describe("Metal3Data manager", func() {
 	DescribeTable("Test Finalizers",
 		func(data *infrav1.Metal3Data) {
@@ -69,7 +77,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 	)
 
-	It("Test error handling", func() {
+	It("should be able to set and clear errors", func() {
 		data := &infrav1.Metal3Data{}
 		dataMgr, err := NewDataManager(nil, data,
 			logr.Discard(),
@@ -91,7 +99,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectedErrorSet bool
 	}
 
-	DescribeTable("Test CreateSecret",
+	DescribeTable("Test Reconcile",
 		func(tc testCaseReconcile) {
 			objects := []client.Object{}
 			if tc.m3dt != nil {
@@ -157,7 +165,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectedNetworkData *string
 	}
 
-	DescribeTable("Test CreateSecret",
+	DescribeTable("Test createSecrets",
 		func(tc testCaseCreateSecrets) {
 			objects := []client.Object{}
 			if tc.m3dt != nil {
@@ -624,21 +632,21 @@ var _ = Describe("Metal3Data manager", func() {
 		expectRequeue bool
 	}
 
-	DescribeTable("Test GetAddressesFromPool",
+	DescribeTable("Test getAddressesFromPool",
 		func(tc testCaseGetAddressesFromPool) {
 			objects := []client.Object{}
-			for _, poolName := range tc.m3IPClaims {
-				pool := &ipamv1.IPClaim{
-					ObjectMeta: testObjectMeta(metal3DataName+"-"+poolName, namespaceName, ""),
+			for _, claimName := range tc.m3IPClaims {
+				claim := &ipamv1.IPClaim{
+					ObjectMeta: testObjectMeta(metal3DataName+"-"+claimName, namespaceName, ""),
 					Spec: ipamv1.IPClaimSpec{
 						Pool: *testObjectReference("abc"),
 					},
 				}
-				objects = append(objects, pool)
+				objects = append(objects, claim)
 			}
-			for _, poolName := range tc.ipClaims {
+			for _, claimName := range tc.ipClaims {
 				claim := &caipamv1.IPAddressClaim{
-					ObjectMeta: testObjectMeta(metal3DataName+"-"+poolName, namespaceName, ""),
+					ObjectMeta: testObjectMeta(metal3DataName+"-"+claimName, namespaceName, ""),
 					Spec: caipamv1.IPAddressClaimSpec{
 						PoolRef: corev1.TypedLocalObjectReference{
 							Name:     "abc",
@@ -1003,7 +1011,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectRequeue bool
 	}
 
-	DescribeTable("Test ReleaseAddressesFromPool",
+	DescribeTable("Test releaseAddressesFromPool",
 		func(tc testCaseReleaseAddressesFromPool) {
 			objects := []client.Object{}
 			for _, poolName := range tc.m3IPClaims {
@@ -1217,7 +1225,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectClaim     bool
 	}
 
-	DescribeTable("Test GetAddressFromM3Claim",
+	DescribeTable("Test addressFromM3Claim",
 		func(tc testCaseAddressFromM3Claim) {
 			objects := []client.Object{}
 			if tc.ipAddress != nil {
@@ -1546,6 +1554,130 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 	)
 
+	DescribeTable("ensureM3IPClaim", func(tc testCaseEnsureM3Claim) {
+		bmh := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "host-0",
+				Namespace: namespaceName,
+			},
+		}
+		m3m := &infrav1.Metal3Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3machineName,
+				Namespace: namespaceName,
+				Annotations: map[string]string{
+					HostAnnotation: namespaceName + "/" + bmh.Name,
+				},
+			},
+			Spec: infrav1.Metal3MachineSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name:      metal3DataTemplateName,
+					Namespace: namespaceName,
+				},
+			},
+		}
+		m3dt := &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataTemplateName,
+				Namespace: namespaceName,
+			},
+		}
+		m3dc := &infrav1.Metal3DataClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataClaimName,
+				Namespace: namespaceName,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
+						Kind:       "Metal3Machine",
+						Name:       m3m.Name,
+					},
+				},
+			},
+		}
+		m3d := &infrav1.Metal3Data{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
+				Kind:       "Metal3Data",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataName,
+				Namespace: namespaceName,
+			},
+			Spec: infrav1.Metal3DataSpec{
+				Template: corev1.ObjectReference{
+					Name:      m3dt.Name,
+					Namespace: m3dt.Namespace,
+				},
+				Claim: corev1.ObjectReference{
+					Namespace: namespaceName,
+					Name:      metal3DataClaimName,
+				},
+			},
+		}
+
+		// Setup fake client with objects
+		objects := []client.Object{bmh, m3m, m3d, m3dt, m3dc}
+		if tc.ipClaim != nil {
+			objects = append(objects, tc.ipClaim)
+		}
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		rc, err := dataMgr.ensureM3IPClaim(context.Background(), tc.poolRef)
+
+		if tc.expectError {
+			Expect(err).To(HaveOccurred())
+		} else {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		Expect(rc.fetchAgain).To(Equal(tc.expectFetchAgain))
+		if tc.expectClaim {
+			Expect(rc.m3Claim).NotTo(BeNil())
+			claim := &ipamv1.IPClaim{}
+			nn := types.NamespacedName{
+				Name:      m3d.Name + "-" + tc.poolRef.Name,
+				Namespace: m3d.Namespace,
+			}
+			err = fc.Get(context.Background(), nn, claim)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err := findOwnerRefFromList(claim.OwnerReferences,
+				m3d.TypeMeta, m3d.ObjectMeta)
+			Expect(err).NotTo(HaveOccurred())
+		} else {
+			Expect(tc.ipClaim).To(BeNil())
+		}
+	},
+		Entry("should create claim if missing", testCaseEnsureM3Claim{
+			poolRef:          corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaim:          nil,
+			expectError:      false,
+			expectFetchAgain: true,
+			expectClaim:      true,
+		}),
+		Entry("should do nothing when claim exists", testCaseEnsureM3Claim{
+			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaim: &ipamv1.IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3DataName + "-" + testPoolName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
+							Kind:       "Metal3Data",
+							Name:       metal3DataName,
+							Controller: pointer.Bool(true),
+						},
+					}},
+			},
+			expectError:      false,
+			expectFetchAgain: false,
+			expectClaim:      true,
+		}),
+	)
+
 	type testCaseEnsureClaim struct {
 		poolRef          corev1.TypedLocalObjectReference
 		ipClaim          *caipamv1.IPAddressClaim
@@ -1604,7 +1736,7 @@ var _ = Describe("Metal3Data manager", func() {
 						{
 							APIVersion: "/",
 							Name:       metal3DataName,
-							Controller: pointer.BoolPtr(true),
+							Controller: pointer.Bool(true),
 						},
 					}},
 			},
@@ -1627,7 +1759,7 @@ var _ = Describe("Metal3Data manager", func() {
 		expectClaim     bool
 	}
 
-	DescribeTable("Test GetAddressFromClaim",
+	DescribeTable("Test addressFromClaim",
 		func(tc testCaseAddressFromClaim) {
 			objects := []client.Object{}
 			if tc.ipAddress != nil {
@@ -3611,4 +3743,141 @@ var _ = Describe("poolRefs map", func() {
 			Expect(refs["foo"]).To(Equal(existing))
 		})
 	})
+})
+
+var _ = Describe("When using BMH name based pre-allocation", func() {
+	var bmhName = "host-0"
+
+	BeforeEach(func() {
+		EnableBMHNameBasedPreallocation = true
+	})
+
+	AfterEach(func() {
+		EnableBMHNameBasedPreallocation = false
+	})
+
+	DescribeTable("ensureM3IPClaim", func(tc testCaseEnsureM3Claim) {
+		bmh := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      bmhName,
+				Namespace: namespaceName,
+			},
+		}
+		m3m := &infrav1.Metal3Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3machineName,
+				Namespace: namespaceName,
+				Annotations: map[string]string{
+					HostAnnotation: namespaceName + "/" + bmh.Name,
+				},
+			},
+			Spec: infrav1.Metal3MachineSpec{
+				DataTemplate: &corev1.ObjectReference{
+					Name:      metal3DataTemplateName,
+					Namespace: namespaceName,
+				},
+			},
+		}
+		m3dt := &infrav1.Metal3DataTemplate{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataTemplateName,
+				Namespace: namespaceName,
+			},
+		}
+		m3dc := &infrav1.Metal3DataClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataClaimName,
+				Namespace: namespaceName,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
+						Kind:       "Metal3Machine",
+						Name:       m3m.Name,
+					},
+				},
+			},
+		}
+		m3d := &infrav1.Metal3Data{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
+				Kind:       "Metal3Data",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      metal3DataName,
+				Namespace: namespaceName,
+			},
+			Spec: infrav1.Metal3DataSpec{
+				Template: corev1.ObjectReference{
+					Name:      m3dt.Name,
+					Namespace: m3dt.Namespace,
+				},
+				Claim: corev1.ObjectReference{
+					Namespace: namespaceName,
+					Name:      metal3DataClaimName,
+				},
+			},
+		}
+
+		// Setup fake client with objects
+		objects := []client.Object{bmh, m3m, m3d, m3dt, m3dc}
+		if tc.ipClaim != nil {
+			objects = append(objects, tc.ipClaim)
+		}
+		fc := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+		dataMgr, err := NewDataManager(fc, m3d, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		rc, err := dataMgr.ensureM3IPClaim(context.Background(), tc.poolRef)
+
+		if tc.expectError {
+			Expect(err).To(HaveOccurred())
+		} else {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		Expect(rc.fetchAgain).To(Equal(tc.expectFetchAgain))
+		if tc.expectClaim {
+			Expect(rc.m3Claim).NotTo(BeNil())
+			claim := &ipamv1.IPClaim{}
+			nn := types.NamespacedName{
+				Name:      bmh.Name + "-" + tc.poolRef.Name,
+				Namespace: bmh.Namespace,
+			}
+			err = fc.Get(context.Background(), nn, claim)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err := findOwnerRefFromList(claim.OwnerReferences,
+				m3d.TypeMeta, m3d.ObjectMeta)
+			Expect(err).NotTo(HaveOccurred())
+		} else {
+			Expect(tc.ipClaim).To(BeNil())
+		}
+	},
+		Entry("should create claim if missing", testCaseEnsureM3Claim{
+			poolRef:          corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaim:          nil,
+			expectError:      false,
+			expectFetchAgain: true,
+			expectClaim:      true,
+		}),
+		Entry("should do nothing when claim exists", testCaseEnsureM3Claim{
+			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaim: &ipamv1.IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      bmhName + "-" + testPoolName,
+					Namespace: namespaceName,
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
+							Kind:       "Metal3Data",
+							Name:       metal3DataName,
+							Controller: pointer.Bool(true),
+						},
+					}},
+			},
+			expectError:      false,
+			expectFetchAgain: false,
+			expectClaim:      true,
+		}),
+	)
+
 })
