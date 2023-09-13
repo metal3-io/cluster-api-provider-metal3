@@ -91,6 +91,7 @@ else
     CAPI_UPGRADE_FROM_RELEASE=${UPGRADE_FROM_RELEASE}
 fi
 export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "${CAPI_UPGRADE_FROM_RELEASE}")}"
+export CAPI_FROM_RELEASE="v1.5.0"
 # The e2e config file parameter for the capi release compatible with main (capm3 next version)
 export CAPI_TO_RELEASE="${CAPIRELEASE}"
 # K8s support based on https://cluster-api.sigs.k8s.io/reference/versions.html#core-provider-cluster-api-controller
