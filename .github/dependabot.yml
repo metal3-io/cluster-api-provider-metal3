@@ -6,7 +6,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     commit-message:
       prefix: ":seedling:"
     labels:
@@ -85,11 +85,11 @@ updates:
     ignore:
       # Ignore controller-runtime as its upgraded manually.
       - dependency-name: "sigs.k8s.io/controller-runtime"
-        update-types: [ "version-update:semver-major", "version-update:semver-minor" ]    
+        update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
       # Ignore k8s and its transitives modules as they are upgraded manually
       # together with controller-runtime.
       - dependency-name: "sigs.k8s.io/controller-tools"
-        update-types: [ "version-update:semver-major", "version-update:semver-minor" ]    
+        update-types: [ "version-update:semver-major", "version-update:semver-minor" ]
     commit-message:
       prefix: ":seedling:"
     labels:
