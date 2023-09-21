@@ -38,7 +38,7 @@ wget_and_verify()
 
     checksum="$(sha256sum "${target}" | awk '{print $1;}')"
     if [[ "${checksum}" != "${sha256}" ]]; then
-        if [[ "${INSECURE_SKIP_DOWNLOAD_VERIFICATION}" == "true" ]]; then
+        if [[ "${INSECURE_SKIP_DOWNLOAD_VERIFICATION:-}" == "true" ]]; then
             echo >&2 "warning: ${url} binary checksum '${checksum}' differs from expected checksum '${sha256}'"
         else
             echo >&2 "fatal: ${url} binary checksum '${checksum}' differs from expected checksum '${sha256}'"
@@ -61,11 +61,11 @@ download_and_install_golangci_lint()
     ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
     GOLANGCI_LINT="golangci-lint"
     GOLANGCI_VERSION="1.54.2"
-    case "${KERNEL_OS}" in
-        darwin) GOLANGCI_SHA256="7b33fb1be2f26b7e3d1f3c10ce9b2b5ce6d13bb1d8468a4b2ba794f05b4445e1" ;;
-        linux) GOLANGCI_SHA256="a9f14b33473c65fcfbf411ec054b53a87dbb849f4e09ee438f1ee76dbf3f3d4e" ;;
-      *) 
-        echo >&2 "error:${KERNEL_OS} not supported. Please obtain the binary and calculate sha256 manually."
+    case "${KERNEL_OS}-${ARCH}" in
+        darwin-arm64) GOLANGCI_SHA256="7b33fb1be2f26b7e3d1f3c10ce9b2b5ce6d13bb1d8468a4b2ba794f05b4445e1" ;;
+        linux-amd64) GOLANGCI_SHA256="17c9ca05253efe833d47f38caf670aad2202b5e6515879a99873fabd4c7452b3" ;;
+      *)
+        echo >&2 "error:${KERNEL_OS}-${ARCH} not supported. Please obtain the binary and calculate sha256 manually."
         exit 1
         ;;
     esac
