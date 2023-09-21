@@ -331,7 +331,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 	// Fetch logs from management cluster
 	By("Fetch logs from management cluster")
 	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
+	cmd := exec.Command("./fetch_target_logs.sh") //#nosec G204:gosec
 	cmd.Dir = path
 	errorPipe, _ := cmd.StderrPipe()
 	_ = cmd.Start()

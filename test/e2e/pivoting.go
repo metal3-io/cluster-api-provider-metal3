@@ -406,9 +406,9 @@ func labelBMOCRDs(targetCluster framework.ClusterProxy) {
 	for _, label := range labels {
 		var cmd *exec.Cmd
 		if kubectlArgs == "" {
-			cmd = exec.Command("kubectl", "label", "--overwrite", "crds", crdName, label) // #nosec G204:gosec
+			cmd = exec.Command("kubectl", "label", "--overwrite", "crds", crdName, label) //#nosec G204:gosec
 		} else {
-			cmd = exec.Command("kubectl", kubectlArgs, "label", "--overwrite", "crds", crdName, label) // #nosec G204:gosec
+			cmd = exec.Command("kubectl", kubectlArgs, "label", "--overwrite", "crds", crdName, label) //#nosec G204:gosec
 		}
 		err := cmd.Run()
 		Expect(err).To(BeNil(), "Cannot label BMO CRDs")
@@ -509,7 +509,8 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	if ephemeralCluster == Kind {
 		bmoPath := input.E2EConfig.GetVariable("BMOPATH")
 		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
-		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand) // #nosec G204:gosec
+		//#nosec G204:gosec
+		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 		stdoutStderr, err := cmd.CombinedOutput()
 		fmt.Printf("%s\n", stdoutStderr)
 		Expect(err).To(BeNil(), "Cannot run local ironic")
@@ -621,11 +622,11 @@ func fetchContainerLogs(containerNames *[]string, folder string, containerComman
 		cmd := exec.Command("sudo", containerCommand, "logs", name) // #nosec G204:gosec
 		out, err := cmd.Output()
 		if err != nil {
-			writeErr := os.WriteFile(filepath.Join(logDir, "stderr.log"), []byte(err.Error()), 0444)
+			writeErr := os.WriteFile(filepath.Join(logDir, "stderr.log"), []byte(err.Error()), 0400)
 			Expect(writeErr).ToNot(HaveOccurred())
 			log.Fatal(err)
 		}
-		writeErr := os.WriteFile(filepath.Join(logDir, "stdout.log"), out, 0444)
+		writeErr := os.WriteFile(filepath.Join(logDir, "stdout.log"), out, 0400)
 		Expect(writeErr).ToNot(HaveOccurred())
 	}
 }
