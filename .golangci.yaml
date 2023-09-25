@@ -48,9 +48,7 @@ linters-settings:
     go: "1.20"
     severity: medium
     confidence: medium
-    excludes:
-      - G107
-      - G306
+    concurrency: 8
   importas:
     no-unaliased: true
     alias:
@@ -123,7 +121,7 @@ issues:
     - path: _test\.go
       linters:
         - unused
-    # Specific exclude rules for deprecated fields that are still part of the codebase. 
+    # Specific exclude rules for deprecated fields that are still part of the codebase.
     # These should be removed as the referenced deprecated item is removed from the project.
     - linters:
         - staticcheck
