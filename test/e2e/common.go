@@ -162,7 +162,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		sha256sum, err := getSha256Hash(rawImagePath)
 		Expect(err).To(BeNil())
 		formattedSha256sum := fmt.Sprintf("%x", sha256sum)
-		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0544)
+		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0600)
 		Expect(err).To(BeNil())
 		Logf("Image: %v downloaded", rawImagePath)
 	} else {
@@ -175,6 +175,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 // DownloadFile will download a url and store it in local filepath.
 func DownloadFile(filePath string, url string) error {
 	// Get the data
+	/* #nosec G107 */
 	resp, err := http.Get(url) //nolint:noctx
 	if err != nil {
 		return err
@@ -629,8 +630,12 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 }
 
 func runCommand(logFolder, filename, machineIP, user, command string) error {
-	home := os.Getenv("HOME")
-	privkey, err := os.ReadFile(path.Join(home, "/.ssh/id_rsa"))
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("could not get home directory: %w", err)
+	}
+	keyPath := path.Join(filepath.Clean(home), ".ssh", "id_rsa")
+	privkey, err := os.ReadFile(keyPath) //#nosec G304:gosec
 	if err != nil {
 		return fmt.Errorf("couldn't read private key")
 	}
@@ -664,7 +669,7 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 		return fmt.Errorf("unable to send command %q: %w", "sudo "+command, err)
 	}
 	result := strings.TrimSuffix(stdoutBuf.String(), "\n") + "\n" + strings.TrimSuffix(stderrBuf.String(), "\n")
-	if err := os.WriteFile(logFile, []byte(result), 0o777); err != nil {
+	if err := os.WriteFile(logFile, []byte(result), 0400); err != nil {
 		return fmt.Errorf("error writing log file: %w", err)
 	}
 	return nil
