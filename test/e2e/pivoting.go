@@ -21,6 +21,7 @@ import (
 	dockerTypes "github.com/docker/docker/api/types"
 	containertypes "github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -143,9 +144,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting", "clusterctl-init.log"))
 
 	By("Add labels to BMO CRDs")
-	labelBMOCRDs(nil)
+	labelBMOCRDs(ctx, input.BootstrapClusterProxy)
 	By("Add Labels to hardwareData CRDs")
-	labelHDCRDs(nil)
+	labelHDCRDs(ctx, input.BootstrapClusterProxy)
 
 	By("Install Ironic in the target cluster")
 	installIronicBMO(ctx, func() installIronicBMOInput {
@@ -186,9 +187,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 
 	By("Add labels to BMO CRDs in the target cluster")
-	labelBMOCRDs(input.TargetCluster)
+	labelBMOCRDs(ctx, input.TargetCluster)
 	By("Add Labels to hardwareData CRDs in the target cluster")
-	labelHDCRDs(input.TargetCluster)
+	labelHDCRDs(ctx, input.TargetCluster)
 	By("Ensure API servers are stable before doing move")
 	// Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.
 	// More specifically, we were observing the test failing to get objects from the API server during move, so we
@@ -392,50 +393,22 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 	Expect(err).To(BeNil(), "Failed to delete %s Deployment", deploymentName)
 }
 
-func labelBMOCRDs(targetCluster framework.ClusterProxy) {
-	labels := []string{
-		"clusterctl.cluster.x-k8s.io=",
-		"cluster.x-k8s.io/provider=metal3",
-	}
-	kubectlArgs := ""
-	if targetCluster != nil {
-		kubectlArgs = fmt.Sprintf("--kubeconfig=%s", targetCluster.GetKubeconfigPath())
-	}
-
+func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
+	labels := map[string]string{}
+	labels[clusterctlv1.ClusterctlLabel] = ""
+	labels[clusterv1.ProviderNameLabel] = "metal3"
 	crdName := "baremetalhosts.metal3.io"
-	for _, label := range labels {
-		var cmd *exec.Cmd
-		if kubectlArgs == "" {
-			cmd = exec.Command("kubectl", "label", "--overwrite", "crds", crdName, label) //#nosec G204:gosec
-		} else {
-			cmd = exec.Command("kubectl", kubectlArgs, "label", "--overwrite", "crds", crdName, label) //#nosec G204:gosec
-		}
-		err := cmd.Run()
-		Expect(err).To(BeNil(), "Cannot label BMO CRDs")
-	}
+	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
+	Expect(err).To(BeNil(), "Cannot label BMH CRDs")
 }
 
-func labelHDCRDs(targetCluster framework.ClusterProxy) {
-	labels := []string{
-		"clusterctl.cluster.x-k8s.io=",
-		"clusterctl.cluster.x-k8s.io/move=",
-	}
-	kubectlArgs := ""
-	if targetCluster != nil {
-		kubectlArgs = fmt.Sprintf("--kubeconfig=%s", targetCluster.GetKubeconfigPath())
-	}
-
+func labelHDCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
+	labels := map[string]string{}
+	labels[clusterctlv1.ClusterctlLabel] = ""
+	labels[clusterctlv1.ClusterctlMoveLabel] = ""
 	crdName := "hardwaredata.metal3.io"
-	for _, label := range labels {
-		var cmd *exec.Cmd
-		if kubectlArgs == "" {
-			cmd = exec.Command("kubectl", "label", "--overwrite", "crds", crdName, label) // #nosec G204:gosec
-		} else {
-			cmd = exec.Command("kubectl", kubectlArgs, "label", "--overwrite", "crds", crdName, label) // #nosec G204:gosec
-		}
-		err := cmd.Run()
-		Expect(err).To(BeNil(), "Cannot label HD CRDs")
-	}
+	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
+	Expect(err).To(BeNil(), "Cannot label HD CRDs")
 }
 
 type RePivotingInput struct {
