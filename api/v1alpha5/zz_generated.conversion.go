@@ -658,11 +658,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.NetworkLinkEthernetMac)(nil), (*NetworkLinkEthernetMac)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(a.(*v1beta1.NetworkLinkEthernetMac), b.(*NetworkLinkEthernetMac), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*RemediationStrategy)(nil), (*v1beta1.RemediationStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha5_RemediationStrategy_To_v1beta1_RemediationStrategy(a.(*RemediationStrategy), b.(*v1beta1.RemediationStrategy), scope)
 	}); err != nil {
@@ -700,6 +695,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta1.NetworkDataLinkBond)(nil), (*NetworkDataLinkBond)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_NetworkDataLinkBond_To_v1alpha5_NetworkDataLinkBond(a.(*v1beta1.NetworkDataLinkBond), b.(*NetworkDataLinkBond), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta1.NetworkLinkEthernetMac)(nil), (*NetworkLinkEthernetMac)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(a.(*v1beta1.NetworkLinkEthernetMac), b.(*NetworkLinkEthernetMac), scope)
 	}); err != nil {
 		return err
 	}
@@ -2208,7 +2208,17 @@ func Convert_v1beta1_NetworkDataIPv6DHCP_To_v1alpha5_NetworkDataIPv6DHCP(in *v1b
 }
 
 func autoConvert_v1alpha5_NetworkDataLink_To_v1beta1_NetworkDataLink(in *NetworkDataLink, out *v1beta1.NetworkDataLink, s conversion.Scope) error {
-	out.Ethernets = *(*[]v1beta1.NetworkDataLinkEthernet)(unsafe.Pointer(&in.Ethernets))
+	if in.Ethernets != nil {
+		in, out := &in.Ethernets, &out.Ethernets
+		*out = make([]v1beta1.NetworkDataLinkEthernet, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha5_NetworkDataLinkEthernet_To_v1beta1_NetworkDataLinkEthernet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ethernets = nil
+	}
 	if in.Bonds != nil {
 		in, out := &in.Bonds, &out.Bonds
 		*out = make([]v1beta1.NetworkDataLinkBond, len(*in))
@@ -2220,7 +2230,17 @@ func autoConvert_v1alpha5_NetworkDataLink_To_v1beta1_NetworkDataLink(in *Network
 	} else {
 		out.Bonds = nil
 	}
-	out.Vlans = *(*[]v1beta1.NetworkDataLinkVlan)(unsafe.Pointer(&in.Vlans))
+	if in.Vlans != nil {
+		in, out := &in.Vlans, &out.Vlans
+		*out = make([]v1beta1.NetworkDataLinkVlan, len(*in))
+		for i := range *in {
+			if err := Convert_v1alpha5_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Vlans = nil
+	}
 	return nil
 }
 
@@ -2230,7 +2250,17 @@ func Convert_v1alpha5_NetworkDataLink_To_v1beta1_NetworkDataLink(in *NetworkData
 }
 
 func autoConvert_v1beta1_NetworkDataLink_To_v1alpha5_NetworkDataLink(in *v1beta1.NetworkDataLink, out *NetworkDataLink, s conversion.Scope) error {
-	out.Ethernets = *(*[]NetworkDataLinkEthernet)(unsafe.Pointer(&in.Ethernets))
+	if in.Ethernets != nil {
+		in, out := &in.Ethernets, &out.Ethernets
+		*out = make([]NetworkDataLinkEthernet, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataLinkEthernet_To_v1alpha5_NetworkDataLinkEthernet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ethernets = nil
+	}
 	if in.Bonds != nil {
 		in, out := &in.Bonds, &out.Bonds
 		*out = make([]NetworkDataLinkBond, len(*in))
@@ -2242,7 +2272,17 @@ func autoConvert_v1beta1_NetworkDataLink_To_v1alpha5_NetworkDataLink(in *v1beta1
 	} else {
 		out.Bonds = nil
 	}
-	out.Vlans = *(*[]NetworkDataLinkVlan)(unsafe.Pointer(&in.Vlans))
+	if in.Vlans != nil {
+		in, out := &in.Vlans, &out.Vlans
+		*out = make([]NetworkDataLinkVlan, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataLinkVlan_To_v1alpha5_NetworkDataLinkVlan(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Vlans = nil
+	}
 	return nil
 }
 
@@ -2255,7 +2295,15 @@ func autoConvert_v1alpha5_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in 
 	out.BondMode = in.BondMode
 	out.Id = in.Id
 	out.MTU = in.MTU
-	out.MACAddress = (*v1beta1.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
+	if in.MACAddress != nil {
+		in, out := &in.MACAddress, &out.MACAddress
+		*out = new(v1beta1.NetworkLinkEthernetMac)
+		if err := Convert_v1alpha5_NetworkLinkEthernetMac_To_v1beta1_NetworkLinkEthernetMac(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MACAddress = nil
+	}
 	out.BondLinks = *(*[]string)(unsafe.Pointer(&in.BondLinks))
 	return nil
 }
@@ -2270,7 +2318,15 @@ func autoConvert_v1beta1_NetworkDataLinkBond_To_v1alpha5_NetworkDataLinkBond(in 
 	// WARNING: in.BondXmitHashPolicy requires manual conversion: does not exist in peer-type
 	out.Id = in.Id
 	out.MTU = in.MTU
-	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
+	if in.MACAddress != nil {
+		in, out := &in.MACAddress, &out.MACAddress
+		*out = new(NetworkLinkEthernetMac)
+		if err := Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MACAddress = nil
+	}
 	out.BondLinks = *(*[]string)(unsafe.Pointer(&in.BondLinks))
 	return nil
 }
@@ -2279,7 +2335,15 @@ func autoConvert_v1alpha5_NetworkDataLinkEthernet_To_v1beta1_NetworkDataLinkEthe
 	out.Type = in.Type
 	out.Id = in.Id
 	out.MTU = in.MTU
-	out.MACAddress = (*v1beta1.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
+	if in.MACAddress != nil {
+		in, out := &in.MACAddress, &out.MACAddress
+		*out = new(v1beta1.NetworkLinkEthernetMac)
+		if err := Convert_v1alpha5_NetworkLinkEthernetMac_To_v1beta1_NetworkLinkEthernetMac(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MACAddress = nil
+	}
 	return nil
 }
 
@@ -2292,7 +2356,15 @@ func autoConvert_v1beta1_NetworkDataLinkEthernet_To_v1alpha5_NetworkDataLinkEthe
 	out.Type = in.Type
 	out.Id = in.Id
 	out.MTU = in.MTU
-	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
+	if in.MACAddress != nil {
+		in, out := &in.MACAddress, &out.MACAddress
+		*out = new(NetworkLinkEthernetMac)
+		if err := Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MACAddress = nil
+	}
 	return nil
 }
 
@@ -2305,7 +2377,15 @@ func autoConvert_v1alpha5_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(in 
 	out.VlanID = in.VlanID
 	out.Id = in.Id
 	out.MTU = in.MTU
-	out.MACAddress = (*v1beta1.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
+	if in.MACAddress != nil {
+		in, out := &in.MACAddress, &out.MACAddress
+		*out = new(v1beta1.NetworkLinkEthernetMac)
+		if err := Convert_v1alpha5_NetworkLinkEthernetMac_To_v1beta1_NetworkLinkEthernetMac(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MACAddress = nil
+	}
 	out.VlanLink = in.VlanLink
 	return nil
 }
@@ -2319,7 +2399,15 @@ func autoConvert_v1beta1_NetworkDataLinkVlan_To_v1alpha5_NetworkDataLinkVlan(in 
 	out.VlanID = in.VlanID
 	out.Id = in.Id
 	out.MTU = in.MTU
-	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
+	if in.MACAddress != nil {
+		in, out := &in.MACAddress, &out.MACAddress
+		*out = new(NetworkLinkEthernetMac)
+		if err := Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MACAddress = nil
+	}
 	out.VlanLink = in.VlanLink
 	return nil
 }
@@ -2589,12 +2677,8 @@ func Convert_v1alpha5_NetworkLinkEthernetMac_To_v1beta1_NetworkLinkEthernetMac(i
 func autoConvert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(in *v1beta1.NetworkLinkEthernetMac, out *NetworkLinkEthernetMac, s conversion.Scope) error {
 	out.String = (*string)(unsafe.Pointer(in.String))
 	out.FromHostInterface = (*string)(unsafe.Pointer(in.FromHostInterface))
+	// WARNING: in.FromAnnotation requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac is an autogenerated conversion function.
-func Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(in *v1beta1.NetworkLinkEthernetMac, out *NetworkLinkEthernetMac, s conversion.Scope) error {
-	return autoConvert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(in, out, s)
 }
 
 func autoConvert_v1alpha5_RemediationStrategy_To_v1beta1_RemediationStrategy(in *RemediationStrategy, out *v1beta1.RemediationStrategy, s conversion.Scope) error {

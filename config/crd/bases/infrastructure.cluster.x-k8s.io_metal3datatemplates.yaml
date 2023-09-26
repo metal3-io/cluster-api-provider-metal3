@@ -1212,6 +1212,26 @@ spec:
                               description: MACAddress is the MAC address of the interface,
                                 containing the object used to render it.
                               properties:
+                                fromAnnotation:
+                                  description: FromAnnotation references an object
+                                    Annotation to retrieve the MAC address from
+                                  properties:
+                                    annotation:
+                                      description: Annotation is the key of the Annotation
+                                        to fetch
+                                      type: string
+                                    object:
+                                      description: Object is the type of the object
+                                        from which we retrieve the name
+                                      enum:
+                                      - machine
+                                      - metal3machine
+                                      - baremetalhost
+                                      type: string
+                                  required:
+                                  - annotation
+                                  - object
+                                  type: object
                                 fromHostInterface:
                                   description: FromHostInterface contains the name
                                     of the interface in the BareMetalHost Introspection
@@ -1247,6 +1267,26 @@ spec:
                               description: MACAddress is the MAC address of the interface,
                                 containing the object used to render it.
                               properties:
+                                fromAnnotation:
+                                  description: FromAnnotation references an object
+                                    Annotation to retrieve the MAC address from
+                                  properties:
+                                    annotation:
+                                      description: Annotation is the key of the Annotation
+                                        to fetch
+                                      type: string
+                                    object:
+                                      description: Object is the type of the object
+                                        from which we retrieve the name
+                                      enum:
+                                      - machine
+                                      - metal3machine
+                                      - baremetalhost
+                                      type: string
+                                  required:
+                                  - annotation
+                                  - object
+                                  type: object
                                 fromHostInterface:
                                   description: FromHostInterface contains the name
                                     of the interface in the BareMetalHost Introspection
@@ -1297,6 +1337,26 @@ spec:
                               description: MACAddress is the MAC address of the interface,
                                 containing the object used to render it.
                               properties:
+                                fromAnnotation:
+                                  description: FromAnnotation references an object
+                                    Annotation to retrieve the MAC address from
+                                  properties:
+                                    annotation:
+                                      description: Annotation is the key of the Annotation
+                                        to fetch
+                                      type: string
+                                    object:
+                                      description: Object is the type of the object
+                                        from which we retrieve the name
+                                      enum:
+                                      - machine
+                                      - metal3machine
+                                      - baremetalhost
+                                      type: string
+                                  required:
+                                  - annotation
+                                  - object
+                                  type: object
                                 fromHostInterface:
                                   description: FromHostInterface contains the name
                                     of the interface in the BareMetalHost Introspection

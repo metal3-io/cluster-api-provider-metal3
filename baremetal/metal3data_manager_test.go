@@ -353,7 +353,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.String("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("12:34:56:78:9A:BC"),
 									},
 								},
 							},
@@ -414,7 +414,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.String("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("12:34:56:78:9A:BC"),
 									},
 								},
 							},
@@ -454,7 +454,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectReady:         true,
 			expectedMetadata:    pointer.String(fmt.Sprintf("String-1: String-1\nproviderid: %s\n", providerid)),
-			expectedNetworkData: pointer.String("links:\n- ethernet_mac_address: XX:XX:XX:XX:XX:XX\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
+			expectedNetworkData: pointer.String("links:\n- ethernet_mac_address: 12:34:56:78:9A:BC\n  id: eth0\n  mtu: 1500\n  type: phy\nnetworks: []\nservices: []\n"),
 		}),
 		Entry("No Machine OwnerRef on M3M", testCaseCreateSecrets{
 			m3d: &infrav1.Metal3Data{
@@ -483,7 +483,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.String("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("12:34:56:78:9A:BC"),
 									},
 								},
 							},
@@ -530,7 +530,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.String("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("12:34:56:78:9A:BC"),
 									},
 								},
 							},
@@ -2117,8 +2117,9 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 
 	type testCaseRenderNetworkData struct {
-		m3d            *infrav1.Metal3Data
 		m3dt           *infrav1.Metal3DataTemplate
+		m3m            *infrav1.Metal3Machine
+		machine        *clusterv1.Machine
 		bmh            *bmov1alpha1.BareMetalHost
 		poolAddresses  map[string]addressFromPool
 		expectError    bool
@@ -2127,7 +2128,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test renderNetworkData",
 		func(tc testCaseRenderNetworkData) {
-			result, err := renderNetworkData(tc.m3dt, tc.bmh, tc.poolAddresses)
+			result, err := renderNetworkData(tc.m3dt, tc.m3m, tc.machine, tc.bmh, tc.poolAddresses)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -2139,11 +2140,6 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(output).To(Equal(tc.expectedOutput))
 		},
 		Entry("Full example", testCaseRenderNetworkData{
-			m3d: &infrav1.Metal3Data{
-				Spec: infrav1.Metal3DataSpec{
-					Index: 2,
-				},
-			},
 			m3dt: &infrav1.Metal3DataTemplate{
 				Spec: infrav1.Metal3DataTemplateSpec{
 					NetworkData: &infrav1.NetworkData{
@@ -2154,7 +2150,7 @@ var _ = Describe("Metal3Data manager", func() {
 									Id:   "eth0",
 									MTU:  1500,
 									MACAddress: &infrav1.NetworkLinkEthernetMac{
-										String: pointer.String("XX:XX:XX:XX:XX:XX"),
+										String: pointer.String("12:34:56:78:9A:BC"),
 									},
 								},
 							},
@@ -2213,7 +2209,7 @@ var _ = Describe("Metal3Data manager", func() {
 						"type":                 "phy",
 						"id":                   "eth0",
 						"mtu":                  1500,
-						"ethernet_mac_address": "XX:XX:XX:XX:XX:XX",
+						"ethernet_mac_address": "12:34:56:78:9A:BC",
 					},
 				},
 				"networks": {
@@ -2262,11 +2258,6 @@ var _ = Describe("Metal3Data manager", func() {
 			expectError: true,
 		}),
 		Entry("Address error", testCaseRenderNetworkData{
-			m3d: &infrav1.Metal3Data{
-				Spec: infrav1.Metal3DataSpec{
-					Index: 2,
-				},
-			},
 			m3dt: &infrav1.Metal3DataTemplate{
 				Spec: infrav1.Metal3DataTemplateSpec{
 					NetworkData: &infrav1.NetworkData{
@@ -2362,6 +2353,8 @@ var _ = Describe("Metal3Data manager", func() {
 	)
 	type testCaseRenderNetworkLinks struct {
 		links          infrav1.NetworkDataLink
+		m3m            *infrav1.Metal3Machine
+		machine        *clusterv1.Machine
 		bmh            *bmov1alpha1.BareMetalHost
 		expectError    bool
 		expectedOutput []interface{}
@@ -2369,7 +2362,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test renderNetworkLinks",
 		func(tc testCaseRenderNetworkLinks) {
-			result, err := renderNetworkLinks(tc.links, tc.bmh)
+			result, err := renderNetworkLinks(tc.links, tc.m3m, tc.machine, tc.bmh)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -2385,7 +2378,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:   "eth0",
 						MTU:  1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							String: pointer.String("XX:XX:XX:XX:XX:XX"),
+							String: pointer.String("12:34:56:78:9A:BC"),
 						},
 					},
 				},
@@ -2395,7 +2388,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":                 "phy",
 					"id":                   "eth0",
 					"mtu":                  1500,
-					"ethernet_mac_address": "XX:XX:XX:XX:XX:XX",
+					"ethernet_mac_address": "12:34:56:78:9A:BC",
 				},
 			},
 		}),
@@ -2427,7 +2420,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:                 "bond0",
 						MTU:                1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							String: pointer.String("XX:XX:XX:XX:XX:XX"),
+							String: pointer.String("12:34:56:78:9A:BC"),
 						},
 						BondLinks: []string{"eth0"},
 					},
@@ -2438,7 +2431,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":                  "bond",
 					"id":                    "bond0",
 					"mtu":                   1500,
-					"ethernet_mac_address":  "XX:XX:XX:XX:XX:XX",
+					"ethernet_mac_address":  "12:34:56:78:9A:BC",
 					"bond_mode":             "802.3ad",
 					"bond_xmit_hash_policy": "layer3+4",
 					"bond_links":            []string{"eth0"},
@@ -2473,7 +2466,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Id:     "bond0",
 						MTU:    1500,
 						MACAddress: &infrav1.NetworkLinkEthernetMac{
-							String: pointer.String("XX:XX:XX:XX:XX:XX"),
+							String: pointer.String("12:34:56:78:9A:BC"),
 						},
 						VlanLink: "eth0",
 					},
@@ -2481,7 +2474,7 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectedOutput: []interface{}{
 				map[string]interface{}{
-					"vlan_mac_address": "XX:XX:XX:XX:XX:XX",
+					"vlan_mac_address": "12:34:56:78:9A:BC",
 					"vlan_id":          2222,
 					"vlan_link":        "eth0",
 					"type":             "vlan",
@@ -2991,6 +2984,8 @@ var _ = Describe("Metal3Data manager", func() {
 
 	type testCaseGetLinkMacAddress struct {
 		mac         *infrav1.NetworkLinkEthernetMac
+		m3m         *infrav1.Metal3Machine
+		machine     *clusterv1.Machine
 		bmh         *bmov1alpha1.BareMetalHost
 		expectError bool
 		expectedMAC string
@@ -2998,7 +2993,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test getLinkMacAddress",
 		func(tc testCaseGetLinkMacAddress) {
-			result, err := getLinkMacAddress(tc.mac, tc.bmh)
+			result, err := getLinkMacAddress(tc.mac, tc.m3m, tc.machine, tc.bmh)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -3006,11 +3001,11 @@ var _ = Describe("Metal3Data manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(tc.expectedMAC))
 		},
-		Entry("String", testCaseGetLinkMacAddress{
+		Entry("string", testCaseGetLinkMacAddress{
 			mac: &infrav1.NetworkLinkEthernetMac{
-				String: pointer.String("XX:XX:XX:XX:XX:XX"),
+				String: pointer.String("12:34:56:78:9A:BC"),
 			},
-			expectedMAC: "XX:XX:XX:XX:XX:XX",
+			expectedMAC: "12:34:56:78:9A:BC",
 		}),
 		Entry("from host interface", testCaseGetLinkMacAddress{
 			mac: &infrav1.NetworkLinkEthernetMac{
@@ -3023,19 +3018,19 @@ var _ = Describe("Metal3Data manager", func() {
 						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
-								MAC:  "XX:XX:XX:XX:XX:XX",
+								MAC:  "12:34:56:78:9A:BC",
 							},
 							// Check if empty value cause failure
 							{},
 							{
 								Name: "eth1",
-								MAC:  "XX:XX:XX:XX:XX:YY",
+								MAC:  "DE:F0:12:34:56:78",
 							},
 						},
 					},
 				},
 			},
-			expectedMAC: "XX:XX:XX:XX:XX:YY",
+			expectedMAC: "DE:F0:12:34:56:78",
 		}),
 		Entry("from host interface not found", testCaseGetLinkMacAddress{
 			mac: &infrav1.NetworkLinkEthernetMac{
@@ -3048,15 +3043,113 @@ var _ = Describe("Metal3Data manager", func() {
 						NIC: []bmov1alpha1.NIC{
 							{
 								Name: "eth0",
-								MAC:  "XX:XX:XX:XX:XX:XX",
+								MAC:  "12:34:56:78:9A:BC",
 							},
 							// Check if empty value cause failure
 							{},
 							{
 								Name: "eth1",
-								MAC:  "XX:XX:XX:XX:XX:YY",
+								MAC:  "DE:F0:12:34:56:78",
 							},
 						},
+					},
+				},
+			},
+			expectError: true,
+		}),
+		Entry("from machine annotation", testCaseGetLinkMacAddress{
+			mac: &infrav1.NetworkLinkEthernetMac{
+				FromAnnotation: &infrav1.NetworkLinkEthernetMacFromAnnotation{
+					Object:     "machine",
+					Annotation: "mac-address",
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: machineName,
+					Annotations: map[string]string{
+						"mac-address": "12:34:56:78:9A:BD",
+					},
+				},
+			},
+			expectedMAC: "12:34:56:78:9A:BD",
+		}),
+		Entry("from metal3machine annotation", testCaseGetLinkMacAddress{
+			mac: &infrav1.NetworkLinkEthernetMac{
+				FromAnnotation: &infrav1.NetworkLinkEthernetMacFromAnnotation{
+					Object:     "metal3machine",
+					Annotation: "mac-address",
+				},
+			},
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					UID:       m3muid,
+					Annotations: map[string]string{
+						"mac-address": "12:34:56:78:9A:BD",
+					},
+				},
+			},
+			expectedMAC: "12:34:56:78:9A:BD",
+		}),
+		Entry("from baremetalhost annotation", testCaseGetLinkMacAddress{
+			mac: &infrav1.NetworkLinkEthernetMac{
+				FromAnnotation: &infrav1.NetworkLinkEthernetMacFromAnnotation{
+					Object:     "baremetalhost",
+					Annotation: "mac-address",
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					UID:       "",
+					Annotations: map[string]string{
+						"mac-address": "12:34:56:78:9A:BD",
+					},
+				},
+			},
+			expectedMAC: "12:34:56:78:9A:BD",
+		}),
+		Entry("from annotation on unknown object", testCaseGetLinkMacAddress{
+			mac: &infrav1.NetworkLinkEthernetMac{
+				FromAnnotation: &infrav1.NetworkLinkEthernetMacFromAnnotation{
+					Object:     "wrflbrmpfd",
+					Annotation: "mac-address",
+				},
+			},
+			expectError: true,
+		}),
+		Entry("from unknown annotation", testCaseGetLinkMacAddress{
+			mac: &infrav1.NetworkLinkEthernetMac{
+				FromAnnotation: &infrav1.NetworkLinkEthernetMacFromAnnotation{
+					Object:     "machine",
+					Annotation: "wrflbrmpfd",
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: machineName,
+					Annotations: map[string]string{
+						"mac-address": "12:34:56:78:9A:BD",
+					},
+				},
+			},
+			expectError: true,
+		}),
+		Entry("ill-formed MAC address", testCaseGetLinkMacAddress{
+			mac: &infrav1.NetworkLinkEthernetMac{
+				FromAnnotation: &infrav1.NetworkLinkEthernetMacFromAnnotation{
+					Object:     "machine",
+					Annotation: "mac-address",
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: machineName,
+					Annotations: map[string]string{
+						"mac-address": "XX:XX:XX:XX:XX:XX",
 					},
 				},
 			},

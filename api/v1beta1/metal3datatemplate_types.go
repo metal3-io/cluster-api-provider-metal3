@@ -191,6 +191,16 @@ type MetaData struct {
 	FromAnnotations []MetaDataFromAnnotation `json:"fromAnnotations,omitempty"`
 }
 
+// NetworkLinkEthernetMacFromAnnotation contains the information to fetch an annotation
+// content, if the label does not exist, it is rendered as empty string.
+type NetworkLinkEthernetMacFromAnnotation struct {
+	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
+	// Object is the type of the object from which we retrieve the name
+	Object string `json:"object"`
+	// Annotation is the key of the Annotation to fetch
+	Annotation string `json:"annotation"`
+}
+
 // NetworkLinkEthernetMac represents the Mac address content.
 type NetworkLinkEthernetMac struct {
 	// String contains the MAC address given as a string
@@ -201,6 +211,11 @@ type NetworkLinkEthernetMac struct {
 	// Introspection details from which to fetch the MAC address
 	// +optional
 	FromHostInterface *string `json:"fromHostInterface,omitempty"`
+
+	// FromAnnotation references an object Annotation to retrieve the
+	// MAC address from
+	// +optional
+	FromAnnotation *NetworkLinkEthernetMacFromAnnotation `json:"fromAnnotation,omitempty"`
 }
 
 // NetworkDataLinkEthernet represents an ethernet link object.
