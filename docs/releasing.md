@@ -15,12 +15,12 @@ Things you should check before making a release:
   [Metal3 release process](https://github.com/metal3-io/metal3-docs/blob/main/processes/releasing.md)
   for high-level process and possible follow-up actions
 - Verify CAPI go module is uplifted in root, `api/` and `test/` go modules and
-  `cluster-api/test` module in `test/` go module.
-- Verify controller Go modules use latest corresponding CAPI modules
-- Verify BMO's `apis` and `pkg/hardwareutils` dependencies are the latest
+  `cluster-api/test` module in `test/` go module. Prior art: [#1157](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1157)
+- Verify controller Go modules use latest corresponding CAPI modules. Prior art: [#1145](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1145)
+- Verify BMO's `apis` and `pkg/hardwareutils` dependencies are the latest. Prior art: [#1163](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1163)
 - Uplift IPAM `api` dependency,
   [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/image_patch.yaml),
-  and [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml)
+  and [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml). Prior art: [#999](https://github.com/metal3-io/cluster-api-provider-metal3/pull/999)
 - Verify any other direct or indirect dependency is uplifted to close any
   public vulnerabilities
 
