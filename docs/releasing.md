@@ -85,12 +85,12 @@ We also need to create one or more tags for the Go modules ecosystem:
 
 - For any subdirectory with `go.mod` in it (excluding `hack/tools`), create
   another Git tag with directory prefix, ie.
-  `git tag -s api/v1.x.y -m api/v1.x.y`.
+  `git tag -s api/v1.x.y`.
   For CAPM3, these directories are: `api` and `test`. This enables the
   tags to be used as a Go module version for any downstream users.
-  **NOTE**: Do not create annotated tags for Go modules. Release notes expects
-  only the main tag to be annotated, otherwise it might create incorrect
-  release notes.
+  **NOTE**: Do not create annotated tags (`-a` or `-m`) for Go modules. Release
+  notes expects only the main tag to be annotated, otherwise it might create
+  incorrect release notes.
 
 ### Release artifacts
 
