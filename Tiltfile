@@ -15,7 +15,7 @@ settings = {
     "kind_cluster_name": "capm3",
     "capi_version": "$CAPIRELEASE",
     "kubernetes_version": "$KUBERNETES_VERSION",
-    "cert_manager_version": "v1.12.3",
+    "cert_manager_version": "v1.13.0",
     "enable_providers": [],
 }
 
@@ -129,7 +129,7 @@ def fixup_yaml_empty_arrays(yaml_str):
 
 tilt_helper_dockerfile_header = """
 # Tilt image
-FROM golang:1.19 as tilt-helper
+FROM golang:1.20 as tilt-helper
 # Support live reloading with Tilt
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
     wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \

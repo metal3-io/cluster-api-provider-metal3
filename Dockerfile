@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # Support FROM override
-ARG BUILD_IMAGE=docker.io/golang:1.19.9@sha256:86af5649fa1d9265d3fe7caf633231340b93e4164b96e14bc4e1131a191c1ddd
+ARG BUILD_IMAGE=docker.io/golang:1.20.8@sha256:6b29720c5598cb40b23dd38f522050a698d427c3a5696c5efe1ed22bd45b1396
 ARG BASE_IMAGE=gcr.io/distroless/static@sha256:9ecc53c269509f63c69a266168e4a687c7eb8c0cfd753bd8bfcaa4f58a90876f  # nonroot
 
 # Build the manager binary on golang image
