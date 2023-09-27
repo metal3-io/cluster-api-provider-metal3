@@ -134,7 +134,7 @@ variables:
   # Pin Calico version
   CALICO_PATCH_RELEASE: "v3.25.1"
   # Pin CertManager for upgrade tests
-  CERT_MANAGER_RELEASE: v1.12.3
+  CERT_MANAGER_RELEASE: v1.13.0
   # Default vars for the template, those values could be overridden by the env-vars.
   CAPI_VERSION: "v1beta1"
   CAPM3_VERSION: "v1beta1"
