@@ -358,11 +358,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta1.Metal3MachineSpec)(nil), (*Metal3MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Metal3MachineSpec_To_v1alpha5_Metal3MachineSpec(a.(*v1beta1.Metal3MachineSpec), b.(*Metal3MachineSpec), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Metal3MachineStatus)(nil), (*v1beta1.Metal3MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha5_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(a.(*Metal3MachineStatus), b.(*v1beta1.Metal3MachineStatus), scope)
 	}); err != nil {
@@ -685,6 +680,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta1.Metal3ClusterStatus)(nil), (*Metal3ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Metal3ClusterStatus_To_v1alpha5_Metal3ClusterStatus(a.(*v1beta1.Metal3ClusterStatus), b.(*Metal3ClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta1.Metal3MachineSpec)(nil), (*Metal3MachineSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Metal3MachineSpec_To_v1alpha5_Metal3MachineSpec(a.(*v1beta1.Metal3MachineSpec), b.(*Metal3MachineSpec), scope)
 	}); err != nil {
 		return err
 	}
