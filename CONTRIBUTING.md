@@ -123,14 +123,15 @@ is defined above.
 
 <!-- markdownlint-disable MD013 -->
 
-| Minor Release | API Version  | Supported Until                                     |
-| ------------- | ------------ | --------------------------------------------------- |
-| v1.4.x        | **v1beta1**  | when v1.6.0 will be released                        |
-| v1.3.x        | **v1beta1**  | when v1.5.0 will be released, tentatively July 2023 |
-| v1.2.x        | **v1beta1**  | EOL since 2023-05-17                                |
-| v1.1.x        | **v1beta1**  | EOL since 2023-05-17                                |
-| v0.5.x        | **v1alpha4** | EOL since 2022-09-30 - API version EOL              |
-| v0.4.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL              |
+| Minor Release | API Version  | Supported Until                              |
+| ------------- | ------------ | -------------------------------------------- |
+| v1.5.x        | **v1beta1**  | when v1.7.0 will be released                 |
+| v1.4.x        | **v1beta1**  | when v1.6.0 will be released                 |
+| v1.3.x        | **v1beta1**  | EOL since 2023-09-27                         |
+| v1.2.x        | **v1beta1**  | EOL since 2023-05-17                         |
+| v1.1.x        | **v1beta1**  | EOL since 2023-05-17                         |
+| v0.5.x        | **v1alpha4** | EOL since 2022-09-30 - API version EOL       |
+| v0.4.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL       |
 
 <!-- markdownlint-enable MD013 -->
 
