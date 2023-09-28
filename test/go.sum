@@ -346,8 +346,8 @@ github.com/metal3-io/baremetal-operator/apis v0.3.1 h1:oc2j80sycyquKCTDjG9VlRvES
 github.com/metal3-io/baremetal-operator/apis v0.3.1/go.mod h1:yDY2x0vBph8L68TCL7GS/DxBkqoHn5bGO0k0bzVuDXY=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.3.0 h1:6w8ZfOlLEIw2ecQ8OGuT5qnX5Yq5a9NEK/fmC58mxGk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.3.0/go.mod h1:Dck2B6BQX3L+AE2Xe+LzrVPP1A/zQkhCU/aSVbsi7Nw=
-github.com/metal3-io/ip-address-manager/api v1.4.2 h1:6+bMlOKUA/raZcinAAUI9D4tdvLgkrtSDUClIbn+HZM=
-github.com/metal3-io/ip-address-manager/api v1.4.2/go.mod h1:rQ+B0dk+4C9hYacdZbJI05TX7m0wTdcoSwU5To9UY7k=
+github.com/metal3-io/ip-address-manager/api v1.4.3 h1:oEEVr1OQE/q562sd9wVOT1zmAOxA/m/gH9yqL+gt+i8=
+github.com/metal3-io/ip-address-manager/api v1.4.3/go.mod h1:rQ+B0dk+4C9hYacdZbJI05TX7m0wTdcoSwU5To9UY7k=
 github.com/miekg/dns v1.0.14/go.mod h1:W1PPwlIAgtquWBMBEV9nkV9Cazfe8ScdGz/Lj7v3Nrg=
 github.com/mitchellh/cli v1.0.0/go.mod h1:hNIlj7HEI86fIcpObd7a0FcrxTWetlwJDGcceTlRvqc=
 github.com/mitchellh/copystructure v1.0.0/go.mod h1:SNtv71yrdKgLRyLFxmLdkAbkKEFWgYaq1OVrnRcwhnw=
