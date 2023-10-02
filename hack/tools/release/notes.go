@@ -193,7 +193,7 @@ func run() int {
 
 	fmt.Printf("The image for this release is: %v\n", latestTag)
 	fmt.Printf("Ironic image tag is capm3-%v\n", latestTag)
-	fmt.Printf("Mariadb image tag is capm3-%\nv", latestTag)
+	fmt.Printf("Mariadb image tag is capm3-%v\n", latestTag)
 	fmt.Println("\n_Thanks to all our contributors!_ 😊")
 
 	return 0
