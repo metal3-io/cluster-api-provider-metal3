@@ -981,6 +981,23 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
 	data := []interface{}{}
 
+	// Bond links
+	for _, link := range networkLinks.Bonds {
+		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, map[string]interface{}{
+			"type":                  "bond",
+			"id":                    link.Id,
+			"mtu":                   link.MTU,
+			"ethernet_mac_address":  macAddress,
+			"bond_mode":             link.BondMode,
+			"bond_xmit_hash_policy": link.BondXmitHashPolicy,
+			"bond_links":            link.BondLinks,
+		})
+	}
+
 	// Ethernet links
 	for _, link := range networkLinks.Ethernets {
 		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
@@ -992,22 +1009,6 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 			"id":                   link.Id,
 			"mtu":                  link.MTU,
 			"ethernet_mac_address": macAddress,
-		})
-	}
-
-	// Bond links
-	for _, link := range networkLinks.Bonds {
-		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
-		if err != nil {
-			return nil, err
-		}
-		data = append(data, map[string]interface{}{
-			"type":                 "bond",
-			"id":                   link.Id,
-			"mtu":                  link.MTU,
-			"ethernet_mac_address": macAddress,
-			"bond_mode":            link.BondMode,
-			"bond_links":           link.BondLinks,
 		})
 	}
 

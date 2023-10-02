@@ -231,6 +231,11 @@ type NetworkDataLinkBond struct {
 	// balance-rr, active-backup, balance-xor, broadcast, balance-tlb, balance-alb, 802.3ad
 	BondMode string `json:"bondMode"`
 
+	// +kubebuilder:validation:Enum="layer2";"layer3+4";"layer2+3"
+	// Selects the transmit hash policy used for port selection in balance-xor and 802.3ad modes
+	// +optional
+	BondXmitHashPolicy string `json:"bondXmitHashPolicy"`
+
 	// Id is the ID of the interface (used for naming)
 	Id string `json:"id"` //nolint:revive,stylecheck
 
@@ -245,6 +250,7 @@ type NetworkDataLinkBond struct {
 	MACAddress *NetworkLinkEthernetMac `json:"macAddress"`
 
 	// BondLinks is the list of links that are part of the bond.
+	// +optional
 	BondLinks []string `json:"bondLinks"`
 }
 
