@@ -15,14 +15,24 @@ Things you should check before making a release:
   [Metal3 release process](https://github.com/metal3-io/metal3-docs/blob/main/processes/releasing.md)
   for high-level process and possible follow-up actions
 - Verify CAPI go module is uplifted in root, `api/` and `test/` go modules and
-  `cluster-api/test` module in `test/` go module. Prior art: [#1157](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1157)
-- Verify controller Go modules use latest corresponding CAPI modules. Prior art: [#1145](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1145)
-- Verify BMO's `apis` and `pkg/hardwareutils` dependencies are the latest. Prior art: [#1163](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1163)
+  `cluster-api/test` module in `test/` go module. Prior art:
+  [#1157](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1157)
+- Verify controller Go modules use latest corresponding CAPI modules. Prior art:
+  [#1145](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1145)
+- Verify BMO's `apis` and `pkg/hardwareutils` dependencies are the latest. Prior
+  art:
+  [#1163](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1163)
 - Uplift IPAM `api` dependency,
-  [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/image_patch.yaml),
-  and [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml). Prior art: [#999](https://github.com/metal3-io/cluster-api-provider-metal3/pull/999)
+  [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/image_patch.yaml)
+  , and
+  [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml)
+  . Prior art:
+  [#999](https://github.com/metal3-io/cluster-api-provider-metal3/pull/999)
 - Verify any other direct or indirect dependency is uplifted to close any
   public vulnerabilities
+
+Use the `./hack/verify-release.sh` script as helper to identify possible
+issues to be addressed before creating any release tags.
 
 ## Permissions
 
@@ -90,8 +100,8 @@ We also need to create one or more tags for the Go modules ecosystem:
 
   **NOTE**: Do not create annotated tags (`-a`, or implicitly via `-m` or `-s`)
   for Go modules. Release notes expects only the main tag to be annotated,
-  otherwise it might create incorrect release notes.
-  Push both of the tags to `origin`.
+  otherwise it might create incorrect release notes. Push both of the tags to
+  `origin`.
 
 ### Release artifacts
 
@@ -128,6 +138,8 @@ Next step is to clean up the release note manually.
   or a new patch release from the latest release branch, uncheck the box for
   latest release.
 - If it is a release candidate (RC) or a pre-release, tick pre-release box.
+- Save the release note as a draft, and have others review it. Use the
+  `./hack/verify-release.sh` script as helper to verify release content.
 - Publish the release.
 
 ## Post-release actions for new release branches
@@ -139,8 +151,10 @@ Some post-release actions are needed if new minor or major branch was created.
 Branch protection rules need to be applied to the new release branch. Copy the
 settings after the previous release branch, with the exception of
 `Required tests` selection. Required tests can only be selected after new
-keywords are implemented in Jenkins JJB, and project-infra, and have been run
+keywords are implemented in Jenkins JJB, and in project-infra, and have been run
 at least once in the PR targeting the branch in question.
+
+NOTE: Branch protection rules need repository `admin` rights to modify.
 
 ### Update README.md and build badges
 
