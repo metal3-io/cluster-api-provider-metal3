@@ -202,6 +202,9 @@ func (src *Metal3DataTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		for k := range dst.Spec.NetworkData.Networks.IPv6 {
 			dst.Spec.NetworkData.Networks.IPv6[k].FromPoolRef = restored.Spec.NetworkData.Networks.IPv6[k].FromPoolRef
 		}
+		for k := range dst.Spec.NetworkData.Links.Bonds {
+			dst.Spec.NetworkData.Links.Bonds[k].BondXmitHashPolicy = restored.Spec.NetworkData.Links.Bonds[k].BondXmitHashPolicy
+		}
 	}
 
 	return nil
@@ -229,6 +232,10 @@ func Convert_v1beta1_NetworkDataIPv4_To_v1alpha5_NetworkDataIPv4(in *v1beta1.Net
 func Convert_v1beta1_FromPool_To_v1alpha5_FromPool(in *v1beta1.FromPool, out *FromPool, s apiconversion.Scope) error {
 	// apiGroup and kind was added with v1beta1.
 	return autoConvert_v1beta1_FromPool_To_v1alpha5_FromPool(in, out, s)
+}
+
+func Convert_v1beta1_NetworkDataLinkBond_To_v1alpha5_NetworkDataLinkBond(in *v1beta1.NetworkDataLinkBond, out *NetworkDataLinkBond, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_NetworkDataLinkBond_To_v1alpha5_NetworkDataLinkBond(in, out, s)
 }
 
 func (src *Metal3DataTemplateList) ConvertTo(dstRaw conversion.Hub) error {

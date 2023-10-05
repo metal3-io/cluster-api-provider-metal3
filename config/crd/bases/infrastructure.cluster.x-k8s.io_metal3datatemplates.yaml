@@ -1196,6 +1196,14 @@ spec:
                               - balance-alb
                               - 802.3ad
                               type: string
+                            bondXmitHashPolicy:
+                              description: Selects the transmit hash policy used for
+                                port selection in balance-xor and 802.3ad modes
+                              enum:
+                              - layer2
+                              - layer3+4
+                              - layer2+3
+                              type: string
                             id:
                               description: Id is the ID of the interface (used for
                                 naming)
@@ -1220,7 +1228,6 @@ spec:
                               maximum: 9000
                               type: integer
                           required:
-                          - bondLinks
                           - bondMode
                           - id
                           - macAddress
