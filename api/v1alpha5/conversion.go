@@ -231,6 +231,11 @@ func Convert_v1beta1_FromPool_To_v1alpha5_FromPool(in *v1beta1.FromPool, out *Fr
 	return autoConvert_v1beta1_FromPool_To_v1alpha5_FromPool(in, out, s)
 }
 
+func Convert_v1beta1_Metal3MachineSpec_To_v1alpha5_Metal3MachineSpec(in *v1beta1.Metal3MachineSpec, out *Metal3MachineSpec, s apiconversion.Scope) error {
+  // ProviderID was added with v1beta1.
+  return autoConvert_v1beta1_Metal3MachineSpec_To_v1alpha5_Metal3MachineSpec(in, out, s)
+}
+
 func (src *Metal3DataTemplateList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.Metal3DataTemplateList)
 	return Convert_v1alpha5_Metal3DataTemplateList_To_v1beta1_Metal3DataTemplateList(src, dst, nil)
