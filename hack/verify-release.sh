@@ -510,10 +510,8 @@ verify_module_group_versions()
             if _module_counts_differ "${module}" "${ver}"; then
                 echo "ERROR: module ${module} has version mismatch!"
                 # print the mismatches
-                {
-                    grep --exclude=hack/tools/go.mod "\b(${mod}|${module}) v" ./**/go.mod \
-                        | grep -v "//\s*indirect"
-                } | sort | uniq
+                grep --exclude=hack/tools/go.mod "\b(${mod}|${module}) v" ./**/go.mod \
+                    | grep -v "//\s*indirect" | sort | uniq
                 echo
             fi
         done
