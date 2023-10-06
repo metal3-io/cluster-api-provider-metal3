@@ -49,6 +49,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	// +kubebuilder:scaffold:imports
 )
@@ -143,6 +144,13 @@ func main() {
 		HealthProbeBindAddress:     healthAddr,
 		Namespace:                  watchNamespace,
 		TLSOpts:                    tlsOptionOverrides,
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&bmov1alpha1.BareMetalHost{},
+				},
+			},
+		},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -262,7 +270,7 @@ func initFlags(fs *pflag.FlagSet) {
 		"The address the health endpoint binds to.",
 	)
 
-	fs.IntVar(&metal3MachineConcurrency, "metal3machine-concurrency", 1,
+	fs.IntVar(&metal3MachineConcurrency, "metal3machine-concurrency", 10,
 		"Number of metal3machines to process simultaneously. WARNING! Currently not safe to set > 1.")
 
 	fs.IntVar(&metal3ClusterConcurrency, "metal3cluster-concurrency", 10,
