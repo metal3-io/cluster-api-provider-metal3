@@ -1554,6 +1554,169 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 	)
 
+	type testCaseMultiReleaseAddressFromM3Pool struct {
+		m3d      *infrav1.Metal3Data
+		poolRef  corev1.TypedLocalObjectReference
+		ipClaims []ipamv1.IPClaim
+	}
+
+	DescribeTable("Test releaseAddressFromM3Pool with multiple namespaces",
+		func(tc testCaseMultiReleaseAddressFromM3Pool) {
+			objects := []client.Object{}
+			for i := range tc.ipClaims {
+				// To make the test entries a bit smaller, we add the
+				// .spec.pool here based on the labels.
+				tc.ipClaims[i].Spec.Pool.Name = tc.ipClaims[i].Labels[PoolLabelName]
+				objects = append(objects, &tc.ipClaims[i])
+			}
+			fake := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
+			dataMgr, err := NewDataManager(fake, tc.m3d,
+				logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+			err = dataMgr.releaseAddressFromM3Pool(
+				context.TODO(), tc.poolRef,
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			for i := range tc.ipClaims {
+				capm3IPClaim := &ipamv1.IPClaim{}
+				claimNamespacedName := types.NamespacedName{
+					Name:      tc.ipClaims[i].Name,
+					Namespace: tc.ipClaims[i].Namespace,
+				}
+
+				err = dataMgr.client.Get(context.TODO(), claimNamespacedName, capm3IPClaim)
+				if tc.ipClaims[i].Namespace != dataMgr.Data.Namespace {
+					// We should not touch other namespaces!
+					Expect(err).To(BeNil())
+				} else if tc.ipClaims[i].Spec.Pool.Name != tc.poolRef.Name {
+					// We should not touch other pools!
+					Expect(err).To(BeNil())
+				} else {
+					Expect(err).To(HaveOccurred())
+					Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				}
+			}
+		},
+		Entry("Singe IPClaim deleted", testCaseMultiReleaseAddressFromM3Pool{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Metal3Data",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaims: []ipamv1.IPClaim{{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "host-0-" + testPoolName,
+					Namespace: namespaceName,
+					Labels: map[string]string{
+						DataLabelName: metal3DataName,
+						PoolLabelName: testPoolName,
+					},
+				},
+			}},
+		}),
+		Entry("Multiple IPClaims related to the same M3D", testCaseMultiReleaseAddressFromM3Pool{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Metal3Data",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+			poolRef: corev1.TypedLocalObjectReference{Name: "first-pool"},
+			ipClaims: []ipamv1.IPClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host-0-" + "first-pool",
+						Namespace: namespaceName,
+						Labels: map[string]string{
+							DataLabelName: metal3DataName,
+							PoolLabelName: "first-pool",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host-0-" + "second-pool",
+						Namespace: namespaceName,
+						Labels: map[string]string{
+							DataLabelName: metal3DataName,
+							PoolLabelName: "second-pool",
+						},
+					},
+				},
+			},
+		}),
+		Entry("Multiple IPClaims in different namespaces exists with different labels", testCaseMultiReleaseAddressFromM3Pool{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Metal3Data",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaims: []ipamv1.IPClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host-0-" + testPoolName,
+						Namespace: namespaceName,
+						Labels: map[string]string{
+							DataLabelName: metal3DataName,
+							PoolLabelName: testPoolName,
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host-1-" + testPoolName,
+						Namespace: "other-namespace",
+						Labels: map[string]string{
+							DataLabelName: "different-dataname",
+							PoolLabelName: testPoolName,
+						},
+					},
+				},
+			},
+		}),
+		Entry("Multiple IPClaims in different namespaces exists with same labels", testCaseMultiReleaseAddressFromM3Pool{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Metal3Data",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaims: []ipamv1.IPClaim{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host-0-" + testPoolName,
+						Namespace: namespaceName,
+						Labels: map[string]string{
+							DataLabelName: metal3DataName,
+							PoolLabelName: testPoolName,
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "host-1-" + testPoolName,
+						Namespace: "other-namespace",
+						Labels: map[string]string{
+							DataLabelName: metal3DataName,
+							PoolLabelName: testPoolName,
+						},
+					},
+				},
+			},
+		}),
+	)
+
 	DescribeTable("ensureM3IPClaim", func(tc testCaseEnsureM3Claim) {
 		bmh := &bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
