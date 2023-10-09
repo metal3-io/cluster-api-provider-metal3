@@ -37,8 +37,9 @@ set -eu
 # we are using plenty of subshell pipes, and catch errors elsewhere
 set +o pipefail
 
-# enable support for **/go.mod
+# enable support for **/go.mod, and make it ignore hack/tools/go.mod
 shopt -s globstar
+GLOBIGNORE=./hack/tools/go.mod
 
 # user input
 VERSION="${1:?release version missing, provide without leading v. Example: 1.5.0}"
@@ -404,7 +405,7 @@ verify_container_images()
 #
 _module_direct_dependencies()
 {
-    # get all required, direct dependencies
+    # get all required, direct dependencies, exclude hack/tools/go.mod
     sed -n '/^require (/,/^)/{/^require (/!{/^)/!p;};}' ./**/go.mod \
         | grep -v "//\s*indirect" | grep -v "^\s*$" \
         | awk '{print $1, $2;}' | sort | uniq
@@ -418,9 +419,9 @@ _module_counts_differ()
     local version="$2"
 
     # shellcheck disable=SC2126
-    mod_count="$(grep --exclude=hack/tools/go.mod "\b${module} v" ./**/go.mod | grep -v "//\s*indirect" | wc -l)"
+    mod_count="$(grep "\b${module} v" ./**/go.mod | grep -v "//\s*indirect" | wc -l)"
     # shellcheck disable=SC2126
-    ver_count="$(grep --exclude=hack/tools/go.mod "\b${module} ${version}" ./**/go.mod | grep -v "//\s*indirect" | wc -l)"
+    ver_count="$(grep "\b${module} ${version}" ./**/go.mod | grep -v "//\s*indirect" | wc -l)"
 
     [[ "${mod_count}" -ne "${ver_count}" ]]
 }
@@ -430,7 +431,7 @@ _module_get_version()
     # get a version of given module, pick first match
     local module="$1"
 
-    grep -h --exclude=hack/tools/go.mod "\b${module}\b" ./**/go.mod \
+    grep -h "\b${module}\b" ./**/go.mod \
         | grep -v "//\s*indirect" | head -1 | awk '{print $2;}'
 }
 
@@ -476,7 +477,7 @@ verify_module_versions()
         # shellcheck disable=SC2310
         if _module_counts_differ "${module}" "${version}"; then
             echo "ERROR: module ${module} has version mismatch!"
-            grep --exclude=hack/tools/go.mod "\b${module} v" ./**/go.mod | grep -v "//\s*indirect"
+            grep "\b${module} v" ./**/go.mod | grep -v "//\s*indirect"
             echo
         fi
     done
@@ -510,7 +511,7 @@ verify_module_group_versions()
             if _module_counts_differ "${module}" "${ver}"; then
                 echo "ERROR: module ${module} has version mismatch!"
                 # print the mismatches
-                grep --exclude=hack/tools/go.mod "\b(${mod}|${module}) v" ./**/go.mod \
+                grep -E "\b(${mod}|${module}) v" ./**/go.mod \
                     | grep -v "//\s*indirect" | sort | uniq
                 echo
             fi
