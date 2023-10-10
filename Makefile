@@ -21,8 +21,9 @@ SHELL:=/usr/bin/env bash
 .DEFAULT_GOAL:=help
 
 GO_VERSION ?= 1.20.8
+GO := $(shell type -P go)
 # Use GOPROXY environment variable if set
-GOPROXY := $(shell go env GOPROXY)
+GOPROXY := $(shell $(GO) env GOPROXY)
 ifeq ($(GOPROXY),)
 GOPROXY := https://proxy.golang.org
 endif
@@ -41,7 +42,7 @@ TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
 
 # Set --output-base for conversion-gen if we are not within GOPATH
-ifneq ($(abspath $(ROOT_DIR)),$(shell go env GOPATH)/src/github.com/metal3-io/cluster-api-provider-metal3)
+ifneq ($(abspath $(ROOT_DIR)),$(shell $(GO) env GOPATH)/src/github.com/metal3-io/cluster-api-provider-metal3)
 	CONVERSION_GEN_OUTPUT_BASE := --output-base=$(ROOT_DIR)
 endif
 
@@ -60,7 +61,7 @@ SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
 GINKGO := "$(ROOT_DIR)/$(TOOLS_BIN_DIR)/ginkgo"
 
 # Helper function to get dependency version from go.mod
-get_go_version = $(shell go list -m $1 | awk '{print $$2}')
+get_go_version = $(shell $(GO) list -m $1 | awk '{print $$2}')
 GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
 ENVTEST_K8S_VERSION := 1.28.x
 
@@ -110,19 +111,19 @@ help:  # Display this help
 .PHONY: unit
 unit: $(SETUP_ENVTEST) ## Run unit test
 	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)) && \
-	go test ./controllers/... ./baremetal/... \
+	$(GO) test ./controllers/... ./baremetal/... \
 		--ginkgo.no-color=$(GINKGO_NOCOLOR) \
 		$(GO_TEST_FLAGS) \
 		$(GINKGO_TEST_FLAGS) \
 		-coverprofile ./cover.out && \
 	cd $(APIS_DIR) && \
-	go test ./... \
+	$(GO) test ./... \
 		$(GO_TEST_FLAGS) \
 		-coverprofile ./cover.out
 
 unit-cover: unit
-	go tool cover -func=./api/cover.out
-	go tool cover -func=./cover.out
+	$(GO) tool cover -func=./api/cover.out
+	$(GO) tool cover -func=./cover.out
 
 unit-verbose: ## Run unit test
 	GO_TEST_FLAGS=-v GINKGO_TEST_FLAGS=-ginkgo.v $(MAKE) unit
@@ -214,15 +215,15 @@ binaries: manager ## Builds and installs all binaries
 
 .PHONY: manager
 manager: ## Build manager binary.
-	go build -o $(BIN_DIR)/manager .
+	$(GO) build -o $(BIN_DIR)/manager .
 
 .PHONY: build-api
 build-api: ## Builds api directory.
-	cd $(APIS_DIR) && go build ./...
+	cd $(APIS_DIR) && $(GO) build ./...
 
 .PHONY: build-e2e
 build-e2e: ## Builds test directory.
-	cd $(TEST_DIR) && go build ./...
+	cd $(TEST_DIR) && $(GO) build ./...
 	
 ## --------------------------------------
 ## Tooling Binaries
@@ -230,7 +231,7 @@ build-e2e: ## Builds test directory.
 ##@ tools:
 
 $(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
 
 $(GOLANGCI_LINT):
 	hack/ensure-golangci-lint.sh $(TOOLS_DIR)/$(BIN_DIR)
@@ -239,25 +240,25 @@ $(GOLANGCI_LINT):
 $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 
 $(MOCKGEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
+	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/mockgen github.com/golang/mock/mockgen
 
 $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
 
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
 $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && \
-	go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
+	$(GO) build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 $(GINKGO): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go get github.com/onsi/ginkgo/v2/ginkgo@$(GINGKO_VER)
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/v2/ginkgo
+	cd $(TOOLS_DIR) && $(GO) get github.com/onsi/ginkgo/v2/ginkgo@$(GINGKO_VER)
+	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/v2/ginkgo
 
 $(ENVSUBST):
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/envsubst-drone github.com/drone/envsubst/cmd/envsubst
+	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/envsubst-drone github.com/drone/envsubst/cmd/envsubst
 	ln -sf envsubst-drone $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)
 
 .PHONY: $(KUSTOMIZE_BIN)
@@ -265,7 +266,7 @@ $(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
 
 .PHONY: $(KUSTOMIZE)
 $(KUSTOMIZE): $(TOOLS_DIR)/go.mod 
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/$(KUSTOMIZE_BIN) sigs.k8s.io/kustomize/kustomize/v5
+	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/$(KUSTOMIZE_BIN) sigs.k8s.io/kustomize/kustomize/v5
 
 .PHONY: $(ENVSUBST_BIN)
 $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
@@ -288,15 +289,15 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 
 # Run go fmt against code
 fmt:
-	go fmt ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR) && go fmt  ./...
-	cd $(TEST_DIR) && go fmt  ./...
+	$(GO) fmt ./controllers/... ./baremetal/... .
+	cd $(APIS_DIR) && $(GO) fmt  ./...
+	cd $(TEST_DIR) && $(GO) fmt  ./...
 
 # Run go vet against code
 vet:
-	go vet ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR) && go vet  ./...
-	cd $(TEST_DIR) && go fmt  ./...
+	$(GO) vet ./controllers/... ./baremetal/... .
+	cd $(APIS_DIR) && $(GO) vet  ./...
+	cd $(TEST_DIR) && $(GO) fmt  ./...
 
 # Run manifest validation
 .PHONY: manifest-lint
@@ -310,14 +311,14 @@ manifest-lint:
 
 .PHONY: modules
 modules: ## Runs go mod to ensure proper vendoring.
-	go mod tidy
-	go mod verify
-	cd $(TOOLS_DIR) && go mod tidy
-	cd $(TOOLS_DIR) && go mod verify
-	cd $(APIS_DIR) && go mod tidy
-	cd $(APIS_DIR) && go mod verify
-	cd $(TEST_DIR) && go mod tidy
-	cd $(TEST_DIR) && go mod verify
+	$(GO) mod tidy
+	$(GO) mod verify
+	cd $(TOOLS_DIR) && $(GO) mod tidy
+	cd $(TOOLS_DIR) && $(GO) mod verify
+	cd $(APIS_DIR) && $(GO) mod tidy
+	cd $(APIS_DIR) && $(GO) mod verify
+	cd $(TEST_DIR) && $(GO) mod tidy
+	cd $(TEST_DIR) && $(GO) mod verify
 
 .PHONY: generate
 generate: ## Generate code
@@ -326,8 +327,8 @@ generate: ## Generate code
 
 .PHONY: generate-go
 generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUSTOMIZE) ## Runs Go related generate targets
-	go generate ./...
-	cd $(APIS_DIR) && go generate ./...
+	$(GO) generate ./...
+	cd $(APIS_DIR) && $(GO) generate ./...
 
 	cd ./api && ../$(CONTROLLER_GEN) \
 		paths=./... \
@@ -527,7 +528,7 @@ release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	if [ -n "${PRE_RELEASE}" ]; then \
 	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/metal3-io/cluster-api-provider-metal3/issues/new/)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	else \
-	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	$(GO) run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	fi
 
 .PHONY: release
