@@ -27,7 +27,6 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -680,130 +679,6 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 		}
 	}
 	return nil
-}
-
-// WaitForHealthCheckCurrentHealthyToMatch waits for current healthy machines watched by healthcheck to match the number given.
-func WaitForHealthCheckCurrentHealthyToMatch(ctx context.Context, cli client.Client, number int32, healthcheck *clusterv1.MachineHealthCheck, timeout, frequency time.Duration) {
-	Eventually(func(g Gomega) int32 {
-		g.Expect(cli.Get(ctx, client.ObjectKeyFromObject(healthcheck), healthcheck)).To(Succeed())
-		return healthcheck.Status.CurrentHealthy
-	}, timeout, frequency).Should(Equal(number))
-}
-
-// WaitForRemediationRequest waits until a remediation request created with healthcheck either exists or is deleted.
-func WaitForRemediationRequest(ctx context.Context, cli client.Client, healthcheckName types.NamespacedName, toExist bool, timeout, frequency time.Duration) {
-	Eventually(func(g Gomega) {
-		remediation := &infrav1.Metal3Remediation{}
-		if toExist {
-			g.Expect(cli.Get(ctx, healthcheckName, remediation)).To(Succeed())
-		} else {
-			g.Expect(cli.Get(ctx, healthcheckName, remediation)).NotTo(Succeed())
-		}
-	}, timeout, frequency).Should(Succeed())
-}
-
-// DeployControlplaneHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate for controlplane machines.
-func DeployControlplaneHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, error) {
-	remediationTemplateName := "controlplane-remediation-request"
-	healthCheckName := "controlplane-healthcheck"
-	matchLabels := map[string]string{
-		"cluster.x-k8s.io/control-plane": "",
-	}
-	healthcheck, err := DeployMachineHealthCheck(ctx, cli, namespace, clusterName, remediationTemplateName, healthCheckName, matchLabels)
-	if err != nil {
-		return nil, fmt.Errorf("creating controlplane healthcheck failed: %w", err)
-	}
-	return healthcheck, nil
-}
-
-// DeployWorkerHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate for worker machines.
-func DeployWorkerHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, error) {
-	remediationTemplateName := "worker-remediation-request"
-	healthCheckName := "worker-healthcheck"
-	matchLabels := map[string]string{
-		"nodepool": "nodepool-0",
-	}
-	healthcheck, err := DeployMachineHealthCheck(ctx, cli, namespace, clusterName, remediationTemplateName, healthCheckName, matchLabels)
-	if err != nil {
-		return nil, fmt.Errorf("creating worker healthcheck failed: %w", err)
-	}
-	return healthcheck, nil
-}
-
-// DeployMachineHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate with given values.
-func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName, remediationTemplateName, healthCheckName string, matchLabels map[string]string) (*clusterv1.MachineHealthCheck, error) {
-	remediationTemplate := infrav1.Metal3RemediationTemplate{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Metal3RemediationTemplate",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      remediationTemplateName,
-			Namespace: namespace,
-		},
-		Spec: infrav1.Metal3RemediationTemplateSpec{
-			Template: infrav1.Metal3RemediationTemplateResource{
-				Spec: infrav1.Metal3RemediationSpec{
-					Strategy: &infrav1.RemediationStrategy{
-						Type:       infrav1.RebootRemediationStrategy,
-						RetryLimit: 1,
-						Timeout:    &metav1.Duration{Duration: time.Second * 300},
-					},
-				},
-			},
-		},
-	}
-
-	err := cli.Create(ctx, &remediationTemplate)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create remediation template: %w", err)
-	}
-
-	healthCheck := &clusterv1.MachineHealthCheck{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "MachineHealthCheck",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      healthCheckName,
-			Namespace: namespace,
-		},
-		Spec: clusterv1.MachineHealthCheckSpec{
-			ClusterName: clusterName,
-			Selector: metav1.LabelSelector{
-				MatchLabels: matchLabels,
-			},
-			UnhealthyConditions: []clusterv1.UnhealthyCondition{
-				{
-					Type:   corev1.NodeReady,
-					Status: corev1.ConditionUnknown,
-					Timeout: metav1.Duration{
-						Duration: time.Second * 300,
-					},
-				},
-				{
-					Type:   corev1.NodeReady,
-					Status: "False",
-					Timeout: metav1.Duration{
-						Duration: time.Second * 300,
-					},
-				},
-			},
-			MaxUnhealthy: &intstr.IntOrString{
-				Type:   intstr.String,
-				StrVal: "100%",
-			},
-			NodeStartupTimeout: &clusterv1.ZeroDuration,
-			RemediationTemplate: &corev1.ObjectReference{
-				Kind:       "Metal3RemediationTemplate",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Name:       remediationTemplateName,
-			},
-		},
-	}
-	err = cli.Create(ctx, healthCheck)
-	if err != nil {
-		return nil, fmt.Errorf("couldn't create healthCheck: %w", err)
-	}
-	return healthCheck, nil
 }
 
 type Metal3LogCollector struct{}
