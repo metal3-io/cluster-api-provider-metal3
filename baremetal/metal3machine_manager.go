@@ -1332,7 +1332,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 	if countNodesWithLabel == 0 {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case.
-		errMessage := fmt.Sprint("requeuing, could not find node with label", "nodelabel", nodeLabel)
+		errMessage := fmt.Sprintf("requeuing, could not find node with label: %s", nodeLabel)
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
