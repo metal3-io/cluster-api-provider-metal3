@@ -196,6 +196,15 @@ func (src *Metal3DataTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 	if dst.Spec.NetworkData != nil && restored.Spec.NetworkData != nil {
+		for k := range dst.Spec.NetworkData.Links.Ethernets {
+			dst.Spec.NetworkData.Links.Ethernets[k].MACAddress = restored.Spec.NetworkData.Links.Ethernets[k].MACAddress
+		}
+		for k := range dst.Spec.NetworkData.Links.Vlans {
+			dst.Spec.NetworkData.Links.Vlans[k].MACAddress = restored.Spec.NetworkData.Links.Vlans[k].MACAddress
+		}
+		for k := range dst.Spec.NetworkData.Links.Bonds {
+			dst.Spec.NetworkData.Links.Bonds[k].MACAddress = restored.Spec.NetworkData.Links.Bonds[k].MACAddress
+		}
 		for k := range dst.Spec.NetworkData.Networks.IPv4 {
 			dst.Spec.NetworkData.Networks.IPv4[k].FromPoolRef = restored.Spec.NetworkData.Networks.IPv4[k].FromPoolRef
 		}
@@ -217,6 +226,11 @@ func (dst *Metal3DataTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	}
 
 	return utilconversion.MarshalData(src, dst)
+}
+
+func Convert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(in *v1beta1.NetworkLinkEthernetMac, out *NetworkLinkEthernetMac, s apiconversion.Scope) error {
+	// fromAnnotation was added with v1betaX.
+	return autoConvert_v1beta1_NetworkLinkEthernetMac_To_v1alpha5_NetworkLinkEthernetMac(in, out, s)
 }
 
 func Convert_v1beta1_NetworkDataIPv6_To_v1alpha5_NetworkDataIPv6(in *v1beta1.NetworkDataIPv6, out *NetworkDataIPv6, s apiconversion.Scope) error {

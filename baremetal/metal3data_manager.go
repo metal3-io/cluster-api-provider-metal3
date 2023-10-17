@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"fmt"
+	"regexp"
 
 	"net"
 	"strconv"
@@ -275,7 +276,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// The NetworkData secret must be created
 	if apierrors.IsNotFound(networkDataErr) {
 		m.Log.Info("Creating Networkdata secret")
-		networkData, err := renderNetworkData(m3dt, bmh, poolAddresses)
+		networkData, err := renderNetworkData(m3dt, m3m, capiMachine, bmh, poolAddresses)
 		if err != nil {
 			return err
 		}
@@ -923,7 +924,8 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolRef corev1
 // renderNetworkData renders the networkData into an object that will be
 // marshalled into the secret.
 func renderNetworkData(m3dt *infrav1.Metal3DataTemplate,
-	bmh *bmov1alpha1.BareMetalHost, poolAddresses map[string]addressFromPool,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
+	poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.NetworkData == nil {
 		return nil, nil
@@ -932,7 +934,7 @@ func renderNetworkData(m3dt *infrav1.Metal3DataTemplate,
 
 	networkData := map[string][]interface{}{}
 
-	networkData["links"], err = renderNetworkLinks(m3dt.Spec.NetworkData.Links, bmh)
+	networkData["links"], err = renderNetworkLinks(m3dt.Spec.NetworkData.Links, m3m, machine, bmh)
 	if err != nil {
 		return nil, err
 	}
@@ -978,12 +980,13 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 }
 
 // renderNetworkLinks renders the different types of links.
-func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
+func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
 	data := []interface{}{}
 
 	// Bond links
 	for _, link := range networkLinks.Bonds {
-		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
+		macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
 		if err != nil {
 			return nil, err
 		}
@@ -1000,7 +1003,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 
 	// Ethernet links
 	for _, link := range networkLinks.Ethernets {
-		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
+		macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
 		if err != nil {
 			return nil, err
 		}
@@ -1014,7 +1017,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 
 	// Vlan links
 	for _, link := range networkLinks.Vlans {
-		macAddress, err := getLinkMacAddress(link.MACAddress, bmh)
+		macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
 		if err != nil {
 			return nil, err
 		}
@@ -1032,7 +1035,8 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink, bmh *bmov1alpha1.B
 }
 
 // renderNetworkNetworks renders the different types of network.
-func renderNetworkNetworks(networks infrav1.NetworkDataNetwork, poolAddresses map[string]addressFromPool,
+func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
+	poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
 	data := []interface{}{}
 
@@ -1232,22 +1236,37 @@ func translateMask(maskInt int, ipv4 bool) interface{} {
 }
 
 // getLinkMacAddress returns the mac address.
-func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac, bmh *bmov1alpha1.BareMetalHost) (
+func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) (
 	string, error,
 ) {
-	macAddress := ""
-	var err error
+	var macaddress, err = "", errors.New("no MAC address given")
 
-	// if a string was given
 	if mac.String != nil {
-		macAddress = *mac.String
-
-		// Otherwise fetch the mac from the interface name
+		// if a string was given
+		macaddress, err = *mac.String, nil
 	} else if mac.FromHostInterface != nil {
-		macAddress, err = getBMHMacByName(*mac.FromHostInterface, bmh)
+		// if a host interface is given
+		macaddress, err = getBMHMacByName(*mac.FromHostInterface, bmh)
+	} else if mac.FromAnnotation != nil {
+		// if an annotation reference is given
+		macaddress, err = getValueFromAnnotation(mac.FromAnnotation.Object,
+			mac.FromAnnotation.Annotation, m3m, machine, bmh)
 	}
 
-	return macAddress, err
+	if err != nil {
+		return "", err
+	}
+
+	matching, err := regexp.MatchString("^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$", macaddress)
+	if err != nil {
+		return "", err
+	}
+	if !matching {
+		return "", fmt.Errorf("bad mac address: %s", macaddress)
+	}
+
+	return macaddress, nil
 }
 
 // renderMetaData renders the MetaData items.
@@ -1339,16 +1358,12 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 
 	// Annotations
 	for _, entry := range m3dt.Spec.MetaData.FromAnnotations {
-		switch strings.ToLower(entry.Object) {
-		case m3machine:
-			metadata[entry.Key] = m3m.Annotations[entry.Annotation]
-		case capimachine:
-			metadata[entry.Key] = machine.Annotations[entry.Annotation]
-		case host:
-			metadata[entry.Key] = bmh.Annotations[entry.Annotation]
-		default:
-			return nil, errors.New("Unknown object type")
+		value, err := getValueFromAnnotation(entry.Object,
+			entry.Annotation, m3m, machine, bmh)
+		if err != nil {
+			return nil, err
 		}
+		metadata[entry.Key] = value
 	}
 
 	// Strings
@@ -1371,6 +1386,21 @@ func getBMHMacByName(name string, bmh *bmov1alpha1.BareMetalHost) (string, error
 		}
 	}
 	return "", fmt.Errorf("nic name not found %v", name)
+}
+
+// getValueFromAnnotation returns an annotation from an object representing a machine.
+func getValueFromAnnotation(object string, annotation string,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) (string, error) {
+	switch strings.ToLower(object) {
+	case m3machine:
+		return m3m.Annotations[annotation], nil
+	case capimachine:
+		return machine.Annotations[annotation], nil
+	case host:
+		return bmh.Annotations[annotation], nil
+	default:
+		return "", errors.New("Unknown object type")
+	}
 }
 
 func (m *DataManager) getM3Machine(ctx context.Context, m3dt *infrav1.Metal3DataTemplate) (*infrav1.Metal3Machine, error) {

@@ -630,7 +630,9 @@ spec:
         id: "enp1s0"
         mtu: 1500
         macAddress:
-          fromHostInterface: "eth0"
+          fromAnnotation:
+            object: machine
+            annotation: primary-mac
       - type: "phy"
         id: "enp2s0"
         mtu: 1500
@@ -791,6 +793,9 @@ The **links/ethernets/type** can be one of :
 The **links/ethernets/macAddress** object can be one of:
 
 - **string**: with the desired Mac given as a string
+- **fromAnnotation**: with the desired Mac retrieved from an annotation. It
+  takes an `object` attribute to specify the type of the object where to fetch
+  the annotation, and an `annotation` attribute that contains the annotation key.
 - **fromHostInterface**: with the interface name from BareMetalHost hardware
   details.
 
