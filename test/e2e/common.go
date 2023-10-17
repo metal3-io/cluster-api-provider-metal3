@@ -583,6 +583,7 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 	return "", fmt.Errorf("no matching Metal3Machine found for current Machine")
 }
 
+// MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
 func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
 	err := cli.Get(ctx, types.NamespacedName{
@@ -630,6 +631,7 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 	return string(IPAddress.Spec.Address), nil
 }
 
+// RunCommand runs a command via ssh. If logfolder is "", no logs are saved.
 func runCommand(logFolder, filename, machineIP, user, command string) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -661,7 +663,6 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 	if err != nil {
 		return fmt.Errorf("couldn't open a new session: %w", err)
 	}
-	logFile := path.Join(logFolder, filename)
 	var stdoutBuf bytes.Buffer
 	var stderrBuf bytes.Buffer
 	session.Stdout = &stdoutBuf
@@ -670,14 +671,19 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 		return fmt.Errorf("unable to send command %q: %w", "sudo "+command, err)
 	}
 	result := strings.TrimSuffix(stdoutBuf.String(), "\n") + "\n" + strings.TrimSuffix(stderrBuf.String(), "\n")
-	if err := os.WriteFile(logFile, []byte(result), 0400); err != nil {
-		return fmt.Errorf("error writing log file: %w", err)
+	if logFolder != "" {
+		// Write logs is folder path is provided.
+		logFile := path.Join(logFolder, filename)
+		if err := os.WriteFile(logFile, []byte(result), 0400); err != nil {
+			return fmt.Errorf("error writing log file: %w", err)
+		}
 	}
 	return nil
 }
 
 type Metal3LogCollector struct{}
 
+// CollectMachineLog collects specific logs from machines.
 func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Client, m *clusterv1.Machine, outputPath string) error {
 	VMName, err := MachineToVMName(ctx, cli, m)
 	if err != nil {
