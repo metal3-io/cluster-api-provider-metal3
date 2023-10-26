@@ -33,7 +33,7 @@ EOF
     IFS=" " read -ra go_version <<< "$(go version)"
     local minimum_go_version
     minimum_go_version=go1.20
-    if [[ "${minimum_go_version}" != $(echo -e "${minimum_go_version}\n${go_version[2]}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) && "${go_version[2]}" != "devel" ]]; then
+    if [[ "${minimum_go_version}" != $(echo -e "${minimum_go_version}\n${go_version[2]}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]] && [[ "${go_version[2]}" != "devel" ]]; then
         cat << EOF
 Detected go version: ${go_version[*]}.
 Kubernetes requires ${minimum_go_version} or greater.
