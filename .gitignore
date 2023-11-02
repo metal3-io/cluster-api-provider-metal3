@@ -40,6 +40,11 @@ releasenotes
 # goland
 .idea
 
+# Common editor / temporary files
+*~
+*.tmp
+.DS_Store
+
 bin/*
 hack/tools/bin/*
 examples/_out/*
