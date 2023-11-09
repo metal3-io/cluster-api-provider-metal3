@@ -52,7 +52,7 @@ const (
 	testUserDataSecretName    = "worker-user-data"
 	testMetaDataSecretName    = "worker-metadata"
 	testNetworkDataSecretName = "worker-network-data"
-	kcpName                   = "kcp-pool1"
+	cpName                    = "cp-pool1"
 )
 
 var Bmhuid = types.UID("4d25a2c2-46e4-11ec-81d3-0242ac130003")
@@ -561,11 +561,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 		}
-		hostWithNodeReuseLabelSetToKCP := bmov1alpha1.BareMetalHost{
+		hostWithNodeReuseLabelSetToCP := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "hostWithNodeReuseLabelSetToKCP",
+				Name:      "hostWithNodeReuseLabelSetToCP",
 				Namespace: namespaceName,
-				Labels:    map[string]string{nodeReuseLabelName: "kcp-test1"},
+				Labels:    map[string]string{nodeReuseLabelName: "cp-test1"},
 			},
 			Spec: bmov1alpha1.BareMetalHostSpec{},
 			Status: bmov1alpha1.BareMetalHostStatus{
@@ -578,7 +578,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hostWithNodeReuseLabelStateNone",
 				Namespace: namespaceName,
-				Labels:    map[string]string{nodeReuseLabelName: "kcp-test1"},
+				Labels:    map[string]string{nodeReuseLabelName: "cp-test1"},
 			},
 			Spec: bmov1alpha1.BareMetalHostSpec{},
 			Status: bmov1alpha1.BareMetalHostStatus{
@@ -654,7 +654,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Expect(result.Name).To(Equal(tc.ExpectedHostName))
 				}
 			},
-			Entry("Pick hostWithNodeReuseLabelSetToKCP, which has a matching nodeReuseLabelName", testCaseChooseHost{
+			Entry("Pick hostWithNodeReuseLabelSetToCP, which has a matching nodeReuseLabelName", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      machineName,
@@ -675,9 +675,9 @@ var _ = Describe("Metal3Machine manager", func() {
 						InfrastructureRef: *infrastructureRef,
 					},
 				},
-				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithNodeReuseLabelSetToKCP}},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithOtherConsRef, *availableHost, hostWithNodeReuseLabelSetToCP}},
 				M3Machine:        m3mconfig,
-				ExpectedHostName: hostWithNodeReuseLabelSetToKCP.Name,
+				ExpectedHostName: hostWithNodeReuseLabelSetToCP.Name,
 			}),
 			Entry("Requeu hostWithNodeReuseLabelStateNone, which has a matching nodeReuseLabelName", testCaseChooseHost{
 				Machine: &clusterv1.Machine{
@@ -757,7 +757,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					ExpectedHostName: hostWithLabel.Name,
 				},
 			),
-			Entry("Choose hosts with a nodeReuseLabelName set to KCP, even without a label selector",
+			Entry("Choose hosts with a nodeReuseLabelName set to CP, even without a label selector",
 				testCaseChooseHost{
 					Machine: &clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{
@@ -779,9 +779,9 @@ var _ = Describe("Metal3Machine manager", func() {
 							InfrastructureRef: *infrastructureRef,
 						},
 					},
-					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithNodeReuseLabelSetToKCP}},
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithNodeReuseLabelSetToCP}},
 					M3Machine:        m3mconfig,
-					ExpectedHostName: hostWithNodeReuseLabelSetToKCP.Name,
+					ExpectedHostName: hostWithNodeReuseLabelSetToCP.Name,
 				},
 			),
 			Entry("Choose the host with the right label", testCaseChooseHost{
@@ -3981,15 +3981,15 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "kcp-test1",
+					Name: "cp-test1",
 					Labels: map[string]string{
-						nodeReuseLabelName: "kcp-test1",
+						nodeReuseLabelName: "cp-test1",
 						"foo":              "bar",
 					},
 				},
 			},
 			expectNodeReuseLabel:     true,
-			expectNodeReuseLabelName: "kcp-test1",
+			expectNodeReuseLabelName: "cp-test1",
 			expectMatch:              true,
 		}),
 		Entry("Should return false if nodeReuseLabelName is empty for host", testCaseNodeReuseLabelMatches{
@@ -4010,7 +4010,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "kcp-test1",
+					Name: "cp-test1",
 					Labels: map[string]string{
 						nodeReuseLabelName: "",
 					},
@@ -4037,7 +4037,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "kcp-test1",
+					Name: "cp-test1",
 					Labels: map[string]string{
 						nodeReuseLabelName: "abc",
 					},
@@ -4117,7 +4117,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Host: &bmov1alpha1.BareMetalHost{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						nodeReuseLabelName: kcpName,
+						nodeReuseLabelName: cpName,
 						"foo":              "bar",
 					},
 				},
@@ -4146,15 +4146,15 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 	)
 
-	type testCaseGetKubeadmControlPlaneName struct {
-		Machine         *clusterv1.Machine
-		expectedKcp     bool
-		expectedKcpName string
-		expectError     bool
+	type testCaseGetControlPlaneName struct {
+		Machine        *clusterv1.Machine
+		expectedCp     bool
+		expectedCpName string
+		expectError    bool
 	}
 
-	DescribeTable("Test getKubeadmControlPlaneName",
-		func(tc testCaseGetKubeadmControlPlaneName) {
+	DescribeTable("Test getControlPlaneName",
+		func(tc testCaseGetControlPlaneName) {
 			objects := []client.Object{}
 			if tc.Machine != nil {
 				objects = append(objects, tc.Machine)
@@ -4165,19 +4165,19 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			result, err := machineMgr.getKubeadmControlPlaneName(context.TODO())
+			result, err := machineMgr.getControlPlaneName(context.TODO())
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			if tc.expectedKcp {
-				Expect(result).To(Equal(tc.expectedKcpName))
+			if tc.expectedCp {
+				Expect(result).To(Equal(tc.expectedCpName))
 			}
 
 		},
-		Entry("Should find the expected kcp", testCaseGetKubeadmControlPlaneName{
+		Entry("Should find the expected cp", testCaseGetControlPlaneName{
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
@@ -4189,25 +4189,27 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 			},
-			expectError:     false,
-			expectedKcp:     true,
-			expectedKcpName: "kcp-test1",
+			expectError:    false,
+			expectedCp:     true,
+			expectedCpName: "cp-test1",
 		}),
-		Entry("Should not find the expected kcp, kind is not correct", testCaseGetKubeadmControlPlaneName{
+		Entry("Should find the expected ControlPlane for any Kind/Provider", testCaseGetControlPlaneName{
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							APIVersion: controlplanev1.GroupVersion.String(),
-							Kind:       "kcp",
+							Kind:       "AnyControlPlane",
 							Name:       "test1",
 						},
 					},
 				},
 			},
-			expectError: true,
+			expectError:    false,
+			expectedCp:     true,
+			expectedCpName: "cp-test1",
 		}),
-		Entry("Should not find the expected kcp, API version is not correct", testCaseGetKubeadmControlPlaneName{
+		Entry("Should not find the expected cp, API version is not correct", testCaseGetControlPlaneName{
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: []metav1.OwnerReference{
@@ -4221,11 +4223,11 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			expectError: true,
 		}),
-		Entry("Should not find the expected kcp and error when machine is nil", testCaseGetKubeadmControlPlaneName{
+		Entry("Should not find the expected cp and error when machine is nil", testCaseGetControlPlaneName{
 			Machine:     nil,
 			expectError: true,
 		}),
-		Entry("Should give an error if Machine.ObjectMeta.OwnerReferences is nil", testCaseGetKubeadmControlPlaneName{
+		Entry("Should give an error if Machine.ObjectMeta.OwnerReferences is nil", testCaseGetControlPlaneName{
 			Machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					OwnerReferences: nil,
