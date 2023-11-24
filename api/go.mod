@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/google/gofuzz v1.2.0
-	github.com/metal3-io/ip-address-manager/api v1.5.1
+	github.com/metal3-io/ip-address-manager/api v1.5.2
 	github.com/onsi/gomega v1.30.0
 	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.18.0
@@ -61,8 +61,8 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 //indirect
-	k8s.io/apiextensions-apiserver v0.27.7 // indirect
-	k8s.io/component-base v0.27.7 // indirect
+	k8s.io/apiextensions-apiserver v0.27.8 // indirect
+	k8s.io/component-base v0.27.8 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect

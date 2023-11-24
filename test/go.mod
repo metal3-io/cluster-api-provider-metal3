@@ -5,15 +5,15 @@ go 1.20
 require (
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.4.0
+	github.com/metal3-io/baremetal-operator/apis v0.4.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.5.1
+	github.com/metal3-io/ip-address-manager/api v1.5.2
 	github.com/onsi/ginkgo/v2 v2.13.1
 	github.com/onsi/gomega v1.30.0
 	golang.org/x/crypto v0.15.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.27.8
-	k8s.io/apiextensions-apiserver v0.27.7
+	k8s.io/apiextensions-apiserver v0.27.8
 	k8s.io/apimachinery v0.27.8
 	k8s.io/client-go v0.27.8
 	k8s.io/utils v0.0.0-20230209194617-a36077c30491
@@ -78,7 +78,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.4.0 // indirect
+	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.4.1 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -122,9 +122,9 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gotest.tools/v3 v3.5.0 // indirect
-	k8s.io/apiserver v0.27.7 // indirect
+	k8s.io/apiserver v0.27.8 // indirect
 	k8s.io/cluster-bootstrap v0.27.7 // indirect
-	k8s.io/component-base v0.27.7 // indirect
+	k8s.io/component-base v0.27.8 // indirect
 	k8s.io/klog/v2 v2.90.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230501164219-8b0f38b5fd1f // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
