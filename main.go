@@ -34,8 +34,11 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -48,9 +51,12 @@ import (
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -70,7 +76,6 @@ var (
 	myscheme                         = runtime.NewScheme()
 	setupLog                         = ctrl.Log.WithName("setup")
 	waitForMetal3Controller          = false
-	metricsBindAddr                  string
 	enableLeaderElection             bool
 	leaderElectionLeaseDuration      time.Duration
 	leaderElectionRenewDeadline      time.Duration
@@ -93,6 +98,7 @@ var (
 	logOptions                       = logs.NewOptions()
 	enableBMHNameBasedPreallocation  bool
 	tlsOptions                       = TLSOptions{}
+	diagnosticsOptions               = flags.DiagnosticsOptions{}
 	tlsSupportedVersions             = []string{TLSVersion12, TLSVersion13}
 )
 
@@ -104,8 +110,11 @@ func init() {
 	_ = infrav1alpha5.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = bmov1alpha1.AddToScheme(myscheme)
-	// +kubebuilder:scaffold:scheme
 }
+
+// Add RBAC for the authorized diagnostics endpoint.
+// +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
+// +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
@@ -129,28 +138,57 @@ func main() {
 		setupLog.Error(err, "unable to add TLS settings to the webhook server")
 		os.Exit(1)
 	}
+
+	diagnosticsOpts := flags.GetDiagnosticsOptions(diagnosticsOptions)
+
+	var watchNamespaces map[string]cache.Config
+	if watchNamespace != "" {
+		watchNamespaces = map[string]cache.Config{
+			watchNamespace: {},
+		}
+	}
+
+	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
+	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
+
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     myscheme,
-		MetricsBindAddress:         metricsBindAddr,
 		LeaseDuration:              &leaderElectionLeaseDuration,
 		RenewDeadline:              &leaderElectionRenewDeadline,
 		RetryPeriod:                &leaderElectionRetryPeriod,
 		LeaderElection:             enableLeaderElection,
 		LeaderElectionID:           "controller-leader-election-capm3",
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-		SyncPeriod:                 &syncPeriod,
-		Port:                       webhookPort,
-		CertDir:                    webhookCertDir,
 		HealthProbeBindAddress:     healthAddr,
-		Namespace:                  watchNamespace,
-		TLSOpts:                    tlsOptionOverrides,
+		Metrics:                    diagnosticsOpts,
+		Cache: cache.Options{
+			DefaultNamespaces: watchNamespaces,
+			SyncPeriod:        &syncPeriod,
+			ByObject: map[client.Object]cache.ByObject{
+				// Note: Only Secrets with the cluster name label are cached.
+				// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
+				// The cached secrets will only be used by the secretCachingClient we create below.
+				&corev1.Secret{}: {
+					Label: clusterSecretCacheSelector,
+				},
+			},
+		},
 		Client: client.Options{
 			Cache: &client.CacheOptions{
 				DisableFor: []client.Object{
 					&bmov1alpha1.BareMetalHost{},
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
 				},
 			},
 		},
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port:    webhookPort,
+				CertDir: webhookCertDir,
+				TLSOpts: tlsOptionOverrides,
+			},
+		),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -185,13 +223,6 @@ func main() {
 func initFlags(fs *pflag.FlagSet) {
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logsv1.AddFlags(logOptions, fs)
-
-	fs.StringVar(
-		&metricsBindAddr,
-		"metrics-bind-addr",
-		"localhost:8080",
-		"The address the metric endpoint binds to.",
-	)
 
 	fs.BoolVar(
 		&enableLeaderElection,
@@ -313,6 +344,8 @@ func initFlags(fs *pflag.FlagSet) {
 			"If omitted, the default Go cipher suites will be used. \n"+
 			"Preferred values: "+strings.Join(tlsCipherPreferredValues, ", ")+". \n"+
 			"Insecure values: "+strings.Join(tlsCipherInsecureValues, ", ")+".")
+
+	flags.AddDiagnosticsOptions(fs, &diagnosticsOptions)
 }
 
 func waitForAPIs(cfg *rest.Config) error {

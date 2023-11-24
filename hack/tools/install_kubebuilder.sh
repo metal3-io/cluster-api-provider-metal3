@@ -3,7 +3,7 @@
 [[ -f bin/kubebuilder ]] && exit 0
 
 # kubebuilder version
-kb_version=3.2.0
+kb_version=3.13.0
 
 mkdir -p ./bin
 cd ./bin || exit

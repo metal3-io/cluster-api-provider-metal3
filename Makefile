@@ -390,16 +390,16 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
-	cd $(APIS_DIR) && ../$(CONTROLLER_GEN) \
-		paths=./... \
-		crd:crdVersions=v1 \
-		output:crd:dir=../$(CRD_ROOT) \
-		output:webhook:dir=../$(WEBHOOK_ROOT) \
-		webhook
 	$(CONTROLLER_GEN) \
+		paths=./ \
+		paths=./api/... \
 		paths=./controllers/... \
+		crd:crdVersions=v1 \
+		rbac:roleName=manager-role \
+		output:crd:dir=$(CRD_ROOT) \
 		output:rbac:dir=$(RBAC_ROOT) \
-		rbac:roleName=manager-role
+		output:webhook:dir=$(WEBHOOK_ROOT) \
+		webhook
 
 .PHONY: generate-examples
 generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.

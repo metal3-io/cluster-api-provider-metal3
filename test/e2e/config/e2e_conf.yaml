@@ -95,7 +95,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.5.99
+  - name: v1.6.99
     value: "${PWD}/config/default"
     files:
     - sourcePath: "../data/infrastructure-metal3/main/metadata.yaml"
