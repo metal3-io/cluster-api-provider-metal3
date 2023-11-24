@@ -10,9 +10,9 @@ require (
 	github.com/onsi/ginkgo/v2 v2.9.2
 	github.com/onsi/gomega v1.27.5
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.26.1
-	k8s.io/apimachinery v0.26.1
-	k8s.io/client-go v0.26.1
+	k8s.io/api v0.26.9
+	k8s.io/apimachinery v0.26.9
+	k8s.io/client-go v0.26.9
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
 	sigs.k8s.io/cluster-api v1.4.8
 	sigs.k8s.io/cluster-api/test v1.4.8
@@ -75,7 +75,7 @@ require (
 	github.com/mattn/go-isatty v0.0.17 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.3.0 // indirect
-	github.com/metal3-io/ip-address-manager/api v1.4.3 // indirect
+	github.com/metal3-io/ip-address-manager/api v1.4.4 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
@@ -117,10 +117,10 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/apiextensions-apiserver v0.26.1 // indirect
-	k8s.io/apiserver v0.26.1 // indirect
+	k8s.io/apiextensions-apiserver v0.26.9 // indirect
+	k8s.io/apiserver v0.26.9 // indirect
 	k8s.io/cluster-bootstrap v0.25.4 // indirect
-	k8s.io/component-base v0.26.1 // indirect
+	k8s.io/component-base v0.26.9 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221205233837-bacb3aba404b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
