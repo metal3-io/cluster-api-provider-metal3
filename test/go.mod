@@ -8,7 +8,7 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.4.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.5.2
-	github.com/onsi/ginkgo/v2 v2.13.1
+	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	golang.org/x/crypto v0.16.0
 	gopkg.in/yaml.v3 v3.0.1
