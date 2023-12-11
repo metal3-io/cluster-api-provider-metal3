@@ -296,7 +296,7 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
-	flag.StringVar(&tlsOptions.TLSMinVersion, "tls-min-version", TLSVersion12,
+	fs.StringVar(&tlsOptions.TLSMinVersion, "tls-min-version", TLSVersion12,
 		"The minimum TLS version in use by the webhook server.\n"+
 			fmt.Sprintf("Possible values are %s.", strings.Join(tlsSupportedVersions, ", ")),
 	)
