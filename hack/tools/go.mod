@@ -8,7 +8,7 @@ require (
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	k8s.io/code-generator v0.28.4
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20230510161459-7571f4b9a942
-	sigs.k8s.io/controller-tools v0.12.1
+	sigs.k8s.io/controller-tools v0.13.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.2.1
 	sigs.k8s.io/testing_frameworks v0.1.2
 )
@@ -47,8 +47,8 @@ require (
 	github.com/stretchr/testify v1.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/atomic v1.10.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
@@ -60,9 +60,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.27.7 // indirect
-	k8s.io/apiextensions-apiserver v0.27.7 // indirect
-	k8s.io/apimachinery v0.27.7 // indirect
+	k8s.io/api v0.28.0 // indirect
+	k8s.io/apiextensions-apiserver v0.28.0 // indirect
+	k8s.io/apimachinery v0.28.0 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20230717233707-2695361300d9 // indirect

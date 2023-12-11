@@ -23,6 +23,8 @@ spec:
           args:
             - "--webhook-port=9443"
             - "--enableBMHNameBasedPreallocation=${enableBMHNameBasedPreallocation:=false}"
+            - "--diagnostics-address=${CAPM3_DIAGNOSTICS_ADDRESS:=:8443}"
+            - "--insecure-diagnostics=${CAPM3_INSECURE_DIAGNOSTICS:=false}"
           image: controller:latest
           imagePullPolicy: IfNotPresent
           name: manager
@@ -37,6 +39,9 @@ spec:
           ports:
             - containerPort: 9440
               name: healthz
+              protocol: TCP
+            - containerPort: 8443
+              name: metrics
               protocol: TCP
           readinessProbe:
             httpGet:
