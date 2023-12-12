@@ -56,6 +56,7 @@ var (
  *
  * Node Reuse:
  * This test verifies the feature of reusing the same node after upgrading Kubernetes version in KubeadmControlPlane (KCP) and MachineDeployment (MD) nodes.
+ * Note that while other controlplane providers are expected to work only KubeadmControlPlane is currently tested.
  * - The test starts with a cluster containing 3 KCP (Kubernetes control plane) nodes and 1 MD (MachineDeployment) node.
  * - The control plane nodes are untainted to allow scheduling new pods on them.
  * - The MachineDeployment is scaled down to 0 replicas, ensuring that all worker nodes will be deprovisioned. This provides 1 BMH (BareMetalHost) available for reuse during the upgrade.

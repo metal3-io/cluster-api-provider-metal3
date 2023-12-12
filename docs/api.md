@@ -535,7 +535,7 @@ When `spec.nodeReuse` field of metal3MachineTemplate is set to `True`, CAPM3
 Machine controller:
 
 - Sets `infrastructure.cluster.x-k8s.io/node-reuse` label to the corresponding
-  CAPI object name (`KubeadmControlPlane` or `MachineDeployment`) on the
+  CAPI object name (a `controlplane.cluster.x-k8s.io` object such as `KubeadmControlPlane` or a `MachineDeployment`) on the
   BareMetalHost during deprovisioning;
 - Selects the BareMetalHost that contains
   `infrastructure.cluster.x-k8s.io/node-reuse` label and matches exact same CAPI
