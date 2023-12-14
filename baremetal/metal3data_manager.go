@@ -702,14 +702,15 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 		return addressFromPool{}, true, errors.New("no claim provided")
 	}
 
-	if !ipClaim.DeletionTimestamp.IsZero() {
-		// Is it "our" ipClaim, or does it belong to an old and deleted Metal3Data with the same name?
-		matchingOwnerRef := false
-		for _, ownerRef := range ipClaim.OwnerReferences {
-			if ownerRef.UID == m.Data.GetUID() {
-				matchingOwnerRef = true
-			}
+	// Is it "our" ipClaim, or does it belong to an old and deleted Metal3Data with the same name?
+	matchingOwnerRef := false
+	for _, ownerRef := range ipClaim.OwnerReferences {
+		if ownerRef.UID == m.Data.GetUID() {
+			matchingOwnerRef = true
 		}
+	}
+
+	if !ipClaim.DeletionTimestamp.IsZero() {
 		if !matchingOwnerRef {
 			// It is not our IPClaim so we should not use it. Attempt to remove finalizer if it is still there.
 			m.Log.Info("Found old IPClaim with deletion timestamp. Attempting to clean up and requeue.", "IPClaim", ipClaim)
@@ -723,6 +724,12 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 			return addressFromPool{}, true, nil
 		}
 		m.Log.Info("IPClaim has deletion timestamp but is still in use!", "IPClaim", ipClaim)
+	} else if !matchingOwnerRef {
+		// It is not our IPClaim, but it does not appear to be deleting either.
+		// This could happen due to misconfiguration (nameclash) or because the IPClaim
+		// just didn't get the deletionTimestamp before the new Metal3Data was created (race condition).
+		m.Log.Info("Found IPClaim with same name but different UID. Requeing and hoping it will go away.", "IPClaim", ipClaim)
+		return addressFromPool{}, true, nil
 	}
 
 	if ipClaim.Status.ErrorMessage != nil {
