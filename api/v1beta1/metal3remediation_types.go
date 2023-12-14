@@ -121,5 +121,5 @@ type Metal3RemediationList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metal3Remediation{}, &Metal3RemediationList{})
+	objectTypes = append(objectTypes, &Metal3Remediation{}, &Metal3RemediationList{})
 }
