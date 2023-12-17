@@ -46,6 +46,8 @@ type Metal3DataClaimStatus struct {
 // +kubebuilder:resource:path=metal3dataclaims,scope=Namespaced,categories=cluster-api,shortName=m3dc;m3dataclaim;m3dataclaims;metal3dc;metal3dataclaim
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3DataClaim"
 // Metal3DataClaim is the Schema for the metal3datas API.
 type Metal3DataClaim struct {

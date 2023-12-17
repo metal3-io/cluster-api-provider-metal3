@@ -42,6 +42,7 @@ spec:
       jsonPath: .status.phase
       name: Phase
       type: string
+    deprecated: true
     name: v1alpha5
     schema:
       openAPIV3Schema:
@@ -93,7 +94,7 @@ spec:
                 type: integer
             type: object
         type: object
-    served: true
+    served: false
     storage: false
     subresources:
       status: {}
