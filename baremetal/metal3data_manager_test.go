@@ -1384,15 +1384,55 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectRequeue: false,
 		}),
+		Entry("Old IPClaim (wrong UID) without deletion timestamp", testCaseAddressFromM3Claim{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, "abc-def-ghi-jkl"),
+			},
+			poolName: testPoolName,
+			poolRef:  corev1.TypedLocalObjectReference{Name: testPoolName},
+			ipClaim: &ipamv1.IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       metal3DataName + "-" + testPoolName,
+					Namespace:  namespaceName,
+					Finalizers: []string{"ipclaim.ipam.metal3.io"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "Metal3Data",
+							Name: metal3DataName,
+							UID:  "not-the-same",
+						},
+					},
+				},
+				Status: ipamv1.IPClaimStatus{
+					Address: &corev1.ObjectReference{
+						Name:      "abc-192.168.0.10",
+						Namespace: namespaceName,
+					},
+				},
+			},
+			expectRequeue: true,
+			expectError:   false,
+		}),
 		Entry("IPPool with allocation error", testCaseAddressFromM3Claim{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, "123-456-789"),
 			},
 			poolName:        testPoolName,
 			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
 			expectedAddress: addressFromPool{},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       metal3DataName + "-" + testPoolName,
+					Namespace:  namespaceName,
+					Finalizers: []string{"ipclaim.ipam.metal3.io"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "Metal3Data",
+							Name: metal3DataName,
+							UID:  "123-456-789",
+						},
+					},
+				},
 				Status: ipamv1.IPClaimStatus{
 					ErrorMessage: pointer.String("Error happened"),
 				},
@@ -1427,7 +1467,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("IPAddress found", testCaseAddressFromM3Claim{
 			m3d: &infrav1.Metal3Data{
-				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, "123-456-789"),
 				Spec: infrav1.Metal3DataSpec{
 					Template: *testObjectReference(metal3DataTemplateName),
 				},
@@ -1443,7 +1483,18 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			ipClaim: &ipamv1.IPClaim{
-				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       metal3DataName + "-" + testPoolName,
+					Namespace:  namespaceName,
+					Finalizers: []string{"ipclaim.ipam.metal3.io"},
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "Metal3Data",
+							Name: metal3DataName,
+							UID:  "123-456-789",
+						},
+					},
+				},
 				Status: ipamv1.IPClaimStatus{
 					Address: &corev1.ObjectReference{
 						Name:      "abc-192.168.0.10",
