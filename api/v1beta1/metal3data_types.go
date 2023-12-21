@@ -94,5 +94,5 @@ type Metal3DataList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metal3Data{}, &Metal3DataList{})
+	objectTypes = append(objectTypes, &Metal3Data{}, &Metal3DataList{})
 }

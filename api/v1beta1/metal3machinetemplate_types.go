@@ -58,7 +58,7 @@ type Metal3MachineTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metal3MachineTemplate{}, &Metal3MachineTemplateList{})
+	objectTypes = append(objectTypes, &Metal3MachineTemplate{}, &Metal3MachineTemplateList{})
 }
 
 // Metal3MachineTemplateResource describes the data needed to create a Metal3Machine from a template.

@@ -576,5 +576,5 @@ type Metal3DataTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metal3DataTemplate{}, &Metal3DataTemplateList{})
+	objectTypes = append(objectTypes, &Metal3DataTemplate{}, &Metal3DataTemplateList{})
 }

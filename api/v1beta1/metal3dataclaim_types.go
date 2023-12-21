@@ -73,5 +73,5 @@ type Metal3DataClaimList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metal3DataClaim{}, &Metal3DataClaimList{})
+	objectTypes = append(objectTypes, &Metal3DataClaim{}, &Metal3DataClaimList{})
 }

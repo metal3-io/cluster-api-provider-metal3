@@ -66,5 +66,5 @@ type Metal3RemediationTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metal3RemediationTemplate{}, &Metal3RemediationTemplateList{})
+	objectTypes = append(objectTypes, &Metal3RemediationTemplate{}, &Metal3RemediationTemplateList{})
 }

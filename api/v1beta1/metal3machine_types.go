@@ -209,5 +209,5 @@ func (c *Metal3Machine) SetConditions(conditions clusterv1.Conditions) {
 }
 
 func init() {
-	SchemeBuilder.Register(&Metal3Machine{}, &Metal3MachineList{})
+	objectTypes = append(objectTypes, &Metal3Machine{}, &Metal3MachineList{})
 }
