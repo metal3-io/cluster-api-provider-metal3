@@ -19,11 +19,7 @@ package v1alpha5
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
-	"golang.org/x/net/context"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 )
 
 func TestSpecIsValid(t *testing.T) {
@@ -159,44 +155,4 @@ func TestSpecIsValid(t *testing.T) {
 			t.Errorf("Got unexpected error from case \"%v\": %v", tc.Name, err)
 		}
 	}
-}
-
-func TestStorageMetal3MachineSpec(t *testing.T) {
-	key := types.NamespacedName{
-		Name:      "foo",
-		Namespace: "default",
-	}
-
-	created := &Metal3Machine{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-		},
-		Spec: Metal3MachineSpec{
-			UserData: &corev1.SecretReference{
-				Name: "foo",
-			},
-		},
-	}
-
-	g := gomega.NewGomegaWithT(t)
-
-	// Test Create
-	fetched := &Metal3Machine{}
-	g.Expect(c.Create(context.TODO(), created)).NotTo(gomega.HaveOccurred())
-
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(fetched).To(gomega.Equal(created))
-
-	// Test Updating the Labels
-	updated := fetched.DeepCopy()
-	updated.Labels = map[string]string{"hello": "world"}
-	g.Expect(c.Update(context.TODO(), updated)).NotTo(gomega.HaveOccurred())
-
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(fetched).To(gomega.Equal(updated))
-
-	// Test Delete
-	g.Expect(c.Delete(context.TODO(), fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(c.Get(context.TODO(), key, fetched)).To(gomega.HaveOccurred())
 }

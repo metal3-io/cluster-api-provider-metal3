@@ -27,6 +27,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1alpha5
     schema:
       openAPIV3Schema:
@@ -133,7 +134,7 @@ spec:
                 x-kubernetes-map-type: atomic
             type: object
         type: object
-    served: true
+    served: false
     storage: false
     subresources:
       status: {}

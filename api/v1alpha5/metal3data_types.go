@@ -63,6 +63,8 @@ type Metal3DataStatus struct {
 // +kubebuilder:resource:path=metal3datas,scope=Namespaced,categories=cluster-api,shortName=m3d;m3data;m3datas;metal3d;metal3data
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3Data"
 // Metal3Data is the Schema for the metal3datas API.
 type Metal3Data struct {

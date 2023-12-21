@@ -84,6 +84,8 @@ type Metal3ClusterStatus struct {
 // +kubebuilder:resource:path=metal3clusters,scope=Namespaced,categories=cluster-api,shortName=m3c;m3cluster;m3clusters;metal3c;metal3cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
+// +kubebuilder:deprecatedversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3Cluster"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="metal3Cluster is Ready"
 // +kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.failureReason",description="Most recent error"
