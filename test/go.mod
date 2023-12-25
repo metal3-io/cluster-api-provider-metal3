@@ -12,10 +12,10 @@ require (
 	github.com/onsi/gomega v1.30.0
 	golang.org/x/crypto v0.17.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.28.4
+	k8s.io/api v0.28.5
 	k8s.io/apiextensions-apiserver v0.28.4
-	k8s.io/apimachinery v0.28.4
-	k8s.io/client-go v0.28.4
+	k8s.io/apimachinery v0.28.5
+	k8s.io/client-go v0.28.5
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
 	sigs.k8s.io/cluster-api v1.6.0
 	sigs.k8s.io/cluster-api/test v1.6.0
