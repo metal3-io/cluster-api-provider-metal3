@@ -15,7 +15,7 @@ export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-main}"
 # location according to CAPM3(since CAPM3 minor versions are aligned to CAPI
 # minors versions) release branch
 
-if [[ ${CAPM3RELEASEBRANCH} == "release-1.3" ]]  || [[ ${CAPM3RELEASEBRANCH} == "release-1.4" ]]; then
+if [[ ${CAPM3RELEASEBRANCH} == "release-1.4" ]]; then
     export CAPI_CONFIG_FOLDER="${HOME}/.cluster-api"
 else
     # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set

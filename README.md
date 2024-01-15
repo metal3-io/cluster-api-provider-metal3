@@ -28,6 +28,7 @@ Metal3.
 | v1beta1       | v1beta1             | v1.3.X        |  v1.3.X        |
 | v1beta1       | v1beta1             | v1.4.X        |  v1.4.X        |
 | v1beta1       | v1beta1             | v1.5.X        |  v1.5.X        |
+| v1beta1       | v1beta1             | v1.6.X        |  v1.6.X        |
 
 ## Deploying the metal3 provider
 
@@ -61,7 +62,7 @@ need to be manually installed. Example flow of installing Metal3 provider:
    provider name as follows:
 
    ```shell
-   clusterctl init --infrastructure metal3:v1.5.0
+   clusterctl init --infrastructure metal3:v1.6.0
    ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install
@@ -139,6 +140,13 @@ To trigger e2e test on a PR, use the following phrases:
 - **/test-centos-e2e-integration-main** runs integration e2e tests with CAPM3
   API version v1beta1 and branch main on CentOS
 
+Release-1.6 branch:
+
+- **/test-ubuntu-e2e-integration-release-1-6** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.6 on Ubuntu
+- **/test-centos-e2e-integration-release-1-6** runs integration e2e tests with CAPM3
+  API version v1beta1 and branch release-1.6 on CentOS
+
 Release-1.5 branch:
 
 - **/test-ubuntu-e2e-integration-release-1-5** runs integration e2e tests with CAPM3
@@ -153,17 +161,11 @@ Release-1.4 branch:
 - **/test-centos-e2e-integration-release-1-4** runs integration e2e tests with CAPM3
   API version v1beta1 and branch release-1.4 on CentOS
 
-Release-1.3 branch:
-
-- **/test-ubuntu-e2e-integration-release-1-3** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.3 on Ubuntu
-- **/test-centos-e2e-integration-release-1-3** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.3 on CentOS
-
 ## Basic tests
 
-Unlike integration tests, basic tests focus on the target cluster creation without involving pivoting from the bootstrap cluster.
-To run basic tests, replace `integration` with `basic` for instance:
+Unlike integration tests, basic tests focus on the target cluster creation
+without involving pivoting from the bootstrap cluster. To run basic tests,
+replace `integration` with `basic` for instance:
 
 - **/test-ubuntu-e2e-basic-main** runs basic e2e tests with main branch on Ubuntu
 
@@ -184,6 +186,13 @@ in multiple VMs by creating an independent VM for each test spec:
 - **/parallel-test-centos-e2e-feature-main** runs e2e feature tests in parallel
   with CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.6 branch:
+
+- **/test-ubuntu-e2e-feature-release-1-6** runs e2e feature tests with CAPM3 API
+  version v1beta1 and branch release-1.6 on Ubuntu
+- **/test-centos-e2e-feature-release-1-6** runs e2e feature tests with CAPM3 API
+  version v1beta1 and branch release-1.6 on CentOS
+
 Release-1.5 branch:
 
 - **/test-ubuntu-e2e-feature-release-1-5** runs e2e feature tests with CAPM3 API
@@ -197,13 +206,6 @@ Release-1.4 branch:
   version v1beta1 and branch release-1.4 on Ubuntu
 - **/test-centos-e2e-feature-release-1-4** runs e2e feature tests with CAPM3 API
   version v1beta1 and branch release-1.4 on CentOS
-
-Release-1.3 branch:
-
-- **/test-ubuntu-e2e-feature-release-1-3** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.3 on Ubuntu
-- **/test-centos-e2e-feature-release-1-3** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.3 on CentOS
 
 ### Upgrade tests
 
@@ -229,6 +231,10 @@ We run upgrade test on main branch from different releases:
 
 - **/test-e2e-upgrade-main-from-release-1-5** runs e2e upgrade tests from CAPM3
   API version v1beta1/branch release-1.5 to CAPM3 API version v1beta1/branch
+  main on Ubuntu
+
+- **/test-e2e-upgrade-main-from-release-1-6** runs e2e upgrade tests from CAPM3
+  API version v1beta1/branch release-1.6 to CAPM3 API version v1beta1/branch
   main on Ubuntu
 
 ### Keep VM
