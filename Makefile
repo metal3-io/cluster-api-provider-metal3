@@ -394,6 +394,10 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
 
+.PHONY: generate-examples-clusterclass
+generate-examples-clusterclass: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.
+	CLUSTER_TOPOLOGY=true ./examples/generate.sh
+
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
@@ -471,11 +475,24 @@ deploy: generate-examples
 	kubectl apply -f examples/_out/provider-components.yaml
 	kubectl apply -f examples/_out/metal3crds.yaml
 
+deploy-clusterclass: generate-examples-clusterclass
+	kubectl apply -f examples/_out/cert-manager.yaml
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-cainjector
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-webhook
+	kubectl apply -f examples/_out/provider-components.yaml
+	kubectl apply -f examples/_out/metal3crds.yaml
+
 deploy-examples:
 	kubectl apply -f ./examples/_out/metal3plane.yaml
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml
+
+deploy-examples-clusterclass:
+	kubectl apply -f ./examples/_out/metal3plane.yaml
+	kubectl apply -f ./examples/_out/clusterclass.yaml
+	kubectl apply -f ./examples/_out/cluster.yaml
 
 delete-examples:
 	kubectl delete -f ./examples/_out/machinedeployment.yaml || true
@@ -483,6 +500,10 @@ delete-examples:
 	kubectl delete -f ./examples/_out/cluster.yaml || true
 	kubectl delete -f ./examples/_out/metal3plane.yaml || true
 
+delete-examples-clusterclass:
+	kubectl delete -f ./examples/_out/cluster.yaml || true
+	kubectl delete -f ./examples/_out/clusterclass.yaml || true
+	kubectl delete -f ./examples/_out/metal3plane.yaml || true
 
 ## --------------------------------------
 ## Release
@@ -536,6 +557,10 @@ kind-create: ## create capm3 kind cluster if needed
 .PHONY: tilt-settings
 tilt-settings:
 	./hack/gen_tilt_settings.sh
+
+.PHONY: tilt-settings-clusterclass
+tilt-settings-clusterclass:
+	CLUSTER_TOPOLOGY=true ./hack/gen_tilt_settings.sh
 
 .PHONY: tilt-up
 tilt-up: $(ENVSUBST) $(KUSTOMIZE) kind-create ## start tilt and build kind cluster if needed

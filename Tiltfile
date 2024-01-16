@@ -69,26 +69,68 @@ def deploy_capi():
             core_extra_args = extra_args.get("core")
             if core_extra_args:
                 for namespace in ["capi-system", "capi-webhook-system"]:
-                    patch_args_with_extra_args(namespace, "capi-controller-manager", core_extra_args)
+                    patch_args_with_extra_args(namespace, "capi-controller-manager", core_extra_args, 1)
                 patch_capi_manager_role_with_exp_infra_rbac()
         if extra_args.get("kubeadm-bootstrap"):
             kb_extra_args = extra_args.get("kubeadm-bootstrap")
             if kb_extra_args:
-                patch_args_with_extra_args("capi-kubeadm-bootstrap-system", "capi-kubeadm-bootstrap-controller-manager", kb_extra_args)
+                patch_args_with_extra_args("capi-kubeadm-bootstrap-system", "capi-kubeadm-bootstrap-controller-manager", kb_extra_args, 1)
+        if extra_args.get("feature_gates"):
+            feature_gates = extra_args.get("feature_gates")
+            if feature_gates:
+                for gate in feature_gates:
+                    set_feature_gate("capi-system", "capi-controller-manager", gate, feature_gates[gate], 0)
+                    set_feature_gate("capi-kubeadm-control-plane-system", "capi-kubeadm-control-plane-controller-manager", gate, feature_gates[gate], 0)
 
-
-def patch_args_with_extra_args(namespace, name, extra_args):
-    args_str = str(local('kubectl get deployments {} -n {} -o jsonpath={{.spec.template.spec.containers[1].args}}'.format(name, namespace)))
+def patch_args_with_extra_args(namespace, name, extra_args, container):
+    args_str = str(local('kubectl get deployments {} -n {} -o jsonpath={{.spec.template.spec.containers[{}].args}}'.format(name, namespace, container)))
     args_to_add = [arg for arg in extra_args if arg not in args_str]
     if args_to_add:
         args = args_str[1:-1].split()
         args.extend(args_to_add)
         patch = [{
             "op": "replace",
-            "path": "/spec/template/spec/containers/1/args",
+            "path": "/spec/template/spec/containers/" + str(container) + "/args",
             "value": args,
         }]
         local("kubectl patch deployment {} -n {} --type json -p='{}'".format(name, namespace, str(encode_json(patch)).replace("\n", "")))
+
+def set_feature_gate(namespace, name, feature_gate, value, container):
+    args_str = str(local('kubectl get deployments {} -n {} -o jsonpath={{.spec.template.spec.containers[{}].args}}'.format(name, namespace, container)))
+    args = args_str[2:-2].split("\",\"")
+    print("args")
+    print(args)
+
+    args_to_add = []
+    for arg in args:
+        print("arg")
+        print(arg)
+        lower_arg = arg.lower()
+        feature_gate_lower = feature_gate.lower()
+        start = lower_arg.find(feature_gate_lower)
+        if start > -1:
+            end =  lower_arg.find(",", start)
+            if end < -1:
+                end = len(lower_arg)-1
+            new_arg = arg[:start] + feature_gate + "=" + value + arg[end:]
+            print(new_arg)
+            args_to_add.append(new_arg)
+        else:
+            args_to_add.append(arg)
+    
+    print("args_to_add")
+    print(args_to_add)
+    if len(args_to_add) > 0:
+        patches = []
+        for i in range(0, len(args_to_add)):
+            patch = [{
+                "op": "replace",
+                "path": "/spec/template/spec/containers/" + str(container) + "/args/" + str(i),
+                "value": args_to_add[i],
+            }]
+            print("patch")
+            print(patch)
+            local("kubectl patch deployment {} -n {} --type json -p='{}'".format(name, namespace, str(encode_json(patch)).replace("\n", "")))
 
 
 # patch the CAPI manager role to also provide access to experimental infrastructure
