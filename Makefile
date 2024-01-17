@@ -58,7 +58,8 @@ KUSTOMIZE := $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)
 ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
-GINKGO := "$(ROOT_DIR)/$(TOOLS_BIN_DIR)/ginkgo"
+GINKGO_BIN := ginkgo
+GINKGO := "$(ROOT_DIR)/$(TOOLS_BIN_DIR)/$(GINKGO_BIN)"
 
 # Helper function to get dependency version from go.mod
 get_go_version = $(shell $(GO) list -m $1 | awk '{print $$2}')
@@ -252,9 +253,13 @@ $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && \
 	$(GO) build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
 
+.PHONY: $(GINKGO_BIN)
+$(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
+
+.PHONY: $(GINKGO)
 $(GINKGO): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && $(GO) get github.com/onsi/ginkgo/v2/ginkgo@$(GINGKO_VER)
-	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/v2/ginkgo
+	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/$(GINKGO_BIN) github.com/onsi/ginkgo/v2/ginkgo
 
 $(ENVSUBST):
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
