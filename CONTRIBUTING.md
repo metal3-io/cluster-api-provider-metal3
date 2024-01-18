@@ -145,8 +145,9 @@ is defined above.
 
 | Minor Release | API Version  | Supported Until                              |
 | ------------- | ------------ | -------------------------------------------- |
+| v1.6.x        | **v1beta1**  | when v1.8.0 will be released                 |
 | v1.5.x        | **v1beta1**  | when v1.7.0 will be released                 |
-| v1.4.x        | **v1beta1**  | when v1.6.0 will be released                 |
+| v1.4.x        | **v1beta1**  | EOL since 2024-01-10                         |
 | v1.3.x        | **v1beta1**  | EOL since 2023-09-27                         |
 | v1.2.x        | **v1beta1**  | EOL since 2023-05-17                         |
 | v1.1.x        | **v1beta1**  | EOL since 2023-05-17                         |
