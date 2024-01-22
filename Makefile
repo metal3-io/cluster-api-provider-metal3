@@ -38,8 +38,8 @@ ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TOOLS_DIR := hack/tools
 APIS_DIR := api
 TEST_DIR := test
-TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
+TOOLS_BIN_DIR :=  $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(ROOT_DIR)),$(shell $(GO) env GOPATH)/src/github.com/metal3-io/cluster-api-provider-metal3)
@@ -59,7 +59,8 @@ ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
 SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
 GINKGO_BIN := ginkgo
-GINKGO := "$(ROOT_DIR)/$(TOOLS_BIN_DIR)/$(GINKGO_BIN)"
+GINKGO := $(TOOLS_BIN_DIR)/$(GINKGO_BIN)
+GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
 
 # Helper function to get dependency version from go.mod
 get_go_version = $(shell $(GO) list -m $1 | awk '{print $$2}')
@@ -257,9 +258,8 @@ $(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
 $(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
 
 .PHONY: $(GINKGO)
-$(GINKGO): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && $(GO) get github.com/onsi/ginkgo/v2/ginkgo@$(GINGKO_VER)
-	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/$(GINKGO_BIN) github.com/onsi/ginkgo/v2/ginkgo
+$(GINKGO):
+	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(GINKGO_PKG)@$(GINGKO_VER)
 
 $(ENVSUBST):
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
@@ -284,13 +284,13 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v --timeout=10m
-	cd $(APIS_DIR) && ../$(GOLANGCI_LINT) run -v --timeout=10m
-	cd $(TEST_DIR) && ../$(GOLANGCI_LINT) run -v --timeout=10m
+	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --timeout=10m
+	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --timeout=10m
 
 lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
-	cd $(APIS_DIR) && ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
-	cd $(TEST_DIR) && ../$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run go fmt against code
 fmt:
@@ -335,7 +335,7 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 	$(GO) generate ./...
 	cd $(APIS_DIR) && $(GO) generate ./...
 
-	cd ./api && ../$(CONTROLLER_GEN) \
+	cd ./api && $(CONTROLLER_GEN) \
 		paths=./... \
 		object:headerFile=../hack/boilerplate/boilerplate.generatego.txt
 
