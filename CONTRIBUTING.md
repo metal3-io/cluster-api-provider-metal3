@@ -44,8 +44,9 @@ Commit message should contain signed off section with full name and email. For e
   Signed-off-by: John Doe <jdoe@example.com>
  ```
 
-When making commits, include the `-s` flag and `Signed-off-by` section will be automatically
-added to your commit message. If you want GPG signing too, add the `-S` flag alongside `-s`.
+When making commits, include the `-s` flag and `Signed-off-by` section
+will be automatically added to your commit message. If you want GPG
+signing too, add the `-S` flag alongside `-s`.
 
 ```bash
   # Signing off commit
