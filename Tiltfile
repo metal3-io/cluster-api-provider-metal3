@@ -133,7 +133,8 @@ FROM golang:1.20 as tilt-helper
 # Support live reloading with Tilt
 RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
     wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-    chmod +x /start.sh && chmod +x /restart.sh
+    chmod +x /start.sh && chmod +x /restart.sh && \
+    touch /process.txt && chmod 0777 /process.txt
 """
 
 tilt_dockerfile_header = """
@@ -141,6 +142,7 @@ FROM gcr.io/distroless/base:debug as tilt
 WORKDIR /
 COPY --from=tilt-helper /start.sh .
 COPY --from=tilt-helper /restart.sh .
+COPY --from=tilt-helper /process.txt .
 COPY manager .
 """
 
