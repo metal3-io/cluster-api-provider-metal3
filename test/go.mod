@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/test
 
-go 1.20
+go 1.21
 
 require (
 	github.com/docker/docker v24.0.7+incompatible
