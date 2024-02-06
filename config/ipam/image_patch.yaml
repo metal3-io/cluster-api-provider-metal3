@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ipam-controller-manager
-  namespace: capm3-system
+  namespace: ipam-provider-m3-system
 spec:
   template:
     spec:
