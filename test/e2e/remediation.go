@@ -6,19 +6,17 @@ import (
 	"os/exec"
 	"strings"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -213,7 +211,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 		bmhs, err := GetAllBmhs(ctx, bootstrapClient, input.Namespace)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(FilterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
-		g.Expect(FilterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(HaveLen(0))
+		g.Expect(FilterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(BeEmpty())
 	}, input.E2EConfig.GetIntervals(input.SpecName, "monitor-provisioning")...).Should(Succeed())
 
 	Logf("Annotating BMH as healthy and waiting for them all to be provisioned")

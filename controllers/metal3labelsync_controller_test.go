@@ -21,7 +21,6 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
-
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
@@ -50,7 +49,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 	DescribeTable("Build Label Sync Set",
 		func(tc TestCaseBuildLabelSyncSet) {
 			got := buildLabelSyncSet(tc.PrefixSet, tc.Labels)
-			Expect(reflect.DeepEqual(got, tc.ExpectedResult)).To(Equal(true),
+			Expect(reflect.DeepEqual(got, tc.ExpectedResult)).To(BeTrue(),
 				"Expected %v but got %v", tc.ExpectedResult, got)
 		},
 		Entry("Single label case", TestCaseBuildLabelSyncSet{
@@ -129,8 +128,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
-				Expect(reflect.DeepEqual(prefixSet, tc.ExpectedResult)).To(Equal(true),
-					"Expected %v but got %v", tc.ExpectedResult, prefixSet)
+				Expect(reflect.DeepEqual(prefixSet, tc.ExpectedResult)).To(BeTrue(), "Expected %v but got %v", tc.ExpectedResult, prefixSet)
 			}
 		},
 		Entry("Parse single prefix", TestCaseParsePrefixAnnotation{
@@ -178,8 +176,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			hostLabelSyncSet := buildLabelSyncSet(tc.PrefixSet, tc.Host.Labels)
 			nodeLabelSyncSet := buildLabelSyncSet(tc.PrefixSet, tc.Node.Labels)
 			synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet, tc.Node)
-			Expect(reflect.DeepEqual(tc.Node.Labels, tc.ExpectedResult)).To(Equal(true),
-				"Expected %v but got %v", tc.ExpectedResult, tc.Node.Labels)
+			Expect(reflect.DeepEqual(tc.Node.Labels, tc.ExpectedResult)).To(BeTrue(), "Expected %v but got %v", tc.ExpectedResult, tc.Node.Labels)
 		},
 		Entry("Label exists, do nothing", TestCaseSynchronizeLabelSyncSetsOnNode{
 			PrefixSet: map[string]struct{}{
@@ -317,8 +314,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			}
 			obj := client.Object(tc.M3Cluster)
 			reqs := r.Metal3ClusterToBareMetalHosts(context.Background(), obj)
-			Expect(reflect.DeepEqual(reqs, tc.ExpectRequests)).To(Equal(true),
-				"Expected %v but got %v", tc.ExpectRequests, reqs)
+			Expect(reflect.DeepEqual(reqs, tc.ExpectRequests)).To(BeTrue(), "Expected %v but got %v", tc.ExpectRequests, reqs)
 		},
 		Entry("Metal3Cluster To BareMetalHost",
 			TestCaseMetal3ClusterToBMHs{

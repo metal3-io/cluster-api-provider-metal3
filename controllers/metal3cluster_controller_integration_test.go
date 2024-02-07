@@ -19,19 +19,17 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
-
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
-
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -81,7 +79,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.RequeueExpected {
-				Expect(res.Requeue).NotTo(BeFalse())
+				Expect(res.Requeue).To(BeTrue())
 				Expect(res.RequeueAfter).To(Equal(requeueAfter))
 			} else {
 				Expect(res.Requeue).To(BeFalse())

@@ -21,13 +21,12 @@ import (
 	"errors"
 
 	"github.com/go-logr/logr"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"github.com/golang/mock/gomock"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	utils "k8s.io/utils/pointer"
@@ -86,12 +85,12 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 			reqs := r.Metal3MachinesToMetal3MachineTemplate(context.Background(), obj)
 
 			if tc.ExpectRequest {
-				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+				Expect(reqs).To(HaveLen(1), "Expected 1 request, found %d", len(reqs))
 				Expect(tc.M3Machine.Annotations[clonedFromName]).To(Equal(tc.M3MTemplate.Name))
 				Expect(tc.M3Machine.Annotations[clonedFromGroupKind]).To(Equal(infrav1.ClonedFromGroupKind))
 				Expect(tc.M3Machine.Namespace).To(Equal(tc.M3MTemplate.Namespace))
 			} else {
-				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+				Expect(reqs).To(BeEmpty(), "Expected 0 request, found %d", len(reqs))
 			}
 		},
 		Entry("Reconciliation should not be requested due to missing reference to a template",

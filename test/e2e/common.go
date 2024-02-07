@@ -61,14 +61,14 @@ func Logf(format string, a ...interface{}) {
 
 func LogFromFile(logFile string) {
 	data, err := os.ReadFile(filepath.Clean(logFile))
-	Expect(err).To(BeNil(), "No log file found")
+	Expect(err).ToNot(HaveOccurred(), "No log file found")
 	Logf(string(data))
 }
 
 // return only the boolean value from ParseBool.
 func getBool(s string) bool {
 	b, err := strconv.ParseBool(s)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	return b
 }
 
@@ -98,7 +98,7 @@ func getSha256Hash(filename string) ([]byte, error) {
 	}
 	defer func() {
 		err := file.Close()
-		Expect(err).To(BeNil(), fmt.Sprintf("Error closing file: %s", filename))
+		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error closing file: %s", filename))
 	}()
 	hash := sha256.New()
 	_, err = io.Copy(hash, file)
@@ -156,15 +156,15 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	} else if os.IsNotExist(err) {
 		Logf("Local image %v is not found \nDownloading..", rawImagePath)
 		err = DownloadFile(imagePath, fmt.Sprintf("%s/%s", imageLocation, imageName))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		cmd := exec.Command("qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
 		err = cmd.Run()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		sha256sum, err := getSha256Hash(rawImagePath)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		formattedSha256sum := fmt.Sprintf("%x", sha256sum)
 		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0544) //#nosec G306:gosec
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Logf("Image: %v downloaded", rawImagePath)
 	} else {
 		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)
@@ -190,7 +190,7 @@ func DownloadFile(filePath string, url string) error {
 	}
 	defer func() {
 		err := out.Close()
-		Expect(err).To(BeNil(), fmt.Sprintf("Error closing file: %s", filePath))
+		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error closing file: %s", filePath))
 	}()
 
 	// Write the body to file
@@ -263,11 +263,11 @@ func ScaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 		ClusterName: clusterName,
 		Namespace:   namespace,
 	})
-	Expect(len(machineDeployments)).To(Equal(1), "Expected exactly 1 MachineDeployment")
+	Expect(machineDeployments).To(HaveLen(1), "Expected exactly 1 MachineDeployment")
 	machineDeploy := machineDeployments[0]
 	patch := []byte(fmt.Sprintf(`{"spec": {"replicas": %d}}`, newReplicas))
 	err := clusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
-	Expect(err).To(BeNil(), "Failed to patch workers MachineDeployment")
+	Expect(err).ToNot(HaveOccurred(), "Failed to patch workers MachineDeployment")
 }
 
 // ScaleKubeadmControlPlane scales up/down KubeadmControlPlane object to desired replicas.
@@ -275,7 +275,7 @@ func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.
 	ctrlplane := controlplanev1.KubeadmControlPlane{}
 	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
 	helper, err := patch.NewHelper(&ctrlplane, c)
-	Expect(err).To(BeNil(), "Failed to create new patch helper")
+	Expect(err).ToNot(HaveOccurred(), "Failed to create new patch helper")
 
 	ctrlplane.Spec.Replicas = pointer.Int32Ptr(int32(newReplicaCount))
 	Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
@@ -283,7 +283,7 @@ func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.
 
 func DeploymentRolledOut(ctx context.Context, clientSet *kubernetes.Clientset, name string, namespace string, desiredGeneration int64) bool {
 	deploy, err := clientSet.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	if deploy != nil {
 		// When the number of replicas is equal to the number of available and updated
 		// replicas, we know that only "new" pods are running. When we also

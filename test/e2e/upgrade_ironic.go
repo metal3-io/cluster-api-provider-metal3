@@ -5,10 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type upgradeIronicInput struct {
@@ -38,7 +37,7 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 
 	By("Upgrading ironic image based containers")
 	deploy, err := clientSet.AppsV1().Deployments(ironicNamespace).Get(ctx, ironicDeployName, metav1.GetOptions{})
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	for i, container := range deploy.Spec.Template.Spec.Containers {
 		switch container.Name {
 		case
@@ -51,14 +50,14 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 	}
 
 	_, err = clientSet.AppsV1().Deployments(ironicNamespace).Update(ctx, deploy, metav1.UpdateOptions{})
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	By("Waiting for ironic update to rollout")
 	Eventually(func() bool {
 		return DeploymentRolledOut(ctx, clientSet, ironicDeployName, ironicNamespace, deploy.Status.ObservedGeneration+1)
 	},
 		input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...,
-	).Should(Equal(true))
+	).Should(BeTrue())
 
 	By("IRONIC CONTAINERS UPGRADE TESTS PASSED!")
 }

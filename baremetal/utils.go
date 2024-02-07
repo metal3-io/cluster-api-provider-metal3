@@ -23,7 +23,6 @@ import (
 
 	// comment for go-lint.
 	"github.com/go-logr/logr"
-
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -94,24 +93,24 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object)
 	return err
 }
 
-func updateObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.UpdateOption) error {
-	err := cl.Update(ctx, obj.DeepCopyObject().(client.Object), opts...)
+func updateObject(ctx context.Context, cl client.Client, obj client.Object) error {
+	err := cl.Update(ctx, obj.DeepCopyObject().(client.Object))
 	if apierrors.IsConflict(err) {
 		return WithTransientError(errors.New("Update object conflicts"), requeueAfter)
 	}
 	return err
 }
 
-func createObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.CreateOption) error {
-	err := cl.Create(ctx, obj.DeepCopyObject().(client.Object), opts...)
+func createObject(ctx context.Context, cl client.Client, obj client.Object) error {
+	err := cl.Create(ctx, obj.DeepCopyObject().(client.Object))
 	if apierrors.IsAlreadyExists(err) {
 		return WithTransientError(errors.New("Object already exists"), requeueAfter)
 	}
 	return err
 }
 
-func deleteObject(ctx context.Context, cl client.Client, obj client.Object, opts ...client.DeleteOption) error {
-	err := cl.Delete(ctx, obj.DeepCopyObject().(client.Object), opts...)
+func deleteObject(ctx context.Context, cl client.Client, obj client.Object) error {
+	err := cl.Delete(ctx, obj.DeepCopyObject().(client.Object))
 	if apierrors.IsNotFound(err) {
 		return nil
 	}

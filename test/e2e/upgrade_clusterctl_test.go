@@ -114,7 +114,7 @@ var _ = Describe(fmt.Sprintf("When testing cluster upgrade from releases %s > cu
 		cmd.Dir = workDir
 		output, err := cmd.CombinedOutput()
 		Logf("Applying bmh to metal3 namespace : \n %v", string(output))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		// wait for all bmh to become available
 		bootstrapClient := bootstrapClusterProxy.GetClient()
 		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
@@ -136,7 +136,7 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 		cmd := exec.Command("bash", "-c", "kubectl krew update; kubectl krew install split-yaml")
 		output, err := cmd.CombinedOutput()
 		Logf("Download split-yaml:\n %v", string(output))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	}
 
 	// Split the <fileName> file into <resourceName>.yaml files based on the name of each resource and return list of the filename created
@@ -147,7 +147,7 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 		cmd.Dir = filePath
 		output, err := cmd.CombinedOutput()
 		Logf("splitting %s%s file into multiple files: \n %v", filePath, fileName, string(output))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		return strings.Split(string(output), "\n")
 	}
 
@@ -165,7 +165,7 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 			cmd.Dir = workDir
 			output, err := cmd.CombinedOutput()
 			Logf("Remove existing bmhs:\n %v", string(output))
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
 			for i := 0; i < 4; i++ {
@@ -193,7 +193,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 	installCertManager := func(clusterProxy framework.ClusterProxy) {
 		certManagerLink := fmt.Sprintf("https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml", e2eConfig.GetVariable("CERT_MANAGER_RELEASE"))
 		err := DownloadFile("/tmp/certManager.yaml", certManagerLink)
-		Expect(err).To(BeNil(), "Unable to download certmanager manifest")
+		Expect(err).ToNot(HaveOccurred(), "Unable to download certmanager manifest")
 		certManagerYaml, err := os.ReadFile("/tmp/certManager.yaml")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(clusterProxy.Apply(ctx, certManagerYaml)).ShouldNot(HaveOccurred())
@@ -213,7 +213,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 	cmd = exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
 	Logf("%s\n", stdoutStderr)
-	Expect(er).To(BeNil(), "Cannot fetch target cluster kubeconfig")
+	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 	// install certmanager
 	installCertManager(clusterProxy)
 	// Remove ironic
@@ -354,7 +354,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 			stdoutStderr, err := cmd.CombinedOutput()
 			fmt.Printf("%s\n", stdoutStderr)
-			Expect(err).To(BeNil(), "Cannot run local ironic")
+			Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 		} else {
 			By("Install Ironic in the source cluster as deployments")
 			installIronicBMO(ctx, func() installIronicBMOInput {

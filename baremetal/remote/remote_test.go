@@ -95,7 +95,7 @@ users:
 		It("should create a non-nil client when given valid kubeconfig", func() {
 			client := fake.NewClientBuilder().WithRuntimeObjects(validSecret).Build()
 			c, err := NewClusterClient(context.TODO(), client, clusterWithValidKubeConfig)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(c).To(Not(BeNil()))
 		})
 		It("should error with not found message with no cluster kubeconfig", func() {

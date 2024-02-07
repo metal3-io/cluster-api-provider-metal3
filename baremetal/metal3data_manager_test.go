@@ -22,14 +22,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	"gopkg.in/yaml.v2"
-
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1556,7 +1554,7 @@ var _ = Describe("Metal3Data manager", func() {
 				err = dataMgr.client.Get(context.TODO(), claimNamespacedName, capm3IPClaim)
 				if tc.injectDeleteErr {
 					// There was an error deleting the claim, so we expect it to still be there
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 					// We expect the finalizer to be gone
 					Expect(capm3IPClaim.Finalizers).To(BeEmpty())
 				} else {
@@ -1640,10 +1638,10 @@ var _ = Describe("Metal3Data manager", func() {
 				err = dataMgr.client.Get(context.TODO(), claimNamespacedName, capm3IPClaim)
 				if tc.ipClaims[i].Namespace != dataMgr.Data.Namespace {
 					// We should not touch other namespaces!
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 				} else if tc.ipClaims[i].Spec.Pool.Name != tc.poolRef.Name {
 					// We should not touch other pools!
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 				} else {
 					Expect(err).To(HaveOccurred())
 					Expect(apierrors.IsNotFound(err)).To(BeTrue())

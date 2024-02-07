@@ -5,10 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type upgradeBMOInput struct {
@@ -40,7 +39,7 @@ func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
 
 	By("Upgrading BMO deployment")
 	deploy, err := clientSet.AppsV1().Deployments(bmoNamespace).Get(ctx, bmoDeployName, metav1.GetOptions{})
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	for i, container := range deploy.Spec.Template.Spec.Containers {
 		if container.Name == "manager" {
 			Logf("Old image: %v", deploy.Spec.Template.Spec.Containers[i].Image)
@@ -50,14 +49,14 @@ func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
 	}
 
 	_, err = clientSet.AppsV1().Deployments(bmoNamespace).Update(ctx, deploy, metav1.UpdateOptions{})
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	By("Waiting for BMO update to rollout")
 	Eventually(func() bool {
 		return DeploymentRolledOut(ctx, clientSet, bmoDeployName, bmoNamespace, deploy.Status.ObservedGeneration+1)
 	},
 		input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...,
-	).Should(Equal(true))
+	).Should(BeTrue())
 
 	By("BMO UPGRADE TESTS PASSED!")
 }
