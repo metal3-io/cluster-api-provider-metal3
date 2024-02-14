@@ -20,11 +20,9 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
@@ -106,8 +104,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 	DescribeTable("Test Finalizers",
 		func(tc testCaseBMClusterManager) {
-			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).NotTo(HaveOccurred())
+			clusterMgr := newBMClusterSetup(tc)
 
 			clusterMgr.SetFinalizer()
 
@@ -147,9 +144,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 	DescribeTable("Test setting and clearing errors",
 		func(tc testCaseBMClusterManager) {
-			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).NotTo(HaveOccurred())
-
+			clusterMgr := newBMClusterSetup(tc)
 			clusterMgr.setError("abc", capierrors.InvalidConfigurationClusterError)
 
 			Expect(*tc.BMCluster.Status.FailureReason).To(Equal(
@@ -180,9 +175,8 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 	DescribeTable("Test BM cluster Delete",
 		func(tc testCaseBMClusterManager) {
-			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).NotTo(HaveOccurred())
-			err = clusterMgr.Delete()
+			clusterMgr := newBMClusterSetup(tc)
+			err := clusterMgr.Delete()
 
 			if tc.ExpectSuccess {
 				Expect(err).NotTo(HaveOccurred())
@@ -199,11 +193,10 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 	DescribeTable("Test BMCluster Create",
 		func(tc testCaseBMClusterManager) {
-			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).NotTo(HaveOccurred())
+			clusterMgr := newBMClusterSetup(tc)
 			Expect(clusterMgr).NotTo(BeNil())
 
-			err = clusterMgr.Create(context.TODO())
+			err := clusterMgr.Create(context.TODO())
 
 			if tc.ExpectSuccess {
 				Expect(err).NotTo(HaveOccurred())
@@ -252,11 +245,10 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 	DescribeTable("Test BMCluster Update",
 		func(tc testCaseBMClusterManager) {
-			clusterMgr, err := newBMClusterSetup(tc)
-			Expect(err).NotTo(HaveOccurred())
+			clusterMgr := newBMClusterSetup(tc)
 			Expect(clusterMgr).NotTo(BeNil())
 
-			err = clusterMgr.UpdateClusterStatus()
+			err := clusterMgr.UpdateClusterStatus()
 			if tc.ExpectSuccess {
 				Expect(err).NotTo(HaveOccurred())
 			} else {
@@ -356,7 +348,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 
-			Expect(len(descendants.Items)).To(Equal(tc.ExpectedDescendants))
+			Expect(descendants.Items).To(HaveLen(tc.ExpectedDescendants))
 		},
 		descendantsTestCases,
 	)
@@ -378,7 +370,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 	)
 })
 
-func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
+func newBMClusterSetup(tc testCaseBMClusterManager) *ClusterManager {
 	objects := []client.Object{}
 
 	if tc.Cluster != nil {
@@ -394,7 +386,7 @@ func newBMClusterSetup(tc testCaseBMClusterManager) (*ClusterManager, error) {
 		Metal3Cluster: tc.BMCluster,
 		Cluster:       tc.Cluster,
 		Log:           logr.Discard(),
-	}, nil
+	}
 }
 
 func descendantsSetup(tc descendantsTestCase) *ClusterManager {

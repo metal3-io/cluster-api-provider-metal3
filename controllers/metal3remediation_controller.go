@@ -22,11 +22,9 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
-
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -371,7 +369,7 @@ func (r *Metal3RemediationReconciler) backupNode(remediationMgr baremetal.Remedi
 }
 
 func (r *Metal3RemediationReconciler) restoreNode(ctx context.Context, remediationMgr baremetal.RemediationManagerInterface,
-	clusterClient v1.CoreV1Interface, node *corev1.Node) error {
+	clusterClient v1.CoreV1Interface, node *corev1.Node) error { //nolint:unparam
 	annotations, labels := remediationMgr.GetNodeBackupAnnotations()
 	if annotations == "" && labels == "" {
 		return nil

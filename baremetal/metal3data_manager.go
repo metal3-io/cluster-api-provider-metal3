@@ -19,9 +19,8 @@ package baremetal
 import (
 	"context"
 	"fmt"
-	"regexp"
-
 	"net"
+	"regexp"
 	"strconv"
 	"strings"
 

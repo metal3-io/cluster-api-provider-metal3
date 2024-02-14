@@ -103,7 +103,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 
 func (r *Metal3MachineTemplateReconciler) reconcileNormal(ctx context.Context,
 	templateMgr baremetal.TemplateManagerInterface,
-) (ctrl.Result, error) {
+) (ctrl.Result, error) { //nolint:unparam
 	// Find the Metal3Machines with clonedFromName annotation referencing
 	// to the same Metal3MachineTemplate
 	if err := templateMgr.UpdateAutomatedCleaningMode(ctx); err != nil {

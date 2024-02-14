@@ -8,13 +8,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
-
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -56,9 +54,9 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	if mariadbEnabled {
 		containerNumRestart["mariadb"] = 0
 	}
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	for _, container := range ironicPod.Status.ContainerStatuses {
 		if _, exist := containerNumRestart[container.Name]; exist {
 			containerNumRestart[container.Name] = container.RestartCount
@@ -75,7 +73,7 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	}
 	for _, secretName := range secretList {
 		err := clientSet.CoreV1().Secrets(ironicNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
-		Expect(err).To(BeNil(), "Cannot detele this secret: %s", secretName)
+		Expect(err).ToNot(HaveOccurred(), "Cannot detele this secret: %s", secretName)
 	}
 
 	By("Wait for containers in the ironic pod to be restarted")
@@ -127,7 +125,7 @@ func getDeployment(ctx context.Context, clusterClient client.Client, deploymentN
 
 func getPodFromDeployment(ctx context.Context, clientSet *kubernetes.Clientset, deployment *appv1.Deployment, namespace string) (*corev1.Pod, error) {
 	labelMap, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	option := metav1.ListOptions{
 		LabelSelector: labels.SelectorFromSet(labelMap).String(),
 	}
@@ -135,6 +133,6 @@ func getPodFromDeployment(ctx context.Context, clientSet *kubernetes.Clientset, 
 	if err != nil {
 		return nil, err
 	}
-	Expect(len(podList.Items) == 1).To(BeTrue(), "The number of ironic pod is not equal to 1, but %v\n", len(podList.Items))
+	Expect(podList.Items).To(HaveLen(1), "The number of ironic pod is not equal to 1, but %v\n", len(podList.Items))
 	return &podList.Items[0], nil
 }

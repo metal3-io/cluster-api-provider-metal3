@@ -113,7 +113,7 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 		ClusterName: input.ClusterName,
 		Namespace:   input.Namespace,
 	})
-	Expect(len(machineDeployments)).To(Equal(1), "Expected exactly 1 MachineDeployment")
+	Expect(machineDeployments).To(HaveLen(1), "Expected exactly 1 MachineDeployment")
 	md := machineDeployments[0]
 
 	Byf("Update MachineDeployment maxUnavailable to number of workers and k8s version from %s to %s", fromK8sVersion, kubernetesVersion)
@@ -133,7 +133,7 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 		}
 	}`, kubernetesVersion))
 	err = managementClusterClient.Patch(ctx, md, client.RawPatch(types.MergePatchType, patch))
-	Expect(err).To(BeNil(), "Failed to patch MachineDeployment")
+	Expect(err).ToNot(HaveOccurred(), "Failed to patch MachineDeployment")
 
 	Byf("Wait until %d BMH(s) in deprovisioning state", 3)
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{

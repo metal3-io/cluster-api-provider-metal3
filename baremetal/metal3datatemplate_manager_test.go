@@ -21,11 +21,9 @@ import (
 	"strconv"
 
 	"github.com/go-logr/logr"
-
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -465,9 +463,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			err = fakeClient.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
 			if tc.dataObject != nil {
-				Expect(len(dataObjects.Items)).To(Equal(2))
+				Expect(dataObjects.Items).To(HaveLen(2))
 			} else {
-				Expect(len(dataObjects.Items)).To(Equal(1))
+				Expect(dataObjects.Items).To(HaveLen(1))
 			}
 
 			if tc.expectTemplateReference {
@@ -639,13 +637,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			err = fakeClient.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(len(tc.expectedDatas)).To(Equal(len(dataObjects.Items)))
+			Expect(tc.expectedDatas).To(HaveLen(len(dataObjects.Items)))
 			// Iterate over the Metal3Data objects to find all indexes and objects
 			for _, address := range dataObjects.Items {
 				Expect(tc.expectedDatas).To(ContainElement(address.Name))
 				// TODO add further testing later
 			}
-			Expect(len(tc.dataClaim.Finalizers)).To(Equal(1))
+			Expect(tc.dataClaim.Finalizers).To(HaveLen(1))
 
 			Expect(allocatedMap).To(Equal(tc.expectedMap))
 			Expect(tc.template.Status.Indexes).To(Equal(tc.expectedIndexes))
@@ -780,12 +778,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			opts := &client.ListOptions{}
 			err = fakeClient.List(context.TODO(), &dataObjects, opts)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(len(dataObjects.Items)).To(Equal(0))
+			Expect(dataObjects.Items).To(BeEmpty())
 
 			Expect(tc.template.Status.LastUpdated.IsZero()).To(BeFalse())
 			Expect(allocatedMap).To(Equal(tc.expectedMap))
 			Expect(tc.template.Status.Indexes).To(Equal(tc.expectedIndexes))
-			Expect(len(tc.dataClaim.Finalizers)).To(Equal(0))
+			Expect(tc.dataClaim.Finalizers).To(BeEmpty())
 		},
 		Entry("Empty Template", testCaseDeleteDatas{
 			template: &infrav1.Metal3DataTemplate{},

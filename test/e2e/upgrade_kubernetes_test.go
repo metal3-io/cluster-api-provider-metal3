@@ -38,7 +38,7 @@ var _ = Describe("Kubernetes version upgrade in target nodes [k8s-upgrade]", fun
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
 
-	It("Should create a cluster and and run k8s_upgrade tests", func() {
+	It("Should create a cluster and run k8s_upgrade tests", func() {
 		By("Creating target cluster")
 		targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
 
@@ -112,9 +112,9 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	imageURL, imageChecksum := EnsureImage(upgradedK8sVersion)
 
 	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
-	m3machineTemplateName := fmt.Sprintf("%s-controlplane", clusterName)
-	newM3machineTemplateName := fmt.Sprintf("%s-new-controlplane", clusterName)
-	createNewM3machineTemplate(ctx, namespace, newM3machineTemplateName, m3machineTemplateName, clusterClient, imageURL, imageChecksum, "sha256", "raw")
+	m3MachineTemplateName := fmt.Sprintf("%s-controlplane", clusterName)
+	newM3MachineTemplateName := fmt.Sprintf("%s-new-controlplane", clusterName)
+	createNewM3MachineTemplate(ctx, namespace, newM3MachineTemplateName, m3MachineTemplateName, clusterClient, imageURL, imageChecksum)
 
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
@@ -124,7 +124,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	})
 	helper, err := patch.NewHelper(kcpObj, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3machineTemplateName
+	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = upgradedK8sVersion
 	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
 	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
@@ -177,20 +177,20 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 		ClusterName: clusterName,
 		Namespace:   namespace,
 	})
-	Expect(len(machineDeployments)).To(Equal(1), "Expected exactly 1 MachineDeployment")
+	Expect(machineDeployments).To(HaveLen(1), "Expected exactly 1 MachineDeployment")
 	machineDeploy := machineDeployments[0]
 
 	By("Create new Metal3MachineTemplate for MD with upgraded image to boot")
-	m3machineTemplateName = fmt.Sprintf("%s-workers", clusterName)
-	newM3machineTemplateName = fmt.Sprintf("%s-new-workers", clusterName)
-	createNewM3machineTemplate(ctx, namespace, newM3machineTemplateName, m3machineTemplateName, clusterClient, imageURL, imageChecksum, "sha256", "raw")
+	m3MachineTemplateName = fmt.Sprintf("%s-workers", clusterName)
+	newM3MachineTemplateName = fmt.Sprintf("%s-new-workers", clusterName)
+	createNewM3MachineTemplate(ctx, namespace, newM3MachineTemplateName, m3MachineTemplateName, clusterClient, imageURL, imageChecksum)
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	helper, err = patch.NewHelper(machineDeploy, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
-	machineDeploy.Spec.Template.Spec.InfrastructureRef.Name = newM3machineTemplateName
+	machineDeploy.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	machineDeploy.Spec.Template.Spec.Version = &upgradedK8sVersion
 	Expect(helper.Patch(ctx, machineDeploy)).To(Succeed())
 

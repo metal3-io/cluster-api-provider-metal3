@@ -18,12 +18,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -88,9 +86,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(remediationMgr.HasFinalizer()).To(Equal(false))
+			Expect(remediationMgr.HasFinalizer()).To(BeFalse())
 			remediationMgr.SetFinalizer()
-			Expect(remediationMgr.HasFinalizer()).To(Equal(true))
+			Expect(remediationMgr.HasFinalizer()).To(BeTrue())
 
 			Expect(tc.Metal3Remediation.ObjectMeta.Finalizers).To(ContainElement(
 				infrav1.RemediationFinalizer,
@@ -303,11 +301,11 @@ var _ = Describe("Metal3Remediation manager", func() {
 			if tc.ExpectPresent {
 				Expect(result).NotTo(BeNil())
 				Expect(helper).NotTo(BeNil())
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			} else {
 				Expect(result).To(BeNil())
 				Expect(helper).To(BeNil())
-				Expect(err).NotTo(BeNil())
+				Expect(err).To(HaveOccurred())
 			}
 		},
 		Entry("Should find the unhealthy host", testCaseGetUnhealthyHost{
@@ -390,9 +388,9 @@ var _ = Describe("Metal3Remediation manager", func() {
 			patchError := remediationMgr.SetUnhealthyAnnotation(context.TODO())
 
 			if tc.ExpectTrue {
-				Expect(patchError).To(BeNil())
+				Expect(patchError).ToNot(HaveOccurred())
 			} else {
-				Expect(patchError).NotTo(BeNil())
+				Expect(patchError).To(HaveOccurred())
 			}
 		},
 		Entry("Should set the unhealthy annotation", testCaseSetAnnotation{

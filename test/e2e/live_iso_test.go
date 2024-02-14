@@ -94,7 +94,7 @@ func liveIsoTest() {
 		Eventually(func(g Gomega) {
 			cmd := fmt.Sprintf("sudo cat %s | grep '#  Welcome'", serialLogFile)
 			output, err := exec.Command("/bin/sh", "-c", cmd).Output()
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(output).ToNot(BeNil(), fmt.Sprintf("Failed to read serial logs from %s", serialLogFile))
 		}, e2eConfig.GetIntervals(specName, "wait-job")...).Should(Succeed())
 		By("LIVE ISO TEST PASSED!")

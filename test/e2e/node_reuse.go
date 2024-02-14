@@ -105,10 +105,10 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	imageURL, imageChecksum := EnsureImage(upgradedK8sVersion)
 
 	By("Set nodeReuse field to 'True' and create new KCP Metal3MachineTemplate with upgraded image to boot [node_reuse]")
-	m3machineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
-	updateNodeReuse(ctx, input.Namespace, true, m3machineTemplateName, managementClusterClient)
-	newM3machineTemplateName := fmt.Sprintf("%s-new-controlplane", input.ClusterName)
-	createNewM3machineTemplate(ctx, input.Namespace, newM3machineTemplateName, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "sha256", "raw")
+	m3MachineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
+	updateNodeReuse(ctx, input.Namespace, true, m3MachineTemplateName, managementClusterClient)
+	newM3MachineTemplateName := fmt.Sprintf("%s-new-controlplane", input.ClusterName)
+	createNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s [node_reuse]", kubernetesVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
@@ -118,7 +118,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 	helper, err := patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3machineTemplateName
+	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = upgradedK8sVersion
 	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
 	Logf("Disable tainting of CP nodes during the remainder of the node reuse test [node_reuse]")
@@ -141,7 +141,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	// Since we do scale in, no Machine should start provisioning yet (the old must be deleted first)
 	machineList := &clusterv1.MachineList{}
 	Expect(managementClusterClient.List(ctx, machineList, client.InNamespace(input.Namespace))).To(Succeed())
-	Expect(FilterMachinesByPhase(machineList.Items, clusterv1.MachinePhaseProvisioning)).To(HaveLen(0))
+	Expect(FilterMachinesByPhase(machineList.Items, clusterv1.MachinePhaseProvisioning)).To(BeEmpty())
 
 	Byf("Wait until 1 BMH is in deprovisioning state [node_reuse]")
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
@@ -278,14 +278,14 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		ClusterName: input.ClusterName,
 		Namespace:   input.Namespace,
 	})
-	Expect(len(machineDeployments)).To(Equal(1), "Expected exactly 1 MachineDeployment")
+	Expect(machineDeployments).To(HaveLen(1), "Expected exactly 1 MachineDeployment")
 	machineDeploy := machineDeployments[0]
 
 	By("Get Metal3MachineTemplate name for MachineDeployment [node_reuse]")
-	m3machineTemplateName = fmt.Sprintf("%s-workers", input.ClusterName)
+	m3MachineTemplateName = fmt.Sprintf("%s-workers", input.ClusterName)
 
 	By("Point to proper Metal3MachineTemplate in MachineDeployment [node_reuse]")
-	pointMDtoM3mt(ctx, input.Namespace, input.ClusterName, m3machineTemplateName, machineDeploy.Name, managementClusterClient)
+	pointMDtoM3mt(ctx, input.Namespace, input.ClusterName, m3MachineTemplateName, machineDeploy.Name, managementClusterClient)
 
 	By("Scale the worker up to 1 to start testing MachineDeployment [node_reuse]")
 	ScaleMachineDeployment(ctx, managementClusterClient, input.ClusterName, input.Namespace, 1)
@@ -328,9 +328,9 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	}
 
 	By("Set nodeReuse field to 'True' and create new Metal3MachineTemplate for MD with upgraded image to boot [node_reuse]")
-	updateNodeReuse(ctx, input.Namespace, true, m3machineTemplateName, managementClusterClient)
-	newM3machineTemplateName = fmt.Sprintf("%s-new-workers", input.ClusterName)
-	createNewM3machineTemplate(ctx, input.Namespace, newM3machineTemplateName, m3machineTemplateName, managementClusterClient, imageURL, imageChecksum, "sha256", "raw")
+	updateNodeReuse(ctx, input.Namespace, true, m3MachineTemplateName, managementClusterClient)
+	newM3MachineTemplateName = fmt.Sprintf("%s-new-workers", input.ClusterName)
+	createNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
@@ -339,7 +339,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Expect(err).NotTo(HaveOccurred())
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
-	machineDeploy.Spec.Template.Spec.InfrastructureRef.Name = newM3machineTemplateName
+	machineDeploy.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	machineDeploy.Spec.Template.Spec.Version = &upgradedK8sVersion
 	Expect(helper.Patch(ctx, machineDeploy)).To(Succeed())
 
@@ -429,11 +429,11 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 
 func getControlplaneNodes(ctx context.Context, clientSet *kubernetes.Clientset) *corev1.NodeList {
 	controlplaneNodesRequirement, err := labels.NewRequirement("node-role.kubernetes.io/control-plane", selection.Exists, []string{})
-	Expect(err).To(BeNil(), "Failed to set up worker Node requirements")
+	Expect(err).ToNot(HaveOccurred(), "Failed to set up worker Node requirements")
 	controlplaneNodesSelector := labels.NewSelector().Add(*controlplaneNodesRequirement)
 	controlplaneListOptions := metav1.ListOptions{LabelSelector: controlplaneNodesSelector.String()}
 	controlplaneNodes, err := clientSet.CoreV1().Nodes().List(ctx, controlplaneListOptions)
-	Expect(err).To(BeNil(), "Failed to get controlplane nodes")
+	Expect(err).ToNot(HaveOccurred(), "Failed to get controlplane nodes")
 	Logf("controlplaneNodes found %v", len(controlplaneNodes.Items))
 	return controlplaneNodes
 }
@@ -451,16 +451,16 @@ func getProvisionedBmhNamesUuids(ctx context.Context, namespace string, manageme
 	return nameUUIDList
 }
 
-func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3machineTemplateName string, managementClusterClient client.Client) {
+func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3MachineTemplateName string, managementClusterClient client.Client) {
 	m3machineTemplate := infrav1.Metal3MachineTemplate{}
-	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
+	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
 	helper, err := patch.NewHelper(&m3machineTemplate, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	m3machineTemplate.Spec.NodeReuse = nodeReuse
 	Expect(helper.Patch(ctx, &m3machineTemplate)).To(Succeed())
 
 	// verify that nodeReuse field is updated
-	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
+	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
 	Expect(m3machineTemplate.Spec.NodeReuse).To(BeEquivalentTo(nodeReuse))
 }
 
@@ -484,7 +484,7 @@ func untaintNodes(ctx context.Context, targetClusterClient client.Client, nodes 
 		newNode, changed := removeTaint(&nodes.Items[i], taints)
 		if changed {
 			patchHelper, err := patch.NewHelper(&nodes.Items[i], targetClusterClient)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(patchHelper.Patch(ctx, newNode)).To(Succeed(), "Failed to patch node")
 			count++
 		}
@@ -537,18 +537,21 @@ func deleteTaint(taints []corev1.Taint, taintsToDelete []corev1.Taint) ([]corev1
 	return newTaints, deleted
 }
 
-func createNewM3machineTemplate(ctx context.Context, namespace string, newM3machineTemplateName string, m3machineTemplateName string, clusterClient client.Client, imageURL string, imageChecksum string, checksumType string, imageFormat string) {
-	m3machineTemplate := infrav1.Metal3MachineTemplate{}
-	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
+func createNewM3MachineTemplate(ctx context.Context, namespace string, newM3MachineTemplateName string, m3MachineTemplateName string, clusterClient client.Client, imageURL string, imageChecksum string) {
+	checksumType := "sha256"
+	imageFormat := "raw"
 
-	newM3MachineTemplate := m3machineTemplate.DeepCopy()
+	m3MachineTemplate := infrav1.Metal3MachineTemplate{}
+	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3MachineTemplate)).To(Succeed())
+
+	newM3MachineTemplate := m3MachineTemplate.DeepCopy()
 	cleanObjectMeta(&newM3MachineTemplate.ObjectMeta)
 
 	newM3MachineTemplate.Spec.Template.Spec.Image.URL = imageURL
 	newM3MachineTemplate.Spec.Template.Spec.Image.Checksum = imageChecksum
 	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = &imageFormat
 	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = &checksumType
-	newM3MachineTemplate.ObjectMeta.Name = newM3machineTemplateName
+	newM3MachineTemplate.ObjectMeta.Name = newM3MachineTemplateName
 
 	Expect(clusterClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")
 }

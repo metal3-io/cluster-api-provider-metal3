@@ -29,7 +29,6 @@ import (
 
 	// comment for go-lint.
 	"github.com/go-logr/logr"
-
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
@@ -262,7 +261,13 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		return errors.Wrap(err, "failed to unmarshall status annotation")
 	}
 	delete(obj, "hardware")
-	newAnnotation, _ = json.Marshal(obj)
+	newAnnotation, err = json.Marshal(obj)
+	if err != nil {
+		m.SetError("Failed to marshal the BareMetalHost status",
+			capierrors.UpdateMachineError,
+		)
+		return errors.Wrap(err, "failed to marshall status annotation")
+	}
 	host.Annotations[bmov1alpha1.StatusAnnotation] = string(newAnnotation)
 	return helper.Patch(ctx, host)
 }

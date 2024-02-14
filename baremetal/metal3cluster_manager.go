@@ -21,12 +21,8 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
-
-	// TODO Why blank import ?
-	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"

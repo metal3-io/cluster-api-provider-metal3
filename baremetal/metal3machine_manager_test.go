@@ -24,12 +24,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -862,7 +860,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectStatusPresent {
 				Expect(statusPresent).To(BeTrue())
 				annotation, err := json.Marshal(&tc.Host.Status)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				// (Note) manager code marshals the inspection data stored in annotation,
 				// which causes alphabetically reordering of keys. Since we are marshaling
 				// only the annotation, the status value here doesn't match the marshaled
@@ -871,7 +869,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				// also alphabetically reordered to match the annotation keys style..
 				obj := map[string]interface{}{}
 				err = json.Unmarshal(annotation, &obj)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				annotation, _ = json.Marshal(obj)
 				Expect(status).To(Equal(string(annotation)))
 			} else {
@@ -3234,10 +3232,10 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			index, err := machineMgr.FindOwnerRef(tc.OwnerRefs)
 			if tc.ExpectError {
-				Expect(err).NotTo(BeNil())
+				Expect(err).To(HaveOccurred())
 				Expect(err).To(BeAssignableToTypeOf(&NotFoundError{}))
 			} else {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(index).To(BeEquivalentTo(tc.ExpectedIndex))
 			}
 		},
@@ -3349,9 +3347,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			refList, err := machineMgr.DeleteOwnerRef(tc.OwnerRefs)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			_, err = machineMgr.FindOwnerRef(refList)
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		},
 		Entry("Empty list", testCaseOwnerRef{
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
@@ -3423,9 +3421,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			refList, err := machineMgr.SetOwnerRef(tc.OwnerRefs, tc.Controller)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			index, err := machineMgr.FindOwnerRef(refList)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(*refList[index].Controller).To(BeEquivalentTo(tc.Controller))
 		},
 		Entry("Empty list", testCaseOwnerRef{
@@ -3654,7 +3652,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Expect(metal3DataReadyCondition[0].Status).To(Equal(corev1.ConditionFalse))
 				}
 			} else {
-				Expect(metal3DataReadyCondition).To(HaveLen(0))
+				Expect(metal3DataReadyCondition).To(BeEmpty())
 			}
 			if tc.ExpectSecretStatus {
 				if tc.Data.Spec.MetaData != nil {

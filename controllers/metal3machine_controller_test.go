@@ -20,15 +20,13 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-
 	"github.com/golang/mock/gomock"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -376,12 +374,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			}
 
 			if tc.ExpectRequest {
-				Expect(len(reqs)).To(Equal(2), "Expected 2 Metal3 machines to reconcile but got %d", len(reqs))
+				Expect(reqs).To(HaveLen(2), "Expected 2 Metal3 machines to reconcile but got %d", len(reqs))
 				for _, expectedName := range []string{"my-metal3-machine-0", "my-metal3-machine-1"} {
 					Expect(contains(m3machineNames, expectedName)).To(BeTrue(), "expected %q in slice %v", expectedName, m3machineNames)
 				}
 			} else {
-				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
+				Expect(reqs).To(BeEmpty(), "Expected 0 request, found %d", len(reqs))
 			}
 		},
 		// Given correct resources, metal3Machines reconcile
@@ -431,8 +429,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			reqs := r.BareMetalHostToMetal3Machines(context.Background(), obj)
 
 			if tc.ExpectRequest {
-				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
-
+				Expect(reqs).To(HaveLen(1), "Expected 1 request, found %d", len(reqs))
 				req := reqs[0]
 				Expect(req.NamespacedName.Name).To(Equal(tc.Host.Spec.ConsumerRef.Name),
 					"Expected name %s, found %s", tc.Host.Spec.ConsumerRef.Name, req.NamespacedName.Name)
@@ -440,8 +437,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					"Expected namespace %s, found %s", tc.Host.Spec.ConsumerRef.Namespace, req.NamespacedName.Namespace)
 
 			} else {
-				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
-
+				Expect(reqs).To(BeEmpty(), "Expected 0 request, found %d", len(reqs))
 			}
 		},
 		// Given machine, but no metal3machine resource
@@ -501,8 +497,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			reqs := r.Metal3DataClaimToMetal3Machines(context.Background(), obj)
 
 			if tc.ExpectRequest {
-				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
-
+				Expect(reqs).To(HaveLen(1), "Expected 1 request, found %d", len(reqs))
 				req := reqs[0]
 				Expect(req.NamespacedName.Name).To(Equal(tc.OwnerRef.Name),
 					"Expected name %s, found %s", tc.OwnerRef.Name, req.NamespacedName.Name)
@@ -510,8 +505,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					"Expected namespace %s, found %s", dataClaim.Namespace, req.NamespacedName.Namespace)
 
 			} else {
-				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
-
+				Expect(reqs).To(BeEmpty(), "Expected 0 request, found %d", len(reqs))
 			}
 		},
 		Entry("No Metal3Machine in Spec",
@@ -586,7 +580,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			reqs := r.ClusterToMetal3Machines(context.Background(), obj)
 
 			if tc.ExpectRequest {
-				Expect(len(reqs)).To(Equal(1), "Expected 1 request, found %d", len(reqs))
+				Expect(reqs).To(HaveLen(1), "Expected 1 request, found %d", len(reqs))
 				req := infrav1.Metal3Machine{}
 				err := fakeClient.Get(context.TODO(), reqs[0].NamespacedName, &req)
 				Expect(err).NotTo(HaveOccurred())
@@ -594,8 +588,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(req.Labels[clusterv1.ClusterNameLabel]).To(Equal(tc.Cluster.Name),
 					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[clusterv1.ClusterNameLabel])
 			} else {
-				Expect(len(reqs)).To(Equal(0), "Expected 0 request, found %d", len(reqs))
-
+				Expect(reqs).To(BeEmpty(), "Expected 0 request, found %d", len(reqs))
 			}
 		},
 		// Given Cluster, Machine with metal3machine resource, metal3Machine reconcile
