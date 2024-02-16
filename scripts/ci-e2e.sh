@@ -53,6 +53,9 @@ pushd "${M3_DEV_ENV_PATH}" || exit 1
 make
 popd || exit 1
 
+cp "${WORKING_DIR}/bmhosts_crs.yaml" "${REPO_ROOT}/test/e2e/data/infrastructure-metal3/bases/bmhs/"  
+kubectl delete -f  ${WORKING_DIR}/bmhosts_crs.yaml -n metal3
+
 # Binaries checked below should have been installed by metal3-dev-env make.
 # Verify they are available and have correct versions.
 PATH=$PATH:/usr/local/go/bin
