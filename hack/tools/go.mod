@@ -6,7 +6,7 @@ require (
 	github.com/drone/envsubst v1.0.3
 	github.com/golang/mock v1.6.0
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
-	k8s.io/code-generator v0.29.1
+	k8s.io/code-generator v0.29.2
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20230510161459-7571f4b9a942
 	sigs.k8s.io/controller-tools v0.13.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.3.0
