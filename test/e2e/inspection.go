@@ -6,7 +6,7 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,7 +41,7 @@ func inspection(ctx context.Context, inputGetter func() InspectionInput) {
 	Logf("Request inspection for all Available BMHs via API")
 	for _, bmh := range availableBMHList.Items {
 		if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable {
-			AnnotateBmh(ctx, bootstrapClient, bmh, inspectAnnotation, pointer.String(""))
+			AnnotateBmh(ctx, bootstrapClient, bmh, inspectAnnotation, ptr.To(""))
 		}
 	}
 

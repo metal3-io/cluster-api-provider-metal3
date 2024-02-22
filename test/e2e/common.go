@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -277,7 +277,7 @@ func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.
 	helper, err := patch.NewHelper(&ctrlplane, c)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create new patch helper")
 
-	ctrlplane.Spec.Replicas = pointer.Int32Ptr(int32(newReplicaCount))
+	ctrlplane.Spec.Replicas = ptr.To(int32(newReplicaCount))
 	Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
 }
 

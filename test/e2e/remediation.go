@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -115,7 +115,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	By("Checking that rebooted node becomes Ready")
 	Logf("Marking a BMH '%s' for reboot", workerBmh.GetName())
-	AnnotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, pointer.String(""))
+	AnnotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, ptr.To(""))
 	waitForVmsState([]string{vmName}, shutoff, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
 	waitForVmsState([]string{vmName}, running, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
 	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: defaultNamespace, Name: workerNodeName}, corev1.ConditionTrue, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
@@ -166,7 +166,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	Logf("Start checking unhealthy annotation")
 	Logf("Annotating BMH as unhealthy")
-	AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, pointer.String(""))
+	AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, ptr.To(""))
 
 	By("Deleting a worker machine")
 	workerMachine := GetMachine(ctx, bootstrapClient, client.ObjectKey{Namespace: input.Namespace, Name: workerMachineName})
@@ -475,7 +475,7 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 
 	Logf("Marking %d BMHs for power off", len(machines))
 	for _, set := range machines {
-		AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, pointer.String(""))
+		AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, ptr.To(""))
 	}
 	waitForVmsState(machines.getVMNames(), shutoff, specName, e2eConfig.GetIntervals(specName, "wait-vm-state")...)
 
