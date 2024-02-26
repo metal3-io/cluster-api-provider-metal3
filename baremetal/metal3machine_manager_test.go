@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -56,7 +56,7 @@ const (
 var Bmhuid = types.UID("4d25a2c2-46e4-11ec-81d3-0242ac130003")
 var ProviderID = fmt.Sprintf("metal3://%s", Bmhuid)
 
-var testImageDiskFormat = pointer.String("raw")
+var testImageDiskFormat = ptr.To("raw")
 
 func m3mSpec() *infrav1.Metal3MachineSpec {
 	return &infrav1.Metal3MachineSpec{
@@ -74,7 +74,7 @@ func m3mSpecAll() *infrav1.Metal3MachineSpec {
 		Image: infrav1.Image{
 			URL:          testImageURL,
 			Checksum:     testImageChecksumURL,
-			ChecksumType: pointer.String("sha512"),
+			ChecksumType: ptr.To("sha512"),
 			DiskFormat:   testImageDiskFormat,
 		},
 		HostSelector: infrav1.HostSelector{},
@@ -354,7 +354,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("no ProviderID", infrav1.Metal3Machine{}),
 		Entry("existing ProviderID", infrav1.Metal3Machine{
 			Spec: infrav1.Metal3MachineSpec{
-				ProviderID: pointer.String("wrong"),
+				ProviderID: ptr.To("wrong"),
 			},
 			Status: infrav1.Metal3MachineStatus{
 				Ready: true,
@@ -381,7 +381,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("provisioned", testCaseProvisioned{
 			M3Machine: infrav1.Metal3Machine{
 				Spec: infrav1.Metal3MachineSpec{
-					ProviderID: pointer.String("abc"),
+					ProviderID: ptr.To("abc"),
 				},
 				Status: infrav1.Metal3MachineStatus{
 					Ready: true,
@@ -392,7 +392,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("missing ready", testCaseProvisioned{
 			M3Machine: infrav1.Metal3Machine{
 				Spec: infrav1.Metal3MachineSpec{
-					ProviderID: pointer.String("abc"),
+					ProviderID: ptr.To("abc"),
 				},
 			},
 			ExpectTrue: false,
@@ -463,7 +463,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("No errors", infrav1.Metal3Machine{}),
 		Entry("Overwrite existing error message", infrav1.Metal3Machine{
 			Status: infrav1.Metal3MachineStatus{
-				FailureMessage: pointer.String("cba"),
+				FailureMessage: ptr.To("cba"),
 			},
 		}),
 	)
@@ -1832,7 +1832,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("Foobar"),
+						DataSecretName: ptr.To("Foobar"),
 					},
 				},
 			},
@@ -1881,7 +1881,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String(metal3machineName + "-user-data"),
+						DataSecretName: ptr.To(metal3machineName + "-user-data"),
 					},
 				},
 			},
@@ -2042,7 +2042,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String(metal3machineName + "-user-data")},
+						DataSecretName: ptr.To(metal3machineName + "-user-data")},
 				},
 			},
 			MachineSet: &clusterv1.MachineSet{
@@ -2105,7 +2105,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: pointer.String(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
 						},
 					},
 					NodeReuse: true,
@@ -2141,7 +2141,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String(metal3machineName + "-user-data")},
+						DataSecretName: ptr.To(metal3machineName + "-user-data")},
 				},
 			},
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
@@ -2186,7 +2186,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: pointer.String(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
 						},
 					},
 					NodeReuse: true,
@@ -2521,7 +2521,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Empty providerID", testCaseGetProviderIDAndBMHID{}),
 		Entry("Provider ID set", testCaseGetProviderIDAndBMHID{
-			providerID:    pointer.String(ProviderID),
+			providerID:    ptr.To(ProviderID),
 			expectedBMHID: string(Bmhuid),
 		}),
 	)
@@ -2857,7 +2857,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("Foobar"),
+						DataSecretName: ptr.To("Foobar"),
 					},
 				},
 			},
@@ -2885,7 +2885,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("Foobar"),
+						DataSecretName: ptr.To("Foobar"),
 					},
 				},
 			},
@@ -2917,7 +2917,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							Name:      "abc",
 							Namespace: "def",
 						},
-						DataSecretName: pointer.String("Foobar"),
+						DataSecretName: ptr.To("Foobar"),
 					},
 				},
 			},
@@ -2930,7 +2930,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("test-data-secret-name"),
+						DataSecretName: ptr.To("test-data-secret-name"),
 					},
 				},
 			},
@@ -2942,7 +2942,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ObjectMeta: testObjectMeta("", namespaceName, ""),
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.String("test-data-secret-name"),
+						DataSecretName: ptr.To("test-data-secret-name"),
 					},
 				},
 			},
