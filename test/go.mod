@@ -10,7 +10,7 @@ require (
 	github.com/metal3-io/ip-address-manager/api v1.6.0
 	github.com/onsi/ginkgo/v2 v2.15.0
 	github.com/onsi/gomega v1.31.1
-	golang.org/x/crypto v0.19.0
+	golang.org/x/crypto v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.29.2
 	k8s.io/apiextensions-apiserver v0.29.2
