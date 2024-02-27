@@ -17,9 +17,9 @@ require (
 	k8s.io/apimachinery v0.28.5
 	k8s.io/client-go v0.28.5
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
-	sigs.k8s.io/cluster-api v1.6.1
-	sigs.k8s.io/cluster-api/test v1.6.1
-	sigs.k8s.io/controller-runtime v0.16.4
+	sigs.k8s.io/cluster-api v1.6.2
+	sigs.k8s.io/cluster-api/test v1.6.2
+	sigs.k8s.io/controller-runtime v0.16.5
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
