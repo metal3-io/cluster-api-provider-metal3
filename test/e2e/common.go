@@ -22,6 +22,7 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -180,6 +181,9 @@ func DownloadFile(filePath string, url string) error {
 	resp, err := http.Get(url) //nolint:noctx
 	if err != nil {
 		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.Errorf("failed to download image from %q got %d %s", filePath, resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 	defer resp.Body.Close()
 
