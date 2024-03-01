@@ -66,7 +66,6 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	By("Force the cert-manager to regenerate the certificate by deleting the secrets")
 	secretList := []string{
 		"ironic-cert",
-		"ironic-inspector-cert",
 	}
 	if mariadbEnabled {
 		secretList = append(secretList, "mariadb-cert")
