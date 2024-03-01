@@ -64,7 +64,6 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	ironicContainers := []string{
 		"ironic",
-		"ironic-inspector",
 		"ironic-endpoint-keepalived",
 		"ironic-log-watch",
 		"dnsmasq",
