@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -167,7 +167,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 			Cluster: newCluster(clusterName),
 			BMCluster: newMetal3Cluster(metal3ClusterName,
 				bmcOwnerRef, nil, &infrav1.Metal3ClusterStatus{
-					FailureMessage: pointer.String("cba"),
+					FailureMessage: ptr.To("cba"),
 				},
 			),
 		}),

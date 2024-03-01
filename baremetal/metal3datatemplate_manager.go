@@ -29,7 +29,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -318,7 +318,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			Labels:    dataClaim.Labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 					APIVersion: m.DataTemplate.APIVersion,
 					Kind:       m.DataTemplate.Kind,
 					Name:       m.DataTemplate.Name,
@@ -358,7 +358,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	if err := createObject(ctx, m.client, dataObject); err != nil {
 		var reconcileError ReconcileError
 		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
-			dataClaim.Status.ErrorMessage = pointer.String("Failed to create associated Metal3Data object")
+			dataClaim.Status.ErrorMessage = ptr.To("Failed to create associated Metal3Data object")
 		}
 		return indexes, err
 	}
@@ -398,14 +398,14 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 		}
 		err := m.client.Get(ctx, key, tmpM3Data)
 		if err != nil && !apierrors.IsNotFound(err) {
-			dataClaim.Status.ErrorMessage = pointer.String("Failed to get associated Metal3Data object")
+			dataClaim.Status.ErrorMessage = ptr.To("Failed to get associated Metal3Data object")
 			return indexes, err
 		} else if err == nil {
 			// Delete the secret with metadata
 			fmt.Println(tmpM3Data.Name)
 			err = m.client.Delete(ctx, tmpM3Data)
 			if err != nil && !apierrors.IsNotFound(err) {
-				dataClaim.Status.ErrorMessage = pointer.String("Failed to delete associated Metal3Data object")
+				dataClaim.Status.ErrorMessage = ptr.To("Failed to delete associated Metal3Data object")
 				return indexes, err
 			}
 		}

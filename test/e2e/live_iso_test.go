@@ -10,7 +10,7 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -74,7 +74,7 @@ func liveIsoTest() {
 			URL:          liveISOImageURL,
 			Checksum:     "",
 			ChecksumType: "",
-			DiskFormat:   pointer.String("live-iso"),
+			DiskFormat:   ptr.To("live-iso"),
 		}
 		Expect(bootstrapClient.Update(ctx, &isoBmh)).NotTo(HaveOccurred())
 		isoBmhName := isoBmh.Name

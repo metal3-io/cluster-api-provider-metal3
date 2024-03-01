@@ -36,7 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -266,10 +266,10 @@ var _ = Describe("Reconcile metal3machine", func() {
 					Expect(testBMmachine.Spec.ProviderID).To(Equal(oldProviderID))
 				} else {
 					if tc.CheckBMProviderIDNew {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.String(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(ptr.To(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
 							testBMHost.ObjectMeta.Namespace, testBMHost.ObjectMeta.Name, testBMmachine.ObjectMeta.Name))))
 					} else {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(pointer.String(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(ptr.To(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
 							string(testBMHost.ObjectMeta.UID)))))
 					}
 				}
@@ -525,8 +525,8 @@ var _ = Describe("Reconcile metal3machine", func() {
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 								// Checking the pointers,
 								// CheckBMHostProvisioned is true
-								ChecksumType: pointer.String("sha512"),
-								DiskFormat:   pointer.String("raw"),
+								ChecksumType: ptr.To("sha512"),
+								DiskFormat:   ptr.To("raw"),
 							},
 						}, nil, false,
 					),
@@ -645,7 +645,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1.Metal3MachineSpec{
-							ProviderID: pointer.String(providerID),
+							ProviderID: ptr.To(providerID),
 							Image: infrav1.Image{
 								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",

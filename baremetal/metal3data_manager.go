@@ -34,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
@@ -249,7 +249,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// Create the owner Ref for the secret
 	ownerRefs := []metav1.OwnerReference{
 		{
-			Controller: pointer.Bool(true),
+			Controller: ptr.To(true),
 			APIVersion: m.Data.APIVersion,
 			Kind:       m.Data.Kind,
 			Name:       m.Data.Name,
@@ -432,7 +432,7 @@ type poolRefs map[string]corev1.TypedLocalObjectReference
 // It returns an error if a reference with the same name but a different group or kind already exists.
 func (p poolRefs) addRef(ref corev1.TypedLocalObjectReference) error {
 	if ref.APIGroup == nil || *ref.APIGroup == "" {
-		ref.APIGroup = pointer.String("ipam.metal3.io")
+		ref.APIGroup = ptr.To("ipam.metal3.io")
 	}
 	if ref.Kind == "" {
 		ref.Kind = "IPPool"
@@ -453,7 +453,7 @@ func (p poolRefs) addRef(ref corev1.TypedLocalObjectReference) error {
 
 // addFromPool adds a pool reference from a [FromPool] value.
 func (p poolRefs) addFromPool(pool infrav1.FromPool) error {
-	return p.addRef(corev1.TypedLocalObjectReference{Name: pool.Name, APIGroup: pointer.String(pool.APIGroup), Kind: pool.Kind})
+	return p.addRef(corev1.TypedLocalObjectReference{Name: pool.Name, APIGroup: ptr.To(pool.APIGroup), Kind: pool.Kind})
 }
 
 // addName adds a reference to a metal3 pool using just its name.
@@ -612,7 +612,7 @@ func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocatio
 				Kind:       m.Data.Kind,
 				Name:       m.Data.Name,
 				UID:        m.Data.UID,
-				Controller: pointer.Bool(true),
+				Controller: ptr.To(true),
 			},
 		},
 		Labels: m.Data.Labels,
@@ -845,7 +845,7 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 					Kind:       m.Data.Kind,
 					Name:       m.Data.Name,
 					UID:        m.Data.UID,
-					Controller: pointer.BoolPtr(true),
+					Controller: ptr.To(true),
 				},
 			},
 			Labels: m.Data.Labels,

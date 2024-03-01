@@ -44,7 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -285,7 +285,7 @@ func (m *MachineManager) GetBaremetalHostID(ctx context.Context) (*string, error
 		return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if host.Status.Provisioning.State == bmov1alpha1.StateProvisioned {
-		return pointer.String(string(host.ObjectMeta.UID)), nil
+		return ptr.To(string(host.ObjectMeta.UID)), nil
 	}
 	m.Log.Info("Provisioning BaremetalHost, requeuing")
 	// Do not requeue since BMH update will trigger a reconciliation
@@ -1275,7 +1275,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 		return *providerID, nil
 	}
 	m.Log.V(4).Info("ProviderID contains the BMH ID", "providerID", *providerID)
-	return *providerID, pointer.String(bmhID)
+	return *providerID, ptr.To(bmhID)
 }
 
 // ClientGetter prototype.
@@ -1448,13 +1448,13 @@ func setOwnerRefInList(refList []metav1.OwnerReference, controller bool,
 			Kind:       objType.Kind,
 			Name:       objMeta.Name,
 			UID:        objMeta.UID,
-			Controller: pointer.Bool(controller),
+			Controller: ptr.To(controller),
 		})
 	} else {
 		// The UID and the APIVersion might change due to move or version upgrade.
 		refList[index].APIVersion = objType.APIVersion
 		refList[index].UID = objMeta.UID
-		refList[index].Controller = pointer.Bool(controller)
+		refList[index].Controller = ptr.To(controller)
 	}
 	return refList, nil
 }
@@ -1529,7 +1529,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 					Kind:       m.Metal3Machine.Kind,
 					Name:       m.Metal3Machine.Name,
 					UID:        m.Metal3Machine.UID,
-					Controller: pointer.Bool(true),
+					Controller: ptr.To(true),
 				},
 			},
 			Labels: m.Metal3Machine.Labels,

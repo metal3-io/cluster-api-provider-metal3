@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -120,12 +120,12 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		if tc.GetProviderIDFails {
 			m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
-				pointer.String(string(bmhuid)), nil,
+				ptr.To(string(bmhuid)), nil,
 			)
 			provID = ""
 		} else {
 			m.EXPECT().GetProviderIDAndBMHID().Return(
-				providerID, pointer.String(string(bmhuid)),
+				providerID, ptr.To(string(bmhuid)),
 			)
 			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		}

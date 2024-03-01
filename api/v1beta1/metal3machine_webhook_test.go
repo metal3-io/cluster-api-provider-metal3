@@ -18,7 +18,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func TestMetal3MachineDefault(_ *testing.T) {
@@ -52,7 +52,7 @@ func TestMetal3MachineValidation(t *testing.T) {
 
 	validIso := valid.DeepCopy()
 	validIso.Spec.Image.Checksum = ""
-	validIso.Spec.Image.DiskFormat = pointer.String(LiveISODiskFormat)
+	validIso.Spec.Image.DiskFormat = ptr.To(LiveISODiskFormat)
 
 	tests := []struct {
 		name      string
