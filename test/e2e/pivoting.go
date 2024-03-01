@@ -356,7 +356,6 @@ func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	} else {
 		ironicContainerList := []string{
 			"ironic",
-			"ironic-inspector",
 			"dnsmasq",
 			"ironic-endpoint-keepalived",
 			"ironic-log-watch",
