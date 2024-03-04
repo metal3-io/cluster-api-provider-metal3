@@ -60,8 +60,6 @@ export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
 export M3PATH=${M3PATH:-"${HOME}/go/src/github.com/metal3-io"}
 export CAPM3_LOCAL_IMAGE="${CAPM3PATH}"
 
-export PATH=$PATH:$HOME/.krew/bin
-
 # Upgrade test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
   export NUM_NODES=${NUM_NODES:-"5"}

@@ -1,3 +1,4 @@
 resources:
+- ../bases/bmhs
 - ../bases/ippool
 - ../bases/centos-kubeadm-config
