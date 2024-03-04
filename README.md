@@ -164,10 +164,12 @@ Release-1.4 branch:
 ## Basic tests
 
 Unlike integration tests, basic tests focus on the target cluster creation
-without involving pivoting from the bootstrap cluster. To run basic tests,
-replace `integration` with `basic` for instance:
+without involving pivoting from the bootstrap cluster. To run basic tests use:
 
-- **/test-ubuntu-e2e-basic-main** runs basic e2e tests with main branch on Ubuntu
+- **/test metal3-ubuntu-e2e-basic-test-main** runs basic e2e tests with main
+ branch on Ubuntu
+- **/test metal3-centos-e2e-basic-test-release-1-6** runs basic e2e tests on
+ release-1.6 branch with centos
 
 ### Feature tests
 
