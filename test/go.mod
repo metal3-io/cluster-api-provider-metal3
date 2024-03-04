@@ -5,9 +5,9 @@ go 1.20
 require (
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.5.0
+	github.com/metal3-io/baremetal-operator/apis v0.5.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.6.1
+	github.com/metal3-io/ip-address-manager/api v1.6.2
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	golang.org/x/crypto v0.17.0
@@ -79,7 +79,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.5.0 // indirect
+	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.5.1 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
