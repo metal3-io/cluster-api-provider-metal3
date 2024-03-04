@@ -152,7 +152,7 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 	}
 
 	// Create the BMHs needed in the hosting namespace.
-	createBMH := func(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string) {
+	createBMH := func(clusterProxy framework.ClusterProxy, clusterNamespace string, _ string) {
 		installSplitYAML()
 		splitFiles := splitYAMLFile("bmhosts_crs.yaml", workDir)
 		// Check which from which cluster creation this call is coming

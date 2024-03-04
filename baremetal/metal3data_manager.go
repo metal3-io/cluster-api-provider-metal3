@@ -44,11 +44,13 @@ import (
 )
 
 const (
-	m3machine     = "metal3machine"
-	host          = "baremetalhost"
-	capimachine   = "machine"
-	DataLabelName = "infrastructure.cluster.x-k8s.io/data-name"
-	PoolLabelName = "infrastructure.cluster.x-k8s.io/pool-name"
+	m3machine         = "metal3machine"
+	host              = "baremetalhost"
+	capimachine       = "machine"
+	DataLabelName     = "infrastructure.cluster.x-k8s.io/data-name"
+	PoolLabelName     = "infrastructure.cluster.x-k8s.io/pool-name"
+	networkDataSuffix = "-networdata"
+	metaDataSuffix    = "-metadata"
 )
 
 var (
@@ -162,7 +164,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		// If the secret name is unset, set it
 		if m.Data.Spec.MetaData == nil || m.Data.Spec.MetaData.Name == "" {
 			m.Data.Spec.MetaData = &corev1.SecretReference{
-				Name:      m3m.Name + "-metadata",
+				Name:      m3m.Name + metaDataSuffix,
 				Namespace: m.Data.Namespace,
 			}
 		}
@@ -188,7 +190,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		// If the secret name is unset, set it
 		if m.Data.Spec.NetworkData == nil || m.Data.Spec.NetworkData.Name == "" {
 			m.Data.Spec.NetworkData = &corev1.SecretReference{
-				Name:      m3m.Name + "-networkdata",
+				Name:      m3m.Name + networkDataSuffix,
 				Namespace: m.Data.Namespace,
 			}
 		}

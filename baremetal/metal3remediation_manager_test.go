@@ -953,7 +953,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
 				Name: node.Name,
 			}}).CoreV1()
-			clientGetter := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error) {
+			clientGetter := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error) {
 				return corev1Client, nil
 			}
 			remediationMgr, err := NewRemediationManager(fakeClient, clientGetter, m3Remediation, nil, capiMachine,

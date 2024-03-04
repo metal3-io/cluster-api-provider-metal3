@@ -318,7 +318,7 @@ func installIronicBMO(ctx context.Context, inputGetter func() installIronicBMOIn
 	Expect(er).ToNot(HaveOccurred(), "Failed to deploy Ironic")
 	deploymentNameList := []string{}
 	if input.deployIronic {
-		deploymentNameList = append(deploymentNameList, "-ironic")
+		deploymentNameList = append(deploymentNameList, ironicSuffix)
 	}
 	if input.deployBMO {
 		deploymentNameList = append(deploymentNameList, "-controller-manager")
@@ -345,7 +345,7 @@ type RemoveIronicInput struct {
 func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
 	if input.IsDeployment {
-		deploymentName := input.NamePrefix + "-ironic"
+		deploymentName := input.NamePrefix + ironicSuffix
 		RemoveDeployment(ctx, func() RemoveDeploymentInput {
 			return RemoveDeploymentInput{
 				ManagementCluster: input.ManagementCluster,

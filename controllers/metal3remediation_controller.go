@@ -376,7 +376,7 @@ func (r *Metal3RemediationReconciler) restoreNode(ctx context.Context, remediati
 	}
 
 	// set annotations
-	if len(annotations) > 0 {
+	if annotations != "" {
 		nodeAnnotations, err := unmarshal(annotations)
 		if err != nil {
 			r.Log.Error(err, "failed to unmarshal node annotations", "node", node.Name, "annotations", annotations)
@@ -389,7 +389,7 @@ func (r *Metal3RemediationReconciler) restoreNode(ctx context.Context, remediati
 	}
 
 	// set labels
-	if len(labels) > 0 {
+	if labels != "" {
 		nodeLabels, err := unmarshal(labels)
 		if err != nil {
 			r.Log.Error(err, "failed to unmarshal node labels", "node", node.Name, "labels", labels)

@@ -49,6 +49,7 @@ const (
 	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
 	osTypeCentos           = "centos"
 	osTypeUbuntu           = "ubuntu"
+	ironicSuffix           = "-ironic"
 )
 
 func Byf(format string, a ...interface{}) {
@@ -651,7 +652,7 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
-		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error { return nil },
+		HostKeyCallback: func(_ string, _ net.Addr, _ ssh.PublicKey) error { return nil },
 		Timeout:         60 * time.Second,
 	}
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", machineIP), cfg)
