@@ -79,10 +79,23 @@ type Image struct {
 	DiskFormat *string `json:"format,omitempty"`
 }
 
+// Custom deploy is a description of a customized deploy process.
+type CustomDeploy struct {
+	// Custom deploy method name.
+	// This name is specific to the deploy ramdisk used. If you don't have
+	// a custom deploy ramdisk, you shouldn't use CustomDeploy.
+	Method string `json:"method"`
+}
+
 // Validate performs validation on [Image], returning a list of field errors using the provided base path.
 // It is intended to be used in the validation webhooks of resources containing [Image].
 func (i *Image) Validate(base field.Path) field.ErrorList {
 	var errors field.ErrorList
+
+	if i == nil {
+		errors = append(errors, field.Required(&base, "either image or customDeploy is required"))
+		return errors // not possible to validate further
+	}
 
 	if i.URL == "" {
 		errors = append(errors, field.Required(base.Child("URL"), "cannot be empty"))

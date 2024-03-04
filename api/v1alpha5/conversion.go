@@ -80,6 +80,7 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 	dst.Status.Conditions = restored.Status.Conditions
+	dst.Spec.CustomDeploy = restored.Spec.CustomDeploy
 	return nil
 }
 
@@ -116,12 +117,23 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	// Manually restore data.
+	restored := &v1beta1.Metal3MachineTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.Template.Spec.CustomDeploy = restored.Spec.Template.Spec.CustomDeploy
+
 	return nil
 }
 
 func (dst *Metal3MachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.Metal3MachineTemplate)
 	if err := Convert_v1beta1_Metal3MachineTemplate_To_v1alpha5_Metal3MachineTemplate(src, dst, nil); err != nil {
+		return err
+	}
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
 

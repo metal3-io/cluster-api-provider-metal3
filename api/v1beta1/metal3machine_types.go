@@ -41,7 +41,12 @@ type Metal3MachineSpec struct {
 	ProviderID *string `json:"providerID,omitempty"`
 
 	// Image is the image to be provisioned.
-	Image Image `json:"image"`
+	// +optional
+	Image Image `json:"image,omitempty"`
+
+	// A custom deploy procedure.
+	// +optional
+	CustomDeploy *CustomDeploy `json:"customDeploy,omitempty"`
 
 	// UserData references the Secret that holds user data needed by the bare metal
 	// operator. The Namespace is optional; it will default to the metal3machine's
