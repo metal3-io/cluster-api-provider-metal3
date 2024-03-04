@@ -54,6 +54,17 @@ func TestMetal3MachineValidation(t *testing.T) {
 	validIso.Spec.Image.Checksum = ""
 	validIso.Spec.Image.DiskFormat = ptr.To(LiveISODiskFormat)
 
+	validCustomDeploy := &Metal3Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+		Spec: Metal3MachineSpec{
+			CustomDeploy: &CustomDeploy{
+				Method: "install_great_stuff",
+			},
+		},
+	}
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -78,6 +89,11 @@ func TestMetal3MachineValidation(t *testing.T) {
 			name:      "should succeed when disk format is 'live-iso' even when checksum is empty",
 			expectErr: false,
 			c:         validIso,
+		},
+		{
+			name:      "should succeed with customDeploy",
+			expectErr: false,
+			c:         validCustomDeploy,
 		},
 	}
 

@@ -508,6 +508,10 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.Image = nil
 			bmhUpdated = true
 		}
+		if host.Spec.CustomDeploy != nil {
+			host.Spec.CustomDeploy = nil
+			bmhUpdated = true
+		}
 		if m.Metal3Machine.Status.UserData != nil && host.Spec.UserData != nil {
 			host.Spec.UserData = nil
 			bmhUpdated = true
@@ -1055,20 +1059,27 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 	// We only want to update the image setting if the host does not
 	// already have an image.
 	//
-	// A host with an existing image is already provisioned and
-	// upgrades are not supported at this time. To re-provision a
+	// A host with an existing image or customDeploy is already provisioned
+	// and upgrades are not supported at this time. To re-provision a
 	// host, we must fully deprovision it and then provision it again.
 	// Not provisioning while we do not have the UserData.
-	if host.Spec.Image == nil && m.Metal3Machine.Status.UserData != nil {
+	if host.Spec.Image == nil && host.Spec.CustomDeploy == nil && m.Metal3Machine.Status.UserData != nil {
 		checksumType := ""
 		if m.Metal3Machine.Spec.Image.ChecksumType != nil {
 			checksumType = *m.Metal3Machine.Spec.Image.ChecksumType
 		}
-		host.Spec.Image = &bmov1alpha1.Image{
-			URL:          m.Metal3Machine.Spec.Image.URL,
-			Checksum:     m.Metal3Machine.Spec.Image.Checksum,
-			ChecksumType: bmov1alpha1.ChecksumType(checksumType),
-			DiskFormat:   m.Metal3Machine.Spec.Image.DiskFormat,
+		if m.Metal3Machine.Spec.Image.URL != "" {
+			host.Spec.Image = &bmov1alpha1.Image{
+				URL:          m.Metal3Machine.Spec.Image.URL,
+				Checksum:     m.Metal3Machine.Spec.Image.Checksum,
+				ChecksumType: bmov1alpha1.ChecksumType(checksumType),
+				DiskFormat:   m.Metal3Machine.Spec.Image.DiskFormat,
+			}
+		}
+		if m.Metal3Machine.Spec.CustomDeploy != nil {
+			host.Spec.CustomDeploy = &bmov1alpha1.CustomDeploy{
+				Method: m.Metal3Machine.Spec.CustomDeploy.Method,
+			}
 		}
 		host.Spec.UserData = m.Metal3Machine.Status.UserData
 		if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
