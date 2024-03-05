@@ -134,6 +134,7 @@ issues:
     linters:
     - unused
     - unparam
+    - goconst
   # Specific exclude rules for deprecated fields that are still part of the codebase.
   # These should be removed as the referenced deprecated item is removed from the project.
   - linters:

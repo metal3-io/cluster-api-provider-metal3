@@ -24,7 +24,7 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 		clientSet         = input.ManagementCluster.GetClientSet()
 		namePrefix        = input.E2EConfig.GetVariable("NAMEPREFIX")
 		ironicNamespace   = input.E2EConfig.GetVariable("IRONIC_NAMESPACE")
-		ironicDeployName  = namePrefix + "-ironic"
+		ironicDeployName  = namePrefix + ironicSuffix
 		containerRegistry = input.E2EConfig.GetVariable("CONTAINER_REGISTRY")
 		ironicImageTag    = input.E2EConfig.GetVariable("IRONIC_IMAGE_TAG")
 	)

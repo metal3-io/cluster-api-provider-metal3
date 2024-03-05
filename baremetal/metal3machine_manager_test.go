@@ -2550,7 +2550,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				BMHHost := newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, tc.HostID)
 				fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(BMHHost).Build()
 				corev1Client := clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1()
-				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
+				m := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (
 					clientcorev1.CoreV1Interface, error,
 				) {
 					return corev1Client, nil
@@ -2667,7 +2667,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				BMHHost := newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, tc.HostID)
 				fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(BMHHost).Build()
 				corev1Client := clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1()
-				m := func(ctx context.Context, client client.Client, cluster *clusterv1.Cluster) (
+				m := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (
 					clientcorev1.CoreV1Interface, error,
 				) {
 					return corev1Client, nil

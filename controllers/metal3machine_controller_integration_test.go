@@ -197,7 +197,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			oldProviderID := testBMmachine.Spec.ProviderID
 
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Objects...).WithStatusSubresource(tc.Objects...).Build()
-			mockCapiClientGetter := func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (
+			mockCapiClientGetter := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (
 				clientcorev1.CoreV1Interface, error,
 			) {
 				return clientfake.NewSimpleClientset(tc.TargetObjects...).CoreV1(), nil

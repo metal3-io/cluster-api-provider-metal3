@@ -212,7 +212,7 @@ var _ = Describe("Metal3Data manager", func() {
 				tmpSecret := corev1.Secret{}
 				err = fakeClient.Get(context.TODO(),
 					client.ObjectKey{
-						Name:      metal3machineName + "-metadata",
+						Name:      metal3machineName + metaDataSuffix,
 						Namespace: namespaceName,
 					},
 					&tmpSecret,
@@ -224,7 +224,7 @@ var _ = Describe("Metal3Data manager", func() {
 				tmpSecret := corev1.Secret{}
 				err = fakeClient.Get(context.TODO(),
 					client.ObjectKey{
-						Name:      metal3machineName + "-networkdata",
+						Name:      metal3machineName + networkDataSuffix,
 						Namespace: namespaceName,
 					},
 					&tmpSecret,
@@ -370,13 +370,13 @@ var _ = Describe("Metal3Data manager", func() {
 				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
 			metadataSecret: &corev1.Secret{
-				ObjectMeta: testObjectMeta(metal3machineName+"-metadata", namespaceName, ""),
+				ObjectMeta: testObjectMeta(metal3machineName+metaDataSuffix, namespaceName, ""),
 				Data: map[string][]byte{
 					"metaData": []byte("Hello"),
 				},
 			},
 			networkdataSecret: &corev1.Secret{
-				ObjectMeta: testObjectMeta(metal3machineName+"-networkdata", namespaceName, ""),
+				ObjectMeta: testObjectMeta(metal3machineName+networkDataSuffix, namespaceName, ""),
 				Data: map[string][]byte{
 					"networkData": []byte("Bye"),
 				},
