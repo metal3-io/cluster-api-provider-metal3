@@ -30,7 +30,7 @@ import (
  * 	The test is considered passed.
  */
 
-var _ = Describe("When testing live iso [live-iso] [features]", func() {
+var _ = Describe("When testing live iso [live-iso] [features]", Label("live-iso", "features"), func() {
 	liveIsoTest()
 })
 
