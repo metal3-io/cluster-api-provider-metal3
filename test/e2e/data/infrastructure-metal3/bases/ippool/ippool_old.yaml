@@ -1,27 +1,28 @@
-# This is ippool claim for CAPI's in-cluster IPAM provider 
+# This is an ipclaim for Metal3 IPAM provider 
+# Keeping this here for now for easier comparison with the new version
 ---
-apiVersion: ipam.cluster.x-k8s.io/v1alpha2
-kind: InClusterIPPool
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
 metadata:
-  labels:
-    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
   name: provisioning-pool
   namespace: ${NAMESPACE}
 spec:
-  inclusterippools:
+  clusterName: ${CLUSTER_NAME}
+  namePrefix: ${CLUSTER_NAME}-prov
+  pools:
     - start: ${IPAM_PROVISIONING_POOL_RANGE_START}
       end: ${IPAM_PROVISIONING_POOL_RANGE_END}
   prefix: ${BARE_METAL_PROVISIONER_CIDR}
 ---
-apiVersion: ipam.cluster.x-k8s.io/v1alpha2
-kind: InClusterIPPool
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
 metadata:
-  labels:
-    cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
   name: baremetalv4-pool
   namespace: ${NAMESPACE}
 spec:
-  inclusterippools:
+  clusterName: ${CLUSTER_NAME}
+  namePrefix: ${CLUSTER_NAME}-bmv4
+  pools:
     - start: ${IPAM_EXTERNALV4_POOL_RANGE_START}
       end: ${IPAM_EXTERNALV4_POOL_RANGE_END}
   prefix: ${EXTERNAL_SUBNET_V4_PREFIX}
