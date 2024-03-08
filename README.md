@@ -165,7 +165,7 @@ Release-1.3 branch:
 Unlike integration tests, basic tests focus on the target cluster creation without involving pivoting from the bootstrap cluster.
 To run basic tests, replace `integration` with `basic` for instance:
 
-- **/test-ubuntu-e2e-basic-main** runs basic e2e tests with main branch on Ubuntu
+- **/test ubuntu-e2e-basic-release-1-6** runs basic e2e tests with main branch on Ubuntu
 
 ### Feature tests
 
