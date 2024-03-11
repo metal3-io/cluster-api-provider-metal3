@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.5.0
+	github.com/metal3-io/baremetal-operator/apis v0.5.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.6.0
 	github.com/onsi/ginkgo/v2 v2.16.0
