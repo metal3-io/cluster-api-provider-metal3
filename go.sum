@@ -137,8 +137,8 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 h1:jWpvCLoY8Z/e3VKvlsiIGKtc+UG6U5vzxaoagmhXfyg=
 github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0/go.mod h1:QUyp042oQthUoa9bqDv0ER0wrtXnBruoNd7aNjkbP+k=
-github.com/metal3-io/baremetal-operator/apis v0.5.0 h1:IRaKMxRCkYfFAjvZdDyGC6bIaGQsV6MMNmGV8gqyYCc=
-github.com/metal3-io/baremetal-operator/apis v0.5.0/go.mod h1:rjpH/E7MB7JWt/LPi6hDd5LpaBIiqaBnm3KtFjKxnUM=
+github.com/metal3-io/baremetal-operator/apis v0.5.1 h1:l6VCuM2nSYMsdir3mocXvF80F7HnTXVZ7NNIoMEYbio=
+github.com/metal3-io/baremetal-operator/apis v0.5.1/go.mod h1:Q3MHes59mRabjHM6ARoHfgd2uXUjJIytl3/uflzhyew=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.5.0 h1:oRkQOlTxcRJsHFM2jkXzOPAkg/REnLEd15GxJTN27Nk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.5.0/go.mod h1:399nvdaqoU9rTI25UdFw2EWcVjmJPpeZPIhfDAIx/XU=
 github.com/metal3-io/ip-address-manager/api v1.6.0 h1:9AZhHHnFv/P0iC2UHvjzRwc34yPjRUmZkdWhF65sjZE=
