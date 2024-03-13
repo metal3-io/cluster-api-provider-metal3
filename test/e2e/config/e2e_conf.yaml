@@ -39,7 +39,7 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: ${CAPI_FROM_RELEASE} # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+  - name: ${CAPI_FROM_RELEASE}
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/bootstrap-components.yaml"
     type: "url"
     contract: ${CONTRACT_FROM}
@@ -61,7 +61,7 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: ${CAPI_FROM_RELEASE} # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
+  - name: ${CAPI_FROM_RELEASE}
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/${CAPI_FROM_RELEASE}/control-plane-components.yaml"
     type: "url"
     contract: ${CONTRACT_FROM}

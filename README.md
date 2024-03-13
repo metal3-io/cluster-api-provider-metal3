@@ -22,7 +22,6 @@ Metal3.
 
 | CAPM3 version | Cluster API version | CAPM3 Release |  CAPI Release  |
 | ------------- | ------------------- | ------------- | -------------- |
-| v1alpha5      | v1alpha4            | v0.5.X        |  v0.4.X        |
 | v1beta1       | v1beta1             | v1.1.X        |  v1.1.X        |
 | v1beta1       | v1beta1             | v1.2.X        |  v1.2.X        |
 | v1beta1       | v1beta1             | v1.3.X        |  v1.3.X        |
@@ -211,15 +210,10 @@ Release-1.4 branch:
 
 ### Upgrade tests
 
-CAPM3 tests upgrade from all supported release to the current one, while also
-maintaining a test for the previous API version release v1alpha5.
+CAPM3 tests upgrade from all supported release to the current one.
 We run upgrade test on main branch from different releases:
 
-- **/test-e2e-upgrade-main-from-release-0-5** runs e2e upgrade tests from CAPM3
-  API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
-
-- **/test-e2e-upgrade-main-from-release-1-3** runs e2e upgrade tests from CAPM3
+z- **/test-e2e-upgrade-main-from-release-1-3** runs e2e upgrade tests from CAPM3
   API version v1beta1/branch release-1.3 to CAPM3 API version v1beta1/branch
   main on Ubuntu
 

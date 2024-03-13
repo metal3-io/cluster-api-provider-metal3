@@ -18,7 +18,6 @@ import (
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -164,7 +163,6 @@ var _ = SynchronizedAfterSuite(func() {
 func initScheme() *runtime.Scheme {
 	sc := runtime.NewScheme()
 	framework.TryAddDefaultSchemes(sc)
-	Expect(clusterv1alpha4.AddToScheme(sc)).To(Succeed())
 	Expect(bmov1alpha1.AddToScheme(sc)).To(Succeed())
 	Expect(infrav1.AddToScheme(sc)).To(Succeed())
 	Expect(ipamv1.AddToScheme(sc)).To(Succeed())
