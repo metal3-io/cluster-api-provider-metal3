@@ -37,6 +37,10 @@ func healthcheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	clusterName := input.ClusterName
 	controlplaneM3Machines, workerM3Machines := GetMetal3Machines(ctx, cli, clusterName, namespace)
 
+	// get baremetal ip pool for retreiving ip addresses of controlpane and worker nodes
+	baremetalv4Pool, _ := GetIPPools(ctx, cli, input.ClusterName, input.Namespace)
+	Expect(baremetalv4Pool).ToNot(BeEmpty())
+
 	// Worker
 	By("Healthchecking the workers")
 	workerHealthcheck, err := DeployWorkerHealthCheck(ctx, cli, namespace, clusterName)
@@ -44,7 +48,7 @@ func healthcheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	workerMachineName, err := Metal3MachineToMachineName(workerM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
 	workerMachine := GetMachine(ctx, cli, client.ObjectKey{Name: workerMachineName, Namespace: namespace})
-	workerIP, err := MachineToIPAddress(ctx, cli, &workerMachine)
+	workerIP, err := MachineToIPAddress(ctx, cli, &workerMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
 	Expect(runCommand("", "", workerIP, "metal3", "systemctl stop kubelet")).To(Succeed())
 	// Wait until node is marked unhealthy and then check that it becomes healthy again
@@ -64,7 +68,7 @@ func healthcheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	controlplaneMachineName, err := Metal3MachineToMachineName(controlplaneM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
 	controlplaneMachine := GetMachine(ctx, cli, client.ObjectKey{Name: controlplaneMachineName, Namespace: namespace})
-	controlplaneIP, err := MachineToIPAddress(ctx, cli, &controlplaneMachine)
+	controlplaneIP, err := MachineToIPAddress(ctx, cli, &controlplaneMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
 	Expect(runCommand("", "", controlplaneIP, "metal3", "systemctl stop kubelet")).To(Succeed())
 	// Wait until node is marked unhealthy and then check that it becomes healthy again
