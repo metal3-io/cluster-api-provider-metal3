@@ -582,7 +582,7 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 	return "", fmt.Errorf("no matching Metal3Machine found for current Machine")
 }
 
-func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
+func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
 	err := cli.Get(ctx, types.NamespacedName{
 		Namespace: m.Spec.InfrastructureRef.Namespace,
@@ -617,7 +617,7 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 	}
 	for i, ip := range IPAddresses.Items {
 		for _, owner := range ip.OwnerReferences {
-			if owner.Name == m3Data.Name {
+			if owner.Name == m3Data.Name && ip.Spec.Pool.Name == ippool.Name {
 				IPAddress = &IPAddresses.Items[i]
 			}
 		}
@@ -715,8 +715,11 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 		return fmt.Errorf("no valid credentials found: KubeadmConfigSpec.Users is empty")
 	}
 	creds := kubeadmCP.Spec.KubeadmConfigSpec.Users[0]
+	// get baremetal ip pool for retreiving ip addresses of controlpane and worker nodes
+	baremetalv4Pool, _ := GetIPPools(ctx, cli, m.Spec.ClusterName, m.Namespace)
+	Expect(baremetalv4Pool).ToNot(BeEmpty())
 
-	ip, err := MachineToIPAddress(ctx, cli, m)
+	ip, err := MachineToIPAddress(ctx, cli, m, baremetalv4Pool[0])
 	if err != nil {
 		return fmt.Errorf("couldn't get IP address of machine: %w", err)
 	}
