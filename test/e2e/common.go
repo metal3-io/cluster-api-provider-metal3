@@ -589,7 +589,7 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 }
 
 // MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
-func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
+func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
 	err := cli.Get(ctx, types.NamespacedName{
 		Namespace: m.Spec.InfrastructureRef.Namespace,
@@ -624,7 +624,7 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 	}
 	for i, ip := range IPAddresses.Items {
 		for _, owner := range ip.OwnerReferences {
-			if owner.Name == m3Data.Name {
+			if owner.Name == m3Data.Name && ip.Spec.Pool.Name == ippool.Name {
 				IPAddress = &IPAddresses.Items[i]
 			}
 		}
@@ -728,7 +728,11 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 	}
 	creds := kubeadmCP.Spec.KubeadmConfigSpec.Users[0]
 
-	ip, err := MachineToIPAddress(ctx, cli, m)
+	// get baremetal ip pool for retreiving ip addresses of controlpane and worker nodes
+	baremetalv4Pool, _ := GetIPPools(ctx, cli, m.Spec.ClusterName, m.Namespace)
+	Expect(baremetalv4Pool).ToNot(BeEmpty())
+
+	ip, err := MachineToIPAddress(ctx, cli, m, baremetalv4Pool[0])
 	if err != nil {
 		return fmt.Errorf("couldn't get IP address of machine: %w", err)
 	}
