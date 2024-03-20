@@ -72,7 +72,7 @@ var _ = Describe(fmt.Sprintf("When testing cluster upgrade from releases %s > cu
 						BootstrapClusterProxy:           bootstrapClusterProxy,
 						ArtifactFolder:                  artifactFolder,
 						SkipCleanup:                     skipCleanup,
-						InitWithProvidersContract:       "v1alpha4",
+						InitWithProvidersContract:       "v1beta1",
 						InitWithCoreProvider:            fmt.Sprintf("capi-system/cluster-api:%s", os.Getenv("CAPI_TO_RELEASE")),
 						InitWithBootstrapProviders:      []string{fmt.Sprintf("capi-kubeadm-bootstrap-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
 						InitWithControlPlaneProviders:   []string{fmt.Sprintf("capi-kubeadm-control-plane-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
@@ -96,7 +96,7 @@ var _ = Describe(fmt.Sprintf("When testing cluster upgrade from releases %s > cu
 						BootstrapClusterProxy:       bootstrapClusterProxy,
 						ArtifactFolder:              artifactFolder,
 						SkipCleanup:                 skipCleanup,
-						InitWithProvidersContract:   "v1alpha4",
+						InitWithProvidersContract:   "v1beta1",
 						InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
 						PreInit:                     preInitFunc,
 						PreWaitForCluster:           preWaitForCluster,
@@ -274,8 +274,8 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 	})
 
 	// Export capi/capm3 versions
-	os.Setenv("CAPI_VERSION", "v1alpha4")
-	os.Setenv("CAPM3_VERSION", "v1alpha5")
+	os.Setenv("CAPI_VERSION", "v1beta1")
+	os.Setenv("CAPM3_VERSION", "v1beta1")
 
 	// These exports bellow we need them after applying the management cluster template and before
 	// applying the workload. if exported before it will break creating the management because it uses v1beta1 templates and default IPs.
