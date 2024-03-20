@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/google/gofuzz v1.2.0
 	github.com/metal3-io/ip-address-manager/api v1.6.0
-	github.com/onsi/gomega v1.31.1
+	github.com/onsi/gomega v1.32.0
 	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.22.0
 	k8s.io/api v0.29.3
