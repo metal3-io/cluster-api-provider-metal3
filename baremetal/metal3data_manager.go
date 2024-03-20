@@ -624,7 +624,7 @@ func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocatio
 // ensureM3IPClaim ensures that a claim for a referenced pool exists.
 // It returns the claim and whether to fetch the claim again when fetching IP addresses.
 func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
-	m.Log.Info("Ensuring M3IPClaim for Metal3Data", "Metal3Data", m.Data.Name)
+	m.Log.Info("Ensuring Metal3IPClaim for Metal3Data", "Metal3Data", m.Data.Name)
 	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
@@ -902,7 +902,6 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalO
 		Gateway:    ipamv1.IPAddressStr(address.Spec.Gateway),
 		dnsServers: []ipamv1.IPAddressStr{},
 	}
-	m.Log.Info("allocating", "addr", a)
 	return a, false, nil
 }
 
@@ -1271,7 +1270,7 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
 		return "", err
 	}
 	if !matching {
-		return "", fmt.Errorf("bad mac address: %s", macaddress)
+		return "", fmt.Errorf("bad MAC address: %s", macaddress)
 	}
 
 	return macaddress, nil
@@ -1413,7 +1412,7 @@ func getValueFromAnnotation(object string, annotation string,
 
 func (m *DataManager) getM3Machine(ctx context.Context, m3dt *infrav1.Metal3DataTemplate) (*infrav1.Metal3Machine, error) {
 	if m.Data.Spec.Claim.Name == "" {
-		return nil, errors.New("Claim name not set")
+		return nil, errors.New("Metal3DataClaim name not set")
 	}
 
 	capm3DataClaim := &infrav1.Metal3DataClaim{}
