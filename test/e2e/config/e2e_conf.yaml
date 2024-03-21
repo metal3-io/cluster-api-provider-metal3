@@ -97,6 +97,15 @@ providers:
   - name: v1.6.99
     value: "${PWD}/config/default"
     files:
+    - sourcePath: "../data/infrastructure-metal3/v1.6/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/cluster-template-centos.yaml"
+      targetName: "cluster-template-centos.yaml"
+  - name: v1.7.99
+    value: "${PWD}/config/default"
+    files:
     - sourcePath: "../data/infrastructure-metal3/main/metadata.yaml"
       targetName: "metadata.yaml"
     - sourcePath: "../_out/cluster-template-ubuntu.yaml"

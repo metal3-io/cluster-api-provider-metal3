@@ -469,10 +469,10 @@ func GetMetal3Machines(ctx context.Context, c client.Client, _, namespace string
 	Expect(c.List(ctx, allMachines, client.InNamespace(namespace))).To(Succeed())
 
 	for _, machine := range allMachines.Items {
-		if strings.Contains(machine.ObjectMeta.Name, "workers") {
-			workers = append(workers, machine)
-		} else {
+		if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
 			controlplane = append(controlplane, machine)
+		} else {
+			workers = append(workers, machine)
 		}
 	}
 
