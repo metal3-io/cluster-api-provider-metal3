@@ -1392,7 +1392,7 @@ func getBMHMacByName(name string, bmh *bmov1alpha1.BareMetalHost) (string, error
 			return nics.MAC, nil
 		}
 	}
-	return "", fmt.Errorf("nic name not found %v", name)
+	return "", fmt.Errorf("NIC name not found %v", name)
 }
 
 // getValueFromAnnotation returns an annotation from an object representing a machine.
