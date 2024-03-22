@@ -115,7 +115,7 @@ echo "Generated ${METAL3PLANE_GENERATED_FILE}"
 echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
 # Get Cert-manager provider components file
-curl --fail -Ss -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+curl --fail -Ss -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml
 echo "Downloaded ${COMPONENTS_CERT_MANAGER_GENERATED_FILE}"
 
 # Generate Cluster API provider components file.
