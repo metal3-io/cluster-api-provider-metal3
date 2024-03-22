@@ -10,8 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	dockerTypes "github.com/docker/docker/api/types"
-	containertypes "github.com/docker/docker/api/types/container"
+	containerTypes "github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
@@ -362,10 +361,10 @@ func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 		}
 		dockerClient, err := docker.NewClientWithOpts()
 		Expect(err).ToNot(HaveOccurred(), "Unable to get docker client")
-		removeOptions := dockerTypes.ContainerRemoveOptions{}
+		removeOptions := containerTypes.RemoveOptions{}
 		stopTimeout := 60
 		for _, container := range ironicContainerList {
-			err = dockerClient.ContainerStop(ctx, container, containertypes.StopOptions{Timeout: &stopTimeout})
+			err = dockerClient.ContainerStop(ctx, container, containerTypes.StopOptions{Timeout: &stopTimeout})
 			Expect(err).ToNot(HaveOccurred(), "Unable to stop the container %s: %v", container, err)
 			err = dockerClient.ContainerRemove(ctx, container, removeOptions)
 			Expect(err).ToNot(HaveOccurred(), "Unable to delete the container %s: %v", container, err)
