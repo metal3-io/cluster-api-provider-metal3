@@ -64,7 +64,7 @@ export PATH=$PATH:$HOME/.krew/bin
 
 # Upgrade test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
-  export NUM_NODES=${NUM_NODES:-"5"}
+  export NUM_NODES="5"
 fi
 
 # Integration test environment vars and config
