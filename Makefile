@@ -20,7 +20,7 @@ SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
 
-GO_VERSION ?= 1.21.7
+GO_VERSION ?= 1.21.8
 GO := $(shell type -P go)
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell $(GO) env GOPROXY)
@@ -134,7 +134,7 @@ unit-cover-verbose:
 	GO_TEST_FLAGS=-v GINKGO_TEST_FLAGS=-ginkgo.v $(MAKE) unit-cover
 
 .PHONY: test
-test: fmt lint unit ## Run tests
+test: lint unit ## Run tests
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests with capi e2e testing framework
@@ -327,18 +327,6 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
-# Run go fmt against code
-fmt:
-	$(GO) fmt ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR) && $(GO) fmt  ./...
-	cd $(TEST_DIR) && $(GO) fmt  ./...
-
-# Run go vet against code
-vet:
-	$(GO) vet ./controllers/... ./baremetal/... .
-	cd $(APIS_DIR) && $(GO) vet  ./...
-	cd $(TEST_DIR) && $(GO) fmt  ./...
-
 # Run manifest validation
 .PHONY: manifest-lint
 manifest-lint:
@@ -422,11 +410,6 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		-package=baremetal_mocks \
 		-copyright_file=./hack/boilerplate/boilerplate.generatego.txt \
 		ManagerFactoryInterface
-
-	$(CONVERSION_GEN) \
-		--input-dirs=./api/v1alpha5 \
-		--output-file-base=zz_generated.conversion  $(CONVERSION_GEN_OUTPUT_BASE) \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.

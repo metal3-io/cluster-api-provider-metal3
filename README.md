@@ -22,7 +22,6 @@ Metal3.
 
 | CAPM3 version | Cluster API version | CAPM3 Release |  CAPI Release  |
 | ------------- | ------------------- | ------------- | -------------- |
-| v1alpha5      | v1alpha4            | v0.5.X        |  v0.4.X        |
 | v1beta1       | v1beta1             | v1.1.X        |  v1.1.X        |
 | v1beta1       | v1beta1             | v1.2.X        |  v1.2.X        |
 | v1beta1       | v1beta1             | v1.3.X        |  v1.3.X        |
@@ -47,8 +46,9 @@ need to be manually installed. Example flow of installing Metal3 provider:
    level of the logging verbose with a positive integer number, ie. -v5.
 
    ```shell
-   clusterctl init --core cluster-api:v1.6.2 --bootstrap kubeadm:v1.6.2 \
-       --control-plane kubeadm:v1.6.2 -v5
+   clusterctl init --core cluster-api:v1.7.0-beta.0 \
+       --bootstrap kubeadm:v1.7.0-beta.0 \
+       --control-plane kubeadm:v1.7.0-beta.0 -v5
    ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API
@@ -164,10 +164,12 @@ Release-1.4 branch:
 ## Basic tests
 
 Unlike integration tests, basic tests focus on the target cluster creation
-without involving pivoting from the bootstrap cluster. To run basic tests,
-replace `integration` with `basic` for instance:
+without involving pivoting from the bootstrap cluster. To run basic tests use:
 
-- **/test-ubuntu-e2e-basic-main** runs basic e2e tests with main branch on Ubuntu
+- **/test metal3-ubuntu-e2e-basic-test-main** runs basic e2e tests with main
+ branch on Ubuntu
+- **/test metal3-centos-e2e-basic-test-release-1-6** runs basic e2e tests on
+ release-1.6 branch with centos
 
 ### Feature tests
 
@@ -209,19 +211,10 @@ Release-1.4 branch:
 
 ### Upgrade tests
 
-CAPM3 tests upgrade from all supported release to the current one, while also
-maintaining a test for the previous API version release v1alpha5.
+CAPM3 tests upgrade from all supported release to the current one.
 We run upgrade test on main branch from different releases:
 
-- **/test-e2e-upgrade-main-from-release-0-5** runs e2e upgrade tests from CAPM3
-  API version v1alpha5/branch release-0.5 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
-
-- **/test-e2e-upgrade-main-from-release-1-2** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.2 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
-
-- **/test-e2e-upgrade-main-from-release-1-3** runs e2e upgrade tests from CAPM3
+z- **/test-e2e-upgrade-main-from-release-1-3** runs e2e upgrade tests from CAPM3
   API version v1beta1/branch release-1.3 to CAPM3 API version v1beta1/branch
   main on Ubuntu
 

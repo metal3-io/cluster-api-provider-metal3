@@ -64,7 +64,7 @@ export PATH=$PATH:$HOME/.krew/bin
 
 # Upgrade test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
-  export NUM_NODES=${NUM_NODES:-"5"}
+  export NUM_NODES="5"
 fi
 
 # Integration test environment vars and config
@@ -98,11 +98,7 @@ export IRONIC_TLS_SETUP="true"
 export IRONIC_BASIC_AUTH="true"
 
 # supported providerID formats
-if [[ $CAPM3_VERSION == "v1alpha5" ]]; then
-  export PROVIDER_ID_FORMAT="metal3://{{ ds.meta_data.uuid }}"
-else
-  export PROVIDER_ID_FORMAT="metal3://{{ ds.meta_data.providerid }}"
-fi
+export PROVIDER_ID_FORMAT="metal3://{{ ds.meta_data.providerid }}"
 
 # Enable the ClusterResourceSet feature flag
 export EXP_CLUSTER_RESOURCE_SET="true"

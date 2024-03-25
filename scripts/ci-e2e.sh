@@ -77,28 +77,18 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_basic_auth.sh"
 source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
 # Parameterize e2e_config
-# By default UPGRADE_FROM_RELEASE is v0.5. if not explicitly exported
-export UPGRADE_FROM_RELEASE="${UPGRADE_FROM_RELEASE:-v0.5.}"
+# By default UPGRADE_FROM_RELEASE is v1.2. if not explicitly exported
+export UPGRADE_FROM_RELEASE="${UPGRADE_FROM_RELEASE:-v1.2.}"
 # Get latest capm3 patch for a minor version $UPGRADE_FROM_RELEASE
 export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "${UPGRADE_FROM_RELEASE}")}"
 # Get latest capi patch for the compatible version with capm3 $UPGRADE_FROM_RELEASE
-# for example the compatible version with capm3 0.5.x is capi 0.4.y
-# If we are not upgrading from v0.5 then the capi compatible has same minor version tag as capm3 e.g v1.1.x
-if [[ "${UPGRADE_FROM_RELEASE:-v0.5.}" == "v0.5." ]]; then
-    CAPI_UPGRADE_FROM_RELEASE="v0.4."
-else
-    # If we are not upgrading from v0.5 then the capi compatible has same minor version tag e.g v1.1.x
-    CAPI_UPGRADE_FROM_RELEASE=${UPGRADE_FROM_RELEASE}
-fi
+CAPI_UPGRADE_FROM_RELEASE=${UPGRADE_FROM_RELEASE}
+
 export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "${CAPI_UPGRADE_FROM_RELEASE}")}"
 # The e2e config file parameter for the capi release compatible with main (capm3 next version)
 export CAPI_TO_RELEASE="${CAPIRELEASE}"
 # K8s support based on https://cluster-api.sigs.k8s.io/reference/versions.html#core-provider-cluster-api-controller
 case ${CAPI_FROM_RELEASE} in
-v0.4*)
-    export CONTRACT_FROM="v1alpha4"
-    export INIT_WITH_KUBERNETES_VERSION="v1.23.17"
-    ;;
 v1.2*)
     export CONTRACT_FROM="v1beta1"
     export INIT_WITH_KUBERNETES_VERSION="v1.27.4"

@@ -146,7 +146,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	if m3dt == nil {
 		return nil
 	}
-	m.Log.Info("Fetched Metal3DataTemplate")
+	m.Log.V(4).Info("Fetched Metal3DataTemplate")
 
 	// Fetch the Metal3Machine, to get the related info
 	m3m, err := m.getM3Machine(ctx, m3dt)
@@ -156,7 +156,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	if m3m == nil {
 		return errors.New("Metal3Machine associated with Metal3DataTemplate is not found")
 	}
-	m.Log.Info("Fetched Metal3Machine")
+	m.Log.V(4).Info("Fetched Metal3Machine")
 
 	// If the MetaData is given as part of Metal3DataTemplate
 	if m3dt.Spec.MetaData != nil {
@@ -227,7 +227,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
-	m.Log.Info("Fetched Machine")
+	m.Log.V(4).Info("Fetched Machine")
 
 	// Fetch the BMH associated with the M3M
 	bmh, err := getHost(ctx, m3m, m.client, m.Log)
@@ -239,7 +239,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
-	m.Log.Info("Fetched BMH")
+	m.Log.V(4).Info("Fetched BMH")
 
 	// Fetch all the Metal3IPPools and create Metal3IPClaims as needed. Check if the
 	// IP address has been allocated, if so, fetch the address, gateway and prefix.
@@ -312,7 +312,7 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 	if m3dt == nil {
 		return nil
 	}
-	m.Log.Info("Fetched Metal3DataTemplate")
+	m.Log.V(4).Info("Fetched Metal3DataTemplate")
 
 	return m.releaseAddressesFromPool(ctx, *m3dt)
 }
@@ -654,7 +654,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if m3m == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
 	}
-	m.Log.Info("Fetched Metal3Machine", "Metal3Machine", m3m.Name)
+	m.Log.V(4).Info("Fetched Metal3Machine", "Metal3Machine", m3m.Name)
 
 	// Fetch the BMH associated with the M3M
 	bmh, err := getHost(ctx, m3m, m.client, m.Log)
@@ -664,7 +664,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if bmh == nil {
 		return reconciledClaim{m3Claim: ipClaim}, WithTransientError(errors.New("no associated BMH yet"), requeueAfter)
 	}
-	m.Log.Info("Fetched BMH", "BMH", bmh.Name)
+	m.Log.V(4).Info("Fetched BMH", "BMH", bmh.Name)
 
 	ipClaim, err = fetchM3IPClaim(ctx, m.client, m.Log, bmh.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err == nil {
