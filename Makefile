@@ -183,7 +183,7 @@ endif
 
 .PHONY: e2e-tests
 e2e-tests: CONTAINER_RUNTIME?=docker # Env variable can override this default
-export CONTAINER_RUNTIME 
+export CONTAINER_RUNTIME
 
 e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be called from scripts/ci-e2e.sh
 	for image in $(E2E_CONTAINERS); do \
@@ -226,7 +226,7 @@ build-api: ## Builds api directory.
 .PHONY: build-e2e
 build-e2e: ## Builds test directory.
 	cd $(TEST_DIR) && $(GO) build ./...
-	
+
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
@@ -270,7 +270,7 @@ $(ENVSUBST):
 $(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
 
 .PHONY: $(KUSTOMIZE)
-$(KUSTOMIZE): $(TOOLS_DIR)/go.mod 
+$(KUSTOMIZE): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/$(KUSTOMIZE_BIN) sigs.k8s.io/kustomize/kustomize/v5
 
 .PHONY: $(ENVSUBST_BIN)
@@ -494,7 +494,7 @@ ifneq (,$(findstring -,$(RELEASE_TAG)))
     PRE_RELEASE=true
 endif
 # the previous release tag, e.g., v1.4.0, excluding pre-release tags
-PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
+PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+" | sort -V | grep -B1 $(RELEASE_TAG) | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | head -n 1 2>/dev/null)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := releasenotes
 
@@ -513,11 +513,7 @@ release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publis
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
-	if [ -n "${PRE_RELEASE}" ]; then \
-	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/metal3-io/cluster-api-provider-metal3/issues/new/)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	else \
-	$(GO) run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
-	fi
+	$(GO) run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 
 .PHONY: release
 release:
