@@ -90,7 +90,6 @@ declare -a release_note_strings=(
 # required strings that are postfixed with correct release number
 declare -a release_note_tag_strings=(
     "The image for this release is: v${VERSION}"
-    "Ironic image tag is capm3-v${VERSION}"
     "Mariadb image tag is capm3-v${VERSION}"
 )
 
@@ -105,7 +104,6 @@ declare -a release_artefacts=(
 # quay images
 declare -a container_images=(
     "${ORG}/cluster-api-provider-metal3:v${VERSION}"
-    "${ORG}/ironic:capm3-v${VERSION}"
     "${ORG}/mariadb:capm3-v${VERSION}"
 )
 
