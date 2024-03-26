@@ -4,8 +4,8 @@
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/metal3-io/cluster-api-provider-metal3/badge)](https://securityscorecards.dev/viewer/?uri=github.com/metal3-io/cluster-api-provider-metal3)
 [![Ubuntu E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_integration_test_ubuntu&subject=Ubuntu%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_integration_test_ubuntu/)
 [![CentOS E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_integration_test_centos&subject=Centos%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_integration_test_centos/)
-[![Ubuntu E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_feature_test_ubuntu/&subject=Ubuntu%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_feature_test_ubuntu/)
-[![CentOS E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_feature_test_centos/&subject=CentOS%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_feature_test_centos/)
+[![Ubuntu E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-daily-ubuntu-e2e-feature-test-main/&subject=Ubuntu%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-daily-ubuntu-e2e-feature-test-main/)
+[![CentOS E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-daily-centos-e2e-feature-test-main/&subject=CentOS%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-daily-centos-e2e-feature-test-main/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
