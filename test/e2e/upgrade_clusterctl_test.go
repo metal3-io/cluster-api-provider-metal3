@@ -52,7 +52,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [cl
 				os.Setenv("CAPM3_VERSION", "v1beta1")
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 			},
-			PreWaitForCluster:           preWaitForCluster,
+			PostNamespaceCreated:        postNamespaceCreated,
 			PreUpgrade:                  preUpgrade,
 			PreCleanupManagementCluster: preCleanupManagementCluster,
 			MgmtFlavor:                  osType,
@@ -112,7 +112,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.5=>current) [cl
 				os.Setenv("CAPM3_VERSION", "v1beta1")
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 			},
-			PreWaitForCluster:           preWaitForCluster,
+			PostNamespaceCreated:        postNamespaceCreated,
 			PreUpgrade:                  preUpgrade,
 			PreCleanupManagementCluster: preCleanupManagementCluster,
 			MgmtFlavor:                  osType,
@@ -140,63 +140,35 @@ var _ = Describe("When testing cluster upgrade from releases (v1.5=>current) [cl
 	})
 })
 
-// preWaitForCluster is a hook function that should be called from ClusterctlUpgradeSpec before waiting for the cluster to spin up
-// it creates the needed bmhs in namespace hosting the cluster and export the providerID format for v1alpha5.
-func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string) {
-	// Install the split-yaml tool to split our bmhosts_crs.yaml file.
-	installSplitYAML := func() {
-		cmd := exec.Command("bash", "-c", "kubectl krew update; kubectl krew install split-yaml")
+// postNamespaceCreated is a hook function that should be called from ClusterctlUpgradeSpec after creating
+// the namespace, it creates the needed bmhs in namespace hosting the cluster.
+func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace string) {
+	// Check which from which cluster creation this call is coming
+	// if isBootstrapProxy==true then this call when creating the management else we are creating the workload.
+	isBootstrapProxy := !strings.HasPrefix(clusterProxy.GetName(), "clusterctl-upgrade")
+	if isBootstrapProxy {
+		// remove existing bmh from source and apply first 2 in target
+		Logf("remove existing bmh from source")
+		cmd := exec.Command("bash", "-c", "kubectl delete -f bmhosts_crs.yaml  -n metal3")
+		cmd.Dir = workDir
 		output, err := cmd.CombinedOutput()
-		Logf("Download split-yaml:\n %v", string(output))
+		Logf("Remove existing bmhs:\n %v", string(output))
 		Expect(err).ToNot(HaveOccurred())
-	}
 
-	// Split the <fileName> file into <resourceName>.yaml files based on the name of each resource and return list of the filename created
-	// so we can apply limited number on BMH in each namespace.
-	splitYAMLFile := func(fileName string, filePath string) []string {
-		//#nosec G204 -- We need to pass in the file name here.
-		cmd := exec.Command("bash", "-c", fmt.Sprintf("cat %s | kubectl split-yaml -t {{.name}}.yaml -p.", fileName))
-		cmd.Dir = filePath
-		output, err := cmd.CombinedOutput()
-		Logf("splitting %s%s file into multiple files: \n %v", filePath, fileName, string(output))
-		Expect(err).ToNot(HaveOccurred())
-		return strings.Split(string(output), "\n")
-	}
-
-	// Create the BMHs needed in the hosting namespace.
-	createBMH := func(clusterProxy framework.ClusterProxy, clusterNamespace string, _ string) {
-		installSplitYAML()
-		splitFiles := splitYAMLFile("bmhosts_crs.yaml", workDir)
-		// Check which from which cluster creation this call is coming
-		// if isBootstrapProxy==true then this call when creating the management else we are creating the workload.
-		isBootstrapProxy := !strings.HasPrefix(clusterProxy.GetName(), "clusterctl-upgrade")
-		if isBootstrapProxy {
-			// remove existing bmh from source and apply first 2 in target
-			Logf("remove existing bmh from source")
-			cmd := exec.Command("bash", "-c", "kubectl delete -f bmhosts_crs.yaml  -n metal3")
-			cmd.Dir = workDir
-			output, err := cmd.CombinedOutput()
-			Logf("Remove existing bmhs:\n %v", string(output))
-			Expect(err).ToNot(HaveOccurred())
-
-			// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
-			for i := 0; i < 4; i++ {
-				resource, err := os.ReadFile(filepath.Join(workDir, splitFiles[i]))
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
-			}
-		} else {
-			// Apply secrets and bmhs for [node_2, node_3 and node_4] in the management cluster to host workload cluster
-			for i := 4; i < 10; i++ {
-				resource, err := os.ReadFile(filepath.Join(workDir, splitFiles[i]))
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
-			}
+		// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
+		for i := 0; i < 2; i++ {
+			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
+		}
+	} else {
+		// Apply secrets and bmhs for [node_2, node_3 and node_4] in the management cluster to host workload cluster
+		for i := 2; i < 5; i++ {
+			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
 		}
 	}
-
-	// Create bmhs in the in the namespace that will host the new cluster
-	createBMH(clusterProxy, clusterNamespace, clusterName)
 }
 
 // preInitFunc hook function that should be called from ClusterctlUpgradeSpec before init the management cluster
