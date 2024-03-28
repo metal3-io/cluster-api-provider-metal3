@@ -17,8 +17,8 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: v1.6.3
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.6.3/core-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/core-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -26,8 +26,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.6/metadata.yaml"
-  - name: v1.5.7
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.7/core-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/core-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -38,8 +38,8 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: v1.6.3
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.6.3/bootstrap-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -47,8 +47,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.6/metadata.yaml"
-  - name: v1.5.7
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.7/bootstrap-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -59,8 +59,8 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: v1.6.3
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.6.3/control-plane-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -68,8 +68,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.6/metadata.yaml"
-  - name: v1.5.7
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.7/control-plane-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.5}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.5}/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -77,11 +77,15 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.5/metadata.yaml"
+    # https://proxy.golang.org/sigs.k8s.io/cluster-api/@v/list
+
+
+# https://proxy.golang.org/github.com/metal3-io/cluster-api-provider-metal3/@v/list
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: v1.6.1
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/v1.6.1/infrastructure-components.yaml"
+  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.6}"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.6}/infrastructure-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -91,8 +95,8 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.5.3
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/v1.5.3/infrastructure-components.yaml"
+  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.5}"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.5}/infrastructure-components.yaml"
     type: "url"
     contract: v1beta1
     files:
@@ -102,18 +106,6 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.6.99
-    value: "${PWD}/config/default"
-    replacements:
-    - old: "--leader-elect"
-      new: "--leader-elect\n        - --logging-format=json"
-    files:
-    - sourcePath: "../data/infrastructure-metal3/v1.6/metadata.yaml"
-      targetName: "metadata.yaml"
-    - sourcePath: "../_out/cluster-template-ubuntu.yaml"
-      targetName: "cluster-template-ubuntu.yaml"
-    - sourcePath: "../_out/cluster-template-centos.yaml"
-      targetName: "cluster-template-centos.yaml"
   - name: v1.7.99
     value: "${PWD}/config/default"
     files:

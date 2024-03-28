@@ -20,6 +20,13 @@ import (
 
 const workDir = "/opt/metal3-dev-env/"
 
+var (
+	clusterctlDownloadURL = "https://github.com/kubernetes-sigs/cluster-api/releases/download/v%s/clusterctl-{OS}-{ARCH}"
+	providerCAPIPrefix    = "cluster-api:v%s"
+	providerKubeadmPrefix = "kubeadm:v%s"
+	providerMetal3Prefix  = "metal3:v%s"
+)
+
 var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
@@ -31,6 +38,13 @@ var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [cl
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
+
+	minorVersion := "1.6"
+	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	capm3StableRelease, err := GetCAPM3StableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion)
+
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
 			E2EConfig:                       e2eConfig,
@@ -38,13 +52,13 @@ var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [cl
 			BootstrapClusterProxy:           bootstrapClusterProxy,
 			ArtifactFolder:                  artifactFolder,
 			SkipCleanup:                     skipCleanup,
-			InitWithCoreProvider:            "cluster-api:v1.6.3",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.6.3"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.6.3"},
-			InitWithInfrastructureProviders: []string{"metal3:v1.6.1"},
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
 			InitWithKubernetesVersion:       "v1.29.0",
 			WorkloadKubernetesVersion:       "v1.29.0",
-			InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.6.3/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy)
 				// Override capi/capm3 versions exported in preInit
@@ -91,6 +105,13 @@ var _ = Describe("When testing cluster upgrade from releases (v1.5=>current) [cl
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
+
+	minorVersion := "1.5"
+	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	capm3StableRelease, err := GetCAPM3StableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion)
+
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
 			E2EConfig:                       e2eConfig,
@@ -98,13 +119,13 @@ var _ = Describe("When testing cluster upgrade from releases (v1.5=>current) [cl
 			BootstrapClusterProxy:           bootstrapClusterProxy,
 			ArtifactFolder:                  artifactFolder,
 			SkipCleanup:                     skipCleanup,
-			InitWithCoreProvider:            "cluster-api:v1.5.7",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.5.7"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.5.7"},
-			InitWithInfrastructureProviders: []string{"metal3:v1.5.3"},
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
 			InitWithKubernetesVersion:       "v1.28.1",
 			WorkloadKubernetesVersion:       "v1.28.1",
-			InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.5.7/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy)
 				// Override capi/capm3 versions exported in preInit
