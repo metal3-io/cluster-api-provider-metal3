@@ -47,6 +47,7 @@ COMPONENTS_METAL3_GENERATED_FILE=${SOURCE_DIR}/provider-components/infrastructur
 
 PROVIDER_COMPONENTS_GENERATED_FILE=${OUTPUT_DIR}/provider-components.yaml
 CLUSTER_GENERATED_FILE=${OUTPUT_DIR}/cluster.yaml
+CLUSTERCLASS_GENERATED_FILE=${OUTPUT_DIR}/clusterclass.yaml
 CONTROLPLANE_GENERATED_FILE=${OUTPUT_DIR}/controlplane.yaml
 MACHINEDEPLOYMENT_GENERATED_FILE=${OUTPUT_DIR}/machinedeployment.yaml
 METAL3PLANE_GENERATED_FILE=${OUTPUT_DIR}/metal3plane.yaml
@@ -54,6 +55,7 @@ METAL3CRDS_GENERATED_FILE=${OUTPUT_DIR}/metal3crds.yaml
 
 # Overwrite flag.
 OVERWRITE=0
+
 
 SCRIPT=$(basename "$0")
 while test $# -gt 0; do
@@ -94,13 +96,27 @@ ENVSUBST="${SOURCE_DIR}/envsubst-go"
 curl --fail -Ss -L -o "${ENVSUBST}" https://github.com/a8m/envsubst/releases/download/v1.2.0/envsubst-"$(uname -s)"-"$(uname -m)"
 chmod +x "$ENVSUBST"
 
-# Generate cluster resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/cluster" | "$ENVSUBST" >"${CLUSTER_GENERATED_FILE}"
-echo "Generated ${CLUSTER_GENERATED_FILE}"
+if [ -n "${CLUSTER_TOPOLOGY:-}" ]; then
+  # Generate clusterclass resources.
+  "$ENVSUBST" -i "${SOURCE_DIR}/templates/clusterclass.yaml" >"${CLUSTERCLASS_GENERATED_FILE}"
+  echo "Generated ${CLUSTERCLASS_GENERATED_FILE}"
 
-# Generate controlplane resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/controlplane" | "$ENVSUBST" >"${CONTROLPLANE_GENERATED_FILE}"
-echo "Generated ${CONTROLPLANE_GENERATED_FILE}"
+  # Generate cluster resources.
+  "$ENVSUBST" -i "${SOURCE_DIR}/templates/cluster.yaml" >"${CLUSTER_GENERATED_FILE}"
+  echo "Generated ${CLUSTER_GENERATED_FILE}"
+else
+  # Generate cluster resources.
+  "$KUSTOMIZE" build "${SOURCE_DIR}/cluster" | "$ENVSUBST" >"${CLUSTER_GENERATED_FILE}"
+  echo "Generated ${CLUSTER_GENERATED_FILE}"
+
+  # Generate controlplane resources.
+  "$KUSTOMIZE" build "${SOURCE_DIR}/controlplane" | "$ENVSUBST" >"${CONTROLPLANE_GENERATED_FILE}"
+  echo "Generated ${CONTROLPLANE_GENERATED_FILE}"
+
+  # Generate machinedeployment resources.
+  "$KUSTOMIZE" build "${SOURCE_DIR}/machinedeployment" | "$ENVSUBST" >>"${MACHINEDEPLOYMENT_GENERATED_FILE}"
+  echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
+fi
 
 # Generate metal3crds resources.
 "$KUSTOMIZE" build "${SOURCE_DIR}/metal3crds" | "$ENVSUBST" >"${METAL3CRDS_GENERATED_FILE}"
@@ -109,10 +125,6 @@ echo "Generated ${METAL3CRDS_GENERATED_FILE}"
 # Generate metal3plane resources.
 "$KUSTOMIZE" build "${SOURCE_DIR}/metal3plane" | "$ENVSUBST" >"${METAL3PLANE_GENERATED_FILE}"
 echo "Generated ${METAL3PLANE_GENERATED_FILE}"
-
-# Generate machinedeployment resources.
-"$KUSTOMIZE" build "${SOURCE_DIR}/machinedeployment" | "$ENVSUBST" >>"${MACHINEDEPLOYMENT_GENERATED_FILE}"
-echo "Generated ${MACHINEDEPLOYMENT_GENERATED_FILE}"
 
 # Get Cert-manager provider components file
 curl --fail -Ss -L -o "${COMPONENTS_CERT_MANAGER_GENERATED_FILE}" https://github.com/cert-manager/cert-manager/releases/download/v1.14.0/cert-manager.yaml

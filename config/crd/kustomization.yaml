@@ -9,6 +9,7 @@ commonLabels:
 
 resources:
 - bases/infrastructure.cluster.x-k8s.io_metal3clusters.yaml
+- bases/infrastructure.cluster.x-k8s.io_metal3clustertemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_metal3machines.yaml
 - bases/infrastructure.cluster.x-k8s.io_metal3machinetemplates.yaml
 - bases/infrastructure.cluster.x-k8s.io_metal3datatemplates.yaml

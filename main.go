@@ -493,6 +493,11 @@ func setupWebhooks(mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3RemediationTemplate")
 		os.Exit(1)
 	}
+
+	if err := (&infrav1.Metal3ClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "Metal3ClusterTemplate")
+		os.Exit(1)
+	}
 }
 
 func concurrency(c int) controller.Options {
