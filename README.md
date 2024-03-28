@@ -175,39 +175,31 @@ without involving pivoting from the bootstrap cluster. To run basic tests use:
 
 On main branch:
 
-- **/test-ubuntu-e2e-feature-main** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch main on Ubuntu
-- **/test-centos-e2e-feature-main** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch main on CentOS
-
-Or use parallel prefix `parallel-` for faster tests. Note that these tests run
-in multiple VMs by creating an independent VM for each test spec:
-
-- **/parallel-test-ubuntu-e2e-feature-main** runs e2e feature tests in parallel
-  with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/parallel-test-centos-e2e-feature-main** runs e2e feature tests in parallel
-  with CAPM3 API version v1beta1 and branch main on CentOS
+- **/test metal3-ubuntu-e2e-feature-test-main** runs e2e feature tests with
+  CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test metal3-centos-e2e-feature-test-main** runs e2e feature tests with
+  CAPM3 API version v1beta1 and branch main on CentOS
 
 Release-1.6 branch:
 
-- **/test-ubuntu-e2e-feature-release-1-6** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.6 on Ubuntu
-- **/test-centos-e2e-feature-release-1-6** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.6 on CentOS
+- **/test metal3-ubuntu-e2e-feature-test-release-1-6** runs e2e feature tests with
+  CAPM3 API version v1beta1 and branch release-1.6 on Ubuntu
+- **/test metal3-centos-e2e-feature-test-release-1-6** runs e2e feature tests with
+  CAPM3 API version v1beta1 and branch release-1.6 on CentOS
 
 Release-1.5 branch:
 
-- **/test-ubuntu-e2e-feature-release-1-5** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.5 on Ubuntu
-- **/test-centos-e2e-feature-release-1-5** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.5 on CentOS
+- **/test metal3-ubuntu-e2e-feature-test-1-5** runs e2e feature tests with CAPM3
+  API version v1beta1 and branch release-1.5 on Ubuntu
+- **/test metal3-centos-e2e-feature-test-1-5** runs e2e feature tests with CAPM3
+  API version v1beta1 and branch release-1.5 on CentOS
 
 Release-1.4 branch:
 
-- **/test-ubuntu-e2e-feature-release-1-4** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.4 on Ubuntu
-- **/test-centos-e2e-feature-release-1-4** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.4 on CentOS
+- **/test metal3-ubuntu-e2e-feature-test-release-1-4** runs e2e feature tests
+  with CAPM3 API version v1beta1 and branch release-1.4 on Ubuntu
+- **/test metal3-centos-e2e-feature-test-release-1-4** runs e2e feature tests
+  with CAPM3 API version v1beta1 and branch release-1.4 on CentOS
 
 ### Upgrade tests
 
