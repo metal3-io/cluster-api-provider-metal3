@@ -1096,7 +1096,9 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 		}
 	}
 
-	host.Spec.Online = true
+	if host.Status.Provisioning.State != bmov1alpha1.StateProvisioned {
+		host.Spec.Online = true
+	}
 
 	return nil
 }
