@@ -11,6 +11,8 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -18,95 +20,106 @@ import (
 
 const workDir = "/opt/metal3-dev-env/"
 
-var _ = Describe(fmt.Sprintf("When testing cluster upgrade from releases %s > current [clusterctl-upgrade]", os.Getenv("CAPM3_FROM_RELEASE")), func() {
+var _ = Describe("When testing cluster upgrade from releases (v1.2=>current) [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage(e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"))
+		imageURL, imageChecksum := EnsureImage("v1.23.17")
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 	})
-	Releasev1 := strings.Contains(os.Getenv("CAPM3_FROM_RELEASE"), "v1")
-	if Releasev1 {
-		capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-			return capi_e2e.ClusterctlUpgradeSpecInput{
-				E2EConfig:                       e2eConfig,
-				ClusterctlConfigPath:            clusterctlConfigPath,
-				BootstrapClusterProxy:           bootstrapClusterProxy,
-				ArtifactFolder:                  artifactFolder,
-				SkipCleanup:                     skipCleanup,
-				InitWithCoreProvider:            fmt.Sprintf("cluster-api:%s", os.Getenv("CAPI_FROM_RELEASE")),
-				InitWithBootstrapProviders:      []string{fmt.Sprintf("kubeadm:%s", os.Getenv("CAPI_FROM_RELEASE"))},
-				InitWithControlPlaneProviders:   []string{fmt.Sprintf("kubeadm:%s", os.Getenv("CAPI_FROM_RELEASE"))},
-				InitWithInfrastructureProviders: []string{fmt.Sprintf("metal3:%s", os.Getenv("CAPM3_FROM_RELEASE"))},
-				InitWithKubernetesVersion:       e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
-				WorkloadKubernetesVersion:       e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
-				InitWithBinary:                  e2eConfig.GetVariable("INIT_WITH_BINARY"),
-				PreInit: func(clusterProxy framework.ClusterProxy) {
-					preInitFunc(clusterProxy)
-					// Override capi/capm3 versions exported in preInit
-					os.Setenv("CAPI_VERSION", "v1beta1")
-					os.Setenv("CAPM3_VERSION", "v1beta1")
-					os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
-				},
-				PreWaitForCluster:           preWaitForCluster,
-				PreUpgrade:                  preUpgrade,
-				PreCleanupManagementCluster: preCleanupManagementCluster,
-				MgmtFlavor:                  osType,
-				WorkloadFlavor:              osType,
-			}
-		})
-	} else {
-
-		isPreRelease := strings.Contains(os.Getenv("CAPI_TO_RELEASE"), "-")
-
-		if isPreRelease {
-			capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-				return capi_e2e.ClusterctlUpgradeSpecInput{
-					E2EConfig:                   e2eConfig,
-					ClusterctlConfigPath:        clusterctlConfigPath,
-					BootstrapClusterProxy:       bootstrapClusterProxy,
-					ArtifactFolder:              artifactFolder,
-					SkipCleanup:                 skipCleanup,
-					InitWithProvidersContract:   "v1alpha4",
-					CoreProvider:                fmt.Sprintf("capi-system/cluster-api:%s", os.Getenv("CAPI_TO_RELEASE")),
-					BootstrapProviders:          []string{fmt.Sprintf("capi-kubeadm-bootstrap-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
-					ControlPlaneProviders:       []string{fmt.Sprintf("capi-kubeadm-control-plane-system/kubeadm:%s", os.Getenv("CAPI_TO_RELEASE"))},
-					InfrastructureProviders:     []string{fmt.Sprintf("capm3-system/metal3:%s", os.Getenv("CAPM3_TO_RELEASE"))},
-					InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
-					InitWithKubernetesVersion:   e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
-					WorkloadKubernetesVersion:   e2eConfig.GetVariable("INIT_WITH_KUBERNETES_VERSION"),
-					PreInit:                     preInitFunc,
-					PreWaitForCluster:           preWaitForCluster,
-					PreUpgrade:                  preUpgrade,
-					PreCleanupManagementCluster: preCleanupManagementCluster,
-					MgmtFlavor:                  osType,
-					WorkloadFlavor:              osType,
-				}
-			})
-		} else {
-			capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-				return capi_e2e.ClusterctlUpgradeSpecInput{
-					E2EConfig:                   e2eConfig,
-					ClusterctlConfigPath:        clusterctlConfigPath,
-					BootstrapClusterProxy:       bootstrapClusterProxy,
-					ArtifactFolder:              artifactFolder,
-					SkipCleanup:                 skipCleanup,
-					InitWithProvidersContract:   "v1alpha4",
-					InitWithBinary:              e2eConfig.GetVariable("INIT_WITH_BINARY"),
-					PreInit:                     preInitFunc,
-					PreWaitForCluster:           preWaitForCluster,
-					PreUpgrade:                  preUpgrade,
-					PreCleanupManagementCluster: preCleanupManagementCluster,
-					MgmtFlavor:                  osType,
-					WorkloadFlavor:              osType,
-				}
-			})
+	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+		return capi_e2e.ClusterctlUpgradeSpecInput{
+			E2EConfig:                       e2eConfig,
+			ClusterctlConfigPath:            clusterctlConfigPath,
+			BootstrapClusterProxy:           bootstrapClusterProxy,
+			ArtifactFolder:                  artifactFolder,
+			SkipCleanup:                     skipCleanup,
+			InitWithCoreProvider:            "cluster-api:v1.2.12",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.12"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.12"},
+			InitWithInfrastructureProviders: []string{"metal3:v1.2.2"},
+			InitWithKubernetesVersion:       "v1.23.17",
+			WorkloadKubernetesVersion:       "v1.23.17",
+			InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/clusterctl-{OS}-{ARCH}",
+			PreInit: func(clusterProxy framework.ClusterProxy) {
+				preInitFunc(clusterProxy)
+				// Override capi/capm3 versions exported in preInit
+				os.Setenv("CAPI_VERSION", "v1beta1")
+				os.Setenv("CAPM3_VERSION", "v1beta1")
+				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
+			},
+			PreWaitForCluster:           preWaitForCluster,
+			PreUpgrade:                  preUpgrade,
+			PreCleanupManagementCluster: preCleanupManagementCluster,
+			MgmtFlavor:                  osType,
+			WorkloadFlavor:              osType,
 		}
-	}
+	})
+	AfterEach(func() {
+		// Recreate bmh that was used in capi namespace in metal3
+		//#nosec G204 -- We need to pass in the file name here.
+		cmd := exec.Command("bash", "-c", "kubectl apply -f bmhosts_crs.yaml  -n metal3")
+		cmd.Dir = workDir
+		output, err := cmd.CombinedOutput()
+		Logf("Applying bmh to metal3 namespace : \n %v", string(output))
+		Expect(err).To(BeNil())
+		// wait for all bmh to become available
+		bootstrapClient := bootstrapClusterProxy.GetClient()
+		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
+		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
+			Client:    bootstrapClient,
+			Options:   []client.ListOption{client.InNamespace(namespace)},
+			Replicas:  5,
+			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+		})
+		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
+	})
+})
+
+var _ = Describe("When testing cluster upgrade from releases (v0.4=>current) [clusterctl-upgrade]", func() {
+	BeforeEach(func() {
+		osType := strings.ToLower(os.Getenv("OS"))
+		Expect(osType).ToNot(Equal(""))
+		validateGlobals(specName)
+		imageURL, imageChecksum := EnsureImage("v1.23.17")
+		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+		os.Setenv("IMAGE_RAW_URL", imageURL)
+		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
+		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
+	})
+	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+		return capi_e2e.ClusterctlUpgradeSpecInput{
+			E2EConfig:                       e2eConfig,
+			ClusterctlConfigPath:            clusterctlConfigPath,
+			BootstrapClusterProxy:           bootstrapClusterProxy,
+			ArtifactFolder:                  artifactFolder,
+			SkipCleanup:                     skipCleanup,
+			InitWithCoreProvider:            "cluster-api:v0.4.8",
+			InitWithBootstrapProviders:      []string{"kubeadm:v0.4.8"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v0.4.8"},
+			InitWithInfrastructureProviders: []string{"metal3:v0.5.5"},
+			InitWithKubernetesVersion:       "v1.23.17",
+			WorkloadKubernetesVersion:       "v1.23.17",
+			InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
+			InitWithProvidersContract:       "v1alpha4",
+			PreInit: func(clusterProxy framework.ClusterProxy) {
+				preInitFunc(clusterProxy)
+				// Override capi/capm3 versions exported in preInit
+				os.Setenv("CAPI_VERSION", "v1alpha4")
+				os.Setenv("CAPM3_VERSION", "v1alpha5")
+				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
+			},
+			PreWaitForCluster:           preWaitForCluster,
+			PreUpgrade:                  preUpgrade,
+			PreCleanupManagementCluster: preCleanupManagementCluster,
+			MgmtFlavor:                  osType,
+			WorkloadFlavor:              osType,
+		}
+	})
 	AfterEach(func() {
 		// Recreate bmh that was used in capi namespace in metal3
 		//#nosec G204 -- We need to pass in the file name here.
@@ -191,12 +204,25 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 // it installs certManager, BMO and Ironic and overrides the default IPs for the workload cluster.
 func preInitFunc(clusterProxy framework.ClusterProxy) {
 	installCertManager := func(clusterProxy framework.ClusterProxy) {
-		certManagerLink := fmt.Sprintf("https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml", e2eConfig.GetVariable("CERT_MANAGER_RELEASE"))
+		certManagerLink := fmt.Sprintf("https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml", config.CertManagerDefaultVersion)
 		err := DownloadFile("/tmp/certManager.yaml", certManagerLink)
 		Expect(err).To(BeNil(), "Unable to download certmanager manifest")
 		certManagerYaml, err := os.ReadFile("/tmp/certManager.yaml")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(clusterProxy.Apply(ctx, certManagerYaml)).ShouldNot(HaveOccurred())
+
+		By("Wait for cert-manager pods to be available")
+		deploymentNameList := []string{}
+		deploymentNameList = append(deploymentNameList, "cert-manager", "cert-manager-cainjector", "cert-manager-webhook")
+		clientSet := clusterProxy.GetClientSet()
+		for _, name := range deploymentNameList {
+			deployment, err := clientSet.AppsV1().Deployments("cert-manager").Get(ctx, name, metav1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred(), "Unable to get the deployment %s in namespace %s \n error message: %s", name, "cert-manager", err)
+			framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
+				Getter:     clusterProxy.GetClient(),
+				Deployment: deployment,
+			}, e2eConfig.GetIntervals(specName, "wait-deployment")...)
+		}
 	}
 
 	By("Fetch manifest for bootstrap cluster")
