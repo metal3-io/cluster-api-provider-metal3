@@ -34,6 +34,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -52,6 +53,8 @@ const (
 	osTypeUbuntu           = "ubuntu"
 	ironicSuffix           = "-ironic"
 )
+
+var releaseMarkerPrefix = "go://github.com/metal3-io/cluster-api-provider-metal3@v%s"
 
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
@@ -783,4 +786,10 @@ func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[s
 	}
 	Logf("CRD '%s' labeled successfully\n", crdName)
 	return nil
+}
+
+// GetCAPM3StableReleaseOfMinor returns latest stable version of minorRelease.
+func GetCAPM3StableReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
+	releaseMarker := fmt.Sprintf(releaseMarkerPrefix, minorRelease)
+	return clusterctl.ResolveRelease(ctx, releaseMarker)
 }
