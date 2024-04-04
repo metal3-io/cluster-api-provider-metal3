@@ -2,10 +2,10 @@
 
 [![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/metal3-io/badge)](https://clomonitor.io/projects/cncf/metal3-io)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/metal3-io/cluster-api-provider-metal3/badge)](https://securityscorecards.dev/viewer/?uri=github.com/metal3-io/cluster-api-provider-metal3)
-[![Ubuntu E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_integration_test_ubuntu&subject=Ubuntu%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_integration_test_ubuntu/)
-[![CentOS E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_main_e2e_integration_test_centos&subject=Centos%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_main_e2e_integration_test_centos/)
-[![Ubuntu E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-daily-ubuntu-e2e-feature-test-main/&subject=Ubuntu%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-daily-ubuntu-e2e-feature-test-main/)
-[![CentOS E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-daily-centos-e2e-feature-test-main/&subject=CentOS%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-daily-centos-e2e-feature-test-main/)
+[![Ubuntu E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-main&subject=Ubuntu%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-main/)
+[![CentOS E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-main&subject=Centos%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-main/)
+[![Ubuntu E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-feature-test-main/&subject=Ubuntu%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-feature-test-main/)
+[![CentOS E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-main/&subject=CentOS%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-main/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
@@ -135,31 +135,31 @@ To trigger e2e test on a PR, use the following phrases:
 
 ### Integration tests
 
-- **/test-ubuntu-e2e-integration-main** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch main on Ubuntu
-- **/test-centos-e2e-integration-main** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch main on CentOS
+- **/test metal3-ubuntu-e2e-integration-test-main** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch main on Ubuntu
+- **/test-centos-e2e-integration-test-main** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch main on CentOS
 
 Release-1.6 branch:
 
-- **/test-ubuntu-e2e-integration-release-1-6** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.6 on Ubuntu
-- **/test-centos-e2e-integration-release-1-6** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.6 on CentOS
+- **/test metal3-ubuntu-e2e-integration-test-release-1-6** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.6 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-6** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.6 on CentOS
 
 Release-1.5 branch:
 
-- **/test-ubuntu-e2e-integration-release-1-5** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.5 on Ubuntu
-- **/test-centos-e2e-integration-release-1-5** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.5 on CentOS
+- **/test metal3-ubuntu-e2e-integration-test-release-1-5** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.5 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-5** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.5 on CentOS
 
 Release-1.4 branch:
 
-- **/test-ubuntu-e2e-integration-release-1-4** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.4 on Ubuntu
-- **/test-centos-e2e-integration-release-1-4** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.4 on CentOS
+- **/test metal3-ubuntu-e2e-integration-test-release-1-4** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.4 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-4** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.4 on CentOS
 
 ## Basic tests
 
