@@ -6,7 +6,7 @@ require (
 	github.com/metal3-io/ip-address-manager/api v1.7.0-beta.0
 	github.com/onsi/gomega v1.32.0
 	github.com/pkg/errors v0.9.1
-	golang.org/x/net v0.22.0
+	golang.org/x/net v0.23.0
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3
 	k8s.io/client-go v0.29.3
