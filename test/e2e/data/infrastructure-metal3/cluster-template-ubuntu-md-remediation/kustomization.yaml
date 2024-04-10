@@ -1,0 +1,7 @@
+resources:
+- ../bases/ippool
+- ../bases/ubuntu-kubeadm-config
+
+- mhc.yaml
+patchesStrategicMerge:
+- md.yaml
