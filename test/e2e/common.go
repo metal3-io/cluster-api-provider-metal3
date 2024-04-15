@@ -12,11 +12,13 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/blang/semver"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
@@ -24,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,8 +38,11 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/api/filesys"
+	"sigs.k8s.io/kustomize/api/krusty"
 )
 
 type vmState string
@@ -792,4 +798,200 @@ func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[s
 func GetCAPM3StableReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
 	releaseMarker := fmt.Sprintf(releaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)
+}
+
+// GetLatestPatchRelease returns latest patch release against minor release.
+func GetLatestPatchRelease(goProxyPath string, minorReleaseVersion string) (string, error) {
+	if strings.EqualFold("main", minorReleaseVersion) || strings.EqualFold("latest", minorReleaseVersion) {
+		return strings.ToUpper(minorReleaseVersion), nil
+	}
+	semVersion, err := semver.Parse(minorReleaseVersion)
+	if err != nil {
+		return "", errors.Wrapf(err, "parsing semver for %s", minorReleaseVersion)
+	}
+	parsedTags, err := getVersions(goProxyPath)
+	if err != nil {
+		return "", err
+	}
+
+	var picked semver.Version
+	for i, tag := range parsedTags {
+		if tag.Major == semVersion.Major && tag.Minor == semVersion.Minor {
+			picked = parsedTags[i]
+		}
+	}
+	if picked.Major == 0 && picked.Minor == 0 && picked.Patch == 0 {
+		return "", errors.Errorf("no suitable release available for path %s and version %s", goProxyPath, minorReleaseVersion)
+	}
+	return picked.String(), nil
+}
+
+// GetVersions returns the a sorted list of semantical versions which exist for a go module.
+func getVersions(gomodulePath string) (semver.Versions, error) {
+	// Get the data
+	/* #nosec G107 */
+	resp, err := http.Get(gomodulePath) //nolint:noctx
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("failed to get versions from url %s got %d %s", gomodulePath, resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	defer resp.Body.Close()
+
+	rawResponse, err := io.ReadAll(resp.Body)
+	if err != nil {
+		retryError := errors.Wrap(err, "failed to get versions: error reading goproxy response body")
+		return nil, retryError
+	}
+	parsedVersions := semver.Versions{}
+	for _, s := range strings.Split(string(rawResponse), "\n") {
+		if s == "" {
+			continue
+		}
+		s = strings.TrimSuffix(s, "+incompatible")
+		parsedVersion, err := semver.ParseTolerant(s)
+		if err != nil {
+			// Discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases).
+			continue
+		}
+		parsedVersions = append(parsedVersions, parsedVersion)
+	}
+
+	if len(parsedVersions) == 0 {
+		return nil, fmt.Errorf("no versions found for go module %q", gomodulePath)
+	}
+	sort.Sort(parsedVersions)
+	return parsedVersions, nil
+}
+
+// BuildAndApplyKustomizationInput provides input for BuildAndApplyKustomize().
+// If WaitForDeployment and/or WatchDeploymentLogs is set to true, then DeploymentName
+// and DeploymentNamespace are expected.
+type BuildAndApplyKustomizationInput struct {
+	// Path to the kustomization to build
+	Kustomization string
+
+	ClusterProxy framework.ClusterProxy
+
+	// If this is set to true. Perform a wait until the deployment specified by
+	// DeploymentName and DeploymentNamespace is available or WaitIntervals is timed out
+	WaitForDeployment bool
+
+	// If this is set to true. Set up a log watcher for the deployment specified by
+	// DeploymentName and DeploymentNamespace
+	WatchDeploymentLogs bool
+
+	// DeploymentName and DeploymentNamespace specified a deployment that will be waited and/or logged
+	DeploymentName      string
+	DeploymentNamespace string
+
+	// Path to store the deployment logs
+	LogPath string
+
+	// Intervals to use in checking and waiting for the deployment
+	WaitIntervals []interface{}
+}
+
+func (input *BuildAndApplyKustomizationInput) validate() error {
+	// If neither WaitForDeployment nor WatchDeploymentLogs is true, we don't need to validate the input
+	if !input.WaitForDeployment && !input.WatchDeploymentLogs {
+		return nil
+	}
+	if input.WaitForDeployment && input.WaitIntervals == nil {
+		return errors.Errorf("WaitIntervals is expected if WaitForDeployment is set to true")
+	}
+	if input.WatchDeploymentLogs && input.LogPath == "" {
+		return errors.Errorf("LogPath is expected if WatchDeploymentLogs is set to true")
+	}
+	if input.DeploymentName == "" || input.DeploymentNamespace == "" {
+		return errors.Errorf("DeploymentName and DeploymentNamespace are expected if WaitForDeployment or WatchDeploymentLogs is true")
+	}
+	return nil
+}
+
+// BuildAndApplyKustomization takes input from BuildAndApplyKustomizationInput. It builds the provided kustomization
+// and apply it to the cluster provided by clusterProxy.
+func BuildAndApplyKustomization(ctx context.Context, input *BuildAndApplyKustomizationInput) error {
+	Expect(input.validate()).To(Succeed())
+	var err error
+	kustomization := input.Kustomization
+	clusterProxy := input.ClusterProxy
+	manifest, err := buildKustomizeManifest(kustomization)
+	if err != nil {
+		return err
+	}
+
+	err = clusterProxy.Apply(ctx, manifest)
+	if err != nil {
+		return err
+	}
+
+	if !input.WaitForDeployment && !input.WatchDeploymentLogs {
+		return nil
+	}
+
+	deployment := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      input.DeploymentName,
+			Namespace: input.DeploymentNamespace,
+		},
+	}
+
+	if input.WaitForDeployment {
+		// Wait for the deployment to become available
+		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
+			Getter:     clusterProxy.GetClient(),
+			Deployment: deployment,
+		}, input.WaitIntervals...)
+	}
+
+	if input.WatchDeploymentLogs {
+		// Set up log watcher
+		framework.WatchDeploymentLogsByName(ctx, framework.WatchDeploymentLogsByNameInput{
+			GetLister:  clusterProxy.GetClient(),
+			Cache:      clusterProxy.GetCache(ctx),
+			ClientSet:  clusterProxy.GetClientSet(),
+			Deployment: deployment,
+			LogPath:    input.LogPath,
+		})
+	}
+	return nil
+}
+
+// BuildAndRemoveKustomization builds the provided kustomization to resources and removes them from the cluster
+// provided by clusterProxy.
+func BuildAndRemoveKustomization(ctx context.Context, kustomization string, clusterProxy framework.ClusterProxy) error {
+	manifest, err := buildKustomizeManifest(kustomization)
+	if err != nil {
+		return err
+	}
+	return KubectlDelete(ctx, clusterProxy.GetKubeconfigPath(), manifest)
+}
+
+// KubectlDelete shells out to kubectl delete.
+func KubectlDelete(ctx context.Context, kubeconfigPath string, resources []byte, args ...string) error {
+	aargs := append([]string{"delete", "--kubeconfig", kubeconfigPath, "-f", "-"}, args...)
+	rbytes := bytes.NewReader(resources)
+	deleteCmd := testexec.NewCommand(
+		testexec.WithCommand("kubectl"),
+		testexec.WithArgs(aargs...),
+		testexec.WithStdin(rbytes),
+	)
+
+	fmt.Printf("Running kubectl %s\n", strings.Join(aargs, " "))
+	stdout, stderr, err := deleteCmd.Run(ctx)
+	fmt.Printf("stderr:\n%s\n", string(stderr))
+	fmt.Printf("stdout:\n%s\n", string(stdout))
+	return err
+}
+
+func buildKustomizeManifest(source string) ([]byte, error) {
+	kustomizer := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
+	fSys := filesys.MakeFsOnDisk()
+	resources, err := kustomizer.Run(fSys, source)
+	if err != nil {
+		return nil, err
+	}
+	return resources.AsYaml()
 }

@@ -205,12 +205,20 @@ variables:
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: "0s"
+  IRONIC_RELEASE_23.1: "data/ironic-deployment/overlays/release-23.1"
+  IRONIC_RELEASE_24.0: "data/ironic-deployment/overlays/release-24.0"
+  IRONIC_RELEASE_24.1: "data/ironic-deployment/overlays/release-24.1"
+  IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
+  BMO_RELEASE_0.4: "data/bmo-deployment/overlays/release-0.4"
+  BMO_RELEASE_0.5: "data/bmo-deployment/overlays/release-0.5"
+  BMO_RELEASE_0.6: "data/bmo-deployment/overlays/release-0.6"
+  BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
 
 intervals:
-  default/wait-controllers: ["5m", "10s"]
+  default/wait-controllers: ["10m", "10s"]
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created
   default/wait-control-plane: ["30m", "10s"]
-  default/wait-worker-nodes: ["30m", "10s"]
+  default/wait-worker-nodes: ["60m", "10s"]
   default/wait-delete-cluster: ["20m", "10s"]
   default/wait-machine-upgrade: ["50m", "10s"]
   default/wait-machine-remediation: ["30m", "10s"]
