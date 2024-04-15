@@ -134,52 +134,41 @@ To trigger e2e test on a PR, use the following phrases:
 
 Release-1.5 branch:
 
-- **/test-ubuntu-e2e-integration-release-1-5** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.5 on Ubuntu
-- **/test-centos-e2e-integration-release-1-5** runs integration e2e tests with CAPM3
-  API version v1beta1 and branch release-1.5 on CentOS
-
-## Basic tests
-
-Unlike integration tests, basic tests focus on the target cluster creation
-without involving pivoting from the bootstrap cluster.
-To run basic tests, replace `integration` with `basic` for instance:
-
-- **/test-ubuntu-e2e-basic-main** runs basic e2e tests with main branch on Ubuntu
+- **/test metal3-ubuntu-e2e-integration-test-release-1-5** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.5 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-5** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.5 on CentOS
 
 ### Feature tests
 
 Release-1.5 branch:
 
-- **/test-ubuntu-e2e-feature-release-1-5** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.5 on Ubuntu
-- **/test-centos-e2e-feature-release-1-5** runs e2e feature tests with CAPM3 API
-  version v1beta1 and branch release-1.5 on CentOS
+- **/test metal3-ubuntu-e2e-feature-test-1-5** runs e2e feature tests with CAPM3
+  API version v1beta1 and branch release-1.5 on Ubuntu
+- **/test metal3-centos-e2e-feature-test-1-5** runs e2e feature tests with CAPM3
+  API version v1beta1 and branch release-1.5 on CentOS
 
 ### Upgrade tests
 
-CAPM3 tests upgrade from all supported release to the current one, while also
-maintaining a test for the previous API version release v1alpha5.
-We run upgrade test on main branch from different releases:
+#### Clusterctl upgrade tests
 
-- **/test-e2e-upgrade-main-from-release-1-5** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.5 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+CAPM3 tests upgrade from all supported release to the current one.
 
-### Keep VM
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-5** runs e2e clusterctl
+  upgrade tests on release-1.5 with Ubuntu
 
-After the e2e test is completed, Jenkins executes another script to clean up the
-environment first and then deletes the VM. However, sometimes it may be
-desirable to keep the VM for debugging purposes. To avoid clean up and deletion
-operations, use `keep-` prefix e.g:
+#### K8s upgrade tests
 
-- **/keep-test-ubuntu-e2e-integration-main** run keep e2e tests with CAPM3 API
-  version v1beta1 and branch main on Ubuntu
+CAPM3 tests upgrading kubernetes between last 3 releases.
+The trigger takes the format:
+`/test metal3-e2e-<from-minor-k8s-v>-<to-minor-k8s-v>-upgrade-test-<branch>`
+
+- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-5**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-5**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-5**
 
 Note:
 
-- Triggers follow the pattern: `/[keep-|parallel-]test-<os>-e2e-<type>-<branch>`
-- Test VM created with `keep-` prefix will not be kept forever but deleted after
-  24 hours.
+- Triggers follow the pattern: `/test metal3-<image-os>-e2e-<test-type>-test-<branch>`
 
 More info about e2e test can be found [here](docs/e2e-test.md)
