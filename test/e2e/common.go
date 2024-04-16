@@ -12,16 +12,19 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 
+	"github.com/blang/semver"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -747,4 +750,82 @@ func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Clie
 
 func (Metal3LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
 	return fmt.Errorf("CollectInfrastructureLogs not implemented")
+}
+
+// semVer = v1.2.0
+// GitCheckout checkouts the repo that is at path repoPath to branch checkoutBranch.
+func GitCheckout(repoPath string, checkoutBranch string) error {
+	cmd := exec.Command("git", "checkout", checkoutBranch)
+	cmd.Dir = repoPath
+	stdout, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+	Logf("git checkout successful '%s' \n", stdout)
+	return nil
+}
+
+// https://proxy.golang.org/github.com/metal3-io/baremetal-operator/@v/list
+// https://proxy.golang.org/github.com/metal3-io/ironic-image/@v/list
+
+// GetLatestPatchRelease returns latest patch release against minor release.
+func GetLatestPatchRelease(goProxyPath string, minorReleaseVersion string) (string, error) {
+	semVersion, err := semver.Parse(minorReleaseVersion)
+	if err != nil {
+		return "", errors.Wrapf(err, "parsing semver for %s", minorReleaseVersion)
+	}
+	parsedTags, err := getVersions(goProxyPath)
+	if err != nil {
+		return "", err
+	}
+
+	var picked semver.Version
+	for i, tag := range parsedTags {
+		if tag.Major == semVersion.Major && tag.Minor == semVersion.Minor {
+			picked = parsedTags[i]
+		}
+	}
+	if picked.Major == 0 && picked.Minor == 0 && picked.Patch == 0 {
+		return "", errors.Errorf("no suitable release available for path %s and version %s", goProxyPath, minorReleaseVersion)
+	}
+	return picked.String(), nil
+}
+
+// GetVersions returns the a sorted list of semantical versions which exist for a go module.
+func getVersions(gomodulePath string) (semver.Versions, error) {
+	// Get the data
+	/* #nosec G107 */
+	resp, err := http.Get(gomodulePath) //nolint:noctx
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("failed to get versions from url %s got %d %s", gomodulePath, resp.StatusCode, http.StatusText(resp.StatusCode))
+	}
+	defer resp.Body.Close()
+
+	rawResponse, err := io.ReadAll(resp.Body)
+	if err != nil {
+		retryError := errors.Wrap(err, "failed to get versions: error reading goproxy response body")
+		return nil, retryError
+	}
+	parsedVersions := semver.Versions{}
+	for _, s := range strings.Split(string(rawResponse), "\n") {
+		if s == "" {
+			continue
+		}
+		s = strings.TrimSuffix(s, "+incompatible")
+		parsedVersion, err := semver.ParseTolerant(s)
+		if err != nil {
+			// Discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases).
+			continue
+		}
+		parsedVersions = append(parsedVersions, parsedVersion)
+	}
+
+	if len(parsedVersions) == 0 {
+		return nil, fmt.Errorf("no versions found for go module %q", gomodulePath)
+	}
+	sort.Sort(parsedVersions)
+	return parsedVersions, nil
 }

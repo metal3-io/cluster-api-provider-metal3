@@ -20,6 +20,11 @@ import (
 
 const workDir = "/opt/metal3-dev-env/"
 
+var (
+	ironicGoproxy = "https://proxy.golang.org/github.com/metal3-io/ironic-image/@v/list"
+	bmoGoproxy    = "https://proxy.golang.org/github.com/metal3-io/baremetal-operator/@v/list"
+)
+
 var _ = Describe("When testing cluster upgrade from releases (v1.2=>current) [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
@@ -46,14 +51,16 @@ var _ = Describe("When testing cluster upgrade from releases (v1.2=>current) [cl
 			WorkloadKubernetesVersion:       "v1.23.17",
 			InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/clusterctl-{OS}-{ARCH}",
 			PreInit: func(clusterProxy framework.ClusterProxy) {
-				preInitFunc(clusterProxy)
+				preInitFunc(clusterProxy, "release-0.1")
 				// Override capi/capm3 versions exported in preInit
 				os.Setenv("CAPI_VERSION", "v1beta1")
 				os.Setenv("CAPM3_VERSION", "v1beta1")
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 			},
-			PreWaitForCluster:           preWaitForCluster,
-			PreUpgrade:                  preUpgrade,
+			PreWaitForCluster: preWaitForCluster,
+			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
+				preUpgrade(clusterProxy, "23.1.0", "0.4.0")
+			},
 			PreCleanupManagementCluster: preCleanupManagementCluster,
 			MgmtFlavor:                  osType,
 			WorkloadFlavor:              osType,
@@ -107,14 +114,16 @@ var _ = Describe("When testing cluster upgrade from releases (v0.4=>current) [cl
 			InitWithBinary:                  "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract:       "v1alpha4",
 			PreInit: func(clusterProxy framework.ClusterProxy) {
-				preInitFunc(clusterProxy)
+				preInitFunc(clusterProxy, "release-0.1")
 				// Override capi/capm3 versions exported in preInit
 				os.Setenv("CAPI_VERSION", "v1alpha4")
 				os.Setenv("CAPM3_VERSION", "v1alpha5")
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 			},
-			PreWaitForCluster:           preWaitForCluster,
-			PreUpgrade:                  preUpgrade,
+			PreWaitForCluster: preWaitForCluster,
+			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
+				preUpgrade(clusterProxy, "23.1.0", "0.4.0")
+			},
 			PreCleanupManagementCluster: preCleanupManagementCluster,
 			MgmtFlavor:                  osType,
 			WorkloadFlavor:              osType,
@@ -202,7 +211,7 @@ func preWaitForCluster(clusterProxy framework.ClusterProxy, clusterNamespace str
 
 // preInitFunc hook function that should be called from ClusterctlUpgradeSpec before init the management cluster
 // it installs certManager, BMO and Ironic and overrides the default IPs for the workload cluster.
-func preInitFunc(clusterProxy framework.ClusterProxy) {
+func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string) {
 	installCertManager := func(clusterProxy framework.ClusterProxy) {
 		certManagerLink := fmt.Sprintf("https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml", config.CertManagerDefaultVersion)
 		err := DownloadFile("/tmp/certManager.yaml", certManagerLink)
@@ -257,6 +266,10 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
 		}
 	})
+
+	Byf("Checking out BMO to %s", bmoRelease)
+	err := GitCheckout(e2eConfig.GetVariable(bmoPath), bmoRelease)
+	Expect(err).ToNot(HaveOccurred(), "Failed to checkout to branch %s \n error message: %s", bmoRelease, err)
 
 	// install ironic
 	By("Install Ironic in the target cluster")
@@ -316,12 +329,21 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 
 // preUpgrade hook should be called from ClusterctlUpgradeSpec before upgrading the management cluster
 // it upgrades Ironic and BMO before upgrading the providers.
-func preUpgrade(clusterProxy framework.ClusterProxy) {
+func preUpgrade(clusterProxy framework.ClusterProxy, ironicUpgradeToRelease string, bmoUpgradeToRelease string) {
+	ironicTag, err := GetLatestPatchRelease(ironicGoproxy, ironicUpgradeToRelease)
+	Expect(err).ToNot(HaveOccurred(), "Failed to fetch ironic version for release %s", ironicUpgradeToRelease)
+	Logf("Ironic Tag %s\n", ironicTag)
+
+	bmoTag, err := GetLatestPatchRelease(bmoGoproxy, bmoUpgradeToRelease)
+	Expect(err).ToNot(HaveOccurred(), "Failed to fetch bmo version for release %s", bmoUpgradeToRelease)
+	Logf("Bmo Tag %s\n", bmoTag)
+
 	upgradeIronic(ctx, func() upgradeIronicInput {
 		return upgradeIronicInput{
 			E2EConfig:         e2eConfig,
 			ManagementCluster: clusterProxy,
 			SpecName:          specName,
+			ImageTag:          ironicTag,
 		}
 	})
 	upgradeBMO(ctx, func() upgradeBMOInput {
@@ -329,6 +351,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy) {
 			E2EConfig:         e2eConfig,
 			ManagementCluster: clusterProxy,
 			SpecName:          specName,
+			ImageTag:          bmoTag,
 		}
 	})
 }
