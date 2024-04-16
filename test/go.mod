@@ -3,6 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 go 1.20
 
 require (
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v24.0.7+incompatible
 	github.com/jinzhu/copier v0.4.0
 	github.com/metal3-io/baremetal-operator/apis v0.4.2
@@ -10,6 +11,7 @@ require (
 	github.com/metal3-io/ip-address-manager/api v1.5.3
 	github.com/onsi/ginkgo/v2 v2.12.0
 	github.com/onsi/gomega v1.27.10
+	github.com/pkg/errors v0.9.1
 	golang.org/x/crypto v0.22.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.27.7
@@ -35,7 +37,6 @@ require (
 	github.com/antlr/antlr4/runtime/Go/antlr v1.4.10 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/coredns/caddy v1.1.1 // indirect
@@ -88,7 +89,6 @@ require (
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.16.0 // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect

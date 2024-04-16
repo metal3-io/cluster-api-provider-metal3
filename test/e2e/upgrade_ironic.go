@@ -15,6 +15,7 @@ type upgradeIronicInput struct {
 	E2EConfig         *clusterctl.E2EConfig
 	ManagementCluster framework.ClusterProxy
 	SpecName          string
+	ImageTag          string
 }
 
 // upgradeIronic upgrades ironic image to the latest.
@@ -27,7 +28,7 @@ func upgradeIronic(ctx context.Context, inputGetter func() upgradeIronicInput) {
 		ironicNamespace   = input.E2EConfig.GetVariable("IRONIC_NAMESPACE")
 		ironicDeployName  = namePrefix + "-ironic"
 		containerRegistry = input.E2EConfig.GetVariable("CONTAINER_REGISTRY")
-		ironicImageTag    = input.E2EConfig.GetVariable("IRONIC_IMAGE_TAG")
+		ironicImageTag    = input.ImageTag
 	)
 
 	Logf("namePrefix %v", namePrefix)

@@ -15,6 +15,7 @@ type upgradeBMOInput struct {
 	E2EConfig         *clusterctl.E2EConfig
 	ManagementCluster framework.ClusterProxy
 	SpecName          string
+	ImageTag          string
 }
 
 // upgradeBMO upgrades BMO image to the latest.
@@ -28,7 +29,7 @@ func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
 		bmoNamespace      = input.E2EConfig.GetVariable("IRONIC_NAMESPACE")
 		bmoDeployName     = namePrefix + "-controller-manager"
 		containerRegistry = input.E2EConfig.GetVariable("CONTAINER_REGISTRY")
-		bmoImageTag       = input.E2EConfig.GetVariable("UPGRADED_BMO_IMAGE_TAG")
+		bmoImageTag       = input.ImageTag
 		bmoImage          = containerRegistry + "/metal3-io/baremetal-operator:" + bmoImageTag
 	)
 
