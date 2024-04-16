@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 go 1.20
 
 require (
-	github.com/docker/docker v24.0.7+incompatible
+	github.com/docker/docker v24.0.9+incompatible
 	github.com/jinzhu/copier v0.4.0
 	github.com/metal3-io/baremetal-operator/apis v0.5.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
@@ -17,8 +17,8 @@ require (
 	k8s.io/apimachinery v0.28.5
 	k8s.io/client-go v0.28.5
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
-	sigs.k8s.io/cluster-api v1.6.3
-	sigs.k8s.io/cluster-api/test v1.6.3
+	sigs.k8s.io/cluster-api v1.6.4
+	sigs.k8s.io/cluster-api/test v1.6.4
 	sigs.k8s.io/controller-runtime v0.16.5
 )
 
