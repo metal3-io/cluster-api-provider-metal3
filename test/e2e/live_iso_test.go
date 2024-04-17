@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
@@ -44,7 +45,7 @@ func liveIsoTest() {
 	})
 	It("Should update the BMH with live ISO", func() {
 		liveISOImageURL := e2eConfig.GetVariable("LIVE_ISO_IMAGE")
-		Logf("Starting live ISO test")
+		bmo_e2e.Logf("Starting live ISO test")
 		bootstrapClient := bootstrapClusterProxy.GetClient()
 		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
 
@@ -59,12 +60,12 @@ func liveIsoTest() {
 		Expect(err).NotTo(HaveOccurred(), "Error getting BMHs")
 		var isoBmh bmov1alpha1.BareMetalHost
 		for _, bmh := range bmhs {
-			Logf("Checking BMH %s", bmh.Name)
+			bmo_e2e.Logf("Checking BMH %s", bmh.Name)
 			// Pick the first BMH that is available and uses redfish-virtualmedia (ipmi and redfish does not support live-iso)
 			if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable &&
 				strings.HasPrefix(bmh.Spec.BMC.Address, "redfish-virtualmedia") {
 				isoBmh = bmh
-				Logf("BMH %s is in %s state", bmh.Name, bmh.Status.Provisioning.State)
+				bmo_e2e.Logf("BMH %s is in %s state", bmh.Name, bmh.Status.Provisioning.State)
 				break
 			}
 		}
@@ -83,7 +84,7 @@ func liveIsoTest() {
 		Eventually(func(g Gomega) {
 			g.Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: isoBmhName}, &isoBmh)).To(Succeed())
 			g.Expect(isoBmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioned), fmt.Sprintf("BMH %s is not in provisioned state", isoBmh.Name))
-			Logf("BMH %s is in %s state", isoBmh.Name, isoBmh.Status.Provisioning.State)
+			bmo_e2e.Logf("BMH %s is in %s state", isoBmh.Name, isoBmh.Status.Provisioning.State)
 		}, e2eConfig.GetIntervals(specName, "wait-bmh-provisioned")...).Should(Succeed())
 		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
 
@@ -110,9 +111,9 @@ func liveIsoTest() {
 
 		for _, bmh := range bmhs {
 			bmh := bmh // for gosec G601
-			Logf("Checking BMH %s", bmh.Name)
+			bmo_e2e.Logf("Checking BMH %s", bmh.Name)
 			if bmh.Status.Provisioning.State == bmov1alpha1.StateProvisioned {
-				Logf("live ISO image booted BMH found %s", bmh.Name)
+				bmo_e2e.Logf("live ISO image booted BMH found %s", bmh.Name)
 				bmh.Spec.Online = false
 				bmh.Spec.Image = nil
 				Expect(bootstrapClient.Update(ctx, &bmh)).NotTo(HaveOccurred())

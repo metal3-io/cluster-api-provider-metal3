@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,7 +26,7 @@ type CertRotationInput struct {
 }
 
 func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
-	Logf("Start the certificate rotation test")
+	bmo_e2e.Logf("Start the certificate rotation test")
 	input := inputGetter()
 	clientSet := input.ManagementCluster.GetClientSet()
 	clusterClient := input.ManagementCluster.GetClient()

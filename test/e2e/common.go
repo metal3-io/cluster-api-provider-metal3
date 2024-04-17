@@ -18,6 +18,7 @@ import (
 	"time"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
@@ -60,14 +61,10 @@ func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
 }
 
-func Logf(format string, a ...interface{}) {
-	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
-}
-
 func LogFromFile(logFile string) {
 	data, err := os.ReadFile(filepath.Clean(logFile))
 	Expect(err).ToNot(HaveOccurred(), "No log file found")
-	Logf(string(data))
+	bmo_e2e.Logf(string(data))
 }
 
 // return only the boolean value from ParseBool.
@@ -157,9 +154,9 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	imagePath := filepath.Join(ironicImageDir, imageName)
 	rawImagePath := filepath.Join(ironicImageDir, rawImageName)
 	if _, err := os.Stat(rawImagePath); err == nil {
-		Logf("Local image %v already exists", rawImagePath)
+		bmo_e2e.Logf("Local image %v already exists", rawImagePath)
 	} else if os.IsNotExist(err) {
-		Logf("Local image %v is not found \nDownloading..", rawImagePath)
+		bmo_e2e.Logf("Local image %v is not found \nDownloading..", rawImagePath)
 		err = DownloadFile(imagePath, fmt.Sprintf("%s/%s", imageLocation, imageName))
 		Expect(err).ToNot(HaveOccurred())
 		cmd := exec.Command("qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
@@ -170,7 +167,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		formattedSha256sum := fmt.Sprintf("%x", sha256sum)
 		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0544) //#nosec G306:gosec
 		Expect(err).ToNot(HaveOccurred())
-		Logf("Image: %v downloaded", rawImagePath)
+		bmo_e2e.Logf("Image: %v downloaded", rawImagePath)
 	} else {
 		fmt.Fprintf(GinkgoWriter, "ERROR: %v\n", err)
 		os.Exit(1)
@@ -232,23 +229,6 @@ func FilterMachines(machines []clusterv1.Machine, accept func(clusterv1.Machine)
 		}
 	}
 	return
-}
-
-// AnnotateBmh annotates BaremetalHost with a given key and value.
-func AnnotateBmh(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, key string, value *string) {
-	helper, err := patch.NewHelper(&host, client)
-	Expect(err).NotTo(HaveOccurred())
-	annotations := host.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-	if value == nil {
-		delete(annotations, key)
-	} else {
-		annotations[key] = *value
-	}
-	host.SetAnnotations(annotations)
-	Expect(helper.Patch(ctx, &host)).To(Succeed())
 }
 
 // DeleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
@@ -413,7 +393,7 @@ type WaitForNumInput struct {
 
 // WaitForNumBmhInState will wait for the given number of BMHs to be in the given state.
 func WaitForNumBmhInState(ctx context.Context, state bmov1alpha1.ProvisioningState, input WaitForNumInput) {
-	Logf("Waiting for %d BMHs to be in %s state", input.Replicas, state)
+	bmo_e2e.Logf("Waiting for %d BMHs to be in %s state", input.Replicas, state)
 	Eventually(func(g Gomega) {
 		bmhList := bmov1alpha1.BareMetalHostList{}
 		g.Expect(input.Client.List(ctx, &bmhList, input.Options...)).To(Succeed())
@@ -424,7 +404,7 @@ func WaitForNumBmhInState(ctx context.Context, state bmov1alpha1.ProvisioningSta
 
 // WaitForNumMetal3MachinesReady will wait for the given number of M3Ms to be ready.
 func WaitForNumMetal3MachinesReady(ctx context.Context, input WaitForNumInput) {
-	Logf("Waiting for %d Metal3Machines to be ready", input.Replicas)
+	bmo_e2e.Logf("Waiting for %d Metal3Machines to be ready", input.Replicas)
 	Eventually(func(g Gomega) {
 		m3mList := infrav1.Metal3MachineList{}
 		g.Expect(input.Client.List(ctx, &m3mList, input.Options...)).To(Succeed())
@@ -441,7 +421,7 @@ func WaitForNumMetal3MachinesReady(ctx context.Context, input WaitForNumInput) {
 
 // WaitForNumMachinesInState will wait for the given number of Machines to be in the given state.
 func WaitForNumMachinesInState(ctx context.Context, phase clusterv1.MachinePhase, input WaitForNumInput) {
-	Logf("Waiting for %d Machines to be in %s phase", input.Replicas, phase)
+	bmo_e2e.Logf("Waiting for %d Machines to be in %s phase", input.Replicas, phase)
 	inPhase := func(machine clusterv1.Machine) bool {
 		return machine.Status.GetTypedPhase() == phase
 	}
@@ -510,8 +490,8 @@ func GenerateIPPoolPreallocations(ctx context.Context, ippool ipamv1.IPPool, poo
 	for m3dataPoolName, ipaddress := range allocations {
 		fmt.Println("datapoolName:", m3dataPoolName, "=>", "ipaddress:", ipaddress)
 		BMHName := strings.Split(m3dataPoolName, "-"+poolName)[0]
-		Logf("poolName: %s", poolName)
-		Logf("BMHName: %s", BMHName)
+		bmo_e2e.Logf("poolName: %s", poolName)
+		bmo_e2e.Logf("BMHName: %s", BMHName)
 		newAllocations[BMHName+"-"+ippool.Name] = ipaddress
 	}
 	return newAllocations, nil
@@ -531,10 +511,10 @@ func Metal3DataToMachineName(m3data infrav1.Metal3Data) (string, error) {
 
 // FilterMetal3DatasByName returns a filtered list of m3data objects with specific name.
 func FilterMetal3DatasByName(m3datas []infrav1.Metal3Data, name string) (result []infrav1.Metal3Data) {
-	Logf("m3datas: %v", m3datas)
-	Logf("looking for name: %s", name)
+	bmo_e2e.Logf("m3datas: %v", m3datas)
+	bmo_e2e.Logf("looking for name: %s", name)
 	for _, m3data := range m3datas {
-		Logf("m3data: %v", m3data)
+		bmo_e2e.Logf("m3data: %v", m3data)
 		if m3data.ObjectMeta.Name == name {
 			result = append(result, m3data)
 		}
@@ -583,7 +563,7 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 	for _, machine := range allMetal3Machines.Items {
 		name, err := Metal3MachineToMachineName(machine)
 		if err != nil {
-			Logf("error getting Machine name from Metal3machine: %w", err)
+			bmo_e2e.Logf("error getting Machine name from Metal3machine: %w", err)
 		} else if name == m.Name {
 			return BmhNameToVMName(Metal3MachineToBmhName(machine)), nil
 		}
@@ -753,7 +733,7 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 		}
 	}
 
-	Logf("Successfully collected logs for machine %s", m.Name)
+	bmo_e2e.Logf("Successfully collected logs for machine %s", m.Name)
 	return nil
 }
 
@@ -784,7 +764,7 @@ func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[s
 	if err != nil {
 		return err
 	}
-	Logf("CRD '%s' labeled successfully\n", crdName)
+	bmo_e2e.Logf("CRD '%s' labeled successfully\n", crdName)
 	return nil
 }
 

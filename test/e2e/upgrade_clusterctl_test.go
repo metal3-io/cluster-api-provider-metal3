@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -146,7 +147,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [cl
 		cmd := exec.Command("bash", "-c", "kubectl apply -f bmhosts_crs.yaml  -n metal3")
 		cmd.Dir = workDir
 		output, err := cmd.CombinedOutput()
-		Logf("Applying bmh to metal3 namespace : \n %v", string(output))
+		bmo_e2e.Logf("Applying bmh to metal3 namespace : \n %v", string(output))
 		Expect(err).ToNot(HaveOccurred())
 		// wait for all bmh to become available
 		bootstrapClient := bootstrapClusterProxy.GetClient()
@@ -213,7 +214,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.5=>current) [cl
 		cmd := exec.Command("bash", "-c", "kubectl apply -f bmhosts_crs.yaml  -n metal3")
 		cmd.Dir = workDir
 		output, err := cmd.CombinedOutput()
-		Logf("Applying bmh to metal3 namespace : \n %v", string(output))
+		bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.Logf("Applying bmh to metal3 namespace : \n %v", string(output))
 		Expect(err).ToNot(HaveOccurred())
 		// wait for all bmh to become available
 		bootstrapClient := bootstrapClusterProxy.GetClient()
@@ -236,11 +237,11 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 	isBootstrapProxy := !strings.HasPrefix(clusterProxy.GetName(), "clusterctl-upgrade")
 	if isBootstrapProxy {
 		// remove existing bmh from source and apply first 2 in target
-		Logf("remove existing bmh from source")
+		bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.Logf("remove existing bmh from source")
 		cmd := exec.Command("bash", "-c", "kubectl delete -f bmhosts_crs.yaml  -n metal3")
 		cmd.Dir = workDir
 		output, err := cmd.CombinedOutput()
-		Logf("Remove existing bmhs:\n %v", string(output))
+		bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.Logf("Remove existing bmhs:\n %v", string(output))
 		Expect(err).ToNot(HaveOccurred())
 
 		// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
@@ -293,11 +294,11 @@ func preInitFunc(clusterProxy framework.ClusterProxy) {
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kconfigPathWorkload := clusterProxy.GetKubeconfigPath()
 	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
-	Logf("Save kubeconfig in temp folder for project-infra target log collection")
+	bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.Logf("Save kubeconfig in temp folder for project-infra target log collection")
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
 	cmd = exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
-	Logf("%s\n", stdoutStderr)
+	bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 	// install certmanager
 	installCertManager(clusterProxy)
@@ -405,7 +406,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 		_ = cmd.Start()
 		errorData, _ := io.ReadAll(errorPipe)
 		if len(errorData) > 0 {
-			Logf("Error of the shell: %v\n", string(errorData))
+			bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.Logf("Error of the shell: %v\n", string(errorData))
 		}
 	}
 	// Fetch logs from management cluster
@@ -417,7 +418,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 	_ = cmd.Start()
 	errorData, _ := io.ReadAll(errorPipe)
 	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
+		bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.Logf("Error of the shell: %v\n", string(errorData))
 	}
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")

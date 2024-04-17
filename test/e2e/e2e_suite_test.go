@@ -12,6 +12,7 @@ import (
 
 	"github.com/jinzhu/copier"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
@@ -262,7 +263,7 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 	cniYaml, err := os.ReadFile(calicoYaml)
 	Expect(err).ToNot(HaveOccurred(), "Unable to read Calico manifest")
 
-	Logf("Replace the default CIDR with the one set in $POD_CIDR")
+	bmo_e2e.Logf("Replace the default CIDR with the one set in $POD_CIDR")
 	podCIDR := config.GetVariable("POD_CIDR")
 	calicoContainerRegistry := config.GetVariable("DOCKER_HUB_PROXY")
 	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
