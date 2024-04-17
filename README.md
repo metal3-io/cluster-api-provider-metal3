@@ -1,9 +1,9 @@
 # Cluster API Provider Metal3 for Managed Bare Metal Hardware
 
-[![Ubuntu E2E Integration 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-5_e2e_integration_test_ubuntu&subject=Ubuntu%20e2e%20integration%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-5_integration_test_ubuntu/)
-[![CentOS E2E Integration 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-5_e2e_integration_test_centos&subject=Centos%20e2e%20integration%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-5_integration_test_centos/)
-[![Ubuntu E2E feature 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-5_e2e_feature_test_ubuntu/&subject=Ubuntu%20E2E%20feature%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-5_e2e_feature_test_ubuntu/)
-[![CentOS E2E feature 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3_daily_release-1-5_e2e_feature_test_centos/&subject=CentOS%20E2E%20feature%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3_daily_release-1-5_e2e_feature_test_centos/)
+[![Ubuntu E2E Integration 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-feature-test-release-1-5&subject=Ubuntu%20e2e%20integration%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-feature-test-release-1-5/)
+[![CentOS E2E Integration 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-5&subject=Centos%20e2e%20integration%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-5/)
+[![Ubuntu E2E feature 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-feature-test-release-1-5/&subject=Ubuntu%20E2E%20feature%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-feature-test-release-1-5/)
+[![CentOS E2E feature 1.5 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-5/&subject=CentOS%20E2E%20feature%201.5)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-5/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
@@ -44,8 +44,8 @@ need to be manually installed. Example flow of installing Metal3 provider:
    level of the logging verbose with a positive integer number, ie. -v5.
 
    ```shell
-   clusterctl init --core cluster-api:v1.5.7 --bootstrap kubeadm:v1.5.7 \
-       --control-plane kubeadm:v1.5.7 -v5
+   clusterctl init --core cluster-api:v1.5.8 --bootstrap kubeadm:v1.5.8 \
+       --control-plane kubeadm:v1.5.8 -v5
    ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API
