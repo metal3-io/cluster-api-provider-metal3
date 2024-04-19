@@ -106,12 +106,34 @@ in the ephemeral cluster either before pivoting or after re-pivoting.
 
 ### K8s upgrade tests
 
-Kubernetes version upgrade in target nodes. E2E has following k8s version
-upgrades:
+Kubernetes version upgrade in target nodes. We run three latest version
+upgrades in k8s-upgrade tests for main branch and one kubernetes upgrade
+version for each release branch. When a new Kubernetes minor release is
+available, we will try to support it in an upcoming CAPM3 patch release
+(only in the latest supported CAPM3 minor release).
 
-- `v1.26` => `v1.27`
+For example:
+
+Main branch k8s-upgrade tests:
+
 - `v1.27` => `v1.28`
 - `v1.28` => `v1.29`
+- `v1.29` => `v1.30`
+
+Release 1.7 branch k8s-upgrade test:
+
+- `v1.29` => `v1.30`
+
+Release 1.6 branch k8s-upgrade test:
+
+- `v1.28` => `v1.29`
+
+Release 1.5 branch k8s-upgrade test:
+
+- `v1.26` => `v1.27`
+
+When Kubernetes 1.31 is released, k8s-upgrade `v1.30` => `v1.31` will be
+supported in v1.7.x (but not in v1.6.x)
 
 ### Live ISO test
 

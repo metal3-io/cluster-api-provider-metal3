@@ -226,18 +226,12 @@ CAPM3 tests upgrading kubernetes between last 3 releases.
 The trigger takes the format:
 `/test metal3-e2e-<from-minor-k8s-v>-<to-minor-k8s-v>-upgrade-test-<branch>`
 
+- **/test metal3-e2e-1-29-1-30-upgrade-test-main**
 - **/test metal3-e2e-1-28-1-29-upgrade-test-main**
 - **/test metal3-e2e-1-27-1-28-upgrade-test-main**
-- **/test metal3-e2e-1-26-1-27-upgrade-test-main**
+- **/test metal3-e2e-1-29-1-30-upgrade-test-release-1-7**
 - **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-6**
-- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-6**
-- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-6**
-- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-5**
-- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-5**
 - **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-5**
-- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-4**
-- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-4**
-- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-4**
 
 Note:
 
