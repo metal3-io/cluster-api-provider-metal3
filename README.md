@@ -203,39 +203,44 @@ Release-1.4 branch:
 
 ### Upgrade tests
 
+#### Clusterctl upgrade tests
+
 CAPM3 tests upgrade from all supported release to the current one.
 We run upgrade test on main branch from different releases:
 
-z- **/test-e2e-upgrade-main-from-release-1-3** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.3 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-main** runs e2e clusterctl
+  upgrade tests on main with Ubuntu
 
-- **/test-e2e-upgrade-main-from-release-1-4** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.4 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-4** runs e2e clusterctl
+  upgrade tests on release-1.4 with Ubuntu
 
-- **/test-e2e-upgrade-main-from-release-1-5** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.5 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-5** runs e2e clusterctl
+  upgrade tests on release-1.5 with Ubuntu
 
-- **/test-e2e-upgrade-main-from-release-1-6** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.6 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-6** runs e2e clusterctl
+  upgrade tests on release-1.6 with Ubuntu
 
-### Keep VM
+#### K8s upgrade tests
 
-After the e2e test is completed, Jenkins executes another script to clean up the
-environment first and then deletes the VM. However, sometimes it may be
-desirable to keep the VM for debugging purposes. To avoid clean up and deletion
-operations, use `keep-` prefix e.g:
+CAPM3 tests upgrading kubernetes between last 3 releases.
+The trigger takes the format:
+`/test metal3-e2e-<from-minor-k8s-v>-<to-minor-k8s-v>-upgrade-test-<branch>`
 
-- **/keep-test-ubuntu-e2e-integration-main** run keep e2e tests with CAPM3 API
-  version v1beta1 and branch main on Ubuntu
+- **/test metal3-e2e-1-28-1-29-upgrade-test-main**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-main**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-main**
+- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-6**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-6**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-6**
+- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-5**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-5**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-5**
+- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-4**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-4**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-4**
 
 Note:
 
-- Triggers follow the pattern: `/[keep-|parallel-]test-<os>-e2e-<type>-<branch>`
-- Test VM created with `keep-` prefix will not be kept forever but deleted after
-  24 hours.
+- Triggers follow the pattern: `/test metal3-<image-os>-e2e-<test-type>-test-<branch>`
 
 More info about e2e test can be found [here](docs/e2e-test.md)
