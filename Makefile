@@ -36,6 +36,7 @@ export GO111MODULE=on
 # Full directory of where the Makefile resides
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TOOLS_DIR := hack/tools
+FAKE_APISERVER_DIR := hack/fake-apiserver
 APIS_DIR := api
 TEST_DIR := test
 BIN_DIR := bin
@@ -319,6 +320,7 @@ lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=10m
 	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=10m
 	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=10m
+	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=10m
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -328,6 +330,7 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run manifest validation
 .PHONY: manifest-lint
@@ -349,6 +352,8 @@ modules: ## Runs go mod to ensure proper vendoring.
 	cd $(APIS_DIR) && $(GO) mod verify
 	cd $(TEST_DIR) && $(GO) mod tidy
 	cd $(TEST_DIR) && $(GO) mod verify
+	cd $(FAKE_APISERVER_DIR) && $(GO) mod tidy
+	cd $(FAKE_APISERVER_DIR) && $(GO) mod verify
 
 .PHONY: generate
 generate: ## Generate code
@@ -448,6 +453,10 @@ docker-build: ## Build the docker image for controller-manager
 .PHONY: docker-push
 docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: build-fake-api-server
+build-fake-api-server: ## Build the fake api server
+	cd $(FAKE_APISERVER_DIR) && docker build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/api-server:$(ARCH)" .
 
 ## --------------------------------------
 ## Docker — All ARCH
