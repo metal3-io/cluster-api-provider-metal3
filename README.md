@@ -2,10 +2,10 @@
 
 [![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/metal3-io/badge)](https://clomonitor.io/projects/cncf/metal3-io)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/metal3-io/cluster-api-provider-metal3/badge)](https://securityscorecards.dev/viewer/?uri=github.com/metal3-io/cluster-api-provider-metal3)
-[![Ubuntu E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-main&subject=Ubuntu%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-main/)
-[![CentOS E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-main&subject=Centos%20e2e%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-main/)
-[![Ubuntu E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-feature-test-main/&subject=Ubuntu%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-feature-test-main/)
-[![CentOS E2E feature main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-main/&subject=CentOS%20E2E%20feature%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-main/)
+[![Ubuntu E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-release-1-7&subject=Ubuntu%20e2e%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-release-1-7/)
+[![CentOS E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-release-1-7&subject=Centos%20e2e%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-release-1-7/)
+[![Ubuntu E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-feature-test-release-1-7/&subject=Ubuntu%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-feature-test-release-1-7/)
+[![CentOS E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7/&subject=CentOS%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
@@ -28,6 +28,7 @@ Metal3.
 | v1beta1       | v1beta1             | v1.4.X        |  v1.4.X        |
 | v1beta1       | v1beta1             | v1.5.X        |  v1.5.X        |
 | v1beta1       | v1beta1             | v1.6.X        |  v1.6.X        |
+| v1beta1       | v1beta1             | v1.7.X        |  v1.7.X        |
 
 ## Deploying the metal3 provider
 
@@ -62,7 +63,7 @@ need to be manually installed. Example flow of installing Metal3 provider:
    provider name as follows:
 
    ```shell
-   clusterctl init --infrastructure metal3:v1.6.0
+   clusterctl init --infrastructure metal3:v1.7.0
    ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install
@@ -140,6 +141,13 @@ To trigger e2e test on a PR, use the following phrases:
 - **/test-centos-e2e-integration-test-main** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.7 branch:
+
+- **/test metal3-ubuntu-e2e-integration-test-release-1-7** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.7 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-7** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.7 on CentOS
+
 Release-1.6 branch:
 
 - **/test metal3-ubuntu-e2e-integration-test-release-1-6** runs integration e2e
@@ -153,13 +161,6 @@ Release-1.5 branch:
   tests with CAPM3 API version v1beta1 and branch release-1.5 on Ubuntu
 - **/test metal3-centos-e2e-integration-test-release-1-5** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch release-1.5 on CentOS
-
-Release-1.4 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-4** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.4 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-4** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.4 on CentOS
 
 ## Basic tests
 
@@ -180,6 +181,13 @@ On main branch:
 - **/test metal3-centos-e2e-feature-test-main** runs e2e feature tests with
   CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.7 branch:
+
+- **/test metal3-ubuntu-e2e-feature-test-release-1-7** runs e2e feature tests
+  with CAPM3 API version v1beta1 and branch release-1.7 on Ubuntu
+- **/test metal3-centos-e2e-feature-test-release-1-7** runs e2e feature tests
+  with CAPM3 API version v1beta1 and branch release-1.7 on CentOS
+
 Release-1.6 branch:
 
 - **/test metal3-ubuntu-e2e-feature-test-release-1-6** runs e2e feature tests with
@@ -194,48 +202,46 @@ Release-1.5 branch:
 - **/test metal3-centos-e2e-feature-test-1-5** runs e2e feature tests with CAPM3
   API version v1beta1 and branch release-1.5 on CentOS
 
-Release-1.4 branch:
-
-- **/test metal3-ubuntu-e2e-feature-test-release-1-4** runs e2e feature tests
-  with CAPM3 API version v1beta1 and branch release-1.4 on Ubuntu
-- **/test metal3-centos-e2e-feature-test-release-1-4** runs e2e feature tests
-  with CAPM3 API version v1beta1 and branch release-1.4 on CentOS
-
 ### Upgrade tests
+
+#### Clusterctl upgrade tests
 
 CAPM3 tests upgrade from all supported release to the current one.
 We run upgrade test on main branch from different releases:
 
-z- **/test-e2e-upgrade-main-from-release-1-3** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.3 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-main** runs e2e clusterctl
+  upgrade tests on main with Ubuntu
 
-- **/test-e2e-upgrade-main-from-release-1-4** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.4 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-7** runs e2e clusterctl
+  upgrade tests on release-1.7 with Ubuntu
 
-- **/test-e2e-upgrade-main-from-release-1-5** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.5 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-6** runs e2e clusterctl
+  upgrade tests on release-1.6 with Ubuntu
 
-- **/test-e2e-upgrade-main-from-release-1-6** runs e2e upgrade tests from CAPM3
-  API version v1beta1/branch release-1.6 to CAPM3 API version v1beta1/branch
-  main on Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-5** runs e2e clusterctl
+  upgrade tests on release-1.5 with Ubuntu
 
-### Keep VM
+#### K8s upgrade tests
 
-After the e2e test is completed, Jenkins executes another script to clean up the
-environment first and then deletes the VM. However, sometimes it may be
-desirable to keep the VM for debugging purposes. To avoid clean up and deletion
-operations, use `keep-` prefix e.g:
+CAPM3 tests upgrading kubernetes between last 3 releases.
+The trigger takes the format:
+`/test metal3-e2e-<from-minor-k8s-v>-<to-minor-k8s-v>-upgrade-test-<branch>`
 
-- **/keep-test-ubuntu-e2e-integration-main** run keep e2e tests with CAPM3 API
-  version v1beta1 and branch main on Ubuntu
+- **/test metal3-e2e-1-28-1-29-upgrade-test-main**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-main**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-main**
+- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-7**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-7**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-7**
+- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-6**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-6**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-6**
+- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-5**
+- **/test metal3-e2e-1-27-1-28-upgrade-test-release-1-5**
+- **/test metal3-e2e-1-26-1-27-upgrade-test-release-1-5**
 
 Note:
 
-- Triggers follow the pattern: `/[keep-|parallel-]test-<os>-e2e-<type>-<branch>`
-- Test VM created with `keep-` prefix will not be kept forever but deleted after
-  24 hours.
+- Triggers follow the pattern: `/test metal3-<image-os>-e2e-<test-type>-test-<branch>`
 
 More info about e2e test can be found [here](docs/e2e-test.md)
