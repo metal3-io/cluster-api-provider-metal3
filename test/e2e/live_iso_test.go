@@ -101,12 +101,6 @@ func liveIsoTest() {
 	})
 
 	AfterEach(func() {
-		// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
-		if CurrentSpecReport().Failed() {
-			if keepTestEnv {
-				AbortSuite("e2e test aborted and skip cleaning the VM", 4)
-			}
-		}
 		By("Deprovisioning live ISO image booted BMH")
 
 		bootstrapClient := bootstrapClusterProxy.GetClient()

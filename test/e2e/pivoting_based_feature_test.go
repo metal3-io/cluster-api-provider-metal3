@@ -143,12 +143,6 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 				ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 			}
 			ListNodes(ctx, targetCluster.GetClient())
-			// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
-			if CurrentSpecReport().Failed() {
-				if keepTestEnv {
-					AbortSuite("e2e test aborted and skip cleaning the VM", 4)
-				}
-			}
 			if !ephemeralTest {
 				// Dump the target cluster resources before re-pivoting.
 				Logf("Dump the target cluster resources before re-pivoting")

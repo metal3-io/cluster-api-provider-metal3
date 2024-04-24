@@ -39,12 +39,6 @@ var _ = Describe("When testing ip reuse [ip-reuse] [features]", Label("ip-reuse"
 		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListNodes(ctx, targetCluster.GetClient())
-		// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
-		if CurrentSpecReport().Failed() {
-			if keepTestEnv {
-				AbortSuite("e2e test aborted and skip cleaning the VM", 4)
-			}
-		}
 		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 })
