@@ -5,6 +5,6 @@ kind: Kustomization
 resources:
 - https://github.com/metal3-io/ip-address-manager/releases/download/v1.7.0/ipam-components.yaml
 
-patchesStrategicMerge:
-    - image_patch.yaml
-    - pull_policy_patch.yaml
+patches:
+- path: image_patch.yaml
+- path: pull_policy_patch.yaml

@@ -1,4 +1,4 @@
 resources:
 - ../cluster
-patchesStrategicMerge:
-  - centos-kubeadm-config.yaml
+patches:
+- path: centos-kubeadm-config.yaml
