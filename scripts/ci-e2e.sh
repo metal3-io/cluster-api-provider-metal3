@@ -76,46 +76,6 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_basic_auth.sh"
 # shellcheck disable=SC1091,SC1090
 source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
-# Parameterize e2e_config
-# By default UPGRADE_FROM_RELEASE is v1.2. if not explicitly exported
-export UPGRADE_FROM_RELEASE="${UPGRADE_FROM_RELEASE:-v1.2.}"
-# Get latest capm3 patch for a minor version $UPGRADE_FROM_RELEASE
-export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "${UPGRADE_FROM_RELEASE}")}"
-# Get latest capi patch for the compatible version with capm3 $UPGRADE_FROM_RELEASE
-CAPI_UPGRADE_FROM_RELEASE=${UPGRADE_FROM_RELEASE}
-
-export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "${CAPI_UPGRADE_FROM_RELEASE}")}"
-# The e2e config file parameter for the capi release compatible with main (capm3 next version)
-export CAPI_TO_RELEASE="${CAPIRELEASE}"
-# K8s support based on https://cluster-api.sigs.k8s.io/reference/versions.html#core-provider-cluster-api-controller
-case ${CAPI_FROM_RELEASE} in
-v1.2*)
-    export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.27.4"
-    ;;
-v1.3*)
-    export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.27.4"
-    ;;
-v1.4*)
-    export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.29.0"
-    ;;
-v1.5*)
-    export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.29.0"
-    ;;
-v1.6*)
-    export CONTRACT_FROM="v1beta1"
-    export INIT_WITH_KUBERNETES_VERSION="v1.29.0"
-    ;;
-*)
-    echo "UNKNOWN CAPI_FROM_RELEASE !"
-    exit 1
-    ;;
-esac
-export CONTRACT_TO="v1beta1"
-
 # image for live iso testing
 export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"
 
