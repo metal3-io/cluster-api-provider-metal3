@@ -328,7 +328,6 @@ func preUpgrade(clusterProxy framework.ClusterProxy) {
 // preCleanupManagementCluster hook should be called from ClusterctlUpgradeSpec before cleaning the target management cluster
 // it moves back Ironic to the bootstrap cluster.
 func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
-	// Abort the test in case of failure and keepTestEnv is true during keep VM trigger
 	if CurrentSpecReport().Failed() {
 		// Fetch logs in case of failure in management cluster
 		By("Fetch logs from management cluster")
@@ -340,10 +339,6 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy) {
 		errorData, _ := io.ReadAll(errorPipe)
 		if len(errorData) > 0 {
 			Logf("Error of the shell: %v\n", string(errorData))
-		}
-
-		if keepTestEnv {
-			AbortSuite("e2e test aborted and skip cleaning the VM", 4)
 		}
 	}
 	// Fetch logs from management cluster
