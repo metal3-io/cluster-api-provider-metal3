@@ -146,10 +146,13 @@ if [[ -n "${CONTAINER_RUNTIME}" ]]; then
     )
     declare -a GCRANE_CMD=(
         "${CONTAINER_RUNTIME}" run --rm
+        --pull always
         gcr.io/go-containerregistry/gcrane:latest
     )
     declare -a OSVSCANNER_CMD=(
-        "${CONTAINER_RUNTIME}" run --rm -v "${PWD}":/src -w /src
+        "${CONTAINER_RUNTIME}" run --rm
+        -v "${PWD}":/src -w /src
+        --pull always
         ghcr.io/google/osv-scanner:latest
     )
 else
@@ -184,12 +187,44 @@ trap cleanup EXIT
 #
 # pre-requisites
 #
+_version_check()
+{
+    # check version of the tool, return failure if smaller
+    local min_version version
+
+    min_version="$1"
+    version="$2"
+
+    [[ "${min_version}" == $(echo -e "${min_version}\n${version}" | sort -s -t. -k 1,1 -k 2,2n -k 3,3n | head -n1) ]]
+}
+
 check_tools()
 {
+    # check that all tools are present, and pass version check too
+    # TODO: if more tools need versioning, add the version info directly to the
+    # array defining required tools
+    local min_version version
+
     echo "Checking required tools ..."
 
     for tool in "${required_tools[@]}"; do
         type "${tool}" &>/dev/null || { echo "FATAL: need ${tool} to be installed"; exit 1; }
+        case "${tool}" in
+            osv-scanner)
+                version=$("${OSVSCANNER_CMD[@]}" -v | grep version | cut -f3 -d" ")
+                min_version="1.5.0"
+                ;;
+            *)
+                # dummy values here for other tools
+                version="1.0.0"
+                min_version="1.0.0"
+                ;;
+        esac
+
+        # shellcheck disable=SC2310
+        if ! _version_check "${min_version}" "${version}"; then
+            echo "WARNING: tool ${tool} is version ${version}, should be >= ${min_version}"
+        fi
     done
 
     echo -e "Done\n"
@@ -392,7 +427,7 @@ verify_container_images()
     # if tag doesn't appear, the build trigger might've been disabled
     local image tag
 
-    echo "Verifying container images ..."
+    echo "Verifying container images are built and tagged ..."
 
     for image_and_tag in "${container_images[@]}"; do
         image="${image_and_tag/:*}"
@@ -412,18 +447,29 @@ verify_container_images()
     echo -e "Done\n"
 }
 
-verify_container_base_image()
+_get_golang_version_from_dockerfile()
 {
-    # check if the golang used for container image build is latest of its minor
-    local image tag
-
-    echo "Verifying container base images ..."
+    # read golang version from Dockerfile and return
+    local image_and_tag image image_and_tag_without_sha tag tag_minor
 
     image_and_tag="$(grep "^ARG BUILD_IMAGE=" Dockerfile | cut -f2 -d=)"
     image="${image_and_tag/:*}"
     image_and_tag_without_sha="${image_and_tag/@sha256:*}"
     tag="${image_and_tag_without_sha/*:}"
     tag_minor="${tag%.*}"
+
+    echo "${image_and_tag} ${image} ${image_and_tag_without_sha} ${tag} ${tag_minor}"
+}
+
+verify_container_base_image()
+{
+    # check if the golang used for container image build is latest of its minor
+    local image_and_tag image image_and_tag_without_sha tag tag_minor
+
+    echo "Verifying container base images are up to date ..."
+
+    read -r image_and_tag image image_and_tag_without_sha tag tag_minor < \
+        <(_get_golang_version_from_dockerfile)
 
     # quay paginates 50 items at a time, so it is simpler to use gcrane
     # to list all the tags, than DIY parse the pagination logic
@@ -509,7 +555,7 @@ verify_module_versions()
 {
     # verify all dependencies are using the same version across all go.mod
     # in the repository. Ignore indirect ones.
-    echo "Verify all go.mod dependencies are the same across go.mods ..."
+    echo "Verify all go.mod direct dependencies are the same across go.mods ..."
 
     # shellcheck disable=SC2119
     _module_direct_dependencies | while read -r module version; do
@@ -614,15 +660,42 @@ verify_ipam_manifests()
     echo -e "Done\n"
 }
 
+_mutate_gomod_files_for_osv_scanner()
+{
+    # mutate go.mod files to include go directive with exact patch version
+    # from main Dockerfile for correct golang stdlib vulnerability information
+    local image_and_tag image image_and_tag_without_sha tag tag_minor
+
+    read -r image_and_tag image image_and_tag_without_sha tag tag_minor < \
+        <(_get_golang_version_from_dockerfile)
+
+    for modfile in **/go.mod; do
+        sed -i.bak -e "s/^go [[:digit:]]\.[[:digit:]]\+/go ${tag}/" "${modfile}"
+    done
+}
+
+_restore_mutated_gomod_files()
+{
+    # restore mutated gomod files to original state
+    for bakfile in **/go.mod.bak; do
+        modfile="${bakfile/.bak}"
+        mv "${bakfile}" "${modfile}"
+    done
+}
+
 verify_vulnerabilities()
 {
     # run osv-scanner to verify if we have open vulnerabilities in deps
     echo "Verifying vulnerabilities ..."
 
-    "${OSVSCANNER_CMD[@]}" -r . > "${SCAN_LOG}" || true
+    _mutate_gomod_files_for_osv_scanner
+
+    "${OSVSCANNER_CMD[@]}" --skip-git -r . > "${SCAN_LOG}" || true
     if ! grep -q "No vulnerabilities found" "${SCAN_LOG}"; then
         cat "${SCAN_LOG}"
     fi
+
+    _restore_mutated_gomod_files
 
     echo -e "Done\n"
 }
