@@ -50,7 +50,7 @@ func (s *Metal3ClusterSpec) IsValid() error {
 	}
 
 	if s.ControlPlaneEndpoint.Port == 0 {
-		missing = append(missing, "ControlPlaneEndpoint.Host")
+		missing = append(missing, "ControlPlaneEndpoint.Port")
 	}
 
 	if len(missing) > 0 {

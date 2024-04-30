@@ -80,4 +80,10 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"
 
 # run e2e tests
-make e2e-tests
+if [ -n "${CLUSTER_TOPOLOGY:-}" ]; then
+    export CLUSTER_TOPOLOGY=true
+    make e2e-clusterclass-tests
+else
+    make e2e-tests
+fi
+

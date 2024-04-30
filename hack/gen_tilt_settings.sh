@@ -44,6 +44,21 @@ get_latest_release() {
 CAPIRELEASEPATH="${CAPIRELEASEPATH:-https://api.github.com/repos/${CAPI_BASE_URL:-kubernetes-sigs/cluster-api}/releases}"
 export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.3.")}"
 
+# ClusterClass enable flag
+if [ -n "${CLUSTER_TOPOLOGY:-}" ]; then
+cat <<EOF >tilt-settings.json
+{
+    "capi_version": "${CAPIRELEASE}",
+    "cert_manager_version": "v1.12.3",
+    "kubernetes_version": "${KUBERNETES_VERSION:-v1.29.0}",
+    "extra_args": {
+        "feature_gates": {
+            "ClusterTopology": "true"
+        }
+    }
+}
+EOF
+else
 cat <<EOF >tilt-settings.json
 {
     "capi_version": "${CAPIRELEASE}",
@@ -51,3 +66,4 @@ cat <<EOF >tilt-settings.json
     "kubernetes_version": "${KUBERNETES_VERSION:-v1.30.0}"
 }
 EOF
+fi

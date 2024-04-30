@@ -140,6 +140,10 @@ test: lint unit ## Run tests
 test-e2e: ## Run e2e tests with capi e2e testing framework
 	./scripts/ci-e2e.sh
 
+.PHONY: test-clusterclass-e2e
+test-clusterclass-e2e: ## Run e2e tests with capi e2e testing framework
+	CLUSTER_TOPOLOGY=true GINKGO_FOCUS=basic ./scripts/ci-e2e.sh
+
 GINKGO_NOCOLOR ?= false
 ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
@@ -167,6 +171,14 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu > $(E2E_OUT_DIR)/cluster-template-ubuntu.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos > $(E2E_OUT_DIR)/cluster-template-centos.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/cluster-template-upgrade-workload.yaml
+	touch $(E2E_OUT_DIR)/clusterclass.yaml
+
+.PHONY: clusterclass-templates
+clusterclass-templates: $(KUSTOMIZE) ## Generate cluster templates
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass-template-ubuntu > $(E2E_OUT_DIR)/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass-template-centos > $(E2E_OUT_DIR)/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass-template-upgrade-workload > $(E2E_OUT_DIR)/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass > $(E2E_OUT_DIR)/clusterclass.yaml
 
 ## --------------------------------------
 ## E2E Testing
@@ -196,6 +208,29 @@ e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
+		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
+		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
+
+	rm $(E2E_CONF_FILE_ENVSUBST)
+
+.PHONY: e2e-clusterclass-tests
+e2e-clusterclass-tests: CONTAINER_RUNTIME?=docker # Env variable can override this default
+export CONTAINER_RUNTIME 
+
+e2e-clusterclass-tests: $(GINKGO) e2e-substitutions clusterclass-templates # This target should be called from scripts/ci-e2e.sh
+	for image in $(E2E_CONTAINERS); do \
+		$(CONTAINER_RUNTIME) pull $$image; \
+	done
+
+	$(GINKGO) --timeout=$(GINKGO_TIMEOUT) -v --trace --tags=e2e  \
+		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
+		--fail-fast="$(KEEP_TEST_ENV)" \
+		--junit-report="junit.e2e_suite.1.xml" \
+		--focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
+		-e2e.artifacts-folder="$(ARTIFACTS)" \
+		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
+		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
+		-e2e.keep-test-environment=$(KEEP_TEST_ENV) \
 		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 
@@ -394,6 +429,10 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
 
+.PHONY: generate-examples-clusterclass
+generate-examples-clusterclass: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.
+	CLUSTER_TOPOLOGY=true ./examples/generate.sh
+
 ## --------------------------------------
 ## Docker
 ## --------------------------------------
@@ -471,11 +510,24 @@ deploy: generate-examples
 	kubectl apply -f examples/_out/provider-components.yaml
 	kubectl apply -f examples/_out/metal3crds.yaml
 
+deploy-clusterclass: generate-examples-clusterclass
+	kubectl apply -f examples/_out/cert-manager.yaml
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-cainjector
+	kubectl wait --for=condition=Available --timeout=300s -n cert-manager deployment cert-manager-webhook
+	kubectl apply -f examples/_out/provider-components.yaml
+	kubectl apply -f examples/_out/metal3crds.yaml
+
 deploy-examples:
 	kubectl apply -f ./examples/_out/metal3plane.yaml
 	kubectl apply -f ./examples/_out/cluster.yaml
 	kubectl apply -f ./examples/_out/machinedeployment.yaml
 	kubectl apply -f ./examples/_out/controlplane.yaml
+
+deploy-examples-clusterclass:
+	kubectl apply -f ./examples/_out/metal3plane.yaml
+	kubectl apply -f ./examples/_out/clusterclass.yaml
+	kubectl apply -f ./examples/_out/cluster.yaml
 
 delete-examples:
 	kubectl delete -f ./examples/_out/machinedeployment.yaml || true
@@ -483,6 +535,10 @@ delete-examples:
 	kubectl delete -f ./examples/_out/cluster.yaml || true
 	kubectl delete -f ./examples/_out/metal3plane.yaml || true
 
+delete-examples-clusterclass:
+	kubectl delete -f ./examples/_out/cluster.yaml || true
+	kubectl delete -f ./examples/_out/clusterclass.yaml || true
+	kubectl delete -f ./examples/_out/metal3plane.yaml || true
 
 ## --------------------------------------
 ## Release
@@ -536,6 +592,10 @@ kind-create: ## create capm3 kind cluster if needed
 .PHONY: tilt-settings
 tilt-settings:
 	./hack/gen_tilt_settings.sh
+
+.PHONY: tilt-settings-clusterclass
+tilt-settings-clusterclass:
+	CLUSTER_TOPOLOGY=true ./hack/gen_tilt_settings.sh
 
 .PHONY: tilt-up
 tilt-up: $(ENVSUBST) $(KUSTOMIZE) kind-create ## start tilt and build kind cluster if needed
