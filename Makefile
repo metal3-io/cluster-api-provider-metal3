@@ -138,7 +138,7 @@ test: lint unit ## Run tests
 
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests with capi e2e testing framework
-	./scripts/ci-e2e.sh
+	./scripts/ci-e2e-debug.sh
 
 .PHONY: test-clusterclass-e2e
 test-clusterclass-e2e: ## Run e2e tests with capi e2e testing framework
