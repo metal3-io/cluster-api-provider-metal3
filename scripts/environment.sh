@@ -48,7 +48,7 @@ else
   export EPHEMERAL_CLUSTER="minikube"
 fi
 
-export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.28.1"}
+export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.29.0"}
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.30.0"}
 # NOTE: kubectl sha256 must match the provided KUBERNETES_VERSION, and must be
 # provided in JJB for upgrade tests where version is different from the default
