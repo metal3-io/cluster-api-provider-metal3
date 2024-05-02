@@ -78,7 +78,7 @@ BMO_IMAGE_NAME ?= baremetal-operator
 BMO_CONTROLLER_IMG ?= $(REGISTRY)/$(BMO_IMAGE_NAME)
 TAG ?= v1beta1
 BMO_TAG ?= capm3-$(TAG)
-ARCH ?= amd64
+ARCH ?= $(shell go env GOARCH)
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
 # Allow overriding manifest generation destination directory
@@ -96,7 +96,6 @@ ENVTEST_OS := linux
 ifeq ($(shell uname -s), Darwin)
 	ENVTEST_OS := darwin
 endif
-ARCH ?= amd64
 
 ## --------------------------------------
 ## Help
