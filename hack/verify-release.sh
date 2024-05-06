@@ -529,7 +529,7 @@ _module_get_latest_patch_release()
 {
     # get latest patch release from given version
     # module needs to contain full module url
-    # version is minor release prefix, like v1.4.
+    # version is minor release prefix, like v1.7.
     local repo="$1"
     local version="$2"
 

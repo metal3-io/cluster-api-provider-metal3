@@ -10,18 +10,9 @@ FORCE_REPO_UPDATE="${FORCE_REPO_UPDATE:-false}"
 
 export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-main}"
 
-# Starting from CAPI v1.5.0 version cluster-api config folder location has changed
-# to XDG_CONFIG_HOME folder. Following code defines the cluster-api config folder
-# location according to CAPM3(since CAPM3 minor versions are aligned to CAPI
-# minors versions) release branch
-
-if [[ ${CAPM3RELEASEBRANCH} == "release-1.4" ]]; then
-    export CAPI_CONFIG_FOLDER="${HOME}/.cluster-api"
-else
-    # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
-    CONFIG_FOLDER="${XDG_CONFIG_HOME:-$HOME/.config}"
-    export CAPI_CONFIG_FOLDER="${CONFIG_FOLDER}/cluster-api"
-fi
+# Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
+CONFIG_FOLDER="${XDG_CONFIG_HOME:-$HOME/.config}"
+export CAPI_CONFIG_FOLDER="${CONFIG_FOLDER}/cluster-api"
 
 # shellcheck source=./scripts/environment.sh
 source "${REPO_ROOT}/scripts/environment.sh"

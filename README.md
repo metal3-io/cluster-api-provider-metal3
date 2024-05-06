@@ -63,7 +63,7 @@ need to be manually installed. Example flow of installing Metal3 provider:
    provider name as follows:
 
    ```shell
-   clusterctl init --infrastructure metal3:v1.6.0
+   clusterctl init --infrastructure metal3:v1.7.0
    ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install
@@ -141,6 +141,13 @@ To trigger e2e test on a PR, use the following phrases:
 - **/test-centos-e2e-integration-test-main** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.7 branch:
+
+- **/test metal3-ubuntu-e2e-integration-test-release-1-7** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.7 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-7** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.7 on CentOS
+
 Release-1.6 branch:
 
 - **/test metal3-ubuntu-e2e-integration-test-release-1-6** runs integration e2e
@@ -154,13 +161,6 @@ Release-1.5 branch:
   tests with CAPM3 API version v1beta1 and branch release-1.5 on Ubuntu
 - **/test metal3-centos-e2e-integration-test-release-1-5** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch release-1.5 on CentOS
-
-Release-1.4 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-4** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.4 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-4** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.4 on CentOS
 
 ## Basic tests
 
@@ -181,6 +181,13 @@ On main branch:
 - **/test metal3-centos-e2e-feature-test-main** runs e2e feature tests with
   CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.7 branch:
+
+- **/test metal3-ubuntu-e2e-feature-test-release-1-7** runs e2e feature tests with
+  CAPM3 API version v1beta1 and branch release-1.7 on Ubuntu
+- **/test metal3-centos-e2e-feature-test-release-1-7** runs e2e feature tests with
+  CAPM3 API version v1beta1 and branch release-1.7 on CentOS
+
 Release-1.6 branch:
 
 - **/test metal3-ubuntu-e2e-feature-test-release-1-6** runs e2e feature tests with
@@ -195,13 +202,6 @@ Release-1.5 branch:
 - **/test metal3-centos-e2e-feature-test-1-5** runs e2e feature tests with CAPM3
   API version v1beta1 and branch release-1.5 on CentOS
 
-Release-1.4 branch:
-
-- **/test metal3-ubuntu-e2e-feature-test-release-1-4** runs e2e feature tests
-  with CAPM3 API version v1beta1 and branch release-1.4 on Ubuntu
-- **/test metal3-centos-e2e-feature-test-release-1-4** runs e2e feature tests
-  with CAPM3 API version v1beta1 and branch release-1.4 on CentOS
-
 ### Upgrade tests
 
 #### Clusterctl upgrade tests
@@ -212,14 +212,14 @@ We run upgrade test on main branch from different releases:
 - **/test metal3-e2e-clusterctl-upgrade-test-main** runs e2e clusterctl
   upgrade tests on main with Ubuntu
 
-- **/test metal3-e2e-clusterctl-upgrade-test-release-1-4** runs e2e clusterctl
-  upgrade tests on release-1.4 with Ubuntu
-
 - **/test metal3-e2e-clusterctl-upgrade-test-release-1-5** runs e2e clusterctl
   upgrade tests on release-1.5 with Ubuntu
 
 - **/test metal3-e2e-clusterctl-upgrade-test-release-1-6** runs e2e clusterctl
   upgrade tests on release-1.6 with Ubuntu
+
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-7** runs e2e clusterctl
+  upgrade tests on release-1.7 with Ubuntu
 
 #### K8s upgrade tests
 

@@ -138,9 +138,9 @@ is defined above.
   API version reaches EOL.
 - We will maintain test coverage for all supported minor releases and for one
   additional release for the current stable API version in case we have to do an
-  emergency patch release. For example, if v1.5 and v1.4 are currently
-  supported, we will also maintain test coverage for v1.3 for one additional
-  release cycle. When v1.6 is released, tests for v1.3 will be removed.
+  emergency patch release. For example, if v1.7 and v1.6 are currently
+  supported, we will also maintain test coverage for v1.5 for one additional
+  release cycle. When v1.7 is released, tests for v1.4 will be removed.
 
 <!-- markdownlint-disable MD013 -->
 
