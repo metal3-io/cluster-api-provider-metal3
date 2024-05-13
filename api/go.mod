@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/metal3-io/ip-address-manager/api v1.7.0
-	github.com/onsi/gomega v1.33.0
+	github.com/onsi/gomega v1.33.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/net v0.24.0
 	k8s.io/api v0.29.4
