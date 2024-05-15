@@ -1,24 +1,26 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
- - kashifest
- - lentzi90
- - mboukhalfa
+- adilGhaffarDev
+- kashifest
+- lentzi90
+- mboukhalfa
+- smoshiur1237
+- Sunnatillo
+- tuminoid
+
 
 reviewers:
- - adilGhaffarDev
- - Rozzii
- - smoshiur1237
- - Sunnatillo
- - tuminoid
- - zhouhao3
+- dtantsur
+- Rozzii
+- zhouhao3
 
 emeritus_approvers:
- - fmuyassarov
- - furkatgofurov7
- - maelk
- - Xenwar
+- fmuyassarov
+- furkatgofurov7
+- maelk
+- Xenwar
 
 emeritus_reviewers:
- - jan-est
- - namnx228
+- jan-est
+- namnx228
