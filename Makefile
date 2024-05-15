@@ -225,13 +225,11 @@ e2e-clusterclass-tests: $(GINKGO) e2e-substitutions clusterclass-templates # Thi
 
 	$(GINKGO) --timeout=$(GINKGO_TIMEOUT) -v --trace --tags=e2e  \
 		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
-		--fail-fast="$(KEEP_TEST_ENV)" \
 		--junit-report="junit.e2e_suite.1.xml" \
 		--focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
-		-e2e.keep-test-environment=$(KEEP_TEST_ENV) \
 		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 
