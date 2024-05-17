@@ -99,7 +99,10 @@ updates:
   target-branch: release-1.7
   commit-message:
     prefix: ":seedling:"
-    # Go
+  ignore:
+  # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
 - package-ecosystem: "gomod"
   directory: "/"
   schedule:
