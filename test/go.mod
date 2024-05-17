@@ -13,14 +13,14 @@ require (
 	github.com/pkg/errors v0.9.1
 	golang.org/x/crypto v0.22.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.29.3
+	k8s.io/api v0.29.5
 	k8s.io/apiextensions-apiserver v0.29.3
-	k8s.io/apimachinery v0.29.3
-	k8s.io/client-go v0.29.3
+	k8s.io/apimachinery v0.29.5
+	k8s.io/client-go v0.29.5
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
-	sigs.k8s.io/cluster-api v1.7.1
+	sigs.k8s.io/cluster-api v1.7.2
 	sigs.k8s.io/cluster-api/test v1.7.1
-	sigs.k8s.io/controller-runtime v0.17.3
+	sigs.k8s.io/controller-runtime v0.17.5
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
