@@ -1,19 +1,11 @@
 # See the OWNERS docs at https://go.k8s.io/owners
 
 approvers:
-- adilGhaffarDev
-- kashifest
-- lentzi90
-- mboukhalfa
-- smoshiur1237
-- Sunnatillo
-- tuminoid
-
+- cluster-api-provider-metal3-maintainers
 
 reviewers:
-- dtantsur
-- Rozzii
-- zhouhao3
+- cluster-api-provider-metal3-maintainers
+- cluster-api-provider-metal3-reviewers
 
 emeritus_approvers:
 - fmuyassarov
