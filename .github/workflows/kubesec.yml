@@ -20,7 +20,7 @@ jobs:
     if: github.repository == 'metal3-io/cluster-api-provider-metal3'
     steps:
     - name: Checkout code
-      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
 
     - name: Collect all yaml
       id: list_yaml
@@ -46,7 +46,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
 
     - name: Run kubesec scanner
       uses: controlplaneio/kubesec-action@43d0ddff5ffee89a6bb9f29b64cd865411137b14 # v0.0.2
