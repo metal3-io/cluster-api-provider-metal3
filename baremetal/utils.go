@@ -40,7 +40,7 @@ const (
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 )
 
-// Filter filters a list for a string.
+// Filter filters out occurrences of strToFilter from list and returns the new list.
 func Filter(list []string, strToFilter string) (newList []string) {
 	for _, item := range list {
 		if item != strToFilter {

@@ -18,7 +18,6 @@ package baremetal
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/go-logr/logr"
@@ -306,16 +305,17 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	m.Log.Info("Index", "Claim", dataClaim.Name, "index", claimIndex)
 
 	// Create the Metal3Data object, with an Owner ref to the Metal3Machine
-	// (curOwnerRef) and to the Metal3DataTemplate
+	// (curOwnerRef) and to the Metal3DataTemplate. Also add a finalizer.
 	dataObject := &infrav1.Metal3Data{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Metal3Data",
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      dataName,
-			Namespace: m.DataTemplate.Namespace,
-			Labels:    dataClaim.Labels,
+			Name:       dataName,
+			Namespace:  m.DataTemplate.Namespace,
+			Finalizers: []string{infrav1.DataClaimFinalizer},
+			Labels:     dataClaim.Labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Controller: ptr.To(true),
@@ -374,18 +374,18 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	return indexes, nil
 }
 
-// DeleteDatas deletes old secrets.
+// deleteData deletes the Metal3DataClaim and marks the Metal3Data for deletion.
 func (m *DataTemplateManager) deleteData(ctx context.Context,
 	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
-	var dataName string
-	m.Log.Info("Deleting Claim", "Metal3DataClaim", dataClaim.Name)
+	m.Log.Info("Deleting Metal3DataClaim", "Metal3DataClaim", dataClaim.Name)
 
 	dataClaimIndex, ok := m.DataTemplate.Status.Indexes[dataClaim.Name]
 	if ok {
 		// Try to get the Metal3Data. if it succeeds, delete it
 		tmpM3Data := &infrav1.Metal3Data{}
 
+		var dataName string
 		if m.DataTemplate.Spec.TemplateReference != "" {
 			dataName = m.DataTemplate.Spec.TemplateReference + "-" + strconv.Itoa(dataClaimIndex)
 		} else {
@@ -401,26 +401,36 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 			dataClaim.Status.ErrorMessage = ptr.To("Failed to get associated Metal3Data object")
 			return indexes, err
 		} else if err == nil {
-			// Delete the secret with metadata
-			fmt.Println(tmpM3Data.Name)
-			err = m.client.Delete(ctx, tmpM3Data)
+			// Remove the finalizer
+			tmpM3Data.Finalizers = Filter(tmpM3Data.Finalizers,
+				infrav1.DataClaimFinalizer,
+			)
+			err = updateObject(ctx, m.client, tmpM3Data)
+			if err != nil && !apierrors.IsNotFound(err) {
+				m.Log.Info("Unable to remove finalizer from Metal3Data", "Metal3Data", tmpM3Data.Name)
+				return indexes, err
+			}
+			// Delete the Metal3Data
+			err = deleteObject(ctx, m.client, tmpM3Data)
 			if err != nil && !apierrors.IsNotFound(err) {
 				dataClaim.Status.ErrorMessage = ptr.To("Failed to delete associated Metal3Data object")
 				return indexes, err
 			}
+			m.Log.Info("Deleted Metal3Data", "Metal3Data", tmpM3Data.Name)
 		}
 	}
+
 	dataClaim.Status.RenderedData = nil
 	dataClaim.Finalizers = Filter(dataClaim.Finalizers,
 		infrav1.DataClaimFinalizer,
 	)
 
-	m.Log.Info("Deleted Claim", "Metal3DataClaim", dataClaim.Name)
-
 	if ok {
 		delete(m.DataTemplate.Status.Indexes, dataClaim.Name)
 		delete(indexes, dataClaimIndex)
 	}
+
+	m.Log.Info("Deleted Metal3DataClaim", "Metal3DataClaim", dataClaim.Name)
 	m.updateStatusTimestamp()
 	return indexes, nil
 }
