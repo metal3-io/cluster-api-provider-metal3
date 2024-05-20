@@ -101,7 +101,7 @@ in the ephemeral cluster either before pivoting or after re-pivoting.
 
 | tests         | CAPM3 from  | CAPM3 to  | CAPI from  | CAPI to         |
 | --------------| ----------- | --------- | ---------- |---------------- |
-| v1.7=>current | v1.7.0      | main      | v1.7.1     | latest release  |
+| v1.7=>current | v1.7.0      | main      | v1.7.2     | latest release  |
 | v1.6=>current | v1.6.1      | main      | v1.6.3     | latest release  |
 | v1.5=>current | v1.5.3      | main      | v1.5.7     | latest release  |
 
