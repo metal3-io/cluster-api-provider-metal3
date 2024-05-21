@@ -4656,6 +4656,130 @@ var _ = Describe("Metal3Machine manager", func() {
 			expectError:        true,
 		}),
 	)
+
+	type testCaseDuplicateProviderIDsExist struct {
+		Machine          *clusterv1.Machine
+		validNodes       map[string][]string
+		providerIDLegacy string
+		providerIDNew    string
+		expectError      bool
+	}
+
+	DescribeTable("Test duplicateProviderIDsExist",
+		func(tc testCaseDuplicateProviderIDsExist) {
+			machineMgr, err := NewMachineManager(nil, nil, nil, tc.Machine,
+				nil, logr.Discard(),
+			)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.duplicateProviderIDsExist(tc.validNodes, tc.providerIDLegacy, tc.providerIDNew)
+			if tc.expectError {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+			}
+		},
+		Entry("Should find duplicates if both providerIDNew and providerIDLegacy are in use by multiple nodes", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {"test1"},
+				"metal3://metal3/node-0/test-controlplane-xyz":  {"test2"},
+			},
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
+			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
+			expectError:      true,
+		}),
+		Entry("Should find duplicates if validNodes node count is more than 1 for a providerID", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {"test1", "test2"},
+			},
+			providerIDLegacy: "",
+			providerIDNew:    "",
+			expectError:      true,
+		}),
+		Entry("Should not find duplicates if ether providerIDNew or providerIDLegacy are in use by single node", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {"test1"},
+			},
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
+			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
+			expectError:      false,
+		}),
+		Entry("Should not find duplicates if both providerIDNew and providerIDLegacy are in use by single node", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://metal3/node-0/test-controlplane-xyz": {"test1"},
+			},
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
+			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
+			expectError:      false,
+		}),
+		Entry("Should not find duplicates if validNodes is nil", testCaseDuplicateProviderIDsExist{
+			validNodes:       nil,
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
+			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
+			expectError:      false,
+		}),
+		Entry("Should find duplicates if providerIDNew's common prefix metal3://<namespace>/<bmh>/  is a substring of multible validNodes providerIDs", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://metal3/node-0/test-controlplane-xyz": {"test1"},
+				"metal3://metal3/node-0/test-controlplane-123": {"test2"},
+			},
+			providerIDLegacy: "",
+			providerIDNew:    "metal3://metal3/node-0/test-controlplane-000",
+			expectError:      true,
+		}),
+		Entry("Should find duplicates if providerIDNew's common prefix metal3://<namespace>/<bmh>/  is a substring of validNodes providerID and providerIDLegacy is used", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {"test1"},
+				"metal3://metal3/node-0/test-controlplane-123":  {"test2"},
+			},
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
+			providerIDNew:    "metal3://metal3/node-0/test-controlplane-000",
+			expectError:      true,
+		}),
+		Entry("Should not find duplicates if there are overlapping names of validNodes providerID in the legacy format", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {"test1"},
+				"metal3://d668eb95-5df6-4c10-a01a":              {"test2"},
+			},
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a",
+			providerIDNew:    "metal3://metal3/node-0/test-controlplane-000",
+			expectError:      false,
+		}),
+		Entry("Should find duplicates if there are overlapping names of validNodes providerID in the 'new' format without common prefix", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://worker-1":  {"test1"},
+				"metal3://worker-10": {"test2"},
+			},
+			providerIDLegacy: "",
+			providerIDNew:    "metal3://worker-1",
+			expectError:      true,
+		}),
+		Entry("Should find duplicates when providerIDNew is empty, validNodes length is more than 1 and legacy format is used", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {"test1"},
+				"metal3://d668eb95-5df6-4c10-a01a":              {"test2"},
+			},
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a",
+			providerIDNew:    "",
+			expectError:      true,
+		}),
+		Entry("Should not find duplicates when providerIDNew is empty and validNodes length is 1", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a": {"test1"},
+			},
+			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a",
+			providerIDNew:    "",
+			expectError:      false,
+		}),
+		Entry("Should not find duplicates when providerIDNew and providerIDLegacy are empty and validNodes length is 1", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]string{
+				"metal3://d668eb95-5df6-4c10-a01a": {"test1"},
+			},
+			providerIDLegacy: "",
+			providerIDNew:    "",
+			expectError:      false,
+		}),
+	)
 })
 
 /*-----------------------------------
