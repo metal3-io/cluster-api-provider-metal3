@@ -271,7 +271,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		if err != nil {
 			return indexes, err
 		}
-		if ownerRef.Kind == "Metal3Machine" &&
+		if ownerRef.Kind == metal3MachineKind &&
 			aGV.Group == infrav1.GroupVersion.Group {
 			m3mUID = ownerRef.UID
 			m3mName = ownerRef.Name
@@ -332,7 +332,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 				},
 				{
 					APIVersion: dataClaim.APIVersion,
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					Name:       m3mName,
 					UID:        m3mUID,
 				},

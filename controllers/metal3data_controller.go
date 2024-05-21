@@ -60,29 +60,29 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	metadataLog := r.Log.WithName(dataControllerName).WithValues("metal3-data", req.NamespacedName)
 
 	// Fetch the Metal3Data instance.
-	capm3Metadata := &infrav1.Metal3Data{}
+	metal3Data := &infrav1.Metal3Data{}
 
-	if err := r.Client.Get(ctx, req.NamespacedName, capm3Metadata); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, metal3Data); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
-	helper, err := patch.NewHelper(capm3Metadata, r.Client)
+	helper, err := patch.NewHelper(metal3Data, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
-	// Always patch capm3Data exiting this function so we can persist any Metal3Data changes.
+	// Always patch Metal3Data exiting this function so we can persist any changes.
 	defer func() {
-		err := helper.Patch(ctx, capm3Metadata)
+		err := helper.Patch(ctx, metal3Data)
 		if err != nil {
 			metadataLog.Info("failed to Patch Metal3Data")
 		}
 	}()
 
 	// Fetch the Cluster.
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capm3Metadata.ObjectMeta)
-	if capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, metal3Data.ObjectMeta)
+	if metal3Data.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
 			metadataLog.Info("Metal3Data is missing cluster label or cluster does not exist")
 			return ctrl.Result{}, nil
@@ -97,21 +97,27 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
 
 		// Return early if the Metadata or Cluster is paused.
-		if annotations.IsPaused(cluster, capm3Metadata) {
+		if annotations.IsPaused(cluster, metal3Data) {
 			metadataLog.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
 	}
 
 	// Create a helper for managing the metadata object.
-	metadataMgr, err := r.ManagerFactory.NewDataManager(capm3Metadata, metadataLog)
+	metadataMgr, err := r.ManagerFactory.NewDataManager(metal3Data, metadataLog)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the Metal3Data")
 	}
 
-	// Handle deleted metadata
-	if !capm3Metadata.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, metadataMgr)
+	// Handle deletion of Metal3Data
+	if !metal3Data.ObjectMeta.DeletionTimestamp.IsZero() {
+		// Check if the Metal3DataClaim is gone. We cannot clean up until it is.
+		err := r.Client.Get(ctx, types.NamespacedName{Name: metal3Data.Spec.Claim.Name, Namespace: metal3Data.Spec.Claim.Namespace}, &infrav1.Metal3DataClaim{})
+		if err != nil && apierrors.IsNotFound(err) {
+			return r.reconcileDelete(ctx, metadataMgr)
+		}
+		// We were unable to determine if the Metal3DataClaim is gone
+		return ctrl.Result{}, err
 	}
 
 	// Handle non-deleted machines
