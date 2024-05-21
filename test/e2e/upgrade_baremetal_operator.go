@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
@@ -18,7 +19,7 @@ type upgradeBMOInput struct {
 
 // upgradeBMO upgrades BMO image to the latest.
 func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
-	Logf("Starting BMO containers upgrade tests")
+	bmo_e2e.Logf("Starting BMO containers upgrade tests")
 	input := inputGetter()
 	var (
 		clientSet  = input.ManagementCluster.GetClientSet()
@@ -31,19 +32,19 @@ func upgradeBMO(ctx context.Context, inputGetter func() upgradeBMOInput) {
 		bmoImage          = containerRegistry + "/metal3-io/baremetal-operator:" + bmoImageTag
 	)
 
-	Logf("namePrefix %v", namePrefix)
-	Logf("bmoNamespace %v", bmoNamespace)
-	Logf("bmoDeployName %v", bmoDeployName)
-	Logf("containerRegistry %v", containerRegistry)
-	Logf("bmoImageTag %v", bmoImageTag)
+	bmo_e2e.Logf("namePrefix %v", namePrefix)
+	bmo_e2e.Logf("bmoNamespace %v", bmoNamespace)
+	bmo_e2e.Logf("bmoDeployName %v", bmoDeployName)
+	bmo_e2e.Logf("containerRegistry %v", containerRegistry)
+	bmo_e2e.Logf("bmoImageTag %v", bmoImageTag)
 
 	By("Upgrading BMO deployment")
 	deploy, err := clientSet.AppsV1().Deployments(bmoNamespace).Get(ctx, bmoDeployName, metav1.GetOptions{})
 	Expect(err).ToNot(HaveOccurred())
 	for i, container := range deploy.Spec.Template.Spec.Containers {
 		if container.Name == "manager" {
-			Logf("Old image: %v", deploy.Spec.Template.Spec.Containers[i].Image)
-			Logf("New image: %v", bmoImage)
+			bmo_e2e.Logf("Old image: %v", deploy.Spec.Template.Spec.Containers[i].Image)
+			bmo_e2e.Logf("New image: %v", bmoImage)
 			deploy.Spec.Template.Spec.Containers[i].Image = bmoImage
 		}
 	}

@@ -13,6 +13,7 @@ import (
 	containerTypes "github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -50,7 +51,7 @@ type PivotingInput struct {
 
 // Pivoting implements a test that verifies successful moving of management resources (CRs, BMO, Ironic) to a target cluster after initializing it with Provider components.
 func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
-	Logf("Starting pivoting tests")
+	bmo_e2e.Logf("Starting pivoting tests")
 	input := inputGetter()
 	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
@@ -92,14 +93,14 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kconfigPathWorkload := input.TargetCluster.GetKubeconfigPath()
 	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
-	Logf("Save kubeconfig in temp folder for project-infra target log collection")
+	bmo_e2e.Logf("Save kubeconfig in temp folder for project-infra target log collection")
 	// TODO(smoshiur1237): This is a workaround to copy the target kubeconfig and enable project-infra
 	// target log collection. There is possibility to handle the kubeconfig in better way.
 	// KubeconfigPathTemp will be used by project-infra target log collection only incase of failed e2e test
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
 	cmd = exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
-	Logf("%s\n", stdoutStderr)
+	bmo_e2e.Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 
 	By("Remove Ironic containers from the source cluster")
@@ -313,7 +314,7 @@ func installIronicBMO(ctx context.Context, inputGetter func() installIronicBMOIn
 	cmd.Env = append(env, os.Environ()...)
 
 	stdoutStderr, er := cmd.CombinedOutput()
-	Logf("%s\n", stdoutStderr)
+	bmo_e2e.Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Failed to deploy Ironic")
 	deploymentNameList := []string{}
 	if input.deployIronic {
@@ -417,7 +418,7 @@ type RePivotingInput struct {
 }
 
 func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
-	Logf("Start the re-pivoting test")
+	bmo_e2e.Logf("Start the re-pivoting test")
 	input := inputGetter()
 	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
@@ -431,7 +432,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	_ = cmd.Start()
 	errorData, _ := io.ReadAll(errorPipe)
 	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
+		bmo_e2e.Logf("Error of the shell: %v\n", string(errorData))
 	}
 
 	By("Fetch manifest for workload cluster after pivot")

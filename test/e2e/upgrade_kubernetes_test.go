@@ -9,6 +9,7 @@ import (
 	"time"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -76,7 +77,7 @@ type upgradeKubernetesInput struct {
 
 // upgradeKubernetes implements a test upgrading the cluster nodes from an old k8s version to a newer version.
 func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetesInput) {
-	Logf("Starting Kubernetes upgrade tests")
+	bmo_e2e.Logf("Starting Kubernetes upgrade tests")
 	input := inputGetter()
 	clusterClient := input.BootstrapClusterProxy.GetClient()
 	targetClusterClient := input.TargetCluster.GetClient()
@@ -91,10 +92,10 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 			{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}}
 	)
 
-	Logf("KUBERNETES VERSION: %v", kubernetesVersion)
-	Logf("UPGRADED K8S VERSION: %v", upgradedK8sVersion)
-	Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControlplane)
-	Logf("NUMBER OF WORKER BMH: %v", numberOfWorkers)
+	bmo_e2e.Logf("KUBERNETES VERSION: %v", kubernetesVersion)
+	bmo_e2e.Logf("UPGRADED K8S VERSION: %v", upgradedK8sVersion)
+	bmo_e2e.Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControlplane)
+	bmo_e2e.Logf("NUMBER OF WORKER BMH: %v", numberOfWorkers)
 
 	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(input.Namespace))
 	ListMetal3Machines(ctx, clusterClient, client.InNamespace(namespace))

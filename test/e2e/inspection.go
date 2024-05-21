@@ -4,6 +4,7 @@ import (
 	"context"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
@@ -26,7 +27,7 @@ type InspectionInput struct {
 
 // Inspection test request inspection on all the available BMH using annotation.
 func inspection(ctx context.Context, inputGetter func() InspectionInput) {
-	Logf("Starting inspection tests")
+	bmo_e2e.Logf("Starting inspection tests")
 	input := inputGetter()
 	var (
 		numberOfWorkers       = int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
@@ -35,13 +36,13 @@ func inspection(ctx context.Context, inputGetter func() InspectionInput) {
 
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
 
-	Logf("Request inspection for all Available BMHs via API")
+	bmo_e2e.Logf("Request inspection for all Available BMHs via API")
 	availableBMHList := bmov1alpha1.BareMetalHostList{}
 	Expect(bootstrapClient.List(ctx, &availableBMHList, client.InNamespace(input.Namespace))).To(Succeed())
-	Logf("Request inspection for all Available BMHs via API")
+	bmo_e2e.Logf("Request inspection for all Available BMHs via API")
 	for _, bmh := range availableBMHList.Items {
 		if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable {
-			AnnotateBmh(ctx, bootstrapClient, bmh, inspectAnnotation, ptr.To(""))
+			bmo_e2e.AnnotateBmh(ctx, bootstrapClient, bmh, inspectAnnotation, ptr.To(""))
 		}
 	}
 

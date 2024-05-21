@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,7 +27,7 @@ type IPReuseInput struct {
 }
 
 func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
-	Logf("Starting IP reuse tests")
+	bmo_e2e.Logf("Starting IP reuse tests")
 	input := inputGetter()
 	targetClusterClient := input.TargetCluster.GetClient()
 	managementClusterClient := input.BootstrapClusterProxy.GetClient()
@@ -86,11 +87,11 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	By("Get new values of spec.Preallocations field for baremetal IPPool")
 	bmv4PoolPreallocations, err := GenerateIPPoolPreallocations(ctx, baremetalv4Pool[0], baremetalv4PoolName, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	Logf("new values of spec.Preallocations field for baremetal IPPool is: %s", bmv4PoolPreallocations)
+	bmo_e2e.Logf("new values of spec.Preallocations field for baremetal IPPool is: %s", bmv4PoolPreallocations)
 	By("Get new values of spec.Preallocations field for provisioning IPPool")
 	provPoolPreallocations, err := GenerateIPPoolPreallocations(ctx, provisioningPool[0], provisioningPoolName, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	Logf("new values of spec.Preallocations field for provisioning IPPool is: %s", provPoolPreallocations)
+	bmo_e2e.Logf("new values of spec.Preallocations field for provisioning IPPool is: %s", provPoolPreallocations)
 
 	By("Patch baremetal IPPool with new Preallocations field and values")
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: baremetalv4PoolName}, &baremetalv4Pool[0])).To(Succeed())
@@ -157,12 +158,12 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	Expect(provisioningPool).To(HaveLen(1))
 
 	By("Check if same IP addresses are reused for nodes")
-	Logf("baremetalv4Pool[0].Spec.PreAllocations: %v", baremetalv4Pool[0].Spec.PreAllocations)
-	Logf("baremetalv4Pool[0].Status.Allocations: %v", baremetalv4Pool[0].Status.Allocations)
+	bmo_e2e.Logf("baremetalv4Pool[0].Spec.PreAllocations: %v", baremetalv4Pool[0].Spec.PreAllocations)
+	bmo_e2e.Logf("baremetalv4Pool[0].Status.Allocations: %v", baremetalv4Pool[0].Status.Allocations)
 	bmv4equal := reflect.DeepEqual(baremetalv4Pool[0].Spec.PreAllocations, baremetalv4Pool[0].Status.Allocations)
 	Expect(bmv4equal).To(BeTrue(), "The same IP addreesses from baremetal IPPool were not reused for nodes")
-	Logf("provisioningPool[0].Spec.PreAllocations: %v", provisioningPool[0].Spec.PreAllocations)
-	Logf("provisioningPool[0].Status.Allocations: %v", provisioningPool[0].Status.Allocations)
+	bmo_e2e.Logf("provisioningPool[0].Spec.PreAllocations: %v", provisioningPool[0].Spec.PreAllocations)
+	bmo_e2e.Logf("provisioningPool[0].Status.Allocations: %v", provisioningPool[0].Status.Allocations)
 	provequal := reflect.DeepEqual(provisioningPool[0].Spec.PreAllocations, provisioningPool[0].Status.Allocations)
 	Expect(provequal).To(BeTrue(), "The same IP addreesses from provisioning IPPool were not reused for nodes")
 

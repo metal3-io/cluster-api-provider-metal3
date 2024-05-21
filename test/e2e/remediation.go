@@ -8,6 +8,7 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	bmo_e2e "github.com/metal3-io/baremetal-operator/test/e2e"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -55,7 +56,7 @@ type RemediationInput struct {
  * // Function: remediation
  *
  * 	func remediation(ctx context.Context, inputGetter func() RemediationInput) {
- * 		Logf("Starting remediation tests")
+ * 		bmo_e2e.Logf("Starting remediation tests")
  * 		input := inputGetter()
  * 		// Step 1: Reboot Annotation
  * 		// ...
@@ -115,7 +116,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	By("Checking that rebooted node becomes Ready")
 	Logf("Marking a BMH '%s' for reboot", workerBmh.GetName())
-	AnnotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, ptr.To(""))
+	bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.AnnotateBmh(ctx, bootstrapClient, workerBmh, rebootAnnotation, ptr.To(""))
 	waitForVmsState([]string{vmName}, shutoff, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
 	waitForVmsState([]string{vmName}, running, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
 	waitForNodeStatus(ctx, targetClient, client.ObjectKey{Namespace: defaultNamespace, Name: workerNodeName}, corev1.ConditionTrue, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
@@ -166,7 +167,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	Logf("Start checking unhealthy annotation")
 	Logf("Annotating BMH as unhealthy")
-	AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, ptr.To(""))
+	bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, ptr.To(""))
 
 	By("Deleting a worker machine")
 	workerMachine := GetMachine(ctx, bootstrapClient, client.ObjectKey{Namespace: input.Namespace, Name: workerMachineName})
@@ -215,7 +216,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	}, input.E2EConfig.GetIntervals(input.SpecName, "monitor-provisioning")...).Should(Succeed())
 
 	Logf("Annotating BMH as healthy and waiting for them all to be provisioned")
-	AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, nil)
+	bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.AnnotateBmh(ctx, bootstrapClient, workerBmh, unhealthyAnnotation, nil)
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
@@ -475,14 +476,14 @@ func powerCycle(ctx context.Context, c client.Client, workloadClient client.Clie
 
 	Logf("Marking %d BMHs for power off", len(machines))
 	for _, set := range machines {
-		AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, ptr.To(""))
+		bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, ptr.To(""))
 	}
 	waitForVmsState(machines.getVMNames(), shutoff, specName, e2eConfig.GetIntervals(specName, "wait-vm-state")...)
 
 	// power on
 	Logf("Marking %d BMHs for power on", len(machines))
 	for _, set := range machines {
-		AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)
+		bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.bmo_e2e.AnnotateBmh(ctx, c, *set.baremetalhost, poweroffAnnotation, nil)
 	}
 
 	waitForVmsState(machines.getVMNames(), running, specName, e2eConfig.GetIntervals(specName, "wait-vm-state")...)
