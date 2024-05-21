@@ -4,7 +4,6 @@
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/metal3-io/cluster-api-provider-metal3/badge)](https://securityscorecards.dev/viewer/?uri=github.com/metal3-io/cluster-api-provider-metal3)
 [![Ubuntu E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-release-1-7&subject=Ubuntu%20e2e%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-release-1-7/)
 [![CentOS E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-release-1-7&subject=Centos%20e2e%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-release-1-7/)
-[![Ubuntu E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-feature-test-release-1-7/&subject=Ubuntu%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-feature-test-release-1-7/)
 [![CentOS E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7/&subject=CentOS%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7/)
 
 Kubernetes-native declarative infrastructure for Metal3.
@@ -47,9 +46,9 @@ need to be manually installed. Example flow of installing Metal3 provider:
    level of the logging verbose with a positive integer number, ie. -v5.
 
    ```shell
-   clusterctl init --core cluster-api:v1.7.1 \
-       --bootstrap kubeadm:v1.7.1 \
-       --control-plane kubeadm:v1.7.1 -v5
+   clusterctl init --core cluster-api:v1.7.2 \
+       --bootstrap kubeadm:v1.7.2 \
+       --control-plane kubeadm:v1.7.2 -v5
    ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API
