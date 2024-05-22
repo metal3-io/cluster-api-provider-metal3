@@ -67,80 +67,80 @@ type Metal3DataTemplateReconciler struct {
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
-// Reconcile handles Metal3Machine events.
+// Reconcile handles Metal3DataTemplate events.
 func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	metadataLog := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
+	log := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
 
 	// Fetch the Metal3DataTemplate instance.
-	capm3DataTemplate := &infrav1.Metal3DataTemplate{}
+	metal3DataTemplate := &infrav1.Metal3DataTemplate{}
 
-	if err := r.Client.Get(ctx, req.NamespacedName, capm3DataTemplate); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, metal3DataTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
-	helper, err := patch.NewHelper(capm3DataTemplate, r.Client)
+	helper, err := patch.NewHelper(metal3DataTemplate, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
-	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
+	// Always patch the Metal3DataTemplate exiting this function so we can persist any changes.
 	defer func() {
-		err := helper.Patch(ctx, capm3DataTemplate)
+		err := helper.Patch(ctx, metal3DataTemplate)
 		if err != nil {
-			metadataLog.Info("failed to Patch capm3DataTemplate")
+			log.Info("failed to Patch Metal3DataTemplate")
 		}
 	}()
 
 	cluster := &clusterv1.Cluster{}
 	key := client.ObjectKey{
-		Name:      capm3DataTemplate.Spec.ClusterName,
-		Namespace: capm3DataTemplate.Namespace,
+		Name:      metal3DataTemplate.Spec.ClusterName,
+		Namespace: metal3DataTemplate.Namespace,
 	}
 
 	// Fetch the Cluster. Ignore an error if the deletion timestamp is set
 	err = r.Client.Get(ctx, key, cluster)
-	if capm3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
+	if metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
-			metadataLog.Info("Error fetching cluster. It might not exist yet, Requeuing")
+			log.Info("Error fetching cluster. It might not exist yet, Requeuing")
 			return ctrl.Result{}, nil
 		}
 	}
 
-	// Create a helper for managing the metadata object.
-	metadataMgr, err := r.ManagerFactory.NewDataTemplateManager(capm3DataTemplate, metadataLog)
+	// Create a helper for managing the Metal3DataTemplate object.
+	dataTemplateMgr, err := r.ManagerFactory.NewDataTemplateManager(metal3DataTemplate, log)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the metadata")
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the Metal3DataTemplate")
 	}
 
-	if capm3DataTemplate.Spec.ClusterName != "" && cluster.Name != "" {
-		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
-		if err := metadataMgr.SetClusterOwnerRef(cluster); err != nil {
+	if metal3DataTemplate.Spec.ClusterName != "" && cluster.Name != "" {
+		log = log.WithValues("cluster", cluster.Name)
+		if err := dataTemplateMgr.SetClusterOwnerRef(cluster); err != nil {
 			return ctrl.Result{}, err
 		}
-		// Return early if the Metadata or Cluster is paused.
-		if annotations.IsPaused(cluster, capm3DataTemplate) {
-			metadataLog.Info("reconciliation is paused for this object")
+		// Return early if the Metal3DataTemplate or Cluster is paused.
+		if annotations.IsPaused(cluster, metal3DataTemplate) {
+			log.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
 	}
 
-	// Handle deleted metadata
-	if !capm3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, metadataMgr)
+	// Handle deletion of Metal3DataTemplate
+	if !metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, dataTemplateMgr)
 	}
 
-	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, metadataMgr)
+	// Handle non-deleted Metal3DataTemplate
+	return r.reconcileNormal(ctx, dataTemplateMgr)
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
-	metadataMgr baremetal.DataTemplateManagerInterface,
+	dataTemplateMgr baremetal.DataTemplateManagerInterface,
 ) (ctrl.Result, error) {
 	// If the Metal3DataTemplate doesn't have finalizer, add it.
-	metadataMgr.SetFinalizer()
+	dataTemplateMgr.SetFinalizer()
 
-	_, err := metadataMgr.UpdateDatas(ctx)
+	_, err := dataTemplateMgr.UpdateDatas(ctx)
 	if err != nil {
 		return checkReconcileError(err, "Failed to recreate the status")
 	}
@@ -148,17 +148,17 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
-	metadataMgr baremetal.DataTemplateManagerInterface,
+	dataTemplateMgr baremetal.DataTemplateManagerInterface,
 ) (ctrl.Result, error) {
-	allocationsNb, err := metadataMgr.UpdateDatas(ctx)
+	allocationsCount, err := dataTemplateMgr.UpdateDatas(ctx)
 	if err != nil {
 		return checkReconcileError(err, "Failed to recreate the status")
 	}
 
-	if allocationsNb == 0 {
+	if allocationsCount == 0 {
 		// metal3datatemplate is marked for deletion and ready to be deleted,
 		// so remove the finalizer.
-		metadataMgr.UnsetFinalizer()
+		dataTemplateMgr.UnsetFinalizer()
 	}
 
 	return ctrl.Result{}, nil
@@ -200,6 +200,9 @@ func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(_ con
 	return []ctrl.Request{}
 }
 
+// checkReconcileError checks if the error is a transient or terminal error.
+// If it is transient, it returns a Result with Requeue set to true.
+// Non-reconcile errors are returned as-is.
 func checkReconcileError(err error, errMessage string) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
