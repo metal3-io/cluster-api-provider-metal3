@@ -40,6 +40,8 @@ type DataTemplateManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
 	SetClusterOwnerRef(*clusterv1.Cluster) error
+	// UpdateDatas handles the Metal3DataClaims and creates or deletes Metal3Data accordingly.
+	// It returns the number of current allocations.
 	UpdateDatas(context.Context) (int, error)
 }
 
@@ -168,7 +170,7 @@ func (m *DataTemplateManager) updateStatusTimestamp() {
 	m.DataTemplate.Status.LastUpdated = &now
 }
 
-// UpdateDatas manages the claims and creates or deletes Metal3Data accordingly.
+// UpdateDatas handles the Metal3DataClaims and creates or deletes Metal3Data accordingly.
 // It returns the number of current allocations.
 func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
 	indexes, err := m.getIndexes(ctx)
