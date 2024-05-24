@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/api
 
-go 1.21
+go 1.22
 
 require (
 	github.com/metal3-io/ip-address-manager/api v1.7.0
