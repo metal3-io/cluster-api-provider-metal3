@@ -1047,8 +1047,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
-			ExpectPausePresent: true,
-			ExpectError:        false,
+			ExpectPausePresent:  true,
+			ExpectStatusPresent: true,
+			ExpectError:         false,
 		}),
 		Entry("Set BMH Pause Annotation, with no Paused annotations", testCaseSetPauseAnnotation{
 			Host: &bmov1alpha1.BareMetalHost{
@@ -1328,9 +1329,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(tc.Host.Spec.ConsumerRef.Namespace).
 				To(Equal(m3mconfig.Namespace))
 			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal(metal3MachineKind))
-			_, err = machineMgr.FindOwnerRef(tc.Host.OwnerReferences)
-			Expect(err).NotTo(HaveOccurred())
-
 			if tc.expectNodeReuseLabelDeleted {
 				Expect(tc.Host.Labels[nodeReuseLabelName]).To(Equal(""))
 			}
@@ -2837,7 +2835,6 @@ var _ = Describe("Metal3Machine manager", func() {
 		Data               *infrav1.Metal3Data
 		ExpectRequeue      bool
 		ExpectClusterLabel bool
-		ExpectOwnerRef     bool
 	}
 
 	DescribeTable("Test Associate function",
@@ -2888,12 +2885,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				&savedHost,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = machineMgr.FindOwnerRef(savedHost.OwnerReferences)
-			if tc.ExpectOwnerRef {
-				Expect(err).NotTo(HaveOccurred())
-			} else {
-				Expect(err).To(HaveOccurred())
-			}
+
 			if tc.ExpectClusterLabel {
 				// get the BMC credential
 				savedCred := corev1.Secret{}
@@ -2918,8 +2910,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil,
 					false, "metadata", false, "",
 				),
-				ExpectRequeue:  false,
-				ExpectOwnerRef: true,
+				ExpectRequeue: false,
 			},
 		),
 		Entry("Associate empty machine, Metal3 machine spec set",
@@ -2931,9 +2922,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: newBareMetalHost(baremetalhostName, bmhSpecBMC(), bmov1alpha1.StateNone, nil,
 					false, "metadata", false, "",
 				),
-				BMCSecret:      newBMCSecret("mycredentials", false),
-				ExpectRequeue:  false,
-				ExpectOwnerRef: true,
+				BMCSecret:     newBMCSecret("mycredentials", false),
+				ExpectRequeue: false,
 			},
 		),
 		Entry("Associate empty machine, host empty, Metal3 machine spec set",
@@ -2942,9 +2932,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3Machine: newMetal3Machine(metal3machineName, m3mSpecAll(), nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
-				Host:           newBareMetalHost("", nil, bmov1alpha1.StateNone, nil, false, "metadata", false, ""),
-				ExpectRequeue:  true,
-				ExpectOwnerRef: false,
+				Host:          newBareMetalHost("", nil, bmov1alpha1.StateNone, nil, false, "metadata", false, ""),
+				ExpectRequeue: true,
 			},
 		),
 		Entry("Associate machine, host nil, Metal3 machine spec set, requeue",
@@ -2965,7 +2954,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
-				ExpectOwnerRef:     true,
 			},
 		),
 		Entry("Associate machine with DataTemplate missing",
@@ -2992,7 +2980,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
-				ExpectOwnerRef:     true,
 			},
 		),
 		Entry("Associate machine with DataTemplate and Data ready",
@@ -3038,7 +3025,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
-				ExpectOwnerRef:     true,
 			},
 		),
 	)
