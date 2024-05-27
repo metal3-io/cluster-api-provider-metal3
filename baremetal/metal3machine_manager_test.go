@@ -135,6 +135,12 @@ func expectedImgTest() *bmov1alpha1.Image {
 	}
 }
 
+func expectedCustomDeployTest() *bmov1alpha1.CustomDeploy {
+	return &bmov1alpha1.CustomDeploy{
+		Method: "test_test",
+	}
+}
+
 func bmhSpec() *bmov1alpha1.BareMetalHostSpec {
 	return &bmov1alpha1.BareMetalHostSpec{
 		ConsumerRef: consumerRef(),
@@ -159,6 +165,13 @@ func bmhSpecTestImg() *bmov1alpha1.BareMetalHostSpec {
 	return &bmov1alpha1.BareMetalHostSpec{
 		ConsumerRef: consumerRef(),
 		Image:       expectedImgTest(),
+	}
+}
+
+func bmhSpecTestCustomDeploy() *bmov1alpha1.BareMetalHostSpec {
+	return &bmov1alpha1.BareMetalHostSpec{
+		ConsumerRef:  consumerRef(),
+		CustomDeploy: expectedCustomDeployTest(),
 	}
 }
 
@@ -1036,9 +1049,11 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	type testCaseSetHostSpec struct {
 		UserDataNamespace           string
+		UseCustomDeploy             *bmov1alpha1.CustomDeploy
 		ExpectedUserDataNamespace   string
 		Host                        *bmov1alpha1.BareMetalHost
 		ExpectedImage               *bmov1alpha1.Image
+		ExpectedCustomDeploy        *bmov1alpha1.CustomDeploy
 		ExpectUserData              bool
 		expectNodeReuseLabelDeleted bool
 	}
@@ -1050,6 +1065,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
 				map[string]string{}, []infrav1.HostSelectorRequirement{},
 			)
+			if tc.UseCustomDeploy != nil {
+				m3mconfig.Spec.Image = infrav1.Image{}
+				m3mconfig.Spec.CustomDeploy = &infrav1.CustomDeploy{
+					Method: tc.UseCustomDeploy.Method,
+				}
+			}
 			machine := newMachine(machineName, infrastructureRef)
 
 			machineMgr, err := NewMachineManager(fakeClient, nil, nil, machine, m3mconfig,
@@ -1066,6 +1087,11 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(tc.Host.Spec.Image).To(BeNil())
 			} else {
 				Expect(*tc.Host.Spec.Image).To(Equal(*tc.ExpectedImage))
+			}
+			if tc.ExpectedCustomDeploy == nil {
+				Expect(tc.Host.Spec.CustomDeploy).To(BeNil())
+			} else {
+				Expect(*tc.Host.Spec.CustomDeploy).To(Equal(*tc.ExpectedCustomDeploy))
 			}
 			if tc.ExpectUserData {
 				Expect(tc.Host.Spec.UserData).NotTo(BeNil())
@@ -1119,6 +1145,15 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectedImage:  expectedImg(),
 			ExpectUserData: true,
 		}),
+		Entry("Using custom deploy", testCaseSetHostSpec{
+			UseCustomDeploy:           expectedCustomDeployTest(),
+			ExpectedUserDataNamespace: namespaceName,
+			Host: newBareMetalHost("host2", nil, bmov1alpha1.StateNone,
+				nil, false, "metadata", false, "",
+			),
+			ExpectedCustomDeploy: expectedCustomDeployTest(),
+			ExpectUserData:       true,
+		}),
 		Entry("Previously provisioned, different image",
 			testCaseSetHostSpec{
 				UserDataNamespace:         "",
@@ -1128,6 +1163,17 @@ var _ = Describe("Metal3Machine manager", func() {
 				),
 				ExpectedImage:  expectedImgTest(),
 				ExpectUserData: false,
+			},
+		),
+		Entry("Previously provisioned, different custom deploy",
+			testCaseSetHostSpec{
+				UserDataNamespace:         "",
+				ExpectedUserDataNamespace: namespaceName,
+				Host: newBareMetalHost("host2", bmhSpecTestCustomDeploy(),
+					bmov1alpha1.StateNone, nil, false, "metadata", false, "",
+				),
+				ExpectedCustomDeploy: expectedCustomDeployTest(),
+				ExpectUserData:       false,
 			},
 		),
 	)
@@ -1198,6 +1244,17 @@ var _ = Describe("Metal3Machine manager", func() {
 				),
 				ExpectedImage:  expectedImgTest(),
 				ExpectUserData: false,
+			},
+		),
+		Entry("Previously provisioned, different custom deploy",
+			testCaseSetHostSpec{
+				UserDataNamespace:         "",
+				ExpectedUserDataNamespace: namespaceName,
+				Host: newBareMetalHost("host2", bmhSpecTestCustomDeploy(),
+					bmov1alpha1.StateNone, nil, false, "metadata", false, "",
+				),
+				ExpectedCustomDeploy: expectedCustomDeployTest(),
+				ExpectUserData:       false,
 			},
 		),
 	)
