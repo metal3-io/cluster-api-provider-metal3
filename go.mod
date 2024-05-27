@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3
 go 1.21
 
 require (
-	github.com/go-logr/logr v1.4.1
+	github.com/go-logr/logr v1.4.2
 	github.com/golang/mock v1.6.0
 	github.com/metal3-io/baremetal-operator/apis v0.6.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
