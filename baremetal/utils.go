@@ -38,9 +38,11 @@ import (
 const (
 	// metal3SecretType defines the type of secret created by metal3.
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
+	// metal3MachineKind is the Kind of the Metal3Machine.
+	metal3MachineKind = "Metal3Machine"
 )
 
-// Filter filters a list for a string.
+// Filter filters out occurrences of strToFilter from list and returns the new list.
 func Filter(list []string, strToFilter string) (newList []string) {
 	for _, item := range list {
 		if item != strToFilter {

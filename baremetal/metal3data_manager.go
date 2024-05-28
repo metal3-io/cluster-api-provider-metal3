@@ -1437,7 +1437,7 @@ func (m *DataManager) getM3Machine(ctx context.Context, m3dt *infrav1.Metal3Data
 		}
 		// not matching on UID since when pivoting it might change
 		// Not matching on API version as this might change
-		if ownerRef.Kind == "Metal3Machine" &&
+		if ownerRef.Kind == metal3MachineKind &&
 			oGV.Group == infrav1.GroupVersion.Group {
 			metal3MachineName = ownerRef.Name
 			break
