@@ -114,11 +114,11 @@ updates:
       patterns: ["k8s.io/*"]
   ignore:
   # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
     update-types: ["version-update:semver-major"]
-  - dependency-name: "*"
-    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   # ignore ipam, as it needs more than just gomod
   - dependency-name: "github.com/metal3-io/ip-address-manager/api"
   commit-message:
@@ -134,11 +134,11 @@ updates:
       patterns: ["k8s.io/*"]
   ignore:
   # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
     update-types: ["version-update:semver-major"]
-  - dependency-name: "*"
-    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   # ignore ipam, as it needs more than just gomod
   - dependency-name: "github.com/metal3-io/ip-address-manager/api"
   commit-message:
@@ -154,11 +154,11 @@ updates:
       patterns: ["k8s.io/*"]
   ignore:
   # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
     update-types: ["version-update:semver-major"]
-  - dependency-name: "*"
-    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   # ignore ipam, as it needs more than just gomod
   - dependency-name: "github.com/metal3-io/ip-address-manager/api"
   commit-message:
@@ -173,11 +173,11 @@ updates:
       patterns: ["k8s.io/*"]
   ignore:
   # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   # golang.org/x/* only releases minors no patches, so minors have to be allowed
   - dependency-name: "golang.org/x/*"
     update-types: ["version-update:semver-major"]
-  - dependency-name: "*"
-    update-types: ["version-update:semver-major", "version-update:semver-minor"]
   commit-message:
     prefix: ":seedling:"
 ## release-1.7 branch config ends here
