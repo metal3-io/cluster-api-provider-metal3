@@ -5,6 +5,6 @@ resources:
 - bootstrap-components.yaml
 - ctlplane-components.yaml
 - infrastructure-components.yaml
-patchesStrategicMerge:
-- manager_tolerations_patch.yaml
-- image_versions_patch.yaml
+patches:
+- path: manager_tolerations_patch.yaml
+- path: image_versions_patch.yaml

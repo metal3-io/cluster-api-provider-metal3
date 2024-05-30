@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - manager.yaml
+- manager.yaml
 
 configMapGenerator:
 - name: capm3fasttrack-configmap
@@ -10,4 +10,4 @@ configMapGenerator:
   - CAPM3_FAST_TRACK=${CAPM3_FAST_TRACK:='false'}
 
 generatorOptions:
- disableNameSuffixHash: true
+  disableNameSuffixHash: true
