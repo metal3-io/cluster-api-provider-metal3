@@ -43,6 +43,10 @@ export KUBERNETES_VERSION=${KUBERNETES_VERSION}
 export KUBECTL_SHA256=${KUBECTL_SHA256}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
+export IPA_BASEURI="https://artifactory.nordix.org/artifactory/metal3/images/ipa/pinned/centos/9-stream/20240513T0408Z-c303bd9"
+export IPA_BRANCH="master"
+export IPA_FLAVOR="centos9"
+export BMOCOMMIT="c463618aa5de9671fab16cc926a8e4815f69cb55"
 EOF
 if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
     mkdir -p "$CAPI_CONFIG_FOLDER"

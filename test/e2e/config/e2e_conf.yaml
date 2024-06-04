@@ -166,6 +166,9 @@ variables:
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: "0s"
+  IPA_BASEURI: "https://artifactory.nordix.org/artifactory/metal3/images/ipa/pinned/centos/9-stream/20240513T0408Z-c303bd9"
+  IPA_BRANCH: "master"
+  IPA_FLAVOR: "centos9"
 
 intervals:
   default/wait-controllers: ["5m", "10s"]

@@ -308,13 +308,34 @@ func installIronicBMO(ctx context.Context, inputGetter func() installIronicBMOIn
 		fmt.Sprintf("RESTART_CONTAINER_CERTIFICATE_UPDATED=%s", strconv.FormatBool(input.RestartContainerCertUpdate)),
 		"USER=ubuntu",
 	}
-	cmd := exec.Command("./deploy.sh", args...) // #nosec G204:gosec
-	cmd.Dir = path
-	cmd.Env = append(env, os.Environ()...)
 
-	stdoutStderr, er := cmd.CombinedOutput()
+	cmd := exec.Command("./deploy.sh", args...)                                                                                                                                                                                               // #nosec G204:gosec
+	patchone := exec.Command("bash", "-c", "echo IPA_BASEURI=\"https://artifactory.nordix.org/artifactory/metal3/images/ipa/pinned/centos/9-stream/20240513T0408Z-c303bd9\" | tee -a ../ironic-deployment/default/ironic_bmo_configmap.env ") // #nosec G204:gosec
+	patchtwo := exec.Command("bash", "-c", "echo IPA_BRANCH=\"master\" | tee -a ../ironic-deployment/default/ironic_bmo_configmap.env")                                                                                                       // #nosec G204:gosec
+	patchthree := exec.Command("bash", "-c", "echo IPA_FLAVOR=\"centos9\" | tee -a ../ironic-deployment/default/ironic_bmo_configmap.env")                                                                                                    // #nosec G204:gosec
+
+	cmd.Dir = path
+	patchone.Dir = path
+	patchtwo.Dir = path
+	patchthree.Dir = path
+	cmd.Env = append(env, os.Environ()...)
+	patchone.Env = append(env, os.Environ()...)
+	patchtwo.Env = append(env, os.Environ()...)
+	patchthree.Env = append(env, os.Environ()...)
+
+	stdoutStderr, er := patchone.CombinedOutput()
 	Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Failed to deploy Ironic")
+	stdoutStderr, er = patchtwo.CombinedOutput()
+	Logf("%s\n", stdoutStderr)
+	Expect(er).ToNot(HaveOccurred(), "Failed to deploy Ironic")
+	stdoutStderr, er = patchthree.CombinedOutput()
+	Logf("%s\n", stdoutStderr)
+	Expect(er).ToNot(HaveOccurred(), "Failed to deploy Ironic")
+	stdoutStderr, er = cmd.CombinedOutput()
+	Logf("%s\n", stdoutStderr)
+	Expect(er).ToNot(HaveOccurred(), "Failed to deploy Ironic")
+
 	deploymentNameList := []string{}
 	if input.deployIronic {
 		deploymentNameList = append(deploymentNameList, ironicSuffix)
