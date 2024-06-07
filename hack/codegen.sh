@@ -37,6 +37,6 @@ else
         --volume "${PWD}:/workdir:rw,z" \
         --entrypoint sh \
         --workdir /workdir \
-        docker.io/golang:1.21 \
+        docker.io/golang:1.22 \
         /workdir/hack/codegen.sh
 fi
