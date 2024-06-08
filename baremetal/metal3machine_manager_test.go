@@ -1201,8 +1201,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(tc.Host.Spec.ConsumerRef.Namespace).
 				To(Equal(m3mconfig.Namespace))
 			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal("Metal3Machine"))
-			_, err = machineMgr.FindOwnerRef(tc.Host.OwnerReferences)
-			Expect(err).NotTo(HaveOccurred())
 
 			if tc.expectNodeReuseLabelDeleted {
 				Expect(tc.Host.Labels[nodeReuseLabelName]).To(Equal(""))
@@ -3068,12 +3066,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				&savedHost,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = machineMgr.FindOwnerRef(savedHost.OwnerReferences)
-			if tc.ExpectOwnerRef {
-				Expect(err).NotTo(HaveOccurred())
-			} else {
-				Expect(err).To(HaveOccurred())
-			}
+
 			if tc.ExpectClusterLabel {
 				// get the BMC credential
 				savedCred := corev1.Secret{}
@@ -3395,144 +3388,6 @@ var _ = Describe("Metal3Machine manager", func() {
 		OwnerRefs  []metav1.OwnerReference
 		Controller bool
 	}
-
-	DescribeTable("Test DeleteOwnerRef",
-		func(tc testCaseOwnerRef) {
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				logr.Discard(),
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			refList, err := machineMgr.DeleteOwnerRef(tc.OwnerRefs)
-			Expect(err).ToNot(HaveOccurred())
-			_, err = machineMgr.FindOwnerRef(refList)
-			Expect(err).To(HaveOccurred())
-		},
-		Entry("Empty list", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{},
-		}),
-		Entry("Absent", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 0", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					Kind:       "M3Machine",
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 1", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-				{
-					Kind:       "M3Machine",
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					Kind:       "M3Machine",
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-	)
-
-	DescribeTable("Test SetOwnerRef",
-		func(tc testCaseOwnerRef) {
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				logr.Discard(),
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			refList, err := machineMgr.SetOwnerRef(tc.OwnerRefs, tc.Controller)
-			Expect(err).ToNot(HaveOccurred())
-			index, err := machineMgr.FindOwnerRef(refList)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*refList[index].Controller).To(BeEquivalentTo(tc.Controller))
-		},
-		Entry("Empty list", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{},
-		}),
-		Entry("Absent", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 0", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					Kind:       "M3Machine",
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 1", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-				{
-					Kind:       "M3Machine",
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-	)
 
 	type testCaseM3MetaData struct {
 		M3Machine                            *infrav1.Metal3Machine

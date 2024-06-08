@@ -474,9 +474,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("host already associated with another metal3 machine",
 				"host", host.Name)
-			// Remove the ownerreference to this machine, even if the consumer ref
-			// references another machine.
-			host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
 			if err != nil {
 				return err
 			}
@@ -660,8 +657,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		host.Spec.ConsumerRef = nil
 
-		// Remove the ownerreference to this machine.
-		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
 		if err != nil {
 			return err
 		}
@@ -708,12 +703,6 @@ func (m *MachineManager) Update(ctx context.Context) error {
 
 	// ensure that the BMH specs are correctly set.
 	err = m.setHostConsumerRef(ctx, host)
-	if err != nil {
-		return err
-	}
-
-	// ensure that the BMH specs are correctly set.
-	err = m.setHostSpec(ctx, host)
 	if err != nil {
 		return err
 	}
@@ -1122,13 +1111,6 @@ func (m *MachineManager) setHostConsumerRef(_ context.Context, host *bmov1alpha1
 		APIVersion: m.Metal3Machine.APIVersion,
 	}
 
-	// Set OwnerReferences.
-	hostOwnerReferences, err := m.SetOwnerRef(host.OwnerReferences, true)
-	if err != nil {
-		return err
-	}
-	host.OwnerReferences = hostOwnerReferences
-
 	// Delete nodeReuseLabelName from host.
 	m.Log.Info("Deleting nodeReuseLabelName from host, if any")
 
@@ -1395,46 +1377,6 @@ func (m *MachineManager) SetProviderID(providerID string) {
 	m.Metal3Machine.Spec.ProviderID = &providerID
 	m.Metal3Machine.Status.Ready = true
 	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
-}
-
-// SetOwnerRef adds an ownerreference to this Metal3Machine.
-func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller bool) ([]metav1.OwnerReference, error) {
-	return setOwnerRefInList(refList, controller, m.Metal3Machine.TypeMeta,
-		m.Metal3Machine.ObjectMeta,
-	)
-}
-
-// DeleteOwnerRef removes the ownerreference to this Metal3Machine.
-func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
-	return deleteOwnerRefFromList(refList, m.Metal3Machine.TypeMeta,
-		m.Metal3Machine.ObjectMeta,
-	)
-}
-
-// DeleteOwnerRefFromList removes the ownerreference to this Metal3Machine.
-func deleteOwnerRefFromList(refList []metav1.OwnerReference,
-	objType metav1.TypeMeta, objMeta metav1.ObjectMeta,
-) ([]metav1.OwnerReference, error) {
-	if len(refList) == 0 {
-		return refList, nil
-	}
-	index, err := findOwnerRefFromList(refList, objType, objMeta)
-	if err != nil {
-		if ok := errors.As(err, &notFoundErr); !ok {
-			return nil, err
-		}
-		return refList, nil
-	}
-	if len(refList) == 1 {
-		return []metav1.OwnerReference{}, nil
-	}
-	refListLen := len(refList) - 1
-	refList[index] = refList[refListLen]
-	refList, err = deleteOwnerRefFromList(refList[:refListLen], objType, objMeta)
-	if err != nil {
-		return nil, err
-	}
-	return refList, nil
 }
 
 // FindOwnerRef checks if an ownerreference to this Metal3Machine exists
