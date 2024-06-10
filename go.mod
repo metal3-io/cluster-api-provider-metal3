@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/go-logr/logr v1.4.1
 	github.com/golang/mock v1.6.0
-	github.com/metal3-io/baremetal-operator/apis v0.6.0
+	github.com/metal3-io/baremetal-operator/apis v0.6.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.7.0
 	github.com/onsi/ginkgo/v2 v2.19.0
