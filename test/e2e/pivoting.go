@@ -3,7 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -26,15 +25,16 @@ import (
 )
 
 const (
-	bmoPath                    = "BMOPATH"
-	ironicTLSSetup             = "IRONIC_TLS_SETUP"
-	ironicBasicAuth            = "IRONIC_BASIC_AUTH"
-	ironicKeepalived           = "IRONIC_KEEPALIVED"
-	ironicMariadb              = "IRONIC_USE_MARIADB"
-	Kind                       = "kind"
-	NamePrefix                 = "NAMEPREFIX"
-	restartContainerCertUpdate = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
-	ironicNamespace            = "IRONIC_NAMESPACE"
+	bmoPath                      = "BMOPATH"
+	ironicTLSSetup               = "IRONIC_TLS_SETUP"
+	ironicBasicAuth              = "IRONIC_BASIC_AUTH"
+	ironicKeepalived             = "IRONIC_KEEPALIVED"
+	ironicMariadb                = "IRONIC_USE_MARIADB"
+	Kind                         = "kind"
+	NamePrefix                   = "NAMEPREFIX"
+	restartContainerCertUpdate   = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
+	ironicNamespace              = "IRONIC_NAMESPACE"
+	clusterLogCollectionBasePath = "/tmp/target_cluster_logs"
 )
 
 type PivotingInput struct {
@@ -424,19 +424,14 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
 	By("Fetch logs from target cluster")
-	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
-	cmd.Dir = path
-	errorPipe, _ := cmd.StderrPipe()
-	_ = cmd.Start()
-	errorData, _ := io.ReadAll(errorPipe)
-	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
+	err := FetchClusterLogs(input.TargetCluster, clusterLogCollectionBasePath)
+	if err != nil {
+		Logf("Error: %v", err)
 	}
 
 	By("Fetch manifest for workload cluster after pivot")
-	path = filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd = exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
+	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
+	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
 	cmd.Dir = path
 	_ = cmd.Run()
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
