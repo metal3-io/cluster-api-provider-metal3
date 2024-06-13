@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -360,27 +359,20 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 	if CurrentSpecReport().Failed() {
 		// Fetch logs in case of failure in management cluster
 		By("Fetch logs from management cluster")
-		path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-		cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
-		cmd.Dir = path
-		errorPipe, _ := cmd.StderrPipe()
-		_ = cmd.Start()
-		errorData, _ := io.ReadAll(errorPipe)
-		if len(errorData) > 0 {
-			Logf("Error of the shell: %v\n", string(errorData))
+		outputPath := fmt.Sprintf("tmp/target_cluster_logs/%s", clusterProxy.GetName())
+		err := FetchClusterLogs(clusterProxy, outputPath)
+		if err != nil {
+			Logf("Error: %v", err)
 		}
 	}
 	// Fetch logs from management cluster
 	By("Fetch logs from management cluster")
-	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd := exec.Command("./fetch_target_logs.sh") //#nosec G204:gosec
-	cmd.Dir = path
-	errorPipe, _ := cmd.StderrPipe()
-	_ = cmd.Start()
-	errorData, _ := io.ReadAll(errorPipe)
-	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
+	outputPath := fmt.Sprintf("tmp/target_cluster_logs/%s", clusterProxy.GetName())
+	err := FetchClusterLogs(clusterProxy, outputPath)
+	if err != nil {
+		Logf("Error: %v", err)
 	}
+
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 	bmoIronicNamespace := e2eConfig.GetVariable(ironicNamespace)
