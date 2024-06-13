@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -357,29 +356,10 @@ func preUpgrade(clusterProxy framework.ClusterProxy, ironicUpgradeToRelease stri
 // preCleanupManagementCluster hook should be called from ClusterctlUpgradeSpec before cleaning the target management cluster
 // it moves back Ironic to the bootstrap cluster.
 func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRelease string) {
-	if CurrentSpecReport().Failed() {
-		// Fetch logs in case of failure in management cluster
-		By("Fetch logs from management cluster")
-		path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-		cmd := exec.Command("./fetch_target_logs.sh") // #nosec G204:gosec
-		cmd.Dir = path
-		errorPipe, _ := cmd.StderrPipe()
-		_ = cmd.Start()
-		errorData, _ := io.ReadAll(errorPipe)
-		if len(errorData) > 0 {
-			Logf("Error of the shell: %v\n", string(errorData))
-		}
-	}
-	// Fetch logs from management cluster
-	By("Fetch logs from management cluster")
-	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd := exec.Command("./fetch_target_logs.sh") //#nosec G204:gosec
-	cmd.Dir = path
-	errorPipe, _ := cmd.StderrPipe()
-	_ = cmd.Start()
-	errorData, _ := io.ReadAll(errorPipe)
-	if len(errorData) > 0 {
-		Logf("Error of the shell: %v\n", string(errorData))
+	By("Fetch logs from target cluster")
+	err := FetchClusterLogs(clusterProxy, clusterLogCollectionBasePath)
+	if err != nil {
+		Logf("Error: %v", err)
 	}
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")

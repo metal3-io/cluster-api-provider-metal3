@@ -38,7 +38,6 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
@@ -719,82 +718,6 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 		}
 	}
 	return nil
-}
-
-type Metal3LogCollector struct{}
-
-// CollectMachineLog collects specific logs from machines.
-func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Client, m *clusterv1.Machine, outputPath string) error {
-	VMName, err := MachineToVMName(ctx, cli, m)
-	if err != nil {
-		return fmt.Errorf("error while fetching the VM name: %w", err)
-	}
-
-	qemuFolder := path.Join(outputPath, VMName)
-	if err := os.MkdirAll(qemuFolder, 0o750); err != nil {
-		fmt.Fprintf(GinkgoWriter, "couldn't create directory %q : %s\n", qemuFolder, err)
-	}
-
-	serialLog := fmt.Sprintf("/var/log/libvirt/qemu/%s-serial0.log", VMName)
-	if _, err := os.Stat(serialLog); os.IsNotExist(err) {
-		return fmt.Errorf("error finding the serial log: %w", err)
-	}
-
-	copyCmd := fmt.Sprintf("sudo cp %s %s", serialLog, qemuFolder)
-	cmd := exec.Command("/bin/sh", "-c", copyCmd) // #nosec G204:gosec
-	if output, err := cmd.Output(); err != nil {
-		return fmt.Errorf("something went wrong when executing '%s': %w, output: %s", cmd.String(), err, output)
-	}
-	setPermsCmd := fmt.Sprintf("sudo chmod -v 777 %s", path.Join(qemuFolder, filepath.Base(serialLog)))
-	cmd = exec.Command("/bin/sh", "-c", setPermsCmd) // #nosec G204:gosec
-	output, err := cmd.Output()
-	if err != nil {
-		return fmt.Errorf("error changing file permissions after copying: %w, output: %s", err, output)
-	}
-
-	kubeadmCP := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
-		Lister:      cli,
-		ClusterName: m.Spec.ClusterName,
-		Namespace:   m.Namespace,
-	})
-
-	if len(kubeadmCP.Spec.KubeadmConfigSpec.Users) < 1 {
-		return fmt.Errorf("no valid credentials found: KubeadmConfigSpec.Users is empty")
-	}
-	creds := kubeadmCP.Spec.KubeadmConfigSpec.Users[0]
-
-	// get baremetal ip pool for retreiving ip addresses of controlpane and worker nodes
-	baremetalv4Pool, _ := GetIPPools(ctx, cli, m.Spec.ClusterName, m.Namespace)
-	Expect(baremetalv4Pool).ToNot(BeEmpty())
-
-	ip, err := MachineToIPAddress(ctx, cli, m, baremetalv4Pool[0])
-	if err != nil {
-		return fmt.Errorf("couldn't get IP address of machine: %w", err)
-	}
-
-	commands := map[string]string{
-		"cloud-final.log": "journalctl --no-pager -u cloud-final",
-		"kubelet.log":     "journalctl --no-pager -u kubelet.service",
-		"containerd.log":  "journalctl --no-pager -u containerd.service",
-	}
-
-	for title, cmd := range commands {
-		err = runCommand(outputPath, title, ip, creds.Name, cmd)
-		if err != nil {
-			return fmt.Errorf("couldn't gather logs: %w", err)
-		}
-	}
-
-	Logf("Successfully collected logs for machine %s", m.Name)
-	return nil
-}
-
-func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
-	return fmt.Errorf("CollectMachinePoolLog not implemented")
-}
-
-func (Metal3LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
-	return fmt.Errorf("CollectInfrastructureLogs not implemented")
 }
 
 // LabelCRD is adding the specified labels to the CRD crdName. Existing labels with matching keys will be overwritten.
