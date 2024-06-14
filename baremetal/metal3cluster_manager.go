@@ -97,10 +97,6 @@ func (s *ClusterManager) Create(_ context.Context) error {
 		s.setError("Invalid Metal3Cluster provided", capierrors.InvalidConfigurationClusterError)
 		return err
 	}
-
-	// clear an error if one was previously set.
-	s.clearError()
-
 	return nil
 }
 
@@ -155,15 +151,6 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 func (s *ClusterManager) setError(message string, reason capierrors.ClusterStatusError) {
 	s.Metal3Cluster.Status.FailureMessage = &message
 	s.Metal3Cluster.Status.FailureReason = &reason
-}
-
-// clearError removes the ErrorMessage from the metal3Cluster Status if set. Returns
-// nil if ErrorMessage was already nil.
-func (s *ClusterManager) clearError() {
-	if s.Metal3Cluster.Status.FailureMessage != nil || s.Metal3Cluster.Status.FailureReason != nil {
-		s.Metal3Cluster.Status.FailureMessage = nil
-		s.Metal3Cluster.Status.FailureReason = nil
-	}
 }
 
 // CountDescendants will return the number of descendants objects of the

@@ -142,7 +142,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		}),
 	)
 
-	DescribeTable("Test setting and clearing errors",
+	DescribeTable("Test setting errors",
 		func(tc testCaseBMClusterManager) {
 			clusterMgr := newBMClusterSetup(tc)
 			clusterMgr.setError("abc", capierrors.InvalidConfigurationClusterError)
@@ -151,11 +151,6 @@ var _ = Describe("Metal3Cluster manager", func() {
 				capierrors.InvalidConfigurationClusterError,
 			))
 			Expect(*tc.BMCluster.Status.FailureMessage).To(Equal("abc"))
-
-			clusterMgr.clearError()
-
-			Expect(tc.BMCluster.Status.FailureReason).To(BeNil())
-			Expect(tc.BMCluster.Status.FailureMessage).To(BeNil())
 		},
 		Entry("No pre-existing errors", testCaseBMClusterManager{
 			Cluster: newCluster(clusterName),

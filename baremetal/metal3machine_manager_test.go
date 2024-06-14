@@ -454,7 +454,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 	)
 
-	DescribeTable("Test setting and clearing errors",
+	DescribeTable("Test setting errors",
 		func(bmMachine infrav1.Metal3Machine) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &bmMachine,
 				logr.Discard(),
@@ -467,11 +467,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				capierrors.InvalidConfigurationMachineError,
 			))
 			Expect(*bmMachine.Status.FailureMessage).To(Equal("abc"))
-
-			machineMgr.clearError()
-
-			Expect(bmMachine.Status.FailureReason).To(BeNil())
-			Expect(bmMachine.Status.FailureMessage).To(BeNil())
 		},
 		Entry("No errors", infrav1.Metal3Machine{}),
 		Entry("Overwrite existing error message", infrav1.Metal3Machine{

@@ -96,8 +96,6 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			machineLog.Error(err, "failed to Patch metal3Machine")
 		}
 	}()
-	// clear an error if one was previously set
-	clearErrorM3Machine(capm3Machine)
 
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
@@ -515,14 +513,6 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(_ context.Context, 
 func setErrorM3Machine(m3m *infrav1.Metal3Machine, message string, reason capierrors.MachineStatusError) {
 	m3m.Status.FailureMessage = ptr.To(message)
 	m3m.Status.FailureReason = &reason
-}
-
-// clearError removes the ErrorMessage from the metal3machine's Status if set.
-func clearErrorM3Machine(m3m *infrav1.Metal3Machine) {
-	if m3m.Status.FailureMessage != nil || m3m.Status.FailureReason != nil {
-		m3m.Status.FailureMessage = nil
-		m3m.Status.FailureReason = nil
-	}
 }
 
 func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,

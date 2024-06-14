@@ -304,9 +304,6 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return nil
 	}
 
-	// clear an error if one was previously set
-	m.clearError()
-
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
@@ -388,10 +385,9 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		// specs
 		host, helper, err = m.getHost(ctx)
 		if err != nil {
-			m.SetError("Failed to get the BaremetalHost for the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-			return err
+			errMessage := "Failed to get BaremetalHost while setting Host Spec, requeuing"
+			m.Log.Info(errMessage)
+			return WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 
 		if err = m.setHostSpec(ctx, host); err != nil {
@@ -450,9 +446,6 @@ func (m *MachineManager) getUserDataSecretName(_ context.Context) error {
 // Delete deletes a metal3 machine and is invoked by the Machine Controller.
 func (m *MachineManager) Delete(ctx context.Context) error {
 	m.Log.Info("Deleting metal3 machine", "metal3machine", m.Metal3Machine.Name)
-
-	// clear an error if one was previously set.
-	m.clearError()
 
 	if Capm3FastTrack == "" {
 		Capm3FastTrack = "false"
@@ -686,10 +679,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 // Update updates a machine and is invoked by the Machine Controller.
 func (m *MachineManager) Update(ctx context.Context) error {
 	m.Log.Info("Updating machine")
-
-	// clear any error message that was previously set. This method doesn't set
-	// error messages yet, so we know that it's incorrect to have one here.
-	m.clearError()
 
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
@@ -1203,16 +1192,6 @@ func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1.ConditionT
 // SetConditionMetal3MachineToTrue sets Metal3Machine condition status to True.
 func (m *MachineManager) SetConditionMetal3MachineToTrue(t clusterv1.ConditionType) {
 	conditions.MarkTrue(m.Metal3Machine, t)
-}
-
-// clearError removes the ErrorMessage from the machine's Status if set. Returns
-// nil if ErrorMessage was already nil. Returns a Transient error if the
-// machine was updated.
-func (m *MachineManager) clearError() {
-	if m.Metal3Machine.Status.FailureMessage != nil || m.Metal3Machine.Status.FailureReason != nil {
-		m.Metal3Machine.Status.FailureMessage = nil
-		m.Metal3Machine.Status.FailureReason = nil
-	}
 }
 
 // updateMachineStatus updates a Metal3Machine object's status.
