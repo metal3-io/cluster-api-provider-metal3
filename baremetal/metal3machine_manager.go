@@ -385,10 +385,9 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		// specs
 		host, helper, err = m.getHost(ctx)
 		if err != nil {
-			m.SetError("Failed to get the BaremetalHost for the Metal3Machine",
-				capierrors.CreateMachineError,
-			)
-			return err
+			errMessage := "Failed to get BaremetalHost while setting Host Spec, requeuing"
+			m.Log.Info(errMessage)
+			return WithTransientError(errors.New(errMessage), requeueAfter)
 		}
 
 		if err = m.setHostSpec(ctx, host); err != nil {
