@@ -8,7 +8,8 @@ spec:
     services:
       cidrBlocks: ${SERVICE_CIDR:=["10.96.0.0/12"]}
     pods:
-      cidrBlocks: ${SERVICE_CIDR:=["192.168.0.0/18"]}
+      cidrBlocks: ${POD_CIDR:=["192.168.0.0/18"]}
+    serviceDomain: ${SERVICE_DOMAIN:="cluster.local"}
   infrastructureRef:
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
     kind: Metal3Cluster
