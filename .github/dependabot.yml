@@ -181,3 +181,93 @@ updates:
   commit-message:
     prefix: ":seedling:"
 ## release-1.7 branch config ends here
+## release-1.6 branch config starts here
+- package-ecosystem: "github-actions"
+  directory: "/" # Location of package manifests
+  schedule:
+    interval: "monthly"
+  target-branch: release-1.6
+  commit-message:
+    prefix: ":seedling:"
+  ignore:
+  # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
+- package-ecosystem: "gomod"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  target-branch: release-1.6
+  ## group all dependencies with a k8s.io prefix into a single PR.
+  groups:
+    kubernetes:
+      patterns: ["k8s.io/*"]
+  ignore:
+  # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  # golang.org/x/* only releases minors no patches, so minors have to be allowed
+  - dependency-name: "golang.org/x/*"
+    update-types: ["version-update:semver-major"]
+  # ignore ipam, as it needs more than just gomod
+  - dependency-name: "github.com/metal3-io/ip-address-manager/api"
+  commit-message:
+    prefix: ":seedling:"
+- package-ecosystem: "gomod"
+  directory: "/api"
+  schedule:
+    interval: "weekly"
+  target-branch: release-1.6
+  ## group all dependencies with a k8s.io prefix into a single PR.
+  groups:
+    kubernetes:
+      patterns: ["k8s.io/*"]
+  ignore:
+  # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  # golang.org/x/* only releases minors no patches, so minors have to be allowed
+  - dependency-name: "golang.org/x/*"
+    update-types: ["version-update:semver-major"]
+  # ignore ipam, as it needs more than just gomod
+  - dependency-name: "github.com/metal3-io/ip-address-manager/api"
+  commit-message:
+    prefix: ":seedling:"
+- package-ecosystem: "gomod"
+  directory: "/test"
+  schedule:
+    interval: "weekly"
+  target-branch: release-1.6
+  ## group all dependencies with a k8s.io prefix into a single PR.
+  groups:
+    kubernetes:
+      patterns: ["k8s.io/*"]
+  ignore:
+  # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  # golang.org/x/* only releases minors no patches, so minors have to be allowed
+  - dependency-name: "golang.org/x/*"
+    update-types: ["version-update:semver-major"]
+  # ignore ipam, as it needs more than just gomod
+  - dependency-name: "github.com/metal3-io/ip-address-manager/api"
+  commit-message:
+    prefix: ":seedling:"
+- package-ecosystem: "gomod"
+  directory: "/hack/tools"
+  schedule:
+    interval: "weekly"
+  target-branch: release-1.6
+  groups:
+    kubernetes:
+      patterns: ["k8s.io/*"]
+  ignore:
+  # Ignore major and minor bumps for release branch
+  - dependency-name: "*"
+    update-types: ["version-update:semver-major", "version-update:semver-minor"]
+  # golang.org/x/* only releases minors no patches, so minors have to be allowed
+  - dependency-name: "golang.org/x/*"
+    update-types: ["version-update:semver-major"]
+  commit-message:
+    prefix: ":seedling:"
+## release-1.6 branch config ends here
