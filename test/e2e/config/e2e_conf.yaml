@@ -86,7 +86,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.7/metadata.yaml"
-  versions:
   - name: "{go://sigs.k8s.io/cluster-api@v1.6}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.6}/control-plane-components.yaml"
     type: "url"
