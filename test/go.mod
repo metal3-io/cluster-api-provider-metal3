@@ -17,7 +17,7 @@ require (
 	k8s.io/apimachinery v0.28.5
 	k8s.io/client-go v0.28.5
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
-	sigs.k8s.io/cluster-api v1.6.5
+	sigs.k8s.io/cluster-api v1.6.6
 	sigs.k8s.io/cluster-api/test v1.6.5
 	sigs.k8s.io/controller-runtime v0.16.5
 )
@@ -107,7 +107,6 @@ require (
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/valyala/fastjson v1.6.4 // indirect
-	go.uber.org/goleak v1.3.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.13.0 // indirect
