@@ -51,9 +51,9 @@ manifests=(
 NAMESPACES="$(kubectl --kubeconfig="${kconfig}" get namespace -o jsonpath='{.items[*].metadata.name}')"
 for NAMESPACE in ${NAMESPACES}; do
   for kind in "${manifests[@]}"; do
-    mkdir -p "${DIR_NAME}/${kind}"
+    mkdir -p "${DIR_NAME}/${NAMESPACE}/${kind}"
     for name in $(kubectl --kubeconfig="${kconfig}" get -n "${NAMESPACE}" -o name "${kind}" || true); do
-      kubectl --kubeconfig="${kconfig}" get -n "${NAMESPACE}" -o yaml "${name}" | tee "${DIR_NAME}/${kind}/$(basename "${name}").yaml" || true
+      kubectl --kubeconfig="${kconfig}" get -n "${NAMESPACE}" -o yaml "${name}" | tee "${DIR_NAME}/${NAMESPACE}/${kind}/$(basename "${name}").yaml" || true
     done
   done
 done
