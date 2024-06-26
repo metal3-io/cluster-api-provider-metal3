@@ -27,6 +27,7 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -76,6 +77,16 @@ type RemediationManagerInterface interface {
 	SetNodeBackupAnnotations(annotations string, labels string) bool
 	GetNodeBackupAnnotations() (annotations, labels string)
 	RemoveNodeBackupAnnotations()
+	AddOutOfServiceTaint(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error
+	RemoveOutOfServiceTaint(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error
+	HasOutOfServiceTaint(node *corev1.Node) bool
+	IsNodeDrained(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) bool
+}
+
+var outOfServiceTaint = &corev1.Taint{
+	Key:    "node.kubernetes.io/out-of-service",
+	Value:  "nodeshutdown",
+	Effect: corev1.TaintEffectNoExecute,
 }
 
 // RemediationManager is responsible for performing remediation reconciliation.
@@ -475,4 +486,89 @@ func (r *RemediationManager) RemoveNodeBackupAnnotations() {
 // getPowerOffAnnotationKey returns the key of the power off annotation.
 func (r *RemediationManager) getPowerOffAnnotationKey() string {
 	return fmt.Sprintf(powerOffAnnotation, r.Metal3Remediation.UID)
+}
+
+func (r *RemediationManager) HasOutOfServiceTaint(node *corev1.Node) bool {
+	for _, taint := range node.Spec.Taints {
+		if taint.MatchTaint(outOfServiceTaint) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *RemediationManager) AddOutOfServiceTaint(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error {
+	taint := outOfServiceTaint
+	now := metav1.Now()
+	taint.TimeAdded = &now
+	node.Spec.Taints = append(node.Spec.Taints, *taint)
+	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
+		msg := fmt.Sprintf("failed to add out-of-service taint on node %s", node.Name)
+		r.Log.Error(err, msg)
+		return errors.Wrap(err, msg)
+	}
+	r.Log.Info("Out-of-service taint added", "node", node.Name)
+	return nil
+}
+
+func (r *RemediationManager) RemoveOutOfServiceTaint(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error {
+	newTaints := []corev1.Taint{}
+
+	var isPopOutOfServiceTaint bool
+	for _, taint := range node.Spec.Taints {
+		if taint.MatchTaint(outOfServiceTaint) {
+			isPopOutOfServiceTaint = true
+			continue
+		}
+		newTaints = append(newTaints, taint)
+	}
+
+	if isPopOutOfServiceTaint {
+		r.Log.Info("Removing out-of-service taint from node taints", "node", node.Name)
+		node.Spec.Taints = newTaints
+	} else {
+		r.Log.Info("Out-of-service taint not found. Nothing to do", "node name", node.Name)
+		return nil
+	}
+
+	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
+		msg := fmt.Sprintf("failed to remove out-of-service taint on node %s", node.Name)
+		r.Log.Error(err, msg)
+		return errors.Wrap(err, msg)
+	}
+
+	r.Log.Info("Out-of-service taint removed", "node", node.Name)
+	return nil
+}
+
+func (r *RemediationManager) IsNodeDrained(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) bool {
+	pods, err := clusterClient.Pods("").List(ctx, metav1.ListOptions{})
+	if err != nil {
+		r.Log.Error(err, "failed to get pod list in the cluster")
+		return false
+	}
+
+	for _, pod := range pods.Items {
+		if pod.Spec.NodeName == node.Name {
+			if pod.ObjectMeta.DeletionTimestamp != nil {
+				r.Log.Info("Waiting for terminating pod", "node", node.Name, "pod name", pod.Name, "phase", pod.Status.Phase)
+				return false
+			}
+		}
+	}
+
+	volumeAttachments := &storagev1.VolumeAttachmentList{}
+	if err := r.Client.List(ctx, volumeAttachments); err != nil {
+		r.Log.Error(err, "failed to get volumeAttachments list")
+		return false
+	}
+	for _, va := range volumeAttachments.Items {
+		if va.Spec.NodeName == node.Name {
+			r.Log.Info("Waiting for deleting volumeAttachement", "node", node.Name, "name", va.Name)
+			return false
+		}
+	}
+
+	r.Log.Info("Node is drained", "node", node.Name)
+	return true
 }

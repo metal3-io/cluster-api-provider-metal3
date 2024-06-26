@@ -58,6 +58,9 @@ const (
 	osTypeCentos           = "centos"
 	osTypeUbuntu           = "ubuntu"
 	ironicSuffix           = "-ironic"
+	// Out-of-service Taint test actions.
+	oostAdded   = "added"
+	oostRemoved = "removed"
 )
 
 var releaseMarkerPrefix = "go://github.com/metal3-io/cluster-api-provider-metal3@v%s"
