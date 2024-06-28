@@ -1,5 +1,6 @@
 #!/bin/sh
 # markdownlint-cli2 has config file(s) named .markdownlint-cli2.yaml in the repo
+# shellcheck disable=SC2292
 
 set -eux
 

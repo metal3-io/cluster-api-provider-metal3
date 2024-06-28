@@ -4,6 +4,7 @@
 # 2.  Verify that running the above doesn't change go.mod and go.sum
 #
 # NOTE: This won't work unless the build environment has internet access
+# shellcheck disable=SC2292
 
 set -eux
 
