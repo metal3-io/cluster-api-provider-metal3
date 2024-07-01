@@ -31,7 +31,6 @@ export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
 export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${KUBERNETES_VERSION}
-export KUBECTL_SHA256=${KUBECTL_SHA256}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 EOF
@@ -77,4 +76,3 @@ if [ -n "${CLUSTER_TOPOLOGY:-}" ]; then
 else
     make e2e-tests
 fi
-
