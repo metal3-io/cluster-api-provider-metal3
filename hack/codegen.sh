@@ -9,10 +9,11 @@ set -eux
 IS_CONTAINER="${IS_CONTAINER:-false}"
 ARTIFACTS="${ARTIFACTS:-/tmp}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
+WORKDIR="${WORKDIR:-/workdir}"
 
 if [ "${IS_CONTAINER}" != "false" ]; then
     # we need to tell git its OK to use dir owned by someone else
-    git config --global safe.directory /workdir
+    git config --global safe.directory "${WORKDIR}"
     export XDG_CACHE_HOME="/tmp/.cache"
 
     INPUT_FILES="$(git ls-files config) $(git ls-files | grep zz_generated)"
@@ -25,9 +26,9 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
     "${CONTAINER_RUNTIME}" run --rm \
         --env IS_CONTAINER=TRUE \
-        --volume "${PWD}:/workdir:rw,z" \
+        --volume "${PWD}:${WORKDIR}:rw,z" \
         --entrypoint sh \
-        --workdir /workdir \
+        --workdir "${WORKDIR}" \
         docker.io/golang:1.22 \
-        /workdir/hack/codegen.sh "$@"
+        "${WORKDIR}"/hack/codegen.sh "$@"
 fi
