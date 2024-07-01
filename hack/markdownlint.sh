@@ -6,6 +6,7 @@ set -eux
 
 IS_CONTAINER="${IS_CONTAINER:-false}"
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-podman}"
+WORKDIR="${WORKDIR:-/workdir}"
 
 # all md files, but ignore .github
 if [ "${IS_CONTAINER}" != "false" ]; then
@@ -13,9 +14,9 @@ if [ "${IS_CONTAINER}" != "false" ]; then
 else
     "${CONTAINER_RUNTIME}" run --rm \
         --env IS_CONTAINER=TRUE \
-        --volume "${PWD}:/workdir:ro,z" \
+        --volume "${PWD}:${WORKDIR}:ro,z" \
         --entrypoint sh \
-        --workdir /workdir \
+        --workdir "${WORKDIR}" \
         docker.io/pipelinecomponents/markdownlint-cli2:0.9.0@sha256:71370df6c967bae548b0bfd0ae313ddf44bfad87da76f88180eff55c6264098c \
-        /workdir/hack/markdownlint.sh "$@"
+        "${WORKDIR}"/hack/markdownlint.sh "$@"
 fi
