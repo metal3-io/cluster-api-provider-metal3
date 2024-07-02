@@ -48,7 +48,7 @@ var _ = Describe("When testing MachineDeployment remediation [healthcheck] [reme
 		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 			Client:    bootstrapClient,
 			Options:   []client.ListOption{client.InNamespace(namespace)},
-			Replicas:  4,
+			Replicas:  5,
 			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
 		})
 		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
