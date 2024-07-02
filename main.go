@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
@@ -62,6 +64,9 @@ import (
 const (
 	TLSVersion12 = "TLS12"
 	TLSVersion13 = "TLS13"
+	// out-of-service taint strategy (GA from 1.28).
+	minK8sMajorVersionOutOfServiceTaint   = 1
+	minK8sMinorVersionGAOutOfServiceTaint = 28
 )
 
 type TLSOptions struct {
@@ -443,10 +448,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	isOOSTSupported, err := isOutOfServiceTaintSupported(mgr.GetConfig())
+	if err != nil {
+		setupLog.Error(err, "unable to detect support for Out-of-service taint")
+	}
 	if err := (&controllers.Metal3RemediationReconciler{
-		Client:         mgr.GetClient(),
-		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
-		Log:            ctrl.Log.WithName("controllers").WithName("Metal3Remediation"),
+		Client:                     mgr.GetClient(),
+		ManagerFactory:             baremetal.NewManagerFactory(mgr.GetClient()),
+		Log:                        ctrl.Log.WithName("controllers").WithName("Metal3Remediation"),
+		IsOutOfServiceTaintEnabled: isOOSTSupported,
 	}).SetupWithManager(ctx, mgr, concurrency(metal3RemediationConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Metal3Remediation")
 		os.Exit(1)
@@ -564,4 +574,42 @@ func GetTLSOptionOverrideFuncs(options TLSOptions) ([]func(*tls.Config), error) 
 	}
 
 	return tlsOptions, nil
+}
+
+func isOutOfServiceTaintSupported(config *rest.Config) (bool, error) {
+	cs, err := kubernetes.NewForConfig(config)
+	if err != nil || cs == nil {
+		if cs == nil {
+			err = fmt.Errorf("k8s client set is nil")
+		}
+		setupLog.Error(err, "unable to get k8s client")
+		return false, err
+	}
+
+	k8sVersion, err := cs.Discovery().ServerVersion()
+	if err != nil || k8sVersion == nil {
+		if k8sVersion == nil {
+			err = fmt.Errorf("k8s server version is nil")
+		}
+		setupLog.Error(err, "unable to get k8s server version")
+		return false, err
+	}
+
+	major, err := strconv.Atoi(k8sVersion.Major)
+	if err != nil {
+		setupLog.Error(err, "could not parse k8s server major version", "major version", k8sVersion.Major)
+		return false, err
+	}
+	minor, err := strconv.Atoi(k8sVersion.Minor)
+	if err != nil {
+		setupLog.Error(err, "could not convert k8s server minor version", "minor version", k8sVersion.Minor)
+		return false, err
+	}
+
+	isSupported := major > minK8sMajorVersionOutOfServiceTaint ||
+		(major == minK8sMajorVersionOutOfServiceTaint &&
+			minor >= minK8sMinorVersionGAOutOfServiceTaint)
+
+	setupLog.Info("out-of-service taint", "supported", isSupported)
+	return isSupported, nil
 }

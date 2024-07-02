@@ -17,15 +17,19 @@ import (
  * These tests involve simulating failure scenarios, triggering the remediation process, and then verifying that the remediation actions successfully restore the nodes to the desired state.
  *
  * Test Types:
- * 1. Metal3Remediation Test: This test specifically evaluates the Metal3 Remediation Controller's node deletion feature in the reboot remediation strategy.
+ * 1. Metal3Remediation Test: This test specifically evaluates the Metal3 Remediation Controller's node management feature in the reboot remediation strategy.
  * 2. Remediation Test: This test focuses on verifying various annotations and actions related to remediation in the CAPM3 (Cluster API Provider for Metal3).
  *
- * NodeDeletionRemediation Test:
+ * NodeRemediation Test:
  * - Retrieve the list of Metal3 machines associated with the worker nodes.
  * - Identify the target worker Metal3Machine and its corresponding BareMetalHost (BMH) object.
  * - Create a Metal3Remediation resource with a remediation strategy of type "Reboot" and a specified timeout.
  * - Wait for the associated virtual machine (VM) to power off.
- * - Wait for the node (VM) to be deleted.
+ * - If kubernetes server version < 1.28:
+ *   - Wait for the node (VM) to be deleted.
+ * - If kubernetes server version >= 1.28:
+ *   - Wait for the out-of-service taint to be set on the node.
+ *   - Wait for the out-of-service taint to be removed from the node.
  * - Wait for the VM to power on.
  * - Wait for the node to be in a ready state.
  * - Delete the Metal3Remediation resource.
@@ -71,9 +75,9 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 		targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("KUBERNETES_VERSION"))
 
 		// Run Metal3Remediation test first, doesn't work after remediation...
-		By("Running node deletion remediation tests")
-		nodeDeletionRemediation(ctx, func() NodeDeletionRemediation {
-			return NodeDeletionRemediation{
+		By("Running node remediation tests")
+		nodeRemediation(ctx, func() NodeRemediation {
+			return NodeRemediation{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				TargetCluster:         targetCluster,
