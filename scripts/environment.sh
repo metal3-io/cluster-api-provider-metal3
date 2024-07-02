@@ -50,9 +50,6 @@ fi
 
 export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.29.0"}
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.30.0"}
-# NOTE: kubectl sha256 must match the provided KUBERNETES_VERSION, and must be
-# provided in JJB for upgrade tests where version is different from the default
-export KUBECTL_SHA256="${KUBECTL_SHA256:-7c3807c0f5c1b30110a2ff1e55da1d112a6d0096201f1beb81b269f582b5d1c5}"
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}
