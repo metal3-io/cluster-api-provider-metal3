@@ -35,8 +35,8 @@ export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 EOF
 if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
-    mkdir -p "$CAPI_CONFIG_FOLDER"
-    echo "enableBMHNameBasedPreallocation: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
+  mkdir -p "$CAPI_CONFIG_FOLDER"
+  echo "enableBMHNameBasedPreallocation: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
 fi
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1
@@ -69,10 +69,78 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 # image for live iso testing
 export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"
 
+# Generate credentials
+BMO_OVERLAYS=(
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.4"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.5"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.6"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-latest"
+)
+IRONIC_OVERLAYS=(
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-23.1"
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-24.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-24.1"
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-latest"
+)
+
+# Create usernames and passwords and other files related to ironi basic auth if they
+# are missing
+if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
+  IRONIC_AUTH_DIR="${IRONIC_AUTH_DIR:-${IRONIC_DATA_DIR}/auth}"
+  mkdir -p "${IRONIC_AUTH_DIR}"
+
+  # If usernames and passwords are unset, read them from file or generate them
+  if [[ -z "${IRONIC_USERNAME:-}" ]]; then
+    if [[ ! -f "${IRONIC_AUTH_DIR}/ironic-username" ]]; then
+      IRONIC_USERNAME="$(uuid-gen)"
+      echo "${IRONIC_USERNAME}" > "${IRONIC_AUTH_DIR}/ironic-username"
+    else
+      IRONIC_USERNAME="$(cat "${IRONIC_AUTH_DIR}/ironic-username")"
+    fi
+  fi
+  if [[ -z "${IRONIC_PASSWORD:-}" ]]; then
+    if [ ! -f "${IRONIC_AUTH_DIR}/ironic-password" ]; then
+      IRONIC_PASSWORD="$(uuid-gen)"
+      echo "${IRONIC_PASSWORD}" > "${IRONIC_AUTH_DIR}/ironic-password"
+    else
+      IRONIC_PASSWORD="$(cat "${IRONIC_AUTH_DIR}/ironic-password")"
+    fi
+  fi
+  IRONIC_INSPECTOR_USERNAME="${IRONIC_INSPECTOR_USERNAME:-${IRONIC_USERNAME}}"
+  IRONIC_INSPECTOR_PASSWORD="${IRONIC_INSPECTOR_PASSWORD:-${IRONIC_PASSWORD}}"
+
+  export IRONIC_USERNAME
+  export IRONIC_PASSWORD
+  export IRONIC_INSPECTOR_USERNAME
+  export IRONIC_INSPECTOR_PASSWORD
+fi
+
+for overlay in "${BMO_OVERLAYS[@]}"; do
+  echo "${IRONIC_USERNAME}" > "${overlay}/ironic-username"
+  echo "${IRONIC_PASSWORD}" > "${overlay}/ironic-password"
+  if [[ "${overlay}" =~ release-0\.[1-5]$ ]]; then
+    echo "${IRONIC_INSPECTOR_USERNAME}" > "${overlay}/ironic-inspector-username"
+    echo "${IRONIC_INSPECTOR_PASSWORD}" > "${overlay}/ironic-inspector-password"
+  fi
+done
+
+for overlay in "${IRONIC_OVERLAYS[@]}"; do
+  echo "IRONIC_HTPASSWD=$(htpasswd -n -b -B "${IRONIC_USERNAME}" "${IRONIC_PASSWORD}")" > \
+    "${overlay}/ironic-htpasswd"
+  envsubst < "${REPO_ROOT}/test/e2e/data/ironic-deployment/components/basic-auth/ironic-auth-config-tpl" > \
+  "${overlay}/ironic-auth-config"
+  IRONIC_INSPECTOR_AUTH_CONFIG_TPL="/tmp/ironic-inspector-auth-config-tpl"
+  curl -o "${IRONIC_INSPECTOR_AUTH_CONFIG_TPL}" https://raw.githubusercontent.com/metal3-io/baremetal-operator/release-0.5/ironic-deployment/components/basic-auth/ironic-inspector-auth-config-tpl
+  envsubst < "${IRONIC_INSPECTOR_AUTH_CONFIG_TPL}" > \
+    "${overlay}/ironic-inspector-auth-config"
+  echo "INSPECTOR_HTPASSWD=$(htpasswd -n -b -B "${IRONIC_INSPECTOR_USERNAME}" \
+    "${IRONIC_INSPECTOR_PASSWORD}")" > "${overlay}/ironic-inspector-htpasswd"
+done
+
 # run e2e tests
-if [ -n "${CLUSTER_TOPOLOGY:-}" ]; then
-    export CLUSTER_TOPOLOGY=true
-    make e2e-clusterclass-tests
+if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
+  export CLUSTER_TOPOLOGY=true
+  make e2e-clusterclass-tests
 else
-    make e2e-tests
+  make e2e-tests
 fi
