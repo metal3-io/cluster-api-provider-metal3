@@ -22,7 +22,7 @@ spec:
             - /manager
           args:
             - "--webhook-port=9443"
-            - "--enableBMHNameBasedPreallocation=${enableBMHNameBasedPreallocation:=false}"
+            - "--enableBMHNameBasedPreallocation=${ENABLE_BMH_NAME_BASED_PREALLOCATION:=false}"
             - "--diagnostics-address=${CAPM3_DIAGNOSTICS_ADDRESS:=:8443}"
             - "--insecure-diagnostics=${CAPM3_INSECURE_DIAGNOSTICS:=false}"
           image: controller:latest

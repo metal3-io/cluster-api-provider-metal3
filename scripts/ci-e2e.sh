@@ -35,8 +35,8 @@ export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 EOF
 if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
-  mkdir -p "$CAPI_CONFIG_FOLDER"
-  echo "enableBMHNameBasedPreallocation: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
+    mkdir -p "$CAPI_CONFIG_FOLDER"
+    echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
 fi
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1
