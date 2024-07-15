@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"golang.org/x/crypto/ssh"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,8 +34,11 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
+	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kustomize/api/filesys"
+	"sigs.k8s.io/kustomize/api/krusty"
 )
 
 type vmState string
@@ -49,6 +53,7 @@ const (
 	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
 	osTypeCentos           = "centos"
 	osTypeUbuntu           = "ubuntu"
+	ironicSuffix           = "-ironic"
 )
 
 func Byf(format string, a ...interface{}) {
@@ -778,4 +783,135 @@ func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[s
 	}
 	Logf("CRD '%s' labeled successfully\n", crdName)
 	return nil
+}
+
+// BuildAndApplyKustomizationInput provides input for BuildAndApplyKustomize().
+// If WaitForDeployment and/or WatchDeploymentLogs is set to true, then DeploymentName
+// and DeploymentNamespace are expected.
+type BuildAndApplyKustomizationInput struct {
+	// Path to the kustomization to build
+	Kustomization string
+
+	ClusterProxy framework.ClusterProxy
+
+	// If this is set to true. Perform a wait until the deployment specified by
+	// DeploymentName and DeploymentNamespace is available or WaitIntervals is timed out
+	WaitForDeployment bool
+
+	// If this is set to true. Set up a log watcher for the deployment specified by
+	// DeploymentName and DeploymentNamespace
+	WatchDeploymentLogs bool
+
+	// DeploymentName and DeploymentNamespace specified a deployment that will be waited and/or logged
+	DeploymentName      string
+	DeploymentNamespace string
+
+	// Path to store the deployment logs
+	LogPath string
+
+	// Intervals to use in checking and waiting for the deployment
+	WaitIntervals []interface{}
+}
+
+func (input *BuildAndApplyKustomizationInput) validate() error {
+	// If neither WaitForDeployment nor WatchDeploymentLogs is true, we don't need to validate the input
+	if !input.WaitForDeployment && !input.WatchDeploymentLogs {
+		return nil
+	}
+	if input.WaitForDeployment && input.WaitIntervals == nil {
+		return fmt.Errorf("WaitIntervals is expected if WaitForDeployment is set to true")
+	}
+	if input.WatchDeploymentLogs && input.LogPath == "" {
+		return fmt.Errorf("LogPath is expected if WatchDeploymentLogs is set to true")
+	}
+	if input.DeploymentName == "" || input.DeploymentNamespace == "" {
+		return fmt.Errorf("DeploymentName and DeploymentNamespace are expected if WaitForDeployment or WatchDeploymentLogs is true")
+	}
+	return nil
+}
+
+// BuildAndApplyKustomization takes input from BuildAndApplyKustomizationInput. It builds the provided kustomization
+// and apply it to the cluster provided by clusterProxy.
+func BuildAndApplyKustomization(ctx context.Context, input *BuildAndApplyKustomizationInput) error {
+	Expect(input.validate()).To(Succeed())
+	var err error
+	kustomization := input.Kustomization
+	clusterProxy := input.ClusterProxy
+	manifest, err := buildKustomizeManifest(kustomization)
+	if err != nil {
+		return err
+	}
+
+	err = clusterProxy.Apply(ctx, manifest)
+	if err != nil {
+		return err
+	}
+
+	if !input.WaitForDeployment && !input.WatchDeploymentLogs {
+		return nil
+	}
+
+	deployment := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      input.DeploymentName,
+			Namespace: input.DeploymentNamespace,
+		},
+	}
+
+	if input.WaitForDeployment {
+		// Wait for the deployment to become available
+		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
+			Getter:     clusterProxy.GetClient(),
+			Deployment: deployment,
+		}, input.WaitIntervals...)
+	}
+
+	if input.WatchDeploymentLogs {
+		// Set up log watcher
+		framework.WatchDeploymentLogsByName(ctx, framework.WatchDeploymentLogsByNameInput{
+			GetLister:  clusterProxy.GetClient(),
+			Cache:      clusterProxy.GetCache(ctx),
+			ClientSet:  clusterProxy.GetClientSet(),
+			Deployment: deployment,
+			LogPath:    input.LogPath,
+		})
+	}
+	return nil
+}
+
+// BuildAndRemoveKustomization builds the provided kustomization to resources and removes them from the cluster
+// provided by clusterProxy.
+func BuildAndRemoveKustomization(ctx context.Context, kustomization string, clusterProxy framework.ClusterProxy) error {
+	manifest, err := buildKustomizeManifest(kustomization)
+	if err != nil {
+		return err
+	}
+	return KubectlDelete(ctx, clusterProxy.GetKubeconfigPath(), manifest)
+}
+
+// KubectlDelete shells out to kubectl delete.
+func KubectlDelete(ctx context.Context, kubeconfigPath string, resources []byte, args ...string) error {
+	aargs := append([]string{"delete", "--kubeconfig", kubeconfigPath, "-f", "-"}, args...)
+	rbytes := bytes.NewReader(resources)
+	deleteCmd := testexec.NewCommand(
+		testexec.WithCommand("kubectl"),
+		testexec.WithArgs(aargs...),
+		testexec.WithStdin(rbytes),
+	)
+
+	fmt.Printf("Running kubectl %s\n", strings.Join(aargs, " "))
+	stdout, stderr, err := deleteCmd.Run(ctx)
+	fmt.Printf("stderr:\n%s\n", string(stderr))
+	fmt.Printf("stdout:\n%s\n", string(stdout))
+	return err
+}
+
+func buildKustomizeManifest(source string) ([]byte, error) {
+	kustomizer := krusty.MakeKustomizer(krusty.MakeDefaultOptions())
+	fSys := filesys.MakeFsOnDisk()
+	resources, err := kustomizer.Run(fSys, source)
+	if err != nil {
+		return nil, err
+	}
+	return resources.AsYaml()
 }
