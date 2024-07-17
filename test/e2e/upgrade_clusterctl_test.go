@@ -188,16 +188,26 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 
 		// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
 		for i := 0; i < 2; i++ {
-			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
+			bmhManifest := fmt.Sprintf("bmhs/node_%d.yaml", i)
+			commandString := fmt.Sprintf("kubectl apply -f %s -n %s", filepath.Join(workDir, bmhManifest), clusterNamespace)
+			fmt.Println("commandString: ", commandString)
+			cmd := exec.Command("bash", "-c", commandString)
+			output, err := cmd.CombinedOutput()
+			fmt.Println("output: ", string(output))
+			fmt.Println("err: ", err)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
 		}
 	} else {
 		// Apply secrets and bmhs for [node_2, node_3 and node_4] in the management cluster to host workload cluster
 		for i := 2; i < 5; i++ {
-			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
+			bmhManifest := fmt.Sprintf("bmhs/node_%d.yaml", i)
+			commandString := fmt.Sprintf("kubectl apply -f %s -n %s", filepath.Join(workDir, bmhManifest), clusterNamespace)
+			fmt.Println("commandString: ", commandString)
+			cmd := exec.Command("bash", "-c", commandString)
+			output, err := cmd.CombinedOutput()
+			fmt.Println("output: ", string(output))
+			fmt.Println("err: ", err)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
 		}
 	}
 }
@@ -211,7 +221,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 		Expect(err).ToNot(HaveOccurred(), "Unable to download certmanager manifest")
 		certManagerYaml, err := os.ReadFile("/tmp/certManager.yaml")
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(clusterProxy.Apply(ctx, certManagerYaml)).ShouldNot(HaveOccurred())
+		Expect(clusterProxy.CreateOrUpdate(ctx, certManagerYaml)).ShouldNot(HaveOccurred())
 
 		By("Wait for cert-manager pods to be available")
 		deploymentNameList := []string{}
