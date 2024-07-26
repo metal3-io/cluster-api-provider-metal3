@@ -46,20 +46,23 @@ var (
 )
 
 type reconcileNormalRemediationTestCase struct {
-	ExpectError             bool
-	ExpectRequeue           bool
-	GetUnhealthyHostFails   bool
-	GetRemediationTypeFails bool
-	HostStatusOffline       bool
-	RemediationPhase        string
-	IsFinalizerSet          bool
-	IsPowerOffRequested     bool
-	IsPoweredOn             bool
-	IsNodeForbidden         bool
-	IsNodeBackedUp          bool
-	IsNodeDeleted           bool
-	IsTimedOut              bool
-	IsRetryLimitReached     bool
+	ExpectError                  bool
+	ExpectRequeue                bool
+	GetUnhealthyHostFails        bool
+	GetRemediationTypeFails      bool
+	HostStatusOffline            bool
+	RemediationPhase             string
+	IsFinalizerSet               bool
+	IsPowerOffRequested          bool
+	IsPoweredOn                  bool
+	IsNodeForbidden              bool
+	IsNodeBackedUp               bool
+	IsNodeDeleted                bool
+	IsTimedOut                   bool
+	IsRetryLimitReached          bool
+	IsOutOfServiceTaintSupported bool
+	IsOutOfServiceTaintAdded     bool
+	IsNodeDrained                bool
 }
 
 type reconcileRemediationTestCase struct {
@@ -152,8 +155,19 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 		if tc.IsPoweredOn {
 			return m
 		}
+		if tc.IsOutOfServiceTaintSupported {
+			if !tc.IsOutOfServiceTaintAdded {
+				m.EXPECT().HasOutOfServiceTaint(gomock.Any()).Return(false)
+				m.EXPECT().AddOutOfServiceTaint(context.TODO(), gomock.Any(), gomock.Any()).Return(nil)
+				return m
+			}
 
-		if !tc.IsNodeForbidden && !tc.IsNodeDeleted {
+			m.EXPECT().HasOutOfServiceTaint(gomock.Any()).Return(true)
+			m.EXPECT().IsNodeDrained(context.TODO(), gomock.Any(), gomock.Any()).Return(tc.IsNodeDrained)
+			if !tc.IsNodeDrained {
+				return m
+			}
+		} else if !tc.IsNodeForbidden && !tc.IsNodeDeleted {
 			m.EXPECT().SetNodeBackupAnnotations("{\"foo\":\"bar\"}", "{\"answer\":\"42\"}").Return(!tc.IsNodeBackedUp)
 			if !tc.IsNodeBackedUp {
 				return m
@@ -181,16 +195,25 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 
 		m.EXPECT().HasFinalizer().Return(tc.IsFinalizerSet)
 		if tc.IsFinalizerSet {
-			if !tc.IsNodeDeleted {
-				m.EXPECT().GetNodeBackupAnnotations().Return("{\"foo\":\"bar\"}", "{\"answer\":\"42\"}")
-				m.EXPECT().UpdateNode(context.TODO(), gomock.Any(), gomock.Any())
-				m.EXPECT().RemoveNodeBackupAnnotations()
-				m.EXPECT().UnsetFinalizer()
-				return m
-			}
-			if tc.IsNodeForbidden {
-				m.EXPECT().UnsetFinalizer()
-				return m
+			if tc.IsOutOfServiceTaintSupported {
+				if tc.IsOutOfServiceTaintAdded {
+					m.EXPECT().HasOutOfServiceTaint(gomock.Any()).Return(true)
+					m.EXPECT().RemoveOutOfServiceTaint(context.TODO(), gomock.Any(), gomock.Any()).Return(nil)
+					m.EXPECT().UnsetFinalizer()
+					return m
+				}
+			} else {
+				if !tc.IsNodeDeleted {
+					m.EXPECT().GetNodeBackupAnnotations().Return("{\"foo\":\"bar\"}", "{\"answer\":\"42\"}")
+					m.EXPECT().UpdateNode(context.TODO(), gomock.Any(), gomock.Any())
+					m.EXPECT().RemoveNodeBackupAnnotations()
+					m.EXPECT().UnsetFinalizer()
+					return m
+				}
+				if tc.IsNodeForbidden {
+					m.EXPECT().UnsetFinalizer()
+					return m
+				}
 			}
 		}
 
@@ -330,9 +353,10 @@ var _ = Describe("Metal3Remediation controller", func() {
 	DescribeTable("ReconcileNormal tests", func(tc reconcileNormalRemediationTestCase) {
 		fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 		testReconciler = &Metal3RemediationReconciler{
-			Client:         fakeClient,
-			ManagerFactory: baremetal.NewManagerFactory(fakeClient),
-			Log:            logr.Discard(),
+			Client:                     fakeClient,
+			ManagerFactory:             baremetal.NewManagerFactory(fakeClient),
+			Log:                        logr.Discard(),
+			IsOutOfServiceTaintEnabled: tc.IsOutOfServiceTaintSupported,
 		}
 		m := setReconcileNormalRemediationExpectations(goMockCtrl, tc)
 		res, err := testReconciler.reconcileNormal(context.TODO(), m)
@@ -417,6 +441,49 @@ var _ = Describe("Metal3Remediation controller", func() {
 			IsNodeBackedUp:      false,
 			IsNodeDeleted:       false,
 			IsTimedOut:          false,
+		}),
+		Entry("[OOST] Should set out-of-service taint, and then requeue", reconcileNormalRemediationTestCase{
+			ExpectError:                  false,
+			ExpectRequeue:                true,
+			RemediationPhase:             infrav1.PhaseRunning,
+			IsFinalizerSet:               true,
+			IsPowerOffRequested:          true,
+			IsPoweredOn:                  false,
+			IsOutOfServiceTaintSupported: true,
+			IsOutOfServiceTaintAdded:     false,
+		}),
+		Entry("[OOST] Should requeue if Node is not drained yet", reconcileNormalRemediationTestCase{
+			ExpectError:                  false,
+			ExpectRequeue:                true,
+			RemediationPhase:             infrav1.PhaseRunning,
+			IsFinalizerSet:               true,
+			IsPowerOffRequested:          true,
+			IsPoweredOn:                  false,
+			IsOutOfServiceTaintSupported: true,
+			IsOutOfServiceTaintAdded:     true,
+			IsNodeDrained:                false,
+		}),
+		Entry("[OOST] Should update phase when node is drained", reconcileNormalRemediationTestCase{
+			ExpectError:                  false,
+			ExpectRequeue:                true,
+			RemediationPhase:             infrav1.PhaseRunning,
+			IsFinalizerSet:               true,
+			IsPowerOffRequested:          true,
+			IsPoweredOn:                  false,
+			IsOutOfServiceTaintSupported: true,
+			IsOutOfServiceTaintAdded:     true,
+			IsNodeDrained:                true,
+		}),
+		Entry("[OOST] Should remove out-of-service taint and requeue", reconcileNormalRemediationTestCase{
+			ExpectError:                  false,
+			ExpectRequeue:                true,
+			RemediationPhase:             infrav1.PhaseWaiting,
+			IsFinalizerSet:               true,
+			IsPowerOffRequested:          false,
+			IsPoweredOn:                  true,
+			IsOutOfServiceTaintSupported: true,
+			IsOutOfServiceTaintAdded:     true,
+			IsNodeDrained:                true,
 		}),
 		Entry("Should delete node when backed up, and then requeue", reconcileNormalRemediationTestCase{
 			ExpectError:         false,
