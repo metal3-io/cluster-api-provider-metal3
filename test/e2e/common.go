@@ -29,8 +29,11 @@ import (
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -40,9 +43,10 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/kustomize/api/filesys"
 	"sigs.k8s.io/kustomize/api/krusty"
+	"sigs.k8s.io/kustomize/kyaml/filesys"
 )
 
 type vmState string
@@ -925,7 +929,7 @@ func BuildAndApplyKustomization(ctx context.Context, input *BuildAndApplyKustomi
 		return err
 	}
 
-	err = clusterProxy.Apply(ctx, manifest)
+	err = clusterProxy.CreateOrUpdate(ctx, manifest)
 	if err != nil {
 		return err
 	}
@@ -997,4 +1001,42 @@ func buildKustomizeManifest(source string) ([]byte, error) {
 		return nil, err
 	}
 	return resources.AsYaml()
+}
+
+// CreateOrUpdateWithNamespace creates or updates objects using the clusterProxy client with specific namespace.
+func CreateOrUpdateWithNamespace(ctx context.Context, p framework.ClusterProxy, resources []byte, namespace string) error {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for CreateOrUpdate")
+	Expect(resources).NotTo(BeNil(), "resources is required for CreateOrUpdate")
+	objs, err := yaml.ToUnstructured(resources)
+	if err != nil {
+		return err
+	}
+	existingObject := &unstructured.Unstructured{}
+	var retErrs []error
+	for _, o := range objs {
+		o.SetNamespace(namespace)
+		objectKey := types.NamespacedName{
+			Name:      o.GetName(),
+			Namespace: o.GetNamespace(),
+		}
+		existingObject.SetAPIVersion(o.GetAPIVersion())
+		existingObject.SetKind(o.GetKind())
+		o := o
+		if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
+			// Expected error -- if the object does not exist, create it
+			if apierrors.IsNotFound(err) {
+				if err := p.GetClient().Create(ctx, &o); err != nil {
+					retErrs = append(retErrs, err)
+				}
+			} else {
+				retErrs = append(retErrs, err)
+			}
+		} else {
+			o.SetResourceVersion(existingObject.GetResourceVersion())
+			if err := p.GetClient().Update(ctx, &o); err != nil {
+				retErrs = append(retErrs, err)
+			}
+		}
+	}
+	return kerrors.NewAggregate(retErrs)
 }

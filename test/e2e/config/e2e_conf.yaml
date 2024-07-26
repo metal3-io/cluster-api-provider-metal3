@@ -182,7 +182,7 @@ variables:
 
   PROVIDER_ID_FORMAT: "metal3://{{ ds.meta_data.providerid }}"
   # Pin Calico version
-  CALICO_PATCH_RELEASE: "v3.25.1"
+  CALICO_PATCH_RELEASE: "v3.25.2"
   # Pin CertManager for upgrade tests
   CERT_MANAGER_RELEASE: v1.14.0
   # Default vars for the template, those values could be overridden by the env-vars.
