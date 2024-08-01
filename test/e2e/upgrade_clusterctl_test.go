@@ -81,12 +81,9 @@ var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [cl
 	})
 	AfterEach(func() {
 		// Recreate bmh that was used in capi namespace in metal3
-		//#nosec G204 -- We need to pass in the file name here.
-		cmd := exec.Command("bash", "-c", "kubectl apply -f bmhosts_crs.yaml  -n metal3")
-		cmd.Dir = workDir
-		output, err := cmd.CombinedOutput()
-		Logf("Applying bmh to metal3 namespace : \n %v", string(output))
-		Expect(err).ToNot(HaveOccurred())
+		resource, err := os.ReadFile(filepath.Join(workDir, "bmhosts_crs.yaml"))
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(CreateOrUpdateWithNamespace(ctx, bootstrapClusterProxy, resource, "metal3")).ShouldNot(HaveOccurred())
 		// wait for all bmh to become available
 		bootstrapClient := bootstrapClusterProxy.GetClient()
 		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
@@ -152,12 +149,9 @@ var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [cl
 	})
 	AfterEach(func() {
 		// Recreate bmh that was used in capi namespace in metal3
-		//#nosec G204 -- We need to pass in the file name here.
-		cmd := exec.Command("bash", "-c", "kubectl apply -f bmhosts_crs.yaml  -n metal3")
-		cmd.Dir = workDir
-		output, err := cmd.CombinedOutput()
-		Logf("Applying bmh to metal3 namespace : \n %v", string(output))
-		Expect(err).ToNot(HaveOccurred())
+		resource, err := os.ReadFile(filepath.Join(workDir, "bmhosts_crs.yaml"))
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(CreateOrUpdateWithNamespace(ctx, bootstrapClusterProxy, resource, "metal3")).ShouldNot(HaveOccurred())
 		// wait for all bmh to become available
 		bootstrapClient := bootstrapClusterProxy.GetClient()
 		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
@@ -190,14 +184,14 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 		for i := 0; i < 2; i++ {
 			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
+			Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
 		}
 	} else {
 		// Apply secrets and bmhs for [node_2, node_3 and node_4] in the management cluster to host workload cluster
 		for i := 2; i < 5; i++ {
 			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(clusterProxy.Apply(ctx, resource, []string{"-n", clusterNamespace}...)).ShouldNot(HaveOccurred())
+			Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
 		}
 	}
 }
@@ -211,7 +205,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 		Expect(err).ToNot(HaveOccurred(), "Unable to download certmanager manifest")
 		certManagerYaml, err := os.ReadFile("/tmp/certManager.yaml")
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(clusterProxy.Apply(ctx, certManagerYaml)).ShouldNot(HaveOccurred())
+		Expect(clusterProxy.CreateOrUpdate(ctx, certManagerYaml)).ShouldNot(HaveOccurred())
 
 		By("Wait for cert-manager pods to be available")
 		deploymentNameList := []string{}
