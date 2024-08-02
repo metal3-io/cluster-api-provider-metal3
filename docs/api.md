@@ -127,7 +127,7 @@ spec:
     rollingUpdate:
       maxSurge: 1
     type: RollingUpdate
-  version: v1.31.0-rc.0
+  version: v1.31.0
   kubeadmConfigSpec:
     joinConfiguration:
       controlPlane: {}
@@ -243,7 +243,7 @@ spec:
     namespace: metal3
   nodeDrainTimeout: 0s
   providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
-  version: v1.31.0-rc.0
+  version: v1.31.0
 ```
 
 ## Metal3Machine
@@ -413,10 +413,10 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   image:
-    checksum: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-rc.0-raw.img.sha256sum
+    checksum: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-raw.img.sha256sum
     checksumType: sha256
     format: raw
-    url: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-rc.0-raw.img
+    url: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-raw.img
   hostSelector:
     matchLabels:
       key1: value1
@@ -473,7 +473,7 @@ spec:
         name: md-0
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
-      version: v1.31.0-rc.0
+      version: v1.31.0
 ```
 
 ## KubeadmConfigTemplate
@@ -557,10 +557,10 @@ spec:
     spec:
       automatedCleaningMode: metadata
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-rc.0-raw.img.sha256sum
+        checksum: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-raw.img.sha256sum
         checksumType: sha256
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-rc.0-raw.img
+        url: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.31.0-raw.img
       hostSelector:
         matchLabels:
           key1: value1
