@@ -85,9 +85,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				}
 			}
 			if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() && tc.reconcileDeleteError {
-				m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
+				m.EXPECT().UpdateDatas(context.Background()).Return(0, errors.New(""))
 			} else if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() {
-				m.EXPECT().UpdateDatas(context.TODO()).Return(0, nil)
+				m.EXPECT().UpdateDatas(context.Background()).Return(0, nil)
 				m.EXPECT().UnsetFinalizer()
 			}
 
@@ -95,9 +95,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				tc.reconcileNormal {
 				m.EXPECT().SetFinalizer()
 				if tc.reconcileNormalError {
-					m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
+					m.EXPECT().UpdateDatas(context.Background()).Return(0, errors.New(""))
 				} else {
-					m.EXPECT().UpdateDatas(context.TODO()).Return(1, nil)
+					m.EXPECT().UpdateDatas(context.Background()).Return(1, nil)
 				}
 			}
 
