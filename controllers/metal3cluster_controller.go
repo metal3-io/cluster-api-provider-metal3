@@ -28,6 +28,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -53,6 +54,7 @@ const (
 // Metal3ClusterReconciler reconciles a Metal3Cluster object.
 type Metal3ClusterReconciler struct {
 	Client           client.Client
+	Tracker          *remote.ClusterCacheTracker
 	ManagerFactory   baremetal.ManagerFactoryInterface
 	Log              logr.Logger
 	WatchFilterValue string
@@ -124,11 +126,25 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle deleted clusters
 	if !metal3Cluster.DeletionTimestamp.IsZero() {
-		return reconcileDelete(ctx, clusterMgr)
+		res, err := reconcileDelete(ctx, clusterMgr)
+		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+		// the current cluster because of concurrent access.
+		if errors.Is(err, remote.ErrClusterLocked) {
+			clusterLog.Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return res, err
 	}
 
 	// Handle non-deleted clusters
-	return reconcileNormal(ctx, clusterMgr)
+	res, err := reconcileNormal(ctx, clusterMgr)
+	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+	// the current cluster because of concurrent access.
+	if errors.Is(err, remote.ErrClusterLocked) {
+		clusterLog.Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return res, err
 }
 
 func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cluster *infrav1.Metal3Cluster, options ...patch.Option) error {
