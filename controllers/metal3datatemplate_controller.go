@@ -26,6 +26,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -43,6 +44,7 @@ const (
 // Metal3DataTemplateReconciler reconciles a Metal3DataTemplate object.
 type Metal3DataTemplateReconciler struct {
 	Client           client.Client
+	Tracker          *remote.ClusterCacheTracker
 	ManagerFactory   baremetal.ManagerFactoryInterface
 	Log              logr.Logger
 	WatchFilterValue string
