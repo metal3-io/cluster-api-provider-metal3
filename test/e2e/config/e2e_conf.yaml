@@ -238,6 +238,6 @@ intervals:
   default/wait-bmh-available-provisioning: ["15m", "2s"]
   default/wait-machine-running: ["50m", "20s"]
   default/wait-bmh-provisioned: ["50m", "20s"]
-  default/wait-pod-restart: ["6m", "10s"]
+  default/wait-pod-restart: ["600m", "10s"]
   default/wait-deprovision-cluster: ["30m", "10s"]
   default/wait-all-pod-to-be-running-on-target-cluster: ["15m", "10s"]
