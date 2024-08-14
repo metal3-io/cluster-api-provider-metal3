@@ -5,6 +5,9 @@ set -x
 DIR_NAME="/tmp/target_cluster_logs"
 NAMESPACES="$(kubectl --kubeconfig="${KUBECONFIG_WORKLOAD}" get namespace -o jsonpath='{.items[*].metadata.name}')"
 mkdir -p "${DIR_NAME}"
+
+set +x
+
 for NAMESPACE in ${NAMESPACES}
 do
   mkdir -p "${DIR_NAME}/${NAMESPACE}"
