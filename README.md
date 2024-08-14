@@ -49,9 +49,9 @@ need to be manually installed. Example flow of installing Metal3 provider:
    level of the logging verbose with a positive integer number, ie. -v5.
 
    ```shell
-   clusterctl init --core cluster-api:v1.8.0 \
-       --bootstrap kubeadm:v1.8.0 \
-       --control-plane kubeadm:v1.8.0 -v5
+   clusterctl init --core cluster-api:v1.8.1 \
+       --bootstrap kubeadm:v1.8.1 \
+       --control-plane kubeadm:v1.8.1 -v5
    ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API
