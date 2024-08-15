@@ -24,8 +24,8 @@ require (
 	sigs.k8s.io/cluster-api v1.8.1
 	sigs.k8s.io/cluster-api/test v1.8.1
 	sigs.k8s.io/controller-runtime v0.18.5
-	sigs.k8s.io/kustomize/api v0.17.2
-	sigs.k8s.io/kustomize/kyaml v0.17.1
+	sigs.k8s.io/kustomize/api v0.17.3
+	sigs.k8s.io/kustomize/kyaml v0.17.2
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
