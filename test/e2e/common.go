@@ -417,6 +417,25 @@ func ListNodes(ctx context.Context, c client.Client) {
 	logTable("Listing Nodes", rows)
 }
 
+func CreateNewM3MachineTemplate(ctx context.Context, namespace string, newM3MachineTemplateName string, m3MachineTemplateName string, clusterClient client.Client, imageURL string, imageChecksum string) {
+	checksumType := "sha256"
+	imageFormat := "raw"
+
+	m3MachineTemplate := infrav1.Metal3MachineTemplate{}
+	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3MachineTemplate)).To(Succeed())
+
+	newM3MachineTemplate := m3MachineTemplate.DeepCopy()
+	cleanObjectMeta(&newM3MachineTemplate.ObjectMeta)
+
+	newM3MachineTemplate.Spec.Template.Spec.Image.URL = imageURL
+	newM3MachineTemplate.Spec.Template.Spec.Image.Checksum = imageChecksum
+	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = &imageFormat
+	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = &checksumType
+	newM3MachineTemplate.ObjectMeta.Name = newM3MachineTemplateName
+
+	Expect(clusterClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")
+}
+
 type WaitForNumInput struct {
 	Client    client.Client
 	Options   []client.ListOption

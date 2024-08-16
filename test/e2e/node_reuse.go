@@ -108,7 +108,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	m3MachineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
 	updateNodeReuse(ctx, input.Namespace, true, m3MachineTemplateName, managementClusterClient)
 	newM3MachineTemplateName := fmt.Sprintf("%s-new-controlplane", input.ClusterName)
-	createNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
+	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
 	Byf("Update KCP to upgrade k8s version and binaries from %s to %s [node_reuse]", kubernetesVersion, upgradedK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
@@ -330,7 +330,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	By("Set nodeReuse field to 'True' and create new Metal3MachineTemplate for MD with upgraded image to boot [node_reuse]")
 	updateNodeReuse(ctx, input.Namespace, true, m3MachineTemplateName, managementClusterClient)
 	newM3MachineTemplateName = fmt.Sprintf("%s-new-workers", input.ClusterName)
-	createNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
+	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
@@ -535,23 +535,4 @@ func deleteTaint(taints []corev1.Taint, taintsToDelete []corev1.Taint) ([]corev1
 		}
 	}
 	return newTaints, deleted
-}
-
-func createNewM3MachineTemplate(ctx context.Context, namespace string, newM3MachineTemplateName string, m3MachineTemplateName string, clusterClient client.Client, imageURL string, imageChecksum string) {
-	checksumType := "sha256"
-	imageFormat := "raw"
-
-	m3MachineTemplate := infrav1.Metal3MachineTemplate{}
-	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3MachineTemplate)).To(Succeed())
-
-	newM3MachineTemplate := m3MachineTemplate.DeepCopy()
-	cleanObjectMeta(&newM3MachineTemplate.ObjectMeta)
-
-	newM3MachineTemplate.Spec.Template.Spec.Image.URL = imageURL
-	newM3MachineTemplate.Spec.Template.Spec.Image.Checksum = imageChecksum
-	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = &imageFormat
-	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = &checksumType
-	newM3MachineTemplate.ObjectMeta.Name = newM3MachineTemplateName
-
-	Expect(clusterClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")
 }

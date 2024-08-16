@@ -8,7 +8,6 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -116,24 +115,23 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	Expect(machineDeployments).To(HaveLen(1), "Expected exactly 1 MachineDeployment")
 	md := machineDeployments[0]
 
+	// Download node image
+	Byf("Download image %s", kubernetesVersion)
+	imageURL, imageChecksum := EnsureImage(kubernetesVersion)
+
+	By("Create new worker Metal3MachineTemplate with upgraded image to boot")
+	m3MachineTemplateName := md.Spec.Template.Spec.InfrastructureRef.Name
+	newM3MachineTemplateName := fmt.Sprintf("%s-new", m3MachineTemplateName)
+	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
+
 	Byf("Update MachineDeployment maxUnavailable to number of workers and k8s version from %s to %s", fromK8sVersion, kubernetesVersion)
-	patch := []byte(fmt.Sprintf(`{
-		"spec": {
-			"strategy": {
-				"rollingUpdate": {
-					"maxSurge": 0,
-					"maxUnavailable": 3
-				}
-			},
-			"template": {
-				"spec": {
-					"version": "%s"
-				}
-			}
-		}
-	}`, kubernetesVersion))
-	err = managementClusterClient.Patch(ctx, md, client.RawPatch(types.MergePatchType, patch))
-	Expect(err).ToNot(HaveOccurred(), "Failed to patch MachineDeployment")
+	helper, err := patch.NewHelper(md, managementClusterClient)
+	Expect(err).NotTo(HaveOccurred())
+	md.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
+	md.Spec.Template.Spec.Version = &kubernetesVersion
+	md.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
+	md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 3
+	Expect(helper.Patch(ctx, md)).To(Succeed())
 
 	Byf("Wait until %d BMH(s) in deprovisioning state", 3)
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
@@ -143,6 +141,11 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-deprovisioning"),
 	})
 
+	ListBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClusterClient)
+
 	Byf("Wait until all %d machine(s) become(s) running", 4)
 	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
@@ -150,6 +153,11 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 		Replicas:  4,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
 	})
+
+	ListBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
+	ListNodes(ctx, targetClusterClient)
 
 	By("Get the IPPools in the cluster")
 	baremetalv4Pool, provisioningPool = GetIPPools(ctx, managementClusterClient, input.ClusterName, input.Namespace)
