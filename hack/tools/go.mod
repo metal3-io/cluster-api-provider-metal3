@@ -6,7 +6,7 @@ require (
 	github.com/drone/envsubst v1.0.3
 	github.com/golang/mock v1.6.0
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
-	k8s.io/code-generator v0.28.12
+	k8s.io/code-generator v0.28.13
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20230510161459-7571f4b9a942
 	sigs.k8s.io/controller-tools v0.13.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.3.0
@@ -60,9 +60,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.28.12 // indirect
-	k8s.io/apiextensions-apiserver v0.28.12 // indirect
-	k8s.io/apimachinery v0.28.12 // indirect
+	k8s.io/api v0.28.13 // indirect
+	k8s.io/apiextensions-apiserver v0.28.13 // indirect
+	k8s.io/apimachinery v0.28.13 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
