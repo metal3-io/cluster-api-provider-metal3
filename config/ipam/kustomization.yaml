@@ -3,7 +3,7 @@ kind: Kustomization
 
 # When updating the release, update also the image tag in image_patch.yaml
 resources:
-- https://github.com/metal3-io/ip-address-manager/releases/download/v1.7.1/ipam-components.yaml
+- https://github.com/metal3-io/ip-address-manager/releases/download/v1.8.0-rc.0/ipam-components.yaml
 
 patches:
 - path: image_patch.yaml
