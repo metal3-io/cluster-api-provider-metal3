@@ -48,6 +48,8 @@ manifests=(
   m3datatemplate
 )
 
+set +x
+
 NAMESPACES="$(kubectl --kubeconfig="${kconfig}" get namespace -o jsonpath='{.items[*].metadata.name}')"
 for NAMESPACE in ${NAMESPACES}; do
   for kind in "${manifests[@]}"; do
