@@ -3,13 +3,13 @@ package e2e
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	appv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -34,6 +34,7 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	ironicNamespace := input.E2EConfig.GetVariable("NAMEPREFIX") + "-system"
 	ironicDeploymentName := input.E2EConfig.GetVariable("NAMEPREFIX") + ironicSuffix
 	ironicDeployment, err := getDeployment(ctx, clusterClient, ironicDeploymentName, ironicNamespace)
+	Expect(err).ToNot(HaveOccurred(), "failed to get ironic deployment")
 	Eventually(func() error {
 		ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
 		if err != nil {
@@ -48,21 +49,6 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 
 	time.Sleep(5 * time.Minute)
 
-	By("Get the current number of time containers were restarted")
-	containerNumRestart := make(map[string]int32)
-	containerNumRestart["ironic-httpd"] = 0
-	if mariadbEnabled {
-		containerNumRestart["mariadb"] = 0
-	}
-	Expect(err).ToNot(HaveOccurred())
-	ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
-	Expect(err).ToNot(HaveOccurred())
-	for _, container := range ironicPod.Status.ContainerStatuses {
-		if _, exist := containerNumRestart[container.Name]; exist {
-			containerNumRestart[container.Name] = container.RestartCount
-		}
-	}
-
 	By("Force the cert-manager to regenerate the certificate by deleting the secrets")
 	secretList := []string{
 		"ironic-cert",
@@ -72,40 +58,35 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	}
 	for _, secretName := range secretList {
 		err := clientSet.CoreV1().Secrets(ironicNamespace).Delete(ctx, secretName, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred(), "Cannot detele this secret: %s", secretName)
+		Expect(err).ToNot(HaveOccurred(), "cannot delete this secret: %s", secretName)
 	}
+	By("Check if the secrets are deleted")
+	for _, secretName := range secretList {
+		_, err := clientSet.CoreV1().Secrets(ironicNamespace).Get(ctx, secretName, metav1.GetOptions{})
+		Expect(err).To(HaveOccurred(), secretName)
+		Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	}
+	By("Wait until secrets are recreated")
+	Eventually(func(g Gomega) {
+		_, err := clientSet.CoreV1().Secrets(ironicNamespace).Get(ctx, secretList[0], metav1.GetOptions{})
+		g.Expect(err).ToNot(HaveOccurred())
+		if mariadbEnabled {
+			_, err := clientSet.CoreV1().Secrets(ironicNamespace).Get(ctx, secretList[1], metav1.GetOptions{})
+			g.Expect(err).ToNot(HaveOccurred())
+		}
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-pod-restart")...).Should(Succeed())
 
-	By("Wait for containers in the ironic pod to be restarted")
-	Eventually(func() error {
+	// TODO(Sunnatillo): Further extend the test with querying ironic endpoint with new certificates
+	By("Check if all containers are running in ironic pod")
+	Consistently(func() error {
 		ironicPod, err := getPodFromDeployment(ctx, clientSet, ironicDeployment, ironicNamespace)
-		if err != nil {
-			return err
-		}
-		// check for container in containerNumRestart list
-		for container := range containerNumRestart {
-			notFound := true
-			for _, ironicContainer := range ironicPod.Status.ContainerStatuses {
-				if ironicContainer.Name == container {
-					notFound = false
-					break
-				}
-			}
-			if notFound {
-				return fmt.Errorf("%s container does not exist in Ironic pod", container)
-			}
-		}
-		if ironicPod.Status.Phase == corev1.PodRunning {
-			for _, container := range ironicPod.Status.ContainerStatuses {
-				if oldNumRestart, exist := containerNumRestart[container.Name]; exist {
-					if !(oldNumRestart < container.RestartCount) {
-						return fmt.Errorf("%s is not restarted", container.Name)
-					}
-				}
-			}
+		Expect(err).ToNot(HaveOccurred(), "cannot get ironic from Deployment")
+
+		if areAllContainersRunning(ironicPod) {
 			return nil
 		}
-		return errors.New("ironic pod is not in running state")
-	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-pod-restart")...).Should(BeNil())
+		return errors.New("not all containers are running")
+	}, 200*time.Second, 20*time.Second).Should(BeNil(), "not all containers are in running state in ironic pod")
 	By("CERTIFICATE ROTATION TESTS PASSED!")
 }
 
@@ -134,4 +115,13 @@ func getPodFromDeployment(ctx context.Context, clientSet *kubernetes.Clientset, 
 	}
 	Expect(podList.Items).To(HaveLen(1), "The number of ironic pod is not equal to 1, but %v\n", len(podList.Items))
 	return &podList.Items[0], nil
+}
+
+func areAllContainersRunning(pod *corev1.Pod) bool {
+	for _, containerStatus := range pod.Status.ContainerStatuses {
+		if containerStatus.State.Running == nil {
+			return false
+		}
+	}
+	return true
 }
