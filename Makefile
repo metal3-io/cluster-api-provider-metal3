@@ -57,7 +57,10 @@ KUSTOMIZE_BIN := kustomize
 KUSTOMIZE := $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)
 ENVSUBST_BIN := envsubst
 ENVSUBST := $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-drone
-SETUP_ENVTEST = $(TOOLS_BIN_DIR)/setup-envtest
+SETUP_ENVTEST_BIN := setup-envtest
+SETUP_ENVTEST = $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN))
+SETUP_ENVTEST_VER := release-0.19
+SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 GINKGO_BIN := ginkgo
 GINKGO := $(TOOLS_BIN_DIR)/$(GINKGO_BIN)
 GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
@@ -281,9 +284,8 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
-$(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && \
-	$(GO) build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
+$(SETUP_ENVTEST): 
+	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(SETUP_ENVTEST_PKG)@$(SETUP_ENVTEST_VER)
 
 .PHONY: $(GINKGO_BIN)
 $(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
