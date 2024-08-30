@@ -104,19 +104,16 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v1.5/metadata.yaml"
-      # https://proxy.golang.org/sigs.k8s.io/cluster-api/@v/list
 
-
-# https://proxy.golang.org/github.com/metal3-io/cluster-api-provider-metal3/@v/list
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.7}"
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.7}/infrastructure-components.yaml"
+  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.5}"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.5}/infrastructure-components.yaml"
     type: "url"
     contract: v1beta1
     files:
-    - sourcePath: "../data/infrastructure-metal3/v1.7/metadata.yaml"
+    - sourcePath: "../data/infrastructure-metal3/v1.5/metadata.yaml"
       targetName: "metadata.yaml"
     - sourcePath: "../_out/cluster-template-ubuntu.yaml"
       targetName: "cluster-template-ubuntu.yaml"
@@ -133,18 +130,18 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.5}"
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.5}/infrastructure-components.yaml"
+  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.7}"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.7}/infrastructure-components.yaml"
     type: "url"
     contract: v1beta1
     files:
-    - sourcePath: "../data/infrastructure-metal3/v1.5/metadata.yaml"
+    - sourcePath: "../data/infrastructure-metal3/v1.7/metadata.yaml"
       targetName: "metadata.yaml"
     - sourcePath: "../_out/cluster-template-ubuntu.yaml"
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.7.99
+  - name: v1.9.99
     value: "${PWD}/config/default"
     files:
     - sourcePath: "../data/infrastructure-metal3/main/metadata.yaml"
