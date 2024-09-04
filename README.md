@@ -4,7 +4,9 @@
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/metal3-io/cluster-api-provider-metal3/badge)](https://securityscorecards.dev/viewer/?uri=github.com/metal3-io/cluster-api-provider-metal3)
 [![Ubuntu E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-release-1-7&subject=Ubuntu%20E2E%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-release-1-7/)
 [![CentOS E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-release-1-7&subject=Centos%20E2E%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-release-1-7/)
-[![CentOS E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7/&subject=CentOS%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7-features/)
+[![CentOS E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7-features/&subject=CentOS%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7-features/)
+[![CentOS E2E pivot 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7-pivoting/&subject=CentOS%20E2E%20pivot%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7-pivoting/)
+[![CentOS E2E remediation 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7-remediation/&subject=CentOS%20E2E%20remediation%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7-remediation/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
