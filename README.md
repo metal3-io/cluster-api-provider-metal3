@@ -2,9 +2,9 @@
 
 [![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/metal3-io/badge)](https://clomonitor.io/projects/cncf/metal3-io)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/metal3-io/cluster-api-provider-metal3/badge)](https://securityscorecards.dev/viewer/?uri=github.com/metal3-io/cluster-api-provider-metal3)
-[![Ubuntu E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-release-1-7&subject=Ubuntu%20e2e%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-release-1-7/)
-[![CentOS E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-release-1-7&subject=Centos%20e2e%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-release-1-7/)
-[![CentOS E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7/&subject=CentOS%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7/)
+[![Ubuntu E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-release-1-7&subject=Ubuntu%20E2E%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-release-1-7/)
+[![CentOS E2E Integration 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-release-1-7&subject=Centos%20E2E%20integration%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-release-1-7/)
+[![CentOS E2E feature 1.7 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-7/&subject=CentOS%20E2E%20feature%201.7)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-7-features/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
@@ -168,8 +168,8 @@ without involving pivoting from the bootstrap cluster. To run basic tests use:
 
 - **/test metal3-ubuntu-e2e-basic-test-main** runs basic e2e tests with main
  branch on Ubuntu
-- **/test metal3-centos-e2e-basic-test-release-1-6** runs basic e2e tests on
- release-1.6 branch with centos
+- **/test metal3-centos-e2e-basic-test-release-1-7** runs basic e2e tests on
+ release-1.7 branch with centos
 
 ### Feature tests
 
