@@ -222,7 +222,7 @@ intervals:
   default/wait-vm-state: ["20m", "100ms"]
   default/monitor-vm-state: ["1m", "500ms"]
   default/monitor-provisioning: ["5m", "500ms"]
-  default/wait-deployment: ["10m", "10s"]
+  default/wait-deployment: ["15m", "10s"]
   default/wait-job: ["10m", "10s"]
   default/wait-service: ["10m", "10s"]
   default/wait-object-provisioned: ["10m", "10s"]
