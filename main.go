@@ -48,6 +48,7 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -67,12 +68,15 @@ const (
 var (
 	myscheme                         = runtime.NewScheme()
 	setupLog                         = ctrl.Log.WithName("setup")
+	controllerName                   = "cluster-api-provider-metal3-manager"
 	waitForMetal3Controller          = false
 	enableLeaderElection             bool
 	leaderElectionLeaseDuration      time.Duration
 	leaderElectionRenewDeadline      time.Duration
 	leaderElectionRetryPeriod        time.Duration
 	syncPeriod                       time.Duration
+	clusterCacheTrackerClientQPS     float32
+	clusterCacheTrackerClientBurst   int
 	metal3MachineConcurrency         int
 	metal3ClusterConcurrency         int
 	metal3DataTemplateConcurrency    int
@@ -120,7 +124,7 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
-	restConfig.UserAgent = "cluster-api-provider-metal3-manager"
+	restConfig.UserAgent = "controllerName"
 
 	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
@@ -267,6 +271,20 @@ func initFlags(fs *pflag.FlagSet) {
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
 	)
 
+	fs.Float32Var(
+		&clusterCacheTrackerClientQPS,
+		"clustercachetracker-client-qps",
+		20,
+		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.",
+	)
+
+	fs.IntVar(
+		&clusterCacheTrackerClientBurst,
+		"clustercachetracker-client-burst",
+		30,
+		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.",
+	)
+
 	fs.IntVar(
 		&webhookPort,
 		"webhook-port",
@@ -356,8 +374,37 @@ func setupChecks(mgr ctrl.Manager) {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+		HTTPClient: mgr.GetHTTPClient(),
+		Cache: &client.CacheOptions{
+			Reader: mgr.GetCache(),
+		},
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to create secret caching client")
+		os.Exit(1)
+	}
+
+	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
+	// requiring a connection to a remote cluster
+	tracker, err := remote.NewClusterCacheTracker(
+		mgr,
+		remote.ClusterCacheTrackerOptions{
+			SecretCachingClient: secretCachingClient,
+			ControllerName:      controllerName,
+			Log:                 &ctrl.Log,
+			ClientQPS:           clusterCacheTrackerClientQPS,
+			ClientBurst:         clusterCacheTrackerClientBurst,
+		},
+	)
+	if err != nil {
+		setupLog.Error(err, "Unable to create cluster cache tracker")
+		os.Exit(1)
+	}
+
 	if err := (&controllers.Metal3MachineReconciler{
 		Client:           mgr.GetClient(),
+		Tracker:          tracker,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Machine"),
 		CapiClientGetter: infraremote.NewClusterClient,
@@ -369,6 +416,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3ClusterReconciler{
 		Client:           mgr.GetClient(),
+		Tracker:          tracker,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Cluster"),
 		WatchFilterValue: watchFilterValue,
@@ -379,6 +427,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3DataTemplateReconciler{
 		Client:           mgr.GetClient(),
+		Tracker:          tracker,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3DataTemplate"),
 		WatchFilterValue: watchFilterValue,
@@ -389,6 +438,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3DataReconciler{
 		Client:           mgr.GetClient(),
+		Tracker:          tracker,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Data"),
 		WatchFilterValue: watchFilterValue,
@@ -399,6 +449,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3LabelSyncReconciler{
 		Client:           mgr.GetClient(),
+		Tracker:          tracker,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3LabelSync"),
 		CapiClientGetter: infraremote.NewClusterClient,
@@ -409,6 +460,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3MachineTemplateReconciler{
 		Client:         mgr.GetClient(),
+		Tracker:        tracker,
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:            ctrl.Log.WithName("controllers").WithName("Metal3MachineTemplate"),
 	}).SetupWithManager(ctx, mgr, concurrency(metal3MachineTemplateConcurrency)); err != nil {
@@ -422,6 +474,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 	if err := (&controllers.Metal3RemediationReconciler{
 		Client:                     mgr.GetClient(),
+		Tracker:                    tracker,
 		ManagerFactory:             baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:                        ctrl.Log.WithName("controllers").WithName("Metal3Remediation"),
 		IsOutOfServiceTaintEnabled: isOOSTSupported,
