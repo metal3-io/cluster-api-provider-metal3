@@ -33,6 +33,7 @@ function os_check() {
 }
 
 os_check
+export EPHEMERAL_TEST=true
 
 if [[ "${OS}" == ubuntu ]]; then
   export IMAGE_OS="ubuntu"

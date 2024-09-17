@@ -1511,9 +1511,6 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Metal3Machine.Name,
 			Namespace: m.Metal3Machine.Namespace,
-			Finalizers: []string{
-				infrav1.MachineFinalizer,
-			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: m.Metal3Machine.APIVersion,
@@ -1641,15 +1638,6 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 	}
 	if metal3DataClaim == nil {
 		return nil
-	}
-
-	metal3DataClaim.Finalizers = Filter(metal3DataClaim.Finalizers,
-		infrav1.MachineFinalizer,
-	)
-	err = updateObject(ctx, m.client, metal3DataClaim)
-	if err != nil && !apierrors.IsNotFound(err) {
-		m.Log.Info("Unable to remove finalizers from Metal3DataClaim", "Metal3DataClaim", metal3DataClaim.Name)
-		return err
 	}
 
 	return deleteObject(ctx, m.client, metal3DataClaim)

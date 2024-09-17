@@ -154,7 +154,7 @@ E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
 E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
 
 SKIP_CLEANUP ?= false
-EPHEMERAL_TEST ?= false
+EPHEMERAL_TEST = true
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
 ## Processes e2e_conf file
@@ -188,8 +188,8 @@ clusterclass-templates: $(KUSTOMIZE) ## Generate cluster templates
 ## E2E Testing
 ## --------------------------------------
 
-GINKGO_FOCUS ?=
-GINKGO_SKIP ?=
+GINKGO_FOCUS = features
+GINKGO_SKIP = null
 GINKGO_TIMEOUT ?= 6h
 
 ifneq ($(strip $(GINKGO_SKIP)),)

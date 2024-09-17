@@ -316,7 +316,6 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       dataName,
 			Namespace:  m.DataTemplate.Namespace,
-			Finalizers: []string{infrav1.DataClaimFinalizer},
 			Labels:     dataClaim.Labels,
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -403,17 +402,9 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 			dataClaim.Status.ErrorMessage = ptr.To("Failed to get associated Metal3Data object")
 			return indexes, err
 		} else if err == nil {
-			// Remove the finalizer
-			tmpM3Data.Finalizers = Filter(tmpM3Data.Finalizers,
-				infrav1.DataClaimFinalizer,
-			)
-			err = updateObject(ctx, m.client, tmpM3Data)
-			if err != nil && !apierrors.IsNotFound(err) {
-				m.Log.Info("Unable to remove finalizer from Metal3Data", "Metal3Data", tmpM3Data.Name)
-				return indexes, err
-			}
-			// Delete the Metal3Data
-			err = deleteObject(ctx, m.client, tmpM3Data)
+			// Delete the secret with metadata
+			m.Log.Info("Deleting Metal3Data", "Metal3Data", tmpM3Data.Name)
+			err = m.client.Delete(ctx, tmpM3Data)
 			if err != nil && !apierrors.IsNotFound(err) {
 				dataClaim.Status.ErrorMessage = ptr.To("Failed to delete associated Metal3Data object")
 				return indexes, err
