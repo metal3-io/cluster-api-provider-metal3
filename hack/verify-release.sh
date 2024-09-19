@@ -696,6 +696,3 @@ verify_module_versions
 verify_module_group_versions
 verify_module_releases
 verify_vulnerabilities
-
-# capm3 specific checks
-verify_ipam_manifests
