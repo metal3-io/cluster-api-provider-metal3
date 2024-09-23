@@ -159,6 +159,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectManager:        true,
 			reconcileDeleteError: true,
 			expectError:          true,
+			expectRequeue:        true,
 		}),
 		Entry("Paused cluster", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -292,7 +293,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(0, errors.New(""))
 			}
 
-			res, err := r.reconcileDelete(context.TODO(), m)
+			res, err := r.reconcileDelete(context.TODO(), m, logr.Discard())
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -307,14 +308,14 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			}
 
 		},
-		Entry("No error", reconcileDeleteTestCase{
+		Entry("No error, not ready", reconcileDeleteTestCase{
 			ExpectError:   false,
-			ExpectRequeue: false,
+			ExpectRequeue: true,
 		}),
 		Entry("Delete error", reconcileDeleteTestCase{
 			DeleteError:   true,
 			ExpectError:   true,
-			ExpectRequeue: false,
+			ExpectRequeue: true,
 		}),
 		Entry("Delete ready", reconcileDeleteTestCase{
 			ExpectError:   false,
