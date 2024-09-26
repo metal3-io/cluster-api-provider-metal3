@@ -1,4 +1,4 @@
-# Copyright 2021 The Kubernetes Authors.
+# Copyright 2024 The Kubernetes Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 ARG BUILD_IMAGE=docker.io/golang:1.22.7@sha256:192683db8982323952988c7b86c098ee7ecc6cbeb202bf7c113ff9be5358367c
 ARG BASE_IMAGE=gcr.io/distroless/static:nonroot@sha256:9ecc53c269509f63c69a266168e4a687c7eb8c0cfd753bd8bfcaa4f58a90876f
 
-# Build the manager binary on golang image
-FROM $BUILD_IMAGE as builder
+# Build the fkas binary on golang image
+FROM $BUILD_IMAGE AS base
 WORKDIR /workspace
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
@@ -25,33 +25,41 @@ ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
 # Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY api/go.mod api/go.mod
-COPY test/go.mod test/go.mod
-COPY go.sum go.sum
-COPY api/go.sum api/go.sum
-COPY test/go.sum test/go.sum
+COPY go.mod go.sum ./
+
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
 
+# Build Fkas
+FROM base AS build-fkas
+
 # Copy the sources
-COPY main.go main.go
-COPY api/ api/
-COPY baremetal/ baremetal/
-COPY controllers/ controllers/
+COPY cmd/metal3-fkas/*.go ./
 
 # Build
-ARG ARCH
+ARG ARCH=amd64
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -a -ldflags '-extldflags "-static"' \
-    -o manager .
+    -o fkas .
+
+# Build fkas-reconciler
+FROM base AS build-fkas-reconciler
+
+# Copy the sources
+COPY cmd/metal3-fkas-reconciler/*.go ./
+
+# Build
+ARG ARCH=amd64
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+    go build -a -ldflags '-extldflags "-static"' \
+    -o reconciler .
 
 # Copy the controller-manager into a thin image
-FROM $BASE_IMAGE AS final
-RUN apt-get update && apt-get install -y iptables && apt-get clean
+FROM $BASE_IMAGE
 WORKDIR /
-COPY --from=builder /workspace/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
+COPY --from=build-fkas /workspace/fkas .
+COPY --from=build-fkas-reconciler /workspace/reconciler .
 USER 65532
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/fkas"]

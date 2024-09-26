@@ -1,0 +1,27 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metal3-fake-api-server
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metal3-fkas
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: capim
+    spec:
+      containers:
+        - image: quay.io/metal3-io/metal3-fkas:latest
+          imagePullPolicy: IfNotPresent
+          name: metal3-fkas
+          env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
