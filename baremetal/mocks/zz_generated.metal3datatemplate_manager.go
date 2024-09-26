@@ -92,12 +92,13 @@ func (mr *MockDataTemplateManagerInterfaceMockRecorder) UnsetFinalizer() *gomock
 }
 
 // UpdateDatas mocks base method.
-func (m *MockDataTemplateManagerInterface) UpdateDatas(arg0 context.Context) (int, error) {
+func (m *MockDataTemplateManagerInterface) UpdateDatas(arg0 context.Context) (bool, bool, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateDatas", arg0)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(bool)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // UpdateDatas indicates an expected call of UpdateDatas.

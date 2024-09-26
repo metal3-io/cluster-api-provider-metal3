@@ -115,11 +115,14 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if !metal3Data.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Check if the Metal3DataClaim is gone. We cannot clean up until it is.
 		err := r.Client.Get(ctx, types.NamespacedName{Name: metal3Data.Spec.Claim.Name, Namespace: metal3Data.Spec.Claim.Namespace}, &infrav1.Metal3DataClaim{})
-		if err != nil && apierrors.IsNotFound(err) {
-			return r.reconcileDelete(ctx, metadataMgr)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return r.reconcileDelete(ctx, metadataMgr)
+			}
+			return ctrl.Result{}, err
 		}
-		// We were unable to determine if the Metal3DataClaim is gone
-		return ctrl.Result{}, err
+		// Requeue until Metal3DataClaim is gone.
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	// Handle non-deleted machines
