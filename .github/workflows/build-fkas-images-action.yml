@@ -1,0 +1,25 @@
+name: build-fkas-images-action
+
+on:
+  push:
+    branches:
+    - 'main'
+    paths:
+    - 'hack/fake-apiserver/**'
+
+permissions:
+  contents: read
+
+jobs:
+  build_FKAS:
+    name: Build Metal3-FKAS image
+    if: github.repository == 'metal3-io/cluster-api-provider-metal3'
+    uses: metal3-io/project-infra/.github/workflows/container-image-build.yml@main
+    with:
+      image-name: "metal3-fkas"
+      pushImage: true
+      dockerfile-directory: hack/fake-apiserver
+    secrets:
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+      SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
