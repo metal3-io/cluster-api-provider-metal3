@@ -140,7 +140,7 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 	// If the Metal3DataTemplate doesn't have finalizer, add it.
 	dataTemplateMgr.SetFinalizer()
 
-	_, err := dataTemplateMgr.UpdateDatas(ctx)
+	_, _, err := dataTemplateMgr.UpdateDatas(ctx)
 	if err != nil {
 		return checkReconcileError(err, "Failed to recreate the status")
 	}
@@ -150,16 +150,19 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 	dataTemplateMgr baremetal.DataTemplateManagerInterface,
 ) (ctrl.Result, error) {
-	allocationsCount, err := dataTemplateMgr.UpdateDatas(ctx)
+	hasData, hasClaims, err := dataTemplateMgr.UpdateDatas(ctx)
 	if err != nil {
 		return checkReconcileError(err, "Failed to recreate the status")
 	}
 
-	if allocationsCount == 0 {
-		// metal3datatemplate is marked for deletion and ready to be deleted,
-		// so remove the finalizer.
-		dataTemplateMgr.UnsetFinalizer()
+	if hasClaims {
+		return ctrl.Result{}, nil
 	}
+	if hasData {
+		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	}
+
+	dataTemplateMgr.UnsetFinalizer()
 
 	return ctrl.Result{}, nil
 }
