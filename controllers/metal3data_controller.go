@@ -79,6 +79,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		err := helper.Patch(ctx, metal3Data)
 		if err != nil {
 			metadataLog.Info("failed to Patch Metal3Data")
+			rerr = err
 		}
 	}()
 

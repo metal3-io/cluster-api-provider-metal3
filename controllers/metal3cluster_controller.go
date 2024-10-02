@@ -88,6 +88,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	defer func() {
 		if err := patchMetal3Cluster(ctx, patchHelper, metal3Cluster); err != nil {
 			clusterLog.Error(err, "failed to Patch metal3Cluster")
+			rerr = err
 		}
 	}()
 

@@ -91,6 +91,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		err := helper.Patch(ctx, metal3DataTemplate)
 		if err != nil {
 			log.Info("failed to Patch Metal3DataTemplate")
+			rerr = err
 		}
 	}()
 
