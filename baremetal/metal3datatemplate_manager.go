@@ -40,8 +40,8 @@ type DataTemplateManagerInterface interface {
 	UnsetFinalizer()
 	SetClusterOwnerRef(*clusterv1.Cluster) error
 	// UpdateDatas handles the Metal3DataClaims and creates or deletes Metal3Data accordingly.
-	// It returns the number of current allocations.
-	UpdateDatas(context.Context) (int, error)
+	// It returns if there are still Data object and undeleted DataClaims objects.
+	UpdateDatas(context.Context) (bool, bool, error)
 }
 
 // DataTemplateManager is responsible for performing machine reconciliation.
@@ -135,12 +135,7 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, e
 			continue
 		}
 
-		// Get the claim Name, if unset use empty string, to still record the
-		// index being used, to avoid conflicts
-		claimName := ""
-		if dataObject.Spec.Claim.Name != "" {
-			claimName = dataObject.Spec.Claim.Name
-		}
+		claimName := dataObject.Spec.Claim.Name
 		m.DataTemplate.Status.Indexes[claimName] = dataObject.Spec.Index
 		indexes[dataObject.Spec.Index] = claimName
 	}
@@ -170,12 +165,13 @@ func (m *DataTemplateManager) updateStatusTimestamp() {
 }
 
 // UpdateDatas handles the Metal3DataClaims and creates or deletes Metal3Data accordingly.
-// It returns the number of current allocations.
-func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
+// It returns if there are still Data object and undeleted DataClaims objects.
+func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, error) {
 	indexes, err := m.getIndexes(ctx)
 	if err != nil {
-		return 0, err
+		return false, false, err
 	}
+	hasData := len(indexes) > 0
 
 	// get list of Metal3DataClaim objects
 	dataClaimObjects := infrav1.Metal3DataClaimList{}
@@ -186,9 +182,10 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
 
 	err = m.client.List(ctx, &dataClaimObjects, opts)
 	if err != nil {
-		return 0, err
+		return false, false, err
 	}
 
+	hasClaims := false
 	// Iterate over the Metal3Data objects to find all indexes and objects
 	for _, dataClaim := range dataClaimObjects.Items {
 		dataClaim := dataClaim
@@ -196,18 +193,20 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (int, error) {
 		if dataClaim.Spec.Template.Name != m.DataTemplate.Name {
 			continue
 		}
-
-		if dataClaim.Status.RenderedData != nil && dataClaim.DeletionTimestamp.IsZero() {
-			continue
+		if dataClaim.DeletionTimestamp.IsZero() {
+			hasClaims = true
+			if dataClaim.Status.RenderedData != nil {
+				continue
+			}
 		}
 
 		indexes, err = m.updateData(ctx, &dataClaim, indexes)
 		if err != nil {
-			return 0, err
+			return false, false, err
 		}
 	}
 	m.updateStatusTimestamp()
-	return len(indexes), nil
+	return hasData, hasClaims, nil
 }
 
 func (m *DataTemplateManager) updateData(ctx context.Context,
