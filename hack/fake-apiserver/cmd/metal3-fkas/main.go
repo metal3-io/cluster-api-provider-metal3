@@ -17,13 +17,13 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
 	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/manager"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -56,6 +56,45 @@ type ResourceData struct {
 	Port         int
 }
 
+// copyPodFromBootstrapCluster finds a pod based on namespace and label
+// the bootstrap cluster and applies it to the workload cluster
+func copyPodFromBootstrapCluster(
+	ctx context.Context,
+	bootstrapClient *client.Client,
+	workloadClient *client.WithWatch,
+	podNs string,
+	matchingLabels client.MatchingLabels,
+) error {
+	// Get the pod with label control-plane=controller-manager
+	pods := &corev1.PodList{}
+	err := (*bootstrapClient).List(ctx, pods, client.InNamespace(podNs), matchingLabels)
+	if err != nil || len(pods.Items) == 0 {
+		setupLog.Error(err, fmt.Sprintf("Failed to get pod with labels: %s", matchingLabels))
+		return err
+	}
+
+	// Ensure the namespace exists
+	namespace := pods.Items[0].Namespace
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+	if err = (*workloadClient).Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
+		setupLog.Error(err, "Failed to create namespace", "namespace", namespace)
+		return err
+	}
+
+	// Apply the pod to the specified namespace
+	pod := pods.Items[0].DeepCopy()
+	pod.SetNamespace(namespace)
+	if err = (*bootstrapClient).Create(ctx, pod); err != nil {
+		setupLog.Error(err, "Failed to apply pod to namespace", "podName", pod.Name, "namespace", namespace)
+		return err
+	}
+	return nil
+}
+
 // register receives a resourceName, ca and etcd secrets (key+cert) from a request
 // and generates a fake k8s API server corresponding with the provided name and secrets.
 func register(w http.ResponseWriter, r *http.Request) {
@@ -86,7 +125,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		setupLog.Error(err, "Failed to initialize listener", "resourceName", resourceName)
 		http.Error(w, "Failed to initialize listener", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to Initialize listener")
 		return
 	}
 	// NOTE: The two params are name of the listener and name of the resource group
@@ -308,7 +346,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create Kubernetes client
+	// Create bootstrap cluster client
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		setupLog.Error(err, "Error getting context kubeconfig")
@@ -324,11 +362,34 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := mgr.GetClient()
+	bootstrapClient := mgr.GetClient()
 
+	copyPodFromBootstrapCluster(
+		ctx,
+		&bootstrapClient,
+		&c,
+		"capi-system",
+		client.MatchingLabels{"cluster.x-k8s.io/provider": "cluster-api"},
+	)
+
+	copyPodFromBootstrapCluster(
+		ctx,
+		&bootstrapClient,
+		&c,
+		"capi-kubeadm-bootstrap-system",
+		client.MatchingLabels{"cluster.x-k8s.io/provider": "bootstrap-kubeadm"},
+	)
+
+	copyPodFromBootstrapCluster(
+		ctx,
+		&bootstrapClient,
+		&c,
+		"capi-kubeadm-control-plane-system",
+		client.MatchingLabels{"cluster.x-k8s.io/provider": "control-plane-kubeadm"},
+	)
 	// Get the pod with label control-plane=controller-manager
 	pods := &corev1.PodList{}
-	err = client.List(ctx, pods, client.InNamespace("capi-system"), client.MatchingLabels{"control-plane": "controller-manager"})
+	err = bootstrapClient.List(ctx, pods, client.InNamespace("capi-system"), client.MatchingLabels{"control-plane": "controller-manager"})
 	if err != nil || len(pods.Items) == 0 {
 		setupLog.Error(err, "Failed to get controller-manager pod")
 		http.Error(w, "Failed to get controller-manager pod", http.StatusInternalServerError)
@@ -387,6 +448,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	nodeLabels["metal3.io/uuid"] = requestData.UUID
 
 	listener := cloudMgr.GetResourceGroup(requestData.ResourceName)
+	c := listener.GetClient()
 	timeOutput := metav1.Now()
 
 	node := &corev1.Node{
@@ -441,7 +503,6 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
-	c := listener.GetClient()
 	err := c.Create(ctx, node)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
