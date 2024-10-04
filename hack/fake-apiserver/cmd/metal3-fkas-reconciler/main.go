@@ -86,6 +86,7 @@ func main() {
 			requestData := map[string]interface{}{
 				"resource":   fmt.Sprintf("%s/%s", m3m.Namespace, clusterName),
 				"nodeName":   m3m.Name,
+				"namespace":  m3m.Namespace,
 				"providerID": providerID,
 				"uuid":       string(uuid),
 				"labels":     labels,

@@ -197,7 +197,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kubeadm:get-nodes",
 		},
-		Namespace: metav1.NamespaceDefault,
 		Rules: []rbacv1.PolicyRule{
 			{
 				Verbs:     []string{"get"},
@@ -261,6 +260,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		ResourceName string            `json:"resource"`
 		UUID         string            `json:"uuid"`
 		NodeName     string            `json:"nodeName"`
+		Namespace    string            `json:"namespace"`
 		ProviderID   string            `json:"providerID"`
 		Labels       map[string]string `json:"labels"`
 	}
