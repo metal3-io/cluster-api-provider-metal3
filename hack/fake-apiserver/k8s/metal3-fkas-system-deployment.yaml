@@ -11,7 +11,7 @@ metadata:
   name: metal3-fkas-role
 rules:
 - apiGroups: ["metal3.io", "infrastructure.cluster.x-k8s.io"]
-  resources: ["baremetalhosts", "metal3machines"]
+  resources: ["baremetalhosts", "metal3machines", "pod"]
   verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -39,6 +39,9 @@ spec:
     image: quay.io/metal3-io/metal3-fkas:latest
     imagePullPolicy: IfNotPresent
     command: ["/reconciler"]
+    env:
+    - name: DEBUG
+      value: "true"
   - image: quay.io/metal3-io/metal3-fkas:latest
     imagePullPolicy: IfNotPresent
     env:
@@ -46,4 +49,6 @@ spec:
       valueFrom:
         fieldRef:
           fieldPath: status.podIP
+    - name: DEBUG
+      value: "true"
     name: metal3-fkas
