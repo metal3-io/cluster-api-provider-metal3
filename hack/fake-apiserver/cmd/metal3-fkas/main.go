@@ -197,6 +197,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kubeadm:get-nodes",
 		},
+		Namespace: metav1.NamespaceDefault,
 		Rules: []rbacv1.PolicyRule{
 			{
 				Verbs:     []string{"get"},
@@ -358,7 +359,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		if apierrors.IsAlreadyExists(err) {
 			setupLog.Info("Lease already exists", "leaseName", requestData.NodeName)
 		} else {
-			setupLog.Error(err, "Error creating lease", "leaseName", requestData.NodeName)
+			setupLog.Error(err, "Error creating lease", "leaseName", requestData.NodeName, "namespace", metav1.NamespaceDefault)
 			http.Error(w, "Error creating lease", http.StatusInternalServerError)
 			return
 		}
