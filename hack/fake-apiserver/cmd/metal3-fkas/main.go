@@ -19,6 +19,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
+	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/manager"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -326,12 +328,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	client := mgr.GetClient()
 
 	// Get the pod with label control-plane=controller-manager
-	pods := &corev1.PodList{}
-	err = client.List(ctx, pods, &client.ListOptions{
-		Namespace: "capi-system",
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			"control-plane": "controller-manager",
-		}),
+	pods, err := clientset.CoreV1().Pods("capi-system").List(ctx, metav1.ListOptions{
 		LabelSelector: "control-plane=controller-manager",
 	})
 	if err != nil || len(pods.Items) == 0 {
