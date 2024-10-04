@@ -340,12 +340,25 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Apply the pod to the fake cluster
+	// Ensure the namespace exists
+	namespace := pods.Items[0].Namespace
+	ns := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: namespace,
+		},
+	}
+	if err = c.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
+		setupLog.Error(err, "Failed to create namespace", "namespace", namespace)
+		http.Error(w, "Failed to create namespace", http.StatusInternalServerError)
+		return
+	}
+
+	// Apply the pod to the specified namespace
 	pod := pods.Items[0].DeepCopy()
-	pod.SetNamespace(metav1.NamespaceDefault) // Set the namespace to default for the fake cluster
+	pod.SetNamespace(namespace)
 	if err = c.Create(ctx, pod); err != nil {
-		setupLog.Error(err, "Failed to apply controller-manager pod to fake cluster")
-		http.Error(w, "Failed to apply controller-manager pod to fake cluster", http.StatusInternalServerError)
+		setupLog.Error(err, "Failed to apply controller-manager pod to namespace", "namespace", namespace)
+		http.Error(w, "Failed to apply controller-manager pod to namespace", http.StatusInternalServerError)
 		return
 	}
 
