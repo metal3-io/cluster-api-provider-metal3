@@ -345,6 +345,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("Created node object: %v\n", node)
+	microTimeNow := metav1.NewMicroTime(time.Now())
 	lease := &coordinationv1.Lease{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      requestData.NodeName,
@@ -352,7 +353,9 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		},
 		Spec: coordinationv1.LeaseSpec{
 			HolderIdentity:       &requestData.NodeName,
-			LeaseDurationSeconds: int32Ptr(30),
+			LeaseDurationSeconds: int32Ptr(600),
+			AcquireTime:          &microTimeNow,
+			RenewTime:            &microTimeNow,
 		},
 	}
 
