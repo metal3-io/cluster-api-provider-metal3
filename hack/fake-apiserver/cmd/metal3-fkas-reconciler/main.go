@@ -23,9 +23,9 @@ import (
 func main() {
 	// Set up logger
 	debug := os.Getenv("DEBUG")
-	logLevel := zap.Level(0) // Default log level
+	logLevel := zapcore.InfoLevel // Default log level
 	if debug == "true" {
-		logLevel = zap.Level(4) // Set log level to 4 if DEBUG=true
+		logLevel = zapcore.DebugLevel // Set log level to Debug if DEBUG=true
 	}
 	log.SetLogger(zap.New(zap.UseDevMode(true), zap.Level(logLevel)))
 
