@@ -336,7 +336,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		logLine := fmt.Sprintf("Error adding node %s: %s", requestData.NodeName, err)
-		setupLog.Error(err, "Error adding node:", requestData.NodeName)
+		fmt.Println(err, "Error adding node:", requestData.NodeName)
 		http.Error(w, logLine, http.StatusInternalServerError)
 		return
 	}
