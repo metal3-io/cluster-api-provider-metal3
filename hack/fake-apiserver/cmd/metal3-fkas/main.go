@@ -326,7 +326,12 @@ func register(w http.ResponseWriter, r *http.Request) {
 	client := mgr.GetClient()
 
 	// Get the pod with label control-plane=controller-manager
-	pods, err := clientset.CoreV1().Pods("capi-system").List(ctx, metav1.ListOptions{
+	pods := &corev1.PodList{}
+	err = client.List(ctx, pods, &client.ListOptions{
+		Namespace: "capi-system",
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			"control-plane": "controller-manager",
+		}),
 		LabelSelector: "control-plane=controller-manager",
 	})
 	if err != nil || len(pods.Items) == 0 {
