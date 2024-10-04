@@ -368,7 +368,12 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	log.SetLogger(zap.New(zap.UseDevMode(true)))
+	debug := os.Getenv("DEBUG")
+	logLevel := zap.Level(0) // Default log level
+	if debug == "true" {
+		logLevel = zap.Level(4) // Set log level to 4 if DEBUG=true
+	}
+	log.SetLogger(zap.New(zap.UseDevMode(true), zap.Level(logLevel)))
 	podIP := os.Getenv("POD_IP")
 	apiServerMux, _ = server.NewWorkloadClustersMux(cloudMgr, podIP)
 	setupLog.Info("Starting the FKAS server")

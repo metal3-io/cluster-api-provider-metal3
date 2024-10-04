@@ -22,7 +22,12 @@ import (
 
 func main() {
 	// Set up logger
-	log.SetLogger(zap.New(zap.UseDevMode(true)))
+	debug := os.Getenv("DEBUG")
+	logLevel := zap.Level(0) // Default log level
+	if debug == "true" {
+		logLevel = zap.Level(4) // Set log level to 4 if DEBUG=true
+	}
+	log.SetLogger(zap.New(zap.UseDevMode(true), zap.Level(logLevel)))
 
 	// Create a Kubernetes client
 	config, err := rest.InClusterConfig()
