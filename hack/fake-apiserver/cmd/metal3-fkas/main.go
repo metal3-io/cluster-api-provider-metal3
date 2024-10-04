@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"bytes"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -302,6 +303,41 @@ func register(w http.ResponseWriter, r *http.Request) {
 	if err = c.Create(ctx, daemonSet); err != nil {
 		setupLog.Error(err, "Failed to create kube-proxy DaemonSet", "resourceName", resourceName)
 		http.Error(w, "Failed to create kube-proxy DaemonSet", http.StatusInternalServerError)
+		return
+	}
+
+	// Create Kubernetes client
+	kubeconfig := os.Getenv("KUBECONFIG")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	if err != nil {
+		setupLog.Error(err, "Failed to build kubeconfig")
+		http.Error(w, "Failed to build kubeconfig", http.StatusInternalServerError)
+		return
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		setupLog.Error(err, "Failed to create Kubernetes client")
+		http.Error(w, "Failed to create Kubernetes client", http.StatusInternalServerError)
+		return
+	}
+
+	// Get the pod with label control-plane=controller-manager
+	pods, err := clientset.CoreV1().Pods("capi-system").List(ctx, metav1.ListOptions{
+		LabelSelector: "control-plane=controller-manager",
+	})
+	if err != nil || len(pods.Items) == 0 {
+		setupLog.Error(err, "Failed to get controller-manager pod")
+		http.Error(w, "Failed to get controller-manager pod", http.StatusInternalServerError)
+		return
+	}
+
+	// Apply the pod to the fake cluster
+	pod := pods.Items[0]
+	pod.Namespace = metav1.NamespaceDefault // Set the namespace to default for the fake cluster
+	if err = c.Create(ctx, &pod); err != nil {
+		setupLog.Error(err, "Failed to apply controller-manager pod to fake cluster")
+		http.Error(w, "Failed to apply controller-manager pod to fake cluster", http.StatusInternalServerError)
 		return
 	}
 
