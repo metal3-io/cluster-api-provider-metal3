@@ -197,8 +197,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "kubeadm:get-nodes",
-			AcquireTime:         &timeOutput,
-			RenewTime:           &timeOutput,
 		},
 		Rules: []rbacv1.PolicyRule{
 			{
