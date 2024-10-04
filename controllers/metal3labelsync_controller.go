@@ -105,6 +105,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		err := helper.Patch(ctx, host)
 		if err != nil {
 			controllerLog.Info("Failed to Patch BareMetalHost")
+			rerr = err
 		}
 	}()
 

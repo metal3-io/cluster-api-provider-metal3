@@ -77,6 +77,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 		err := helper.Patch(ctx, metal3MachineTemplate)
 		if err != nil {
 			m3templateLog.Info("failed to patch Metal3MachineTemplate")
+			rerr = err
 		}
 	}()
 

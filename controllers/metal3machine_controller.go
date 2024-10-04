@@ -96,6 +96,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	defer func() {
 		if err := patchMetal3Machine(ctx, patchHelper, capm3Machine); err != nil {
 			machineLog.Error(err, "failed to Patch metal3Machine")
+			rerr = err
 		}
 	}()
 
