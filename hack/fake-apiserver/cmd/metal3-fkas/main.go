@@ -361,6 +361,18 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go func() {
+		if err := mgr.Start(ctx); err != nil {
+			setupLog.Error(err, "Failed to start manager")
+		}
+	}()
+
+	if !mgr.GetCache().WaitForCacheSync(ctx) {
+		setupLog.Error(fmt.Errorf("cache sync failed"), "Failed to sync cache")
+		http.Error(w, "Failed to sync cache", http.StatusInternalServerError)
+		return
+	}
+
 	bootstrapClient := mgr.GetClient()
 
 	copyPodFromBootstrapCluster(
