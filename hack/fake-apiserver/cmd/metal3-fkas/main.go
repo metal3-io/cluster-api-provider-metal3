@@ -23,6 +23,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -326,8 +327,12 @@ func register(w http.ResponseWriter, r *http.Request) {
 	client := mgr.GetClient()
 
 	// Get the pod with label control-plane=controller-manager
-	pods, err := clientset.CoreV1().Pods("capi-system").List(ctx, metav1.ListOptions{
-		LabelSelector: "control-plane=controller-manager",
+	pods := &corev1.PodList{}
+	err = client.List(ctx, pods, &client.ListOptions{
+		Namespace: "capi-system",
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			"control-plane": "controller-manager",
+		}),
 	})
 	if err != nil || len(pods.Items) == 0 {
 		setupLog.Error(err, "Failed to get controller-manager pod")
@@ -336,9 +341,9 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Apply the pod to the fake cluster
-	pod := pods.Items[0]
-	pod.Namespace = metav1.NamespaceDefault // Set the namespace to default for the fake cluster
-	if err = c.Create(ctx, &pod); err != nil {
+	pod := pods.Items[0].DeepCopy()
+	pod.SetNamespace(metav1.NamespaceDefault) // Set the namespace to default for the fake cluster
+	if err = c.Create(ctx, pod); err != nil {
 		setupLog.Error(err, "Failed to apply controller-manager pod to fake cluster")
 		http.Error(w, "Failed to apply controller-manager pod to fake cluster", http.StatusInternalServerError)
 		return
