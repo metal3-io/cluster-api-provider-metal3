@@ -353,9 +353,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to get context kubeconfig", http.StatusInternalServerError)
 		return
 	}
-	scheme := runtime.NewScheme()
 
-	mgr, err := manager.New(config, manager.Options{Scheme: scheme})
+	mgr, err := manager.New(config, manager.Options{Scheme: cloudScheme})
 	if err != nil {
 		setupLog.Error(err, "Failed to create manager")
 		http.Error(w, "Failed to create Kubernetes client", http.StatusInternalServerError)
