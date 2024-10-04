@@ -256,7 +256,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			nbIndexes, err := templateMgr.UpdateDatas(context.TODO())
+			hasData, _, err := templateMgr.UpdateDatas(context.TODO())
 			if tc.expectRequeue || tc.expectError {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
@@ -267,7 +267,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
-			Expect(nbIndexes).To(Equal(tc.expectedNbIndexes))
+			Expect(hasData).To(Equal(tc.expectedNbIndexes > 0))
 			Expect(tc.template.Status.LastUpdated.IsZero()).To(BeFalse())
 			Expect(tc.template.Status.Indexes).To(Equal(tc.expectedIndexes))
 
