@@ -328,12 +328,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 
 	// Get the pod with label control-plane=controller-manager
 	pods := &corev1.PodList{}
-	err = client.List(ctx, pods, &client.ListOptions{
-		Namespace: "capi-system",
-		LabelSelector: labels.SelectorFromSet(map[string]string{
-			"control-plane": "controller-manager",
-		}),
-	})
+	err = client.List(ctx, pods, client.InNamespace("capi-system"), client.MatchingLabels{"control-plane": "controller-manager"})
 	if err != nil || len(pods.Items) == 0 {
 		setupLog.Error(err, "Failed to get controller-manager pod")
 		http.Error(w, "Failed to get controller-manager pod", http.StatusInternalServerError)
