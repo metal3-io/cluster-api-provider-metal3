@@ -55,6 +55,7 @@ type ResourceData struct {
 // register receives a resourceName, ca and etcd secrets (key+cert) from a request
 // and generates a fake k8s API server corresponding with the provided name and secrets.
 func register(w http.ResponseWriter, r *http.Request) {
+	setupLog.Info("Received request to /updateNode")
 	var requestData struct {
 		ResourceName string `json:"resource"`
 		CaKey        string `json:"caKey"`
@@ -64,6 +65,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
+		setupLog.Error(err, "Failed to decode request body")
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		setupLog.Error(err, "Invalid JSON in request body")
 		return
@@ -268,6 +270,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	setupLog.Info("Decoded request data", "nodeName", requestData.NodeName, "providerID", requestData.ProviderID)
 	nodeLabels := requestData.Labels
 	nodeLabels["metal3.io/uuid"] = requestData.UUID
 
