@@ -10,6 +10,7 @@ import (
 	"os"
 	"time"
 
+	"go.uber.org/zap/zapcore"
 	appsv1 "k8s.io/api/apps/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,7 +23,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/certs"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"go.uber.org/zap/zapcore"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
@@ -347,7 +347,8 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("Created node object: %v\n", node)
 	lease := &coordinationv1.Lease{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: requestData.NodeName,
+			Name:      requestData.NodeName,
+			Namespace: "kube-node-lease",
 		},
 		Spec: coordinationv1.LeaseSpec{
 			HolderIdentity:       &requestData.NodeName,
