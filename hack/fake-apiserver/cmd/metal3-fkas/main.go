@@ -125,8 +125,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apiServerPod1 := "kube-apiserver-1"
-	err = apiServerMux.AddAPIServer(resourceName, apiServerPod1, caCert, caKey.(*rsa.PrivateKey))
+	apiServerPod := fmt.Sprintf("kube-apiserver-%s", resourceName)
+	err = apiServerMux.AddAPIServer(resourceName, apiServerPod, caCert, caKey.(*rsa.PrivateKey))
 	if err != nil {
 		setupLog.Error(err, "Failed to generate etcdCert", "resourceName", resourceName)
 		http.Error(w, "Failed to generate etcdCert", http.StatusInternalServerError)
@@ -168,8 +168,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//
-	etcdPodMember1 := "etcd-1"
-	err = apiServerMux.AddEtcdMember(resourceName, etcdPodMember1, etcdCert, etcdKey.(*rsa.PrivateKey))
+	etcdPodMember := fmt.Sprintf("etcd-%s", resourceName)
+	err = apiServerMux.AddEtcdMember(resourceName, etcdPodMember, etcdCert, etcdKey.(*rsa.PrivateKey))
 	if err != nil {
 		setupLog.Error(err, "failed to add etcd member")
 		http.Error(w, "", http.StatusInternalServerError)
@@ -276,7 +276,6 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 
 	listener := cloudMgr.GetResourceGroup(requestData.ResourceName)
 	timeOutput := metav1.Now()
-	setupLog.Info("Updating node", "resource: ", requestData.ResourceName, "nodeName: ", requestData.NodeName, "providerID:", requestData.ProviderID)
 
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -343,6 +342,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, logLine, http.StatusInternalServerError)
 		return
 	}
+	fmt.Printf("Created node object: %v\n", node)
 	lease := &coordinationv1.Lease{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: requestData.NodeName,
@@ -363,6 +363,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+	fmt.Printf("Created lease object: %v\n", lease)
 }
 
 func main() {
