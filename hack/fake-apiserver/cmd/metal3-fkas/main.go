@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"bytes"
 	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
@@ -19,14 +18,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	rest "k8s.io/client-go/rest"
 	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/manager"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var (
@@ -309,20 +308,22 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create Kubernetes client
-	kubeconfig := os.Getenv("KUBECONFIG")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+	config, err := rest.InClusterConfig()
 	if err != nil {
-		setupLog.Error(err, "Failed to build kubeconfig")
-		http.Error(w, "Failed to build kubeconfig", http.StatusInternalServerError)
+		setupLog.Error(err, "Error getting context kubeconfig")
+		http.Error(w, "Failed to get context kubeconfig", http.StatusInternalServerError)
 		return
 	}
+	scheme := runtime.NewScheme()
 
-	clientset, err := kubernetes.NewForConfig(config)
+	mgr, err := manager.New(config, manager.Options{Scheme: scheme})
 	if err != nil {
-		setupLog.Error(err, "Failed to create Kubernetes client")
+		setupLog.Error(err, "Failed to create manager")
 		http.Error(w, "Failed to create Kubernetes client", http.StatusInternalServerError)
 		return
 	}
+
+	client := mgr.GetClient()
 
 	// Get the pod with label control-plane=controller-manager
 	pods, err := clientset.CoreV1().Pods("capi-system").List(ctx, metav1.ListOptions{
