@@ -247,6 +247,64 @@ func register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	// Create kube-proxy DaemonSet
+	daemonSet := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kube-proxy",
+			Namespace: "kube-system",
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"k8s-app": "kube-proxy",
+				},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"k8s-app": "kube-proxy",
+					},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "kube-proxy",
+							Image: "k8s.gcr.io/kube-proxy:v1.21.0", // Use appropriate version
+							Command: []string{
+								"kube-proxy",
+								"--config=/var/lib/kube-proxy/config.conf",
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "kube-proxy",
+									MountPath: "/var/lib/kube-proxy",
+								},
+							},
+						},
+					},
+					Volumes: []corev1.Volume{
+						{
+							Name: "kube-proxy",
+							VolumeSource: corev1.VolumeSource{
+								ConfigMap: &corev1.ConfigMapVolumeSource{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "kube-proxy",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err = c.Create(ctx, daemonSet); err != nil {
+		setupLog.Error(err, "Failed to create kube-proxy DaemonSet", "resourceName", resourceName)
+		http.Error(w, "Failed to create kube-proxy DaemonSet", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	if _, err = w.Write(data); err != nil {
 		setupLog.Error(err, "failed to write the response data")
