@@ -30,6 +30,11 @@ import (
 )
 
 var (
+	etcdCertMap = make(map[string][]byte)
+	etcdKeyMap  = make(map[string][]byte)
+)
+
+var (
 	cloudScheme     = runtime.NewScheme()
 	bootstrapScheme = runtime.NewScheme()
 	cloudMgr        cmanager.Manager
@@ -215,6 +220,10 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//
+	// Store etcdCert and etcdKey in global maps
+	etcdCertMap[resourceName] = etcdCertRaw
+	etcdKeyMap[resourceName] = etcdKeyRaw
+
 	etcdPodMember := fmt.Sprintf("etcd-%s", resourceName)
 	err = apiServerMux.AddEtcdMember(resourceName, etcdPodMember, etcdCert, etcdKey.(*rsa.PrivateKey))
 	if err != nil {
