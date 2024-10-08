@@ -6,10 +6,12 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"time"
 
+	"github.com/pkg/errors"
 	"go.uber.org/zap/zapcore"
 	appsv1 "k8s.io/api/apps/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
@@ -18,7 +20,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	rest "k8s.io/client-go/rest"
 	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/manager"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -26,15 +27,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var (
-	cloudScheme  = runtime.NewScheme()
-	cloudMgr     cmanager.Manager
-	setupLog     = ctrl.Log.WithName("setup")
-	apiServerMux = &server.WorkloadClustersMux{}
-	ctx          = context.Background()
+	cloudScheme     = runtime.NewScheme()
+	bootstrapScheme = runtime.NewScheme()
+	cloudMgr        cmanager.Manager
+	setupLog        = ctrl.Log.WithName("setup")
+	apiServerMux    = &server.WorkloadClustersMux{}
+	ctx             = context.Background()
 )
 
 func init() {
@@ -42,6 +43,9 @@ func init() {
 	_ = corev1.AddToScheme(cloudScheme)
 	_ = appsv1.AddToScheme(cloudScheme)
 	_ = rbacv1.AddToScheme(cloudScheme)
+	_ = corev1.AddToScheme(bootstrapScheme)
+	_ = appsv1.AddToScheme(bootstrapScheme)
+	_ = rbacv1.AddToScheme(bootstrapScheme)
 	_ = coordinationv1.AddToScheme(cloudScheme)
 	cloudMgr = cmanager.New(cloudScheme)
 }
@@ -88,7 +92,7 @@ func copyPodFromBootstrapCluster(
 	// Apply the pod to the specified namespace
 	pod := pods.Items[0].DeepCopy()
 	pod.SetNamespace(namespace)
-	if err = (*bootstrapClient).Create(ctx, pod); err != nil {
+	if err = (*workloadClient).Create(ctx, pod); err != nil {
 		setupLog.Error(err, "Failed to apply pod to namespace", "podName", pod.Name, "namespace", namespace)
 		return err
 	}
@@ -129,7 +133,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 	// NOTE: The two params are name of the listener and name of the resource group
 	// we are setting both of them to resourceName for convenience, but it is not required.
-	if err := apiServerMux.RegisterResourceGroup(resourceName, resourceName); err != nil {
+	listenerName := resourceName
+	if err := apiServerMux.RegisterResourceGroup(listenerName, resourceName); err != nil {
 		setupLog.Error(err, "Failed to register resource group to listener", "resourceName", resourceName)
 		http.Error(w, "Failed to register resource group to listener", http.StatusInternalServerError)
 		setupLog.Error(err, "failed to Register resource group to listener")
@@ -288,6 +293,21 @@ func register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	// create kubelet config map
+	kubeletCm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubelet-config",
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			"ClusterConfiguration": "",
+		},
+	}
+	if err = c.Create(ctx, kubeletCm); err != nil {
+		setupLog.Error(err, "Failed to create kubelet configmap", "resourceName", resourceName)
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 	// Create kube-proxy DaemonSet
 	daemonSet := &appsv1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -346,88 +366,56 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create bootstrap cluster client
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		setupLog.Error(err, "Error getting context kubeconfig")
-		http.Error(w, "Failed to get context kubeconfig", http.StatusInternalServerError)
-		return
-	}
+	// // Create bootstrap cluster client
+	// config, err := rest.InClusterConfig()
+	// if err != nil {
+	// 	setupLog.Error(err, "Error getting context kubeconfig")
+	// 	http.Error(w, "Failed to get context kubeconfig", http.StatusInternalServerError)
+	// 	return
+	// }
+	//
+	// bootstrapClient, err := client.New(config, client.Options{})
+	// if err != nil {
+	// 	setupLog.Error(err, "Error creating bootstrap cluster client")
+	// 	http.Error(w, "Failed to get bootstrap cluster client", http.StatusInternalServerError)
+	// 	return
+	// }
 
-	mgr, err := manager.New(config, manager.Options{Scheme: cloudScheme})
-	if err != nil {
-		setupLog.Error(err, "Failed to create manager")
-		http.Error(w, "Failed to create Kubernetes client", http.StatusInternalServerError)
-		return
-	}
-
-	go func() {
-		if err := mgr.Start(ctx); err != nil {
-			setupLog.Error(err, "Failed to start manager")
-		}
-	}()
-
-	if !mgr.GetCache().WaitForCacheSync(ctx) {
-		setupLog.Error(fmt.Errorf("cache sync failed"), "Failed to sync cache")
-		http.Error(w, "Failed to sync cache", http.StatusInternalServerError)
-		return
-	}
-
-	bootstrapClient := mgr.GetClient()
-
-	copyPodFromBootstrapCluster(
-		ctx,
-		&bootstrapClient,
-		&c,
-		"capi-system",
-		client.MatchingLabels{"cluster.x-k8s.io/provider": "cluster-api"},
-	)
-
-	copyPodFromBootstrapCluster(
-		ctx,
-		&bootstrapClient,
-		&c,
-		"capi-kubeadm-bootstrap-system",
-		client.MatchingLabels{"cluster.x-k8s.io/provider": "bootstrap-kubeadm"},
-	)
-
-	copyPodFromBootstrapCluster(
-		ctx,
-		&bootstrapClient,
-		&c,
-		"capi-kubeadm-control-plane-system",
-		client.MatchingLabels{"cluster.x-k8s.io/provider": "control-plane-kubeadm"},
-	)
-	// Get the pod with label control-plane=controller-manager
-	pods := &corev1.PodList{}
-	err = bootstrapClient.List(ctx, pods, client.InNamespace("capi-system"), client.MatchingLabels{"control-plane": "controller-manager"})
-	if err != nil || len(pods.Items) == 0 {
-		setupLog.Error(err, "Failed to get controller-manager pod")
-		http.Error(w, "Failed to get controller-manager pod", http.StatusInternalServerError)
-		return
-	}
-
-	// Ensure the namespace exists
-	namespace := pods.Items[0].Namespace
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}
-	if err = c.Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-		setupLog.Error(err, "Failed to create namespace", "namespace", namespace)
-		http.Error(w, "Failed to create namespace", http.StatusInternalServerError)
-		return
-	}
-
-	// Apply the pod to the specified namespace
-	pod := pods.Items[0].DeepCopy()
-	pod.SetNamespace(namespace)
-	if err = c.Create(ctx, pod); err != nil {
-		setupLog.Error(err, "Failed to apply controller-manager pod to namespace", "namespace", namespace)
-		http.Error(w, "Failed to apply controller-manager pod to namespace", http.StatusInternalServerError)
-		return
-	}
+	// if err := copyPodFromBootstrapCluster(
+	// 	ctx,
+	// 	&bootstrapClient,
+	// 	&c,
+	// 	"capi-system",
+	// 	client.MatchingLabels{"cluster.x-k8s.io/provider": "cluster-api"},
+	// ); err != nil {
+	// 	setupLog.Error(err, "Failed to create controller-manager pod")
+	// 	http.Error(w, "Failed to create controller-manager pod", http.StatusInternalServerError)
+	// 	return
+	// }
+	//
+	// if err := copyPodFromBootstrapCluster(
+	// 	ctx,
+	// 	&bootstrapClient,
+	// 	&c,
+	// 	"capi-kubeadm-bootstrap-system",
+	// 	client.MatchingLabels{"cluster.x-k8s.io/provider": "bootstrap-kubeadm"},
+	// ); err != nil {
+	// 	setupLog.Error(err, "Failed to create kubeadm-bootstrap pod")
+	// 	http.Error(w, "Failed to create kubeadm-bootstrap pod", http.StatusInternalServerError)
+	// 	return
+	// }
+	//
+	// if err := copyPodFromBootstrapCluster(
+	// 	ctx,
+	// 	&bootstrapClient,
+	// 	&c,
+	// 	"capi-kubeadm-control-plane-system",
+	// 	client.MatchingLabels{"cluster.x-k8s.io/provider": "control-plane-kubeadm"},
+	// ); err != nil {
+	// 	setupLog.Error(err, "Failed to create kubeadm-control-plane pod")
+	// 	http.Error(w, "Failed to create kubeadm-control-plane pod", http.StatusInternalServerError)
+	// 	return
+	// }
 
 	w.Header().Set("Content-Type", "application/json")
 	if _, err = w.Write(data); err != nil {
@@ -552,6 +540,79 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	fmt.Printf("Created lease object: %v\n", lease)
+	inmemoryClient := cloudMgr.GetResourceGroup(resourceName).GetClient()
+
+	// Create the etcd pod
+	// TODO: consider if to handle an additional setting adding a delay in between create pod and pod ready
+	etcdPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceSystem,
+			Name:      etcdPodMember,
+			Labels: map[string]string{
+				"component": "etcd",
+				"tier":      "control-plane",
+			},
+		},
+		Spec: corev1.PodSpec{
+			NodeName: inMemoryMachine.Name,
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			Conditions: []corev1.PodCondition{
+				{
+					Type:   corev1.PodReady,
+					Status: corev1.ConditionTrue,
+				},
+			},
+		},
+	}
+	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get etcd Pod")
+		}
+
+		// Gets info about the current etcd cluster, if any.
+		info, err := r.getEtcdInfo(ctx, inmemoryClient)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// If this is the first etcd member in the cluster, assign a cluster ID
+		if info.clusterID == "" {
+			for {
+				info.clusterID = fmt.Sprintf("%d", rand.Uint32()) //nolint:gosec // weak random number generator is good enough here
+				if info.clusterID != "0" {
+					break
+				}
+			}
+		}
+
+		// Computes a unique memberID.
+		var memberID string
+		for {
+			memberID = fmt.Sprintf("%d", rand.Uint32()) //nolint:gosec // weak random number generator is good enough here
+			if !info.members.Has(memberID) && memberID != "0" {
+				break
+			}
+		}
+
+		// Annotate the pod with the info about the etcd cluster.
+		etcdPod.Annotations = map[string]string{
+			cloudv1.EtcdClusterIDAnnotationName: info.clusterID,
+			cloudv1.EtcdMemberIDAnnotationName:  memberID,
+		}
+
+		// If the etcd cluster is being created it doesn't have a leader yet, so set this member as a leader.
+		if info.leaderID == "" {
+			etcdPod.Annotations[cloudv1.EtcdLeaderFromAnnotationName] = time.Now().Format(time.RFC3339)
+		}
+
+		// NOTE: for the first control plane machine we might create the etcd pod before the API server pod is running
+		// but this is not an issue, because it won't be visible to CAPI until the API server start serving requests.
+		if err := inmemoryClient.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to create Pod")
+		}
+	}
 }
 
 func main() {
