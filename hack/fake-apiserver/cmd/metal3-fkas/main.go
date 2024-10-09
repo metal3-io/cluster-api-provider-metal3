@@ -11,7 +11,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/pkg/errors"
 	"go.uber.org/zap/zapcore"
 	appsv1 "k8s.io/api/apps/v1"
 	coordinationv1 "k8s.io/api/coordination/v1"
@@ -30,17 +29,17 @@ import (
 )
 
 var (
-	etcdCertMap = make(map[string][]byte)
-	etcdKeyMap  = make(map[string][]byte)
-)
-
-var (
 	cloudScheme     = runtime.NewScheme()
 	bootstrapScheme = runtime.NewScheme()
 	cloudMgr        cmanager.Manager
 	setupLog        = ctrl.Log.WithName("setup")
 	apiServerMux    = &server.WorkloadClustersMux{}
 	ctx             = context.Background()
+	caCertMap       = make(map[string][]byte)
+	caKeyMap        = make(map[string][]byte)
+	etcdCertMap     = make(map[string][]byte)
+	etcdKeyMap      = make(map[string][]byte)
+	etcdInfoMap     = make(map[string]etcdInfo)
 )
 
 func init() {
@@ -55,59 +54,10 @@ func init() {
 	cloudMgr = cmanager.New(cloudScheme)
 }
 
-func int32Ptr(i int32) *int32 {
-	return &i
-}
-
-type ResourceData struct {
-	ResourceName string
-	Host         string
-	Port         int
-}
-
-// copyPodFromBootstrapCluster finds a pod based on namespace and label
-// the bootstrap cluster and applies it to the workload cluster
-func copyPodFromBootstrapCluster(
-	ctx context.Context,
-	bootstrapClient *client.Client,
-	workloadClient *client.WithWatch,
-	podNs string,
-	matchingLabels client.MatchingLabels,
-) error {
-	// Get the pod with label control-plane=controller-manager
-	pods := &corev1.PodList{}
-	err := (*bootstrapClient).List(ctx, pods, client.InNamespace(podNs), matchingLabels)
-	if err != nil || len(pods.Items) == 0 {
-		setupLog.Error(err, fmt.Sprintf("Failed to get pod with labels: %s", matchingLabels))
-		return err
-	}
-
-	// Ensure the namespace exists
-	namespace := pods.Items[0].Namespace
-	ns := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: namespace,
-		},
-	}
-	if err = (*workloadClient).Create(ctx, ns); err != nil && !apierrors.IsAlreadyExists(err) {
-		setupLog.Error(err, "Failed to create namespace", "namespace", namespace)
-		return err
-	}
-
-	// Apply the pod to the specified namespace
-	pod := pods.Items[0].DeepCopy()
-	pod.SetNamespace(namespace)
-	if err = (*workloadClient).Create(ctx, pod); err != nil {
-		setupLog.Error(err, "Failed to apply pod to namespace", "podName", pod.Name, "namespace", namespace)
-		return err
-	}
-	return nil
-}
-
 // register receives a resourceName, ca and etcd secrets (key+cert) from a request
 // and generates a fake k8s API server corresponding with the provided name and secrets.
 func register(w http.ResponseWriter, r *http.Request) {
-	setupLog.Info("Received request to /updateNode")
+	setupLog.Info("Received request to /register")
 	var requestData struct {
 		ResourceName string `json:"resource"`
 		CaKey        string `json:"caKey"`
@@ -162,29 +112,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	caCert, err := certs.DecodeCertPEM(caCertRaw)
-	if err != nil {
-		setupLog.Error(err, "Failed to add API server", "resourceName", resourceName)
-		http.Error(w, "Failed to add API server", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to decode caCertPEM")
-		return
-	}
-	caKey, err := certs.DecodePrivateKeyPEM(caKeyRaw)
-	if err != nil {
-		setupLog.Error(err, "Failed to generate etcdKey", "resourceName", resourceName)
-		http.Error(w, "Failed to generate etcdKey", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to decode caKeyPEM")
-		return
-	}
-
-	apiServerPod := fmt.Sprintf("kube-apiserver-%s", resourceName)
-	err = apiServerMux.AddAPIServer(resourceName, apiServerPod, caCert, caKey.(*rsa.PrivateKey))
-	if err != nil {
-		setupLog.Error(err, "Failed to generate etcdCert", "resourceName", resourceName)
-		http.Error(w, "Failed to generate etcdCert", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to add API server")
-		return
-	}
 	etcdKeyEncoded := requestData.EtcdKey
 	etcdKeyRaw, err := base64.StdEncoding.DecodeString(etcdKeyEncoded)
 	if err != nil {
@@ -201,34 +128,38 @@ func register(w http.ResponseWriter, r *http.Request) {
 		setupLog.Error(err, "failed to generate etcdKey")
 		return
 	}
-	//
-	etcdCert, err := certs.DecodeCertPEM(etcdCertRaw)
-	if err != nil {
-		http.Error(w, "", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to generate etcdKey")
-		return
-	}
-	etcdKey, err := certs.DecodePrivateKeyPEM(etcdKeyRaw)
-	if err != nil {
-		http.Error(w, "", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to generate etcdKey")
-		return
-	}
-	if etcdKey == nil {
-		http.Error(w, "", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to generate etcdKey")
-		return
-	}
-	//
-	// Store etcdCert and etcdKey in global maps
+
+	// Store certs and keys in global maps
+	caCertMap[resourceName] = caCertRaw
+	caKeyMap[resourceName] = caKeyRaw
 	etcdCertMap[resourceName] = etcdCertRaw
 	etcdKeyMap[resourceName] = etcdKeyRaw
 
-	etcdPodMember := fmt.Sprintf("etcd-%s", resourceName)
-	err = apiServerMux.AddEtcdMember(resourceName, etcdPodMember, etcdCert, etcdKey.(*rsa.PrivateKey))
+	caCert, err := certs.DecodeCertPEM(caCertRaw)
 	if err != nil {
-		setupLog.Error(err, "failed to add etcd member")
-		http.Error(w, "", http.StatusInternalServerError)
+		setupLog.Error(err, "Failed to add API server", "resourceName", resourceName)
+		http.Error(w, "Failed to add API server", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to decode caCertPEM")
+		return
+	}
+
+	caKey, err := certs.DecodePrivateKeyPEM(caKeyRaw)
+	if err != nil {
+		setupLog.Error(err, "Failed to generate etcdKey", "resourceName", resourceName)
+		http.Error(w, "Failed to generate etcdKey", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to decode caKeyPEM")
+		return
+	}
+
+	// In our workflow, we need to have an API server initialized before we can
+	// create the cluster, so we create a server instance whose name equals the cluster
+	// name before having any control plane.
+	apiServerPod := resourceName
+	err = apiServerMux.AddAPIServer(resourceName, apiServerPod, caCert, caKey.(*rsa.PrivateKey))
+	if err != nil {
+		setupLog.Error(err, "Failed to generate etcdCert", "resourceName", resourceName)
+		http.Error(w, "Failed to generate etcdCert", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to add API server")
 		return
 	}
 
@@ -247,7 +178,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
-	ctx := context.Background()
 
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -375,57 +305,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// // Create bootstrap cluster client
-	// config, err := rest.InClusterConfig()
-	// if err != nil {
-	// 	setupLog.Error(err, "Error getting context kubeconfig")
-	// 	http.Error(w, "Failed to get context kubeconfig", http.StatusInternalServerError)
-	// 	return
-	// }
-	//
-	// bootstrapClient, err := client.New(config, client.Options{})
-	// if err != nil {
-	// 	setupLog.Error(err, "Error creating bootstrap cluster client")
-	// 	http.Error(w, "Failed to get bootstrap cluster client", http.StatusInternalServerError)
-	// 	return
-	// }
-
-	// if err := copyPodFromBootstrapCluster(
-	// 	ctx,
-	// 	&bootstrapClient,
-	// 	&c,
-	// 	"capi-system",
-	// 	client.MatchingLabels{"cluster.x-k8s.io/provider": "cluster-api"},
-	// ); err != nil {
-	// 	setupLog.Error(err, "Failed to create controller-manager pod")
-	// 	http.Error(w, "Failed to create controller-manager pod", http.StatusInternalServerError)
-	// 	return
-	// }
-	//
-	// if err := copyPodFromBootstrapCluster(
-	// 	ctx,
-	// 	&bootstrapClient,
-	// 	&c,
-	// 	"capi-kubeadm-bootstrap-system",
-	// 	client.MatchingLabels{"cluster.x-k8s.io/provider": "bootstrap-kubeadm"},
-	// ); err != nil {
-	// 	setupLog.Error(err, "Failed to create kubeadm-bootstrap pod")
-	// 	http.Error(w, "Failed to create kubeadm-bootstrap pod", http.StatusInternalServerError)
-	// 	return
-	// }
-	//
-	// if err := copyPodFromBootstrapCluster(
-	// 	ctx,
-	// 	&bootstrapClient,
-	// 	&c,
-	// 	"capi-kubeadm-control-plane-system",
-	// 	client.MatchingLabels{"cluster.x-k8s.io/provider": "control-plane-kubeadm"},
-	// ); err != nil {
-	// 	setupLog.Error(err, "Failed to create kubeadm-control-plane pod")
-	// 	http.Error(w, "Failed to create kubeadm-control-plane pod", http.StatusInternalServerError)
-	// 	return
-	// }
-
 	w.Header().Set("Content-Type", "application/json")
 	if _, err = w.Write(data); err != nil {
 		setupLog.Error(err, "failed to write the response data")
@@ -454,14 +333,16 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	setupLog.Info("Decoded request data", "nodeName", requestData.NodeName, "providerID", requestData.ProviderID)
 	nodeLabels := requestData.Labels
 	nodeLabels["metal3.io/uuid"] = requestData.UUID
+	resourceName := requestData.ResourceName
+	nodeName := requestData.NodeName
 
-	listener := cloudMgr.GetResourceGroup(requestData.ResourceName)
+	listener := cloudMgr.GetResourceGroup(resourceName)
 	c := listener.GetClient()
 	timeOutput := metav1.Now()
 
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   requestData.NodeName,
+			Name:   nodeName,
 			Labels: nodeLabels,
 		},
 		Spec: corev1.NodeSpec{
@@ -514,12 +395,12 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	err := c.Create(ctx, node)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			setupLog.Info("Node already exists", "nodeName", requestData.NodeName)
+			setupLog.Info("Node already exists", "nodeName", nodeName)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		logLine := fmt.Sprintf("Error adding node %s: %s", requestData.NodeName, err)
-		fmt.Println(err, "Error adding node:", requestData.NodeName)
+		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
+		fmt.Println(err, "Error adding node:", nodeName)
 		http.Error(w, logLine, http.StatusInternalServerError)
 		return
 	}
@@ -527,11 +408,11 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	microTimeNow := metav1.NewMicroTime(time.Now())
 	lease := &coordinationv1.Lease{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      requestData.NodeName,
+			Name:      nodeName,
 			Namespace: "kube-node-lease",
 		},
 		Spec: coordinationv1.LeaseSpec{
-			HolderIdentity:       &requestData.NodeName,
+			HolderIdentity:       &nodeName,
 			LeaseDurationSeconds: int32Ptr(600),
 			AcquireTime:          &microTimeNow,
 			RenewTime:            &microTimeNow,
@@ -541,18 +422,263 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	err = c.Create(ctx, lease)
 	if err != nil {
 		if apierrors.IsAlreadyExists(err) {
-			setupLog.Info("Lease already exists", "leaseName", requestData.NodeName)
+			setupLog.Info("Lease already exists", "leaseName", nodeName)
 		} else {
-			setupLog.Error(err, "Error creating lease", "leaseName", requestData.NodeName, "namespace", metav1.NamespaceDefault)
+			setupLog.Error(err, "Error creating lease", "leaseName", nodeName, "namespace", metav1.NamespaceDefault)
 			http.Error(w, "Error creating lease", http.StatusInternalServerError)
 			return
 		}
 	}
 	fmt.Printf("Created lease object: %v\n", lease)
-	inmemoryClient := cloudMgr.GetResourceGroup(resourceName).GetClient()
+
+	// If the node is not a control-plane, we're done here
+	_, isControlPlane := nodeLabels["cluster.x-k8s.io/control-plane"]
+
+	if !isControlPlane {
+		return
+	}
+
+	// Create apiServer pod if the node is a control-plane
+	caCertRaw, ok := caCertMap[resourceName]
+	if !ok {
+		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
+		fmt.Printf("caCert not found for resource: %s\n", resourceName)
+		http.Error(w, logLine, http.StatusInternalServerError)
+		return
+	}
+
+	caKeyRaw, ok := caKeyMap[requestData.ResourceName]
+	if !ok {
+		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
+		fmt.Printf("caKey not found for resource: %s\n", resourceName)
+		http.Error(w, logLine, http.StatusInternalServerError)
+		return
+	}
+
+	caCert, err := certs.DecodeCertPEM(caCertRaw)
+	if err != nil {
+		setupLog.Error(err, "Failed to add API server", "resourceName", resourceName)
+		http.Error(w, "Failed to add API server", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to decode caCertPEM")
+		return
+	}
+
+	caKey, err := certs.DecodePrivateKeyPEM(caKeyRaw)
+	if err != nil {
+		setupLog.Error(err, "Failed to generate etcdKey", "resourceName", resourceName)
+		http.Error(w, "Failed to generate etcdKey", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to decode caKeyPEM")
+		return
+	}
+
+	apiServerPodName := nodeName
+	err = apiServerMux.AddAPIServer(resourceName, apiServerPodName, caCert, caKey.(*rsa.PrivateKey))
+	if err != nil {
+		setupLog.Error(err, "Failed to generate etcdCert", "resourceName", resourceName)
+		http.Error(w, "Failed to generate etcdCert", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to add API server")
+		return
+	}
+
+	// Create the apiserver pod
+	apiServer := fmt.Sprintf("kube-apiserver-%s", nodeName)
+
+	apiServerPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceSystem,
+			Name:      apiServer,
+			Labels: map[string]string{
+				"component": "kube-apiserver",
+				"tier":      "control-plane",
+			},
+		},
+		Spec: corev1.PodSpec{
+			NodeName: nodeName,
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			Conditions: []corev1.PodCondition{
+				{
+					Type:               corev1.PodReadyToStartContainers,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodInitialized,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.ContainersReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodScheduled,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+			},
+		},
+	}
+
+	if err := c.Create(ctx, apiServerPod); err != nil && !apierrors.IsAlreadyExists(err) {
+		setupLog.Error(err, "failed to create api server pod")
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	// Create the controllerManager pod
+	controllerManagerPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("kube-controller-manager-%s", nodeName),
+			Labels: map[string]string{
+				"component": "kube-controller-manager",
+				"tier":      "control-plane",
+			},
+		},
+		Spec: corev1.PodSpec{
+			NodeName: nodeName,
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			Conditions: []corev1.PodCondition{
+				{
+					Type:               corev1.PodReadyToStartContainers,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodInitialized,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.ContainersReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodScheduled,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+			},
+		},
+	}
+
+	if err := c.Create(ctx, controllerManagerPod); err != nil && !apierrors.IsAlreadyExists(err) {
+		setupLog.Error(err, "failed to create controllerManager pod")
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	// Create schedulerPod
+	schedulerPod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceSystem,
+			Name:      fmt.Sprintf("kube-scheduler-%s", nodeName),
+			Labels: map[string]string{
+				"component": "kube-scheduler",
+				"tier":      "control-plane",
+			},
+		},
+		Spec: corev1.PodSpec{
+			NodeName: nodeName,
+		},
+		Status: corev1.PodStatus{
+			Phase: corev1.PodRunning,
+			Conditions: []corev1.PodCondition{
+				{
+					Type:               corev1.PodReadyToStartContainers,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodInitialized,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.ContainersReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodScheduled,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+			},
+		},
+	}
+
+	if err := c.Create(ctx, schedulerPod); err != nil && !apierrors.IsAlreadyExists(err) {
+		setupLog.Error(err, "failed to create scheduler Pod")
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
+	// Creating Etcd member
+	etcdCertRaw, ok := etcdCertMap[resourceName]
+	if !ok {
+		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
+		fmt.Printf("etcdCert not found for resource: %s\n", resourceName)
+		http.Error(w, logLine, http.StatusInternalServerError)
+		return
+	}
+
+	etcdKeyRaw, ok := etcdKeyMap[resourceName]
+	if !ok {
+		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
+		fmt.Printf("etcdKey not found for resource: %s\n", resourceName)
+		http.Error(w, logLine, http.StatusInternalServerError)
+		return
+	}
+
+	etcdCert, err := certs.DecodeCertPEM(etcdCertRaw)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to generate etcdCert")
+		return
+	}
+	etcdKey, err := certs.DecodePrivateKeyPEM(etcdKeyRaw)
+	if err != nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to generate etcdKey")
+		return
+	}
+	if etcdKey == nil {
+		http.Error(w, "", http.StatusInternalServerError)
+		setupLog.Error(err, "failed to generate etcdKey")
+		return
+	}
+
+	err = apiServerMux.AddEtcdMember(resourceName, nodeName, etcdCert, etcdKey.(*rsa.PrivateKey))
+	if err != nil {
+		setupLog.Error(err, "failed to add etcd member")
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
 
 	// Create the etcd pod
-	// TODO: consider if to handle an additional setting adding a delay in between create pod and pod ready
+	etcdPodMember := fmt.Sprintf("etcd-%s", nodeName)
 	etcdPod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: metav1.NamespaceSystem,
@@ -563,7 +689,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 		Spec: corev1.PodSpec{
-			NodeName: inMemoryMachine.Name,
+			NodeName: nodeName,
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
@@ -575,19 +701,17 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	if err := inmemoryClient.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
+	if err := c.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get etcd Pod")
+			setupLog.Error(err, "failed to get etcd pod")
+			http.Error(w, "", http.StatusInternalServerError)
+			return
 		}
 
 		// Gets info about the current etcd cluster, if any.
-		info, err := r.getEtcdInfo(ctx, inmemoryClient)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-
-		// If this is the first etcd member in the cluster, assign a cluster ID
-		if info.clusterID == "" {
+		info, ok := etcdInfoMap[requestData.ResourceName]
+		if !ok {
+			info = etcdInfo{}
 			for {
 				info.clusterID = fmt.Sprintf("%d", rand.Uint32()) //nolint:gosec // weak random number generator is good enough here
 				if info.clusterID != "0" {
@@ -607,19 +731,21 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 
 		// Annotate the pod with the info about the etcd cluster.
 		etcdPod.Annotations = map[string]string{
-			cloudv1.EtcdClusterIDAnnotationName: info.clusterID,
-			cloudv1.EtcdMemberIDAnnotationName:  memberID,
+			EtcdClusterIDAnnotationName: info.clusterID,
+			EtcdMemberIDAnnotationName:  memberID,
 		}
 
 		// If the etcd cluster is being created it doesn't have a leader yet, so set this member as a leader.
 		if info.leaderID == "" {
-			etcdPod.Annotations[cloudv1.EtcdLeaderFromAnnotationName] = time.Now().Format(time.RFC3339)
+			etcdPod.Annotations[EtcdLeaderFromAnnotationName] = time.Now().Format(time.RFC3339)
 		}
 
-		// NOTE: for the first control plane machine we might create the etcd pod before the API server pod is running
-		// but this is not an issue, because it won't be visible to CAPI until the API server start serving requests.
-		if err := inmemoryClient.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to create Pod")
+		etcdInfoMap[requestData.ResourceName] = info
+
+		if err := c.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
+			setupLog.Error(err, "failed to create etcd pod")
+			http.Error(w, "Failed to create etcd pod", http.StatusInternalServerError)
+			return
 		}
 	}
 }
