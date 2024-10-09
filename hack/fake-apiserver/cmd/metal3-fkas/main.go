@@ -66,34 +66,6 @@ func register(w http.ResponseWriter, r *http.Request) {
 		EtcdCert     string `json:"etcdCert"`
 	}
 
-	// Start a goroutine to update the LastHeartbeatTime every 10 seconds
-	go func() {
-		ticker := time.NewTicker(10 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				node := &corev1.Node{}
-				if err := c.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
-					setupLog.Error(err, "Failed to get node for heartbeat update", "nodeName", nodeName)
-					continue
-				}
-
-				timeOutput := metav1.Now()
-				for i := range node.Status.Conditions {
-					if node.Status.Conditions[i].Type == corev1.NodeReady {
-						node.Status.Conditions[i].LastHeartbeatTime = timeOutput
-					}
-				}
-
-				if err := c.Status().Update(ctx, node); err != nil {
-					setupLog.Error(err, "Failed to update node heartbeat", "nodeName", nodeName)
-				}
-			}
-		}
-	}()
-
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		setupLog.Error(err, "Failed to decode request body")
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
@@ -419,6 +391,34 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
+
+	// Start a goroutine to update the LastHeartbeatTime every 10 seconds
+	go func() {
+		ticker := time.NewTicker(10 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				node := &corev1.Node{}
+				if err := c.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
+					setupLog.Error(err, "Failed to get node for heartbeat update", "nodeName", nodeName)
+					continue
+				}
+
+				timeOutput := metav1.Now()
+				for i := range node.Status.Conditions {
+					if node.Status.Conditions[i].Type == corev1.NodeReady {
+						node.Status.Conditions[i].LastHeartbeatTime = timeOutput
+					}
+				}
+
+				if err := c.Status().Update(ctx, node); err != nil {
+					setupLog.Error(err, "Failed to update node heartbeat", "nodeName", nodeName)
+				}
+			}
+		}
+	}()
 
 	err := c.Create(ctx, node)
 	if err != nil {
