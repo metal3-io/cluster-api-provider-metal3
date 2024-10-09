@@ -392,6 +392,20 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 
+	err := c.Create(ctx, node)
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			setupLog.Info("Node already exists", "nodeName", nodeName)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
+		fmt.Println(err, "Error adding node:", nodeName)
+		http.Error(w, logLine, http.StatusInternalServerError)
+		return
+	}
+	fmt.Printf("Created node object: %v\n", node)
+
 	// Start a goroutine to update the LastHeartbeatTime every 10 seconds
 	go func(nodeName string) {
 		ticker := time.NewTicker(10 * time.Second)
@@ -418,21 +432,8 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-	}(ctx, nodeName)
+	}(nodeName)
 
-	err := c.Create(ctx, node)
-	if err != nil {
-		if apierrors.IsAlreadyExists(err) {
-			setupLog.Info("Node already exists", "nodeName", nodeName)
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
-		fmt.Println(err, "Error adding node:", nodeName)
-		http.Error(w, logLine, http.StatusInternalServerError)
-		return
-	}
-	fmt.Printf("Created node object: %v\n", node)
 	microTimeNow := metav1.NewMicroTime(time.Now())
 	lease := &coordinationv1.Lease{
 		ObjectMeta: metav1.ObjectMeta{
