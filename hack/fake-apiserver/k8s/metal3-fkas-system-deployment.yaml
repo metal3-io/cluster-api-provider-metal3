@@ -11,17 +11,11 @@ metadata:
   name: metal3-fkas-role
 rules:
 - apiGroups: ["metal3.io", "infrastructure.cluster.x-k8s.io"]
-  resources: ["baremetalhosts", "metal3machines", "pod"]
+  resources: ["baremetalhosts", "metal3machines"]
   verbs: ["get", "list", "watch"]
 - apiGroups: [""]
-  resources: ["nodes", "pods", "services", "endpoints", "persistentvolumeclaims", "events", "configmaps", "secrets"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: ["apps"]
-  resources: ["daemonsets"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-- apiGroups: ["rbac.authorization.k8s.io"]
-  resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  resources: ["pods"]
+  verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

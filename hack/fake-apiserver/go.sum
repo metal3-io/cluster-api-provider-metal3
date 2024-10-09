@@ -1,7 +1,7 @@
 github.com/NYTimes/gziphandler v1.1.1 h1:ZUDjpQae29j0ryrS0u/B8HZfJBtBQHjqw2rQ2cqUQ3I=
 github.com/NYTimes/gziphandler v1.1.1/go.mod h1:n/CVRwUEOgIxrgPvAQhUUr9oeUtvrhMomdKFjzJNB0c=
-github.com/Nordix/cluster-api/test v1.0.1-0.20241003083627-8e6a5930aceb h1:QnG9pWjpmCVm2rMD/H6TuKfx6glIekfzQ2LJpycNgi0=
-github.com/Nordix/cluster-api/test v1.0.1-0.20241003083627-8e6a5930aceb/go.mod h1:iRiinKi8e/ZV44pYPMk1pdUcfFpy7UuXctMtjYFpCYs=
+github.com/Nordix/cluster-api/test v1.0.1-0.20241009104917-a5c69a1b8f5c h1:BMyw9gfg2oeXrRnHMel7WJ4MzKf/XVnjFMEVWCIGvU4=
+github.com/Nordix/cluster-api/test v1.0.1-0.20241009104917-a5c69a1b8f5c/go.mod h1:iRiinKi8e/ZV44pYPMk1pdUcfFpy7UuXctMtjYFpCYs=
 github.com/antlr4-go/antlr/v4 v4.13.0 h1:lxCg3LAv+EUK6t1i0y1V6/SLeUi0eKEKdhQAlS8TVTI=
 github.com/antlr4-go/antlr/v4 v4.13.0/go.mod h1:pfChB/xh/Unjila75QW7+VU4TSnWnnk9UTnmpPaOR2g=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=

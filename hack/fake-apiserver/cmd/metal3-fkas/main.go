@@ -408,28 +408,29 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 
 	// Start a goroutine to update the LastHeartbeatTime every 10 seconds
 	go func(nodeName string) {
+		setupLog.Info("Starting heartbeat goroutine", "nodeName", nodeName)
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 
-		for {
-			select {
-			case <-ticker.C:
-				node := &corev1.Node{}
-				if err := c.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
-					setupLog.Error(err, "Failed to get node for heartbeat update", "nodeName", nodeName)
-					continue
-				}
+		for range ticker.C {
+			node := &corev1.Node{}
+			if err := c.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
+				setupLog.Error(err, "Failed to get node for heartbeat update", "nodeName", nodeName)
+				continue
+			}
 
-				timeOutput := metav1.Now()
-				for i := range node.Status.Conditions {
-					if node.Status.Conditions[i].Type == corev1.NodeReady {
-						node.Status.Conditions[i].LastHeartbeatTime = timeOutput
-					}
+			timeOutput := metav1.Now()
+			for i := range node.Status.Conditions {
+				if node.Status.Conditions[i].Type == corev1.NodeReady {
+					node.Status.Conditions[i].LastHeartbeatTime = timeOutput
 				}
+			}
 
-				if err := c.Update(ctx, node); err != nil {
-					setupLog.Error(err, "Failed to update node heartbeat", "nodeName", nodeName)
-				}
+			err := c.Update(ctx, node)
+			if err != nil {
+				setupLog.Error(err, "Failed to update node heartbeat", "nodeName", nodeName)
+			} else {
+				setupLog.Info("Updated node heartbeat", "nodeName", nodeName, "timestamp", timeOutput)
 			}
 		}
 	}(nodeName)
@@ -509,156 +510,41 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Create the kube-apiserver pod
+	podName := fmt.Sprintf("kube-apiserver-%s", nodeName)
+
+	err = createControlPlanePod(ctx, c, podName, nodeName, timeOutput)
+	if err != nil {
+		setupLog.Error(err, "failed to create kube-apiserver pod")
+		http.Error(w, "", http.StatusInternalServerError)
+		return
+	}
+
 	// Create the apiserver pod
-	apiServer := fmt.Sprintf("kube-apiserver-%s", nodeName)
+	podName = fmt.Sprintf("apiserver-%s", nodeName)
 
-	apiServerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      apiServer,
-			Labels: map[string]string{
-				"component": "kube-apiserver",
-				"tier":      "control-plane",
-			},
-		},
-		Spec: corev1.PodSpec{
-			NodeName: nodeName,
-		},
-		Status: corev1.PodStatus{
-			Phase: corev1.PodRunning,
-			Conditions: []corev1.PodCondition{
-				{
-					Type:               corev1.PodReadyToStartContainers,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodInitialized,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodReady,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.ContainersReady,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodScheduled,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-			},
-		},
-	}
-
-	if err := c.Create(ctx, apiServerPod); err != nil && !apierrors.IsAlreadyExists(err) {
-		setupLog.Error(err, "failed to create api server pod")
+	err = createControlPlanePod(ctx, c, podName, nodeName, timeOutput)
+	if err != nil {
+		setupLog.Error(err, "failed to create apiserver pod")
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	// Create the controllerManager pod
-	controllerManagerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      fmt.Sprintf("kube-controller-manager-%s", nodeName),
-			Labels: map[string]string{
-				"component": "kube-controller-manager",
-				"tier":      "control-plane",
-			},
-		},
-		Spec: corev1.PodSpec{
-			NodeName: nodeName,
-		},
-		Status: corev1.PodStatus{
-			Phase: corev1.PodRunning,
-			Conditions: []corev1.PodCondition{
-				{
-					Type:               corev1.PodReadyToStartContainers,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodInitialized,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodReady,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.ContainersReady,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodScheduled,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-			},
-		},
-	}
+	// Create the kube-controller-manager
+	podName = fmt.Sprintf("kube-controller-manager-%s", nodeName)
 
-	if err := c.Create(ctx, controllerManagerPod); err != nil && !apierrors.IsAlreadyExists(err) {
-		setupLog.Error(err, "failed to create controllerManager pod")
+	err = createControlPlanePod(ctx, c, podName, nodeName, timeOutput)
+	if err != nil {
+		setupLog.Error(err, "failed to create kube-controller-manager pod")
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
 
-	// Create schedulerPod
-	schedulerPod := &corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: metav1.NamespaceSystem,
-			Name:      fmt.Sprintf("kube-scheduler-%s", nodeName),
-			Labels: map[string]string{
-				"component": "kube-scheduler",
-				"tier":      "control-plane",
-			},
-		},
-		Spec: corev1.PodSpec{
-			NodeName: nodeName,
-		},
-		Status: corev1.PodStatus{
-			Phase: corev1.PodRunning,
-			Conditions: []corev1.PodCondition{
-				{
-					Type:               corev1.PodReadyToStartContainers,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodInitialized,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodReady,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.ContainersReady,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-				{
-					Type:               corev1.PodScheduled,
-					Status:             corev1.ConditionTrue,
-					LastTransitionTime: timeOutput,
-				},
-			},
-		},
-	}
+	// Create the kube-scheduler
+	podName = fmt.Sprintf("kube-scheduler-%s", nodeName)
 
-	if err := c.Create(ctx, schedulerPod); err != nil && !apierrors.IsAlreadyExists(err) {
+	err = createControlPlanePod(ctx, c, podName, nodeName, timeOutput)
+	if err != nil {
 		setupLog.Error(err, "failed to create scheduler Pod")
 		http.Error(w, "", http.StatusInternalServerError)
 		return
@@ -724,8 +610,29 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			Phase: corev1.PodRunning,
 			Conditions: []corev1.PodCondition{
 				{
-					Type:   corev1.PodReady,
-					Status: corev1.ConditionTrue,
+					Type:               corev1.PodReadyToStartContainers,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodInitialized,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.ContainersReady,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
+				},
+				{
+					Type:               corev1.PodScheduled,
+					Status:             corev1.ConditionTrue,
+					LastTransitionTime: timeOutput,
 				},
 			},
 		},

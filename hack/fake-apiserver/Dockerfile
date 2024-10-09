@@ -35,7 +35,7 @@ RUN go mod download
 FROM base AS build-fkas
 
 # Copy the sources
-COPY cmd/metal3-fkas/*.go .
+COPY cmd/metal3-fkas/*.go ./
 
 # Build
 ARG ARCH=amd64
@@ -47,7 +47,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
 FROM base AS build-fkas-reconciler
 
 # Copy the sources
-COPY cmd/metal3-fkas-reconciler/*.go .
+COPY cmd/metal3-fkas-reconciler/*.go ./
 
 # Build
 ARG ARCH=amd64

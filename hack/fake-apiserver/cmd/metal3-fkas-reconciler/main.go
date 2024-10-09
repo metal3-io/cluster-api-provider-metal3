@@ -6,17 +6,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 
+	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"go.uber.org/zap/zapcore"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -34,7 +35,7 @@ func main() {
 	config, err := rest.InClusterConfig()
 	setupLog := ctrl.Log.WithName("setup")
 	if err != nil {
-		setupLog.Error(err, "Error building kubeconfig")
+		setupLog.Error(err, "Error getting context kubeconfig")
 	}
 
 	// Add BareMetalHost to scheme
@@ -60,13 +61,13 @@ func main() {
 			setupLog.Info("Detected change in BMH", "namespace", req.Namespace, "name", req.Name)
 			bmh := &bmov1alpha1.BareMetalHost{}
 			if err := mgr.GetClient().Get(ctx, req.NamespacedName, bmh); err != nil {
-				fmt.Printf("Error fetching BareMetalHost: %s\n", err.Error())
+				setupLog.Error(err, "Error fetching BareMetalHost")
 				return reconcile.Result{}, err
 			}
 
 			// Check if the state has changed from "available" to "provisioning"
 			if bmh.Status.Provisioning.State != "provisioning" && bmh.Status.Provisioning.State != "provisioned" {
-				fmt.Printf("BMH %s/%s state is not 'provisioning' or 'provisioned'\n", req.Namespace, req.Name)
+				setupLog.V(4).Info(fmt.Sprintf("BMH %s/%s state is not in 'provisioning' or 'provisioned' state.", req.Namespace, req.Name))
 				return reconcile.Result{}, nil
 			}
 			uuid := bmh.ObjectMeta.UID
@@ -99,19 +100,19 @@ func main() {
 			}
 			jsonData, err := json.Marshal(requestData)
 			if err != nil {
-				fmt.Printf("Error marshalling JSON: %s\n", err.Error())
+				setupLog.Error(err, "Error marshalling JSON")
 				return reconcile.Result{}, err
 			}
 			setupLog.Info("Making POST request", "content", string(jsonData))
 			resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 			if err != nil {
-				fmt.Printf("Error making POST request: %s\n", err.Error())
+				setupLog.Error(err, "Error making POST request")
 				return reconcile.Result{}, err
 			}
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				fmt.Printf("POST request failed with status: %s\n", resp.Status)
+				setupLog.Info(fmt.Sprintf("POST request failed with status: %s", resp.Status))
 				return reconcile.Result{}, fmt.Errorf("POST request failed with status: %s", resp.Status)
 			}
 
