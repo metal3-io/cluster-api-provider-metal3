@@ -39,7 +39,7 @@ set +o pipefail
 
 # enable support for **/go.mod, and make it ignore hack/tools/go.mod
 shopt -s globstar
-GLOBIGNORE=./hack/tools/go.mod
+GLOBIGNORE=./hack/tools/go.mod:./hack/fake-apiserver/go.mod
 
 # user input
 VERSION="${1:?release version missing, provide without leading v. Example: 1.5.0}"
