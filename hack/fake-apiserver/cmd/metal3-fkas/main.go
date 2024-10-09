@@ -393,12 +393,15 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Start a goroutine to update the LastHeartbeatTime every 10 seconds
-	go func() {
+	go func(ctx context.Context, nodeName string) {
 		ticker := time.NewTicker(10 * time.Second)
 		defer ticker.Stop()
 
 		for {
 			select {
+			case <-ctx.Done():
+				setupLog.Info("Stopping heartbeat update goroutine", "nodeName", nodeName)
+				return
 			case <-ticker.C:
 				node := &corev1.Node{}
 				if err := c.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
@@ -418,7 +421,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-	}()
+	}(ctx, nodeName)
 
 	err := c.Create(ctx, node)
 	if err != nil {
