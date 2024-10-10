@@ -172,6 +172,7 @@ E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/test/e2e/data/infrastructure-metal3
 cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu > $(E2E_OUT_DIR)/cluster-template-ubuntu.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos > $(E2E_OUT_DIR)/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos-fake > $(E2E_OUT_DIR)/cluster-template-centos-fake.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/cluster-template-upgrade-workload.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/cluster-template-centos-md-remediation.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/cluster-template-ubuntu-md-remediation.yaml
