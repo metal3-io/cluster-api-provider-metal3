@@ -150,6 +150,8 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-centos.yaml"
       targetName: "cluster-template-centos.yaml"
+    - sourcePath: "../_out/cluster-template-centos-fake.yaml"
+      targetName: "cluster-template-centos-fake.yaml"
     - sourcePath: "../_out/clusterclass.yaml"
       targetName: "clusterclass-test-clusterclass.yaml"
     - sourcePath: "../_out/cluster-template-centos-md-remediation.yaml"
@@ -210,7 +212,8 @@ variables:
   BMO_RELEASE_0.5: "data/bmo-deployment/overlays/release-0.5"
   BMO_RELEASE_0.6: "data/bmo-deployment/overlays/release-0.6"
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
-
+  FKAS_RELEASE_LATEST: "data/fkas"
+  
 intervals:
   default/wait-controllers: ["10m", "10s"]
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created
