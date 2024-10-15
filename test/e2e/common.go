@@ -127,7 +127,7 @@ func getSha256Hash(filename string) ([]byte, error) {
 
 func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
-	client := clusterProxy.GetClient()
+	clusterClient := clusterProxy.GetClient()
 
 	clusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
@@ -135,7 +135,7 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    client,
+		Lister:    clusterClient,
 		Namespace: namespace,
 		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
 	})
@@ -146,9 +146,35 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    client,
+			Client:    clusterClient,
 			Namespace: namespace,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
+
+		// Waiting for Metal3Datas, Metal3DataTemplates and Metal3DataClaims, as these may take longer time to delete
+		By("Checking leftover Metal3Datas, Metal3DataTemplates and Metal3DataClaims")
+		Eventually(func(g Gomega) {
+			opts := &client.ListOptions{}
+			datas := infrav1.Metal3DataList{}
+			dataTemplates := infrav1.Metal3DataTemplateList{}
+			dataClaims := infrav1.Metal3DataClaimList{}
+			g.Expect(clusterClient.List(ctx, &datas, opts)).To(Succeed())
+			g.Expect(clusterClient.List(ctx, &dataTemplates, opts)).To(Succeed())
+			g.Expect(clusterClient.List(ctx, &dataClaims, opts)).To(Succeed())
+			for _, dataObject := range datas.Items {
+				By(fmt.Sprintf("Data named: %s is not delete", dataObject.Name))
+			}
+			for _, dataObject := range dataTemplates.Items {
+				By(fmt.Sprintf("Datatemplate named: %s is not deleted", dataObject.Name))
+			}
+			for _, dataObject := range dataClaims.Items {
+				By(fmt.Sprintf("Dataclaim named: %s is not deleted", dataObject.Name))
+			}
+			g.Expect(datas.Items).To(BeEmpty())
+			g.Expect(dataTemplates.Items).To(BeEmpty())
+			g.Expect(dataClaims.Items).To(BeEmpty())
+			Logf("Waiting for Metal3Datas, Metal3DataTemplates and Metal3DataClaims to be deleted")
+		}, intervalsGetter(specName, "wait-delete-cluster")...).Should(Succeed())
+		Logf("Metal3Datas, Metal3DataTemplates and Metal3DataClaims are deleted")
 	}
 }
 
