@@ -20,7 +20,7 @@ require (
 	k8s.io/apimachinery v0.30.5
 	k8s.io/client-go v0.30.5
 	k8s.io/klog/v2 v2.120.1
-	k8s.io/kubectl v0.30.3
+	k8s.io/kubectl v0.30.5
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
 	sigs.k8s.io/cluster-api v1.8.4
 	sigs.k8s.io/cluster-api/test v1.8.4
@@ -157,7 +157,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gotest.tools/v3 v3.5.0 // indirect
 	k8s.io/apiserver v0.30.5 // indirect
-	k8s.io/cli-runtime v0.30.3 // indirect
+	k8s.io/cli-runtime v0.30.5 // indirect
 	k8s.io/cluster-bootstrap v0.30.3 // indirect
 	k8s.io/component-base v0.30.5 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
