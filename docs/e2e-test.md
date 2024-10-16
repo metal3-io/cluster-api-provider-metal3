@@ -60,7 +60,6 @@ The e2e tests currently include three different sets:
 1. Remediation based feature tests
 1. clusterctl upgrade tests
 1. K8s upgrade tests
-1. Live ISO test
 
 ### Pivoting based feature tests
 
@@ -136,11 +135,6 @@ Release 1.5 branch k8s-upgrade test:
 When Kubernetes 1.31 is released, k8s-upgrade `v1.30` => `v1.31` will be
 supported in v1.7.x (but not in v1.6.x)
 
-### Live ISO test
-
-Independent from the previous tests and can run independently.
-This is testing the booting of target cluster's nodes with the live ISO.
-
 ## Guidelines to follow when adding new E2E tests
 
 - Tests should be defined in a new file and separate test spec, unless the new
@@ -153,7 +147,6 @@ This is testing the booting of target cluster's nodes with the live ISO.
    - `[clusterctl-upgrade]` => runs only existing upgrade tests including CAPI,
 CAPM3, Ironic and Baremetal Operator.
    - `[remediation]` => runs only remediation and inspection tests.
-   - `[live-iso]` => runs only live ISO test.
    - `[k8s-upgrade]` => runs only k8s upgrade tests.
 
 For instance, to skip the upgrade E2E tests set `GINKGO_SKIP="[upgrade]"`
