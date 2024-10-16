@@ -1,6 +1,7 @@
 module github.com/metal3-io/cluster-api-provider-metal3/test
 
-go 1.22.3
+go 1.22.7
+
 toolchain go1.22.8
 
 require (
