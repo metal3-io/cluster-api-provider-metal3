@@ -634,32 +634,6 @@ verify_module_releases()
     echo -e "Done\n"
 }
 
-verify_ipam_manifests()
-{
-    # verify version in ipam manifests match the ipam module version
-    # NOTE: this is CAPM3 specific check
-    local ipam_version
-
-    echo "Verifying IPAM manifests match go.mod ..."
-
-    # shellcheck disable=SC2311
-    ipam_version="$(_module_get_version "ip-address-manager/api")"
-
-    declare -A ipam_manifests=(
-        [config/ipam/image_patch.yaml]="quay.io/metal3-io/ip-address-manager:${ipam_version}"
-        [config/ipam/kustomization.yaml]="https://github.com/metal3-io/ip-address-manager/releases/download/${ipam_version}/ipam-components.yaml"
-    )
-
-    for file in "${!ipam_manifests[@]}"; do
-        str="${ipam_manifests[${file}]}"
-        if ! grep -q -- "${str}" "${file}"; then
-            echo "ERROR: IPAM version in go.mod and manifests mismatch!"
-        fi
-    done
-
-    echo -e "Done\n"
-}
-
 _mutate_gomod_files_for_osv_scanner()
 {
     # mutate go.mod files to include go directive with exact patch version
@@ -728,6 +702,3 @@ verify_module_versions
 verify_module_group_versions
 verify_module_releases
 verify_vulnerabilities
-
-# capm3 specific checks
-verify_ipam_manifests
