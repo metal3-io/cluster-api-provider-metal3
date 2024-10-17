@@ -7,14 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const workDir = "/opt/metal3-dev-env/"
@@ -78,22 +76,6 @@ var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [cl
 			WorkloadFlavor: osType,
 		}
 	})
-	AfterEach(func() {
-		// Recreate bmh that was used in capi namespace in metal3
-		resource, err := os.ReadFile(filepath.Join(workDir, "bmhosts_crs.yaml"))
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(CreateOrUpdateWithNamespace(ctx, bootstrapClusterProxy, resource, "metal3")).ShouldNot(HaveOccurred())
-		// wait for all bmh to become available
-		bootstrapClient := bootstrapClusterProxy.GetClient()
-		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
-		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
-			Client:    bootstrapClient,
-			Options:   []client.ListOption{client.InNamespace(namespace)},
-			Replicas:  5,
-			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
-		})
-		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
-	})
 })
 
 var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [clusterctl-upgrade]", func() {
@@ -146,22 +128,6 @@ var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [cl
 			WorkloadFlavor: osType,
 		}
 	})
-	AfterEach(func() {
-		// Recreate bmh that was used in capi namespace in metal3
-		resource, err := os.ReadFile(filepath.Join(workDir, "bmhosts_crs.yaml"))
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(CreateOrUpdateWithNamespace(ctx, bootstrapClusterProxy, resource, "metal3")).ShouldNot(HaveOccurred())
-		// wait for all bmh to become available
-		bootstrapClient := bootstrapClusterProxy.GetClient()
-		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
-		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
-			Client:    bootstrapClient,
-			Options:   []client.ListOption{client.InNamespace(namespace)},
-			Replicas:  5,
-			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
-		})
-		ListBareMetalHosts(ctx, bootstrapClient, client.InNamespace(namespace))
-	})
 })
 
 // postNamespaceCreated is a hook function that should be called from ClusterctlUpgradeSpec after creating
@@ -171,14 +137,6 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 	// if isBootstrapProxy==true then this call when creating the management else we are creating the workload.
 	isBootstrapProxy := !strings.HasPrefix(clusterProxy.GetName(), "clusterctl-upgrade")
 	if isBootstrapProxy {
-		// remove existing bmh from source and apply first 2 in target
-		Logf("remove existing bmh from source")
-		cmd := exec.Command("bash", "-c", "kubectl delete -f bmhosts_crs.yaml  -n metal3")
-		cmd.Dir = workDir
-		output, err := cmd.CombinedOutput()
-		Logf("Remove existing bmhs:\n %v", string(output))
-		Expect(err).ToNot(HaveOccurred())
-
 		// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
 		for i := 0; i < 2; i++ {
 			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
