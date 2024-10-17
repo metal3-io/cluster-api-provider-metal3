@@ -40,6 +40,7 @@ APIS_DIR := api
 TEST_DIR := test
 BIN_DIR := bin
 TOOLS_BIN_DIR :=  $(abspath $(TOOLS_DIR)/$(BIN_DIR))
+FAKE_APISERVER_DIR := hack/fake-apiserver
 
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(ROOT_DIR)),$(shell $(GO) env GOPATH)/src/github.com/metal3-io/cluster-api-provider-metal3)
@@ -349,6 +350,8 @@ modules: ## Runs go mod to ensure proper vendoring.
 	cd $(APIS_DIR) && $(GO) mod verify
 	cd $(TEST_DIR) && $(GO) mod tidy
 	cd $(TEST_DIR) && $(GO) mod verify
+	cd $(FAKE_APISERVER_DIR) && $(GO) mod tidy
+	cd $(FAKE_APISERVER_DIR) && $(GO) mod verify
 
 .PHONY: generate
 generate: ## Generate code
@@ -448,6 +451,14 @@ docker-build: ## Build the docker image for controller-manager
 .PHONY: docker-push
 docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+
+.PHONY: build-fkas
+# Allow overriding this by setting CONTAINER_RUNTIME var
+CONTAINER_RUNTIME := $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),docker)
+export CONTAINER_RUNTIME
+
+build-fkas: 
+	cd $(FAKE_APISERVER_DIR) && $(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:latest" .
 
 ## --------------------------------------
 ## Docker — All ARCH
@@ -656,7 +667,8 @@ verify-boilerplate:
 
 .PHONY: verify-modules
 verify-modules: modules
-	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod hack/tools/go.mod hack/tools/go.sum \
+		hack/fake-apiserver/go.mod hack/fake-apiserver/go.sum); then \
 		echo "go module files are out of date"; exit 1; \
 	fi
 

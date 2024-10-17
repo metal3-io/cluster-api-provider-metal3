@@ -98,8 +98,8 @@ This triggers two things:
 
 We also need to create one or more tags for the Go modules ecosystem:
 
-- For any subdirectory with `go.mod` in it (excluding `hack/tools`), create
-  another Git tag with directory prefix, ie.
+- For any subdirectory with `go.mod` in it (excluding `hack/tools` and
+  `hack/fake-apiserver`), create another Git tag with directory prefix, ie.
   `git tag api/v1.x.y` and `git tag test/v1.x.y`. This enables the
   tags to be used as a Go module version for any downstream users.
 
