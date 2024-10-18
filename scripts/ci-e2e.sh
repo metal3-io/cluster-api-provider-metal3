@@ -20,8 +20,8 @@ source "${REPO_ROOT}/scripts/environment.sh"
 # Clone dev-env repo
 sudo mkdir -p ${WORKING_DIR}
 sudo chown "${USER}":"${USER}" ${WORKING_DIR}
-M3_DEV_ENV_REPO="https://github.com/metal3-io/metal3-dev-env.git"
-M3_DEV_ENV_BRANCH=main
+M3_DEV_ENV_REPO="https://github.com/Nordix/metal3-dev-env.git"
+M3_DEV_ENV_BRANCH=Add-FKAS-image-build/mboukhalfa
 M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
@@ -41,6 +41,10 @@ fi
 if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
     mkdir -p "$CAPI_CONFIG_FOLDER"
     echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
+fi
+# if running a scalability test run DevEnv with fakeIPA
+if [[ ${GINKGO_FOCUS:-} == "scalability" ]]; then
+    echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 fi
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1

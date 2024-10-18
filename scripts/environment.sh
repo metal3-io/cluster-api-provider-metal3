@@ -62,6 +62,12 @@ if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
   export NUM_NODES="5"
 fi
 
+# Scalability test environment vars and config
+if [[ ${GINKGO_FOCUS:-} == "scalability" ]]; then
+  export NUM_NODES=${NUM_NODES:-"2"}
+  export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
+fi
+
 # Integration test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "integration" || ${GINKGO_FOCUS:-} == "basic" ]]; then
   export NUM_NODES=${NUM_NODES:-"2"}
