@@ -15,13 +15,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	bmhCrsFile = "bmhosts_crs.yaml"
+)
+
 var _ = Describe("When testing MachineDeployment remediation [healthcheck] [remediation] [features]", Label("healthcheck", "remediation", "features"), func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
+		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
+
+		Logf("Removing existing BMHs from source")
+		bmhData, err := os.ReadFile(filepath.Join(workDir, bmhCrsFile))
+		Expect(err).ToNot(HaveOccurred(), "BMH CRs file not found")
+		kubeConfigPath := bootstrapClusterProxy.GetKubeconfigPath()
+		err = KubectlDelete(ctx, kubeConfigPath, bmhData, "-n", "metal3")
+		Expect(err).ToNot(HaveOccurred(), "Failed to delete existing BMHs")
+		Logf("BMHs are removed")
 	})
 	capi_e2e.MachineDeploymentRemediationSpec(ctx, func() capi_e2e.MachineDeploymentRemediationSpecInput {
 		return capi_e2e.MachineDeploymentRemediationSpecInput{
@@ -35,6 +47,9 @@ var _ = Describe("When testing MachineDeployment remediation [healthcheck] [reme
 		}
 	})
 	AfterEach(func() {
+		ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
+		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		// Recreate bmh that was used in capi namespace in metal3
 		//#nosec G204 -- We need to pass in the file name here.
 		cmd := exec.Command("bash", "-c", "kubectl apply -f bmhosts_crs.yaml  -n metal3")

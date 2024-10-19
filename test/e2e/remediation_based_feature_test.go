@@ -67,7 +67,7 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 		validateGlobals(specName)
 
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
+		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
 
 	It("Should create a cluster and run remediation based tests", func() {
@@ -90,9 +90,11 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 		By("Running healthcheck tests")
 		healthcheck(ctx, func() HealthCheckInput {
 			return HealthCheckInput{
+				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
+				SpecName:              specName,
 			}
 		})
 
@@ -115,7 +117,7 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListNodes(ctx, targetCluster.GetClient())
-		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 
 })

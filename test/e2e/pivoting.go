@@ -61,6 +61,12 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
+	By("Fetch logs from target cluster before pivot")
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "beforePivot"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
 	ironicContainers := []string{
 		"ironic",
 		"ironic-endpoint-keepalived",
@@ -123,7 +129,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			Name: input.E2EConfig.GetVariable(ironicNamespace),
 		},
 	}
-	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespaceObj, metav1.CreateOptions{})
+	_, err = targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespaceObj, metav1.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred(), "Unable to create the Ironic namespace")
 
 	By("Initialize Provider component in target cluster")
@@ -423,8 +429,8 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
-	By("Fetch logs from target cluster")
-	err := FetchClusterLogs(input.TargetCluster, clusterLogCollectionBasePath)
+	By("Fetch logs from target cluster after pivot")
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "afterPivot"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}

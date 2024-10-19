@@ -220,6 +220,7 @@ intervals:
   default/wait-machine-upgrade: ["50m", "10s"]
   default/wait-machine-remediation: ["30m", "10s"]
   default/wait-vm-state: ["20m", "100ms"]
+  default/wait-nodes-ready: ["15m", "5s"]
   default/monitor-vm-state: ["1m", "500ms"]
   default/monitor-provisioning: ["5m", "500ms"]
   default/wait-deployment: ["30m", "10s"]
@@ -238,3 +239,5 @@ intervals:
   default/wait-pod-restart: ["6m", "10s"]
   default/wait-deprovision-cluster: ["30m", "10s"]
   default/wait-all-pod-to-be-running-on-target-cluster: ["30m", "10s"]
+  default/wait-command: ["2m", "10s"]
+  default/wait-delete-remediation-template: ["5m", "10s"]
