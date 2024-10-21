@@ -56,7 +56,7 @@ included) to the `preAllocations` field in the `IPPool`, i.e:
 apiVersion: ipam.metal3.io/v1alpha1
 kind: IPPool
 metadata:
-  name: baremetalv4-pool
+  name: baremetalv4-pool-${CLUSTER_NAME}
   namespace: metal3
 spec:
   clusterName: test1
