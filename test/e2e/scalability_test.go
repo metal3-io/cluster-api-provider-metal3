@@ -27,7 +27,7 @@ import (
  * When all the BMHs become available it apply the cluster templates
  */
 
-var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]", Label("scalability"), func() {
+var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability][basic]", Label("scalability", "basic"), func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
