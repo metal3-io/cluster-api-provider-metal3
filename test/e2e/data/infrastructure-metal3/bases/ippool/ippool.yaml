@@ -2,7 +2,7 @@
 apiVersion: ipam.metal3.io/v1alpha1
 kind: IPPool
 metadata:
-  name: provisioning-pool
+  name: provisioning-pool-${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
   clusterName: ${CLUSTER_NAME}
@@ -15,7 +15,7 @@ spec:
 apiVersion: ipam.metal3.io/v1alpha1
 kind: IPPool
 metadata:
-  name: baremetalv4-pool
+  name: baremetalv4-pool-${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
   clusterName: ${CLUSTER_NAME}

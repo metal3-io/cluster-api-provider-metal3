@@ -27,6 +27,8 @@ require (
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
+replace sigs.k8s.io/cluster-api/test => github.com/Nordix/cluster-api/test v1.0.1-0.20241021093551-8634871d5229
+
 require (
 	github.com/NYTimes/gziphandler v1.1.1 // indirect
 	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect

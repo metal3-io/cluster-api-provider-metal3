@@ -12,6 +12,8 @@ github.com/Masterminds/sprig/v3 v3.2.3 h1:eL2fZNezLomi0uOLqjQoN6BfsDD+fyLtgbJMAj
 github.com/Masterminds/sprig/v3 v3.2.3/go.mod h1:rXcFaZ2zZbLRJv/xSysmlgIM1u11eBaRMhvYXJNkGuM=
 github.com/Microsoft/go-winio v0.6.0 h1:slsWYD/zyx7lCXoZVlvQrj0hPTM1HI4+v1sIda2yDvg=
 github.com/Microsoft/go-winio v0.6.0/go.mod h1:cTAf44im0RAYeL23bpB+fzCyDH2MJiz2BO69KH/soAE=
+github.com/Nordix/cluster-api/test v1.0.1-0.20241021093551-8634871d5229 h1:vVMA+4WjMjtW3amFTN9eZjFDYURLqHEQ8ro/r+qVBZ8=
+github.com/Nordix/cluster-api/test v1.0.1-0.20241021093551-8634871d5229/go.mod h1:odnzMkDndCRPCWdwl0CRofyZyY857wN34bUih1MLKIc=
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 h1:wPbRQzjjwFc0ih8puEVAOFGELsn1zoIIYdxvML7mDxA=
 github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8/go.mod h1:I0gYDMZ6Z5GRU7l58bNFSkPTFN6Yl12dsUlAZ8xy98g=
 github.com/adrg/xdg v0.5.0 h1:dDaZvhMXatArP1NPHhnfaQUqWBLBsmx1h1HXQdMoFCY=
@@ -442,8 +444,6 @@ sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.0 h1:Tc9rS7JJoZ9sl
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.30.0/go.mod h1:1ewhL9l1gkPcU/IU/6rFYfikf+7Y5imWv7ARVbBOzNs=
 sigs.k8s.io/cluster-api v1.8.4 h1:jBKQH1H/HUdUFk8T6qDzIxZJfWw1F5ZP0ZpYQJDmTHs=
 sigs.k8s.io/cluster-api v1.8.4/go.mod h1:pXv5LqLxuIbhGIXykyNKiJh+KrLweSBajVHHitPLyoY=
-sigs.k8s.io/cluster-api/test v1.8.4 h1:0SVj0x/pZm5yaEkl2Rj7i3YXIbZ0vCGcUrwI26RGMgc=
-sigs.k8s.io/cluster-api/test v1.8.4/go.mod h1:odnzMkDndCRPCWdwl0CRofyZyY857wN34bUih1MLKIc=
 sigs.k8s.io/controller-runtime v0.18.5 h1:nTHio/W+Q4aBlQMgbnC5hZb4IjIidyrizMai9P6n4Rk=
 sigs.k8s.io/controller-runtime v0.18.5/go.mod h1:TVoGrfdpbA9VRFaRnKgk9P5/atA0pMwq+f+msb9M8Sg=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=

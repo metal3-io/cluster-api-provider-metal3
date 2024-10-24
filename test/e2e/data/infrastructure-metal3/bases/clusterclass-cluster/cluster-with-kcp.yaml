@@ -43,7 +43,7 @@ spec:
   metaData:
     ipAddressesFromIPPool:
     - key: provisioningIP
-      name: provisioning-pool
+      name: provisioning-pool-${CLUSTER_NAME}
     objectNames:
     - key: name
       object: machine
@@ -53,7 +53,7 @@ spec:
       object: machine
     prefixesFromIPPool:
     - key: provisioningCIDR
-      name: provisioning-pool
+      name: provisioning-pool-${CLUSTER_NAME}
   networkData:
     links:
       ethernets:
@@ -68,11 +68,11 @@ spec:
     networks:
       ipv4:
       - id: baremetalv4
-        ipAddressFromIPPool: baremetalv4-pool
+        ipAddressFromIPPool: baremetalv4-pool-${CLUSTER_NAME}
         link: enp2s0
         routes:
         - gateway:
-            fromIPPool: baremetalv4-pool
+            fromIPPool: baremetalv4-pool-${CLUSTER_NAME}
           network: 0.0.0.0
           prefix: 0
     services:
