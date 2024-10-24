@@ -220,7 +220,7 @@ e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be
 
 .PHONY: e2e-clusterclass-tests
 e2e-clusterclass-tests: CONTAINER_RUNTIME?=docker # Env variable can override this default
-export CONTAINER_RUNTIME 
+export CONTAINER_RUNTIME
 
 e2e-clusterclass-tests: $(GINKGO) e2e-substitutions clusterclass-templates # This target should be called from scripts/ci-e2e.sh
 	for image in $(E2E_CONTAINERS); do \
@@ -285,7 +285,7 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
-$(SETUP_ENVTEST): 
+$(SETUP_ENVTEST):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(SETUP_ENVTEST_PKG)@$(SETUP_ENVTEST_VER)
 
 .PHONY: $(GINKGO_BIN)
@@ -317,9 +317,9 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=10m
-	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=10m
-	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=10m
+	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -457,7 +457,7 @@ docker-push: ## Push the docker image
 CONTAINER_RUNTIME := $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),docker)
 export CONTAINER_RUNTIME
 
-build-fkas: 
+build-fkas:
 	cd $(FAKE_APISERVER_DIR) && $(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:latest" .
 
 ## --------------------------------------
