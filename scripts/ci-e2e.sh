@@ -42,6 +42,11 @@ if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
     mkdir -p "$CAPI_CONFIG_FOLDER"
     echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
 fi
+# if running a scalability test skip apply bmhs in dev-env and run fakeIPA
+if [[ ${GINKGO_FOCUS:-} == "scalability" ]]; then
+    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+fi
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1
 make
