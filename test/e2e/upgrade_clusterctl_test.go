@@ -7,12 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const workDir = "/opt/metal3-dev-env/"
@@ -35,7 +37,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [cl
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
+		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
 
 	minorVersion := "1.7"
@@ -87,7 +89,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [cl
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
+		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
 
 	minorVersion := "1.6"
@@ -143,6 +145,15 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
 		}
+		clusterClient := clusterProxy.GetClient()
+		ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
+		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
+			Client:    clusterClient,
+			Options:   []client.ListOption{client.InNamespace(clusterNamespace)},
+			Replicas:  2,
+			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+		})
+		ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
 	} else {
 		// Apply secrets and bmhs for [node_2, node_3 and node_4] in the management cluster to host workload cluster
 		for i := 2; i < 5; i++ {
@@ -150,7 +161,17 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
 		}
+		clusterClient := clusterProxy.GetClient()
+		ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
+		WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
+			Client:    clusterClient,
+			Options:   []client.ListOption{client.InNamespace(clusterNamespace)},
+			Replicas:  3,
+			Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+		})
+		ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
 	}
+	ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(clusterNamespace))
 }
 
 // preInitFunc hook function that should be called from ClusterctlUpgradeSpec before init the management cluster
@@ -213,7 +234,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	bmoIronicNamespace := e2eConfig.GetVariable(ironicNamespace)
 	// install ironic
 	By("Install Ironic in the target cluster")
-	ironicDeployLogFolder := filepath.Join(os.TempDir(), "ironic-deploy-logs", clusterProxy.GetName())
+	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", clusterProxy.GetName())
 	ironicKustomizePath := fmt.Sprintf("IRONIC_RELEASE_%s", ironicRelease)
 	initIronicKustomization := e2eConfig.GetVariable(ironicKustomizePath)
 	By(fmt.Sprintf("Installing Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
@@ -231,7 +252,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 
 	// install bmo
 	By("Install BMO in the target cluster")
-	bmoDeployLogFolder := filepath.Join(os.TempDir(), "bmo-deploy-logs", clusterProxy.GetName())
+	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", clusterProxy.GetName())
 	bmoKustomizePath := fmt.Sprintf("BMO_RELEASE_%s", bmoRelease)
 	initBMOKustomization := e2eConfig.GetVariable(bmoKustomizePath)
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the upgrade cluster", initBMOKustomization))
@@ -276,7 +297,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy, ironicUpgradeToRelease stri
 
 	bmoIronicNamespace := e2eConfig.GetVariable(ironicNamespace)
 	By("Upgrade Ironic in the target cluster")
-	ironicDeployLogFolder := filepath.Join(os.TempDir(), "ironic-deploy-logs", clusterProxy.GetName())
+	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", clusterProxy.GetName())
 	ironicKustomizePath := fmt.Sprintf("IRONIC_RELEASE_%s", ironicTag)
 	initIronicKustomization := e2eConfig.GetVariable(ironicKustomizePath)
 	By(fmt.Sprintf("Upgrading Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
@@ -294,7 +315,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy, ironicUpgradeToRelease stri
 
 	// install bmo
 	By("Upgrade BMO in the target cluster")
-	bmoDeployLogFolder := filepath.Join(os.TempDir(), "bmo-deploy-logs", clusterProxy.GetName())
+	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", clusterProxy.GetName())
 	bmoKustomizePath := fmt.Sprintf("BMO_RELEASE_%s", bmoTag)
 	initBMOKustomization := e2eConfig.GetVariable(bmoKustomizePath)
 	By(fmt.Sprintf("Upgrading BMO from kustomization %s on the upgrade cluster", initBMOKustomization))
@@ -337,7 +358,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 			Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 		} else {
 			By("Install Ironic in the source cluster as deployments")
-			ironicDeployLogFolder := filepath.Join(os.TempDir(), "ironic-deploy-logs", bootstrapClusterProxy.GetName())
+			ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", bootstrapClusterProxy.GetName())
 			ironicKustomizePath := fmt.Sprintf("IRONIC_RELEASE_%s", ironicRelease)
 			initIronicKustomization := e2eConfig.GetVariable(ironicKustomizePath)
 			namePrefix := e2eConfig.GetVariable("NAMEPREFIX")

@@ -135,7 +135,8 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 		// Get all pods in the namespace
 		pods, err := clientset.CoreV1().Pods(namespace.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			return fmt.Errorf("couldn't list pods in namespace %s: %v", namespace.Name, err)
+			fmt.Printf("couldn't list pods in namespace %s: %v", namespace.Name, err)
+			continue
 		}
 		for _, pod := range pods.Items {
 			machineName := pod.Spec.NodeName
@@ -144,7 +145,8 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 			podDir := filepath.Join(baseDir, "machines", machineName, namespace.Name, pod.Name)
 			err = os.MkdirAll(podDir, 0775)
 			if err != nil {
-				return fmt.Errorf("couldn't write to file: %v", err)
+				fmt.Printf("couldn't write to file: %v", err)
+				continue
 			}
 
 			// Get detailed information about the Pod
@@ -158,14 +160,16 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 			}
 			podDescription, err := podDescriber.Describe(namespace.Name, pod.Name, describerSettings)
 			if err != nil {
-				return fmt.Errorf("couldn't describe pod %s in namespace %s: %v", pod.Name, namespace.Name, err)
+				fmt.Printf("couldn't describe pod %s in namespace %s: %v", pod.Name, namespace.Name, err)
+				continue
 			}
 
 			// Print the Pod information to file
 			file := filepath.Join(podDir, "stdout_describe.log")
 			err = os.WriteFile(file, []byte(podDescription), 0600)
 			if err != nil {
-				return fmt.Errorf("couldn't write to file: %v", err)
+				fmt.Printf("couldn't write to file: %v", err)
+				continue
 			}
 
 			// Get containers of the Pod
@@ -175,7 +179,8 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 
 				err := CollectContainerLogs(ctx, namespace.Name, pod.Name, container.Name, clientset, containerDir)
 				if err != nil {
-					return err
+					fmt.Printf("Error %v.", err)
+					continue
 				}
 			}
 		}

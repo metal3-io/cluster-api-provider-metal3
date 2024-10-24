@@ -9,11 +9,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -23,94 +25,120 @@ const (
 )
 
 type HealthCheckInput struct {
+	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
 	ClusterName           string
 	Namespace             string
+	SpecName              string
 }
 
 func healthcheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	input := inputGetter()
-	cli := input.BootstrapClusterProxy.GetClient()
+	bootstrapClusterClient := input.BootstrapClusterProxy.GetClient()
 	namespace := input.Namespace
 	clusterName := input.ClusterName
-	controlplaneM3Machines, workerM3Machines := GetMetal3Machines(ctx, cli, clusterName, namespace)
+	controlplaneM3Machines, workerM3Machines := GetMetal3Machines(ctx, bootstrapClusterClient, clusterName, namespace)
 
 	// get baremetal ip pool for retreiving ip addresses of controlpane and worker nodes
-	baremetalv4Pool, _ := GetIPPools(ctx, cli, input.ClusterName, input.Namespace)
+	baremetalv4Pool, _ := GetIPPools(ctx, bootstrapClusterClient, input.ClusterName, input.Namespace)
 	Expect(baremetalv4Pool).ToNot(BeEmpty())
 
 	// Worker
 	By("Healthchecking the workers")
-	workerHealthcheck, err := DeployWorkerHealthCheck(ctx, cli, namespace, clusterName)
+	workerHealthcheck, workerRemediationTemplate, err := DeployWorkerHealthCheck(ctx, bootstrapClusterClient, namespace, clusterName)
 	Expect(err).ToNot(HaveOccurred())
+
 	workerMachineName, err := Metal3MachineToMachineName(workerM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
-	workerMachine := GetMachine(ctx, cli, client.ObjectKey{Name: workerMachineName, Namespace: namespace})
-	workerIP, err := MachineToIPAddress(ctx, cli, &workerMachine, baremetalv4Pool[0])
+	workerMachine := GetMachine(ctx, bootstrapClusterClient, client.ObjectKey{Name: workerMachineName, Namespace: namespace})
+	workerIP, err := MachineToIPAddress(ctx, bootstrapClusterClient, &workerMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
-	Expect(runCommand("", "", workerIP, "metal3", "systemctl stop kubelet")).To(Succeed())
+
+	Logf("Stopping kubelet on worker machine")
+	Eventually(func(g Gomega) {
+		g.Expect(runCommand("", "", workerIP, "metal3", "systemctl stop kubelet")).To(Succeed())
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-command")...).Should(Succeed())
+
 	// Wait until node is marked unhealthy and then check that it becomes healthy again
 	Logf("Waiting for unhealthy worker...")
-	WaitForHealthCheckCurrentHealthyToMatch(ctx, cli, 0, workerHealthcheck, timeout, freq)
+	WaitForHealthCheckCurrentHealthyToMatch(ctx, bootstrapClusterClient, 0, workerHealthcheck, timeout, freq)
 	Logf("Waiting for remediationrequest to exist ...")
-	WaitForRemediationRequest(ctx, cli, client.ObjectKeyFromObject(&workerMachine), true, timeout, freq)
+	WaitForRemediationRequest(ctx, bootstrapClusterClient, client.ObjectKeyFromObject(&workerMachine), true, timeout, freq)
 	Logf("Waiting for worker to get healthy again...")
-	WaitForHealthCheckCurrentHealthyToMatch(ctx, cli, 1, workerHealthcheck, timeout, freq)
+	WaitForHealthCheckCurrentHealthyToMatch(ctx, bootstrapClusterClient, 1, workerHealthcheck, timeout, freq)
 	Logf("Waiting for remediationrequest to not exist ...")
-	WaitForRemediationRequest(ctx, cli, client.ObjectKeyFromObject(&workerMachine), false, timeout, freq)
+	WaitForRemediationRequest(ctx, bootstrapClusterClient, client.ObjectKeyFromObject(&workerMachine), false, timeout, freq)
 
 	// Controlplane
 	By("Healthchecking the controlplane")
-	controlplaneHealthcheck, err := DeployControlplaneHealthCheck(ctx, cli, namespace, clusterName)
+	controlplaneHealthcheck, controlplaneRemediationTemplate, err := DeployControlplaneHealthCheck(ctx, bootstrapClusterClient, namespace, clusterName)
 	Expect(err).ToNot(HaveOccurred())
 	controlplaneMachineName, err := Metal3MachineToMachineName(controlplaneM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
-	controlplaneMachine := GetMachine(ctx, cli, client.ObjectKey{Name: controlplaneMachineName, Namespace: namespace})
-	controlplaneIP, err := MachineToIPAddress(ctx, cli, &controlplaneMachine, baremetalv4Pool[0])
+	controlplaneMachine := GetMachine(ctx, bootstrapClusterClient, client.ObjectKey{Name: controlplaneMachineName, Namespace: namespace})
+	controlplaneIP, err := MachineToIPAddress(ctx, bootstrapClusterClient, &controlplaneMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
-	Expect(runCommand("", "", controlplaneIP, "metal3", "systemctl stop kubelet")).To(Succeed())
+
+	Logf("Stopping kubelet on controlplane machine")
+	Eventually(func(g Gomega) {
+		g.Expect(runCommand("", "", controlplaneIP, "metal3", "systemctl stop kubelet")).To(Succeed())
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-command")...).Should(Succeed())
+
 	// Wait until node is marked unhealthy and then check that it becomes healthy again
 	Logf("Waiting for unhealthy controlplane ...")
-	WaitForHealthCheckCurrentHealthyToMatch(ctx, cli, 2, controlplaneHealthcheck, timeout, freq)
+	WaitForHealthCheckCurrentHealthyToMatch(ctx, bootstrapClusterClient, 2, controlplaneHealthcheck, timeout, freq)
 	Logf("Waiting for remediationrequest to exist ...")
-	WaitForRemediationRequest(ctx, cli, client.ObjectKeyFromObject(&controlplaneMachine), true, timeout, freq)
+	WaitForRemediationRequest(ctx, bootstrapClusterClient, client.ObjectKeyFromObject(&controlplaneMachine), true, timeout, freq)
 	Logf("Waiting for controlplane to be healthy again...")
-	WaitForHealthCheckCurrentHealthyToMatch(ctx, cli, 3, controlplaneHealthcheck, timeout, freq)
+	WaitForHealthCheckCurrentHealthyToMatch(ctx, bootstrapClusterClient, 3, controlplaneHealthcheck, timeout, freq)
 	Logf("Waiting for remediationrequest to not exist ...")
-	WaitForRemediationRequest(ctx, cli, client.ObjectKeyFromObject(&controlplaneMachine), false, timeout, freq)
+	WaitForRemediationRequest(ctx, bootstrapClusterClient, client.ObjectKeyFromObject(&controlplaneMachine), false, timeout, freq)
+
+	By("Deleting worker and controlplane Metal3RemediationTemplate CRs")
+	Expect(bootstrapClusterClient.Delete(ctx, workerRemediationTemplate)).To(Succeed(), "should delete worker Metal3RemediationTemplate CR")
+	Expect(bootstrapClusterClient.Delete(ctx, controlplaneRemediationTemplate)).To(Succeed(), "should delete controlplane Metal3RemediationTemplate CR")
+
+	By("Make sure Metal3RemediationTemplate CRs are actually deleted")
+	Eventually(func() bool {
+		cpM3MremediationTemplate := &infrav1.Metal3RemediationTemplate{}
+		workerM3MremediationTemplate := &infrav1.Metal3RemediationTemplate{}
+		cpErr := bootstrapClusterClient.Get(ctx, client.ObjectKeyFromObject(controlplaneRemediationTemplate), cpM3MremediationTemplate)
+		workerErr := bootstrapClusterClient.Get(ctx, client.ObjectKeyFromObject(workerRemediationTemplate), workerM3MremediationTemplate)
+		return apierrors.IsNotFound(cpErr) && apierrors.IsNotFound(workerErr)
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-delete-remediation-template")...).Should(BeTrue(), "Metal3RemediationTemplate should have been deleted")
 }
 
 // DeployControlplaneHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate for controlplane machines.
-func DeployControlplaneHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, error) {
+func DeployControlplaneHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
 	remediationTemplateName := "controlplane-remediation-request"
 	healthCheckName := "controlplane-healthcheck"
 	matchLabels := map[string]string{
 		"cluster.x-k8s.io/control-plane": "",
 	}
-	healthcheck, err := DeployMachineHealthCheck(ctx, cli, namespace, clusterName, remediationTemplateName, healthCheckName, matchLabels)
+	healthcheck, remediationTemplate, err := DeployMachineHealthCheck(ctx, cli, namespace, clusterName, remediationTemplateName, healthCheckName, matchLabels)
 	if err != nil {
-		return nil, fmt.Errorf("creating controlplane healthcheck failed: %w", err)
+		return nil, nil, fmt.Errorf("creating controlplane healthcheck failed: %w", err)
 	}
-	return healthcheck, nil
+	return healthcheck, remediationTemplate, nil
 }
 
 // DeployWorkerHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate for worker machines.
-func DeployWorkerHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, error) {
+func DeployWorkerHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
 	remediationTemplateName := "worker-remediation-request"
 	healthCheckName := "worker-healthcheck"
 	matchLabels := map[string]string{
 		"nodepool": "nodepool-0",
 	}
-	healthcheck, err := DeployMachineHealthCheck(ctx, cli, namespace, clusterName, remediationTemplateName, healthCheckName, matchLabels)
+	healthcheck, remediationTemplate, err := DeployMachineHealthCheck(ctx, cli, namespace, clusterName, remediationTemplateName, healthCheckName, matchLabels)
 	if err != nil {
-		return nil, fmt.Errorf("creating worker healthcheck failed: %w", err)
+		return nil, nil, fmt.Errorf("creating worker healthcheck failed: %w", err)
 	}
-	return healthcheck, nil
+	return healthcheck, remediationTemplate, nil
 }
 
 // DeployMachineHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate with given values.
-func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName, remediationTemplateName, healthCheckName string, matchLabels map[string]string) (*clusterv1.MachineHealthCheck, error) {
-	remediationTemplate := infrav1.Metal3RemediationTemplate{
+func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName, remediationTemplateName, healthCheckName string, matchLabels map[string]string) (*clusterv1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
+	remediationTemplate := &infrav1.Metal3RemediationTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Metal3RemediationTemplate",
 		},
@@ -131,9 +159,9 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 		},
 	}
 
-	err := cli.Create(ctx, &remediationTemplate)
+	err := cli.Create(ctx, remediationTemplate)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create remediation template: %w", err)
+		return nil, nil, fmt.Errorf("couldn't create remediation template: %w", err)
 	}
 
 	healthCheck := &clusterv1.MachineHealthCheck{
@@ -179,9 +207,9 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 	}
 	err = cli.Create(ctx, healthCheck)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create healthCheck: %w", err)
+		return nil, nil, fmt.Errorf("couldn't create healthCheck: %w", err)
 	}
-	return healthCheck, nil
+	return healthCheck, remediationTemplate, nil
 }
 
 // WaitForHealthCheckCurrentHealthyToMatch waits for current healthy machines watched by healthcheck to match the number given.

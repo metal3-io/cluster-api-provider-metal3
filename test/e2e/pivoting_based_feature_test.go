@@ -87,7 +87,7 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 			validateGlobals(specName)
 
 			// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-			clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
+			clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 		})
 
 		It("Should get a management cluster then test cert rotation and node reuse", func() {
@@ -165,7 +165,7 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 					}
 				})
 			}
-			DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+			DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 		})
 
 	})

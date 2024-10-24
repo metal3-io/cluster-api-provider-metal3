@@ -125,19 +125,25 @@ func getSha256Hash(filename string) ([]byte, error) {
 	return hash.Sum(nil), nil
 }
 
-func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
+// TODO change this function to handle multiple workload(target) clusters.
+func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrapClusterProxy framework.ClusterProxy, targetClusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
-	clusterClient := clusterProxy.GetClient()
+	clusterClient := bootstrapClusterProxy.GetClient()
 
-	clusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
+	bootstrapClusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
+	By("Fetch logs from target cluster")
+	err := FetchClusterLogs(targetClusterProxy, clusterLogCollectionBasePath)
+	if err != nil {
+		Logf("Error: %v", err)
+	}
 	// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 		Lister:    clusterClient,
 		Namespace: namespace,
-		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
+		LogPath:   filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "resources"),
 	})
 
 	if !skipCleanup {
