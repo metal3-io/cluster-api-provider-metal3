@@ -28,6 +28,58 @@ var (
 	bmoGoproxy            = "https://proxy.golang.org/github.com/metal3-io/baremetal-operator/@v/list"
 )
 
+var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [clusterctl-upgrade]", func() {
+	BeforeEach(func() {
+		osType := strings.ToLower(os.Getenv("OS"))
+		Expect(osType).ToNot(Equal(""))
+		validateGlobals(specName)
+		imageURL, imageChecksum := EnsureImage("v1.31.0")
+		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+		os.Setenv("IMAGE_RAW_URL", imageURL)
+		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
+		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
+	})
+
+	minorVersion := "1.8"
+	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	capm3StableRelease, err := GetCAPM3StableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion)
+
+	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
+		return capi_e2e.ClusterctlUpgradeSpecInput{
+			E2EConfig:                       e2eConfig,
+			ClusterctlConfigPath:            clusterctlConfigPath,
+			BootstrapClusterProxy:           bootstrapClusterProxy,
+			ArtifactFolder:                  artifactFolder,
+			SkipCleanup:                     skipCleanup,
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
+			InitWithKubernetesVersion:       "v1.31.0",
+			WorkloadKubernetesVersion:       "v1.31.0",
+			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
+			PreInit: func(clusterProxy framework.ClusterProxy) {
+				preInitFunc(clusterProxy, "0.8", "26.0")
+				// Override capi/capm3 versions exported in preInit
+				os.Setenv("CAPI_VERSION", "v1beta1")
+				os.Setenv("CAPM3_VERSION", "v1beta1")
+				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
+			},
+			PostNamespaceCreated: postNamespaceCreated,
+			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
+				preUpgrade(clusterProxy, "latest", "latest")
+			},
+			PreCleanupManagementCluster: func(clusterProxy framework.ClusterProxy) {
+				preCleanupManagementCluster(clusterProxy, "latest")
+			},
+			MgmtFlavor:     osType,
+			WorkloadFlavor: osType,
+		}
+	})
+})
+
 var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
@@ -61,59 +113,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [cl
 			WorkloadKubernetesVersion:       "v1.30.0",
 			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
-				preInitFunc(clusterProxy, "0.6", "24.1")
-				// Override capi/capm3 versions exported in preInit
-				os.Setenv("CAPI_VERSION", "v1beta1")
-				os.Setenv("CAPM3_VERSION", "v1beta1")
-				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
-			},
-			PostNamespaceCreated: postNamespaceCreated,
-			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
-				preUpgrade(clusterProxy, "latest", "latest")
-			},
-			PreCleanupManagementCluster: func(clusterProxy framework.ClusterProxy) {
-				preCleanupManagementCluster(clusterProxy, "latest")
-			},
-			MgmtFlavor:     osType,
-			WorkloadFlavor: osType,
-		}
-	})
-})
-
-var _ = Describe("When testing cluster upgrade from releases (v1.6=>current) [clusterctl-upgrade]", func() {
-	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
-		Expect(osType).ToNot(Equal(""))
-		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage("v1.29.0")
-		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
-		os.Setenv("IMAGE_RAW_URL", imageURL)
-		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
-	})
-
-	minorVersion := "1.6"
-	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
-	capm3StableRelease, err := GetCAPM3StableReleaseOfMinor(ctx, minorVersion)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion)
-
-	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
-		return capi_e2e.ClusterctlUpgradeSpecInput{
-			E2EConfig:                       e2eConfig,
-			ClusterctlConfigPath:            clusterctlConfigPath,
-			BootstrapClusterProxy:           bootstrapClusterProxy,
-			ArtifactFolder:                  artifactFolder,
-			SkipCleanup:                     skipCleanup,
-			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
-			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
-			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
-			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
-			InitWithKubernetesVersion:       "v1.29.0",
-			WorkloadKubernetesVersion:       "v1.29.0",
-			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
-			PreInit: func(clusterProxy framework.ClusterProxy) {
-				preInitFunc(clusterProxy, "0.5", "24.0")
+				preInitFunc(clusterProxy, "0.6", "25.0")
 				// Override capi/capm3 versions exported in preInit
 				os.Setenv("CAPI_VERSION", "v1beta1")
 				os.Setenv("CAPM3_VERSION", "v1beta1")
