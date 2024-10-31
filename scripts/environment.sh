@@ -64,8 +64,11 @@ fi
 
 # Scalability test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "scalability" ]]; then
-  export NUM_NODES=${NUM_NODES:-"100"}
-  export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"20"}
+  export NUM_NODES=${NUM_NODES:-"10"}
+  export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
+  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
+  export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
 fi
 
 # Integration test environment vars and config
