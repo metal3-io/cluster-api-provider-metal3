@@ -72,8 +72,9 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]",
 	AfterEach(func() {
 		FKASKustomization := e2eConfig.GetVariable("FKAS_RELEASE_LATEST")
 		By(fmt.Sprintf("Removing FKAS from kustomization %s from the bootsrap cluster", FKASKustomization))
-		BuildAndRemoveKustomization(ctx, FKASKustomization, bootstrapClusterProxy)
-		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		err := BuildAndRemoveKustomization(ctx, FKASKustomization, bootstrapClusterProxy)
+		Expect(err).NotTo(HaveOccurred())
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
 	})
 })
 
@@ -99,13 +100,14 @@ func registerFKASCluster(cn string, ns string) (string, int) {
 		Logf("impossible to marshall fkasCluster: %s", err)
 	}
 	// send the request
-	cluster_endpoints, err := http.Post("http://172.22.0.2:3333/register", "application/json", bytes.NewReader(marshalled))
+	clusterEndpoints, err := http.Post("http://172.22.0.2:3333/register", "application/json", bytes.NewReader(marshalled))
 	Expect(err).NotTo(HaveOccurred())
-	defer cluster_endpoints.Body.Close()
-	body, err := ioutil.ReadAll(cluster_endpoints.Body)
+	defer clusterEndpoints.Body.Close()
+	body, err := ioutil.ReadAll(clusterEndpoints.Body)
 	Expect(err).NotTo(HaveOccurred())
 	var response Endpoint
-	json.Unmarshal(body, &response)
+	err = json.Unmarshal(body, &response)
+	Expect(err).NotTo(HaveOccurred())
 	return response.Host, response.Port
 }
 
@@ -127,21 +129,20 @@ func createFKASResources() {
 }
 
 func LogToFile(logFile string, data []byte) {
-	err := ioutil.WriteFile(filepath.Clean(logFile), data, 0644)
+	err := ioutil.WriteFile(filepath.Clean(logFile), data, 0600)
 	Expect(err).ToNot(HaveOccurred(), "Cannot log to file")
 }
 
 // the function to create the bmh needed in the namesace and call fkas to prepare a fakecluster and update templates accordingly
 // PostNamespaceCreated
-// (managementClusterProxy framework.ClusterProxy, namespace, clusterName string, clusterTemplateYAML []byte){
-func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string, baseClusterClassYAML []byte, baseClusterTemplateYAML []byte) (clusterClassTemlate []byte, ClusterTemplate []byte) {
+// (managementClusterProxy framework.ClusterProxy, namespace, clusterName string, clusterTemplateYAML []byte){.
+func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string, baseClusterClassYAML []byte, baseClusterTemplateYAML []byte) (clusterClassTemlate []byte, clusterTemplate []byte) {
 	c := clusterProxy.GetClient()
 
-	getClusterId := func(clusterName string) (index int) {
+	getClusterID := func(clusterName string) (index int) {
 		re := regexp.MustCompile("[0-9]+$")
 		index, _ = strconv.Atoi(string((re.Find([]byte(clusterName)))))
 		return
-
 	}
 
 	getBmhsCountNeeded := func() (sum int) {
@@ -186,7 +187,7 @@ func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clust
 			applyBatchBmh(i, i+batchSize-1)
 		}
 	}
-	index := getClusterId(clusterName)
+	index := getClusterID(clusterName)
 	cn := getBmhsCountNeeded()
 	f, t := getBmhsFromToIndex(index, cn)
 	batch, _ := strconv.Atoi(e2eConfig.GetVariable("BMH_BATCH_SIZE"))
@@ -196,7 +197,7 @@ func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clust
 	clusterTemplateYAML := bytes.Replace(baseClusterTemplateYAML, []byte("CLUSTER_APIENDPOINT_HOST_HOLDER"), []byte(h), -1)
 	clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte("CLUSTER_APIENDPOINT_PORT_HOLDER"), []byte(strconv.Itoa(p)), -1)
 
-	clusterClassYAML, clusterTemplateYAML := extract_dataTemplate_ippool(baseClusterClassYAML, clusterTemplateYAML)
+	clusterClassYAML, clusterTemplateYAML := extractDataTemplateIppool(baseClusterClassYAML, clusterTemplateYAML)
 	Logf("save " + clusterName + " cluster in a file")
 	LogToFile("/tmp/"+clusterName+"-cluster.log", clusterTemplateYAML)
 	Logf("save " + clusterName + " clusterclass in a file")
@@ -204,7 +205,7 @@ func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clust
 	return clusterClassYAML, clusterTemplateYAML
 }
 
-func extract_dataTemplate_ippool(baseClusterClassYAML []byte, baseClusterTemplateYAML []byte) (clusterClassTemlate []byte, ClusterTemplate []byte) {
+func extractDataTemplateIppool(baseClusterClassYAML []byte, baseClusterTemplateYAML []byte) (clusterClassTemlate []byte, clusterTemplate []byte) {
 	clusterClassObjs, err := yaml.ToUnstructured(baseClusterClassYAML)
 	Expect(err).ToNot(HaveOccurred())
 	newClusterClassObjs := []unstructured.Unstructured{}

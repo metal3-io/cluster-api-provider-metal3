@@ -287,7 +287,7 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(KUBEBUILDER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && ./install_kubebuilder.sh
 
-$(SETUP_ENVTEST): 
+$(SETUP_ENVTEST):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(SETUP_ENVTEST_PKG)@$(SETUP_ENVTEST_VER)
 
 .PHONY: $(GINKGO_BIN)
