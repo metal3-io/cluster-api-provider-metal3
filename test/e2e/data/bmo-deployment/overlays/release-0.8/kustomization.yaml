@@ -2,7 +2,7 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 namespace: baremetal-operator-system
 resources:
-- https://github.com/metal3-io/baremetal-operator/config/overlays/basic-auth_tls?ref=release-0.5
+- https://github.com/metal3-io/baremetal-operator/config/overlays/basic-auth_tls?ref=release-0.8
 configMapGenerator:
 - name: ironic
   behavior: create
@@ -19,7 +19,7 @@ patches:
     name: controller-manager
 images:
 - name: quay.io/metal3-io/baremetal-operator
-  newTag: release-0.5
+  newTag: release-0.8
 - name: gcr.io/kubebuilder/kube-rbac-proxy
   newTag: v0.8.0
 # We cannot use suffix hashes since the kustomizations we build on
@@ -32,7 +32,3 @@ secretGenerator:
   files:
   - username=ironic-username
   - password=ironic-password
-- name: ironic-inspector-credentials
-  files:
-  - username=ironic-inspector-username
-  - password=ironic-inspector-password

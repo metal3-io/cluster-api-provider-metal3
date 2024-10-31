@@ -17,6 +17,15 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
+  - name: "{go://sigs.k8s.io/cluster-api@v1.8}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/core-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1.8/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.7}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/core-components.yaml"
     type: "url"
@@ -47,6 +56,15 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
+  - name: "{go://sigs.k8s.io/cluster-api@v1.8}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1.8/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.7}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/bootstrap-components.yaml"
     type: "url"
@@ -77,6 +95,15 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
+  - name: "{go://sigs.k8s.io/cluster-api@v1.8}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.8}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta1
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1.8/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.7}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.7}/control-plane-components.yaml"
     type: "url"
@@ -136,6 +163,17 @@ providers:
     contract: v1beta1
     files:
     - sourcePath: "../data/infrastructure-metal3/v1.7/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
+  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.8}"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.8}/infrastructure-components.yaml"
+    type: "url"
+    contract: v1beta1
+    files:
+    - sourcePath: "../data/infrastructure-metal3/v1.8/metadata.yaml"
       targetName: "metadata.yaml"
     - sourcePath: "../_out/cluster-template-ubuntu.yaml"
       targetName: "cluster-template-ubuntu.yaml"
@@ -202,13 +240,11 @@ variables:
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: "0s"
-  IRONIC_RELEASE_23.1: "data/ironic-deployment/overlays/release-23.1"
-  IRONIC_RELEASE_24.0: "data/ironic-deployment/overlays/release-24.0"
-  IRONIC_RELEASE_24.1: "data/ironic-deployment/overlays/release-24.1"
+  IRONIC_RELEASE_25.0: "data/ironic-deployment/overlays/release-25.0"
+  IRONIC_RELEASE_26.0: "data/ironic-deployment/overlays/release-26.0"
   IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
-  BMO_RELEASE_0.4: "data/bmo-deployment/overlays/release-0.4"
-  BMO_RELEASE_0.5: "data/bmo-deployment/overlays/release-0.5"
   BMO_RELEASE_0.6: "data/bmo-deployment/overlays/release-0.6"
+  BMO_RELEASE_0.8: "data/bmo-deployment/overlays/release-0.8"
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
 
 intervals:
