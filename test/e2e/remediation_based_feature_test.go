@@ -90,9 +90,11 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 		By("Running healthcheck tests")
 		healthcheck(ctx, func() HealthCheckInput {
 			return HealthCheckInput{
+				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
+				SpecName:              specName,
 			}
 		})
 
