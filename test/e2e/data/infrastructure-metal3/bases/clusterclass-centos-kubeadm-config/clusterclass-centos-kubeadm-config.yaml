@@ -5,7 +5,7 @@ metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
-template:
+  template:
     spec:
       kubeadmConfigSpec:
         clusterConfiguration: {}
