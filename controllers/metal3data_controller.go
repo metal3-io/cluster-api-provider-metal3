@@ -165,7 +165,7 @@ func (r *Metal3DataReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 			&ipamv1.IPClaim{},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
 

@@ -252,9 +252,9 @@ func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				return requests
 			}),
 			// predicates.ClusterUnpaused will handle cluster unpaused logic
-			builder.WithPredicates(predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx))),
+			builder.WithPredicates(predicates.ClusterUnpaused(mgr.GetScheme(), ctrl.LoggerFrom(ctx))),
 		).
-		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetLogger())).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceIsNotExternallyManaged(mgr.GetScheme(), mgr.GetLogger())).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }

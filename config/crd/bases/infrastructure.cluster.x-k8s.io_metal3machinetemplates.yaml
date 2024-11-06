@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: metal3machinetemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -34,14 +34,19 @@ spec:
           API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -50,8 +55,9 @@ spec:
             properties:
               nodeReuse:
                 default: false
-                description: When set to True, CAPM3 Machine controller will pick
-                  the same pool of BMHs' that were released during the upgrade operation.
+                description: |-
+                  When set to True, CAPM3 Machine controller will
+                  pick the same pool of BMHs' that were released during the upgrade operation.
                 type: boolean
               template:
                 description: Metal3MachineTemplateResource describes the data needed
@@ -62,8 +68,9 @@ spec:
                       of the machine.
                     properties:
                       automatedCleaningMode:
-                        description: When set to disabled, automated cleaning of host
-                          disks will be skipped during provisioning and deprovisioning.
+                        description: |-
+                          When set to disabled, automated cleaning of host disks will be skipped
+                          during provisioning and deprovisioning.
                         enum:
                         - metadata
                         - disabled
@@ -72,58 +79,65 @@ spec:
                         description: A custom deploy procedure.
                         properties:
                           method:
-                            description: Custom deploy method name. This name is specific
-                              to the deploy ramdisk used. If you don't have a custom
-                              deploy ramdisk, you shouldn't use CustomDeploy.
+                            description: |-
+                              Custom deploy method name.
+                              This name is specific to the deploy ramdisk used. If you don't have
+                              a custom deploy ramdisk, you shouldn't use CustomDeploy.
                             type: string
                         required:
                         - method
                         type: object
                       dataTemplate:
-                        description: MetadataTemplate is a reference to a Metal3DataTemplate
-                          object containing a template of metadata to be rendered.
-                          Metadata keys defined in the metadataTemplate take precedence
-                          over keys defined in metadata field.
+                        description: |-
+                          MetadataTemplate is a reference to a Metal3DataTemplate object containing
+                          a template of metadata to be rendered. Metadata keys defined in the
+                          metadataTemplate take precedence over keys defined in metadata field.
                         properties:
                           apiVersion:
                             description: API version of the referent.
                             type: string
                           fieldPath:
-                            description: 'If referring to a piece of an object instead
-                              of an entire object, this string should contain a valid
-                              JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                              For example, if the object reference is to a container
-                              within a pod, this would take on a value like: "spec.containers{name}"
-                              (where "name" refers to the name of the container that
-                              triggered the event) or if no container name is specified
-                              "spec.containers[2]" (container with index 2 in this
-                              pod). This syntax is chosen only to have some well-defined
-                              way of referencing a part of an object. TODO: this design
-                              is not final and this field is subject to change in
-                              the future.'
+                            description: |-
+                              If referring to a piece of an object instead of an entire object, this string
+                              should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container within a pod, this would take on a value like:
+                              "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                              the event) or if no container name is specified "spec.containers[2]" (container with
+                              index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                              referencing a part of an object.
                             type: string
                           kind:
-                            description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                            description: |-
+                              Kind of the referent.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                             type: string
                           name:
-                            description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                             type: string
                           namespace:
-                            description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                            description: |-
+                              Namespace of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
                             type: string
                           resourceVersion:
-                            description: 'Specific resourceVersion to which this reference
-                              is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                            description: |-
+                              Specific resourceVersion to which this reference is made, if any.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
                             type: string
                           uid:
-                            description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                            description: |-
+                              UID of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
                             type: string
                         type: object
                         x-kubernetes-map-type: atomic
                       hostSelector:
-                        description: HostSelector specifies matching criteria for
-                          labels on BareMetalHosts. This is used to limit the set
-                          of BareMetalHost objects considered for claiming for a metal3machine.
+                        description: |-
+                          HostSelector specifies matching criteria for labels on BareMetalHosts.
+                          This is used to limit the set of BareMetalHost objects considered for
+                          claiming for a metal3machine.
                         properties:
                           matchExpressions:
                             description: Label match expressions that must be true
@@ -133,9 +147,9 @@ spec:
                                 key:
                                   type: string
                                 operator:
-                                  description: Operator represents a key/field's relationship
-                                    to value(s). See labels.Requirement and fields.Requirement
-                                    for more details.
+                                  description: |-
+                                    Operator represents a key/field's relationship to value(s).
+                                    See labels.Requirement and fields.Requirement for more details.
                                   type: string
                                 values:
                                   items:
@@ -162,8 +176,9 @@ spec:
                               value or a URL to retrieve one.
                             type: string
                           checksumType:
-                            description: ChecksumType is the checksum algorithm for
-                              the image. e.g md5, sha256, sha512
+                            description: |-
+                              ChecksumType is the checksum algorithm for the image.
+                              e.g md5, sha256, sha512
                             enum:
                             - md5
                             - sha256
@@ -186,8 +201,9 @@ spec:
                         - url
                         type: object
                       metaData:
-                        description: MetaData is an object storing the reference to
-                          the secret containing the Metadata given by the user.
+                        description: |-
+                          MetaData is an object storing the reference to the secret containing the
+                          Metadata given by the user.
                         properties:
                           name:
                             description: name is unique within a namespace to reference
@@ -200,8 +216,9 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       networkData:
-                        description: NetworkData is an object storing the reference
-                          to the secret containing the network data given by the user.
+                        description: |-
+                          NetworkData is an object storing the reference to the secret containing the
+                          network data given by the user.
                         properties:
                           name:
                             description: name is unique within a namespace to reference
@@ -214,14 +231,15 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       providerID:
-                        description: ProviderID will be the Metal3 machine in ProviderID
-                          format (metal3://<bmh-uuid>)
+                        description: |-
+                          ProviderID will be the Metal3 machine in ProviderID format
+                          (metal3://<bmh-uuid>)
                         type: string
                       userData:
-                        description: UserData references the Secret that holds user
-                          data needed by the bare metal operator. The Namespace is
-                          optional; it will default to the metal3machine's namespace
-                          if not specified.
+                        description: |-
+                          UserData references the Secret that holds user data needed by the bare metal
+                          operator. The Namespace is optional; it will default to the metal3machine's
+                          namespace if not specified.
                         properties:
                           name:
                             description: name is unique within a namespace to reference

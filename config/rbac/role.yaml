@@ -43,52 +43,17 @@ rules:
   - cluster.x-k8s.io
   resources:
   - clusters
+  - clusters/status
+  - machinesets
   verbs:
   - get
   - list
   - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - clusters
-  - clusters/status
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - clusters/status
-  verbs:
-  - get
 - apiGroups:
   - cluster.x-k8s.io
   resources:
   - kubeadmcontrolplanes
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machinedeployments
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
   - machines
   - machines/status
   verbs:
@@ -98,14 +63,6 @@ rules:
   - list
   - patch
   - update
-  - watch
-- apiGroups:
-  - cluster.x-k8s.io
-  resources:
-  - machinesets
-  verbs:
-  - get
-  - list
   - watch
 - apiGroups:
   - ""
@@ -128,117 +85,11 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - metal3clusters
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3clusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - metal3dataclaims
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3dataclaims/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - metal3datas
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3datas/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - metal3datatemplates
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3datatemplates/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - metal3machines
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
-  - metal3machines/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - metal3machinetemplates
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - infrastructure.cluster.x-k8s.io
-  resources:
   - metal3remediations
   verbs:
   - create
@@ -251,6 +102,11 @@ rules:
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
   resources:
+  - metal3clusters/status
+  - metal3dataclaims/status
+  - metal3datas/status
+  - metal3datatemplates/status
+  - metal3machines/status
   - metal3remediations/status
   verbs:
   - get
@@ -277,19 +133,6 @@ rules:
   - watch
 - apiGroups:
   - ipam.cluster.x-k8s.io
-  resources:
-  - ipaddresses
-  verbs:
-  - get
-  - list
-  - watch
-- apiGroups:
-  - ipam.cluster.x-k8s.io
-  resources:
-  - ipaddresses/status
-  verbs:
-  - get
-- apiGroups:
   - ipam.metal3.io
   resources:
   - ipaddresses
@@ -298,6 +141,7 @@ rules:
   - list
   - watch
 - apiGroups:
+  - ipam.cluster.x-k8s.io
   - ipam.metal3.io
   resources:
   - ipaddresses/status

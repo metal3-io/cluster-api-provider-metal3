@@ -268,7 +268,7 @@ func (r *Metal3LabelSyncReconciler) SetupWithManager(ctx context.Context, mgr ct
 			&infrav1.Metal3Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3ClusterToBareMetalHosts),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
 
