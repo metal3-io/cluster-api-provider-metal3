@@ -42,16 +42,6 @@ const (
 	metal3MachineKind = "Metal3Machine"
 )
 
-// Filter filters out occurrences of strToFilter from list and returns the new list.
-func Filter(list []string, strToFilter string) (newList []string) {
-	for _, item := range list {
-		if item != strToFilter {
-			newList = append(newList, item)
-		}
-	}
-	return
-}
-
 // Contains returns true if a list contains a string.
 func Contains(list []string, strToSearch string) bool {
 	for _, item := range list {

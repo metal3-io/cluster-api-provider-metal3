@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // ClusterManagerInterface is an interface for a ClusterManager.
@@ -73,19 +74,15 @@ func NewClusterManager(client client.Client, cluster *clusterv1.Cluster,
 // SetFinalizer sets finalizer.
 func (s *ClusterManager) SetFinalizer() {
 	// If the Metal3Cluster doesn't have finalizer, add it.
-	if !Contains(s.Metal3Cluster.ObjectMeta.Finalizers, infrav1.ClusterFinalizer) {
-		s.Metal3Cluster.ObjectMeta.Finalizers = append(
-			s.Metal3Cluster.ObjectMeta.Finalizers, infrav1.ClusterFinalizer,
-		)
+	if !controllerutil.ContainsFinalizer(s.Metal3Cluster, infrav1.ClusterFinalizer) {
+		controllerutil.AddFinalizer(s.Metal3Cluster, infrav1.ClusterFinalizer)
 	}
 }
 
 // UnsetFinalizer unsets finalizer.
 func (s *ClusterManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
-	s.Metal3Cluster.ObjectMeta.Finalizers = Filter(
-		s.Metal3Cluster.ObjectMeta.Finalizers, infrav1.ClusterFinalizer,
-	)
+	controllerutil.RemoveFinalizer(s.Metal3Cluster, infrav1.ClusterFinalizer)
 }
 
 // Create creates a cluster manager for the cluster.
