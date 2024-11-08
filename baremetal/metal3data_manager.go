@@ -85,19 +85,15 @@ func NewDataManager(client client.Client,
 // SetFinalizer sets finalizer.
 func (m *DataManager) SetFinalizer() {
 	// If the Metal3Data doesn't have finalizer, add it.
-	if !Contains(m.Data.Finalizers, infrav1.DataFinalizer) {
-		m.Data.Finalizers = append(m.Data.Finalizers,
-			infrav1.DataFinalizer,
-		)
+	if !controllerutil.ContainsFinalizer(m.Data, infrav1.DataFinalizer) {
+		controllerutil.AddFinalizer(m.Data, infrav1.DataFinalizer)
 	}
 }
 
 // UnsetFinalizer unsets finalizer.
 func (m *DataManager) UnsetFinalizer() {
 	// Remove the finalizer.
-	m.Data.Finalizers = Filter(m.Data.Finalizers,
-		infrav1.DataFinalizer,
-	)
+	controllerutil.RemoveFinalizer(m.Data, infrav1.DataFinalizer)
 }
 
 // clearError clears error message from Metal3Data status.
@@ -722,8 +718,8 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 		if !matchingOwnerRef {
 			// It is not our IPClaim so we should not use it. Attempt to remove finalizer if it is still there.
 			m.Log.Info("Found old IPClaim with deletion timestamp. Attempting to clean up and requeue.", "IPClaim", ipClaim)
-			if Contains(ipClaim.Finalizers, infrav1.DataFinalizer) {
-				ipClaim.Finalizers = Filter(ipClaim.Finalizers, infrav1.DataFinalizer)
+			if controllerutil.ContainsFinalizer(ipClaim, infrav1.DataFinalizer) {
+				controllerutil.RemoveFinalizer(ipClaim, infrav1.DataFinalizer)
 				err := updateObject(ctx, m.client, ipClaim)
 				if err != nil {
 					m.Log.Info("Failed to remove finalizer from old IPClaim", "IPClaim", ipClaim, "error", err)

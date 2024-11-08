@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // DataTemplateManagerInterface is an interface for a DataTemplateManager.
@@ -64,19 +65,15 @@ func NewDataTemplateManager(client client.Client,
 // SetFinalizer sets finalizer.
 func (m *DataTemplateManager) SetFinalizer() {
 	// If the Metal3Machine doesn't have finalizer, add it.
-	if !Contains(m.DataTemplate.Finalizers, infrav1.DataTemplateFinalizer) {
-		m.DataTemplate.Finalizers = append(m.DataTemplate.Finalizers,
-			infrav1.DataTemplateFinalizer,
-		)
+	if !controllerutil.ContainsFinalizer(m.DataTemplate, infrav1.DataTemplateFinalizer) {
+		controllerutil.AddFinalizer(m.DataTemplate, infrav1.DataTemplateFinalizer)
 	}
 }
 
 // UnsetFinalizer unsets finalizer.
 func (m *DataTemplateManager) UnsetFinalizer() {
 	// Remove the finalizer.
-	m.DataTemplate.Finalizers = Filter(m.DataTemplate.Finalizers,
-		infrav1.DataTemplateFinalizer,
-	)
+	controllerutil.RemoveFinalizer(m.DataTemplate, infrav1.DataTemplateFinalizer)
 }
 
 // SetClusterOwnerRef sets ownerRef.
@@ -245,10 +242,8 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 ) (map[int]string, error) {
 	var dataName string
 
-	if !Contains(dataClaim.Finalizers, infrav1.DataClaimFinalizer) {
-		dataClaim.Finalizers = append(dataClaim.Finalizers,
-			infrav1.DataClaimFinalizer,
-		)
+	if !controllerutil.ContainsFinalizer(dataClaim, infrav1.DataClaimFinalizer) {
+		controllerutil.AddFinalizer(dataClaim, infrav1.DataClaimFinalizer)
 	}
 
 	if dataClaimIndex, ok := m.DataTemplate.Status.Indexes[dataClaim.Name]; ok {
@@ -403,9 +398,7 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 			return indexes, err
 		} else if err == nil {
 			// Remove the finalizer
-			tmpM3Data.Finalizers = Filter(tmpM3Data.Finalizers,
-				infrav1.DataClaimFinalizer,
-			)
+			controllerutil.RemoveFinalizer(tmpM3Data, infrav1.DataClaimFinalizer)
 			err = updateObject(ctx, m.client, tmpM3Data)
 			if err != nil && !apierrors.IsNotFound(err) {
 				m.Log.Info("Unable to remove finalizer from Metal3Data", "Metal3Data", tmpM3Data.Name)
@@ -422,9 +415,7 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 	}
 
 	dataClaim.Status.RenderedData = nil
-	dataClaim.Finalizers = Filter(dataClaim.Finalizers,
-		infrav1.DataClaimFinalizer,
-	)
+	controllerutil.RemoveFinalizer(dataClaim, infrav1.DataClaimFinalizer)
 
 	if ok {
 		delete(m.DataTemplate.Status.Indexes, dataClaim.Name)

@@ -41,33 +41,6 @@ var _ = Describe("Metal3 manager utils", func() {
 		ExpectedList []string
 	}
 
-	DescribeTable("Test Filter",
-		func(tc testCaseFilter) {
-			resultList := Filter(tc.TestList, tc.TestString)
-			Expect(resultList).To(Equal(tc.ExpectedList))
-		},
-		Entry("Absent", testCaseFilter{
-			TestList:     []string{"abc", "bcd", "def"},
-			TestString:   "efg",
-			ExpectedList: []string{"abc", "bcd", "def"},
-		}),
-		Entry("Present in 1", testCaseFilter{
-			TestList:     []string{"abc", "bcd", "def"},
-			TestString:   "abc",
-			ExpectedList: []string{"bcd", "def"},
-		}),
-		Entry("Present in 2", testCaseFilter{
-			TestList:     []string{"abc", "bcd", "def"},
-			TestString:   "bcd",
-			ExpectedList: []string{"abc", "def"},
-		}),
-		Entry("Present in 3", testCaseFilter{
-			TestList:     []string{"abc", "bcd", "def"},
-			TestString:   "def",
-			ExpectedList: []string{"abc", "bcd"},
-		}),
-	)
-
 	type testCaseContains struct {
 		TestList       []string
 		TestString     string
