@@ -31,6 +31,8 @@ require (
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
 
+replace sigs.k8s.io/cluster-api/test => github.com/Nordix/cluster-api/test v1.0.1-0.20241028132144-1b62f97c6960
+
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v1.4.0 // indirect

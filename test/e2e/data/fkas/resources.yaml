@@ -1,0 +1,77 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fkas-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metal3-fkas-sa
+  namespace: fkas-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metal3-fkas-role
+rules:
+- apiGroups: ["metal3.io", "infrastructure.cluster.x-k8s.io"]
+  resources: ["baremetalhosts", "metal3machines"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["cluster.x-k8s.io"]
+  resources: ["machines"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metal3-fkas-rolebinding
+subjects:
+- kind: ServiceAccount
+  name: metal3-fkas-sa
+  namespace: fkas-system
+roleRef:
+  kind: ClusterRole
+  name: metal3-fkas-role
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metal3-fkas-system
+  namespace: fkas-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metal3-fkas-system
+  template:
+    metadata:
+      labels:
+        app: metal3-fkas-system
+    spec:
+      serviceAccountName: metal3-fkas-sa
+      hostNetwork: true
+      containers:
+      - name: metal3-fkas-reconciler
+        image: 192.168.111.1:5000/localimages/metal3-fkas
+        imagePullPolicy: IfNotPresent
+        command: ["/reconciler"]
+        env:
+        - name: DEBUG
+          value: "true"
+      - image: 192.168.111.1:5000/localimages/metal3-fkas
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3333
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        - name: DEBUG
+          value: "true"
+        name: metal3-fkas
