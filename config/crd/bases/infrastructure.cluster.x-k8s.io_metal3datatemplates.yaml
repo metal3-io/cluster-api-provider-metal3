@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.13.0
+    controller-gen.kubebuilder.io/version: v0.16.1
   name: metal3datatemplates.infrastructure.cluster.x-k8s.io
 spec:
   group: infrastructure.cluster.x-k8s.io
@@ -38,14 +38,19 @@ spec:
           API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -88,12 +93,13 @@ spec:
                       type: object
                     type: array
                   fromAnnotations:
-                    description: FromAnnotations is the list of metadata items to
-                      be fetched from object Annotations
+                    description: |-
+                      FromAnnotations is the list of metadata items to be fetched from object
+                      Annotations
                     items:
-                      description: MetaDataFromAnnotation contains the information
-                        to fetch an annotation content, if the label does not exist,
-                        it is rendered as empty string.
+                      description: |-
+                        MetaDataFromAnnotation contains the information to fetch an annotation
+                        content, if the label does not exist, it is rendered as empty string.
                       properties:
                         annotation:
                           description: Annotation is the key of the Annotation to
@@ -118,16 +124,17 @@ spec:
                       type: object
                     type: array
                   fromHostInterfaces:
-                    description: FromHostInterfaces is the list of metadata items
-                      to be rendered as MAC addresses of the host interfaces.
+                    description: |-
+                      FromHostInterfaces is the list of metadata items to be rendered as MAC
+                      addresses of the host interfaces.
                     items:
                       description: MetaDataHostInterface contains the information
                         to render the object name.
                       properties:
                         interface:
-                          description: Interface is the name of the interface in the
-                            BareMetalHost Status Hardware Details list of interfaces
-                            from which to fetch the MAC address.
+                          description: |-
+                            Interface is the name of the interface in the BareMetalHost Status Hardware
+                            Details list of interfaces from which to fetch the MAC address.
                           type: string
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -142,9 +149,9 @@ spec:
                     description: FromLabels is the list of metadata items to be fetched
                       from object labels
                     items:
-                      description: MetaDataFromLabel contains the information to fetch
-                        a label content, if the label does not exist, it is rendered
-                        as empty string.
+                      description: |-
+                        MetaDataFromLabel contains the information to fetch a label content, if the
+                        label does not exist, it is rendered as empty string.
                       properties:
                         key:
                           description: Key will be used as the key to set in the metadata
@@ -194,8 +201,9 @@ spec:
                       type: object
                     type: array
                   indexes:
-                    description: Indexes is the list of metadata items to be rendered
-                      from the index of the Metal3Data
+                    description: |-
+                      Indexes is the list of metadata items to be rendered from the index of the
+                      Metal3Data
                     items:
                       description: MetaDataIndex contains the information to render
                         the index.
@@ -264,8 +272,9 @@ spec:
                       type: object
                     type: array
                   objectNames:
-                    description: ObjectNames is the list of metadata items to be rendered
-                      from the name of objects.
+                    description: |-
+                      ObjectNames is the list of metadata items to be rendered from the name
+                      of objects.
                     items:
                       description: MetaDataObjectName contains the information to
                         render the object name.
@@ -334,8 +343,9 @@ spec:
                     type: array
                 type: object
               networkData:
-                description: NetworkData contains the information needed to generate
-                  the networkdata secret
+                description: |-
+                  NetworkData contains the information needed to generate the networkdata
+                  secret
                 properties:
                   links:
                     description: Links is a structure containing lists of different
@@ -354,9 +364,9 @@ spec:
                                 type: string
                               type: array
                             bondMode:
-                              description: BondMode is the mode of bond used. It can
-                                be one of balance-rr, active-backup, balance-xor,
-                                broadcast, balance-tlb, balance-alb, 802.3ad
+                              description: |-
+                                BondMode is the mode of bond used. It can be one of
+                                balance-rr, active-backup, balance-xor, broadcast, balance-tlb, balance-alb, 802.3ad
                               enum:
                               - balance-rr
                               - active-backup
@@ -379,12 +389,14 @@ spec:
                                 naming)
                               type: string
                             macAddress:
-                              description: MACAddress is the MAC address of the interface,
-                                containing the object used to render it.
+                              description: |-
+                                MACAddress is the MAC address of the interface, containing the object
+                                used to render it.
                               properties:
                                 fromAnnotation:
-                                  description: FromAnnotation references an object
-                                    Annotation to retrieve the MAC address from
+                                  description: |-
+                                    FromAnnotation references an object Annotation to retrieve the
+                                    MAC address from
                                   properties:
                                     annotation:
                                       description: Annotation is the key of the Annotation
@@ -403,9 +415,9 @@ spec:
                                   - object
                                   type: object
                                 fromHostInterface:
-                                  description: FromHostInterface contains the name
-                                    of the interface in the BareMetalHost Introspection
-                                    details from which to fetch the MAC address
+                                  description: |-
+                                    FromHostInterface contains the name of the interface in the BareMetalHost
+                                    Introspection details from which to fetch the MAC address
                                   type: string
                                 string:
                                   description: String contains the MAC address given
@@ -434,12 +446,14 @@ spec:
                                 naming)
                               type: string
                             macAddress:
-                              description: MACAddress is the MAC address of the interface,
-                                containing the object used to render it.
+                              description: |-
+                                MACAddress is the MAC address of the interface, containing the object
+                                used to render it.
                               properties:
                                 fromAnnotation:
-                                  description: FromAnnotation references an object
-                                    Annotation to retrieve the MAC address from
+                                  description: |-
+                                    FromAnnotation references an object Annotation to retrieve the
+                                    MAC address from
                                   properties:
                                     annotation:
                                       description: Annotation is the key of the Annotation
@@ -458,9 +472,9 @@ spec:
                                   - object
                                   type: object
                                 fromHostInterface:
-                                  description: FromHostInterface contains the name
-                                    of the interface in the BareMetalHost Introspection
-                                    details from which to fetch the MAC address
+                                  description: |-
+                                    FromHostInterface contains the name of the interface in the BareMetalHost
+                                    Introspection details from which to fetch the MAC address
                                   type: string
                                 string:
                                   description: String contains the MAC address given
@@ -473,9 +487,9 @@ spec:
                               maximum: 9000
                               type: integer
                             type:
-                              description: 'Type is the type of the ethernet link.
-                                It can be one of: bridge, dvs, hw_veb, hyperv, ovs,
-                                tap, vhostuser, vif, phy'
+                              description: |-
+                                Type is the type of the ethernet link. It can be one of:
+                                bridge, dvs, hw_veb, hyperv, ovs, tap, vhostuser, vif, phy
                               enum:
                               - bridge
                               - dvs
@@ -504,12 +518,14 @@ spec:
                                 naming)
                               type: string
                             macAddress:
-                              description: MACAddress is the MAC address of the interface,
-                                containing the object used to render it.
+                              description: |-
+                                MACAddress is the MAC address of the interface, containing the object
+                                used to render it.
                               properties:
                                 fromAnnotation:
-                                  description: FromAnnotation references an object
-                                    Annotation to retrieve the MAC address from
+                                  description: |-
+                                    FromAnnotation references an object Annotation to retrieve the
+                                    MAC address from
                                   properties:
                                     annotation:
                                       description: Annotation is the key of the Annotation
@@ -528,9 +544,9 @@ spec:
                                   - object
                                   type: object
                                 fromHostInterface:
-                                  description: FromHostInterface contains the name
-                                    of the interface in the BareMetalHost Introspection
-                                    details from which to fetch the MAC address
+                                  description: |-
+                                    FromHostInterface contains the name of the interface in the BareMetalHost
+                                    Introspection details from which to fetch the MAC address
                                   type: string
                                 string:
                                   description: String contains the MAC address given
@@ -573,9 +589,9 @@ spec:
                                 to allocate an address from.
                               properties:
                                 apiGroup:
-                                  description: APIGroup is the group for the resource
-                                    being referenced. If APIGroup is not specified,
-                                    the specified Kind must be in the core API group.
+                                  description: |-
+                                    APIGroup is the group for the resource being referenced.
+                                    If APIGroup is not specified, the specified Kind must be in the core API group.
                                     For any other third-party types, APIGroup is required.
                                   type: string
                                 kind:
@@ -734,9 +750,9 @@ spec:
                                 to allocate an address from.
                               properties:
                                 apiGroup:
-                                  description: APIGroup is the group for the resource
-                                    being referenced. If APIGroup is not specified,
-                                    the specified Kind must be in the core API group.
+                                  description: |-
+                                    APIGroup is the group for the resource being referenced.
+                                    If APIGroup is not specified, the specified Kind must be in the core API group.
                                     For any other third-party types, APIGroup is required.
                                   type: string
                                 kind:
@@ -971,9 +987,10 @@ spec:
                     type: object
                 type: object
               templateReference:
-                description: TemplateReference refers to the Template the Metal3MachineTemplate
-                  refers to. It can be matched against the key or it may also point
-                  to the name of the template Metal3Data refers to
+                description: |-
+                  TemplateReference refers to the Template the Metal3MachineTemplate refers to.
+                  It can be matched against the key or it may also point to the name of the template
+                  Metal3Data refers to
                 type: string
             required:
             - clusterName

@@ -126,7 +126,7 @@ func (r *Metal3MachineTemplateReconciler) SetupWithManager(ctx context.Context, 
 			&infrav1.Metal3Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.Metal3MachinesToMetal3MachineTemplate),
 		).
-		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
 
