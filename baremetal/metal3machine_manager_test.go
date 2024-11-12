@@ -429,6 +429,8 @@ var _ = Describe("Metal3Machine manager", func() {
 		ExpectTrue bool
 	}
 
+	testCaseBootstrapReadySecretName := "secret"
+
 	DescribeTable("Test BootstrapReady",
 		func(tc testCaseBootstrapReady) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, &tc.Machine, nil,
@@ -442,6 +444,11 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("ready", testCaseBootstrapReady{
 			Machine: clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{},
+					},
+				},
 				Status: clusterv1.MachineStatus{
 					BootstrapReady: true,
 				},
@@ -451,6 +458,16 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("not ready", testCaseBootstrapReady{
 			Machine:    clusterv1.Machine{},
 			ExpectTrue: false,
+		}),
+		Entry("ready data secret", testCaseBootstrapReady{
+			Machine: clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: &testCaseBootstrapReadySecretName,
+					},
+				},
+			},
+			ExpectTrue: true,
 		}),
 	)
 
