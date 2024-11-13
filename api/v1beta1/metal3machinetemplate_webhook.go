@@ -55,7 +55,9 @@ func (c *Metal3MachineTemplate) ValidateDelete() (admission.Warnings, error) {
 func (c *Metal3MachineTemplate) validate() error {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, c.Spec.Template.Spec.Image.Validate(*field.NewPath("Spec", "Template", "Spec", "Image"))...)
+	if c.Spec.Template.Spec.CustomDeploy == nil || c.Spec.Template.Spec.CustomDeploy.Method == "" {
+		allErrs = append(allErrs, c.Spec.Template.Spec.Image.Validate(*field.NewPath("Spec", "Template", "Spec", "Image"))...)
+	}
 
 	if len(allErrs) == 0 {
 		return nil
