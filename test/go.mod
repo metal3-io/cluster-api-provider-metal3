@@ -13,7 +13,7 @@ require (
 	github.com/onsi/gomega v1.35.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/crypto v0.29.0
-	golang.org/x/mod v0.21.0
+	golang.org/x/mod v0.22.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.2
 	k8s.io/apiextensions-apiserver v0.31.2
