@@ -136,7 +136,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	By("Testing unhealthy and inspection annotations")
 	By("Scaling down KCP to 1 replica")
-	newReplicaCount := 1
+	newReplicaCount := int32(1)
 	ScaleKubeadmControlPlane(ctx, bootstrapClient, client.ObjectKey{Namespace: "metal3", Name: "test1"}, newReplicaCount)
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 		Client:    bootstrapClient,

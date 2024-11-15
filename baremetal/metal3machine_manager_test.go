@@ -2842,12 +2842,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = machineMgr.getUserDataSecretName(context.TODO())
-			if tc.ExpectError {
-				Expect(err).To(HaveOccurred())
-				return
-			}
-			Expect(err).NotTo(HaveOccurred())
+			machineMgr.getUserDataSecretName(context.TODO())
 
 			// Expect the reference to the secret to be passed through
 			if tc.Machine.Spec.Bootstrap.DataSecretName != nil &&

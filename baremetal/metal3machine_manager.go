@@ -328,15 +328,9 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 
 	// A machine bootstrap not ready case is caught in the controller
 	// ReconcileNormal function
-	err = m.getUserDataSecretName(ctx)
-	if err != nil {
-		return err
-	}
+	m.getUserDataSecretName(ctx)
 
-	err = m.setHostLabel(ctx, host)
-	if err != nil {
-		return err
-	}
+	m.setHostLabel(ctx, host)
 
 	err = m.setHostConsumerRef(ctx, host)
 	if err != nil {
@@ -417,9 +411,9 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 // for the BareMetalHost through Metal3Machine. The UserDataSecretName might already be in a secret with
 // CABPK v0.3.0+, but if it is in a different namespace than the BareMetalHost,
 // then we need to create the secret.
-func (m *MachineManager) getUserDataSecretName(_ context.Context) error {
+func (m *MachineManager) getUserDataSecretName(_ context.Context) {
 	if m.Metal3Machine.Status.UserData != nil {
-		return nil
+		return
 	}
 
 	if m.Metal3Machine.Spec.UserData != nil {
@@ -432,15 +426,13 @@ func (m *MachineManager) getUserDataSecretName(_ context.Context) error {
 			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
 			Namespace: m.Machine.Namespace,
 		}
-		return nil
+		return
 	} else if m.Machine.Spec.Bootstrap.ConfigRef != nil {
 		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 			Name:      m.Machine.Spec.Bootstrap.ConfigRef.Name,
 			Namespace: m.Machine.Spec.Bootstrap.ConfigRef.Namespace,
 		}
 	}
-
-	return nil
 }
 
 // Delete deletes a metal3 machine and is invoked by the Machine Controller.
@@ -833,7 +825,6 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 	availableHostsWithNodeReuse := []*bmov1alpha1.BareMetalHost{}
 
 	for i, host := range hosts.Items {
-		host := host
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
 			helper, err := patch.NewHelper(&hosts.Items[i], m.client)
@@ -1030,13 +1021,11 @@ func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmov1alpha
 }
 
 // setHostLabel will set the set cluster.x-k8s.io/cluster-name to bmh.
-func (m *MachineManager) setHostLabel(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
+func (m *MachineManager) setHostLabel(_ context.Context, host *bmov1alpha1.BareMetalHost) {
 	if host.Labels == nil {
 		host.Labels = make(map[string]string)
 	}
 	host.Labels[clusterv1.ClusterNameLabel] = m.Machine.Spec.ClusterName
-
-	return nil
 }
 
 // setHostSpec will ensure the host's Spec is set according to the machine's

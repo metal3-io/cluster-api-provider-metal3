@@ -19,6 +19,6 @@ else
         --volume "${PWD}:${WORKDIR}:ro,z" \
         --entrypoint sh \
         --workdir "${WORKDIR}" \
-        docker.io/golang:1.22 \
+        docker.io/golang:1.23 \
         "${WORKDIR}"/hack/build.sh "$@"
 fi
