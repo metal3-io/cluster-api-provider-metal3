@@ -185,7 +185,6 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 	hasClaims := false
 	// Iterate over the Metal3Data objects to find all indexes and objects
 	for _, dataClaim := range dataClaimObjects.Items {
-		dataClaim := dataClaim
 		// If DataTemplate does not point to this object, discard
 		if dataClaim.Spec.Template.Name != m.DataTemplate.Name {
 			continue

@@ -130,7 +130,7 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	if err != nil {
 		s.Metal3Cluster.Status.Ready = false
 		s.setError("Invalid ControlPlaneEndpoint values", capierrors.InvalidConfigurationClusterError)
-		conditions.MarkFalse(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.ControlPlaneEndpointFailedReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.ControlPlaneEndpointFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return err
 	}
 
@@ -192,7 +192,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1.Machine
 
 	if s.client.List(ctx, &machines, listOptions...) != nil {
 		errMsg := fmt.Sprintf("failed to list metal3machines for cluster %s/%s", cluster.Namespace, cluster.Name)
-		return machines, errors.Wrapf(err, errMsg)
+		return machines, errors.Wrapf(err, "%s", errMsg)
 	}
 
 	return machines, nil
