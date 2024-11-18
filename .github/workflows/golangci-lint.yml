@@ -2,9 +2,8 @@ name: golangci-lint
 
 on:
   pull_request:
-    types: [opened, edited, synchronize, reopened]
+    types: [ opened, edited, synchronize, reopened ]
 
-# Remove all permissions from GITHUB_TOKEN except metadata.
 permissions: {}
 
 jobs:
@@ -32,5 +31,6 @@ jobs:
     - name: golangci-lint-${{matrix.working-directory}}
       uses: golangci/golangci-lint-action@971e284b6050e8a5849b72094c50ab08da042db8 # v6.1.1
       with:
-        version: v1.56.2
+        version: v1.60.3
         working-directory: ${{matrix.working-directory}}
+        args: --timeout=15m
