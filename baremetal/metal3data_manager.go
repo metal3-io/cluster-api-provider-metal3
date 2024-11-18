@@ -784,7 +784,6 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 	ipClaimsList, err := m.fetchIPClaimsWithLabels(ctx, poolRef.Name)
 	if err == nil {
 		for _, ipClaimWithLabels := range ipClaimsList {
-			ipClaimWithLabels := ipClaimWithLabels
 			// remove finalizers from Metal3IPClaim first before proceeding to deletion in case
 			// EnableBMHNameBasedPreallocation is set to True.
 			finalizerErr = m.removeFinalizers(ctx, &ipClaimWithLabels)

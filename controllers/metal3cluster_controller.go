@@ -98,7 +98,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		invalidConfigError := capierrors.InvalidConfigurationClusterError
 		metal3Cluster.Status.FailureReason = &invalidConfigError
 		metal3Cluster.Status.FailureMessage = ptr.To("Unable to get owner cluster")
-		conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1.ConditionSeverityError, err.Error())
+		conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {

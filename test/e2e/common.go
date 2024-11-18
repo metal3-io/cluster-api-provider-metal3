@@ -323,13 +323,13 @@ func ScaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 }
 
 // ScaleKubeadmControlPlane scales up/down KubeadmControlPlane object to desired replicas.
-func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int) {
+func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int32) {
 	ctrlplane := controlplanev1.KubeadmControlPlane{}
 	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
 	helper, err := patch.NewHelper(&ctrlplane, c)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create new patch helper")
 
-	ctrlplane.Spec.Replicas = ptr.To(int32(newReplicaCount))
+	ctrlplane.Spec.Replicas = ptr.To(newReplicaCount)
 	Expect(helper.Patch(ctx, &ctrlplane)).To(Succeed())
 }
 
@@ -995,7 +995,6 @@ func CreateOrUpdateWithNamespace(ctx context.Context, p framework.ClusterProxy, 
 		}
 		existingObject.SetAPIVersion(o.GetAPIVersion())
 		existingObject.SetKind(o.GetKind())
-		o := o
 		if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
 			// Expected error -- if the object does not exist, create it
 			if apierrors.IsNotFound(err) {
