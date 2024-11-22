@@ -113,6 +113,13 @@ help:  # Display this help
 ## --------------------------------------
 ##@ tests:
 
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.32.0
+KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+
+.PHONY: setup-envtest
+setup-envtest: $(SETUP_ENVTEST) ## Set up envtest (download kubebuilder assets)
+	@echo KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)
+
 .PHONY: unit
 unit: $(SETUP_ENVTEST) ## Run unit test
 	$(shell $(SETUP_ENVTEST) use -p env --os $(ENVTEST_OS) --arch $(ARCH) $(ENVTEST_K8S_VERSION)) && \

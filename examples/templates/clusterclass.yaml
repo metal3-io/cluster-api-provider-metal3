@@ -9,7 +9,7 @@ spec:
       controlPlaneEndpoint:
         host: 127.0.0.1
         port: 6443
-      noCloudProvider: true
+        cloudProviderEnabled: false
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlaneTemplate

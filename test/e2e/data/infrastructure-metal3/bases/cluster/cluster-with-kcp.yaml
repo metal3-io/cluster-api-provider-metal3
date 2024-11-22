@@ -29,7 +29,7 @@ spec:
   controlPlaneEndpoint:
     host: ${CLUSTER_APIENDPOINT_HOST}
     port: ${CLUSTER_APIENDPOINT_PORT}
-  noCloudProvider: true
+  cloudProviderEnabled: false
 ---
 apiVersion: controlplane.cluster.x-k8s.io/${CAPI_VERSION}
 kind: KubeadmControlPlane
