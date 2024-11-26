@@ -186,30 +186,14 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 
 // DownloadFile will download a url and store it in local filepath.
 func DownloadFile(filePath string, url string) error {
-	// Get the data
-	/* #nosec G107 */
-	resp, err := http.Get(url) //nolint:noctx
+	// TODO: Lets change the wget to use go's native http client when network
+	// more resilient
+	cmd := exec.Command("wget", "-O", filePath, url)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return err
+		return fmt.Errorf("wget failed: %v, output: %s", err, string(output))
 	}
-	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to download image from %q got %d %s", filePath, resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-	defer resp.Body.Close()
-
-	// Create the file
-	out, err := os.Create(filepath.Clean(filePath))
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err := out.Close()
-		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error closing file: %s", filePath))
-	}()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	return err
+	return nil
 }
 
 // FilterBmhsByProvisioningState returns a filtered list of BaremetalHost objects in certain provisioning state.
