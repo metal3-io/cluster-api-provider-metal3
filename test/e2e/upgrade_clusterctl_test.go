@@ -208,17 +208,17 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	}
 
 	By("Fetch manifest for bootstrap cluster")
-	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
-	cmd.Dir = path
-	_ = cmd.Run()
+	err := FetchManifests(clusterProxy, "/tmp/manifests/")
+	if err != nil {
+		fmt.Printf("Error fetching manifests for bootstrap cluster: %v\n", err)
+	}
 
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kconfigPathWorkload := clusterProxy.GetKubeconfigPath()
 	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
 	Logf("Save kubeconfig in temp folder for project-infra target log collection")
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
-	cmd = exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
+	cmd := exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
 	Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
@@ -248,7 +248,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	ironicKustomizePath := fmt.Sprintf("IRONIC_RELEASE_%s", ironicRelease)
 	initIronicKustomization := e2eConfig.GetVariable(ironicKustomizePath)
 	By(fmt.Sprintf("Installing Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
-	err := BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       initIronicKustomization,
 		ClusterProxy:        clusterProxy,
 		WaitForDeployment:   true,
