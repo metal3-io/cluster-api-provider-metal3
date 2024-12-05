@@ -9,6 +9,8 @@ export WORKING_DIR=/opt/metal3-dev-env
 FORCE_REPO_UPDATE="${FORCE_REPO_UPDATE:-false}"
 
 export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-main}"
+CAPIGOPROXY="${CAPIGOPROXY:-https://proxy.golang.org/sigs.k8s.io/cluster-api/@v/list}"
+CAPM3GOPROXY="${CAPM3GOPROXY:-https://proxy.golang.org/github.com/metal3-io/cluster-api-provider-metal3/@v/list}"
 
 # Starting from CAPI v1.5.0 version cluster-api config folder location has changed
 # to XDG_CONFIG_HOME folder. Following code defines the cluster-api config folder
@@ -79,7 +81,7 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 # By default UPGRADE_FROM_RELEASE is v0.5. if not explicitly exported
 export UPGRADE_FROM_RELEASE="${UPGRADE_FROM_RELEASE:-v0.5.}"
 # Get latest capm3 patch for a minor version $UPGRADE_FROM_RELEASE
-export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release "${CAPM3RELEASEPATH}" "${UPGRADE_FROM_RELEASE}")}"
+export CAPM3_FROM_RELEASE="${CAPM3_FROM_RELEASE:-$(get_latest_release_from_goproxy "${CAPM3GOPROXY}" "${UPGRADE_FROM_RELEASE}")}"
 # Get latest capi patch for the compatible version with capm3 $UPGRADE_FROM_RELEASE
 # for example the compatible version with capm3 0.5.x is capi 0.4.y
 # If we are not upgrading from v0.5 then the capi compatible has same minor version tag as capm3 e.g v1.1.x
@@ -89,7 +91,7 @@ else
     # If we are not upgrading from v0.5 then the capi compatible has same minor version tag e.g v1.1.x
     CAPI_UPGRADE_FROM_RELEASE=${UPGRADE_FROM_RELEASE}
 fi
-export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "${CAPI_UPGRADE_FROM_RELEASE}")}"
+export CAPI_FROM_RELEASE="${CAPI_FROM_RELEASE:-$(get_latest_release_from_goproxy "${CAPIGOPROXY}" "${CAPI_UPGRADE_FROM_RELEASE}")}"
 # The e2e config file parameter for the capi release compatible with main (capm3 next version)
 export CAPI_TO_RELEASE="${CAPIRELEASE}"
 # K8s support based on https://cluster-api.sigs.k8s.io/reference/versions.html#core-provider-cluster-api-controller
