@@ -1295,7 +1295,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
-	if !m.Metal3Cluster.Spec.NoCloudProvider && matchingNodesCount == 0 {
+	if (!m.Metal3Cluster.Spec.NoCloudProvider || m.Metal3Cluster.Spec.CloudProviderEnabled) && matchingNodesCount == 0 {
 		// The node could either be still running cloud-init or
 		// kubernetes has not set the node.spec.ProviderID field yet.
 		errMessage := "Some target nodes do not have spec.providerID field set yet, requeuing"
