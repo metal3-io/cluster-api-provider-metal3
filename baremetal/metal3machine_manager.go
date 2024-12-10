@@ -196,10 +196,9 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
-		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
-			capierrors.CreateMachineError,
-		)
-		return err
+		errMessage := "Failed to get a BaremetalHost for the Metal3Machine, requeuing"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 
 	if host == nil {
@@ -227,10 +226,9 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
-		m.SetError("Failed to get a BaremetalHost for the Metal3Machine",
-			capierrors.UpdateMachineError,
-		)
-		return err
+		errMessage := "Failed to get a BaremetalHost for the Metal3Machine, requeuing"
+		m.Log.Info(errMessage)
+		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if host == nil {
 		return nil
