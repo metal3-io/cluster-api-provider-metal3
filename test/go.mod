@@ -19,8 +19,8 @@ require (
 	k8s.io/apimachinery v0.29.11
 	k8s.io/client-go v0.29.11
 	k8s.io/utils v0.0.0-20231127182322-b307cd553661
-	sigs.k8s.io/cluster-api v1.7.8
-	sigs.k8s.io/cluster-api/test v1.7.8
+	sigs.k8s.io/cluster-api v1.7.9
+	sigs.k8s.io/cluster-api/test v1.7.9
 	sigs.k8s.io/controller-runtime v0.17.6
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3
 )
@@ -43,7 +43,6 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
-	github.com/coredns/caddy v1.1.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.5.0 // indirect
 	github.com/docker/go-connections v0.5.0 // indirect
