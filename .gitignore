@@ -69,3 +69,6 @@ go.work.sum
 
 # Development containers (https://containers.dev/)
 .devcontainer
+
+# e2e result junit xml files
+junit.e2e_suite.*.xml
