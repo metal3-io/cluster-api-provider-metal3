@@ -10,7 +10,7 @@ require (
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.9.0-beta.0
 	github.com/onsi/ginkgo/v2 v2.22.0
-	github.com/onsi/gomega v1.36.0
+	github.com/onsi/gomega v1.36.1
 	github.com/pkg/errors v0.9.1
 	golang.org/x/crypto v0.31.0
 	golang.org/x/mod v0.22.0
