@@ -1,0 +1,8 @@
+# ironic username and password files
+*/overlays/*/ironic-username
+*/overlays/*/ironic-password
+*/overlays/*/ironic-auth-config
+*/overlays/*/ironic-inspector-auth-config
+*/overlays/*/ironic-htpasswd
+*/overlays/*/ironic-inspector-htpasswd
+
