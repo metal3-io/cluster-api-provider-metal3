@@ -4,7 +4,7 @@ go 1.22.8
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/docker/docker v27.3.1+incompatible
+	github.com/docker/docker v27.4.0+incompatible
 	github.com/jinzhu/copier v0.4.0
 	github.com/metal3-io/baremetal-operator/apis v0.8.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
@@ -30,6 +30,8 @@ require (
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
+
+replace sigs.k8s.io/cluster-api/test => github.com/Nordix/cluster-api/test v1.0.1-0.20241211080404-d3cdd1ac1635
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
