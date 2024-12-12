@@ -29,7 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -40,7 +40,7 @@ import (
 // Metal3RemediationReconciler reconciles a Metal3Remediation object.
 type Metal3RemediationReconciler struct {
 	client.Client
-	Tracker                    *remote.ClusterCacheTracker
+	ClusterCache               clustercache.ClusterCache
 	ManagerFactory             baremetal.ManagerFactoryInterface
 	Log                        logr.Logger
 	IsOutOfServiceTaintEnabled bool

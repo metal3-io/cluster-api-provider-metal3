@@ -32,7 +32,9 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -48,6 +50,7 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2/klogr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/flags"
@@ -75,8 +78,9 @@ var (
 	leaderElectionRenewDeadline      time.Duration
 	leaderElectionRetryPeriod        time.Duration
 	syncPeriod                       time.Duration
-	clusterCacheTrackerClientQPS     float32
-	clusterCacheTrackerClientBurst   int
+	clusterCacheClientQPS            float32
+	clusterCacheClientBurst          int
+	clusterCacheConcurrency          int
 	metal3MachineConcurrency         int
 	metal3ClusterConcurrency         int
 	metal3DataTemplateConcurrency    int
@@ -272,17 +276,17 @@ func initFlags(fs *pflag.FlagSet) {
 	)
 
 	fs.Float32Var(
-		&clusterCacheTrackerClientQPS,
-		"clustercachetracker-client-qps",
+		&clusterCacheClientQPS,
+		"clustercache-client-qps",
 		20,
-		"Maximum queries per second from the cluster cache tracker clients to the Kubernetes API server of workload clusters.",
+		"Maximum queries per second from the cluster cache clients to the Kubernetes API server of workload clusters.",
 	)
 
 	fs.IntVar(
-		&clusterCacheTrackerClientBurst,
-		"clustercachetracker-client-burst",
+		&clusterCacheClientBurst,
+		"clustercache-client-burst",
 		30,
-		"Maximum number of queries that should be allowed in one burst from the cluster cache tracker clients to the Kubernetes API server of workload clusters.",
+		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.",
 	)
 
 	fs.IntVar(
@@ -385,26 +389,40 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
+	// Set up a ClusterCache and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
-	tracker, err := remote.NewClusterCacheTracker(
-		mgr,
-		remote.ClusterCacheTrackerOptions{
-			SecretCachingClient: secretCachingClient,
-			ControllerName:      controllerName,
-			Log:                 &ctrl.Log,
-			ClientQPS:           clusterCacheTrackerClientQPS,
-			ClientBurst:         clusterCacheTrackerClientBurst,
+
+	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+		SecretClient: secretCachingClient,
+		Cache: clustercache.CacheOptions{
+			Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
 		},
-	)
+		Client: clustercache.ClientOptions{
+			QPS:       clusterCacheClientQPS,
+			Burst:     clusterCacheClientBurst,
+			UserAgent: remote.DefaultClusterAPIUserAgent(controllerName),
+			Cache: clustercache.ClientCacheOptions{
+				DisableFor: []client.Object{
+					// Don't cache ConfigMaps & Secrets.
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+					// Don't cache Pods & DaemonSets (we get/list them e.g. during drain).
+					&corev1.Pod{},
+					&appsv1.DaemonSet{},
+					// Don't cache PersistentVolumes and VolumeAttachments (we get/list them e.g. during wait for volumes to detach)
+					&storagev1.VolumeAttachment{},
+					&corev1.PersistentVolume{},
+				},
+			},
+		},
+	}, concurrency(clusterCacheConcurrency))
 	if err != nil {
-		setupLog.Error(err, "Unable to create cluster cache tracker")
+		setupLog.Error(err, "Unable to create ClusterCache")
 		os.Exit(1)
 	}
-
 	if err := (&controllers.Metal3MachineReconciler{
 		Client:           mgr.GetClient(),
-		Tracker:          tracker,
+		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Machine"),
 		CapiClientGetter: infraremote.NewClusterClient,
@@ -416,7 +434,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3ClusterReconciler{
 		Client:           mgr.GetClient(),
-		Tracker:          tracker,
+		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Cluster"),
 		WatchFilterValue: watchFilterValue,
@@ -427,7 +445,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3DataTemplateReconciler{
 		Client:           mgr.GetClient(),
-		Tracker:          tracker,
+		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3DataTemplate"),
 		WatchFilterValue: watchFilterValue,
@@ -438,7 +456,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3DataReconciler{
 		Client:           mgr.GetClient(),
-		Tracker:          tracker,
+		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Data"),
 		WatchFilterValue: watchFilterValue,
@@ -449,7 +467,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3LabelSyncReconciler{
 		Client:           mgr.GetClient(),
-		Tracker:          tracker,
+		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3LabelSync"),
 		CapiClientGetter: infraremote.NewClusterClient,
@@ -460,7 +478,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.Metal3MachineTemplateReconciler{
 		Client:         mgr.GetClient(),
-		Tracker:        tracker,
+		ClusterCache:   clusterCache,
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:            ctrl.Log.WithName("controllers").WithName("Metal3MachineTemplate"),
 	}).SetupWithManager(ctx, mgr, concurrency(metal3MachineTemplateConcurrency)); err != nil {
@@ -474,7 +492,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 	if err := (&controllers.Metal3RemediationReconciler{
 		Client:                     mgr.GetClient(),
-		Tracker:                    tracker,
+		ClusterCache:               clusterCache,
 		ManagerFactory:             baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:                        ctrl.Log.WithName("controllers").WithName("Metal3Remediation"),
 		IsOutOfServiceTaintEnabled: isOOSTSupported,
