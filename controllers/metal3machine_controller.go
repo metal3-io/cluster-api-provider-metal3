@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -51,7 +51,7 @@ const (
 type Metal3MachineReconciler struct {
 	Client           client.Client
 	ManagerFactory   baremetal.ManagerFactoryInterface
-	Tracker          *remote.ClusterCacheTracker
+	ClusterCache     clustercache.ClusterCache
 	Log              logr.Logger
 	CapiClientGetter baremetal.ClientGetter
 	WatchFilterValue string
