@@ -2,7 +2,7 @@
 
 This doc gives short instructions how to run e2e tests. For the developing e2e
 tests, please refer to
-[Developing E2E tests](https://cluster-api.sigs.k8s.io/developer/e2e.html).
+[Developing E2E tests](https://cluster-api.sigs.k8s.io/developer/core/e2e).
 
 ## Prerequisites
 

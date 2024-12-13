@@ -75,7 +75,7 @@ following the
 By default, the Cluster API components deployed by Tilt have experimental
 features turned off. If you would like to enable these features, add
 `extra_args` as specified in
-[The Cluster API Book](https://cluster-api.sigs.k8s.io/developer/tilt.html#create-a-tilt-settingsjson-file).
+[The Cluster API Book](https://cluster-api.sigs.k8s.io/developer/core/tilt#tilt-settings-fields).
 
 Once your kind management cluster is up and running, you can
 [deploy an example cluster](#deploy-an-example-cluster).
@@ -102,7 +102,7 @@ command
 ```
 
 To use [Tilt](https://tilt.dev/) for a simplified development workflow, follow
-the [instructions](https://cluster-api.sigs.k8s.io/developer/tilt.html) in the
+the [instructions](https://cluster-api.sigs.k8s.io/developer/core/tilt.html) in the
 cluster API repo. The instructions will walk you through cloning the Cluster API
 (CAPI) repository and configuring Tilt to use `kind` to deploy the cluster api
 management components.
