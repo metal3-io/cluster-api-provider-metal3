@@ -33,7 +33,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [cl
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage("v1.31.2")
+		imageURL, imageChecksum := EnsureImage("v1.32.0")
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
@@ -57,8 +57,8 @@ var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [cl
 			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
-			InitWithKubernetesVersion:       "v1.31.2",
-			WorkloadKubernetesVersion:       "v1.31.2",
+			InitWithKubernetesVersion:       "v1.32.0",
+			WorkloadKubernetesVersion:       "v1.32.0",
 			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, "0.8", "26.0")
