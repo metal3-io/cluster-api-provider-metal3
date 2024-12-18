@@ -35,7 +35,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	k8strings "k8s.io/utils/strings"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -61,7 +61,7 @@ const (
 // Metal3LabelSyncReconciler reconciles label updates to BareMetalHost objects with the corresponding K Node objects in the workload cluster.
 type Metal3LabelSyncReconciler struct {
 	Client           client.Client
-	Tracker          *remote.ClusterCacheTracker
+	ClusterCache     clustercache.ClusterCache
 	ManagerFactory   baremetal.ManagerFactoryInterface
 	Log              logr.Logger
 	CapiClientGetter baremetal.ClientGetter
