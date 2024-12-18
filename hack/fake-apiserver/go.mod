@@ -9,8 +9,8 @@ require (
 	k8s.io/api v0.31.4
 	k8s.io/apimachinery v0.31.4
 	k8s.io/client-go v0.31.4
-	sigs.k8s.io/cluster-api v1.9.0
-	sigs.k8s.io/cluster-api/test v1.9.0
+	sigs.k8s.io/cluster-api v1.9.1
+	sigs.k8s.io/cluster-api/test v1.9.1
 	sigs.k8s.io/controller-runtime v0.19.3
 )
 
@@ -83,7 +83,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/net v0.31.0 // indirect
+	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
