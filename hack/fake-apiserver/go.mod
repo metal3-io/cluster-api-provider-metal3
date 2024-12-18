@@ -1,7 +1,8 @@
 module github.com/metal3-io/cluster-api-provider-metal3/hack/fake-apiserver
 
-go 1.22.3
-toolchain go1.22.5
+go 1.22.4
+
+toolchain go1.23.4
 
 require (
 	github.com/metal3-io/baremetal-operator/apis v0.9.0
