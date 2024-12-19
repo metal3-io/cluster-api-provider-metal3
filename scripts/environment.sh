@@ -48,7 +48,7 @@ else
   export EPHEMERAL_CLUSTER="minikube"
 fi
 
-export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.30.0"}
+export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.31.2"}
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.32.0"}
 
 # Can be overriden from jjbs
