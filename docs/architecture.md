@@ -121,7 +121,8 @@ metadata:
   name: test1
 spec:
   apiEndpoint: https://192.168.111.249:6443
-  noCloudProvider: true
+  noCloudProvider: true  # This field is deprecated use cloudProviderEnabled instead
+  cloudProviderEnabled: false
 ```
 
 Metal3Cluster, after reconciliation
@@ -142,7 +143,8 @@ metadata:
   |----------------------------------------------------------------------------|
 spec:
   apiEndpoint: https://192.168.111.249:6443
-  noCloudProvider: true
+  noCloudProvider: true  # This field is deprecated use cloudProviderEnabled instead
+  cloudProviderEnabled: false
 status:
   apiEndpoints:
   - host: 192.168.111.249
