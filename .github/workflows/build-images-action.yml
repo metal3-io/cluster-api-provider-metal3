@@ -7,18 +7,39 @@ on:
     - 'release-*'
     tags:
     - 'v*'
+  workflow_run:
+    workflows:
+    - "Create_Release"
+    types:
+    - completed
 
 permissions:
   contents: read
 
 jobs:
+  set_ref:
+    runs-on: ubuntu-latest
+    outputs:
+      github_ref: ${{ steps.set_ref.outputs.github_ref }}
+    steps:
+    - name: Set ref
+      id: set_ref
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_run" ]] && [[ -n "${{ needs.create-release.outputs.release_tag }}" ]]; then
+          echo "GITHUB_REF=refs/heads/${{ needs.create-release.outputs.release_tag }}" >> "${GITHUB_OUTPUT}"
+        else
+          echo "GITHUB_REF=${{ github.ref }}" >> "${GITHUB_OUTPUT}"
+        fi
+
   build_CAPM3:
+    needs: set_ref
     name: Build CAPM3 image
     if: github.repository == 'metal3-io/cluster-api-provider-metal3'
     uses: metal3-io/project-infra/.github/workflows/container-image-build.yml@main
     with:
       image-name: 'cluster-api-provider-metal3'
       pushImage: true
+      ref: ${{ needs.set_ref.outputs.github_ref }}
     secrets:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
