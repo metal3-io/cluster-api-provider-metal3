@@ -168,7 +168,8 @@ func bmcSpec() *infrav1.Metal3ClusterSpec {
 			Host: "192.168.111.249",
 			Port: 6443,
 		},
-		NoCloudProvider: true,
+		NoCloudProvider:      true,
+		CloudProviderEnabled: false,
 	}
 }
 
