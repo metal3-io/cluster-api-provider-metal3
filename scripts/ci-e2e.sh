@@ -10,6 +10,16 @@ FORCE_REPO_UPDATE="${FORCE_REPO_UPDATE:-false}"
 
 export CAPM3RELEASEBRANCH="${CAPM3RELEASEBRANCH:-main}"
 
+# Extract release version from release-branch name
+if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
+    CAPM3_RELEASE_PREFIX="${CAPM3RELEASEBRANCH#release-}"
+    export CAPM3RELEASE="v${CAPM3_RELEASE_PREFIX}.99"
+    export CAPI_RELEASE_PREFIX="v${CAPM3_RELEASE_PREFIX}."
+else
+    export CAPM3RELEASE="v1.10.99"
+    export CAPI_RELEASE_PREFIX="v1.9."
+fi
+
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
 CONFIG_FOLDER="${XDG_CONFIG_HOME:-$HOME/.config}"
 export CAPI_CONFIG_FOLDER="${CONFIG_FOLDER}/cluster-api"
