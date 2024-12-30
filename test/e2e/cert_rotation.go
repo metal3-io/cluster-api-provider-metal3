@@ -29,7 +29,7 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	input := inputGetter()
 	clientSet := input.ManagementCluster.GetClientSet()
 	clusterClient := input.ManagementCluster.GetClient()
-	mariadbEnabled := input.E2EConfig.GetVariable(ironicMariadb) == "true"
+	mariadbEnabled := GetBoolVariable(input.E2EConfig, ironicMariadb)
 	By("Check if Ironic pod is running")
 	ironicNamespace := input.E2EConfig.GetVariable("NAMEPREFIX") + "-system"
 	ironicDeploymentName := input.E2EConfig.GetVariable("NAMEPREFIX") + ironicSuffix
