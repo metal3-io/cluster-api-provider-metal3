@@ -8,22 +8,17 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	ctx                      = context.TODO()
-	specName                 = "metal3"
-	namespace                = "metal3"
-	clusterName              = "test1"
-	clusterctlLogFolder      string
-	targetCluster            framework.ClusterProxy
-	controlPlaneMachineCount int64
-	workerMachineCount       int64
+	ctx                 = context.TODO()
+	specName            = "metal3"
+	namespace           = "metal3"
+	clusterName         = "test1"
+	clusterctlLogFolder string
+	targetCluster       framework.ClusterProxy
 )
 
 /*
@@ -91,7 +86,21 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 		})
 
 		It("Should get a management cluster then test cert rotation and node reuse", func() {
-			targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
+			targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
+				return CreateTargetClusterInput{
+					E2EConfig:             e2eConfig,
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					SpecName:              specName,
+					ClusterName:           clusterName,
+					K8sVersion:            e2eConfig.GetVariable("FROM_K8S_VERSION"),
+					KCPMachineCount:       int64(numberOfControlplane),
+					WorkerMachineCount:    int64(numberOfWorkers),
+					ClusterctlLogFolder:   clusterctlLogFolder,
+					ClusterctlConfigPath:  clusterctlConfigPath,
+					OSType:                osType,
+					Namespace:             namespace,
+				}
+			})
 			managementCluster := bootstrapClusterProxy
 			// If not running ephemeral test, use the target cluster for management
 			if !ephemeralTest {
@@ -169,38 +178,3 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 		})
 
 	})
-
-func createTargetCluster(k8sVersion string) (framework.ClusterProxy, *clusterctl.ApplyClusterTemplateAndWaitResult) {
-	By("Creating a high available cluster")
-	imageURL, imageChecksum := EnsureImage(k8sVersion)
-	os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
-	os.Setenv("IMAGE_RAW_URL", imageURL)
-	controlPlaneMachineCount = int64(numberOfControlplane)
-	workerMachineCount = int64(numberOfWorkers)
-	result := clusterctl.ApplyClusterTemplateAndWaitResult{}
-	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-		ClusterProxy: bootstrapClusterProxy,
-		ConfigCluster: clusterctl.ConfigClusterInput{
-			LogFolder:                clusterctlLogFolder,
-			ClusterctlConfigPath:     clusterctlConfigPath,
-			KubeconfigPath:           bootstrapClusterProxy.GetKubeconfigPath(),
-			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-			Flavor:                   osType,
-			Namespace:                namespace,
-			ClusterName:              clusterName,
-			KubernetesVersion:        k8sVersion,
-			ControlPlaneMachineCount: &controlPlaneMachineCount,
-			WorkerMachineCount:       &workerMachineCount,
-		},
-		WaitForClusterIntervals:      e2eConfig.GetIntervals(specName, "wait-cluster"),
-		WaitForControlPlaneIntervals: e2eConfig.GetIntervals(specName, "wait-control-plane"),
-		WaitForMachineDeployments:    e2eConfig.GetIntervals(specName, "wait-worker-nodes"),
-	}, &result)
-	targetCluster := bootstrapClusterProxy.GetWorkloadCluster(ctx, namespace, clusterName)
-	framework.WaitForPodListCondition(ctx, framework.WaitForPodListConditionInput{
-		Lister:      targetCluster.GetClient(),
-		ListOptions: &client.ListOptions{LabelSelector: labels.Everything(), Namespace: "kube-system"},
-		Condition:   framework.PhasePodCondition(corev1.PodRunning),
-	}, e2eConfig.GetIntervals(specName, "wait-all-pod-to-be-running-on-target-cluster")...)
-	return targetCluster, &result
-}

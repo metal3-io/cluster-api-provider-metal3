@@ -30,50 +30,52 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	targetClusterClient := input.TargetCluster.GetClient()
 	managementClusterClient := input.BootstrapClusterProxy.GetClient()
 	fromK8sVersion := input.E2EConfig.GetVariable("FROM_K8S_VERSION")
-	kubernetesVersion := input.E2EConfig.GetVariable("KUBERNETES_VERSION")
+	toK8sVersion := input.E2EConfig.GetVariable("KUBERNETES_VERSION")
+	numberOfControlplane := *input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT")
+	numberOfWorkers := *input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT")
+	numberOfAllBmh := numberOfControlplane + numberOfWorkers
 
-	// scale down KCP to 1
-	By("Scale the controlplane down to 1")
-	ScaleKubeadmControlPlane(ctx, managementClusterClient, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, 1)
-	Byf("Wait until controlplane is scaled down and %d BMHs are Available", 2)
-	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
+	// Download node image
+	Byf("Download image %s", toK8sVersion)
+	imageURL, imageChecksum := EnsureImage(toK8sVersion)
+
+	// Upgrade KCP
+	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
+	KCPm3MachineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
+	KCPNewM3MachineTemplateName := fmt.Sprintf("%s-new-controlplane", input.ClusterName)
+	CreateNewM3MachineTemplate(ctx, input.Namespace, KCPNewM3MachineTemplateName, KCPm3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
+
+	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", fromK8sVersion, toK8sVersion)
+	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+		Lister:      managementClusterClient,
+		ClusterName: input.ClusterName,
+		Namespace:   input.Namespace,
+	})
+	helper, err := patch.NewHelper(kcpObj, managementClusterClient)
+	Expect(err).NotTo(HaveOccurred())
+	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = KCPNewM3MachineTemplateName
+	kcpObj.Spec.Version = toK8sVersion
+	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
+
+	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
+
+	Byf("Wait until %d Control Plane machines become running and updated with the new %s k8s version", numberOfControlplane, toK8sVersion)
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		upgraded := *machine.Spec.Version == toK8sVersion
+		return (running && upgraded)
+	}
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-		Replicas:  2,
-		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-cp-available"),
+		Replicas:  int(numberOfControlplane),
+		Intervals: input.E2EConfig.GetIntervals(input.Namespace, "wait-machine-running"),
 	})
 
 	ListBareMetalHosts(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListMetal3Machines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClusterClient)
-
-	// scale up MD to 3
-	By("Scale the worker up to 3")
-	ScaleMachineDeployment(ctx, managementClusterClient, input.ClusterName, input.Namespace, 3)
-	By("Waiting for one BMH to become provisioning")
-	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioning, WaitForNumInput{
-		Client:    managementClusterClient,
-		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-		Replicas:  2,
-		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation"),
-	})
-
-	By("Waiting for all BMHs to become provisioned")
-	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
-		Client:    managementClusterClient,
-		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-		Replicas:  4,
-		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation"),
-	})
-
-	By("Waiting for all Machines to be Running")
-	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
-		Client:    managementClusterClient,
-		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-		Replicas:  4,
-		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation"),
-	})
 
 	By("Get the IPPools in the cluster")
 	baremetalv4Pool, provisioningPool := GetIPPools(ctx, managementClusterClient, input.ClusterName, input.Namespace)
@@ -115,29 +117,25 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	Expect(machineDeployments).To(HaveLen(1), "Expected exactly 1 MachineDeployment")
 	md := machineDeployments[0]
 
-	// Download node image
-	Byf("Download image %s", kubernetesVersion)
-	imageURL, imageChecksum := EnsureImage(kubernetesVersion)
-
 	By("Create new worker Metal3MachineTemplate with upgraded image to boot")
 	m3MachineTemplateName := md.Spec.Template.Spec.InfrastructureRef.Name
 	newM3MachineTemplateName := fmt.Sprintf("%s-new", m3MachineTemplateName)
 	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
-	Byf("Update MachineDeployment maxUnavailable to number of workers and k8s version from %s to %s", fromK8sVersion, kubernetesVersion)
-	helper, err := patch.NewHelper(md, managementClusterClient)
+	Byf("Update MachineDeployment maxUnavailable to number of workers and k8s version from %s to %s", fromK8sVersion, toK8sVersion)
+	helper, err = patch.NewHelper(md, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	md.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
-	md.Spec.Template.Spec.Version = &kubernetesVersion
+	md.Spec.Template.Spec.Version = &toK8sVersion
 	md.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
-	md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 3
+	md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = numberOfWorkers
 	Expect(helper.Patch(ctx, md)).To(Succeed())
 
-	Byf("Wait until %d BMH(s) in deprovisioning state", 3)
+	Byf("Wait until %d BMH(s) in deprovisioning state", numberOfWorkers)
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-		Replicas:  3,
+		Replicas:  int(numberOfWorkers),
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-deprovisioning"),
 	})
 
@@ -146,11 +144,11 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClusterClient)
 
-	Byf("Wait until all %d machine(s) become(s) running", 4)
+	Byf("Wait until all %d machine(s) become(s) running", numberOfAllBmh)
 	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
-		Replicas:  4,
+		Replicas:  int(numberOfAllBmh),
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
 	})
 

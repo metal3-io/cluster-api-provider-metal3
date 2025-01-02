@@ -78,6 +78,13 @@ if [[ ${GINKGO_FOCUS:-} == "integration" || ${GINKGO_FOCUS:-} == "basic" ]]; the
   export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
 fi
 
+# IPReuse feature test environment vars and config
+if [[ ${GINKGO_FOCUS:-} == "features" && ${GINKGO_SKIP:-} == "pivoting remediation" ]]; then
+  export NUM_NODES="5"
+  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"2"}
+fi
+
 # Exported to the cluster templates
 # Generate user ssh key
 if [ ! -f "${HOME}/.ssh/id_rsa" ]; then

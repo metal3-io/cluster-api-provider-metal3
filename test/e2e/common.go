@@ -32,6 +32,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
@@ -996,4 +997,54 @@ func CreateOrUpdateWithNamespace(ctx context.Context, p framework.ClusterProxy, 
 		}
 	}
 	return kerrors.NewAggregate(retErrs)
+}
+
+type CreateTargetClusterInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	BootstrapClusterProxy framework.ClusterProxy
+	SpecName              string
+	ClusterName           string
+	K8sVersion            string
+	KCPMachineCount       int64
+	WorkerMachineCount    int64
+	ClusterctlLogFolder   string
+	ClusterctlConfigPath  string
+	OSType                string
+	Namespace             string
+}
+
+func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClusterInput) (framework.ClusterProxy, *clusterctl.ApplyClusterTemplateAndWaitResult) {
+	By("Creating a high available cluster")
+	input := inputGetter()
+	imageURL, imageChecksum := EnsureImage(input.K8sVersion)
+	os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+	os.Setenv("IMAGE_RAW_URL", imageURL)
+	controlPlaneMachineCount := input.KCPMachineCount
+	workerMachineCount := input.WorkerMachineCount
+	result := clusterctl.ApplyClusterTemplateAndWaitResult{}
+	clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+		ClusterProxy: input.BootstrapClusterProxy,
+		ConfigCluster: clusterctl.ConfigClusterInput{
+			LogFolder:                input.ClusterctlLogFolder,
+			ClusterctlConfigPath:     input.ClusterctlConfigPath,
+			KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+			Flavor:                   input.OSType,
+			Namespace:                input.Namespace,
+			ClusterName:              input.ClusterName,
+			KubernetesVersion:        input.K8sVersion,
+			ControlPlaneMachineCount: &controlPlaneMachineCount,
+			WorkerMachineCount:       &workerMachineCount,
+		},
+		WaitForClusterIntervals:      input.E2EConfig.GetIntervals(input.SpecName, "wait-cluster"),
+		WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-control-plane"),
+		WaitForMachineDeployments:    input.E2EConfig.GetIntervals(input.SpecName, "wait-worker-nodes"),
+	}, &result)
+	targetCluster := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, input.Namespace, result.Cluster.Name)
+	framework.WaitForPodListCondition(ctx, framework.WaitForPodListConditionInput{
+		Lister:      targetCluster.GetClient(),
+		ListOptions: &client.ListOptions{LabelSelector: labels.Everything(), Namespace: "kube-system"},
+		Condition:   framework.PhasePodCondition(corev1.PodRunning),
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-all-pod-to-be-running-on-target-cluster")...)
+	return targetCluster, &result
 }
