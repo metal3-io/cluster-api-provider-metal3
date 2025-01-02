@@ -43,6 +43,7 @@ export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${KUBERNETES_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
+export USE_IRSO="${USE_IRSO:-false}"
 EOF
 # if running a scalability test skip apply bmhs in dev-env and run fakeIPA
 if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
