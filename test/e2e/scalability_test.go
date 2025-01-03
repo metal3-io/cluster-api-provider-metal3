@@ -43,6 +43,11 @@ type ClusterAPIServer struct {
 	Port int
 }
 
+var (
+	numberOfClusters     int64
+	scaleSpecConcurrency int64
+)
+
 var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]", Label("scalability"), func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
@@ -52,6 +57,8 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]",
 		namespace = "scale"
 		numberOfWorkers = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+		numberOfClusters = int64(*e2eConfig.GetInt32PtrVariable("NUM_NODES"))
+		scaleSpecConcurrency = int64(*e2eConfig.GetInt32PtrVariable("SCALE_SPEC_CONCURRENCY"))
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 		createFKASResources()
@@ -70,8 +77,8 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]",
 			ArtifactFolder:                    artifactFolder,
 			SkipCleanup:                       skipCleanup,
 			SkipUpgrade:                       true,
-			ClusterCount:                      ptr.To[int64](5),
-			Concurrency:                       ptr.To[int64](5),
+			ClusterCount:                      ptr.To[int64](numberOfClusters),
+			Concurrency:                       ptr.To[int64](scaleSpecConcurrency),
 			Flavor:                            ptr.To(fmt.Sprintf("%s-fake", osType)),
 			ControlPlaneMachineCount:          ptr.To[int64](int64(numberOfControlplane)),
 			MachineDeploymentCount:            ptr.To[int64](0),
