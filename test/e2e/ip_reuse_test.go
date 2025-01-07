@@ -21,8 +21,22 @@ var _ = Describe("When testing ip reuse [ip-reuse] [features]", Label("ip-reuse"
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
 	It("Should create a workload cluster then verify ip allocation reuse while upgrading k8s", func() {
+		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
+			return CreateTargetClusterInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				SpecName:              specName,
+				ClusterName:           clusterName,
+				K8sVersion:            e2eConfig.GetVariable("FROM_K8S_VERSION"),
+				KCPMachineCount:       int64(numberOfControlplane),
+				WorkerMachineCount:    int64(numberOfWorkers),
+				ClusterctlLogFolder:   clusterctlLogFolder,
+				ClusterctlConfigPath:  clusterctlConfigPath,
+				OSType:                osType,
+				Namespace:             namespace,
+			}
+		})
 		IPReuse(ctx, func() IPReuseInput {
-			targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
 			return IPReuseInput{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
