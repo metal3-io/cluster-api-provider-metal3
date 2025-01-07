@@ -36,9 +36,36 @@ tests, please refer to
 
 ## Running
 
-Run e2e tests with
+The whole e2e test suite is very big and it is not recommended to run whole
+suite at a time. You can easily choose the test you want to run or skip by
+using`GINKGO_FOCUS` and `GINKGO_SKIP`.
+For example following will run integration test:
 
 ```sh
+export GINKGO_FOCUS=integration
+make test-e2e
+```
+
+Below are the tests that you can use with `GINKGO_FOCUS` and `GINKGO_SKIP`
+
+- features
+   - ip-reuse
+   - healthcheck
+   - remediation
+   - pivoting
+- k8s-upgrade
+- clusterctl-upgrade
+- scalability
+- integration
+- basic
+
+You can combine both `GINKGO_FOCUS` and `GINKGO_SKIP` to run multiple tests
+according to your requirements. For example following will run ip-reuse and
+pivoting tests:
+
+```sh
+export GINKGO_FOCUS=features
+export GINKGO_SKIP=healthcheck remediation
 make test-e2e
 ```
 
