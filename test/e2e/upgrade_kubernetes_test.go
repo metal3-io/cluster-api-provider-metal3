@@ -40,7 +40,21 @@ var _ = Describe("Kubernetes version upgrade in target nodes [k8s-upgrade]", Lab
 
 	It("Should create a cluster and run k8s_upgrade tests", func() {
 		By("Creating target cluster")
-		targetCluster, _ = createTargetCluster(e2eConfig.GetVariable("FROM_K8S_VERSION"))
+		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
+			return CreateTargetClusterInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				SpecName:              specName,
+				ClusterName:           clusterName,
+				K8sVersion:            e2eConfig.GetVariable("FROM_K8S_VERSION"),
+				KCPMachineCount:       int64(numberOfControlplane),
+				WorkerMachineCount:    int64(numberOfWorkers),
+				ClusterctlLogFolder:   clusterctlLogFolder,
+				ClusterctlConfigPath:  clusterctlConfigPath,
+				OSType:                osType,
+				Namespace:             namespace,
+			}
+		})
 
 		By("Running Kubernetes Upgrade tests")
 		upgradeKubernetes(ctx, func() upgradeKubernetesInput {

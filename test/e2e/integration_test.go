@@ -25,7 +25,21 @@ var _ = Describe("When testing integration [integration]", Label("integration"),
 		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 		k8sVersion := e2eConfig.GetVariable("KUBERNETES_VERSION")
 		By("Provision Workload cluster")
-		targetCluster, _ = createTargetCluster(k8sVersion)
+		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
+			return CreateTargetClusterInput{
+				E2EConfig:             e2eConfig,
+				BootstrapClusterProxy: bootstrapClusterProxy,
+				SpecName:              specName,
+				ClusterName:           clusterName,
+				K8sVersion:            k8sVersion,
+				KCPMachineCount:       int64(numberOfControlplane),
+				WorkerMachineCount:    int64(numberOfWorkers),
+				ClusterctlLogFolder:   clusterctlLogFolder,
+				ClusterctlConfigPath:  clusterctlConfigPath,
+				OSType:                osType,
+				Namespace:             namespace,
+			}
+		})
 		By("Pivot objects to target cluster")
 		pivoting(ctx, func() PivotingInput {
 			return PivotingInput{
