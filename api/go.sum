@@ -63,8 +63,8 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 h1:jWpvCLoY8Z/e3VKvlsiIGKtc+UG6U5vzxaoagmhXfyg=
 github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0/go.mod h1:QUyp042oQthUoa9bqDv0ER0wrtXnBruoNd7aNjkbP+k=
-github.com/metal3-io/ip-address-manager/api v1.8.2 h1:zNCmRaX0+YjkVpMXhZflW0YIba9pSr3GsUiaiaWtKxQ=
-github.com/metal3-io/ip-address-manager/api v1.8.2/go.mod h1:TElC1ZGLybU/mlGGrl0Kk8OQpeITeTLn4pmz40Z7LvA=
+github.com/metal3-io/ip-address-manager/api v1.8.3 h1:oyimw9nW18Xx2YnTIgOUjcVV+ONSAQY+r3/Gns0uxds=
+github.com/metal3-io/ip-address-manager/api v1.8.3/go.mod h1:pjoNAhG1b4jFlTC0+RztrEuq5uTqVZmwQof6RRnFo08=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=
 github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
