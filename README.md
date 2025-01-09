@@ -32,6 +32,7 @@ Metal3.
 | v1beta1       | v1beta1             | v1.6.X        |  v1.6.X        |
 | v1beta1       | v1beta1             | v1.7.X        |  v1.7.X        |
 | v1beta1       | v1beta1             | v1.8.X        |  v1.8.X        |
+| v1beta1       | v1beta1             | v1.9.X        |  v1.9.X        |
 
 ## Deploying the metal3 provider
 
@@ -66,7 +67,7 @@ need to be manually installed. Example flow of installing Metal3 provider:
    provider name as follows:
 
    ```shell
-   clusterctl init --infrastructure metal3:v1.8.0
+   clusterctl init --infrastructure metal3:v1.9.0
    ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install
@@ -144,6 +145,13 @@ To trigger e2e test on a PR, use the following phrases:
 - **/test-centos-e2e-integration-test-main** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch main on CentOS
 
+Release-1.9 branch:
+
+- **/test metal3-ubuntu-e2e-integration-test-release-1-9** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.9 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-9** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.9 on CentOS
+
 Release-1.8 branch:
 
 - **/test metal3-ubuntu-e2e-integration-test-release-1-8** runs integration e2e
@@ -158,13 +166,6 @@ Release-1.7 branch:
 - **/test metal3-centos-e2e-integration-test-release-1-7** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch release-1.7 on CentOS
 
-Release-1.6 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-6** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.6 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-6** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.6 on CentOS
-
 ## Basic tests
 
 Unlike integration tests, basic tests focus on the target cluster creation
@@ -172,6 +173,8 @@ without involving pivoting from the bootstrap cluster. To run basic tests use:
 
 - **/test metal3-ubuntu-e2e-basic-test-main** runs basic e2e tests with main
  branch on Ubuntu
+- **/test metal3-centos-e2e-basic-test-release-1-9** runs basic e2e tests on
+ release-1.9 branch with centos
 - **/test metal3-centos-e2e-basic-test-release-1-8** runs basic e2e tests on
  release-1.8 branch with centos
 
@@ -191,6 +194,27 @@ feature tests with CAPM3 API version v1beta1 and branch main on Ubuntu
  based feature tests with CAPM3 API version v1beta1 and branch main on CentOS
 - **/test metal3-centos-e2e-feature-test-main-features** runs e2e non pivot based
  feature tests with CAPM3 API version v1beta1 and branch main on CentOS
+
+Release-1.9 branch:
+
+- **/test metal3-ubuntu-e2e-feature-test-release-1-9-pivoting** runs e2e pivot
+ based feature tests with CAPM3 API version v1beta1 and branch release-1.9
+ on Ubuntu
+- **/test metal3-ubuntu-e2e-feature-test-release-1-9-remediation** runs e2e
+ remediation based feature tests with CAPM3 API version v1beta1 and branch
+ release-1.9 on Ubuntu
+- **/test metal3-ubuntu-e2e-feature-test-release-1-9-features** runs e2e non
+ pivot based feature tests with CAPM3 API version v1beta1 and branch release-1.9
+  on Ubuntu
+- **/test metal3-centos-e2e-feature-test-release-1-9-pivoting** runs e2e pivot
+ based feature tests with CAPM3 API version v1beta1 and branch release-1.9 on
+ CentOS
+- **/test metal3-centos-e2e-feature-test-release-1-9-remediation** runs e2e
+ remediation based feature tests with CAPM3 API version v1beta1 and branch
+ release-1.9 on CentOS
+- **/test metal3-centos-e2e-feature-test-release-1-9-features** runs e2e non
+ pivot based feature tests with CAPM3 API version v1beta1 and branch
+ release-1.9 on CentOS
 
 Release-1.8 branch:
 
@@ -234,27 +258,6 @@ Release-1.7 branch:
  pivot based feature tests with CAPM3 API version v1beta1 and branch
  release-1.7 on CentOS
 
-Release-1.6 branch:
-
-- **/test metal3-ubuntu-e2e-feature-test-release-1-6-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.6 on
- Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-6-remediation** runs e2e
- remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.6 on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-6-features** runs e2e non
- pivot based feature tests with CAPM3 API version v1beta1 and branch
- release-1.6 on Ubuntu
-- **/test metal3-centos-e2e-feature-test-release-1-6-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.6 on
- CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-6-remediation** runs e2e
- remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.6 on CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-6-features** runs e2e non
- pivot based feature tests with CAPM3 API version v1beta1 and branch release-1.6
- on CentOS
-
 ### Upgrade tests
 
 #### Clusterctl upgrade tests
@@ -265,14 +268,14 @@ We run upgrade test on main branch from different releases:
 - **/test metal3-e2e-clusterctl-upgrade-test-main** runs e2e clusterctl
   upgrade tests on main with Ubuntu
 
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-9** runs e2e clusterctl
+  upgrade tests on release-1.9 with Ubuntu
+
 - **/test metal3-e2e-clusterctl-upgrade-test-release-1-8** runs e2e clusterctl
   upgrade tests on release-1.8 with Ubuntu
 
 - **/test metal3-e2e-clusterctl-upgrade-test-release-1-7** runs e2e clusterctl
   upgrade tests on release-1.7 with Ubuntu
-
-- **/test metal3-e2e-clusterctl-upgrade-test-release-1-6** runs e2e clusterctl
-  upgrade tests on release-1.6 with Ubuntu
 
 #### K8s upgrade tests
 
@@ -283,9 +286,9 @@ The trigger takes the format:
 - **/test metal3-e2e-1-29-1-30-upgrade-test-main**
 - **/test metal3-e2e-1-28-1-29-upgrade-test-main**
 - **/test metal3-e2e-1-27-1-28-upgrade-test-main**
+- **/test metal3-e2e-1-31-1-32-upgrade-test-release-1-9**
 - **/test metal3-e2e-1-29-1-30-upgrade-test-release-1-8**
 - **/test metal3-e2e-1-29-1-30-upgrade-test-release-1-7**
-- **/test metal3-e2e-1-28-1-29-upgrade-test-release-1-6**
 
 Note:
 
