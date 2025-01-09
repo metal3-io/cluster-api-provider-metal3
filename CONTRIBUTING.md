@@ -171,8 +171,10 @@ is defined above.
 
 | Minor Release | API Version  | Supported Until                              |
 | ------------- | ------------ | -------------------------------------------- |
-| v1.7.x        | **v1beta1**  | when v1.9.0 will be released                 |
-| v1.6.x        | **v1beta1**  | when v1.8.0 will be released                 |
+| v1.9.x        | **v1beta1**  | when v1.11.0 will be released                |
+| v1.8.x        | **v1beta1**  | when v1.10.0 will be released                |
+| v1.7.x        | **v1beta1**  | EOL since 2024-12-19                         |
+| v1.6.x        | **v1beta1**  | EOL since 2024-09-04                         |
 | v1.5.x        | **v1beta1**  | EOL since 2024-04-18                         |
 | v1.4.x        | **v1beta1**  | EOL since 2024-01-10                         |
 | v1.3.x        | **v1beta1**  | EOL since 2023-09-27                         |
