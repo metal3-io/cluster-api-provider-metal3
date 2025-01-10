@@ -32,7 +32,6 @@ minikube.kubeconfig
 
 # Example and binary output directory
 out
-releasenotes
 
 # vscode
 .vscode
