@@ -39,8 +39,8 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	targetClusterClient := input.TargetCluster.GetClient()
 	managementClusterClient := input.ManagementCluster.GetClient()
 	clientSet := input.TargetCluster.GetClientSet()
-	kubernetesVersion := input.E2EConfig.GetVariable("FROM_K8S_VERSION")
-	upgradedK8sVersion := input.E2EConfig.GetVariable("KUBERNETES_VERSION")
+	fromK8sVersion := input.E2EConfig.GetVariable("KUBERNETES_PATCH_FROM_VERSION")
+	toK8sVersion := input.E2EConfig.GetVariable("KUBERNETES_PATCH_TO_VERSION")
 	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
@@ -58,8 +58,8 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		nodeReuseLabel = "infrastructure.cluster.x-k8s.io/node-reuse"
 	)
 
-	Logf("KUBERNETES VERSION: %v", kubernetesVersion)
-	Logf("UPGRADED K8S VERSION: %v", upgradedK8sVersion)
+	Logf("KUBERNETES VERSION: %v", fromK8sVersion)
+	Logf("UPGRADED K8S VERSION: %v", toK8sVersion)
 	Logf("NUMBER OF CONTROLPLANE BMH: %v", numberOfControlplane)
 	Logf("NUMBER OF WORKER BMH: %v", numberOfWorkers)
 
@@ -102,7 +102,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	kcpBmhBeforeUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, managementClusterClient)
 
 	By("Download image [node_reuse]")
-	imageURL, imageChecksum := EnsureImage(upgradedK8sVersion)
+	imageURL, imageChecksum := EnsureImage(toK8sVersion)
 
 	By("Set nodeReuse field to 'True' and create new KCP Metal3MachineTemplate with upgraded image to boot [node_reuse]")
 	m3MachineTemplateName := fmt.Sprintf("%s-controlplane", input.ClusterName)
@@ -110,7 +110,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	newM3MachineTemplateName := fmt.Sprintf("%s-new-controlplane", input.ClusterName)
 	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
-	Byf("Update KCP to upgrade k8s version and binaries from %s to %s [node_reuse]", kubernetesVersion, upgradedK8sVersion)
+	Byf("Update KCP to upgrade k8s version and binaries from %s to %s [node_reuse]", fromK8sVersion, toK8sVersion)
 	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
 		Lister:      managementClusterClient,
 		ClusterName: input.ClusterName,
@@ -119,7 +119,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	helper, err := patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3MachineTemplateName
-	kcpObj.Spec.Version = upgradedK8sVersion
+	kcpObj.Spec.Version = toK8sVersion
 	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
 	Logf("Disable tainting of CP nodes during the remainder of the node reuse test [node_reuse]")
 	kcpObj.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.Taints = emptyTaint
@@ -176,10 +176,10 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		}, input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available-provisioning")...,
 	).Should(Succeed())
 
-	Byf("Wait until two machines become running and updated with the new %s k8s version [node_reuse]", upgradedK8sVersion)
+	Byf("Wait until two machines become running and updated with the new %s k8s version [node_reuse]", toK8sVersion)
 	runningAndUpgraded := func(machine clusterv1.Machine) bool {
 		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
-		upgraded := *machine.Spec.Version == upgradedK8sVersion
+		upgraded := *machine.Spec.Version == toK8sVersion
 		return (running && upgraded)
 	}
 	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
@@ -194,7 +194,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	ListMachines(ctx, managementClusterClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClusterClient)
 
-	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version [node_reuse]", numberOfControlplane, upgradedK8sVersion)
+	Byf("Wait until all %v KCP machines become running and updated with new %s k8s version [node_reuse]", numberOfControlplane, toK8sVersion)
 	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
@@ -332,7 +332,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	newM3MachineTemplateName = fmt.Sprintf("%s-new-workers", input.ClusterName)
 	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
-	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
+	Byf("Update MD to upgrade k8s version and binaries from %s to %s", fromK8sVersion, toK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
 	// must allow maxUnavailable 1 here or it will get stuck.
 	helper, err = patch.NewHelper(machineDeploy, managementClusterClient)
@@ -340,7 +340,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
 	machineDeploy.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
-	machineDeploy.Spec.Template.Spec.Version = &upgradedK8sVersion
+	machineDeploy.Spec.Template.Spec.Version = &toK8sVersion
 	Expect(helper.Patch(ctx, machineDeploy)).To(Succeed())
 
 	Byf("Wait until %d BMH(s) in deprovisioning state [node_reuse]", 1)
@@ -379,7 +379,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available-provisioning")...,
 	).Should(Succeed())
 
-	Byf("Wait until worker machine becomes running and updated with new %s k8s version [node_reuse]", upgradedK8sVersion)
+	Byf("Wait until worker machine becomes running and updated with new %s k8s version [node_reuse]", toK8sVersion)
 	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},

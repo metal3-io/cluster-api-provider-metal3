@@ -92,7 +92,7 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 					BootstrapClusterProxy: bootstrapClusterProxy,
 					SpecName:              specName,
 					ClusterName:           clusterName,
-					K8sVersion:            e2eConfig.GetVariable("FROM_K8S_VERSION"),
+					K8sVersion:            e2eConfig.GetVariable("KUBERNETES_PATCH_FROM_VERSION"),
 					KCPMachineCount:       int64(numberOfControlplane),
 					WorkerMachineCount:    int64(numberOfWorkers),
 					ClusterctlLogFolder:   clusterctlLogFolder,
