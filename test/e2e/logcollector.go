@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -98,8 +99,82 @@ func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Clie
 	return fmt.Errorf("CollectMachinePoolLog not implemented")
 }
 
-func FetchManifests(_ framework.ClusterProxy) error {
-	return fmt.Errorf("FetchManifests not implemented")
+func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) error {
+	ctx := context.Background()
+
+	baseDir := filepath.Join(outputPath, clusterProxy.GetName())
+	err := os.MkdirAll(baseDir, 0775)
+	if err != nil {
+		return fmt.Errorf("couldn't create directory: %v", err)
+	}
+
+	manifests := []string{
+		"bmh",
+		"hardwaredata",
+		"cluster",
+		"deployment",
+		"machine",
+		"machinedeployment",
+		"machinehealthchecks",
+		"machinesets",
+		"machinepools",
+		"m3cluster",
+		"m3machine",
+		"metal3machinetemplate",
+		"kubeadmconfig",
+		"kubeadmconfigtemplates",
+		"kubeadmcontrolplane",
+		"replicaset",
+		"ippool",
+		"ipclaim",
+		"ipaddress",
+		"m3data",
+		"m3dataclaim",
+		"m3datatemplate",
+	}
+	clientset := clusterProxy.GetClientSet()
+
+	// Get all namespaces
+	namespaces, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("couldn't get namespaces: %v", err)
+	}
+	for _, namespace := range namespaces.Items {
+		for _, kind := range manifests {
+			// Get names of the objects whose kind and namespace match
+			names, err := exec.Command("kubectl", "--kubeconfig", clusterProxy.GetKubeconfigPath(), "get", "-n", namespace.Name, "-o", "name", kind).Output() // #nosec G204:gosec
+			if err != nil {
+				return fmt.Errorf("couldn't get names: %v", err)
+			}
+			namesList := strings.Split(string(names), "\n")
+			for _, name := range namesList {
+				if name == "" {
+					continue
+				}
+
+				// Get yaml of each obeject
+				yaml, err := exec.Command("kubectl", "--kubeconfig", clusterProxy.GetKubeconfigPath(), "get", "-n", namespace.Name, "-o", "yaml", name).Output() // #nosec G204:gosec
+				if err != nil {
+					return fmt.Errorf("couldn't get yaml: %v", err)
+				}
+				// Create manifest directory and any missing directory in
+				// the path
+				manifestDir := filepath.Join(baseDir, namespace.Name, kind)
+				err = os.MkdirAll(manifestDir, 0775)
+				if err != nil {
+					return fmt.Errorf("couldn't create directory: %v", err)
+				}
+				// Print manifest to file
+				file := filepath.Join(manifestDir, "manifest.yaml")
+				err = os.WriteFile(file, yaml, 0600)
+				if err != nil {
+					fmt.Printf("couldn't write to file: %v", err)
+					continue
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) error {
