@@ -2625,14 +2625,14 @@ var _ = Describe("Metal3Machine manager", func() {
 
 				machineMgr, err := NewMachineManager(fakeClient, newCluster(clusterName),
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
-						&infrav1.Metal3ClusterSpec{NoCloudProvider: true}, nil,
+						&infrav1.Metal3ClusterSpec{NoCloudProvider: true, CloudProviderEnabled: false}, nil,
 					),
 					&clusterv1.Machine{}, &infrav1.Metal3Machine{}, logr.Discard(),
 				)
 				if tc.M3MHasHostAnnotation {
 					machineMgr, err = NewMachineManager(fakeClient, newCluster(clusterName),
 						newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
-							&infrav1.Metal3ClusterSpec{NoCloudProvider: true}, nil,
+							&infrav1.Metal3ClusterSpec{NoCloudProvider: true, CloudProviderEnabled: false}, nil,
 						),
 						&clusterv1.Machine{}, &infrav1.Metal3Machine{
 							ObjectMeta: metav1.ObjectMeta{
@@ -2729,7 +2729,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3MHasHostAnnotation: true,
 			}),
 		)
-		DescribeTable("Test SetNodeProviderID with noCloudProvider set to false",
+		DescribeTable("Test SetNodeProviderID with CloudProviderEnabled set to true",
 			func(tc testCaseSetNodePoviderID) {
 				BMHHost := newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, tc.HostID)
 				fakeClient := fake.NewClientBuilder().WithScheme(s).WithObjects(BMHHost).Build()
@@ -2742,7 +2742,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 				machineMgr, err := NewMachineManager(fakeClient, newCluster(clusterName),
 					newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
-						&infrav1.Metal3ClusterSpec{NoCloudProvider: false}, nil,
+						&infrav1.Metal3ClusterSpec{NoCloudProvider: false, CloudProviderEnabled: true}, nil,
 					),
 					&clusterv1.Machine{}, &infrav1.Metal3Machine{
 						ObjectMeta: metav1.ObjectMeta{
