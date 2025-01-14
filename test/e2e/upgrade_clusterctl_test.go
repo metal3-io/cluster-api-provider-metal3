@@ -26,21 +26,26 @@ var (
 	providerMetal3Prefix  = "metal3:v%s"
 	ironicGoproxy         = "https://proxy.golang.org/github.com/metal3-io/ironic-image/@v/list"
 	bmoGoproxy            = "https://proxy.golang.org/github.com/metal3-io/baremetal-operator/@v/list"
+
+	k8sVersion string
 )
 
-var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [clusterctl-upgrade]", func() {
+var _ = Describe("When testing cluster upgrade from releases (v1.9=>current) [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
-		Expect(osType).ToNot(Equal(""))
+		k8sVersion = "v1.32.0"
 		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage("v1.32.0")
+		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
 
-	minorVersion := "1.8"
+	minorVersion := "1.9"
+	bmoFromRelease := "0.9"
+	ironicFromRelease := "27.0"
+	bmoToRelease := "latest"
+	ironicToRelease := "latest"
 	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
 	capm3StableRelease, err := GetCAPM3StableReleaseOfMinor(ctx, minorVersion)
@@ -57,11 +62,11 @@ var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [cl
 			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
-			InitWithKubernetesVersion:       "v1.32.0",
-			WorkloadKubernetesVersion:       "v1.32.0",
+			InitWithKubernetesVersion:       k8sVersion,
+			WorkloadKubernetesVersion:       k8sVersion,
 			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
-				preInitFunc(clusterProxy, "0.8", "26.0")
+				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease)
 				// Override capi/capm3 versions exported in preInit
 				os.Setenv("CAPI_VERSION", "v1beta1")
 				os.Setenv("CAPM3_VERSION", "v1beta1")
@@ -69,10 +74,10 @@ var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [cl
 			},
 			PostNamespaceCreated: postNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
-				preUpgrade(clusterProxy, "latest", "latest")
+				preUpgrade(clusterProxy, bmoToRelease, ironicToRelease)
 			},
 			PreCleanupManagementCluster: func(clusterProxy framework.ClusterProxy) {
-				preCleanupManagementCluster(clusterProxy, "latest")
+				preCleanupManagementCluster(clusterProxy, ironicToRelease)
 			},
 			MgmtFlavor:     osType,
 			WorkloadFlavor: osType,
@@ -80,19 +85,22 @@ var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [cl
 	})
 })
 
-var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [clusterctl-upgrade]", func() {
+var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
-		Expect(osType).ToNot(Equal(""))
+		k8sVersion = "v1.31.2"
 		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage("v1.30.0")
+		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
 
-	minorVersion := "1.7"
+	minorVersion := "1.8"
+	bmoFromRelease := "0.8"
+	ironicFromRelease := "26.0"
+	bmoToRelease := "latest"
+	ironicToRelease := "latest"
 	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
 	capm3StableRelease, err := GetCAPM3StableReleaseOfMinor(ctx, minorVersion)
@@ -109,11 +117,11 @@ var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [cl
 			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
-			InitWithKubernetesVersion:       "v1.30.0",
-			WorkloadKubernetesVersion:       "v1.30.0",
+			InitWithKubernetesVersion:       k8sVersion,
+			WorkloadKubernetesVersion:       k8sVersion,
 			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
-				preInitFunc(clusterProxy, "0.6", "25.0")
+				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease)
 				// Override capi/capm3 versions exported in preInit
 				os.Setenv("CAPI_VERSION", "v1beta1")
 				os.Setenv("CAPM3_VERSION", "v1beta1")
@@ -121,10 +129,10 @@ var _ = Describe("When testing cluster upgrade from releases (v1.7=>current) [cl
 			},
 			PostNamespaceCreated: postNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
-				preUpgrade(clusterProxy, "latest", "latest")
+				preUpgrade(clusterProxy, bmoToRelease, ironicToRelease)
 			},
 			PreCleanupManagementCluster: func(clusterProxy framework.ClusterProxy) {
-				preCleanupManagementCluster(clusterProxy, "latest")
+				preCleanupManagementCluster(clusterProxy, ironicToRelease)
 			},
 			MgmtFlavor:     osType,
 			WorkloadFlavor: osType,
@@ -288,7 +296,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 
 // preUpgrade hook should be called from ClusterctlUpgradeSpec before upgrading the management cluster
 // it upgrades Ironic and BMO before upgrading the providers.
-func preUpgrade(clusterProxy framework.ClusterProxy, ironicUpgradeToRelease string, bmoUpgradeToRelease string) {
+func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string, ironicUpgradeToRelease string) {
 	ironicTag, err := GetLatestPatchRelease(ironicGoproxy, ironicUpgradeToRelease)
 	Expect(err).ToNot(HaveOccurred(), "Failed to fetch ironic version for release %s", ironicUpgradeToRelease)
 	Logf("Ironic Tag %s\n", ironicTag)

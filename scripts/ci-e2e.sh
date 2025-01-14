@@ -96,13 +96,13 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
 # Generate credentials
 BMO_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.6"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.8"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.9"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-latest"
 )
 IRONIC_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-25.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-26.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-27.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-latest"
 )
 
