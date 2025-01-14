@@ -13,7 +13,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -81,13 +80,6 @@ func LogFromFile(logFile string) {
 	data, err := os.ReadFile(filepath.Clean(logFile))
 	Expect(err).ToNot(HaveOccurred(), "No log file found")
 	Logf(string(data))
-}
-
-// return only the boolean value from ParseBool.
-func getBool(s string) bool {
-	b, err := strconv.ParseBool(s)
-	Expect(err).ToNot(HaveOccurred())
-	return b
 }
 
 // logTable print a formatted table into the e2e logs.
