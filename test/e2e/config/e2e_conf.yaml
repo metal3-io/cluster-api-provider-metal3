@@ -202,7 +202,12 @@ providers:
 
 variables:
   CNI: "/tmp/calico.yaml"
-  KUBERNETES_VERSION: "v1.30.0"
+  KUBERNETES_VERSION: "v1.32.0"
+  # KUBERNETES_PATCH_FROM_VERSION and KUBERNETES_PATCH_TO_VERSION are used to
+  # test upgrade scenarios where we only want to upgrade the patch version of
+  # kubernetes.
+  KUBERNETES_PATCH_FROM_VERSION: "v1.31.0"
+  KUBERNETES_PATCH_TO_VERSION: "v1.31.2"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   NUM_NODES: 4
@@ -254,7 +259,7 @@ variables:
   BMO_RELEASE_0.8: "data/bmo-deployment/overlays/release-0.8"
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
   FKAS_RELEASE_LATEST: "data/fkas"
-  
+
 intervals:
   default/wait-controllers: ["10m", "10s"]
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created
