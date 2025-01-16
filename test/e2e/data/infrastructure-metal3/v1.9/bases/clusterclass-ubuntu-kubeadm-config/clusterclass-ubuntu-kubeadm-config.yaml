@@ -62,7 +62,7 @@ spec:
             }
             vrrp_instance VI_2 {
                 state MASTER
-                interface enp2s0
+                interface enp1s0
                 virtual_router_id 2
                 priority 101
                 advert_int 1
