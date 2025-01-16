@@ -63,8 +63,8 @@ const (
 	shutoff        vmState = "shutoff"
 	other          vmState = "other"
 	artifactoryURL         = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
-	imagesURL              = "http://172.22.0.1/images"
-	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
+	imagesURL              = "http://192.168.111.1:8080/images"
+	ironicImageDir         = "/tmp/metal3/images"
 	osTypeCentos           = "centos"
 	osTypeUbuntu           = "ubuntu"
 	osTypeLeap             = "opensuse-leap"
@@ -1288,6 +1288,55 @@ func taintExists(taints []corev1.Taint, taintsToFind []corev1.Taint) bool {
 			if taint.MatchTaint(&taintsToFind[i]) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// CreateSecret creates a secret in the specified namespace with the given data.
+func CreateSecret(ctx context.Context, client client.Client, secretNamespace, secretName string, data map[string]string) {
+	secret := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: secretNamespace,
+		},
+		StringData: data,
+	}
+	Expect(client.Create(ctx, &secret)).NotTo(HaveOccurred(), fmt.Sprintf("Failed to create secret '%s/%s'", secretNamespace, secretName))
+}
+
+type WaitForBmhInProvisioningStateInput struct {
+	Client          client.Client
+	Bmh             bmov1alpha1.BareMetalHost
+	State           bmov1alpha1.ProvisioningState
+	UndesiredStates []bmov1alpha1.ProvisioningState
+}
+
+func WaitForBmhInProvisioningState(ctx context.Context, input WaitForBmhInProvisioningStateInput, intervals ...interface{}) {
+	Eventually(func(g Gomega) {
+		bmh := bmov1alpha1.BareMetalHost{}
+		key := types.NamespacedName{Namespace: input.Bmh.Namespace, Name: input.Bmh.Name}
+		g.Expect(input.Client.Get(ctx, key, &bmh)).To(Succeed())
+
+		currentStatus := bmh.Status.Provisioning.State
+
+		// Check if the current state matches any of the undesired states
+		if isUndesiredState(currentStatus, input.UndesiredStates) {
+			StopTrying(fmt.Sprintf("BMH is in an unexpected state: %s", currentStatus)).Now()
+		}
+
+		g.Expect(currentStatus).To(Equal(input.State))
+	}, intervals...).Should(Succeed())
+}
+
+func isUndesiredState(currentState bmov1alpha1.ProvisioningState, undesiredStates []bmov1alpha1.ProvisioningState) bool {
+	if undesiredStates == nil {
+		return false
+	}
+
+	for _, state := range undesiredStates {
+		if (state == "" && currentState == "") || currentState == state {
+			return true
 		}
 	}
 	return false
