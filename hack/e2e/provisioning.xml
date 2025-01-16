@@ -1,0 +1,11 @@
+<network>
+  <name>provisioning</name>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='provisioning'/>
+  <ip address='192.168.111.1' netmask='255.255.255.0'>
+  </ip>
+</network>

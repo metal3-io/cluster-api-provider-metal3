@@ -1,0 +1,21 @@
+<network>
+  <name>external</name>
+  <forward mode='nat'>
+    <nat>
+      <port start='1024' end='65535'/>
+    </nat>
+  </forward>
+  <bridge name='m3ex'/>
+  <domain name='ostest.test.metalkube.org' localOnly='yes'/>
+  <dns>
+    <forwarder domain='apps.ostest.test.metalkube.org' addr='127.0.0.1'/>
+  </dns>
+  <ip address='192.168.100.1' netmask='255.255.255.0'>
+    <dhcp>
+      <range start='192.168.100.2' end='192.168.100.199'/>
+    </dhcp>
+  </ip>
+  <dnsmasq:options>
+    <dnsmasq:option value='cache-size=0'/>
+  </dnsmasq:options>
+</network>

@@ -35,7 +35,7 @@ import (
 func bmcSpec() *infrav1.Metal3ClusterSpec {
 	return &infrav1.Metal3ClusterSpec{
 		ControlPlaneEndpoint: infrav1.APIEndpoint{
-			Host: "192.168.111.249",
+			Host: "192.168.111.100",
 			Port: 6443,
 		},
 	}
