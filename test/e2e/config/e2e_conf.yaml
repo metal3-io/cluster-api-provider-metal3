@@ -303,7 +303,7 @@ variables:
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"
-  CLUSTER_APIENDPOINT_HOST: "192.168.111.249"
+  CLUSTER_APIENDPOINT_HOST: "192.168.111.100"
   CLUSTER_APIENDPOINT_PORT: "6443"
   EXTERNAL_SUBNET_V4_PREFIX: "24"
   CLUSTER_PROVISIONING_INTERFACE: "ironicendpoint"
@@ -331,6 +331,7 @@ variables:
   FKAS_RELEASE_LATEST: "data/fkas"
   REPO_NAME: "${REPO_NAME:cluster-api-provider-metal3}"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
+  CERT_MANAGER_VERSION: "v1.13.1"
 
 intervals:
   default/wait-controllers: [ "10m", "10s" ]
@@ -348,6 +349,7 @@ intervals:
   default/monitor-vm-state: [ "1m", "500ms" ]
   default/monitor-provisioning: [ "5m", "500ms" ]
   default/wait-deployment: [ "30m", "10s" ]
+  default/wait-available: [ "20m", "1s" ]
   default/wait-job: [ "10m", "10s" ]
   default/wait-service: [ "10m", "10s" ]
   default/wait-object-provisioned: [ "10m", "10s" ]
