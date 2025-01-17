@@ -12,7 +12,6 @@ import (
 	containerTypes "github.com/docker/docker/api/types/container"
 	docker "github.com/docker/docker/client"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	irsov1alpha1 "github.com/metal3-io/ironic-standalone-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -110,16 +109,14 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 
 	By("Remove Ironic containers from the source cluster")
-	ironicDeploymentType := IronicDeploymentTypeBMO
+	isIronicDeployment := true
 	if ephemeralCluster == Kind {
-		ironicDeploymentType = IronicDeploymentTypeLocal
-	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
-		ironicDeploymentType = IronicDeploymentTypeIrSO
+		isIronicDeployment = false
 	}
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
 			ManagementCluster: input.BootstrapClusterProxy,
-			DeploymentType:    ironicDeploymentType,
+			IsDeployment:      isIronicDeployment,
 			Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
 			NamePrefix:        input.E2EConfig.GetVariable(NamePrefix),
 		}
@@ -154,7 +151,6 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	labelHDCRDs(ctx, input.BootstrapClusterProxy)
 
 	By("Install Ironic in the target cluster")
-	// TODO(dtantsur): support ironic-standalone-operator
 	installIronicBMO(ctx, func() installIronicBMOInput {
 		return installIronicBMOInput{
 			ManagementCluster:          input.TargetCluster,
@@ -344,24 +340,16 @@ func installIronicBMO(ctx context.Context, inputGetter func() installIronicBMOIn
 	}
 }
 
-type IronicDeploymentType string
-
-const (
-	IronicDeploymentTypeLocal IronicDeploymentType = "local"
-	IronicDeploymentTypeBMO   IronicDeploymentType = "deploy.sh"
-	IronicDeploymentTypeIrSO  IronicDeploymentType = "irso"
-)
-
 type RemoveIronicInput struct {
 	ManagementCluster framework.ClusterProxy
-	DeploymentType    IronicDeploymentType
+	IsDeployment      bool
 	Namespace         string
 	NamePrefix        string
 }
 
 func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
-	if input.DeploymentType == IronicDeploymentTypeBMO {
+	if input.IsDeployment {
 		deploymentName := input.NamePrefix + ironicSuffix
 		RemoveDeployment(ctx, func() RemoveDeploymentInput {
 			return RemoveDeploymentInput{
@@ -370,16 +358,6 @@ func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 				Name:              deploymentName,
 			}
 		})
-	} else if input.DeploymentType == IronicDeploymentTypeIrSO {
-		// NOTE(dtantsur): metal3-dev-env hardcodes the name "ironic".
-		ironicObj := &irsov1alpha1.Ironic{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ironic",
-				Namespace: input.Namespace,
-			},
-		}
-		err := input.ManagementCluster.GetClient().Delete(ctx, ironicObj)
-		Expect(err).ToNot(HaveOccurred(), "Failed to delete Ironic")
 	} else {
 		ironicContainerList := []string{
 			"ironic",
@@ -467,12 +445,10 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 
 	By("Remove Ironic deployment from target cluster")
-	ironicDeploymentType := IronicDeploymentTypeBMO
-	// TODO(dtantsur): support USE_IRSO in the target cluster
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
 			ManagementCluster: input.TargetCluster,
-			DeploymentType:    ironicDeploymentType,
+			IsDeployment:      true,
 			Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
 			NamePrefix:        input.E2EConfig.GetVariable(NamePrefix),
 		}
