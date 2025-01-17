@@ -219,16 +219,14 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	// Remove ironic
 	By("Remove Ironic containers from the source cluster")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	ironicDeploymentType := IronicDeploymentTypeBMO
+	isIronicDeployment := true
 	if ephemeralCluster == Kind {
-		ironicDeploymentType = IronicDeploymentTypeLocal
-	} else if GetBoolVariable(e2eConfig, "USE_IRSO") {
-		ironicDeploymentType = IronicDeploymentTypeIrSO
+		isIronicDeployment = false
 	}
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
 			ManagementCluster: bootstrapClusterProxy,
-			DeploymentType:    ironicDeploymentType,
+			IsDeployment:      isIronicDeployment,
 			Namespace:         e2eConfig.GetVariable(ironicNamespace),
 			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
 		}
@@ -379,12 +377,10 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 			Expect(err).NotTo(HaveOccurred())
 		}
 	}
-	ironicDeploymentType := IronicDeploymentTypeBMO
-	// TODO(dtantsur): support USE_IRSO in the target cluster
 	removeIronic(ctx, func() RemoveIronicInput {
 		return RemoveIronicInput{
 			ManagementCluster: clusterProxy,
-			DeploymentType:    ironicDeploymentType,
+			IsDeployment:      true,
 			Namespace:         e2eConfig.GetVariable(ironicNamespace),
 			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
 		}

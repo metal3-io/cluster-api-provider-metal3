@@ -126,19 +126,6 @@ func getSha256Hash(filename string) ([]byte, error) {
 	return hash.Sum(nil), nil
 }
 
-var falseValues = []string{"", "false", "no"}
-
-// GetBoolVariable returns a variable from environment variables or from the e2e config file as boolean.
-func GetBoolVariable(e2eConfig *clusterctl.E2EConfig, varName string) bool {
-	value := e2eConfig.GetVariable(varName)
-	for _, falseVal := range falseValues {
-		if strings.EqualFold(value, falseVal) {
-			return false
-		}
-	}
-	return true
-}
-
 // TODO change this function to handle multiple workload(target) clusters.
 func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrapClusterProxy framework.ClusterProxy, targetClusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
