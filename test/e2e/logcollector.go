@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -116,14 +117,39 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 	// Print the Pods' information to file
 	// This does the same thing as:
 	// kubectl --kubeconfig="${KUBECONFIG_WORKLOAD}" get pods -A
-	out, err := exec.Command("kubectl", "--kubeconfig", clusterProxy.GetKubeconfigPath(), "get", "pods", "-A", "-o", "wide").Output() // #nosec G204:gosec
+	outputFile := filepath.Join(baseDir, "pods.log")
+	file, err := os.Create(outputFile)
 	if err != nil {
-		return fmt.Errorf("couldn't get pods: %v", err)
+		return fmt.Errorf("failed to create output file: %v", err)
 	}
-	file := filepath.Join(baseDir, "pods.log")
-	err = os.WriteFile(file, out, 0600)
+	defer file.Close()
+
+	// List pods across all namespaces
+	pods, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("couldn't write to file: %v", err)
+		return fmt.Errorf("failed to list pods: %v", err)
+	}
+
+	// Print header to file
+	header := fmt.Sprintf("%-32s %-16s %-12s %-24s %-8s\n", "NAMESPACE", "NAME", "STATUS", "NODE", "AGE")
+	if _, err = file.WriteString(header); err != nil {
+		return fmt.Errorf("error writing to file: %v", err)
+	}
+
+	// Iterate through pods and print information
+	for _, pod := range pods.Items {
+		age := time.Since(pod.CreationTimestamp.Time).Round(time.Second)
+		podInfo := fmt.Sprintf("%-32s %-16s %-12s %-24s %-8s\n",
+			pod.Namespace,
+			pod.Name,
+			string(pod.Status.Phase),
+			pod.Spec.NodeName,
+			age,
+		)
+
+		if _, err = file.WriteString(podInfo); err != nil {
+			return fmt.Errorf("error writing to file: %v", err)
+		}
 	}
 
 	// Get all namespaces
