@@ -67,7 +67,7 @@ source "${M3_DEV_ENV_PATH}/lib/ironic_basic_auth.sh"
 source "${M3_DEV_ENV_PATH}/lib/ironic_tls_setup.sh"
 
 # image for live iso testing
-export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v2.iso"
+export LIVE_ISO_IMAGE="https://artifactory.nordix.org/artifactory/metal3/images/iso/minimal_linux_live-v3-uefi.iso"
 
 # Generate credentials
 BMO_OVERLAYS=(
