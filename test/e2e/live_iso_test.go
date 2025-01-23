@@ -92,7 +92,7 @@ func liveIsoTest() {
 
 		By("Reading serial logs to verify the node was booted from live ISO image")
 		Eventually(func(g Gomega) {
-			cmd := fmt.Sprintf("sudo cat %s | grep '#  Welcome'", serialLogFile)
+			cmd := fmt.Sprintf("sudo grep 'Minimal Linux Live' '%s'", serialLogFile)
 			output, err := exec.Command("/bin/sh", "-c", cmd).Output()
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(output).ToNot(BeNil(), fmt.Sprintf("Failed to read serial logs from %s", serialLogFile))
