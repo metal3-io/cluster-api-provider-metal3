@@ -80,6 +80,21 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
+	// This is checking if default values are changed or not if the default
+	// value of CloudProviderEnabled or NoCloudProvider is changed then update
+	// the other value too to avoid conflicts.
+	// TODO: Remove this code after v1.10 when NoCloudProvider is completely
+	// removed. Ref: https://github.com/metal3-io/cluster-api-provider-metal3/issues/2255
+	if metal3Cluster.Spec.CloudProviderEnabled != nil {
+		if !*metal3Cluster.Spec.CloudProviderEnabled {
+			metal3Cluster.Spec.NoCloudProvider = ptr.To(true)
+		}
+	} else if metal3Cluster.Spec.NoCloudProvider != nil {
+		if *metal3Cluster.Spec.NoCloudProvider {
+			metal3Cluster.Spec.CloudProviderEnabled = ptr.To(false)
+		}
+	}
+
 	patchHelper, err := patch.NewHelper(metal3Cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")

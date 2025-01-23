@@ -18,6 +18,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestMetal3ClusterDefault(t *testing.T) {
@@ -52,19 +53,126 @@ func TestMetal3ClusterValidation(t *testing.T) {
 	invalidHost.Spec.ControlPlaneEndpoint.Host = ""
 
 	tests := []struct {
-		name      string
-		expectErr bool
-		c         *Metal3Cluster
+		name              string
+		expectErrOnCreate bool
+		expectErrOnUpdate bool
+		newCluster        *Metal3Cluster
+		oldCluster        *Metal3Cluster
 	}{
 		{
-			name:      "should return error when endpoint empty",
-			expectErr: true,
-			c:         invalidHost,
+			name:              "should return error when endpoint empty",
+			expectErrOnCreate: true,
+			expectErrOnUpdate: true,
+			newCluster:        invalidHost,
+			oldCluster:        valid,
 		},
 		{
-			name:      "should succeed when endpoint correct",
-			expectErr: false,
-			c:         valid,
+			name:              "should succeed when endpoint correct",
+			expectErrOnCreate: false,
+			expectErrOnUpdate: false,
+			newCluster:        valid,
+			oldCluster:        valid,
+		},
+		{
+			name:              "should succeed when cloudProviderEnabled and noCloudProvider are not set",
+			expectErrOnCreate: false,
+			expectErrOnUpdate: false,
+			newCluster:        valid,
+			oldCluster:        valid,
+		},
+		{
+			name:              "should succeed when cloudProviderEnabled is set and noCloudProvider not set",
+			expectErrOnCreate: false,
+			expectErrOnUpdate: false,
+			newCluster: &Metal3Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: Metal3ClusterSpec{
+					ControlPlaneEndpoint: APIEndpoint{
+						Host: "abc.com",
+						Port: 443,
+					},
+					CloudProviderEnabled: ptr.To(true),
+				},
+			},
+			oldCluster: valid,
+		},
+		{
+			name:              "should succeed when noCloudProvider is set and cloudProviderEnabled not set",
+			expectErrOnCreate: false,
+			expectErrOnUpdate: false,
+			newCluster: &Metal3Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: Metal3ClusterSpec{
+					ControlPlaneEndpoint: APIEndpoint{
+						Host: "abc.com",
+						Port: 443,
+					},
+					NoCloudProvider: ptr.To(false),
+				},
+			},
+			oldCluster: valid,
+		},
+		{
+			name:              "should succeed when cloudProviderEnabled and noCloudProvider do not conflict",
+			expectErrOnCreate: false,
+			expectErrOnUpdate: false,
+			newCluster: &Metal3Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: Metal3ClusterSpec{
+					ControlPlaneEndpoint: APIEndpoint{
+						Host: "abc.com",
+						Port: 443,
+					},
+					CloudProviderEnabled: ptr.To(true),
+				},
+			},
+			oldCluster: &Metal3Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: Metal3ClusterSpec{
+					ControlPlaneEndpoint: APIEndpoint{
+						Host: "abc.com",
+						Port: 443,
+					},
+					NoCloudProvider: ptr.To(false),
+				},
+			},
+		},
+		{
+			name:              "should not succeed when cloudProviderEnabled and noCloudProvider do conflict on update",
+			expectErrOnCreate: false,
+			expectErrOnUpdate: true,
+			newCluster: &Metal3Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: Metal3ClusterSpec{
+					ControlPlaneEndpoint: APIEndpoint{
+						Host: "abc.com",
+						Port: 443,
+					},
+					CloudProviderEnabled: ptr.To(false),
+				},
+			},
+			oldCluster: &Metal3Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: Metal3ClusterSpec{
+					ControlPlaneEndpoint: APIEndpoint{
+						Host: "abc.com",
+						Port: 443,
+					},
+					NoCloudProvider: ptr.To(false),
+				},
+			},
 		},
 	}
 
@@ -72,15 +180,18 @@ func TestMetal3ClusterValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			if tt.expectErr {
-				_, err := tt.c.ValidateCreate()
-				g.Expect(err).To(HaveOccurred())
-				_, err = tt.c.ValidateUpdate(nil)
+			if tt.expectErrOnCreate {
+				_, err := tt.newCluster.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.newCluster.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = tt.c.ValidateUpdate(nil)
+			}
+			if tt.expectErrOnUpdate {
+				_, err := tt.newCluster.ValidateUpdate(tt.oldCluster)
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				_, err := tt.newCluster.ValidateUpdate(tt.oldCluster)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
