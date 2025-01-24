@@ -96,7 +96,7 @@ func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
 					field.Invalid(
 						field.NewPath("spec", "cloudProviderEnabled"),
 						c.Spec.CloudProviderEnabled,
-						"cloudProviderEnabled conflicts the value of noCloudProvider",
+						"ValidateUpdate failed, cloudProviderEnabled conflicts the value of noCloudProvider",
 					),
 				)
 			}
@@ -110,7 +110,7 @@ func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
 					field.Invalid(
 						field.NewPath("spec", "noCloudProvider"),
 						c.Spec.NoCloudProvider,
-						"noCloudProvider conflicts the value of cloudProviderEnabled",
+						"ValidateUpdate failed, noCloudProvider conflicts the value of cloudProviderEnabled",
 					),
 				)
 			}
