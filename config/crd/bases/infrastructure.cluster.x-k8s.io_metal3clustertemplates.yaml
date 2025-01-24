@@ -52,11 +52,11 @@ spec:
                     description: Metal3ClusterSpec defines the desired state of Metal3Cluster.
                     properties:
                       cloudProviderEnabled:
-                        default: true
                         description: |-
                           Determines if the cluster is to be deployed with an external cloud provider.
                           If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
                           If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
+                          Default value is true, it is set in the webhook.
                         type: boolean
                       controlPlaneEndpoint:
                         description: ControlPlaneEndpoint represents the endpoint

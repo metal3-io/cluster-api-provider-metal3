@@ -18,6 +18,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -38,6 +39,17 @@ var _ webhook.Validator = &Metal3Cluster{}
 func (c *Metal3Cluster) Default() {
 	if c.Spec.ControlPlaneEndpoint.Port == 0 {
 		c.Spec.ControlPlaneEndpoint.Port = 6443
+	}
+
+	if c.Spec.CloudProviderEnabled != nil && c.Spec.NoCloudProvider == nil {
+		c.Spec.NoCloudProvider = ptr.To(!*c.Spec.CloudProviderEnabled)
+	}
+	if c.Spec.CloudProviderEnabled == nil && c.Spec.NoCloudProvider != nil {
+		c.Spec.CloudProviderEnabled = ptr.To(!*c.Spec.NoCloudProvider)
+	}
+	if c.Spec.CloudProviderEnabled == nil && c.Spec.NoCloudProvider == nil {
+		c.Spec.CloudProviderEnabled = ptr.To(true)
+		c.Spec.NoCloudProvider = ptr.To(false)
 	}
 }
 
@@ -96,7 +108,7 @@ func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
 					field.Invalid(
 						field.NewPath("spec", "cloudProviderEnabled"),
 						c.Spec.CloudProviderEnabled,
-						"cloudProviderEnabled conflicts the value of noCloudProvider",
+						"ValidateUpdate failed, cloudProviderEnabled conflicts the value of noCloudProvider",
 					),
 				)
 			}
@@ -110,7 +122,7 @@ func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
 					field.Invalid(
 						field.NewPath("spec", "noCloudProvider"),
 						c.Spec.NoCloudProvider,
-						"noCloudProvider conflicts the value of cloudProviderEnabled",
+						"ValidateUpdate failed, noCloudProvider conflicts the value of cloudProviderEnabled",
 					),
 				)
 			}

@@ -111,7 +111,7 @@ func TestMetal3ClusterValidation(t *testing.T) {
 						Host: "abc.com",
 						Port: 443,
 					},
-					NoCloudProvider: ptr.To(false),
+					NoCloudProvider: ptr.To(true),
 				},
 			},
 			oldCluster: valid,
