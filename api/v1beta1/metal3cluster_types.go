@@ -47,7 +47,7 @@ type Metal3ClusterSpec struct {
 	// If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
 	// If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
 	// TODO: Change the default value to false in release 1.12. Ref: https://github.com/metal3-io/cluster-api-provider-metal3/issues/2255
-	// +kubebuilder:default=true
+	// Default value is true, it is set in the webhook.
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
 }
