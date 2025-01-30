@@ -591,7 +591,6 @@ metadata:
     kind: Metal3Cluster
     name: cluster-1
 spec:
-  templateReference: old-template
   metaData:
     strings:
     - key: abc
@@ -893,45 +892,6 @@ The object for the **services** section can be:
 - **dns**: a list of dns service with the ip address of a dns server
 - **dnsFromIPPool**: the IPPool from which to fetch the dns servers list
 
-#### Updating metaData and networkData
-
-The data template parts containing the metadata and networkData must be
-immutable since the BareMetalHost references the secrets and they are used at
-provisioning time, the secrets cannot be updated to be able to reprovision the
-node in the exact same state. This means that updates have to be done by
-creating a new template and referencing it in the new/updated
-Metal3MachineTemplate.
-
-The process to allow updating the metaData and networkData is then to create a
-new Metal3DataTemplate and reference the new one in the Metal3MachineTemplate.
-This requires the Metal3Data to be linked to both Metal3DataTemplates. This is
-achieved using the `templateReference` field of the Metal3DataTemplate. When a
-Metal3Data corresponding to the Metal3DataTemplate is created, the reconciler
-will set the `templateReference` to the value of the Metal3DataTemplate, if set.
-
-The Metal3Data objects are linked to a Metal3DataTemplate by three ways:
-
-- Directly reference the template in the `template` field of the Metal3Data
-  `spec`
-- They have the same `templateReference` key as the template
-- The template's `templateReference` matches the `name` of the `template` field
-  of the `spec` of the Metal3Data.
-
-The third way ensures backward compatibility with previous version of
-implementation when there was no `templateReference` in Metal3Data objects.
-Since the `templateReference` field is an addition to the existing API, the
-default behaviour of the controller will be to list the Metal3Data objects by
-matching their template field if the `templateReference` is left empty on the
-template object. However, if the `templateReference` is set on the
-Metal3DataTemplate object, but not on the Metal3Data object, then the controller
-will match the `templateReference` field with the `name` of the `template` field
-of the Metal3Data object. This is performed by setting the `templateReference`
-value on a new Metal3DataTemplate object to the name of an old
-Metal3DataTemplate object. This allows to transition from the old template
-object, which is without `templateReference` set on the Metal3Data objects
-created from the old template object to the new one which uses the
-`templateReference`.
-
 ## The Metal3DataClaim object
 
 A new object would be created, a Metal3DataClaim type.
@@ -980,7 +940,6 @@ metadata:
     kind: Metal3DataTemplate
     name: nodepool-1
 spec:
-  templateReference: old-template
   index: 0
   claim:
     name: machine-1
