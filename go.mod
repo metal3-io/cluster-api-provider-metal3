@@ -11,7 +11,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/onsi/gomega v1.34.2
 	github.com/pkg/errors v0.9.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.30.9
 	k8s.io/apiextensions-apiserver v0.30.9
