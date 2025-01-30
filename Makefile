@@ -159,14 +159,23 @@ ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
 E2E_OUT_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
-E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
+
+CONTAINER_REGISTRY ?= $(REGISTRY)
+CAPM3RELEASEBRANCH ?= main
+IPAMRELEASEBRANCH ?= $(CAPM3RELEASEBRANCH)
+BMORELEASEBRANCH ?= main
+
+CAPM3_IMAGE ?= $(CONTAINER_REGISTRY)/cluster-api-provider-metal3:$(CAPM3RELEASEBRANCH)
+IPAM_IMAGE ?= $(CONTAINER_REGISTRY)/ip-address-manager:$(IPAMRELEASEBRANCH)
+BARE_METAL_OPERATOR_IMAGE ?= $(CONTAINER_REGISTRY)/baremetal-operator:$(BMORELEASEBRANCH)
+E2E_CONTAINERS ?= $(CAPM3_IMAGE) $(IPAM_IMAGE) $(BARE_METAL_OPERATOR_IMAGE)
 
 SKIP_CLEANUP ?= false
 EPHEMERAL_TEST ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
 ## Processes e2e_conf file
-.PHONY: e2e-substitutions
+.PHONY: e2e-substitutions 
 e2e-substitutions: $(ENVSUBST)
 	mkdir -p $(E2E_OUT_DIR)
 	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
