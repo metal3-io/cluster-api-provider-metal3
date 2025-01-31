@@ -166,7 +166,7 @@ func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 func bmcSpec() *infrav1.Metal3ClusterSpec {
 	return &infrav1.Metal3ClusterSpec{
 		ControlPlaneEndpoint: infrav1.APIEndpoint{
-			Host: "192.168.111.249",
+			Host: "192.168.111.100",
 			Port: 6443,
 		},
 		NoCloudProvider:      ptr.To(true),

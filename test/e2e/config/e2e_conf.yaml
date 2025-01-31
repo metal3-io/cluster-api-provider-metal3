@@ -278,7 +278,7 @@ variables:
   SERVICE_CIDR: "10.96.0.0/12"
   POD_CIDR: "192.168.0.0/18"
   BARE_METAL_PROVISIONER_CIDR: "24"
-  CLUSTER_APIENDPOINT_HOST: "192.168.111.249"
+  CLUSTER_APIENDPOINT_HOST: "192.168.111.100"
   CLUSTER_APIENDPOINT_PORT: "6443"
   EXTERNAL_SUBNET_V4_PREFIX: "24"
   CLUSTER_PROVISIONING_INTERFACE: "ironicendpoint"
@@ -298,6 +298,7 @@ variables:
   BMO_RELEASE_0.9: "data/bmo-deployment/overlays/release-0.9"
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
   FKAS_RELEASE_LATEST: "data/fkas"
+  CERT_MANAGER_VERSION: "v1.13.1"
 
 intervals:
   default/wait-controllers: ["10m", "10s"]
@@ -311,6 +312,7 @@ intervals:
   default/wait-nodes-ready: ["15m", "5s"]
   default/monitor-vm-state: ["1m", "500ms"]
   default/monitor-provisioning: ["5m", "500ms"]
+  default/wait-available: ["20m", "1s"]
   default/wait-deployment: ["30m", "10s"]
   default/wait-job: ["10m", "10s"]
   default/wait-service: ["10m", "10s"]
