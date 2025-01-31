@@ -8,7 +8,7 @@ require (
 	github.com/jinzhu/copier v0.4.0
 	github.com/metal3-io/baremetal-operator/apis v0.9.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.9.2
+	github.com/metal3-io/ip-address-manager/api v1.9.3
 	github.com/metal3-io/ironic-standalone-operator v0.1.0
 	github.com/onsi/ginkgo/v2 v2.22.2
 	github.com/onsi/gomega v1.36.2
