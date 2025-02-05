@@ -261,7 +261,8 @@ func run() int {
 		fmt.Printf("</details>\n\n")
 	}
 
-	fmt.Printf("The container image for this release is: %v\n", latestTag)
+	fmt.Printf("The image for this release is: %v\n", latestTag)
+	fmt.Printf("Mariadb image tag is: capm3-%v\n", latestTag)
 	fmt.Println("\n_Thanks to all our contributors!_ 😊")
 
 	return 0
