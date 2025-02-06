@@ -77,15 +77,11 @@ spec:
         macAddress:
           fromHostInterface: enp1s0
         type: phy
-      - id: enp2s0
-        macAddress:
-          fromHostInterface: enp2s0
-        type: phy
     networks:
       ipv4:
       - id: baremetalv4
         ipAddressFromIPPool: baremetalv4-pool
-        link: enp2s0
+        link: enp1s0
         routes:
         - gateway:
             fromIPPool: baremetalv4-pool
