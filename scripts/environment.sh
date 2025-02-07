@@ -49,7 +49,7 @@ else
 fi
 
 export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.31.2"}
-export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.32.0"}
+export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.32.1"}
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta1"}

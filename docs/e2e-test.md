@@ -200,9 +200,9 @@ clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | ------------------- | -------------------- |
-| integration         | v1.32.0           | v1.32.0             | x                    |
-| remediation         | v1.32.0           | v1.31.2             | x                    |
-| pivot based feature | v1.32.0           | v1.31.2             | v1.32.0              |
-| upgrade             | v1.32.0           | v1.31.2             | v1.32.0              |
+| integration         | v1.32.1           | v1.32.1             | x                    |
+| remediation         | v1.32.1           | v1.31.2             | x                    |
+| pivot based feature | v1.32.1           | v1.31.2             | v1.32.1              |
+| upgrade             | v1.32.1           | v1.31.2             | v1.32.1              |
 
 <!-- markdownlint-enable MD013 -->
