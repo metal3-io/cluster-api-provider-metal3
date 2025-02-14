@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -88,13 +89,10 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	}
 
 	By("Fetch manifest for bootstrap cluster before pivot")
-	kconfigPathBootstrap := input.BootstrapClusterProxy.GetKubeconfigPath()
-	os.Setenv("KUBECONFIG_BOOTSTRAP", kconfigPathBootstrap)
-	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
-	cmd.Dir = path
-	_ = cmd.Run()
-
+	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
+	if err != nil {
+		fmt.Printf("Error fetching manifests for bootstrap cluster before pivot: %v\n", err)
+	}
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kconfigPathWorkload := input.TargetCluster.GetKubeconfigPath()
 	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
@@ -103,7 +101,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	// target log collection. There is possibility to handle the kubeconfig in better way.
 	// KubeconfigPathTemp will be used by project-infra target log collection only incase of failed e2e test
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
-	cmd = exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
+	cmd := exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
 	Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
@@ -374,10 +372,11 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	}
 
 	By("Fetch manifest for workload cluster after pivot")
-	path := filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd := exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
-	cmd.Dir = path
-	_ = cmd.Run()
+	workloadClusterProxy := framework.NewClusterProxy("workload-cluster-after-pivot", os.Getenv("KUBECONFIG"), runtime.NewScheme())
+	err = FetchManifests(workloadClusterProxy, "/tmp/manifests/")
+	if err != nil {
+		fmt.Printf("Error fetching manifests for workload cluster after pivot: %v\n", err)
+	}
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 
 	By("Remove Ironic deployment from target cluster")
@@ -495,10 +494,10 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("Fetch manifest for bootstrap cluster after re-pivot")
-	path = filepath.Join(os.Getenv("CAPM3PATH"), "scripts")
-	cmd = exec.Command("./fetch_manifests.sh") // #nosec G204:gosec
-	cmd.Dir = path
-	_ = cmd.Run()
+	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
+	if err != nil {
+		fmt.Printf("Error fetching manifests for bootstrap cluster before pivot: %v\n", err)
+	}
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 
 	By("RE-PIVOTING TEST PASSED!")
