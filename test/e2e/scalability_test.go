@@ -82,9 +82,9 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]",
 			Flavor:                            ptr.To(fmt.Sprintf("%s-fake", osType)),
 			ControlPlaneMachineCount:          ptr.To[int64](int64(numberOfControlplane)),
 			MachineDeploymentCount:            ptr.To[int64](0),
-			WorkerMachineCount:                ptr.To[int64](int64(numberOfWorkers)),
+			WorkerPerMachineDeploymentCount:   ptr.To[int64](int64(numberOfWorkers)),
 			PostScaleClusterNamespaceCreated:  postScaleClusterNamespaceCreated,
-			DeployClusterInSeparateNamespaces: true,
+			DeployClusterInSeparateNamespaces: ptr.To(true),
 		}
 	})
 
