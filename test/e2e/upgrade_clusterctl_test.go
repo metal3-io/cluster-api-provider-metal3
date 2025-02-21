@@ -258,7 +258,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 		DeploymentNamespace: bmoIronicNamespace,
 		WaitIntervals:       e2eConfig.GetIntervals("default", "wait-deployment"),
 	})
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred(), "Failed to install Ironic on target cluster %v", err)
 
 	// install bmo
 	By("Install BMO in the target cluster")
@@ -276,7 +276,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 		DeploymentNamespace: bmoIronicNamespace,
 		WaitIntervals:       e2eConfig.GetIntervals("default", "wait-deployment"),
 	})
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).NotTo(HaveOccurred(), "Failed to install BMO on target cluster %v", err)
 
 	// Export capi/capm3 versions
 	os.Setenv("CAPI_VERSION", "v1beta1")
