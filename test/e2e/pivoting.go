@@ -200,6 +200,13 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 	}, "5s", "100ms").Should(BeNil(), "Failed to assert target API server stability")
 
+	// Detach BMHs to avoid deprovisioning when deleted
+	bmhs, err := GetAllBmhs(ctx, input.BootstrapClusterProxy.GetClient(), input.Namespace)
+	Expect(err).NotTo(HaveOccurred())
+	for _, bmh := range bmhs {
+		AnnotateBmh(ctx, input.BootstrapClusterProxy.GetClient(), bmh, bmov1alpha1.DetachedAnnotation, &input.SpecName)
+	}
+
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
@@ -230,6 +237,13 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		Namespace:   pivotingCluster.Namespace,
 	})
 	Expect(controlPlane).ToNot(BeNil())
+
+	// Remove detach annotation
+	bmhs, err = GetAllBmhs(ctx, input.BootstrapClusterProxy.GetClient(), input.Namespace)
+	Expect(err).NotTo(HaveOccurred())
+	for _, bmh := range bmhs {
+		AnnotateBmh(ctx, input.BootstrapClusterProxy.GetClient(), bmh, bmov1alpha1.DetachedAnnotation, nil)
+	}
 
 	By("Check that BMHs are in provisioned state")
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
@@ -332,6 +346,8 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
+	labels[clusterctlv1.ClusterctlMoveLabel] = ""
+	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
 	labels[clusterv1.ProviderNameLabel] = "metal3"
 	crdName := "baremetalhosts.metal3.io"
 	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
