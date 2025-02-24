@@ -43,8 +43,7 @@ func (c *Metal3Data) Default() {
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *Metal3Data) ValidateCreate() (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
-	if (c.Spec.TemplateReference != "" && c.Name != c.Spec.TemplateReference+"-"+strconv.Itoa(c.Spec.Index)) ||
-		(c.Spec.TemplateReference == "" && c.Name != c.Spec.Template.Name+"-"+strconv.Itoa(c.Spec.Index)) {
+	if c.Name != c.Spec.Template.Name+"-"+strconv.Itoa(c.Spec.Index) {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("name"),
