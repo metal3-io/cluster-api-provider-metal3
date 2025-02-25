@@ -36,6 +36,7 @@ const (
 	restartContainerCertUpdate   = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
 	ironicNamespace              = "IRONIC_NAMESPACE"
 	clusterLogCollectionBasePath = "/tmp/target_cluster_logs"
+	Metal3ipamProviderName       = "metal3ipam"
 )
 
 type PivotingInput struct {
@@ -140,6 +141,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
 		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
 		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
+		IPAMProviders:           []string{Metal3ipamProviderName + ":" + os.Getenv("IPAMRELEASE")},
 		LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting"),
 	})
 

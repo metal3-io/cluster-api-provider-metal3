@@ -227,6 +227,7 @@ func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *
 		ClusterProxy:            bootstrapClusterProxy,
 		ClusterctlConfigPath:    clusterctlConfig,
 		InfrastructureProviders: config.InfrastructureProviders(),
+		IPAMProviders:           config.IPAMProviders(),
 		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
 	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
