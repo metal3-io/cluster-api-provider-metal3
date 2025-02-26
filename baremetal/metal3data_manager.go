@@ -49,7 +49,7 @@ const (
 	capimachine       = "machine"
 	DataLabelName     = "infrastructure.cluster.x-k8s.io/data-name"
 	PoolLabelName     = "infrastructure.cluster.x-k8s.io/pool-name"
-	networkDataSuffix = "-networdata"
+	networkDataSuffix = "-networkdata"
 	metaDataSuffix    = "-metadata"
 )
 
