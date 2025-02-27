@@ -26,9 +26,9 @@ Things you should check before making a release:
      art:
      [#1163](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1163)
    - Uplift IPAM `api` dependency,
-     [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/image_patch.yaml)
+     [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/release-1.9/config/ipam/image_patch.yaml)
      , and
-     [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml)
+     [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/release-1.9/config/ipam/kustomization.yaml)
      . Prior art:
      [#999](https://github.com/metal3-io/cluster-api-provider-metal3/pull/999)
    - Verify any other direct or indirect dependency is uplifted to close any
