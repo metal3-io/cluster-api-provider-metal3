@@ -25,10 +25,7 @@ Things you should check before making a release:
    - Verify BMO's `apis` and `pkg/hardwareutils` dependencies are the latest. Prior
      art:
      [#1163](https://github.com/metal3-io/cluster-api-provider-metal3/pull/1163)
-   - Uplift IPAM `api` dependency,
-     [container image version](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/image_patch.yaml)
-     , and
-     [manifest resource](https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/config/ipam/kustomization.yaml)
+   - Uplift IPAM `api` dependency
      . Prior art:
      [#999](https://github.com/metal3-io/cluster-api-provider-metal3/pull/999)
    - Verify any other direct or indirect dependency is uplifted to close any
