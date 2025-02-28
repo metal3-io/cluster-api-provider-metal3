@@ -15,7 +15,7 @@ settings = {
     "kind_cluster_name": "capm3",
     "capi_version": "$CAPIRELEASE",
     "kubernetes_version": "$KUBERNETES_VERSION",
-    "cert_manager_version": "v1.14.0",
+    "cert_manager_version": "v1.17.1",
     "enable_providers": [],
 }
 
@@ -117,7 +117,7 @@ def set_feature_gate(namespace, name, feature_gate, value, container):
             args_to_add.append(new_arg)
         else:
             args_to_add.append(arg)
-    
+
     print("args_to_add")
     print(args_to_add)
     if len(args_to_add) > 0:
@@ -402,9 +402,9 @@ def strip_sec_ctx(yaml):
                 container["securityContext"] = {}
         if data.get("kind") == "Namespace":
             spec = data["metadata"]["labels"]
-            pod_security_standard_label = "pod-security.kubernetes.io/enforce" 
+            pod_security_standard_label = "pod-security.kubernetes.io/enforce"
             spec.pop(pod_security_standard_label, None)
-                
+
         output.append(str(encode_yaml(data)))
 
     return "---\n".join(output)
