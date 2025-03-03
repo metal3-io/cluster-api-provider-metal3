@@ -159,8 +159,6 @@ ARTIFACTS ?= $(ROOT_DIR)/_artifacts
 E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
 E2E_OUT_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
-E2E_CONTAINERS ?= quay.io/metal3-io/cluster-api-provider-metal3 quay.io/metal3-io/baremetal-operator quay.io/metal3-io/ip-address-manager
-
 SKIP_CLEANUP ?= false
 EPHEMERAL_TEST ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
@@ -211,10 +209,6 @@ e2e-tests: CONTAINER_RUNTIME?=docker # Env variable can override this default
 export CONTAINER_RUNTIME
 
 e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be called from scripts/ci-e2e.sh
-	for image in $(E2E_CONTAINERS); do \
-		$(CONTAINER_RUNTIME) pull $$image; \
-	done
-
 	$(GINKGO) --timeout=$(GINKGO_TIMEOUT) -v --trace --tags=e2e  \
 		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
 		--junit-report="junit.e2e_suite.1.xml" \
@@ -232,10 +226,6 @@ e2e-clusterclass-tests: CONTAINER_RUNTIME?=docker # Env variable can override th
 export CONTAINER_RUNTIME
 
 e2e-clusterclass-tests: $(GINKGO) e2e-substitutions clusterclass-templates # This target should be called from scripts/ci-e2e.sh
-	for image in $(E2E_CONTAINERS); do \
-		$(CONTAINER_RUNTIME) pull $$image; \
-	done
-
 	$(GINKGO) --timeout=$(GINKGO_TIMEOUT) -v --trace --tags=e2e  \
 		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
 		--junit-report="junit.e2e_suite.1.xml" \
