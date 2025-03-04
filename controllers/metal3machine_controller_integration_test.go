@@ -155,6 +155,20 @@ func machineWithBootstrap() *clusterv1.Machine {
 		clusterName, machineName, metal3machineName, "",
 	)
 	machine.Spec.Bootstrap = clusterv1.Bootstrap{
+		ConfigRef:      &corev1.ObjectReference{},
+		DataSecretName: &bootstrapDataSecretName,
+	}
+	machine.Status = clusterv1.MachineStatus{
+		BootstrapReady: true,
+	}
+	return machine
+}
+
+func machineWithDataSecret() *clusterv1.Machine {
+	machine := newMachine(
+		clusterName, machineName, metal3machineName, "",
+	)
+	machine.Spec.Bootstrap = clusterv1.Bootstrap{
 		DataSecretName: &bootstrapDataSecretName,
 	}
 	machine.Status = clusterv1.MachineStatus{
@@ -609,29 +623,23 @@ var _ = Describe("Reconcile metal3machine", func() {
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "node-0",
+							Labels: map[string]string{
+								"metal3.io/uuid": "63856098-4b80-11ec-81d3-0242ac130003",
+							},
 						},
-						Spec: corev1.NodeSpec{
-							ProviderID: providerID,
-						},
+						Spec: corev1.NodeSpec{},
 					},
 				},
-				ErrorExpected:       false,
-				RequeueExpected:     false,
-				ClusterInfraReady:   true,
-				CheckBMFinalizer:    true,
-				CheckBMProviderID:   true,
-				CheckBootStrapReady: true,
+				ErrorExpected:        false,
+				RequeueExpected:      false,
+				ClusterInfraReady:    true,
+				CheckBMFinalizer:     true,
+				CheckBMProviderID:    true,
+				CheckBMProviderIDNew: true,
+				CheckBootStrapReady:  true,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
 						Type:   infrav1.AssociateBMHCondition,
-						Status: corev1.ConditionTrue,
-					},
-					clusterv1.Condition{
-						Type:   infrav1.KubernetesNodeReadyCondition,
-						Status: corev1.ConditionTrue,
-					},
-					clusterv1.Condition{
-						Type:   clusterv1.ReadyCondition,
 						Status: corev1.ConditionTrue,
 					},
 				},
@@ -662,9 +670,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "node-0",
 						},
-						Spec: corev1.NodeSpec{
-							ProviderID: providerID,
-						},
+						Spec: corev1.NodeSpec{},
 					},
 					&corev1.Node{
 						ObjectMeta: metav1.ObjectMeta{
@@ -676,19 +682,16 @@ var _ = Describe("Reconcile metal3machine", func() {
 						Spec: corev1.NodeSpec{},
 					},
 				},
-				ErrorExpected:       false,
-				RequeueExpected:     false,
-				ClusterInfraReady:   true,
-				CheckBMFinalizer:    true,
-				CheckBMProviderID:   true,
-				CheckBootStrapReady: true,
+				ErrorExpected:        false,
+				RequeueExpected:      false,
+				ClusterInfraReady:    true,
+				CheckBMFinalizer:     true,
+				CheckBMProviderID:    true,
+				CheckBMProviderIDNew: true,
+				CheckBootStrapReady:  true,
 				ConditionsExpected: clusterv1.Conditions{
 					clusterv1.Condition{
 						Type:   infrav1.AssociateBMHCondition,
-						Status: corev1.ConditionTrue,
-					},
-					clusterv1.Condition{
-						Type:   infrav1.KubernetesNodeReadyCondition,
 						Status: corev1.ConditionTrue,
 					},
 					clusterv1.Condition{
@@ -727,6 +730,97 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady:     true,
 			},
 		),
+
+		// ------------- Cloud Provider
+		// ------------- Bootstrap
+		// ------------- Hostname look up
+
+		// should set ProviderID on Node when
+		//   - cloud provider is disabled
+		//   - kubeadm/node labels disabled
+		Entry("Should set ProviderID on Node when matching by hostname",
+			TestCaseReconcile{
+				Objects: []client.Object{
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
+						ProviderID: ptr.To("abc"),
+						Image: infrav1.Image{
+							Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
+							URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+						},
+					}, &infrav1.Metal3MachineStatus{
+						Ready: true,
+						// NOTE: Addresses will be populated from BMH
+					}, false),
+					machineWithDataSecret(),
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, nil, &infrav1.Metal3ClusterSpec{
+						CloudProviderEnabled: ptr.To(false),
+					}, nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, &bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							Hostname: "example.com",
+						},
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateProvisioned,
+						},
+					}, nil, false),
+				},
+				TargetObjects: []runtime.Object{
+					&corev1.Node{
+						ObjectMeta: metav1.ObjectMeta{
+							Name: "node-0",
+							Labels: map[string]string{
+								"kubernetes.io/hostname": "example.com",
+							},
+						},
+						Spec: corev1.NodeSpec{},
+					},
+				},
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBootStrapReady: true,
+			},
+		),
+
+		// should not return error when setting ProviderID on Node and
+		//   - cloud provider is disabled
+		//   - kubeadm disabled
+		//   - Node is not ready yet
+		Entry("Should not return error when setting ProviderID and Node is not ready",
+			TestCaseReconcile{
+				Objects: []client.Object{
+					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
+						ProviderID: ptr.To("abc"),
+						Image: infrav1.Image{
+							Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
+							URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
+						},
+					}, &infrav1.Metal3MachineStatus{
+						Ready: true,
+						// NOTE: Addresses will be populated from BMH
+					}, false),
+					machineWithDataSecret(),
+					newCluster(clusterName, nil, nil),
+					newMetal3Cluster(metal3ClusterName, nil, &infrav1.Metal3ClusterSpec{
+						CloudProviderEnabled: ptr.To(false),
+					}, nil, nil, false),
+					newBareMetalHost(baremetalhostName, nil, &bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							Hostname: "example.com",
+						},
+						Provisioning: bmov1alpha1.ProvisionStatus{
+							State: bmov1alpha1.StateProvisioned,
+						},
+					}, nil, false),
+				},
+				ErrorExpected:           false,
+				RequeueExpected:         true,
+				ExpectedRequeueDuration: requeueAfter,
+				ClusterInfraReady:       true,
+				CheckBootStrapReady:     true,
+			},
+		),
 		//Given: metal3machine with annotation to a BMH provisioned, machine with
 		// bootstrap data, no target cluster node available
 		//Expected: no error, requeing. ProviderID should not be set.
@@ -750,15 +844,6 @@ var _ = Describe("Reconcile metal3machine", func() {
 					clusterv1.Condition{
 						Type:   infrav1.AssociateBMHCondition,
 						Status: corev1.ConditionTrue,
-					},
-					clusterv1.Condition{
-						Type:   infrav1.KubernetesNodeReadyCondition,
-						Status: corev1.ConditionFalse,
-						Reason: infrav1.SettingProviderIDOnNodeFailedReason,
-					},
-					clusterv1.Condition{
-						Type:   clusterv1.ReadyCondition,
-						Status: corev1.ConditionFalse,
 					},
 				},
 			},

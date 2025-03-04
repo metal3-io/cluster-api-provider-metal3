@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,9 +45,8 @@ type reconcileNormalTestCase struct {
 	Annotated              bool
 	AssociateFails         bool
 	GetProviderIDFails     bool
-	GetBMHIDFails          bool
-	BMHIDSet               bool
 	SetNodeProviderIDFails bool
+	CloudProviderEnabled   bool
 }
 
 func setReconcileNormalExpectations(ctrl *gomock.Controller,
@@ -61,12 +59,12 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	// provisioned, we should only call Update, nothing else
 	m.EXPECT().IsProvisioned().Return(tc.Provisioned)
 	if tc.Provisioned {
+		m.EXPECT().MachineHasNodeRef().Return(tc.Provisioned)
 		m.EXPECT().Update(context.TODO()).Return(nil)
 		m.EXPECT().IsBootstrapReady().MaxTimes(0)
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
 		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
-		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		return m
 	}
 
@@ -78,7 +76,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
 		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
-		m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 		m.EXPECT().Update(context.TODO()).MaxTimes(0)
 		return m
 	}
@@ -92,69 +89,25 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.AssociateBMHFailedReason, clusterv1.ConditionSeverityError, gomock.Any())
 			m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 			m.EXPECT().Update(context.TODO()).MaxTimes(0)
-			m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
-			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
 			return m
 		}
 		m.EXPECT().Associate(context.TODO()).Return(nil)
 	}
 
-	m.EXPECT().SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
-	m.EXPECT().AssociateM3Metadata(context.TODO()).Return(nil)
-	m.EXPECT().Update(context.TODO())
-
-	// if node is now associated, if getting the ID fails, we do not go further
-	if tc.GetBMHIDFails {
-		m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
-		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil,
-			errors.New("Failed"),
-		)
-		m.EXPECT().SetProviderID(bmhuid).MaxTimes(0)
-		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.MissingBMHReason, clusterv1.ConditionSeverityError, gomock.Any())
-		return m
-	}
-
-	// The ID is available (GetBaremetalHostID did not return nil)
-	if tc.BMHIDSet {
-		provID := providerID
-		if tc.GetProviderIDFails {
-			m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
-			m.EXPECT().GetBaremetalHostID(context.TODO()).Return(
-				ptr.To(string(bmhuid)), nil,
-			)
-			provID = ""
+	if tc.Annotated {
+		m.EXPECT().Update(context.TODO()).Return(nil).MaxTimes(10)
+		m.EXPECT().AssociateM3Metadata(context.TODO())
+		m.EXPECT().SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
+		if tc.CloudProviderEnabled {
+			m.EXPECT().CloudProviderEnabled().Return(true)
 		} else {
-			m.EXPECT().GetProviderIDAndBMHID().Return(
-				providerID, ptr.To(string(bmhuid)),
-			)
-			m.EXPECT().GetBaremetalHostID(context.TODO()).MaxTimes(0)
+			m.EXPECT().CloudProviderEnabled().Return(false)
 		}
 
-		// if we fail to set it on the node, we do not go further
-		if tc.SetNodeProviderIDFails {
-			m.EXPECT().
-				SetNodeProviderID(context.TODO(), gomock.Eq(&provID), nil).
-				Return(errors.New("Failed"))
-			m.EXPECT().SetProviderID(string(bmhuid)).MaxTimes(0)
-			m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition,
-				infrav1.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, gomock.Any())
-			return m
-		}
-
-		// we successfully set it on the node
-		m.EXPECT().
-			SetNodeProviderID(context.TODO(), gomock.Eq(&provID), nil).
-			Return(nil)
-		m.EXPECT().SetProviderID(provID)
-
-		// We did not get an id (got nil), so we'll requeue and not go further
-	} else {
-		m.EXPECT().GetProviderIDAndBMHID().Return("", nil)
-		m.EXPECT().GetBaremetalHostID(context.TODO()).Return(nil, nil)
-
-		m.EXPECT().
-			SetNodeProviderID(context.TODO(), gomock.Eq(&providerID), nil).
-			MaxTimes(0)
+		m.EXPECT().IsBaremetalHostProvisioned(context.TODO()).Return(true)
+		m.EXPECT().NodeWithMatchingProviderIDExists(context.TODO(), nil).Return(false)
+		m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(true, nil)
+		m.EXPECT().SetReadyTrue()
 	}
 
 	return m
@@ -259,27 +212,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequeue: false,
 				Annotated:     true,
 			}),
-			Entry("GetBMHID Fails", reconcileNormalTestCase{
-				ExpectError:   true,
-				ExpectRequeue: false,
-				GetBMHIDFails: true,
-			}),
 			Entry("BMH ID set, GetProviderID fails", reconcileNormalTestCase{
 				ExpectError:   false,
 				ExpectRequeue: false,
-				BMHIDSet:      true,
 			}),
 			Entry("BMH ID set", reconcileNormalTestCase{
 				ExpectError:        false,
 				ExpectRequeue:      false,
-				BMHIDSet:           true,
 				GetProviderIDFails: true,
-			}),
-			Entry("BMH ID set, SetNodeProviderID fails", reconcileNormalTestCase{
-				ExpectError:            true,
-				ExpectRequeue:          false,
-				BMHIDSet:               true,
-				SetNodeProviderIDFails: true,
 			}),
 		)
 	})
