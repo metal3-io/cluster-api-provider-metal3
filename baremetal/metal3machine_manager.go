@@ -163,7 +163,7 @@ func (m *MachineManager) UnsetFinalizer() {
 
 // IsProvisioned checks if the metal3machine is provisioned.
 func (m *MachineManager) IsProvisioned() bool {
-	if m.Metal3Machine.Spec.ProviderID != nil && m.Metal3Machine.Status.Ready {
+	if m.Metal3Machine.Spec.ProviderID != nil && m.Metal3Machine.Status.Ready && m.isKubernetesNodeReady() {
 		return true
 	}
 	return false
@@ -1316,6 +1316,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 	}
 
 	if matchingNodesCount == 1 {
+		m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
 		return nil
 	}
 	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
@@ -1325,7 +1326,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
-	if countNodesWithLabel == 0 {
+	if countNodesWithLabel == 0 && m.Machine.Spec.Bootstrap.ConfigRef != nil {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case.
 		errMessage := fmt.Sprintf("requeuing, could not find node with label: %s", nodeLabel)
@@ -1335,38 +1336,81 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 	if countNodesWithLabel > 1 {
 		return errors.Wrap(err, fmt.Sprintf("Found multiple target nodes with the same label: (%s)", nodeLabel))
 	}
-	var nodeVar corev1.Node
-	for _, node := range nodes.Items {
-		oldData, err := json.Marshal(node)
+
+	if countNodesWithLabel == 1 {
+		node := nodes.Items[0]
 		providerIDOnNode := node.Spec.ProviderID
 		if providerIDOnNode == "" {
 			// By default we use the new format, if not set on the node.
-			node.Spec.ProviderID = providerIDNew
 			*providerIDOnM3M = providerIDNew
+			return m.setNodeProviderID(ctx, corev1Remote, node, providerIDNew)
 		} else if providerIDOnNode == providerIDNew {
 			*providerIDOnM3M = providerIDNew
 		} else if providerIDOnNode == providerIDLegacy {
 			*providerIDOnM3M = providerIDLegacy
-		} else {
-			m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode)
-			return errors.Wrap(err, "node using unsupported providerID format")
 		}
-		nodeVar = node
-		newData, err := json.Marshal(&nodeVar)
-		if err != nil {
-			return fmt.Errorf("failed to json.Marshal node: %w", err)
-		}
-		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Node{})
-		if err != nil {
-			return fmt.Errorf("failed to create patch for node %q: %w", node.GetName(), err)
-		}
-		_, err = corev1Remote.Nodes().Patch(ctx, nodeVar.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
-		if err != nil {
-			return errors.Wrap(err, "unable to update the target node with providerID")
-		}
+		m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode)
+		return errors.Wrap(err, "node using unsupported providerID format")
 	}
+
+	// We are not using cloud provider or kubeadm.
+	if *providerIDOnM3M == "" {
+		m.Log.Info("setting metal3machine ProviderID", "providerID", providerIDNew)
+		m.SetConditionMetal3MachineToFalse(
+			infrav1.KubernetesNodeReadyCondition,
+			infrav1.SettingProviderIDOnNodeFailedReason,
+			clusterv1.ConditionSeverityError,
+			"node ready yet",
+		)
+		*providerIDOnM3M = providerIDNew
+		return nil
+	}
+
+	err = m.setNodeProviderIDByHostname(ctx, corev1Remote)
+
+	if err != nil {
+		return WithTransientError(err, requeueAfter)
+	}
+
+	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
 	m.Log.Info("ProviderID set on target node")
 	return nil
+}
+
+func (m *MachineManager) setNodeProviderID(ctx context.Context, client clientcorev1.CoreV1Interface, node corev1.Node, providerID string) error {
+	oldData, err := json.Marshal(node)
+	if err != nil {
+		return fmt.Errorf("failed to json.Marshal node: %w", err)
+	}
+
+	node.Spec.ProviderID = providerID
+
+	nodeVar := node.DeepCopy()
+	newData, err := json.Marshal(*nodeVar)
+	if err != nil {
+		return fmt.Errorf("failed to json.Marshal node: %w", err)
+	}
+
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldData, newData, corev1.Node{})
+	if err != nil {
+		return fmt.Errorf("failed to create patch for node %q: %w", node.GetName(), err)
+	}
+	_, err = client.Nodes().Patch(ctx, nodeVar.Name, types.StrategicMergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		return errors.Wrap(err, "unable to update the target node with providerID")
+	}
+
+	return nil
+}
+
+func (m *MachineManager) getMachineHostname() string {
+	for _, address := range m.Metal3Machine.Status.Addresses {
+		if address.Type == clusterv1.MachineHostName {
+			return address.Address
+		}
+	}
+
+	return ""
 }
 
 // SetProviderID sets the metal3 provider ID on the Metal3Machine.
@@ -1374,7 +1418,6 @@ func (m *MachineManager) SetProviderID(providerID string) {
 	m.Log.Info("ProviderID set on the Metal3Machine", "providerID", providerID)
 	m.Metal3Machine.Spec.ProviderID = &providerID
 	m.Metal3Machine.Status.Ready = true
-	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
 }
 
 // SetOwnerRef adds an ownerreference to this Metal3Machine.
@@ -1801,6 +1844,47 @@ func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string
 	return nodes, nodesCount, err
 }
 
+func (m *MachineManager) setNodeProviderIDByHostname(ctx context.Context, client clientcorev1.CoreV1Interface) error {
+	machineHostname := m.getMachineHostname()
+
+	if machineHostname == "" {
+		m.Log.Info("no machine hostname")
+		return fmt.Errorf("no machine hostname")
+	}
+
+	filter := metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("kubernetes.io/hostname=%s", machineHostname),
+	}
+	nodes, err := client.Nodes().List(ctx, filter)
+
+	if err != nil {
+		m.Log.Error(err, "error while retrieving nodes")
+		return err
+	}
+
+	if len(nodes.Items) == 0 {
+		return fmt.Errorf("unable to find a Node with hostname: %s", machineHostname)
+	}
+
+	if len(nodes.Items) > 1 {
+		return fmt.Errorf("more than one Node with hostname: %s", machineHostname)
+	}
+
+	node := nodes.Items[0]
+
+	m.Log.Info("found one, setting provider id on Node")
+
+	err = m.setNodeProviderID(ctx, client, node, *m.Metal3Machine.Spec.ProviderID)
+
+	if err != nil {
+		return errors.Wrap(err, "unable to update the target node with providerID")
+	}
+
+	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
+	m.Log.Info("node updated with provider id")
+	return nil
+}
+
 // getMatchingNodesWithoutLabelCount tLabel gets kubernetes nodes based on their Spec.providerID field.
 func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, providerIDLegacy, providerIDNew string, providerIDonM3M *string, clientFactory ClientGetter) (int, error) {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
@@ -1878,4 +1962,8 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]strin
 		return errors.New(errMessage)
 	}
 	return nil
+}
+
+func (m *MachineManager) isKubernetesNodeReady() bool {
+	return conditions.IsTrue(m.Metal3Machine, infrav1.KubernetesNodeReadyCondition)
 }
