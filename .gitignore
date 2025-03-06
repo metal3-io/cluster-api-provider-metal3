@@ -39,6 +39,9 @@ out
 # goland
 .idea
 
+# zed
+.zed*
+
 # Common editor / temporary files
 *~
 *.tmp
