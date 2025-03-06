@@ -1,12 +1,13 @@
 module github.com/metal3-io/cluster-api-provider-metal3/api
 
 go 1.22.8
+toolchain go1.23.7
 
 require (
 	github.com/metal3-io/ip-address-manager/api v1.9.3
 	github.com/onsi/gomega v1.36.2
 	github.com/pkg/errors v0.9.1
-	golang.org/x/net v0.35.0
+	golang.org/x/net v0.37.0
 	k8s.io/api v0.31.6
 	k8s.io/apimachinery v0.31.6
 	k8s.io/client-go v0.31.6
@@ -50,9 +51,9 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
-	golang.org/x/term v0.29.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/protobuf v1.36.1 // indirect
