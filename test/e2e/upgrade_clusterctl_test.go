@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
@@ -197,6 +198,41 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 				Deployment: deployment,
 			}, e2eConfig.GetIntervals(specName, "wait-deployment")...)
 		}
+		// Create an issuer and certificate to ensure that cert-manager is ready.
+		certManagerTest, err := os.ReadFile("data/cert-manager-test.yaml")
+		Expect(err).ToNot(HaveOccurred(), "Unable to read cert-manager test YAML file")
+		Eventually(func() error {
+			return clusterProxy.CreateOrUpdate(ctx, certManagerTest)
+		}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
+		// Wait for and check that the certificate becomes ready.
+		certKey := client.ObjectKey{
+			Name:      "my-selfsigned-cert",
+			Namespace: "test",
+		}
+		testCert := new(unstructured.Unstructured)
+		testCert.SetAPIVersion("cert-manager.io/v1")
+		testCert.SetKind("Certificate")
+		Eventually(func() error {
+			if err := clusterProxy.GetClient().Get(ctx, certKey, testCert); err != nil {
+				return err
+			}
+			conditions, found, err := unstructured.NestedSlice(testCert.Object, "status", "conditions")
+			if err != nil {
+				return err
+			}
+			if !found {
+				return fmt.Errorf("certificate doesn't have status.conditions (yet)")
+			}
+			// There is only one condition (Ready) on certificates.
+			condType := conditions[0].(map[string]any)["type"]
+			condStatus := conditions[0].(map[string]any)["status"]
+			if condType == "Ready" && condStatus == "True" {
+				return nil
+			}
+			return fmt.Errorf("certificate is not ready, type: %s, status: %s, message: %s", condType, condStatus, conditions[0].(map[string]any)["message"])
+		}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
+		// Delete test namespace
+		Expect(clusterProxy.GetClientSet().CoreV1().Namespaces().Delete(ctx, "test", metav1.DeleteOptions{})).To(Succeed())
 	}
 
 	By("Fetch manifest for bootstrap cluster")
