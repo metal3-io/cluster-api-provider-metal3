@@ -193,6 +193,10 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) error {
 	ctx := context.Background()
 	baseDir := filepath.Join(outputPath, clusterProxy.GetName())
+	// Ensure the base directory exists
+	if err := os.MkdirAll(baseDir, 0o750); err != nil {
+		return fmt.Errorf("couldn't create directory: %v", err)
+	}
 
 	// Get the clientset
 	clientset := clusterProxy.GetClientSet()
@@ -265,6 +269,9 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 
 			machineName := pod.Spec.NodeName
 			podDir := filepath.Join(baseDir, "machines", machineName, namespace.Name, pod.Name)
+			if err := os.MkdirAll(podDir, 0o750); err != nil {
+				return fmt.Errorf("couldn't create directory: %v", err)
+			}
 			err = writeToFile([]byte(podDescription), "stdout_describe.log", podDir)
 			if err != nil {
 				return fmt.Errorf("couldn't write to file: %v", err)
@@ -274,6 +281,9 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 			for _, container := range pod.Spec.Containers {
 				// Create a directory for each container
 				containerDir := filepath.Join(podDir, container.Name)
+				if err := os.MkdirAll(containerDir, 0o750); err != nil {
+					return fmt.Errorf("couldn't create directory: %v", err)
+				}
 
 				err := CollectContainerLogs(ctx, namespace.Name, pod.Name, container.Name, clientset, containerDir)
 				if err != nil {
