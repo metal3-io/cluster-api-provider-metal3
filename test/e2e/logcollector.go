@@ -265,7 +265,10 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 
 			machineName := pod.Spec.NodeName
 			podDir := filepath.Join(baseDir, "machines", machineName, namespace.Name, pod.Name)
-			writeToFile([]byte(podDescription), "stdout_describe.log", podDir)
+			err = writeToFile([]byte(podDescription), "stdout_describe.log", podDir)
+			if err != nil {
+				return fmt.Errorf("couldn't write to file: %v", err)
+			}
 
 			// Get containers of the Pod
 			for _, container := range pod.Spec.Containers {
@@ -307,25 +310,29 @@ func CollectContainerLogs(ctx context.Context, namespace string, podName string,
 	}
 	podStr := buf.String()
 
-	writeToFile([]byte(podStr), "stdout.log", outputPath)
+	err = writeToFile([]byte(podStr), "stdout.log", outputPath)
+	if err != nil {
+		return fmt.Errorf("couldn't write to file: %v", err)
+	}
 
 	return nil
 }
 
 // writeToFile writes content to a file,
 // creating any missing directories in the path.
-func writeToFile(content []byte, fileName string, filePath string) {
+func writeToFile(content []byte, fileName string, filePath string) error {
 	// Create any missing directories in the path
 	err := os.MkdirAll(filePath, 0775)
 	if err != nil {
-		Logf("couldn't create directory: %v", err)
+		return fmt.Errorf("couldn't create directory: %v", err)
 	}
 	// Write content to file
 	file := filepath.Join(filePath, fileName)
 	err = os.WriteFile(file, content, 0600)
 	if err != nil {
-		Logf("couldn't write to file: %v", err)
+		return fmt.Errorf("couldn't write to file: %v", err)
 	}
+	return nil
 }
 
 // crdIsInList checks if a CustomResourceDefinition is in the provided list of
@@ -370,7 +377,10 @@ func DumpGVR(ctx context.Context, dynamicClient *dynamic.DynamicClient, gvr sche
 		if err != nil {
 			return fmt.Errorf("could not marshal content: %v", err)
 		}
-		writeToFile(content, fileName, filePath)
+		err = writeToFile(content, fileName, filePath)
+		if err != nil {
+			return fmt.Errorf("couldn't write to file: %v", err)
+		}
 	}
 	return nil
 }
