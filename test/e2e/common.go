@@ -561,7 +561,7 @@ func GenerateIPPoolPreallocations(ctx context.Context, ippool ipamv1.IPPool, poo
 	Expect(c.List(ctx, &m3MachineList, &client.ListOptions{})).To(Succeed())
 	newAllocations := make(map[string]ipamv1.IPAddressStr)
 	for m3dataPoolName, ipaddress := range allocations {
-		fmt.Println("datapoolName:", m3dataPoolName, "=>", "ipaddress:", ipaddress)
+		Logf("datapoolName:", m3dataPoolName, "=>", "ipaddress:", ipaddress)
 		BMHName := strings.Split(m3dataPoolName, "-"+poolName)[0]
 		Logf("poolName: %s", poolName)
 		Logf("BMHName: %s", BMHName)
@@ -950,10 +950,10 @@ func KubectlDelete(ctx context.Context, kubeconfigPath string, resources []byte,
 		testexec.WithStdin(rbytes),
 	)
 
-	fmt.Printf("Running kubectl %s\n", strings.Join(aargs, " "))
+	Logf("Running kubectl %s\n", strings.Join(aargs, " "))
 	stdout, stderr, err := deleteCmd.Run(ctx)
-	fmt.Printf("stderr:\n%s\n", string(stderr))
-	fmt.Printf("stdout:\n%s\n", string(stdout))
+	Logf("stderr:\n%s", string(stderr))
+	Logf("stdout:\n%s", string(stdout))
 	return err
 }
 

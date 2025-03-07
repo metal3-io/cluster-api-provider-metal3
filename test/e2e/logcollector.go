@@ -184,7 +184,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 			}
 		}
 	}
-	fmt.Printf("Successfully collected manifests for cluster %s.", clusterProxy.GetName())
+	Logf("Successfully collected manifests for cluster %s.", clusterProxy.GetName())
 	return nil
 }
 
@@ -244,7 +244,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 		// Get all pods in the namespace
 		pods, err := clientset.CoreV1().Pods(namespace.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			fmt.Printf("couldn't list pods in namespace %s: %v", namespace.Name, err)
+			Logf("couldn't list pods in namespace %s: %v", namespace.Name, err)
 			continue
 		}
 		for _, pod := range pods.Items {
@@ -259,7 +259,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 			}
 			podDescription, err := podDescriber.Describe(namespace.Name, pod.Name, describerSettings)
 			if err != nil {
-				fmt.Printf("couldn't describe pod %s in namespace %s: %v", pod.Name, namespace.Name, err)
+				Logf("couldn't describe pod %s in namespace %s: %v", pod.Name, namespace.Name, err)
 				continue
 			}
 
@@ -274,13 +274,13 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 
 				err := CollectContainerLogs(ctx, namespace.Name, pod.Name, container.Name, clientset, containerDir)
 				if err != nil {
-					fmt.Printf("Error %v.", err)
+					Logf("Error %v.", err)
 					continue
 				}
 			}
 		}
 	}
-	fmt.Printf("Successfully collected logs for cluster %s.", clusterProxy.GetName())
+	Logf("Successfully collected logs for cluster %s.", clusterProxy.GetName())
 	return nil
 }
 
@@ -318,13 +318,13 @@ func writeToFile(content []byte, fileName string, filePath string) {
 	// Create any missing directories in the path
 	err := os.MkdirAll(filePath, 0775)
 	if err != nil {
-		fmt.Printf("couldn't create directory: %v", err)
+		Logf("couldn't create directory: %v", err)
 	}
 	// Write content to file
 	file := filepath.Join(filePath, fileName)
 	err = os.WriteFile(file, content, 0600)
 	if err != nil {
-		fmt.Printf("couldn't write to file: %v", err)
+		Logf("couldn't write to file: %v", err)
 	}
 }
 
