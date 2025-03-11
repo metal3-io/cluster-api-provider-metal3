@@ -36,7 +36,7 @@ const (
 	restartContainerCertUpdate   = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
 	ironicNamespace              = "IRONIC_NAMESPACE"
 	clusterLogCollectionBasePath = "/tmp/target_cluster_logs"
-	Metal3ipamProviderName       = "metal3ipam"
+	Metal3ipamProviderName       = "metal3"
 )
 
 type PivotingInput struct {
