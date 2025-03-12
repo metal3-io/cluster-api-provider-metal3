@@ -36,7 +36,7 @@ type Metal3DataSpec struct {
 	// TemplateReference refers to the Template the Metal3MachineTemplate refers to.
 	// It can be matched against the key or it may also point to the name of the template
 	// Metal3Data refers to.
-
+	//
 	// Deprecated: This field is deprecated and will be removed in a future release.
 	// +optional
 	TemplateReference string `json:"templateReference,omitempty"`
