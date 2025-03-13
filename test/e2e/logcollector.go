@@ -184,7 +184,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 			}
 		}
 	}
-	fmt.Printf("Successfully collected manifests for cluster %s.", clusterProxy.GetName())
+	Logf("Successfully collected manifests for cluster %s.", clusterProxy.GetName())
 	return nil
 }
 
@@ -244,7 +244,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 		// Get all pods in the namespace
 		pods, err := clientset.CoreV1().Pods(namespace.Name).List(ctx, metav1.ListOptions{})
 		if err != nil {
-			fmt.Printf("couldn't list pods in namespace %s: %v", namespace.Name, err)
+			Logf("couldn't list pods in namespace %s: %v", namespace.Name, err)
 			continue
 		}
 		for _, pod := range pods.Items {
@@ -259,13 +259,16 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 			}
 			podDescription, err := podDescriber.Describe(namespace.Name, pod.Name, describerSettings)
 			if err != nil {
-				fmt.Printf("couldn't describe pod %s in namespace %s: %v", pod.Name, namespace.Name, err)
+				Logf("couldn't describe pod %s in namespace %s: %v", pod.Name, namespace.Name, err)
 				continue
 			}
 
 			machineName := pod.Spec.NodeName
 			podDir := filepath.Join(baseDir, "machines", machineName, namespace.Name, pod.Name)
-			writeToFile([]byte(podDescription), "stdout_describe.log", podDir)
+			err = writeToFile([]byte(podDescription), "stdout_describe.log", podDir)
+			if err != nil {
+				return fmt.Errorf("couldn't write to file: %v", err)
+			}
 
 			// Get containers of the Pod
 			for _, container := range pod.Spec.Containers {
@@ -274,13 +277,13 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 
 				err := CollectContainerLogs(ctx, namespace.Name, pod.Name, container.Name, clientset, containerDir)
 				if err != nil {
-					fmt.Printf("Error %v.", err)
+					Logf("Error %v.", err)
 					continue
 				}
 			}
 		}
 	}
-	fmt.Printf("Successfully collected logs for cluster %s.", clusterProxy.GetName())
+	Logf("Successfully collected logs for cluster %s.", clusterProxy.GetName())
 	return nil
 }
 
@@ -307,25 +310,29 @@ func CollectContainerLogs(ctx context.Context, namespace string, podName string,
 	}
 	podStr := buf.String()
 
-	writeToFile([]byte(podStr), "stdout.log", outputPath)
+	err = writeToFile([]byte(podStr), "stdout.log", outputPath)
+	if err != nil {
+		return fmt.Errorf("couldn't write to file: %v", err)
+	}
 
 	return nil
 }
 
 // writeToFile writes content to a file,
 // creating any missing directories in the path.
-func writeToFile(content []byte, fileName string, filePath string) {
+func writeToFile(content []byte, fileName string, filePath string) error {
 	// Create any missing directories in the path
 	err := os.MkdirAll(filePath, 0775)
 	if err != nil {
-		fmt.Printf("couldn't create directory: %v", err)
+		return fmt.Errorf("couldn't create directory: %v", err)
 	}
 	// Write content to file
 	file := filepath.Join(filePath, fileName)
 	err = os.WriteFile(file, content, 0600)
 	if err != nil {
-		fmt.Printf("couldn't write to file: %v", err)
+		return fmt.Errorf("couldn't write to file: %v", err)
 	}
+	return nil
 }
 
 // crdIsInList checks if a CustomResourceDefinition is in the provided list of
@@ -370,7 +377,10 @@ func DumpGVR(ctx context.Context, dynamicClient *dynamic.DynamicClient, gvr sche
 		if err != nil {
 			return fmt.Errorf("could not marshal content: %v", err)
 		}
-		writeToFile(content, fileName, filePath)
+		err = writeToFile(content, fileName, filePath)
+		if err != nil {
+			return fmt.Errorf("couldn't write to file: %v", err)
+		}
 	}
 	return nil
 }

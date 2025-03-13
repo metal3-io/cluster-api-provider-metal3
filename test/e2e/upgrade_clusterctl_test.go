@@ -210,7 +210,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	By("Fetch manifest for bootstrap cluster")
 	err := FetchManifests(clusterProxy, "/tmp/manifests/")
 	if err != nil {
-		fmt.Printf("Error fetching manifests for bootstrap cluster: %v\n", err)
+		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}
 
 	By("Fetch target cluster kubeconfig for target cluster log collection")
@@ -220,8 +220,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
 	cmd := exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
-	Logf("%s\n", stdoutStderr)
-	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
+	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig: %s", stdoutStderr)
 	// install certmanager
 	installCertManager(clusterProxy)
 	// Remove ironic
@@ -364,7 +363,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 			//#nosec G204 -- We take the BMOPATH from a variable.
 			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 			stdoutStderr, err := cmd.CombinedOutput()
-			fmt.Printf("%s\n", stdoutStderr)
+			Logf("Output: %s", stdoutStderr)
 			Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 		} else {
 			By("Install Ironic in the source cluster as deployments")

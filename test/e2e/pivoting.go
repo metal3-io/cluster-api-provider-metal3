@@ -92,7 +92,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Fetch manifest for bootstrap cluster before pivot")
 	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
 	if err != nil {
-		fmt.Printf("Error fetching manifests for bootstrap cluster before pivot: %v\n", err)
+		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
 	}
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kconfigPathWorkload := input.TargetCluster.GetKubeconfigPath()
@@ -377,7 +377,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	workloadClusterProxy := framework.NewClusterProxy("workload-cluster-after-pivot", os.Getenv("KUBECONFIG"), runtime.NewScheme())
 	err = FetchManifests(workloadClusterProxy, "/tmp/manifests/")
 	if err != nil {
-		fmt.Printf("Error fetching manifests for workload cluster after pivot: %v\n", err)
+		Logf("Error fetching manifests for workload cluster after pivot: %v", err)
 	}
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 
@@ -401,7 +401,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		//#nosec G204:gosec
 		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 		stdoutStderr, err := cmd.CombinedOutput()
-		fmt.Printf("%s\n", stdoutStderr)
+		Logf("Output: %s", stdoutStderr)
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {
 		By("Install Ironic in the bootstrap cluster")
@@ -498,7 +498,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	By("Fetch manifest for bootstrap cluster after re-pivot")
 	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
 	if err != nil {
-		fmt.Printf("Error fetching manifests for bootstrap cluster before pivot: %v\n", err)
+		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
 	}
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 
