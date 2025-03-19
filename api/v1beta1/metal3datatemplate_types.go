@@ -226,7 +226,7 @@ type NetworkDataLinkEthernet struct {
 	Type string `json:"type"`
 
 	// Id is the ID of the interface (used for naming)
-	Id string `json:"id"` //nolint:revive,stylecheck
+	Id string `json:"id"` //nolint:stylecheck,revive
 
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
@@ -252,7 +252,7 @@ type NetworkDataLinkBond struct {
 	BondXmitHashPolicy string `json:"bondXmitHashPolicy"`
 
 	// Id is the ID of the interface (used for naming)
-	Id string `json:"id"` //nolint:revive,stylecheck
+	Id string `json:"id"` //nolint:stylecheck,revive
 
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
@@ -276,7 +276,7 @@ type NetworkDataLinkVlan struct {
 	VlanID int `json:"vlanID"`
 
 	// Id is the ID of the interface (used for naming)
-	Id string `json:"id"` //nolint:revive,stylecheck
+	Id string `json:"id"` //nolint:stylecheck,revive
 
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
