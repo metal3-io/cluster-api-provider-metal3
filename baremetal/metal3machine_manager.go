@@ -163,7 +163,7 @@ func (m *MachineManager) UnsetFinalizer() {
 
 // IsProvisioned checks if the metal3machine is provisioned.
 func (m *MachineManager) IsProvisioned() bool {
-	if m.Metal3Machine.Spec.ProviderID != nil && m.Metal3Machine.Status.Ready {
+	if m.Metal3Machine.Spec.ProviderID != nil && m.Metal3Machine.Status.Ready && m.isKubernetesNodeReady() {
 		return true
 	}
 	return false
@@ -1316,6 +1316,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 	}
 
 	if matchingNodesCount == 1 {
+		m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
 		return nil
 	}
 	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
@@ -1365,6 +1366,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 			return errors.Wrap(err, "unable to update the target node with providerID")
 		}
 	}
+	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
 	m.Log.Info("ProviderID set on target node")
 	return nil
 }
@@ -1374,7 +1376,6 @@ func (m *MachineManager) SetProviderID(providerID string) {
 	m.Log.Info("ProviderID set on the Metal3Machine", "providerID", providerID)
 	m.Metal3Machine.Spec.ProviderID = &providerID
 	m.Metal3Machine.Status.Ready = true
-	m.SetConditionMetal3MachineToTrue(infrav1.KubernetesNodeReadyCondition)
 }
 
 // SetOwnerRef adds an ownerreference to this Metal3Machine.
@@ -1878,4 +1879,8 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]strin
 		return errors.New(errMessage)
 	}
 	return nil
+}
+
+func (m *MachineManager) isKubernetesNodeReady() bool {
+	return conditions.IsTrue(m.Metal3Machine, infrav1.KubernetesNodeReadyCondition)
 }
