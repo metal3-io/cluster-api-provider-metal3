@@ -122,7 +122,7 @@ var falseValues = []string{"", "false", "no"}
 
 // GetBoolVariable returns a variable from environment variables or from the e2e config file as boolean.
 func GetBoolVariable(e2eConfig *clusterctl.E2EConfig, varName string) bool {
-	value := e2eConfig.GetVariable(varName)
+	value := e2eConfig.MustGetVariable(varName)
 	for _, falseVal := range falseValues {
 		if strings.EqualFold(value, falseVal) {
 			return false
@@ -158,7 +158,7 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    clusterClient,
+			ClusterProxy:    bootstrapClusterProxy,
 			Namespace: namespace,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 

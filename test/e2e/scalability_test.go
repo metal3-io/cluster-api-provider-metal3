@@ -55,10 +55,10 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]",
 		validateGlobals(specName)
 		specName = "scale"
 		namespace = "scale"
-		numberOfWorkers = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-		numberOfClusters = int64(*e2eConfig.GetInt32PtrVariable("NUM_NODES"))
-		scaleSpecConcurrency = int64(*e2eConfig.GetInt32PtrVariable("SCALE_SPEC_CONCURRENCY"))
+		numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+		numberOfControlplane = int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+		numberOfClusters = int64(*e2eConfig.MustGetInt32PtrVariable("NUM_NODES"))
+		scaleSpecConcurrency = int64(*e2eConfig.MustGetInt32PtrVariable("SCALE_SPEC_CONCURRENCY"))
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 		createFKASResources()
@@ -89,7 +89,7 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]",
 	})
 
 	AfterEach(func() {
-		FKASKustomization := e2eConfig.GetVariable("FKAS_RELEASE_LATEST")
+		FKASKustomization := e2eConfig.MustGetVariable("FKAS_RELEASE_LATEST")
 		By(fmt.Sprintf("Removing FKAS from kustomization %s from the bootsrap cluster", FKASKustomization))
 		err := BuildAndRemoveKustomization(ctx, FKASKustomization, bootstrapClusterProxy)
 		Expect(err).NotTo(HaveOccurred())
@@ -131,7 +131,7 @@ func registerFKASCluster(ctx context.Context, cn string, ns string) *ClusterAPIS
 
 func createFKASResources() {
 	FKASDeployLogFolder := filepath.Join(os.TempDir(), "fkas-deploy-logs", bootstrapClusterProxy.GetName())
-	FKASKustomization := e2eConfig.GetVariable("FKAS_RELEASE_LATEST")
+	FKASKustomization := e2eConfig.MustGetVariable("FKAS_RELEASE_LATEST")
 	By(fmt.Sprintf("Installing FKAS with kustomization %s to the bootstrap cluster", FKASKustomization))
 	err := BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       FKASKustomization,
@@ -162,8 +162,8 @@ func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clust
 	}
 
 	getBmhsCountNeeded := func() (sum int) {
-		numberOfWorkers = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+		numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+		numberOfControlplane = int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 		sum = numberOfWorkers + numberOfControlplane
 		return
 	}
@@ -206,7 +206,7 @@ func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clust
 	index := getClusterID(clusterName)
 	cn := getBmhsCountNeeded()
 	f, t := getBmhsFromToIndex(index, cn)
-	batch, _ := strconv.Atoi(e2eConfig.GetVariable("BMH_BATCH_SIZE"))
+	batch, _ := strconv.Atoi(e2eConfig.MustGetVariable("BMH_BATCH_SIZE"))
 	applyBmhsByBatch(batch, f, t)
 
 	newClusterEndpoint := registerFKASCluster(ctx, clusterName, clusterNamespace)
