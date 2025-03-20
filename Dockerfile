@@ -40,6 +40,7 @@ COPY main.go main.go
 COPY api/ api/
 COPY baremetal/ baremetal/
 COPY controllers/ controllers/
+COPY internal/ internal/
 
 # Build
 ARG ARCH

@@ -17,80 +17,93 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+	"fmt"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-// log is for logging in this package.
-var metal3remediationlog = logf.Log.WithName("metal3remediation-resource")
-
-func (r *Metal3Remediation) SetupWebhookWithManager(mgr ctrl.Manager) error {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Remediation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithValidator(webhook).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediation,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3remediations,versions=v1beta1,name=validation.metal3remediation.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediation,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3remediations,versions=v1beta1,name=default.metal3remediation.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
-var _ webhook.Defaulter = &Metal3Remediation{}
-var _ webhook.Validator = &Metal3Remediation{}
+var _ webhook.CustomDefaulter = &Metal3Remediation{}
+var _ webhook.CustomValidator = &Metal3Remediation{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (r *Metal3Remediation) Default() {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Remediation) Default(_ context.Context, _ runtime.Object) error {
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3Remediation) ValidateCreate() (admission.Warnings, error) {
-	return nil, r.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Remediation) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	c, ok := obj.(*Metal3Remediation)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Remediation but got a %T", obj))
+	}
+	return nil, webhook.validate(c)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3Remediation) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
-	return nil, r.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Remediation) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	newM3R, ok := newObj.(*Metal3Remediation)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Remediation but got a %T", newObj))
+	}
+
+	return nil, webhook.validate(newM3R)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3Remediation) ValidateDelete() (admission.Warnings, error) {
-	metal3remediationlog.Info("validate delete", "name", r.Name)
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Remediation) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (r *Metal3Remediation) validate() error {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Remediation) validate(newM3R *Metal3Remediation) error {
 	var allErrs field.ErrorList
-	if r.Spec.Strategy.Timeout != nil && r.Spec.Strategy.Timeout.Seconds() < minTimeout.Seconds() {
+	if newM3R.Spec.Strategy.Timeout != nil && newM3R.Spec.Strategy.Timeout.Seconds() < minTimeout.Seconds() {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "strategy", "timeout"),
-				r.Spec.Strategy.Timeout,
+				newM3R.Spec.Strategy.Timeout,
 				"min duration is minTimeout.Seconds()",
 			),
 		)
 	}
 
-	if r.Spec.Strategy.Type != RebootRemediationStrategy {
+	if newM3R.Spec.Strategy.Type != RebootRemediationStrategy {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "strategy", "type"),
-				r.Spec.Strategy.Type,
+				newM3R.Spec.Strategy.Type,
 				"is only supported remediation strategy",
 			),
 		)
 	}
 
-	if r.Spec.Strategy.RetryLimit < minRetryLimit {
+	if newM3R.Spec.Strategy.RetryLimit < minRetryLimit {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "strategy", "retryLimit"),
-				r.Spec.Strategy.RetryLimit,
+				newM3R.Spec.Strategy.RetryLimit,
 				"is minimum retrylimit",
 			),
 		)
@@ -99,5 +112,5 @@ func (r *Metal3Remediation) validate() error {
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Remediation").GroupKind(), r.Name, allErrs)
+	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Remediation").GroupKind(), newM3R.Name, allErrs)
 }

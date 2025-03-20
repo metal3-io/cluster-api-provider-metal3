@@ -111,8 +111,8 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	By(fmt.Sprintf("Loading the e2e test configuration from %q", configPath))
 	e2eConfig = loadE2EConfig(configPath)
-	numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-	numberOfWorkers = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+	numberOfControlplane = int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+	numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfAllBmh = numberOfControlplane + numberOfWorkers
 
 	By(fmt.Sprintf("Creating a clusterctl local repository into %q", artifactFolder))
@@ -186,7 +186,7 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 
 	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file as in place of the CNI_RESOURCES envSubst variable.
 	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
-	cniPath := config.GetVariable(capi_e2e.CNIPath)
+	cniPath := config.MustGetVariable(capi_e2e.CNIPath)
 	if osType == "centos" {
 		updateCalico(config, cniPath, "eth1")
 	} else {
@@ -259,15 +259,15 @@ func validateGlobals(specName string) {
 }
 
 func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface string) {
-	calicoManifestURL := fmt.Sprintf("https://raw.githubusercontent.com/projectcalico/calico/%s/manifests/calico.yaml", config.GetVariable("CALICO_PATCH_RELEASE"))
+	calicoManifestURL := fmt.Sprintf("https://raw.githubusercontent.com/projectcalico/calico/%s/manifests/calico.yaml", config.MustGetVariable("CALICO_PATCH_RELEASE"))
 	err := DownloadFile(calicoYaml, calicoManifestURL)
 	Expect(err).ToNot(HaveOccurred(), "Unable to download Calico manifest")
 	cniYaml, err := os.ReadFile(calicoYaml)
 	Expect(err).ToNot(HaveOccurred(), "Unable to read Calico manifest")
 
 	Logf("Replace the default CIDR with the one set in $POD_CIDR")
-	podCIDR := config.GetVariable("POD_CIDR")
-	calicoContainerRegistry := config.GetVariable("DOCKER_HUB_PROXY")
+	podCIDR := config.MustGetVariable("POD_CIDR")
+	calicoContainerRegistry := config.MustGetVariable("DOCKER_HUB_PROXY")
 	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
 	cniYaml = []byte(strings.Replace(string(cniYaml), "docker.io", calicoContainerRegistry, -1))
 

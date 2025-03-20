@@ -40,7 +40,7 @@ func TestMetal3RemediationTemplateDefault(t *testing.T) {
 		},
 	}
 
-	m3rt.Default()
+	_ = m3rt.Default(ctx, m3rt)
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.Type).ToNot(BeNil())
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.Type).To(Equal(RebootRemediationStrategy))
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).ToNot(BeNil())
@@ -64,7 +64,7 @@ func TestMetal3RemediationTemplateDefault(t *testing.T) {
 		},
 	}
 
-	m3rt.Default()
+	_ = m3rt.Default(ctx, m3rt)
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).ToNot(BeNil())
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).To(Equal(1))
 }
@@ -174,14 +174,14 @@ func TestMetal3RemediationTemplateValidation(t *testing.T) {
 		}
 
 		if tt.expectErr {
-			_, err := m3rt.ValidateCreate()
+			_, err := m3rt.ValidateCreate(ctx, m3rt)
 			g.Expect(err).To(HaveOccurred())
-			_, err = m3rt.ValidateUpdate(m3rt)
+			_, err = m3rt.ValidateUpdate(ctx, nil, m3rt)
 			g.Expect(err).To(HaveOccurred())
 		} else {
-			_, err := m3rt.ValidateCreate()
+			_, err := m3rt.ValidateCreate(ctx, m3rt)
 			g.Expect(err).NotTo(HaveOccurred())
-			_, err = m3rt.ValidateUpdate(m3rt)
+			_, err = m3rt.ValidateUpdate(ctx, nil, m3rt)
 			g.Expect(err).NotTo(HaveOccurred())
 		}
 	}

@@ -14,6 +14,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+	"fmt"
 	"strconv"
 
 	"github.com/pkg/errors"
@@ -25,23 +27,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func (c *Metal3Data) SetupWebhookWithManager(mgr ctrl.Manager) error {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Data) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithValidator(webhook).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3data,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3datas,versions=v1beta1,name=validation.metal3data.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3data,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3datas,versions=v1beta1,name=default.metal3data.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
+var _ webhook.CustomDefaulter = &Metal3Data{}
+var _ webhook.CustomValidator = &Metal3Data{}
 
-var _ webhook.Defaulter = &Metal3Data{}
-var _ webhook.Validator = &Metal3Data{}
-
-func (c *Metal3Data) Default() {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Data) Default(_ context.Context, _ runtime.Object) error {
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Data) ValidateCreate() (admission.Warnings, error) {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Data) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	c, ok := obj.(*Metal3Data)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Data but got a %T", obj))
+	}
+
 	allErrs := field.ErrorList{}
 	if (c.Spec.TemplateReference != "" && c.Name != c.Spec.TemplateReference+"-"+strconv.Itoa(c.Spec.Index)) ||
 		(c.Spec.TemplateReference == "" && c.Name != c.Spec.Template.Name+"-"+strconv.Itoa(c.Spec.Index)) {
@@ -71,70 +81,77 @@ func (c *Metal3Data) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Data) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Data) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
-	oldMetal3Data, ok := old.(*Metal3Data)
+
+	newMetal3Data, ok := newObj.(*Metal3Data)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Data but got a %T", newObj))
+	}
+
+	oldMetal3Data, ok := oldObj.(*Metal3Data)
 	if !ok || oldMetal3Data == nil {
 		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
 	}
 
-	if c.Spec.Index != oldMetal3Data.Spec.Index {
+	if newMetal3Data.Spec.Index != oldMetal3Data.Spec.Index {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "Index"),
-				c.Spec.Index,
+				newMetal3Data.Spec.Index,
 				"cannot be modified",
 			),
 		)
 	}
 
-	if c.Spec.Template.Name != oldMetal3Data.Spec.Template.Name {
+	if newMetal3Data.Spec.Template.Name != oldMetal3Data.Spec.Template.Name {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "Template"),
-				c.Spec.Template,
+				newMetal3Data.Spec.Template,
 				"cannot be modified",
 			),
 		)
-	} else if c.Spec.Template.Namespace != oldMetal3Data.Spec.Template.Namespace {
+	} else if newMetal3Data.Spec.Template.Namespace != oldMetal3Data.Spec.Template.Namespace {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "Template"),
-				c.Spec.Template,
+				newMetal3Data.Spec.Template,
 				"cannot be modified",
 			),
 		)
-	} else if c.Spec.Template.Kind != oldMetal3Data.Spec.Template.Kind {
+	} else if newMetal3Data.Spec.Template.Kind != oldMetal3Data.Spec.Template.Kind {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "Template"),
-				c.Spec.Template,
+				newMetal3Data.Spec.Template,
 				"cannot be modified",
 			),
 		)
 	}
 
-	if c.Spec.Claim.Name != oldMetal3Data.Spec.Claim.Name {
+	if newMetal3Data.Spec.Claim.Name != oldMetal3Data.Spec.Claim.Name {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "claim"),
-				c.Spec.Claim,
+				newMetal3Data.Spec.Claim,
 				"cannot be modified",
 			),
 		)
-	} else if c.Spec.Claim.Namespace != oldMetal3Data.Spec.Claim.Namespace {
+	} else if newMetal3Data.Spec.Claim.Namespace != oldMetal3Data.Spec.Claim.Namespace {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "claim"),
-				c.Spec.Claim,
+				newMetal3Data.Spec.Claim,
 				"cannot be modified",
 			),
 		)
-	} else if c.Spec.Claim.Kind != oldMetal3Data.Spec.Claim.Kind {
+	} else if newMetal3Data.Spec.Claim.Kind != oldMetal3Data.Spec.Claim.Kind {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "claim"),
-				c.Spec.Claim,
+				newMetal3Data.Spec.Claim,
 				"cannot be modified",
 			),
 		)
@@ -143,10 +160,11 @@ func (c *Metal3Data) ValidateUpdate(old runtime.Object) (admission.Warnings, err
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
-	return nil, apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), c.Name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("Metal3Data").GroupKind(), newMetal3Data.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Data) ValidateDelete() (admission.Warnings, error) {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3Data) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

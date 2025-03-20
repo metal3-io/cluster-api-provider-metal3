@@ -14,6 +14,9 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+	"fmt"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -22,45 +25,57 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func (c *Metal3MachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3MachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithValidator(webhook).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machinetemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,versions=v1beta1,name=validation.metal3machinetemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machinetemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,versions=v1beta1,name=default.metal3machinetemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
+var _ webhook.CustomDefaulter = &Metal3MachineTemplate{}
+var _ webhook.CustomValidator = &Metal3MachineTemplate{}
 
-var _ webhook.Defaulter = &Metal3MachineTemplate{}
-var _ webhook.Validator = &Metal3MachineTemplate{}
-
-func (c *Metal3MachineTemplate) Default() {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3MachineTemplate) Default(_ context.Context, _ runtime.Object) error {
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3MachineTemplate) ValidateCreate() (admission.Warnings, error) {
-	return nil, c.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3MachineTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	c, ok := obj.(*Metal3MachineTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3MachineTemplate but got a %T", obj))
+	}
+	return nil, webhook.validate(c)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3MachineTemplate) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
-	return nil, c.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3MachineTemplate) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	c, ok := newObj.(*Metal3MachineTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3MachineTemplate but got a %T", newObj))
+	}
+	return nil, webhook.validate(c)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3MachineTemplate) ValidateDelete() (admission.Warnings, error) {
+func (webhook *Metal3MachineTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (c *Metal3MachineTemplate) validate() error {
+func (webhook *Metal3MachineTemplate) validate(newM3mt *Metal3MachineTemplate) error {
 	var allErrs field.ErrorList
 
-	if c.Spec.Template.Spec.CustomDeploy == nil || c.Spec.Template.Spec.CustomDeploy.Method == "" {
-		allErrs = append(allErrs, c.Spec.Template.Spec.Image.Validate(*field.NewPath("Spec", "Template", "Spec", "Image"))...)
+	if newM3mt.Spec.Template.Spec.CustomDeploy == nil || newM3mt.Spec.Template.Spec.CustomDeploy.Method == "" {
+		allErrs = append(allErrs, newM3mt.Spec.Template.Spec.Image.Validate(*field.NewPath("Spec", "Template", "Spec", "Image"))...)
 	}
 
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3MachineTemplate").GroupKind(), c.Name, allErrs)
+	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3MachineTemplate").GroupKind(), newM3mt.Name, allErrs)
 }

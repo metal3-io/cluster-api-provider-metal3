@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,81 +44,101 @@ var (
 // log is for logging in this package.
 var metal3remediationtemplatelog = logf.Log.WithName("metal3remediationtemplate-resource")
 
-func (r *Metal3RemediationTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3RemediationTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+		For(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithValidator(webhook).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediationtemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3remediationtemplates,versions=v1beta1,name=validation.metal3remediationtemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediationtemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3remediationtemplates,versions=v1beta1,name=default.metal3remediationtemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
-var _ webhook.Defaulter = &Metal3RemediationTemplate{}
-var _ webhook.Validator = &Metal3RemediationTemplate{}
+var _ webhook.CustomDefaulter = &Metal3RemediationTemplate{}
+var _ webhook.CustomValidator = &Metal3RemediationTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) Default() {
-	if r.Spec.Template.Spec.Strategy.Type == "" {
-		r.Spec.Template.Spec.Strategy.Type = RebootRemediationStrategy
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3RemediationTemplate) Default(_ context.Context, obj runtime.Object) error {
+	m3rt, ok := obj.(*Metal3RemediationTemplate)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3RemediationTemplate but got a %T", obj))
 	}
 
-	if r.Spec.Template.Spec.Strategy.Timeout == nil {
-		r.Spec.Template.Spec.Strategy.Timeout = &defaultTimeout
+	if m3rt.Spec.Template.Spec.Strategy.Type == "" {
+		m3rt.Spec.Template.Spec.Strategy.Type = RebootRemediationStrategy
 	}
 
-	if r.Spec.Template.Spec.Strategy.RetryLimit == 0 || r.Spec.Template.Spec.Strategy.RetryLimit < minRetryLimit {
-		r.Spec.Template.Spec.Strategy.RetryLimit = minRetryLimit
+	if m3rt.Spec.Template.Spec.Strategy.Timeout == nil {
+		m3rt.Spec.Template.Spec.Strategy.Timeout = &defaultTimeout
 	}
+
+	if m3rt.Spec.Template.Spec.Strategy.RetryLimit == 0 || m3rt.Spec.Template.Spec.Strategy.RetryLimit < minRetryLimit {
+		m3rt.Spec.Template.Spec.Strategy.RetryLimit = minRetryLimit
+	}
+
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) ValidateCreate() (admission.Warnings, error) {
-	metal3remediationtemplatelog.Info("validate create", "name", r.Name)
-	return nil, r.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3RemediationTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	m3rt, ok := obj.(*Metal3RemediationTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3RemediationTemplate but got a %T", obj))
+	}
+
+	metal3remediationtemplatelog.Info("validate create", "name", m3rt.Name)
+
+	return nil, webhook.validate(m3rt)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
-	metal3remediationtemplatelog.Info("validate update", "name", r.Name)
-	return nil, r.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3RemediationTemplate) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	m3rt, ok := newObj.(*Metal3RemediationTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3RemediationTemplate but got a %T", newObj))
+	}
+	metal3remediationtemplatelog.Info("validate update", "name", m3rt.Name)
+	return nil, webhook.validate(m3rt)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *Metal3RemediationTemplate) ValidateDelete() (admission.Warnings, error) {
-	metal3remediationtemplatelog.Info("validate delete", "name", r.Name)
+// Deprecated: This method is going to be removed in a next release.
+func (webhook *Metal3RemediationTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (r *Metal3RemediationTemplate) validate() error {
+func (webhook *Metal3RemediationTemplate) validate(newM3rt *Metal3RemediationTemplate) error {
 	var allErrs field.ErrorList
-	if r.Spec.Template.Spec.Strategy.Timeout != nil && r.Spec.Template.Spec.Strategy.Timeout.Seconds() < minTimeout.Seconds() {
+	if newM3rt.Spec.Template.Spec.Strategy.Timeout != nil && newM3rt.Spec.Template.Spec.Strategy.Timeout.Seconds() < minTimeout.Seconds() {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "template", "spec", "strategy", "timeout"),
-				r.Spec.Template.Spec.Strategy.Timeout,
+				newM3rt.Spec.Template.Spec.Strategy.Timeout,
 				"min duration is 100s",
 			),
 		)
 	}
 
-	if r.Spec.Template.Spec.Strategy.Type != RebootRemediationStrategy {
+	if newM3rt.Spec.Template.Spec.Strategy.Type != RebootRemediationStrategy {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "template", "spec", "strategy", "type"),
-				r.Spec.Template.Spec.Strategy.Type,
+				newM3rt.Spec.Template.Spec.Strategy.Type,
 				"only supported remediation strategy is reboot",
 			),
 		)
 	}
 
-	if r.Spec.Template.Spec.Strategy.RetryLimit < minRetryLimit {
+	if newM3rt.Spec.Template.Spec.Strategy.RetryLimit < minRetryLimit {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "template", "spec", "strategy", "retryLimit"),
-				r.Spec.Template.Spec.Strategy.RetryLimit,
+				newM3rt.Spec.Template.Spec.Strategy.RetryLimit,
 				"minimun retrylimit is 1",
 			),
 		)
@@ -125,5 +147,5 @@ func (r *Metal3RemediationTemplate) validate() error {
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Remediation").GroupKind(), r.Name, allErrs)
+	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Remediation").GroupKind(), newM3rt.Name, allErrs)
 }

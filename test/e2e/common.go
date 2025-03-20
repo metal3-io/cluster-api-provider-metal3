@@ -122,7 +122,7 @@ var falseValues = []string{"", "false", "no"}
 
 // GetBoolVariable returns a variable from environment variables or from the e2e config file as boolean.
 func GetBoolVariable(e2eConfig *clusterctl.E2EConfig, varName string) bool {
-	value := e2eConfig.GetVariable(varName)
+	value := e2eConfig.MustGetVariable(varName)
 	for _, falseVal := range falseValues {
 		if strings.EqualFold(value, falseVal) {
 			return false
@@ -132,7 +132,7 @@ func GetBoolVariable(e2eConfig *clusterctl.E2EConfig, varName string) bool {
 }
 
 // TODO change this function to handle multiple workload(target) clusters.
-func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrapClusterProxy framework.ClusterProxy, targetClusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool) {
+func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrapClusterProxy framework.ClusterProxy, targetClusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool, clusterctlConfigPath string) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	clusterClient := bootstrapClusterProxy.GetClient()
 
@@ -147,9 +147,11 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:    clusterClient,
-		Namespace: namespace,
-		LogPath:   filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "resources"),
+		Lister:               clusterClient,
+		Namespace:            namespace,
+		LogPath:              filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "resources"),
+		KubeConfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
+		ClusterctlConfigPath: clusterctlConfigPath,
 	})
 
 	if !skipCleanup {
@@ -158,8 +160,10 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
 		// instead of DeleteClusterAndWait
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-			Client:    clusterClient,
-			Namespace: namespace,
+			ClusterProxy:         bootstrapClusterProxy,
+			Namespace:            namespace,
+			ClusterctlConfigPath: clusterctlConfigPath,
+			ArtifactFolder:       artifactFolder,
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 
 		// Waiting for Metal3Datas, Metal3DataTemplates and Metal3DataClaims, as these may take longer time to delete
