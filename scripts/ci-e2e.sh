@@ -160,6 +160,17 @@ for overlay in "${IRONIC_OVERLAYS[@]}"; do
     "${IRONIC_INSPECTOR_PASSWORD}")" > "${overlay}/ironic-inspector-htpasswd"
 done
 
+# Get manifests for IPAM
+# TODO(lentzi90): Remove this once IPAM v1.10 is out, which will include the metadata and correct manifests
+mkdir -p /tmp/ipam
+cat <<EOF > /tmp/ipam/kustomization.yaml
+resources:
+- ipam-main.yaml
+EOF
+kustomize build https://github.com/metal3-io/ip-address-manager/config/default?ref=main > \
+  /tmp/ipam/ipam-main.yaml
+curl -o /tmp/ipam-main-metadata.yaml https://github.com/metal3-io/ip-address-manager/raw/refs/heads/main/metadata.yaml
+
 # run e2e tests
 if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   export CLUSTER_TOPOLOGY=true
