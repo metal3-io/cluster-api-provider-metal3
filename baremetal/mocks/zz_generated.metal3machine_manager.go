@@ -224,6 +224,20 @@ func (mr *MockMachineManagerInterfaceMockRecorder) Metal3MachineHasProviderID() 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metal3MachineHasProviderID", reflect.TypeOf((*MockMachineManagerInterface)(nil).Metal3MachineHasProviderID))
 }
 
+// NodeWithMatchingProviderIDExists mocks base method.
+func (m *MockMachineManagerInterface) NodeWithMatchingProviderIDExists(arg0 context.Context, arg1 baremetal.ClientGetter) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NodeWithMatchingProviderIDExists", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// NodeWithMatchingProviderIDExists indicates an expected call of NodeWithMatchingProviderIDExists.
+func (mr *MockMachineManagerInterfaceMockRecorder) NodeWithMatchingProviderIDExists(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeWithMatchingProviderIDExists", reflect.TypeOf((*MockMachineManagerInterface)(nil).NodeWithMatchingProviderIDExists), arg0, arg1)
+}
+
 // RemovePauseAnnotation mocks base method.
 func (m *MockMachineManagerInterface) RemovePauseAnnotation(arg0 context.Context) error {
 	m.ctrl.T.Helper()

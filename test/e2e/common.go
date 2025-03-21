@@ -365,14 +365,14 @@ func ListBareMetalHosts(ctx context.Context, c client.Client, opts ...client.Lis
 
 	rows := make([][]string, len(bmhs.Items)+1)
 	// Add column names
-	rows[0] = []string{"Name:", "Status:", "Consumer:", "Online:"}
+	rows[0] = []string{"Name:", "Namespace:", "Status:", "Consumer:", "Online:", "UID:"}
 
 	for i, bmh := range bmhs.Items {
 		consumer := ""
 		if bmh.Spec.ConsumerRef != nil {
 			consumer = bmh.Spec.ConsumerRef.Name
 		}
-		rows[i+1] = []string{bmh.GetName(), fmt.Sprint(bmh.Status.Provisioning.State), consumer, fmt.Sprint(bmh.Status.PoweredOn)}
+		rows[i+1] = []string{bmh.GetName(), bmh.GetNamespace(), fmt.Sprint(bmh.Status.Provisioning.State), consumer, fmt.Sprint(bmh.Status.PoweredOn), string(bmh.UID)}
 	}
 	logTable("Listing BareMetalHosts", rows)
 }
@@ -423,7 +423,7 @@ func ListNodes(ctx context.Context, c client.Client) {
 
 	rows := make([][]string, len(nodes.Items)+1)
 	// Add column names
-	rows[0] = []string{"Name:", "Status:", "Version:"}
+	rows[0] = []string{"Name:", "Status:", "Version:", "ProviderID:", "Provider label:"}
 	for i, node := range nodes.Items {
 		ready := "NotReady"
 		if node.Status.Conditions != nil {
@@ -433,7 +433,15 @@ func ListNodes(ctx context.Context, c client.Client) {
 				ready = "Ready"
 			}
 		}
-		rows[i+1] = []string{node.Name, ready, node.Status.NodeInfo.KubeletVersion}
+
+		labels := node.GetLabels()
+		label, ok := labels["metal3.io/uuid"]
+
+		if !ok {
+			label = ""
+		}
+
+		rows[i+1] = []string{node.Name, ready, node.Status.NodeInfo.KubeletVersion, node.Spec.ProviderID, label}
 	}
 	logTable("Listing Nodes", rows)
 }

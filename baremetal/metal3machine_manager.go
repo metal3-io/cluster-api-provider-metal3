@@ -99,6 +99,7 @@ type MachineManagerInterface interface {
 	SetProviderIDFromCloudProviderNode(context.Context, ClientGetter) error
 	SetProviderIDFromNodeLabel(context.Context, ClientGetter) error
 	SetNodeProviderIDByHostname(context.Context, ClientGetter) error
+	NodeWithMatchingProviderIDExists(context.Context, ClientGetter) bool
 	Metal3MachineHasProviderID() bool
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
@@ -180,6 +181,8 @@ func (m *MachineManager) IsProvisioned() bool {
 func (m *MachineManager) IsBaremetalHostProvisioned(ctx context.Context) bool {
 	host, _, err := m.getHost(ctx)
 	if err != nil {
+		errMessage := fmt.Sprintf("failed to getHost in IsBareMetalHostProvisioned: %s", err)
+		m.Log.Info(errMessage)
 		return false
 	}
 	if host == nil {
@@ -297,7 +300,11 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		return errors.Wrap(err, "failed to marshall status annotation")
 	}
 	host.Annotations[bmov1alpha1.StatusAnnotation] = string(newAnnotation)
-	return helper.Patch(ctx, host)
+	err = helper.Patch(ctx, host)
+	if err != nil {
+		return errors.Wrap(err, "failed to patch baremetalhost")
+	}
+	return nil
 }
 
 // Associate associates a machine and is invoked by the Machine Controller.
@@ -1286,6 +1293,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 type ClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error)
 
 func (m *MachineManager) setNodeProviderID(ctx context.Context, client clientcorev1.CoreV1Interface, node corev1.Node, providerID string) error {
+	m.Log.Info("setting node ProviderID", "node", node.Name, "providerID", providerID)
 	oldData, err := json.Marshal(node)
 	if err != nil {
 		return fmt.Errorf("failed to json.Marshal node: %w", err)
@@ -1334,6 +1342,7 @@ func (m *MachineManager) SetDefaultProviderID() {
 	// Ignoring the error because we already checked for the presence of the annotation
 	bmhName, _ := m.getBmhNameFromM3Machine()
 	providerID := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
+	m.Log.Info("setting default ProviderID", "providerID", providerID)
 	m.SetProviderID(providerID)
 }
 
@@ -1367,17 +1376,57 @@ func (m *MachineManager) SetProviderIDFromCloudProviderNode(ctx context.Context,
 	return nil
 }
 
+// TODO: rename this
+func (m *MachineManager) NodeWithMatchingProviderIDExists(ctx context.Context, clientFactory ClientGetter) bool {
+	m.Log.Info("NodeWithMatchinProviderExists")
+	if !m.Metal3MachineHasProviderID() {
+		return false
+	}
+
+	namespace := m.Metal3Machine.GetNamespace()
+	m3mName := m.Metal3Machine.GetName()
+	bmhName, err := m.getBmhNameFromM3Machine()
+	if err != nil {
+		errMessage := "unable to retrieve BMH name from Metal3Machine"
+		m.Log.Info(errMessage)
+		return false
+	}
+	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
+	if err != nil {
+		errMessage := "unable to retrieve BMH UID from Metal3Machine"
+		m.Log.Info(errMessage)
+		return false
+	}
+	providerIDLegacy := fmt.Sprintf("metal3://%s", bmhUID)
+	providerIDNew := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
+
+	node, err := m.getNodeByProviderID(ctx, providerIDLegacy, providerIDNew, clientFactory)
+	if err != nil {
+		errMessage := "error retrieving node, requeuing"
+		m.Log.Info(errMessage)
+		return false
+	}
+
+	m.Log.Info("matching node found", "node", node.GetName(), "providerID", node.Spec.ProviderID)
+	return true
+}
+
 func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientFactory ClientGetter) error {
+	m.Log.Info("Setting ProviderID from node label")
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return errors.Wrap(err, "Error creating a remote client")
 	}
+
+	// TODO: this returns the old UID
 	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
 	if err != nil {
 		errMessage := "unable to retrieve BMH UID from Metal3Machine"
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
+
+	m.Log.Info("bmh uid", "bmhUID", bmhUID)
 	namespace := m.Metal3Machine.GetNamespace()
 	m3mName := m.Metal3Machine.GetName()
 	bmhName, err := m.getBmhNameFromM3Machine()
@@ -1391,6 +1440,8 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 	providerIDNew := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
 
 	nodeLabel := fmt.Sprintf("%s=%s", ProviderLabelPrefix, bmhUID)
+
+	// TODO: zero nodes because the node label points to a BMH that no longer exists
 	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
 		errMessage := "error retrieving node, requeuing"
@@ -1401,6 +1452,8 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 	if countNodesWithLabel == 0 && m.Machine.Spec.Bootstrap.ConfigRef != nil {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case.
+
+		// TODO: We will not be able to find the Node during pivoting.
 		errMessage := fmt.Sprintf("requeuing, could not find node with label: %s", nodeLabel)
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
@@ -1413,6 +1466,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		node := nodes.Items[0]
 		providerIDOnNode := node.Spec.ProviderID
 		if providerIDOnNode == "" {
+			m.Log.Info("node doesn't have a providerid, setting it", "providerID", providerIDNew)
 			// By default we use the new format, if not set on the node.
 			m.SetProviderID(providerIDNew)
 			m.SetReadyTrue()
@@ -1420,12 +1474,14 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		}
 
 		if providerIDOnNode == providerIDNew {
+			m.Log.Info("node has a providerid, setting it on m3m", "providerID", providerIDNew)
 			m.SetProviderID(providerIDNew)
 			m.SetReadyTrue()
 			return nil
 		}
 
 		if providerIDOnNode == providerIDLegacy {
+			m.Log.Info("node has a providerid, setting it on m3m (legacy)", "providerID", providerIDLegacy)
 			m.SetProviderID(providerIDLegacy)
 			m.SetReadyTrue()
 			return nil
