@@ -30,7 +30,8 @@ func TestMetal3DataDefault(t *testing.T) {
 		},
 		Spec: Metal3DataSpec{},
 	}
-	c.Default()
+
+	_ = c.Default(ctx, c)
 
 	g.Expect(c.Spec).To(Equal(Metal3DataSpec{}))
 	g.Expect(c.Status).To(Equal(Metal3DataStatus{}))
@@ -85,18 +86,18 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := obj.ValidateCreate()
+				_, err := obj.ValidateCreate(ctx, obj)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := obj.ValidateCreate()
+				_, err := obj.ValidateCreate(ctx, obj)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 
 			obj.Spec.Index = -1
 
-			_, err := obj.ValidateCreate()
+			_, err := obj.ValidateCreate(ctx, obj)
 			g.Expect(err).To(HaveOccurred())
-			_, err = obj.ValidateDelete()
+			_, err = obj.ValidateDelete(ctx, obj)
 			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
@@ -262,6 +263,7 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var newData, oldData *Metal3Data
 			g := NewWithT(t)
+
 			newData = &Metal3Data{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
@@ -283,10 +285,10 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := newData.ValidateUpdate(oldData)
+				_, err := newData.ValidateUpdate(ctx, oldData, newData)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := newData.ValidateUpdate(oldData)
+				_, err := newData.ValidateUpdate(ctx, oldData, newData)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})

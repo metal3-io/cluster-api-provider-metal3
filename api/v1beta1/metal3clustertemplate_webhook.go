@@ -14,6 +14,9 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,45 +26,52 @@ import (
 )
 
 // SetupWebhookWithManager sets up and registers the webhook with the manager.
-func (c *Metal3ClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *Metal3ClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3clustertemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clustertemplates,versions=v1beta1,name=validation.metal3clustertemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3clustertemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clustertemplates,versions=v1beta1,name=default.metal3clustertemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &Metal3ClusterTemplate{}
-var _ webhook.Validator = &Metal3ClusterTemplate{}
+var _ webhook.CustomDefaulter = &Metal3ClusterTemplate{}
+var _ webhook.CustomDefaulter = &Metal3ClusterTemplate{}
 
-func (c *Metal3ClusterTemplate) Default() {
+func (webhook *Metal3ClusterTemplate) Default(_ context.Context, _ runtime.Object) error {
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3ClusterTemplate) ValidateCreate() (admission.Warnings, error) {
-	return nil, c.validate()
+func (webhook *Metal3ClusterTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	c, ok := obj.(*Metal3ClusterTemplate)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3ClusterTemplate but got a %T", obj))
+	}
+	return nil, webhook.validate(c)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3ClusterTemplate) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	oldM3ct, ok := old.(*Metal3ClusterTemplate)
-	if !ok || oldM3ct == nil {
+func (webhook *Metal3ClusterTemplate) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	newM3ct, ok := newObj.(*Metal3ClusterTemplate)
+	if !ok || newM3ct == nil {
 		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
 	}
 
-	if err := oldM3ct.Spec.Template.Spec.IsValid(); err != nil {
+	if err := newM3ct.Spec.Template.Spec.IsValid(); err != nil {
 		return nil, err
 	}
 
-	return nil, c.validate()
+	return nil, webhook.validate(newM3ct)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3ClusterTemplate) ValidateDelete() (admission.Warnings, error) {
+func (webhook *Metal3ClusterTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (c *Metal3ClusterTemplate) validate() error {
-	return c.Spec.Template.Spec.IsValid()
+func (webhook *Metal3ClusterTemplate) validate(newM3C *Metal3ClusterTemplate) error {
+	return newM3C.Spec.Template.Spec.IsValid()
 }

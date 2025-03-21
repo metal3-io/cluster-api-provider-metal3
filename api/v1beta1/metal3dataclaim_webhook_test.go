@@ -29,7 +29,8 @@ func TestMetal3DataClaimDefault(t *testing.T) {
 			Namespace: "fooboo",
 		},
 	}
-	c.Default()
+
+	_ = c.Default(ctx, c)
 
 	g.Expect(c.Spec).To(Equal(Metal3DataClaimSpec{}))
 	g.Expect(c.Status).To(Equal(Metal3DataClaimStatus{}))
@@ -73,10 +74,10 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
@@ -199,10 +200,10 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := newDataClaim.ValidateUpdate(oldDataClaim)
+				_, err := newDataClaim.ValidateUpdate(ctx, oldDataClaim, newDataClaim)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := newDataClaim.ValidateUpdate(oldDataClaim)
+				_, err := newDataClaim.ValidateUpdate(ctx, oldDataClaim, newDataClaim)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})

@@ -75,8 +75,8 @@ type RemediationInput struct {
 func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	Logf("Starting remediation tests")
 	input := inputGetter()
-	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+	numberOfControlplane := int(*input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()
@@ -296,7 +296,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	deployment.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
 		Kind:       "Metal3MachineTemplate",
-		APIVersion: input.E2EConfig.GetVariable("APIVersion"),
+		APIVersion: input.E2EConfig.MustGetVariable("APIVersion"),
 		Name:       newM3MachineTemplateName,
 	}
 	deployment.Spec.Strategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{IntVal: 1}

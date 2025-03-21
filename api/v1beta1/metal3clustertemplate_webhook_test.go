@@ -29,8 +29,8 @@ func TestMetal3ClusterTemplateDefault(t *testing.T) {
 		},
 		Spec: Metal3ClusterTemplateSpec{},
 	}
-	c.Default()
 
+	g.Expect(c.Default(ctx, c)).To(Succeed())
 	g.Expect(c.Spec).To(Equal(Metal3ClusterTemplateSpec{}))
 }
 
@@ -82,13 +82,13 @@ func TestMetal3ClusterTemplateValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
-			_, err := tt.c.ValidateDelete()
+			_, err := tt.c.ValidateDelete(ctx, tt.c)
 			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
@@ -165,6 +165,7 @@ func TestMetal3ClusterTemplateUpdateValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var newCT, oldCT *Metal3ClusterTemplate
 			g := NewWithT(t)
+
 			newCT = &Metal3ClusterTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
@@ -184,10 +185,10 @@ func TestMetal3ClusterTemplateUpdateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := newCT.ValidateUpdate(oldCT)
+				_, err := newCT.ValidateUpdate(ctx, oldCT, newCT)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := newCT.ValidateUpdate(oldCT)
+				_, err := newCT.ValidateUpdate(ctx, oldCT, newCT)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})

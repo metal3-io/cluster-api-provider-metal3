@@ -122,14 +122,14 @@ func TestMetal3RemediationValidation(t *testing.T) {
 		}
 
 		if tt.expectErr {
-			_, err := m3r.ValidateCreate()
+			_, err := m3r.ValidateCreate(ctx, m3r)
 			g.Expect(err).To(HaveOccurred())
-			_, err = m3r.ValidateUpdate(m3r)
+			_, err = m3r.ValidateUpdate(ctx, nil, m3r)
 			g.Expect(err).To(HaveOccurred())
 		} else {
-			_, err := m3r.ValidateCreate()
+			_, err := m3r.ValidateCreate(ctx, m3r)
 			g.Expect(err).NotTo(HaveOccurred())
-			_, err = m3r.ValidateUpdate(m3r)
+			_, err = m3r.ValidateUpdate(ctx, nil, m3r)
 			g.Expect(err).NotTo(HaveOccurred())
 		}
 	}

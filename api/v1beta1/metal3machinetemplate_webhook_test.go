@@ -29,7 +29,8 @@ func TestMetal3MachineTemplateDefault(_ *testing.T) {
 		},
 		Spec: Metal3MachineTemplateSpec{},
 	}
-	c.Default()
+
+	_ = c.Default(ctx, c)
 }
 
 func TestMetal3MachineTemplateValidation(t *testing.T) {
@@ -110,14 +111,14 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).To(HaveOccurred())
-				_, err = tt.c.ValidateUpdate(nil)
+				_, err = tt.c.ValidateUpdate(ctx, nil, tt.c)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = tt.c.ValidateUpdate(nil)
+				_, err = tt.c.ValidateUpdate(ctx, nil, tt.c)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})

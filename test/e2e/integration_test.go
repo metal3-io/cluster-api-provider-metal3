@@ -21,9 +21,9 @@ import (
 var _ = Describe("When testing integration [integration]", Label("integration"), func() {
 
 	It("CI Test Provision", func() {
-		numberOfWorkers = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-		k8sVersion := e2eConfig.GetVariable("KUBERNETES_VERSION")
+		numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+		numberOfControlplane = int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
 		By("Provision Workload cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{

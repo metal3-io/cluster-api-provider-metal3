@@ -14,7 +14,9 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/pkg/errors"
+	"context"
+	"fmt"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -24,19 +26,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func (c *Metal3Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *Metal3Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(webhook).
+		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3cluster,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clusters,versions=v1beta1,name=validation.metal3cluster.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3cluster,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clusters,versions=v1beta1,name=default.metal3cluster.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &Metal3Cluster{}
-var _ webhook.Validator = &Metal3Cluster{}
+var _ webhook.CustomDefaulter = &Metal3Cluster{}
+var _ webhook.CustomValidator = &Metal3Cluster{}
 
-func (c *Metal3Cluster) Default() {
+func (webhook *Metal3Cluster) Default(_ context.Context, obj runtime.Object) error {
+	c, ok := obj.(*Metal3Cluster)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", obj))
+	}
+
 	if c.Spec.ControlPlaneEndpoint.Port == 0 {
 		c.Spec.ControlPlaneEndpoint.Port = 6443
 	}
@@ -51,48 +60,59 @@ func (c *Metal3Cluster) Default() {
 		c.Spec.CloudProviderEnabled = ptr.To(true)
 		c.Spec.NoCloudProvider = ptr.To(false)
 	}
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Cluster) ValidateCreate() (admission.Warnings, error) {
-	return nil, c.validate(nil)
+func (webhook *Metal3Cluster) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	c, ok := obj.(*Metal3Cluster)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", obj))
+	}
+
+	return nil, webhook.validate(nil, c)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Cluster) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	oldM3C, ok := old.(*Metal3Cluster)
-	if !ok || oldM3C == nil {
-		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
+func (webhook *Metal3Cluster) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+	newM3C, ok := newObj.(*Metal3Cluster)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", newObj))
 	}
 
-	return nil, c.validate(oldM3C)
+	oldM3C, ok := oldObj.(*Metal3Cluster)
+	if !ok || oldM3C == nil {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", oldObj))
+	}
+
+	return nil, webhook.validate(oldM3C, newM3C)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Cluster) ValidateDelete() (admission.Warnings, error) {
+func (webhook *Metal3Cluster) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
+func (webhook *Metal3Cluster) validate(oldM3C, newM3C *Metal3Cluster) error {
 	var allErrs field.ErrorList
-	if c.Spec.ControlPlaneEndpoint.Host == "" {
+	if newM3C.Spec.ControlPlaneEndpoint.Host == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "controlPlaneEndpoint"),
-				c.Spec.ControlPlaneEndpoint.Host,
+				newM3C.Spec.ControlPlaneEndpoint.Host,
 				"is required",
 			),
 		)
 	}
 
-	if c.Spec.CloudProviderEnabled != nil && c.Spec.NoCloudProvider != nil {
-		if *c.Spec.CloudProviderEnabled == *c.Spec.NoCloudProvider {
+	if newM3C.Spec.CloudProviderEnabled != nil && newM3C.Spec.NoCloudProvider != nil {
+		if *newM3C.Spec.CloudProviderEnabled == *newM3C.Spec.NoCloudProvider {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					field.NewPath("spec", "cloudProviderEnabled"),
-					c.Spec.CloudProviderEnabled,
+					newM3C.Spec.CloudProviderEnabled,
 					"cloudProviderEnabled conflicts the value of noCloudProvider",
 				),
 			)
@@ -101,13 +121,13 @@ func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
 
 	if oldM3C != nil {
 		// Validate cloudProviderEnabled
-		if c.Spec.CloudProviderEnabled != nil && oldM3C.Spec.NoCloudProvider != nil {
-			if *c.Spec.CloudProviderEnabled == *oldM3C.Spec.NoCloudProvider {
+		if newM3C.Spec.CloudProviderEnabled != nil && oldM3C.Spec.NoCloudProvider != nil {
+			if *newM3C.Spec.CloudProviderEnabled == *oldM3C.Spec.NoCloudProvider {
 				allErrs = append(
 					allErrs,
 					field.Invalid(
 						field.NewPath("spec", "cloudProviderEnabled"),
-						c.Spec.CloudProviderEnabled,
+						newM3C.Spec.CloudProviderEnabled,
 						"ValidateUpdate failed, cloudProviderEnabled conflicts the value of noCloudProvider",
 					),
 				)
@@ -115,13 +135,13 @@ func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
 		}
 
 		// Validate noCloudProvider
-		if c.Spec.NoCloudProvider != nil && oldM3C.Spec.CloudProviderEnabled != nil {
-			if *c.Spec.NoCloudProvider == *oldM3C.Spec.CloudProviderEnabled {
+		if newM3C.Spec.NoCloudProvider != nil && oldM3C.Spec.CloudProviderEnabled != nil {
+			if *newM3C.Spec.NoCloudProvider == *oldM3C.Spec.CloudProviderEnabled {
 				allErrs = append(
 					allErrs,
 					field.Invalid(
 						field.NewPath("spec", "noCloudProvider"),
-						c.Spec.NoCloudProvider,
+						newM3C.Spec.NoCloudProvider,
 						"ValidateUpdate failed, noCloudProvider conflicts the value of cloudProviderEnabled",
 					),
 				)
@@ -132,5 +152,5 @@ func (c *Metal3Cluster) validate(oldM3C *Metal3Cluster) error {
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Cluster").GroupKind(), c.Name, allErrs)
+	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Cluster").GroupKind(), newM3C.Name, allErrs)
 }
