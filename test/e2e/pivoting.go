@@ -241,6 +241,12 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-object-provisioned"),
 	})
 
+	By("Checking again just to be sure")
+	ListBareMetalHosts(ctx, input.TargetCluster.GetClient(), client.InNamespace(input.Namespace))
+	ListMetal3Machines(ctx, input.TargetCluster.GetClient(), client.InNamespace(input.Namespace))
+	ListMachines(ctx, input.TargetCluster.GetClient(), client.InNamespace(input.Namespace))
+	ListNodes(ctx, input.TargetCluster.GetClient())
+
 	By("Check if metal3machines become ready.")
 	WaitForNumMetal3MachinesReady(ctx, WaitForNumInput{
 		Client:    input.TargetCluster.GetClient(),
