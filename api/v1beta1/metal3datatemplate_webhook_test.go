@@ -30,7 +30,8 @@ func TestMetal3DataTemplateDefault(t *testing.T) {
 		},
 		Spec: Metal3DataTemplateSpec{},
 	}
-	c.Default()
+
+	_ = c.Default(ctx, c)
 
 	g.Expect(c.Spec).To(Equal(Metal3DataTemplateSpec{}))
 	g.Expect(c.Status).To(Equal(Metal3DataTemplateStatus{}))
@@ -59,13 +60,13 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := tt.c.ValidateCreate()
+				_, err := tt.c.ValidateCreate(ctx, tt.c)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
-			_, err := tt.c.ValidateDelete()
+			_, err := tt.c.ValidateDelete(ctx, tt.c)
 			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
@@ -183,6 +184,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var newDT, oldDT *Metal3DataTemplate
 			g := NewWithT(t)
+
 			newDT = &Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: "foo",
@@ -202,10 +204,10 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := newDT.ValidateUpdate(oldDT)
+				_, err := newDT.ValidateUpdate(ctx, oldDT, newDT)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := newDT.ValidateUpdate(oldDT)
+				_, err := newDT.ValidateUpdate(ctx, oldDT, newDT)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})

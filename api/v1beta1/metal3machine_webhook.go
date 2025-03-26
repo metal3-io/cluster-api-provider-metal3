@@ -14,6 +14,9 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+	"fmt"
+
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -22,45 +25,61 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+// Deprecated: This method is going to be removed in a next release.
 func (c *Metal3Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(c).
+		WithDefaulter(c, admission.DefaulterRemoveUnknownOrOmitableFields).
+		WithValidator(c).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machine,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,versions=v1beta1,name=validation.metal3machine.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machine,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,versions=v1beta1,name=default.metal3machine.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
+var _ webhook.CustomDefaulter = &Metal3Machine{}
+var _ webhook.CustomValidator = &Metal3Machine{}
 
-var _ webhook.Defaulter = &Metal3Machine{}
-var _ webhook.Validator = &Metal3Machine{}
-
-func (c *Metal3Machine) Default() {
+// Deprecated: This method is going to be removed in a next release.
+func (c *Metal3Machine) Default(_ context.Context, _ runtime.Object) error {
+	return nil
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Machine) ValidateCreate() (admission.Warnings, error) {
-	return nil, c.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (c *Metal3Machine) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	m3m, ok := obj.(*Metal3Machine)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Machine but got a %T", obj))
+	}
+
+	return nil, c.validate(m3m)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Machine) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
-	return nil, c.validate()
+// Deprecated: This method is going to be removed in a next release.
+func (c *Metal3Machine) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	newM3M, ok := newObj.(*Metal3Machine)
+	if !ok {
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Machine but got a %T", newObj))
+	}
+
+	return nil, c.validate(newM3M)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *Metal3Machine) ValidateDelete() (admission.Warnings, error) {
+// Deprecated: This method is going to be removed in a next release.
+func (c *Metal3Machine) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }
 
-func (c *Metal3Machine) validate() error {
+// Deprecated: This method is going to be removed in a next release.
+func (c *Metal3Machine) validate(newM3M *Metal3Machine) error {
 	var allErrs field.ErrorList
 
-	if c.Spec.CustomDeploy == nil || c.Spec.CustomDeploy.Method == "" {
-		allErrs = append(allErrs, c.Spec.Image.Validate(*field.NewPath("Spec", "Image"))...)
+	if newM3M.Spec.CustomDeploy == nil || newM3M.Spec.CustomDeploy.Method == "" {
+		allErrs = append(allErrs, newM3M.Spec.Image.Validate(*field.NewPath("Spec", "Image"))...)
 	}
 
 	if len(allErrs) == 0 {
 		return nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Machine").GroupKind(), c.Name, allErrs)
+	return apierrors.NewInvalid(GroupVersion.WithKind("Metal3Machine").GroupKind(), newM3M.Name, allErrs)
 }

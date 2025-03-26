@@ -37,6 +37,7 @@ export GO111MODULE=on
 ROOT_DIR := $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 TOOLS_DIR := hack/tools
 APIS_DIR := api
+WEBHOOKS_DIR := internal/webhooks
 TEST_DIR := test
 BIN_DIR := bin
 TOOLS_BIN_DIR :=  $(abspath $(TOOLS_DIR)/$(BIN_DIR))
@@ -129,6 +130,11 @@ unit: $(SETUP_ENVTEST) ## Run unit test
 		$(GINKGO_TEST_FLAGS) \
 		-coverprofile ./cover.out && \
 	cd $(APIS_DIR) && \
+	$(GO) test ./... \
+		$(GO_TEST_FLAGS) \
+		-coverprofile ./cover.out && \
+	cd .. && \
+	cd $(WEBHOOKS_DIR) && \
 	$(GO) test ./... \
 		$(GO_TEST_FLAGS) \
 		-coverprofile ./cover.out
@@ -362,6 +368,8 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 	$(GO) generate ./...
 	cd $(APIS_DIR) && $(GO) generate ./...
 
+	cd $(WEBHOOKS_DIR) && $(GO) generate ./...
+
 	cd ./api && $(CONTROLLER_GEN) \
 		paths=./... \
 		object:headerFile=../hack/boilerplate/boilerplate.generatego.txt
@@ -421,6 +429,7 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		paths=./ \
 		paths=./api/... \
 		paths=./controllers/... \
+		paths=./internal/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=$(CRD_ROOT) \

@@ -29,10 +29,10 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	input := inputGetter()
 	targetClusterClient := input.TargetCluster.GetClient()
 	managementClusterClient := input.BootstrapClusterProxy.GetClient()
-	fromK8sVersion := input.E2EConfig.GetVariable("FROM_K8S_VERSION")
-	toK8sVersion := input.E2EConfig.GetVariable("KUBERNETES_VERSION")
-	numberOfControlplane := *input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT")
-	numberOfWorkers := *input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT")
+	fromK8sVersion := input.E2EConfig.MustGetVariable("FROM_K8S_VERSION")
+	toK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_VERSION")
+	numberOfControlplane := *input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT")
+	numberOfWorkers := *input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT")
 	numberOfAllBmh := numberOfControlplane + numberOfWorkers
 
 	// Download node image

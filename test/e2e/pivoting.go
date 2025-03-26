@@ -54,8 +54,8 @@ type PivotingInput struct {
 func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Logf("Starting pivoting tests")
 	input := inputGetter()
-	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+	numberOfControlplane := int(*input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
 	ListBareMetalHosts(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
@@ -84,9 +84,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Fetch container logs")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
+	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
 	if ephemeralCluster == Kind {
-		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.GetVariable("CONTAINER_RUNTIME"))
+		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
 	}
 
 	By("Fetch manifest for bootstrap cluster before pivot")
@@ -118,8 +118,8 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		return RemoveIronicInput{
 			ManagementCluster: input.BootstrapClusterProxy,
 			DeploymentType:    ironicDeploymentType,
-			Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
-			NamePrefix:        input.E2EConfig.GetVariable(NamePrefix),
+			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
+			NamePrefix:        input.E2EConfig.MustGetVariable(NamePrefix),
 		}
 	})
 
@@ -127,7 +127,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	targetClusterClientSet := input.TargetCluster.GetClientSet()
 	ironicNamespaceObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: input.E2EConfig.GetVariable(ironicNamespace),
+			Name: input.E2EConfig.MustGetVariable(ironicNamespace),
 		},
 	}
 	_, err = targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespaceObj, metav1.CreateOptions{})
@@ -136,7 +136,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
-		ClusterctlConfigPath:    input.E2EConfig.GetVariable("CONFIG_FILE_PATH"),
+		ClusterctlConfigPath:    input.E2EConfig.MustGetVariable("CONFIG_FILE_PATH"),
 		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
 		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
 		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
@@ -155,7 +155,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Install Ironic in the target cluster")
 	// TODO(dtantsur): support ironic-standalone-operator
 	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
-	ironicKustomization := input.E2EConfig.GetVariable("IRONIC_RELEASE_LATEST")
+	ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_LATEST")
 	By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", ironicKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       ironicKustomization,
@@ -171,7 +171,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Install BMO in the target cluster")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", input.TargetCluster.GetName())
-	bmoKustomization := input.E2EConfig.GetVariable("BMO_RELEASE_LATEST")
+	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_LATEST")
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the target cluster", bmoKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       bmoKustomization,
@@ -216,8 +216,8 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	RemoveDeployment(ctx, func() RemoveDeploymentInput {
 		return RemoveDeploymentInput{
 			ManagementCluster: input.BootstrapClusterProxy,
-			Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
-			Name:              input.E2EConfig.GetVariable(NamePrefix) + "-controller-manager",
+			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
+			Name:              input.E2EConfig.MustGetVariable(NamePrefix) + "-controller-manager",
 		}
 	})
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
@@ -363,8 +363,8 @@ type RePivotingInput struct {
 func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	Logf("Start the re-pivoting test")
 	input := inputGetter()
-	numberOfWorkers := int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-	numberOfControlplane := int(*input.E2EConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+	numberOfControlplane := int(*input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
 	By("Fetch logs from target cluster after pivot")
@@ -388,15 +388,15 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		return RemoveIronicInput{
 			ManagementCluster: input.TargetCluster,
 			DeploymentType:    ironicDeploymentType,
-			Namespace:         input.E2EConfig.GetVariable(ironicNamespace),
-			NamePrefix:        input.E2EConfig.GetVariable(NamePrefix),
+			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
+			NamePrefix:        input.E2EConfig.MustGetVariable(NamePrefix),
 		}
 	})
 
 	By("Reinstate Ironic containers and BMH")
 	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 	if ephemeralCluster == Kind {
-		bmoPath := input.E2EConfig.GetVariable("BMOPATH")
+		bmoPath := input.E2EConfig.MustGetVariable("BMOPATH")
 		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 		//#nosec G204:gosec
 		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
@@ -405,7 +405,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {
 		By("Install Ironic in the bootstrap cluster")
-		ironicKustomization := input.E2EConfig.GetVariable("IRONIC_RELEASE_LATEST")
+		ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_LATEST")
 		ironicDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
 		err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 			Kustomization:       ironicKustomization,
@@ -414,14 +414,14 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 			WatchDeploymentLogs: true,
 			LogPath:             ironicDeployLogFolder,
 			DeploymentName:      "baremetal-operator-ironic",
-			DeploymentNamespace: input.E2EConfig.GetVariable(ironicNamespace),
+			DeploymentNamespace: input.E2EConfig.MustGetVariable(ironicNamespace),
 			WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
 		})
 		Expect(err).NotTo(HaveOccurred())
 	}
 
 	By("Reinstate BMO in Source cluster")
-	bmoKustomization := input.E2EConfig.GetVariable("BMO_RELEASE_LATEST")
+	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_LATEST")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "bmo-deploy-logs", input.TargetCluster.GetName())
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the source cluster", bmoKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
@@ -431,7 +431,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		WatchDeploymentLogs: true,
 		LogPath:             bmoDeployLogFolder,
 		DeploymentName:      "baremetal-operator-controller-manager",
-		DeploymentNamespace: input.E2EConfig.GetVariable(ironicNamespace),
+		DeploymentNamespace: input.E2EConfig.MustGetVariable(ironicNamespace),
 		WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
 	})
 	Expect(err).NotTo(HaveOccurred())

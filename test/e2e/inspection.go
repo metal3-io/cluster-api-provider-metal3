@@ -29,7 +29,7 @@ func inspection(ctx context.Context, inputGetter func() InspectionInput) {
 	Logf("Starting inspection tests")
 	input := inputGetter()
 	var (
-		numberOfWorkers       = int(*input.E2EConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+		numberOfWorkers       = int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 		numberOfAvailableBMHs = 2 * numberOfWorkers
 	)
 

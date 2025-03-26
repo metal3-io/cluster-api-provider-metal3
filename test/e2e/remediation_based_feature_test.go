@@ -78,7 +78,7 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				SpecName:              specName,
 				ClusterName:           clusterName,
-				K8sVersion:            e2eConfig.GetVariable("FROM_K8S_VERSION"),
+				K8sVersion:            e2eConfig.MustGetVariable("FROM_K8S_VERSION"),
 				KCPMachineCount:       int64(numberOfControlplane),
 				WorkerMachineCount:    int64(numberOfWorkers),
 				ClusterctlLogFolder:   clusterctlLogFolder,
@@ -130,7 +130,7 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 		ListMetal3Machines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 		ListNodes(ctx, targetCluster.GetClient())
-		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup, clusterctlConfigPath)
 	})
 
 })

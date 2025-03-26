@@ -21,9 +21,9 @@ import (
 var _ = Describe("When testing integration [integration]", Label("integration"), func() {
 
 	It("CI Test Provision", func() {
-		numberOfWorkers = int(*e2eConfig.GetInt32PtrVariable("WORKER_MACHINE_COUNT"))
-		numberOfControlplane = int(*e2eConfig.GetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-		k8sVersion := e2eConfig.GetVariable("KUBERNETES_VERSION")
+		numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
+		numberOfControlplane = int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
 		By("Provision Workload cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{
@@ -56,9 +56,11 @@ var _ = Describe("When testing integration [integration]", Label("integration"),
 		// Fetch the target cluster resources before re-pivoting.
 		By("Fetch the target cluster resources before re-pivoting")
 		framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-			Lister:    targetCluster.GetClient(),
-			Namespace: namespace,
-			LogPath:   filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
+			Lister:               targetCluster.GetClient(),
+			Namespace:            namespace,
+			LogPath:              filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
+			KubeConfigPath:       targetCluster.GetKubeconfigPath(),
+			ClusterctlConfigPath: clusterctlConfigPath,
 		})
 		By("Repivot objects to the source cluster")
 		rePivoting(ctx, func() RePivotingInput {
@@ -76,6 +78,6 @@ var _ = Describe("When testing integration [integration]", Label("integration"),
 	})
 
 	AfterEach(func() {
-		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup, clusterctlConfigPath)
 	})
 })

@@ -272,16 +272,16 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 		return RemoveIronicInput{
 			ManagementCluster: bootstrapClusterProxy,
 			DeploymentType:    ironicDeploymentType,
-			Namespace:         e2eConfig.GetVariable(ironicNamespace),
-			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
+			Namespace:         e2eConfig.MustGetVariable(ironicNamespace),
+			NamePrefix:        e2eConfig.MustGetVariable(NamePrefix),
 		}
 	})
-	bmoIronicNamespace := e2eConfig.GetVariable(ironicNamespace)
+	bmoIronicNamespace := e2eConfig.MustGetVariable(ironicNamespace)
 	// install ironic
 	By("Install Ironic in the target cluster")
 	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", clusterProxy.GetName())
 	ironicKustomizePath := fmt.Sprintf("IRONIC_RELEASE_%s", ironicRelease)
-	initIronicKustomization := e2eConfig.GetVariable(ironicKustomizePath)
+	initIronicKustomization := e2eConfig.MustGetVariable(ironicKustomizePath)
 	By(fmt.Sprintf("Installing Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       initIronicKustomization,
@@ -299,7 +299,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	By("Install BMO in the target cluster")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", clusterProxy.GetName())
 	bmoKustomizePath := fmt.Sprintf("BMO_RELEASE_%s", bmoRelease)
-	initBMOKustomization := e2eConfig.GetVariable(bmoKustomizePath)
+	initBMOKustomization := e2eConfig.MustGetVariable(bmoKustomizePath)
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the upgrade cluster", initBMOKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       initBMOKustomization,
@@ -340,11 +340,11 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 	Expect(err).ToNot(HaveOccurred(), "Failed to fetch bmo version for release %s", bmoUpgradeToRelease)
 	Logf("Bmo Tag %s\n", bmoTag)
 
-	bmoIronicNamespace := e2eConfig.GetVariable(ironicNamespace)
+	bmoIronicNamespace := e2eConfig.MustGetVariable(ironicNamespace)
 	By("Upgrade Ironic in the target cluster")
 	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", clusterProxy.GetName())
 	ironicKustomizePath := fmt.Sprintf("IRONIC_RELEASE_%s", ironicTag)
-	initIronicKustomization := e2eConfig.GetVariable(ironicKustomizePath)
+	initIronicKustomization := e2eConfig.MustGetVariable(ironicKustomizePath)
 	By(fmt.Sprintf("Upgrading Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       initIronicKustomization,
@@ -362,7 +362,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 	By("Upgrade BMO in the target cluster")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", clusterProxy.GetName())
 	bmoKustomizePath := fmt.Sprintf("BMO_RELEASE_%s", bmoTag)
-	initBMOKustomization := e2eConfig.GetVariable(bmoKustomizePath)
+	initBMOKustomization := e2eConfig.MustGetVariable(bmoKustomizePath)
 	By(fmt.Sprintf("Upgrading BMO from kustomization %s on the upgrade cluster", initBMOKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       initBMOKustomization,
@@ -387,14 +387,14 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 	}
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
-	bmoIronicNamespace := e2eConfig.GetVariable(ironicNamespace)
+	bmoIronicNamespace := e2eConfig.MustGetVariable(ironicNamespace)
 	// Reinstall ironic
 	reInstallIronic := func() {
 		By("Reinstate Ironic containers and BMH")
 		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
 		if ephemeralCluster == Kind {
 			By("Install Ironic in the source cluster as containers")
-			bmoPath := e2eConfig.GetVariable("BMOPATH")
+			bmoPath := e2eConfig.MustGetVariable("BMOPATH")
 			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 			//#nosec G204 -- We take the BMOPATH from a variable.
 			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
@@ -405,8 +405,8 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 			By("Install Ironic in the source cluster as deployments")
 			ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", bootstrapClusterProxy.GetName())
 			ironicKustomizePath := fmt.Sprintf("IRONIC_RELEASE_%s", ironicRelease)
-			initIronicKustomization := e2eConfig.GetVariable(ironicKustomizePath)
-			namePrefix := e2eConfig.GetVariable("NAMEPREFIX")
+			initIronicKustomization := e2eConfig.MustGetVariable(ironicKustomizePath)
+			namePrefix := e2eConfig.MustGetVariable("NAMEPREFIX")
 			ironicDeployName := namePrefix + ironicSuffix
 			By(fmt.Sprintf("Installing Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
 			err := BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
@@ -428,8 +428,8 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 		return RemoveIronicInput{
 			ManagementCluster: clusterProxy,
 			DeploymentType:    ironicDeploymentType,
-			Namespace:         e2eConfig.GetVariable(ironicNamespace),
-			NamePrefix:        e2eConfig.GetVariable(NamePrefix),
+			Namespace:         e2eConfig.MustGetVariable(ironicNamespace),
+			NamePrefix:        e2eConfig.MustGetVariable(NamePrefix),
 		}
 	})
 	reInstallIronic()

@@ -21,7 +21,7 @@ var _ = Describe("When testing basic cluster creation [basic]", Label("basic"), 
 
 	It("Should create a workload cluster", func() {
 		By("Fetching cluster configuration")
-		k8sVersion := e2eConfig.GetVariable("KUBERNETES_VERSION")
+		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
 		By("Provision Workload cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{
@@ -41,6 +41,6 @@ var _ = Describe("When testing basic cluster creation [basic]", Label("basic"), 
 	})
 
 	AfterEach(func() {
-		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup)
+		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup, clusterctlConfigPath)
 	})
 })

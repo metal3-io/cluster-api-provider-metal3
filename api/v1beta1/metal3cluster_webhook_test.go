@@ -19,12 +19,15 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+var ctx = ctrl.SetupSignalHandler()
 
 func TestMetal3ClusterDefault(t *testing.T) {
 	g := NewWithT(t)
 
-	c := &Metal3Cluster{
+	m3c := &Metal3Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "fooboo",
 		},
@@ -32,9 +35,10 @@ func TestMetal3ClusterDefault(t *testing.T) {
 			ControlPlaneEndpoint: APIEndpoint{},
 		},
 	}
-	c.Default()
 
-	g.Expect(c.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
+	g.Expect(m3c.Default(ctx, m3c)).To(Succeed())
+
+	g.Expect(m3c.Spec.ControlPlaneEndpoint.Port).To(BeEquivalentTo(6443))
 }
 
 func TestMetal3ClusterValidation(t *testing.T) {
@@ -181,17 +185,17 @@ func TestMetal3ClusterValidation(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErrOnCreate {
-				_, err := tt.newCluster.ValidateCreate()
+				_, err := tt.newCluster.ValidateCreate(ctx, tt.newCluster)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := tt.newCluster.ValidateCreate()
+				_, err := tt.newCluster.ValidateCreate(ctx, tt.newCluster)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 			if tt.expectErrOnUpdate {
-				_, err := tt.newCluster.ValidateUpdate(tt.oldCluster)
+				_, err := tt.newCluster.ValidateUpdate(ctx, tt.oldCluster, tt.newCluster)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := tt.newCluster.ValidateUpdate(tt.oldCluster)
+				_, err := tt.newCluster.ValidateUpdate(ctx, tt.oldCluster, tt.newCluster)
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})

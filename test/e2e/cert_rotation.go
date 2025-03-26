@@ -31,8 +31,8 @@ func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	clusterClient := input.ManagementCluster.GetClient()
 	mariadbEnabled := GetBoolVariable(input.E2EConfig, ironicMariadb)
 	By("Check if Ironic pod is running")
-	ironicNamespace := input.E2EConfig.GetVariable("NAMEPREFIX") + "-system"
-	ironicDeploymentName := input.E2EConfig.GetVariable("NAMEPREFIX") + ironicSuffix
+	ironicNamespace := input.E2EConfig.MustGetVariable("NAMEPREFIX") + "-system"
+	ironicDeploymentName := input.E2EConfig.MustGetVariable("NAMEPREFIX") + ironicSuffix
 	ironicDeployment, err := getDeployment(ctx, clusterClient, ironicDeploymentName, ironicNamespace)
 	Expect(err).ToNot(HaveOccurred(), "failed to get ironic deployment")
 	Eventually(func() error {
