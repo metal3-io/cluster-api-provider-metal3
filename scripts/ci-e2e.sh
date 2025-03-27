@@ -17,7 +17,7 @@ if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
     export CAPI_RELEASE_PREFIX="v${CAPM3_RELEASE_PREFIX}."
 else
     export CAPM3RELEASE="v1.10.99"
-    export CAPI_RELEASE_PREFIX="v1.9."
+    export CAPI_RELEASE_PREFIX="v1.10."
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
