@@ -456,6 +456,16 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivot", "logs", input.Namespace, "clusterctl-move.log"))
 
+	// Remove BMO to stop log watchers. They will otherwise spam errors as the cluster is deleted.
+	By("Remove BMO deployment from the target cluster")
+	RemoveDeployment(ctx, func() RemoveDeploymentInput {
+		return RemoveDeploymentInput{
+			ManagementCluster: input.TargetCluster,
+			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
+			Name:              input.E2EConfig.MustGetVariable(NamePrefix) + "-controller-manager",
+		}
+	})
+
 	By("Check that the re-pivoted cluster is up and running")
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.BootstrapClusterProxy.GetClient(),
