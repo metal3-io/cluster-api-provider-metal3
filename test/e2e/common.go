@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -108,7 +110,7 @@ func getSha256Hash(filename string) ([]byte, error) {
 	}
 	defer func() {
 		err := file.Close()
-		Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Error closing file: %s", filename))
+		Expect(err).ToNot(HaveOccurred(), "Error closing file: "+filename)
 	}()
 	hash := sha256.New()
 	_, err = io.Copy(hash, file)
@@ -221,7 +223,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		Expect(err).ToNot(HaveOccurred())
 		sha256sum, err := getSha256Hash(rawImagePath)
 		Expect(err).ToNot(HaveOccurred())
-		formattedSha256sum := fmt.Sprintf("%x", sha256sum)
+		formattedSha256sum := hex.EncodeToString(sha256sum)
 		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0544) //#nosec G306:gosec
 		Expect(err).ToNot(HaveOccurred())
 		Logf("Image: %v downloaded", rawImagePath)
@@ -239,7 +241,7 @@ func DownloadFile(filePath string, url string) error {
 	cmd := exec.Command("wget", "-O", filePath, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("wget failed: %v, output: %s", err, string(output))
+		return fmt.Errorf("wget failed: %w, output: %s", err, string(output))
 	}
 	return nil
 }
@@ -376,7 +378,7 @@ func ListBareMetalHosts(ctx context.Context, c client.Client, opts ...client.Lis
 		if bmh.Spec.ConsumerRef != nil {
 			consumer = bmh.Spec.ConsumerRef.Name
 		}
-		rows[i+1] = []string{bmh.GetName(), fmt.Sprint(bmh.Status.Provisioning.State), consumer, fmt.Sprint(bmh.Status.PoweredOn)}
+		rows[i+1] = []string{bmh.GetName(), fmt.Sprint(bmh.Status.Provisioning.State), consumer, strconv.FormatBool(bmh.Status.PoweredOn)}
 	}
 	logTable("Listing BareMetalHosts", rows)
 }
@@ -395,7 +397,7 @@ func ListMetal3Machines(ctx context.Context, c client.Client, opts ...client.Lis
 		if metal3Machine.Spec.ProviderID != nil {
 			providerID = *metal3Machine.Spec.ProviderID
 		}
-		rows[i+1] = []string{metal3Machine.GetName(), fmt.Sprint(metal3Machine.Status.Ready), providerID}
+		rows[i+1] = []string{metal3Machine.GetName(), strconv.FormatBool(metal3Machine.Status.Ready), providerID}
 	}
 	logTable("Listing Metal3Machines", rows)
 }
@@ -583,7 +585,7 @@ func Metal3DataToMachineName(m3data infrav1.Metal3Data) (string, error) {
 			return reference.Name, nil
 		}
 	}
-	return "", fmt.Errorf("metal3Data missing a \"Metal3Machine\" kind owner reference")
+	return "", errors.New("metal3Data missing a \"Metal3Machine\" kind owner reference")
 }
 
 // FilterMetal3DatasByName returns a filtered list of m3data objects with specific name.
@@ -618,7 +620,7 @@ func Metal3MachineToMachineName(m3machine infrav1.Metal3Machine) (string, error)
 			return reference.Name, nil
 		}
 	}
-	return "", fmt.Errorf("metal3machine missing a \"Machine\" kind owner reference")
+	return "", errors.New("metal3machine missing a \"Machine\" kind owner reference")
 }
 
 func Metal3MachineToBmhName(m3machine infrav1.Metal3Machine) string {
@@ -645,7 +647,7 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 			return BmhNameToVMName(Metal3MachineToBmhName(machine)), nil
 		}
 	}
-	return "", fmt.Errorf("no matching Metal3Machine found for current Machine")
+	return "", errors.New("no matching Metal3Machine found for current Machine")
 }
 
 // MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
@@ -673,7 +675,7 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 		}
 	}
 	if m3Data.Name == "" {
-		return "", fmt.Errorf("couldn't find a matching Metal3Data object")
+		return "", errors.New("couldn't find a matching Metal3Data object")
 	}
 
 	IPAddresses := &ipamv1.IPAddressList{}
@@ -690,7 +692,7 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 		}
 	}
 	if IPAddress.Name == "" {
-		return "", fmt.Errorf("couldn't find a matching IPAddress object")
+		return "", errors.New("couldn't find a matching IPAddress object")
 	}
 
 	return string(IPAddress.Spec.Address), nil
@@ -705,7 +707,7 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 	keyPath := path.Join(filepath.Clean(home), ".ssh", "id_rsa")
 	privkey, err := os.ReadFile(keyPath) //#nosec G304:gosec
 	if err != nil {
-		return fmt.Errorf("couldn't read private key")
+		return errors.New("couldn't read private key")
 	}
 	signer, err := ssh.ParsePrivateKey(privkey)
 	if err != nil {
@@ -719,7 +721,7 @@ func runCommand(logFolder, filename, machineIP, user, command string) error {
 		HostKeyCallback: func(_ string, _ net.Addr, _ ssh.PublicKey) error { return nil },
 		Timeout:         60 * time.Second,
 	}
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:22", machineIP), cfg)
+	client, err := ssh.Dial("tcp", machineIP+":22", cfg)
 	if err != nil {
 		return fmt.Errorf("couldn't dial the machinehost at %s : %w", machineIP, err)
 	}

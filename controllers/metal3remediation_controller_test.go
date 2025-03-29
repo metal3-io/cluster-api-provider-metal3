@@ -18,7 +18,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -29,6 +28,7 @@ import (
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,7 +87,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 
 	bmh := &bmov1alpha1.BareMetalHost{}
 	if tc.GetUnhealthyHostFails {
-		m.EXPECT().GetUnhealthyHost(context.TODO()).Return(nil, nil, fmt.Errorf("can't find foo_bmh"))
+		m.EXPECT().GetUnhealthyHost(context.TODO()).Return(nil, nil, errors.New("can't find foo_bmh"))
 		return m
 	}
 	m.EXPECT().GetUnhealthyHost(context.TODO()).Return(bmh, nil, nil)

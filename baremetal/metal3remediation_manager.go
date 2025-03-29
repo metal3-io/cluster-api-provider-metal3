@@ -503,7 +503,7 @@ func (r *RemediationManager) AddOutOfServiceTaint(ctx context.Context, clusterCl
 	taint.TimeAdded = &now
 	node.Spec.Taints = append(node.Spec.Taints, *taint)
 	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
-		msg := fmt.Sprintf("failed to add out-of-service taint on node %s", node.Name)
+		msg := "failed to add out-of-service taint on node " + node.Name
 		r.Log.Error(err, msg)
 		return errors.Wrap(err, msg)
 	}
@@ -532,7 +532,7 @@ func (r *RemediationManager) RemoveOutOfServiceTaint(ctx context.Context, cluste
 	}
 
 	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
-		msg := fmt.Sprintf("failed to remove out-of-service taint on node %s", node.Name)
+		msg := "failed to remove out-of-service taint on node " + node.Name
 		r.Log.Error(err, msg)
 		return errors.Wrap(err, msg)
 	}

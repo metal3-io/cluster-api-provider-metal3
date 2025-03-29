@@ -230,7 +230,7 @@ spec:
                             type: string
                         type: object
                         x-kubernetes-map-type: atomic
-                      providerID:
+                      providerId:
                         description: |-
                           ProviderID will be the Metal3 machine in ProviderID format
                           (metal3://<bmh-uuid>)

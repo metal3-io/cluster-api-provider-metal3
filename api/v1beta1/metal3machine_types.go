@@ -38,7 +38,7 @@ type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
 	// (metal3://<bmh-uuid>)
 	// +optional
-	ProviderID *string `json:"providerID,omitempty"`
+	ProviderID *string `json:"providerId,omitempty"`
 
 	// Image is the image to be provisioned.
 	// +optional
