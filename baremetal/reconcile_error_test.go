@@ -51,6 +51,6 @@ var _ = Describe("Reconcile Error testing", func() {
 		err := ReconcileError{errors.New("Unknown Error"), "unknownErrorType", 0 * time.Second}
 		Expect(err.IsTerminal()).To(BeFalse())
 		Expect(err.IsTransient()).To(BeFalse())
-		Expect(err.Error()).To(Equal(fmt.Sprintf("reconcile error occurred with unknown recovery type. The actual error is: %s", "Unknown Error")))
+		Expect(err.Error()).To(Equal("reconcile error occurred with unknown recovery type. The actual error is: Unknown Error"))
 	})
 })

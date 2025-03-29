@@ -162,19 +162,19 @@ type MetaData struct {
 
 	// IPAddressesFromPool is the list of metadata items to be rendered as ip addresses.
 	// +optional
-	IPAddressesFromPool []FromPool `json:"ipAddressesFromIPPool,omitempty"`
+	IPAddressesFromPool []FromPool `json:"ipAddressesFromIpPool,omitempty"`
 
 	// PrefixesFromPool is the list of metadata items to be rendered as network prefixes.
 	// +optional
-	PrefixesFromPool []FromPool `json:"prefixesFromIPPool,omitempty"`
+	PrefixesFromPool []FromPool `json:"prefixesFromIpPool,omitempty"`
 
 	// GatewaysFromPool is the list of metadata items to be rendered as gateway addresses.
 	// +optional
-	GatewaysFromPool []FromPool `json:"gatewaysFromIPPool,omitempty"`
+	GatewaysFromPool []FromPool `json:"gatewaysFromIpPool,omitempty"`
 
 	// DNSServersFromPool is the list of metadata items to be rendered as dns servers.
 	// +optional
-	DNSServersFromPool []FromPool `json:"dnsServersFromIPPool,omitempty"`
+	DNSServersFromPool []FromPool `json:"dnsServersFromIpPool,omitempty"`
 
 	// FromHostInterfaces is the list of metadata items to be rendered as MAC
 	// addresses of the host interfaces.
@@ -273,7 +273,7 @@ type NetworkDataLinkBond struct {
 type NetworkDataLinkVlan struct {
 	// +kubebuilder:validation:Maximum=4096
 	// VlanID is the Vlan ID
-	VlanID int `json:"vlanID"`
+	VlanID int `json:"vlanId"`
 
 	// Id is the ID of the interface (used for naming)
 	Id string `json:"id"` //nolint:stylecheck,revive
@@ -317,7 +317,7 @@ type NetworkDataService struct {
 
 	// DNSFromIPPool is the name of the IPPool from which to get the DNS servers
 	// +optional
-	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
+	DNSFromIPPool *string `json:"dnsFromIpPool,omitempty"`
 }
 
 // NetworkDataServicev4 represents a service object.
@@ -328,7 +328,7 @@ type NetworkDataServicev4 struct {
 
 	// DNSFromIPPool is the name of the IPPool from which to get the DNS servers
 	// +optional
-	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
+	DNSFromIPPool *string `json:"dnsFromIpPool,omitempty"`
 }
 
 // NetworkDataServicev6 represents a service object.
@@ -339,7 +339,7 @@ type NetworkDataServicev6 struct {
 
 	// DNSFromIPPool is the name of the IPPool from which to get the DNS servers
 	// +optional
-	DNSFromIPPool *string `json:"dnsFromIPPool,omitempty"`
+	DNSFromIPPool *string `json:"dnsFromIpPool,omitempty"`
 }
 
 // NetworkGatewayv4 represents a gateway, given as a string or as a reference to
@@ -352,7 +352,7 @@ type NetworkGatewayv4 struct {
 
 	// FromIPPool is the name of the IPPool to fetch the gateway from
 	// +optional
-	FromIPPool *string `json:"fromIPPool,omitempty"`
+	FromIPPool *string `json:"fromIpPool,omitempty"`
 }
 
 // NetworkGatewayv6 represents a gateway, given as a string or as a reference to
@@ -365,7 +365,7 @@ type NetworkGatewayv6 struct {
 
 	// FromIPPool is the name of the IPPool to fetch the gateway from
 	// +optional
-	FromIPPool *string `json:"fromIPPool,omitempty"`
+	FromIPPool *string `json:"fromIpPool,omitempty"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object.
@@ -414,7 +414,7 @@ type NetworkDataIPv4 struct {
 	Link string `json:"link"`
 
 	// IPAddressFromIPPool contains the name of the IP pool to use to get an ip address
-	IPAddressFromIPPool string `json:"ipAddressFromIPPool,omitempty"`
+	IPAddressFromIPPool string `json:"ipAddressFromIpPool,omitempty"`
 
 	// FromPoolRef is a reference to a IP pool to allocate an address from.
 	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
@@ -434,7 +434,7 @@ type NetworkDataIPv6 struct {
 	Link string `json:"link"`
 
 	// IPAddressFromIPPool contains the name of the IPPool to use to get an ip address
-	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
+	IPAddressFromIPPool string `json:"ipAddressFromIpPool"`
 
 	// FromPoolRef is a reference to a IP pool to allocate an address from.
 	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
@@ -485,15 +485,15 @@ type NetworkDataNetwork struct {
 
 	// IPv4 contains a list of IPv4 DHCP allocations
 	// +optional
-	IPv4DHCP []NetworkDataIPv4DHCP `json:"ipv4DHCP,omitempty"`
+	IPv4DHCP []NetworkDataIPv4DHCP `json:"ipv4Dhcp,omitempty"`
 
 	// IPv4 contains a list of IPv6 DHCP allocations
 	// +optional
-	IPv6DHCP []NetworkDataIPv6DHCP `json:"ipv6DHCP,omitempty"`
+	IPv6DHCP []NetworkDataIPv6DHCP `json:"ipv6Dhcp,omitempty"`
 
 	// IPv4 contains a list of IPv6 SLAAC allocations
 	// +optional
-	IPv6SLAAC []NetworkDataIPv6DHCP `json:"ipv6SLAAC,omitempty"`
+	IPv6SLAAC []NetworkDataIPv6DHCP `json:"ipv6Slaac,omitempty"`
 }
 
 // NetworkData represents a networkData object.

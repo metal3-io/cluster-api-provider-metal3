@@ -27,6 +27,7 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -3950,7 +3951,7 @@ type releaseAddressFromPoolFakeClient struct {
 
 func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	if f.injectDeleteErr {
-		return fmt.Errorf("failed to delete for some weird reason")
+		return errors.New("failed to delete for some weird reason")
 	}
 	return f.Client.Delete(ctx, obj, opts...)
 }
