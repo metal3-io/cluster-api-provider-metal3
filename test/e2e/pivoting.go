@@ -327,7 +327,10 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 
 	deploymentName := input.Name
 	ironicNamespace := input.Namespace
-	err := input.ManagementCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
+	foregroundDeletion := metav1.DeletePropagationForeground
+	err := input.ManagementCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{
+		PropagationPolicy: &foregroundDeletion,
+	})
 	Expect(err).ToNot(HaveOccurred(), "Failed to delete %s Deployment", deploymentName)
 }
 

@@ -136,6 +136,8 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	clusterClient := bootstrapClusterProxy.GetClient()
 
+	Logf("Workload cluster state when starting DumpSpecResourcesAndCleanup")
+	ListPods(ctx, targetClusterProxy.GetClient(), &client.ListOptions{})
 	bootstrapClusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
 	By("Fetch logs from target cluster")
@@ -440,6 +442,20 @@ func ListNodes(ctx context.Context, c client.Client) {
 		rows[i+1] = []string{node.Name, ready, node.Status.NodeInfo.KubeletVersion}
 	}
 	logTable("Listing Nodes", rows)
+}
+
+// ListPods prints the pods similar to kubectl get pods.
+func ListPods(ctx context.Context, c client.Client, opts ...client.ListOption) {
+	pods := corev1.PodList{}
+	Expect(c.List(ctx, &pods, opts...)).To(Succeed())
+
+	rows := make([][]string, len(pods.Items)+1)
+	// Add column names
+	rows[0] = []string{"Name:", "Namespace:", "Status:"}
+	for i, pod := range pods.Items {
+		rows[i+1] = []string{pod.Name, pod.Namespace, string(pod.Status.Phase)}
+	}
+	logTable("Listing Pods", rows)
 }
 
 func CreateNewM3MachineTemplate(ctx context.Context, namespace string, newM3MachineTemplateName string, m3MachineTemplateName string, clusterClient client.Client, imageURL string, imageChecksum string) {
