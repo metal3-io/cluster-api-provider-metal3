@@ -18,7 +18,6 @@ package baremetal
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
@@ -662,7 +661,7 @@ var _ = Describe("Metal3 manager utils", func() {
 	)
 
 	It("Parses the providerID properly", func() {
-		Expect(parseProviderID(fmt.Sprintf("%sabcd", ProviderIDPrefix))).To(Equal("abcd"))
+		Expect(parseProviderID(ProviderIDPrefix + "abcd")).To(Equal("abcd"))
 		Expect(parseProviderID("foo://abcd")).To(Equal("foo://abcd"))
 	})
 })

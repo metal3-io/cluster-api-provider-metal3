@@ -54,7 +54,7 @@ func (e ReconcileError) Error() string {
 	case TerminalErrorType:
 		return fmt.Sprintf("reconcile error that cannot be recovered occurred: %s. Object will not be requeued", errStr)
 	default:
-		return fmt.Sprintf("reconcile error occurred with unknown recovery type. The actual error is: %s", errStr)
+		return "reconcile error occurred with unknown recovery type. The actual error is: " + errStr
 	}
 }
 

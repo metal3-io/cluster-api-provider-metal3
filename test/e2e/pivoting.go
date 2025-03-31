@@ -519,7 +519,7 @@ func fetchContainerLogs(containerNames *[]string, folder string, containerComman
 		logDir := filepath.Join(folder, containerCommand, name)
 		By(fmt.Sprintf("Create log directory for container %s at %s", name, logDir))
 		createDirIfNotExist(logDir)
-		By(fmt.Sprintf("Fetch logs for container %s", name))
+		By("Fetch logs for container " + name)
 		cmd := exec.Command("sudo", containerCommand, "logs", name) // #nosec G204:gosec
 		out, err := cmd.Output()
 		if err != nil {

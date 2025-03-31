@@ -18,7 +18,7 @@ package controllers
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -87,7 +87,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 
 	bmh := &bmov1alpha1.BareMetalHost{}
 	if tc.GetUnhealthyHostFails {
-		m.EXPECT().GetUnhealthyHost(context.TODO()).Return(nil, nil, fmt.Errorf("can't find foo_bmh"))
+		m.EXPECT().GetUnhealthyHost(context.TODO()).Return(nil, nil, errors.New("can't find foo_bmh"))
 		return m
 	}
 	m.EXPECT().GetUnhealthyHost(context.TODO()).Return(bmh, nil, nil)

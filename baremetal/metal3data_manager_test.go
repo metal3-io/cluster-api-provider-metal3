@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -3950,7 +3951,7 @@ type releaseAddressFromPoolFakeClient struct {
 
 func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
 	if f.injectDeleteErr {
-		return fmt.Errorf("failed to delete for some weird reason")
+		return errors.New("failed to delete for some weird reason")
 	}
 	return f.Client.Delete(ctx, obj, opts...)
 }

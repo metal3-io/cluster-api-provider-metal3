@@ -254,7 +254,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	By("Testing Metal3DataTemplate reference")
 	Logf("Creating a new Metal3DataTemplate")
 	m3dataTemplate := infrav1.Metal3DataTemplate{}
-	m3dataTemplateName := fmt.Sprintf("%s-workers-template", input.ClusterName)
+	m3dataTemplateName := input.ClusterName + "-workers-template"
 	newM3dataTemplateName := "test-new-m3dt"
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: m3dataTemplateName}, &m3dataTemplate)).To(Succeed())
 
@@ -274,7 +274,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	By("Creating a new Metal3MachineTemplate")
 	m3machineTemplate := infrav1.Metal3MachineTemplate{}
-	m3machineTemplateName := fmt.Sprintf("%s-workers", input.ClusterName)
+	m3machineTemplateName := input.ClusterName + "-workers"
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
 	newM3MachineTemplateName := "test-new-m3mt"
 

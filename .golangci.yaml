@@ -16,12 +16,12 @@ linters:
   - durationcheck
   - errcheck
   - errchkjson
-  #- errname
-  #- errorlint
+  - errname
+  - errorlint
   #- exhaustive
   - exptostd
   - fatcontext
-  #- forbidigo
+  - forbidigo
   #- forcetypeassert
   - gci
   - ginkgolinter
@@ -53,7 +53,7 @@ linters:
   - noctx
   - nolintlint
   - nosprintfhostport
-  #- perfsprint
+  - perfsprint
   - prealloc
   - predeclared
   - reassign

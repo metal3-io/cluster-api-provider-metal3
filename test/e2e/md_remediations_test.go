@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -43,7 +42,7 @@ var _ = Describe("When testing MachineDeployment remediation [healthcheck] [reme
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			PostNamespaceCreated:  postNamespaceCreated,
-			Flavor:                ptr.To(fmt.Sprintf("%s-md-remediation", osType)),
+			Flavor:                ptr.To(osType + "-md-remediation"),
 		}
 	})
 	AfterEach(func() {

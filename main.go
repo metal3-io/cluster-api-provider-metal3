@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -556,7 +557,7 @@ func isOutOfServiceTaintSupported(config *rest.Config) (bool, error) {
 	cs, err := kubernetes.NewForConfig(config)
 	if err != nil || cs == nil {
 		if cs == nil {
-			err = fmt.Errorf("k8s client set is nil")
+			err = errors.New("k8s client set is nil")
 		}
 		setupLog.Error(err, "unable to get k8s client")
 		return false, err
@@ -565,7 +566,7 @@ func isOutOfServiceTaintSupported(config *rest.Config) (bool, error) {
 	k8sVersion, err := cs.Discovery().ServerVersion()
 	if err != nil || k8sVersion == nil {
 		if k8sVersion == nil {
-			err = fmt.Errorf("k8s server version is nil")
+			err = errors.New("k8s server version is nil")
 		}
 		setupLog.Error(err, "unable to get k8s server version")
 		return false, err
