@@ -2,8 +2,6 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 
 go 1.23.7
 
-toolchain go1.24.1
-
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.0.2+incompatible
