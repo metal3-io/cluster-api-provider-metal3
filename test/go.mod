@@ -2,6 +2,8 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 
 go 1.23.7
 
+toolchain go1.24.1
+
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.0.2+incompatible
@@ -23,8 +25,8 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.30.11
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
-	sigs.k8s.io/cluster-api v1.10.0-beta.0
-	sigs.k8s.io/cluster-api/test v1.10.0-beta.0
+	sigs.k8s.io/cluster-api v1.10.0-beta.1
+	sigs.k8s.io/cluster-api/test v1.10.0-beta.1
 	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0

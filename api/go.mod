@@ -2,6 +2,8 @@ module github.com/metal3-io/cluster-api-provider-metal3/api
 
 go 1.23.7
 
+toolchain go1.24.1
+
 require (
 	github.com/metal3-io/ip-address-manager/api v1.9.1-0.20250321134843-cd24401d271d
 	github.com/onsi/gomega v1.36.3
@@ -11,7 +13,7 @@ require (
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
-	sigs.k8s.io/cluster-api v1.10.0-beta.0
+	sigs.k8s.io/cluster-api v1.10.0-beta.1
 	sigs.k8s.io/controller-runtime v0.20.4
 
 )
