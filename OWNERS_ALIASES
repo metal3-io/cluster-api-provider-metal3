@@ -11,6 +11,7 @@ aliases:
 
   cluster-api-provider-metal3-reviewers:
   - dtantsur
+  - honza
   - peppi-lotta
   - Rozzii
   - zhouhao3
