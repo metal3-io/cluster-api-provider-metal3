@@ -2,6 +2,8 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 
 go 1.23.7
 
+toolchain go1.24.1
+
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.0.2+incompatible
@@ -9,7 +11,6 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.9.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.9.1-0.20250321134843-cd24401d271d
-	github.com/metal3-io/ironic-standalone-operator v0.2.1-0.20250324064446-0dfac9b3ede6
 	github.com/onsi/ginkgo/v2 v2.23.3
 	github.com/onsi/gomega v1.36.3
 	github.com/pkg/errors v0.9.1
