@@ -3056,7 +3056,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectRequeue {
 				var reconcileError ReconcileError
 				ok := errors.As(err, &reconcileError)
-				fmt.Println(errors.Cause(err))
+				log.Println(errors.Cause(err))
 				Expect(ok).To(BeTrue())
 			} else {
 				Expect(err).NotTo(HaveOccurred())

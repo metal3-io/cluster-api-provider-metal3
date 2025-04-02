@@ -77,7 +77,7 @@ const (
 var (
 	// Capm3FastTrack is the variable fetched from the CAPM3_FAST_TRACK environment variable.
 	Capm3FastTrack    = os.Getenv("CAPM3_FAST_TRACK")
-	notFoundErr       *NotFoundError
+	errNotFound       *NotFoundError
 	associateBMHMutex sync.Mutex
 )
 
@@ -678,7 +678,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 	if host == nil {
-		errMessage := fmt.Sprintf("BareMetalHost not found for machine %s", m.Machine.Name)
+		errMessage := "BareMetalHost not found for machine " + m.Machine.Name
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 
@@ -1280,7 +1280,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 
-	providerIDLegacy := fmt.Sprintf("metal3://%s", bmhUID)
+	providerIDLegacy := "metal3://" + bmhUID
 	nodeLabel := fmt.Sprintf("%s=%s", ProviderLabelPrefix, bmhUID)
 
 	providerIDNew := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
@@ -1328,7 +1328,7 @@ func (m *MachineManager) SetNodeProviderID(ctx context.Context, providerIDOnM3M 
 	if countNodesWithLabel == 0 {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case.
-		errMessage := fmt.Sprintf("requeuing, could not find node with label: %s", nodeLabel)
+		errMessage := "requeuing, could not find node with label: " + nodeLabel
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
@@ -1400,7 +1400,7 @@ func deleteOwnerRefFromList(refList []metav1.OwnerReference,
 	}
 	index, err := findOwnerRefFromList(refList, objType, objMeta)
 	if err != nil {
-		if ok := errors.As(err, &notFoundErr); !ok {
+		if ok := errors.As(err, &errNotFound); !ok {
 			return nil, err
 		}
 		return refList, nil
@@ -1431,7 +1431,7 @@ func setOwnerRefInList(refList []metav1.OwnerReference, controller bool,
 ) ([]metav1.OwnerReference, error) {
 	index, err := findOwnerRefFromList(refList, objType, objMeta)
 	if err != nil {
-		if ok := errors.As(err, &notFoundErr); !ok {
+		if ok := errors.As(err, &errNotFound); !ok {
 			return nil, err
 		}
 		refList = append(refList, metav1.OwnerReference{
@@ -1770,7 +1770,7 @@ func (m *MachineManager) getBmhNameFromM3Machine() (string, error) {
 func (m *MachineManager) getBmhUIDFromM3Machine(ctx context.Context) (string, error) {
 	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil || host == nil {
-		errMessage := fmt.Sprintf("Failed to get a BaremetalHost for the metal3machine: %s", m.Metal3Machine.GetName())
+		errMessage := "Failed to get a BaremetalHost for the metal3machine: " + m.Metal3Machine.GetName()
 		return "", errors.New(errMessage)
 	}
 	if host.UID == "" {

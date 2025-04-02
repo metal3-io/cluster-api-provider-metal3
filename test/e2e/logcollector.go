@@ -3,6 +3,7 @@ package e2e
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -51,7 +52,7 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 	if output, err := cmd.Output(); err != nil {
 		return fmt.Errorf("something went wrong when executing '%s': %w, output: %s", cmd.String(), err, output)
 	}
-	setPermsCmd := fmt.Sprintf("sudo chmod -v 777 %s", path.Join(qemuFolder, filepath.Base(serialLog)))
+	setPermsCmd := "sudo chmod -v 777 " + path.Join(qemuFolder, filepath.Base(serialLog))
 	cmd = exec.Command("/bin/sh", "-c", setPermsCmd) // #nosec G204:gosec
 	output, err := cmd.Output()
 	if err != nil {
@@ -65,7 +66,7 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 	})
 
 	if len(kubeadmCP.Spec.KubeadmConfigSpec.Users) < 1 {
-		return fmt.Errorf("no valid credentials found: KubeadmConfigSpec.Users is empty")
+		return errors.New("no valid credentials found: KubeadmConfigSpec.Users is empty")
 	}
 	creds := kubeadmCP.Spec.KubeadmConfigSpec.Users[0]
 
@@ -96,11 +97,11 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 }
 
 func (Metal3LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
-	return fmt.Errorf("CollectInfrastructureLogs not implemented")
+	return errors.New("CollectInfrastructureLogs not implemented")
 }
 
 func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *expv1.MachinePool, _ string) error {
-	return fmt.Errorf("CollectMachinePoolLog not implemented")
+	return errors.New("CollectMachinePoolLog not implemented")
 }
 
 // FetchManifests fetches relevant Metal3, CAPI, and Kubernetes core resources
@@ -111,7 +112,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 	restConfig := clusterProxy.GetRESTConfig()
 	dynamicClient, err := dynamic.NewForConfig(restConfig)
 	if err != nil {
-		return fmt.Errorf("could not create dynamic client: %v", err)
+		return fmt.Errorf("could not create dynamic client: %w", err)
 	}
 
 	k8sCoreManifests := []string{
@@ -163,7 +164,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 	// Get all CustomResourceDefinitions (CRDs)
 	crds := apiextensionsv1.CustomResourceDefinitionList{}
 	if err := client.List(ctx, &crds); err != nil {
-		return fmt.Errorf("could not list CRDs: %v", err)
+		return fmt.Errorf("could not list CRDs: %w", err)
 	}
 	if len(crds.Items) == 0 {
 		return nil
@@ -195,7 +196,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 	baseDir := filepath.Join(outputPath, clusterProxy.GetName())
 	// Ensure the base directory exists
 	if err := os.MkdirAll(baseDir, 0o750); err != nil {
-		return fmt.Errorf("couldn't create directory: %v", err)
+		return fmt.Errorf("couldn't create directory: %w", err)
 	}
 
 	// Get the clientset
@@ -207,20 +208,20 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 	outputFile := filepath.Join(baseDir, "pods.log")
 	file, err := os.Create(outputFile)
 	if err != nil {
-		return fmt.Errorf("failed to create output file: %v", err)
+		return fmt.Errorf("failed to create output file: %w", err)
 	}
 	defer file.Close()
 
 	// List pods across all namespaces
 	pods, err := clientset.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to list pods: %v", err)
+		return fmt.Errorf("failed to list pods: %w", err)
 	}
 
 	// Print header to file
 	header := fmt.Sprintf("%-32s %-16s %-12s %-24s %-8s\n", "NAMESPACE", "NAME", "STATUS", "NODE", "AGE")
 	if _, err = file.WriteString(header); err != nil {
-		return fmt.Errorf("error writing to file: %v", err)
+		return fmt.Errorf("error writing to file: %w", err)
 	}
 
 	// Iterate through pods and print information
@@ -235,14 +236,14 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 		)
 
 		if _, err = file.WriteString(podInfo); err != nil {
-			return fmt.Errorf("error writing to file: %v", err)
+			return fmt.Errorf("error writing to file: %w", err)
 		}
 	}
 
 	// Get all namespaces
 	namespaces, err := clientset.CoreV1().Namespaces().List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("couldn't get namespaces: %v", err)
+		return fmt.Errorf("couldn't get namespaces: %w", err)
 	}
 	for _, namespace := range namespaces.Items {
 		// Get all pods in the namespace
@@ -270,11 +271,11 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 			machineName := pod.Spec.NodeName
 			podDir := filepath.Join(baseDir, "machines", machineName, namespace.Name, pod.Name)
 			if err := os.MkdirAll(podDir, 0o750); err != nil {
-				return fmt.Errorf("couldn't create directory: %v", err)
+				return fmt.Errorf("couldn't create directory: %w", err)
 			}
 			err = writeToFile([]byte(podDescription), "stdout_describe.log", podDir)
 			if err != nil {
-				return fmt.Errorf("couldn't write to file: %v", err)
+				return fmt.Errorf("couldn't write to file: %w", err)
 			}
 
 			// Get containers of the Pod
@@ -282,7 +283,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 				// Create a directory for each container
 				containerDir := filepath.Join(podDir, container.Name)
 				if err := os.MkdirAll(containerDir, 0o750); err != nil {
-					return fmt.Errorf("couldn't create directory: %v", err)
+					return fmt.Errorf("couldn't create directory: %w", err)
 				}
 
 				err := CollectContainerLogs(ctx, namespace.Name, pod.Name, container.Name, clientset, containerDir)
@@ -308,7 +309,7 @@ func CollectContainerLogs(ctx context.Context, namespace string, podName string,
 	}
 	podLogs, err := clientset.CoreV1().Pods(namespace).GetLogs(podName, &podLogOptions).Stream(ctx)
 	if err != nil {
-		return fmt.Errorf("couldn't get container logs: %v", err)
+		return fmt.Errorf("couldn't get container logs: %w", err)
 	}
 	defer podLogs.Close()
 
@@ -316,13 +317,13 @@ func CollectContainerLogs(ctx context.Context, namespace string, podName string,
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podLogs)
 	if err != nil {
-		return fmt.Errorf("couldn't buffer container logs: %v", err)
+		return fmt.Errorf("couldn't buffer container logs: %w", err)
 	}
 	podStr := buf.String()
 
 	err = writeToFile([]byte(podStr), "stdout.log", outputPath)
 	if err != nil {
-		return fmt.Errorf("couldn't write to file: %v", err)
+		return fmt.Errorf("couldn't write to file: %w", err)
 	}
 
 	return nil
@@ -334,13 +335,13 @@ func writeToFile(content []byte, fileName string, filePath string) error {
 	// Create any missing directories in the path
 	err := os.MkdirAll(filePath, 0775)
 	if err != nil {
-		return fmt.Errorf("couldn't create directory: %v", err)
+		return fmt.Errorf("couldn't create directory: %w", err)
 	}
 	// Write content to file
 	file := filepath.Join(filePath, fileName)
 	err = os.WriteFile(file, content, 0600)
 	if err != nil {
-		return fmt.Errorf("couldn't write to file: %v", err)
+		return fmt.Errorf("couldn't write to file: %w", err)
 	}
 	return nil
 }
@@ -373,7 +374,7 @@ func crdIsInList(crd apiextensionsv1.CustomResourceDefinition, list []string) bo
 func DumpGVR(ctx context.Context, dynamicClient *dynamic.DynamicClient, gvr schema.GroupVersionResource, outputPath string) error {
 	resources, err := dynamicClient.Resource(gvr).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		return fmt.Errorf("could not get resources: %v", err)
+		return fmt.Errorf("could not get resources: %w", err)
 	}
 	if len(resources.Items) == 0 {
 		return nil
@@ -382,14 +383,14 @@ func DumpGVR(ctx context.Context, dynamicClient *dynamic.DynamicClient, gvr sche
 	// Write resource to file
 	for _, resource := range resources.Items {
 		filePath := filepath.Join(outputPath, resource.GetNamespace(), resource.GetKind())
-		fileName := fmt.Sprintf("%s.yaml", resource.GetName())
+		fileName := resource.GetName() + ".yaml"
 		content, err := yaml.Marshal(resource)
 		if err != nil {
-			return fmt.Errorf("could not marshal content: %v", err)
+			return fmt.Errorf("could not marshal content: %w", err)
 		}
 		err = writeToFile(content, fileName, filePath)
 		if err != nil {
-			return fmt.Errorf("couldn't write to file: %v", err)
+			return fmt.Errorf("couldn't write to file: %w", err)
 		}
 	}
 	return nil

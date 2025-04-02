@@ -86,7 +86,7 @@ func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1.Cluster) err
 	_, err := findOwnerRefFromList(m.DataTemplate.OwnerReferences,
 		cluster.TypeMeta, cluster.ObjectMeta)
 	if err != nil {
-		if ok := errors.As(err, &notFoundErr); !ok {
+		if ok := errors.As(err, &errNotFound); !ok {
 			return err
 		}
 		m.DataTemplate.OwnerReferences, err = setOwnerRefInList(
