@@ -1,6 +1,7 @@
 module github.com/metal3-io/cluster-api-provider-metal3/hack/fake-apiserver
 
 go 1.23.7
+toolchain go1.24.1
 
 require (
 	github.com/metal3-io/baremetal-operator/apis v0.9.1
@@ -9,8 +10,8 @@ require (
 	k8s.io/api v0.31.7
 	k8s.io/apimachinery v0.31.7
 	k8s.io/client-go v0.31.7
-	sigs.k8s.io/cluster-api v1.9.5
-	sigs.k8s.io/cluster-api/test v1.9.5
+	sigs.k8s.io/cluster-api v1.9.6
+	sigs.k8s.io/cluster-api/test v1.9.6
 	sigs.k8s.io/controller-runtime v0.19.7
 )
 
