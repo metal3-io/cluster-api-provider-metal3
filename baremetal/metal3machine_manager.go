@@ -458,6 +458,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("host already associated with another metal3 machine",
 				"host", host.Name)
+			// The following removal of ownerreference code will be removed in v1.11
 			// Remove the ownerreference to this machine, even if the consumer ref
 			// references another machine.
 			host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
@@ -644,6 +645,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		host.Spec.ConsumerRef = nil
 
+		// The following removal of ownerreference code will be removed in v1.11
 		// Remove the ownerreference to this machine.
 		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
 		if err != nil {
@@ -1098,13 +1100,6 @@ func (m *MachineManager) setHostConsumerRef(_ context.Context, host *bmov1alpha1
 		Namespace:  m.Metal3Machine.Namespace,
 		APIVersion: m.Metal3Machine.APIVersion,
 	}
-
-	// Set OwnerReferences.
-	hostOwnerReferences, err := m.SetOwnerRef(host.OwnerReferences, true)
-	if err != nil {
-		return err
-	}
-	host.OwnerReferences = hostOwnerReferences
 
 	// Delete nodeReuseLabelName from host.
 	m.Log.Info("Deleting nodeReuseLabelName from host, if any")
