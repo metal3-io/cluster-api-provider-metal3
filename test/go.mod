@@ -11,7 +11,7 @@ require (
 	github.com/metal3-io/ip-address-manager/api v1.9.1-0.20250321134843-cd24401d271d
 	github.com/metal3-io/ironic-standalone-operator/api v0.0.0-20250402103806-d91a8f698be5
 	github.com/onsi/ginkgo/v2 v2.23.3
-	github.com/onsi/gomega v1.36.3
+	github.com/onsi/gomega v1.37.0
 	github.com/pkg/errors v0.9.1
 	golang.org/x/crypto v0.36.0
 	golang.org/x/mod v0.24.0
