@@ -2,8 +2,6 @@ module github.com/metal3-io/cluster-api-provider-metal3/api
 
 go 1.23.7
 
-toolchain go1.24.1
-
 require (
 	github.com/metal3-io/ip-address-manager/api v1.9.1-0.20250321134843-cd24401d271d
 	github.com/onsi/gomega v1.37.0
