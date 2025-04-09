@@ -17,7 +17,7 @@ ARG BUILD_IMAGE=docker.io/golang:1.23.8@sha256:a5339982f2e78b38b26ebbee35139854e
 ARG BASE_IMAGE=gcr.io/distroless/static:nonroot@sha256:9ecc53c269509f63c69a266168e4a687c7eb8c0cfd753bd8bfcaa4f58a90876f
 
 # Build the manager binary on golang image
-FROM $BUILD_IMAGE as builder
+FROM $BUILD_IMAGE AS builder
 WORKDIR /workspace
 
 # Run this with docker build --build_arg $(go env GOPROXY) to override the goproxy
@@ -25,12 +25,9 @@ ARG goproxy=https://proxy.golang.org
 ENV GOPROXY=$goproxy
 
 # Copy the Go Modules manifests
-COPY go.mod go.mod
-COPY api/go.mod api/go.mod
-COPY test/go.mod test/go.mod
-COPY go.sum go.sum
-COPY api/go.sum api/go.sum
-COPY test/go.sum test/go.sum
+COPY go.mod go.sum ./
+COPY api/go.mod api/go.sum api/
+COPY test/go.mod test/go.sum test/
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
 RUN go mod download
@@ -50,6 +47,16 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
 
 # Copy the controller-manager into a thin image
 FROM $BASE_IMAGE
+
+# image.version is set during image build by automation
+LABEL org.opencontainers.image.authors="metal3-dev@googlegroups.com"
+LABEL org.opencontainers.image.description="This is the image for the Cluster API Provider Metal3"
+LABEL org.opencontainers.image.documentation="https://book.metal3.io/capm3/introduction"
+LABEL org.opencontainers.image.licenses="Apache License 2.0"
+LABEL org.opencontainers.image.title="Cluster API Provider Metal3"
+LABEL org.opencontainers.image.url="https://github.com/metal3-io/cluster-api-provider-metal3"
+LABEL org.opencontainers.image.vendor="Metal3-io"
+
 WORKDIR /
 COPY --from=builder /workspace/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
