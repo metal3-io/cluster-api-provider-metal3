@@ -83,6 +83,20 @@ func (mr *MockMachineManagerInterfaceMockRecorder) AssociateM3Metadata(arg0 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AssociateM3Metadata", reflect.TypeOf((*MockMachineManagerInterface)(nil).AssociateM3Metadata), arg0)
 }
 
+// CloudProviderEnabled mocks base method.
+func (m *MockMachineManagerInterface) CloudProviderEnabled() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CloudProviderEnabled")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// CloudProviderEnabled indicates an expected call of CloudProviderEnabled.
+func (mr *MockMachineManagerInterfaceMockRecorder) CloudProviderEnabled() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CloudProviderEnabled", reflect.TypeOf((*MockMachineManagerInterface)(nil).CloudProviderEnabled))
+}
+
 // Delete mocks base method.
 func (m *MockMachineManagerInterface) Delete(arg0 context.Context) error {
 	m.ctrl.T.Helper()
@@ -109,21 +123,6 @@ func (m *MockMachineManagerInterface) DissociateM3Metadata(arg0 context.Context)
 func (mr *MockMachineManagerInterfaceMockRecorder) DissociateM3Metadata(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DissociateM3Metadata", reflect.TypeOf((*MockMachineManagerInterface)(nil).DissociateM3Metadata), arg0)
-}
-
-// GetBaremetalHostID mocks base method.
-func (m *MockMachineManagerInterface) GetBaremetalHostID(arg0 context.Context) (*string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBaremetalHostID", arg0)
-	ret0, _ := ret[0].(*string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBaremetalHostID indicates an expected call of GetBaremetalHostID.
-func (mr *MockMachineManagerInterfaceMockRecorder) GetBaremetalHostID(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBaremetalHostID", reflect.TypeOf((*MockMachineManagerInterface)(nil).GetBaremetalHostID), arg0)
 }
 
 // GetProviderIDAndBMHID mocks base method.
@@ -155,6 +154,20 @@ func (mr *MockMachineManagerInterfaceMockRecorder) HasAnnotation() *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasAnnotation", reflect.TypeOf((*MockMachineManagerInterface)(nil).HasAnnotation))
 }
 
+// IsBaremetalHostProvisioned mocks base method.
+func (m *MockMachineManagerInterface) IsBaremetalHostProvisioned(arg0 context.Context) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsBaremetalHostProvisioned", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsBaremetalHostProvisioned indicates an expected call of IsBaremetalHostProvisioned.
+func (mr *MockMachineManagerInterfaceMockRecorder) IsBaremetalHostProvisioned(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsBaremetalHostProvisioned", reflect.TypeOf((*MockMachineManagerInterface)(nil).IsBaremetalHostProvisioned), arg0)
+}
+
 // IsBootstrapReady mocks base method.
 func (m *MockMachineManagerInterface) IsBootstrapReady() bool {
 	m.ctrl.T.Helper()
@@ -181,6 +194,48 @@ func (m *MockMachineManagerInterface) IsProvisioned() bool {
 func (mr *MockMachineManagerInterfaceMockRecorder) IsProvisioned() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsProvisioned", reflect.TypeOf((*MockMachineManagerInterface)(nil).IsProvisioned))
+}
+
+// MachineHasNodeRef mocks base method.
+func (m *MockMachineManagerInterface) MachineHasNodeRef() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MachineHasNodeRef")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// MachineHasNodeRef indicates an expected call of MachineHasNodeRef.
+func (mr *MockMachineManagerInterfaceMockRecorder) MachineHasNodeRef() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MachineHasNodeRef", reflect.TypeOf((*MockMachineManagerInterface)(nil).MachineHasNodeRef))
+}
+
+// Metal3MachineHasProviderID mocks base method.
+func (m *MockMachineManagerInterface) Metal3MachineHasProviderID() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Metal3MachineHasProviderID")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// Metal3MachineHasProviderID indicates an expected call of Metal3MachineHasProviderID.
+func (mr *MockMachineManagerInterfaceMockRecorder) Metal3MachineHasProviderID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metal3MachineHasProviderID", reflect.TypeOf((*MockMachineManagerInterface)(nil).Metal3MachineHasProviderID))
+}
+
+// NodeWithMatchingProviderIDExists mocks base method.
+func (m *MockMachineManagerInterface) NodeWithMatchingProviderIDExists(arg0 context.Context, arg1 baremetal.ClientGetter) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NodeWithMatchingProviderIDExists", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// NodeWithMatchingProviderIDExists indicates an expected call of NodeWithMatchingProviderIDExists.
+func (mr *MockMachineManagerInterfaceMockRecorder) NodeWithMatchingProviderIDExists(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NodeWithMatchingProviderIDExists", reflect.TypeOf((*MockMachineManagerInterface)(nil).NodeWithMatchingProviderIDExists), arg0, arg1)
 }
 
 // RemovePauseAnnotation mocks base method.
@@ -226,6 +281,20 @@ func (mr *MockMachineManagerInterfaceMockRecorder) SetConditionMetal3MachineToTr
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConditionMetal3MachineToTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetConditionMetal3MachineToTrue), arg0)
 }
 
+// SetDefaultProviderID mocks base method.
+func (m *MockMachineManagerInterface) SetDefaultProviderID() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDefaultProviderID")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetDefaultProviderID indicates an expected call of SetDefaultProviderID.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetDefaultProviderID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDefaultProviderID", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetDefaultProviderID))
+}
+
 // SetError mocks base method.
 func (m *MockMachineManagerInterface) SetError(arg0 string, arg1 errors.MachineStatusError) {
 	m.ctrl.T.Helper()
@@ -250,18 +319,18 @@ func (mr *MockMachineManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetFinalizer))
 }
 
-// SetNodeProviderID mocks base method.
-func (m *MockMachineManagerInterface) SetNodeProviderID(arg0 context.Context, arg1 *string, arg2 baremetal.ClientGetter) error {
+// SetNodeProviderIDByHostname mocks base method.
+func (m *MockMachineManagerInterface) SetNodeProviderIDByHostname(arg0 context.Context, arg1 baremetal.ClientGetter) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetNodeProviderID", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetNodeProviderIDByHostname", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// SetNodeProviderID indicates an expected call of SetNodeProviderID.
-func (mr *MockMachineManagerInterfaceMockRecorder) SetNodeProviderID(arg0, arg1, arg2 interface{}) *gomock.Call {
+// SetNodeProviderIDByHostname indicates an expected call of SetNodeProviderIDByHostname.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetNodeProviderIDByHostname(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNodeProviderID", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetNodeProviderID), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNodeProviderIDByHostname", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetNodeProviderIDByHostname), arg0, arg1)
 }
 
 // SetPauseAnnotation mocks base method.
@@ -288,6 +357,47 @@ func (m *MockMachineManagerInterface) SetProviderID(arg0 string) {
 func (mr *MockMachineManagerInterfaceMockRecorder) SetProviderID(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetProviderID", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetProviderID), arg0)
+}
+
+// SetProviderIDFromCloudProviderNode mocks base method.
+func (m *MockMachineManagerInterface) SetProviderIDFromCloudProviderNode(arg0 context.Context, arg1 baremetal.ClientGetter) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetProviderIDFromCloudProviderNode", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetProviderIDFromCloudProviderNode indicates an expected call of SetProviderIDFromCloudProviderNode.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetProviderIDFromCloudProviderNode(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetProviderIDFromCloudProviderNode", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetProviderIDFromCloudProviderNode), arg0, arg1)
+}
+
+// SetProviderIDFromNodeLabel mocks base method.
+func (m *MockMachineManagerInterface) SetProviderIDFromNodeLabel(arg0 context.Context, arg1 baremetal.ClientGetter) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetProviderIDFromNodeLabel", arg0, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SetProviderIDFromNodeLabel indicates an expected call of SetProviderIDFromNodeLabel.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetProviderIDFromNodeLabel(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetProviderIDFromNodeLabel", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetProviderIDFromNodeLabel), arg0, arg1)
+}
+
+// SetReadyTrue mocks base method.
+func (m *MockMachineManagerInterface) SetReadyTrue() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetReadyTrue")
+}
+
+// SetReadyTrue indicates an expected call of SetReadyTrue.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetReadyTrue() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReadyTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetReadyTrue))
 }
 
 // UnsetFinalizer mocks base method.
