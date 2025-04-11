@@ -127,8 +127,7 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, e
 		if dataObject.Spec.Template.Name == "" {
 			continue
 		}
-
-		if !m.dataObjectBelongsToTemplate(dataObject) {
+		if dataObject.Spec.Template.Name != m.DataTemplate.Name {
 			continue
 		}
 
@@ -138,22 +137,6 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, e
 	}
 	m.updateStatusTimestamp()
 	return indexes, nil
-}
-
-func (m *DataTemplateManager) dataObjectBelongsToTemplate(dataObject infrav1.Metal3Data) bool {
-	if dataObject.Spec.Template.Name == m.DataTemplate.Name {
-		return true
-	}
-
-	// Match TemplateReference
-	if dataObject.Spec.TemplateReference == "" && m.DataTemplate.Spec.TemplateReference == dataObject.Spec.Template.Name {
-		return true
-	}
-
-	if dataObject.Spec.TemplateReference != "" && m.DataTemplate.Spec.TemplateReference == dataObject.Spec.TemplateReference {
-		return true
-	}
-	return false
 }
 
 func (m *DataTemplateManager) updateStatusTimestamp() {
@@ -239,21 +222,13 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 func (m *DataTemplateManager) createData(ctx context.Context,
 	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
-	var dataName string
-
 	if !controllerutil.ContainsFinalizer(dataClaim, infrav1.DataClaimFinalizer) {
 		controllerutil.AddFinalizer(dataClaim, infrav1.DataClaimFinalizer)
 	}
 
 	if dataClaimIndex, ok := m.DataTemplate.Status.Indexes[dataClaim.Name]; ok {
-		if m.DataTemplate.Spec.TemplateReference != "" {
-			dataName = m.DataTemplate.Spec.TemplateReference + "-" + strconv.Itoa(dataClaimIndex)
-		} else {
-			dataName = m.DataTemplate.Name + "-" + strconv.Itoa(dataClaimIndex)
-		}
-
 		dataClaim.Status.RenderedData = &corev1.ObjectReference{
-			Name:      dataName,
+			Name:      m.DataTemplate.Name + "-" + strconv.Itoa(dataClaimIndex),
 			Namespace: m.DataTemplate.Namespace,
 		}
 		return indexes, nil
@@ -292,11 +267,8 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	}
 
 	// Set the index and Metal3Data names
-	if m.DataTemplate.Spec.TemplateReference != "" {
-		dataName = m.DataTemplate.Spec.TemplateReference + "-" + strconv.Itoa(claimIndex)
-	} else {
-		dataName = m.DataTemplate.Name + "-" + strconv.Itoa(claimIndex)
-	}
+	dataName := m.DataTemplate.Name + "-" + strconv.Itoa(claimIndex)
+
 	m.Log.Info("Index", "Claim", dataClaim.Name, "index", claimIndex)
 
 	// Create the Metal3Data object, with an Owner ref to the Metal3Machine
@@ -334,8 +306,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			},
 		},
 		Spec: infrav1.Metal3DataSpec{
-			Index:             claimIndex,
-			TemplateReference: m.DataTemplate.Spec.TemplateReference,
+			Index: claimIndex,
 			Template: corev1.ObjectReference{
 				Name:      m.DataTemplate.Name,
 				Namespace: m.DataTemplate.Namespace,
@@ -379,16 +350,8 @@ func (m *DataTemplateManager) deleteData(ctx context.Context,
 	if ok {
 		// Try to get the Metal3Data. if it succeeds, delete it
 		tmpM3Data := &infrav1.Metal3Data{}
-
-		var dataName string
-		if m.DataTemplate.Spec.TemplateReference != "" {
-			dataName = m.DataTemplate.Spec.TemplateReference + "-" + strconv.Itoa(dataClaimIndex)
-		} else {
-			dataName = m.DataTemplate.Name + "-" + strconv.Itoa(dataClaimIndex)
-		}
-
 		key := client.ObjectKey{
-			Name:      dataName,
+			Name:      m.DataTemplate.Name + "-" + strconv.Itoa(dataClaimIndex),
 			Namespace: m.DataTemplate.Namespace,
 		}
 		err := m.client.Get(ctx, key, tmpM3Data)
