@@ -282,7 +282,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	claimIndex := len(indexes)
 	// The length of the map might be smaller than the highest index stored,
 	// this means we have a gap to find
-	for index := 0; index < len(indexes); index++ {
+	for index := range len(indexes) {
 		if _, ok := indexes[index]; !ok {
 			if claimIndex == len(indexes) {
 				claimIndex = index
