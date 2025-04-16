@@ -86,7 +86,11 @@ func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object)
 }
 
 func updateObject(ctx context.Context, cl client.Client, obj client.Object) error {
-	err := cl.Update(ctx, obj.DeepCopyObject().(client.Object))
+	copiedObj, ok := obj.DeepCopyObject().(client.Object)
+	if !ok {
+		return errors.New("Type assertion to client.Object failed")
+	}
+	err := cl.Update(ctx, copiedObj)
 	if apierrors.IsConflict(err) {
 		return WithTransientError(errors.New("Update object conflicts"), requeueAfter)
 	}
@@ -94,7 +98,11 @@ func updateObject(ctx context.Context, cl client.Client, obj client.Object) erro
 }
 
 func createObject(ctx context.Context, cl client.Client, obj client.Object) error {
-	err := cl.Create(ctx, obj.DeepCopyObject().(client.Object))
+	copiedObj, ok := obj.DeepCopyObject().(client.Object)
+	if !ok {
+		return errors.New("Type assertion to client.Object failed")
+	}
+	err := cl.Create(ctx, copiedObj)
 	if apierrors.IsAlreadyExists(err) {
 		return WithTransientError(errors.New("Object already exists"), requeueAfter)
 	}
@@ -102,7 +110,11 @@ func createObject(ctx context.Context, cl client.Client, obj client.Object) erro
 }
 
 func deleteObject(ctx context.Context, cl client.Client, obj client.Object) error {
-	err := cl.Delete(ctx, obj.DeepCopyObject().(client.Object))
+	copiedObj, ok := obj.DeepCopyObject().(client.Object)
+	if !ok {
+		return errors.New("Type assertion to client.Object failed")
+	}
+	err := cl.Delete(ctx, copiedObj)
 	if apierrors.IsNotFound(err) {
 		return nil
 	}

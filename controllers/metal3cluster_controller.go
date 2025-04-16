@@ -233,13 +233,23 @@ func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 				predicate.Funcs{
 					// Avoid reconciling if the event triggering the reconciliation is related to incremental status updates
 					UpdateFunc: func(e event.UpdateEvent) bool {
-						oldCluster := e.ObjectOld.(*infrav1.Metal3Cluster).DeepCopy()
-						newCluster := e.ObjectNew.(*infrav1.Metal3Cluster).DeepCopy()
-						oldCluster.Status = infrav1.Metal3ClusterStatus{}
-						newCluster.Status = infrav1.Metal3ClusterStatus{}
+						oldCluster, ok := e.ObjectOld.(*infrav1.Metal3Cluster)
+						if !ok {
+							r.Log.Error(nil, "Failed to cast old cluster to Metal3Cluster")
+							return false
+						}
+						newCluster, ok := e.ObjectNew.(*infrav1.Metal3Cluster)
+						if !ok {
+							r.Log.Error(nil, "Failed to cast new cluster to Metal3Cluster")
+							return false
+						}
+						oldClusterCopy := oldCluster.DeepCopy()
+						newClusterCopy := newCluster.DeepCopy()
+						oldClusterCopy.Status = infrav1.Metal3ClusterStatus{}
+						newClusterCopy.Status = infrav1.Metal3ClusterStatus{}
 						oldCluster.ObjectMeta.ResourceVersion = ""
-						newCluster.ObjectMeta.ResourceVersion = ""
-						return !reflect.DeepEqual(oldCluster, newCluster)
+						newClusterCopy.ObjectMeta.ResourceVersion = ""
+						return !reflect.DeepEqual(oldClusterCopy, newClusterCopy)
 					},
 				},
 			),
