@@ -232,7 +232,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	helper, err = patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 1
-	for retry := 0; retry < 3; retry++ {
+	for range 3 {
 		err = helper.Patch(ctx, kcpObj)
 		if err == nil {
 			break

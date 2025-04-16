@@ -163,7 +163,7 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 	isBootstrapProxy := !strings.HasPrefix(clusterProxy.GetName(), "clusterctl-upgrade")
 	if isBootstrapProxy {
 		// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
