@@ -61,7 +61,7 @@ linters:
   - rowserrcheck
   - staticcheck
   - stylecheck
-  #- tagliatelle
+  - tagliatelle
   - testifylint
   - thelper
   - tparallel
@@ -198,6 +198,9 @@ issues:
     - stylecheck
     text: "ST1016: methods on the same type should have the same receiver name"
     path: .*(api|types)\/.*\/conversion.*\.go$
+  - linters:
+    - tagliatelle
+    text: "IP|ID|DHCP|SLAAC"
   include:
   - EXC0002 # include "missing comments" issues from golangci-lint
   max-issues-per-linter: 0
