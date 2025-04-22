@@ -210,7 +210,12 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
 			if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
+				if _, ok := annotations[bmov1alpha1.StatusAnnotation]; !ok {
+					m.Log.Info("BMH is missing status annotation. Not removing Pause Annotation.")
+					return nil
+				}
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
+				m.Log.Info("Removing Pause Annotation.")
 				delete(host.Annotations, bmov1alpha1.PausedAnnotation)
 			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
@@ -238,8 +243,11 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
-			m.Log.Info("BaremetalHost is already paused")
-			return nil
+			if _, statusOk := annotations[bmov1alpha1.StatusAnnotation]; statusOk {
+				m.Log.Info("BaremetalHost is already paused and has a status annotation")
+				return nil
+			}
+			m.Log.Info("BaremetalHost is already paused but does not have a status annotation")
 		}
 	} else {
 		host.Annotations = make(map[string]string)
