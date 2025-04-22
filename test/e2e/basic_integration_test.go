@@ -20,6 +20,8 @@ var _ = Describe("When testing basic cluster creation [basic]", Label("basic"), 
 	})
 
 	It("Should create a workload cluster", func() {
+		By("Apply BMH for workload cluster")
+		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
 		By("Fetching cluster configuration")
 		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
 		By("Provision Workload cluster")

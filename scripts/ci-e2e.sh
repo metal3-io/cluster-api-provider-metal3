@@ -45,8 +45,8 @@ export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 export USE_IRSO="${USE_IRSO:-false}"
 EOF
-# if running a scalability test skip apply bmhs in dev-env and run fakeIPA
-if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
+# if running basic integration or clusterctl-upgrade test skip apply bmhs in dev-env
+if [[ "${GINKGO_FOCUS:-}" == "clusterctl-upgrade" ]] || [[ "${GINKGO_FOCUS:-}" == "basic" ]] || [[ "${GINKGO_FOCUS:-}" == "integration" ]]; then
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 fi
 if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
