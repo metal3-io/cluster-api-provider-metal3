@@ -244,6 +244,7 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
 			if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
+				m.Log.Info("Removing Pause Annotation.")
 				delete(host.Annotations, bmov1alpha1.PausedAnnotation)
 			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
