@@ -202,6 +202,21 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 	}, "5s", "100ms").Should(Succeed(), "Failed to assert target API server stability")
 
+	Logf("Dump the target cluster resources before pivoting")
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
+
+	By("Fetch logs from target cluster before pivoting")
+	err = FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
@@ -212,6 +227,21 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap", "logs", input.Namespace, "clusterctl-move.log"))
 
+	By("Fetch logs from target cluster after pivoting")
+	err = FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-after-pivot", "resources"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
+	Logf("Dump the target cluster resources after pivoting")
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-after-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
+
 	By("Remove BMO deployment from the source cluster")
 	RemoveDeployment(ctx, func() RemoveDeploymentInput {
 		return RemoveDeploymentInput{
@@ -220,6 +250,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			Name:              input.E2EConfig.MustGetVariable(NamePrefix) + "-controller-manager",
 		}
 	})
+
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.TargetCluster.GetClient(),
 		Namespace: input.Namespace,
@@ -334,7 +365,6 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterctlv1.ClusterctlMoveLabel] = ""
 	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
 	labels[clusterv1.ProviderNameLabel] = "metal3"
 	crdName := "baremetalhosts.metal3.io"
@@ -345,7 +375,8 @@ func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
 func labelHDCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterctlv1.ClusterctlMoveLabel] = ""
+	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
+	labels[clusterv1.ProviderNameLabel] = "metal3"
 	crdName := "hardwaredata.metal3.io"
 	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label HD CRDs")
