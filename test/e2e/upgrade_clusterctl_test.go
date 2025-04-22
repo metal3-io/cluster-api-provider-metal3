@@ -263,12 +263,22 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 				return errors.New("certificate doesn't have status.conditions (yet)")
 			}
 			// There is only one condition (Ready) on certificates.
-			condType := conditions[0].(map[string]any)["type"]
-			condStatus := conditions[0].(map[string]any)["status"]
+			condType, ok := conditions[0].(map[string]any)["type"]
+			if !ok {
+				return errors.New("unexpected condition type")
+			}
+			condStatus, ok := conditions[0].(map[string]any)["status"]
+			if !ok {
+				return errors.New("unexpected condition status")
+			}
 			if condType == "Ready" && condStatus == "True" {
 				return nil
 			}
-			return fmt.Errorf("certificate is not ready, type: %s, status: %s, message: %s", condType, condStatus, conditions[0].(map[string]any)["message"])
+			condMessage, ok := conditions[0].(map[string]any)["message"]
+			if !ok {
+				return errors.New("unexpected condition message")
+			}
+			return fmt.Errorf("certificate is not ready, type: %s, status: %s, message: %s", condType, condStatus, condMessage)
 		}, e2eConfig.GetIntervals(specName, "wait-deployment")...).Should(Succeed())
 		// Delete test namespace
 		Expect(clusterProxy.GetClientSet().CoreV1().Namespaces().Delete(ctx, "test", metav1.DeleteOptions{})).To(Succeed())
