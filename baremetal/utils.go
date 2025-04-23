@@ -39,7 +39,9 @@ const (
 	// metal3SecretType defines the type of secret created by metal3.
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 	// metal3MachineKind is the Kind of the Metal3Machine.
-	metal3MachineKind = "Metal3Machine"
+	metal3MachineKind   = "Metal3Machine"
+	VerbosityLevelDebug = 4
+	VerbosityLevelTrace = 5
 )
 
 // Contains returns true if a list contains a string.

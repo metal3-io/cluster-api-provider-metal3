@@ -37,6 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
+const (
+	defaultTimeout = 5 * time.Second
+)
+
 // Metal3RemediationReconciler reconciles a Metal3Remediation object.
 type Metal3RemediationReconciler struct {
 	client.Client
@@ -205,7 +209,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 				return ctrl.Result{}, errors.Wrap(err, "error getting power status")
 			} else if !on {
 				// wait a bit before checking again if we are powered on
-				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+				return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 			}
 
 			// Restore node if available and not done yet
@@ -231,13 +235,13 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 						remediationMgr.RemoveNodeBackupAnnotations()
 					}
 					remediationMgr.UnsetFinalizer()
-					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+					return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 				} else if isNodeForbidden {
 					// we don't have a node, just remove finalizer
 					remediationMgr.UnsetFinalizer()
 
 					r.Log.Info("Skipping node restore, remediation done, CR should be deleted soon")
-					return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+					return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 				}
 			}
 
@@ -246,7 +250,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			if !timedOut {
 				// Not yet time to retry or stop remediation, requeue
 				r.Log.Info("Waiting for node to get healthy and CR being deleted")
-				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+				return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 			}
 
 			// Try again if limit not reached
@@ -322,7 +326,7 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 		}
 
 		// done for now, wait a bit before checking if we are powered off already
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 	}
 
 	// wait until powered off
@@ -331,7 +335,7 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 		return ctrl.Result{}, errors.Wrap(err, "error getting power status")
 	} else if on {
 		// wait a bit before checking again if we are powered off already
-		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+		return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 	}
 
 	if node != nil {
@@ -346,7 +350,7 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 			}
 
 			if !remediationMgr.IsNodeDrained(ctx, clusterClient, node) {
-				return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+				return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 			}
 		} else {
 			/*
@@ -369,14 +373,14 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 				return ctrl.Result{}, errors.Wrap(err, "error deleting node")
 			}
 			// wait until node is gone
-			return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+			return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 		}
 	}
 
 	// we are done for this phase, switch to waiting for power on and the node restore
 	remediationMgr.SetRemediationPhase(infrav1.PhaseWaiting)
 	r.Log.Info("Switch to waiting phase for power on and node restore")
-	return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 }
 
 // Returns whether annotations or labels were set / updated.

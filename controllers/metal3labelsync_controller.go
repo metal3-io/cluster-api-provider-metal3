@@ -134,7 +134,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 		return ctrl.Result{}, err
 	}
-	controllerLog.V(5).Info(fmt.Sprintf("Found Metal3Machine %v", capm3MachineKey))
+	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Metal3Machine %v", capm3MachineKey))
 
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
@@ -145,7 +145,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		controllerLog.Info("Could not find Machine object, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
-	controllerLog.V(5).Info(fmt.Sprintf("Found Machine %v/%v", capiMachine.Name, capiMachine.Namespace))
+	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Machine %v/%v", capiMachine.Name, capiMachine.Namespace))
 	if capiMachine.Status.NodeRef == nil {
 		controllerLog.Info("Could not find Node Ref on Machine object, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
@@ -162,7 +162,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		controllerLog.Info("Error fetching cluster, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
-	controllerLog.V(5).Info(fmt.Sprintf("Found Cluster %v/%v", cluster.Name, cluster.Namespace))
+	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Cluster %v/%v", cluster.Name, cluster.Namespace))
 
 	// Fetch the Metal3 cluster.
 	metal3Cluster := &infrav1.Metal3Cluster{}
@@ -174,7 +174,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		controllerLog.Info("Error fetching Metal3Cluster, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
-	controllerLog.V(5).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
+	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
 
 	if annotations.IsPaused(cluster, metal3Cluster) {
 		controllerLog.Info("Cluster and/or Metal3Cluster are currently paused. Remove pause to continue reconciliation.")
@@ -188,7 +188,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	prefixStr, ok := annotations[PrefixAnnotationKey]
 	if !ok {
-		controllerLog.V(5).Info("No annotation for prefixes found on Metal3Cluster")
+		controllerLog.V(baremetal.VerbosityLevelTrace).Info("No annotation for prefixes found on Metal3Cluster")
 		return ctrl.Result{}, nil
 	}
 
@@ -331,7 +331,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 			Name:      hostName,
 			Namespace: hostNamespace,
 		}
-		log.V(5).Info("found BareMetalHost", "name", hostObjKey)
+		log.V(baremetal.VerbosityLevelTrace).Info("found BareMetalHost", "name", hostObjKey)
 		result = append(result, ctrl.Request{NamespacedName: hostObjKey})
 	}
 	return result

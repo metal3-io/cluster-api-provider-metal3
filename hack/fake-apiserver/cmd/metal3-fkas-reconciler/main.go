@@ -10,7 +10,7 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-
+	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
@@ -74,7 +74,7 @@ func main() {
 
 			// Check if the state has changed to "provisioned"
 			if bmh.Status.Provisioning.State != "provisioned" {
-				setupLog.V(4).Info(fmt.Sprintf("BMH %s/%s state is not in 'provisioning' or 'provisioned' state.", req.Namespace, req.Name))
+				setupLog.V(baremetal.VerbosityLevelDebug).Info(fmt.Sprintf("BMH %s/%s state is not in 'provisioning' or 'provisioned' state.", req.Namespace, req.Name))
 				return reconcile.Result{}, nil
 			}
 			uuid := bmh.ObjectMeta.UID

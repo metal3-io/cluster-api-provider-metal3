@@ -67,6 +67,11 @@ const (
 	// out-of-service taint strategy (GA from 1.28).
 	minK8sMajorVersionOutOfServiceTaint   = 1
 	minK8sMinorVersionGAOutOfServiceTaint = 28
+	leaderElectionLeaseTimeout            = 15 * time.Second
+	leaderElectionRenewTimeout            = 10 * time.Second
+	leaderElectionRetryTimeout            = 2 * time.Second
+	defaultMinSyncPeriod                  = 10 * time.Minute
+	apiGroupWaitTimeout                   = 10 * time.Second
 )
 
 var (
@@ -218,6 +223,12 @@ func main() {
 func initFlags(fs *pflag.FlagSet) {
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logsv1.AddFlags(logOptions, fs)
+	var maxClusterCacheQPS float32 = 20
+	maxClusterCacheClientBurst := 30
+	defaultWebhookPort := 9443
+	defaultConcurrency := 10
+	var defaultKubeAPIQPS float32 = 20
+	defaultKubeAPIBurst := 30
 
 	fs.BoolVar(
 		&enableLeaderElection,
@@ -236,21 +247,21 @@ func initFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(
 		&leaderElectionLeaseDuration,
 		"leader-elect-lease-duration",
-		15*time.Second,
+		leaderElectionLeaseTimeout,
 		"Interval at which non-leader candidates will wait to force acquire leadership (duration string)",
 	)
 
 	fs.DurationVar(
 		&leaderElectionRenewDeadline,
 		"leader-elect-renew-deadline",
-		10*time.Second,
+		leaderElectionRenewTimeout,
 		"Duration that the leading controller manager will retry refreshing leadership before giving up (duration string)",
 	)
 
 	fs.DurationVar(
 		&leaderElectionRetryPeriod,
 		"leader-elect-retry-period",
-		2*time.Second,
+		leaderElectionRetryTimeout,
 		"Duration the LeaderElector clients should wait between tries of actions (duration string)",
 	)
 
@@ -271,28 +282,28 @@ func initFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(
 		&syncPeriod,
 		"sync-period",
-		10*time.Minute,
+		defaultMinSyncPeriod,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)",
 	)
 
 	fs.Float32Var(
 		&clusterCacheClientQPS,
 		"clustercache-client-qps",
-		20,
+		maxClusterCacheQPS,
 		"Maximum queries per second from the cluster cache clients to the Kubernetes API server of workload clusters.",
 	)
 
 	fs.IntVar(
 		&clusterCacheClientBurst,
 		"clustercache-client-burst",
-		30,
+		maxClusterCacheClientBurst,
 		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.",
 	)
 
 	fs.IntVar(
 		&webhookPort,
 		"webhook-port",
-		9443,
+		defaultWebhookPort,
 		"Webhook Server port",
 	)
 
@@ -310,31 +321,31 @@ func initFlags(fs *pflag.FlagSet) {
 		"The address the health endpoint binds to.",
 	)
 
-	fs.IntVar(&metal3MachineConcurrency, "metal3machine-concurrency", 10,
+	fs.IntVar(&metal3MachineConcurrency, "metal3machine-concurrency", defaultConcurrency,
 		"Number of metal3machines to process simultaneously. WARNING! Currently not safe to set > 1.")
 
-	fs.IntVar(&metal3ClusterConcurrency, "metal3cluster-concurrency", 10,
+	fs.IntVar(&metal3ClusterConcurrency, "metal3cluster-concurrency", defaultConcurrency,
 		"Number of metal3clusters to process simultaneously")
 
-	fs.IntVar(&metal3DataTemplateConcurrency, "metal3datatemplate-concurrency", 10,
+	fs.IntVar(&metal3DataTemplateConcurrency, "metal3datatemplate-concurrency", defaultConcurrency,
 		"Number of metal3datatemplates to process simultaneously")
 
-	fs.IntVar(&metal3DataConcurrency, "metal3data-concurrency", 10,
+	fs.IntVar(&metal3DataConcurrency, "metal3data-concurrency", defaultConcurrency,
 		"Number of metal3data to process simultaneously")
 
-	fs.IntVar(&metal3LabelSyncConcurrency, "metal3labelsync-concurrency", 10,
+	fs.IntVar(&metal3LabelSyncConcurrency, "metal3labelsync-concurrency", defaultConcurrency,
 		"Number of metal3labelsyncs to process simultaneously")
 
-	fs.IntVar(&metal3MachineTemplateConcurrency, "metal3machinetemplate-concurrency", 10,
+	fs.IntVar(&metal3MachineTemplateConcurrency, "metal3machinetemplate-concurrency", defaultConcurrency,
 		"Number of metal3machinetemplates to process simultaneously")
 
-	fs.IntVar(&metal3RemediationConcurrency, "metal3remediation-concurrency", 10,
+	fs.IntVar(&metal3RemediationConcurrency, "metal3remediation-concurrency", defaultConcurrency,
 		"Number of metal3remediations to process simultaneously")
 
-	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
+	fs.Float32Var(&restConfigQPS, "kube-api-qps", defaultKubeAPIQPS,
 		"Maximum queries per second from the controller client to the Kubernetes API server. Default 20")
 
-	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
+	fs.IntVar(&restConfigBurst, "kube-api-burst", defaultKubeAPIBurst,
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
 
 	flags.AddManagerOptions(fs, &managerOptions)
@@ -355,7 +366,7 @@ func waitForAPIs(cfg *rest.Config) error {
 		err = discovery.ServerSupportsVersion(c, metal3GV)
 		if err != nil {
 			setupLog.Info(fmt.Sprintf("Waiting for API group %v to be available: %v", metal3GV, err))
-			time.Sleep(time.Second * 10)
+			time.Sleep(apiGroupWaitTimeout)
 			continue
 		}
 		setupLog.Info(fmt.Sprintf("Found API group %v", metal3GV))
