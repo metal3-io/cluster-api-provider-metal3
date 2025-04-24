@@ -22,8 +22,8 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.30.12
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
-	sigs.k8s.io/cluster-api v1.9.6
-	sigs.k8s.io/cluster-api/test v1.9.6
+	sigs.k8s.io/cluster-api v1.9.7
+	sigs.k8s.io/cluster-api/test v1.9.7
 	sigs.k8s.io/controller-runtime v0.19.7
 	sigs.k8s.io/kustomize/api v0.18.0
 	sigs.k8s.io/kustomize/kyaml v0.18.1
