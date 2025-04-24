@@ -1132,6 +1132,10 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 }
 
 // getRoutesv4 returns the IPv4 routes.
+// combining getRoutesv4 and getRoutesv6 would be possible with
+// generics but it would make it difficult to understand
+//
+//nolint:dupl
 func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 	poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
@@ -1178,6 +1182,8 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 }
 
 // getRoutesv6 returns the IPv6 routes.
+//
+//nolint:dupl
 func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 	poolAddresses map[string]addressFromPool,
 ) ([]interface{}, error) {
