@@ -11,7 +11,7 @@ linters:
   - copyloopvar
   - decorder
   - dogsled
-  #- dupl
+  - dupl
   - dupword
   - durationcheck
   - errcheck
@@ -155,6 +155,7 @@ issues:
     - unused
     - unparam
     - goconst
+    - dupl
   # Specific exclude rules for deprecated fields that are still part of the codebase.
   # These should be removed as the referenced deprecated item is removed from the project.
   - linters:
