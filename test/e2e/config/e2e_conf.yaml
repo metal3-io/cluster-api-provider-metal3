@@ -107,8 +107,8 @@ providers:
 - name: metal3
   type: IPAMProvider
   versions:
-  - name: "v1.10.0-beta.0"
-    value: "https://github.com/metal3-io/ip-address-manager/releases/download/v1.10.0-beta.0/ipam-components.yaml"
+  - name: "v1.10.0"
+    value: "https://github.com/metal3-io/ip-address-manager/releases/download/v1.10.0/ipam-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
