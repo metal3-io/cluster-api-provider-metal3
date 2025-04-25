@@ -404,7 +404,7 @@ spec:
     etcd: {}
     imageRepository: ""
     kind: ClusterConfiguration
-    kubernetesVersion: v1.32.0
+    kubernetesVersion: v1.33.0
     networking:
       dnsDomain: cluster.local
       podSubnet: 192.168.0.0/18

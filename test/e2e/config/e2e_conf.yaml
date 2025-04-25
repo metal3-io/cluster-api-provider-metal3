@@ -166,7 +166,7 @@ providers:
 
 variables:
   CNI: "/tmp/calico.yaml"
-  KUBERNETES_VERSION: "v1.32.1"
+  KUBERNETES_VERSION: "v1.33.0"
   # KUBERNETES_PATCH_FROM_VERSION and KUBERNETES_PATCH_TO_VERSION are used to
   # test upgrade scenarios where we only want to upgrade the patch version of
   # kubernetes.
