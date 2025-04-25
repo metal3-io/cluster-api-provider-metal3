@@ -5,9 +5,9 @@ go 1.23.7
 require (
 	github.com/go-logr/logr v1.4.2
 	github.com/golang/mock v1.6.0
-	github.com/metal3-io/baremetal-operator/apis v0.10.0-beta.0
+	github.com/metal3-io/baremetal-operator/apis v0.10.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.10.0-beta.0
+	github.com/metal3-io/ip-address-manager/api v1.10.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/pkg/errors v0.9.1
