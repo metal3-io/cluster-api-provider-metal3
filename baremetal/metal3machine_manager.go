@@ -1217,6 +1217,9 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 			Type:    clusterv1.MachineInternalIP,
 			Address: nic.IP,
 		}
+		if address.Address == "" {
+			continue
+		}
 		addrs = append(addrs, address)
 	}
 
