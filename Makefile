@@ -114,7 +114,7 @@ help:  # Display this help
 ## --------------------------------------
 ##@ tests:
 
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.32.0
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.33.0
 KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
 
 .PHONY: setup-envtest
