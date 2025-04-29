@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -201,7 +200,7 @@ func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace 
 // it installs certManager, BMO and Ironic and overrides the default IPs for the workload cluster.
 func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicRelease string) {
 	installCertManager := func(clusterProxy framework.ClusterProxy) {
-		certManagerLink := fmt.Sprintf("https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml", config.CertManagerDefaultVersion)
+		certManagerLink := fmt.Sprintf("https://github.com/cert-manager/cert-manager/releases/download/%s/cert-manager.yaml", e2eConfig.MustGetVariable("CERT_MANAGER_RELEASE"))
 		err := DownloadFile("/tmp/certManager.yaml", certManagerLink)
 		Expect(err).ToNot(HaveOccurred(), "Unable to download certmanager manifest")
 		certManagerYaml, err := os.ReadFile("/tmp/certManager.yaml")
