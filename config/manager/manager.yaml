@@ -26,6 +26,8 @@ spec:
         - "--diagnostics-address=${CAPM3_DIAGNOSTICS_ADDRESS:=:8443}"
         - "--insecure-diagnostics=${CAPM3_INSECURE_DIAGNOSTICS:=false}"
         - "--tls-min-version=${TLS_MIN_VERSION:=VersionTLS13}"
+        - "--clustercache-client-qps=${CLUSTERCACHE_CLIENT_QPS:=20}"
+        - "--clustercache-client-burst=${CLUSTERCACHE_CLIENT_BURST:=30}"
         image: controller:latest
         imagePullPolicy: IfNotPresent
         name: manager
