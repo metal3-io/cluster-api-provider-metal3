@@ -146,7 +146,11 @@ For example:
 
 Main branch k8s-upgrade tests:
 
-- `v1.31` => `v1.32`
+- `v1.32` => `v1.33`
+
+Release 1.10 branch k8s-upgrade test:
+
+- `v1.32` => `v1.33`
 
 Release 1.9 branch k8s-upgrade test:
 
