@@ -1255,7 +1255,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 		m.Log.Info("ProviderID is in new format, it does not contain the BMH ID", "providerID", *providerID)
 		return *providerID, nil
 	}
-	m.Log.V(4).Info("ProviderID contains the BMH ID", "providerID", *providerID)
+	m.Log.V(VerbosityLevelDebug).Info("ProviderID contains the BMH ID", "providerID", *providerID)
 	return *providerID, ptr.To(bmhID)
 }
 
@@ -1761,6 +1761,7 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 func (m *MachineManager) getBmhNameFromM3Machine() (string, error) {
 	annotationValue := m.Metal3Machine.ObjectMeta.GetAnnotations()[HostAnnotation]
 	valueParts := strings.Split(annotationValue, "/")
+	//nolint:mnd
 	if (len(valueParts) < 2) || (valueParts[0] != m.Metal3Machine.GetNamespace()) {
 		errMessage := fmt.Sprintf("unable to retrieve bmh name from metal3machine: %s , using annotation: %s", m.Metal3Machine.GetName(), annotationValue)
 		return "", errors.New(errMessage)
@@ -1839,7 +1840,7 @@ func (m *MachineManager) getMatchingNodesWithoutLabelCount(ctx context.Context, 
 	err = m.duplicateProviderIDsExist(validNodes, providerIDLegacy, providerIDNew)
 	if err != nil {
 		// There are, at least, two nodes. Details are in err
-		return 2, err
+		return 2, err //nolint:mnd
 	}
 	if matchingNodeProviderID != "" {
 		*providerIDonM3M = matchingNodeProviderID

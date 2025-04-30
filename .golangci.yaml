@@ -45,7 +45,7 @@ linters:
   - makezero
   - mirror
   - misspell
-  #- mnd
+  - mnd
   - nakedret
   - nilerr
   - nilnesserr
@@ -150,12 +150,16 @@ issues:
   - path: test/e2e
     linters:
     - gosec
+  - path: e2e
+    linters:
+    - mnd
   - path: _test\.go
     linters:
     - unused
     - unparam
     - goconst
     - dupl
+    - mnd
   # Specific exclude rules for deprecated fields that are still part of the codebase.
   # These should be removed as the referenced deprecated item is removed from the project.
   - linters:

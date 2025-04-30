@@ -31,11 +31,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
+const (
+	defaultDuration = 600 * time.Second
+	minDuration     = 100 * time.Second
+)
+
 var (
 	// Default retry timeout is 600 seconds.
-	defaultTimeout = metav1.Duration{Duration: 600 * time.Second}
+	defaultTimeout = metav1.Duration{Duration: defaultDuration}
 	// Minimum time between remediation retries.
-	minTimeout = metav1.Duration{Duration: 100 * time.Second}
+	minTimeout = metav1.Duration{Duration: minDuration}
 	// Mininum remediation retry limit is 1.
 	// Controller will try to remediate unhealhy node at least once.
 	minRetryLimit = 1
