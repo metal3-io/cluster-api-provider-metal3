@@ -170,8 +170,8 @@ variables:
   # KUBERNETES_PATCH_FROM_VERSION and KUBERNETES_PATCH_TO_VERSION are used to
   # test upgrade scenarios where we only want to upgrade the patch version of
   # kubernetes.
-  KUBERNETES_PATCH_FROM_VERSION: "v1.31.0"
-  KUBERNETES_PATCH_TO_VERSION: "v1.31.2"
+  KUBERNETES_PATCH_FROM_VERSION: "v1.32.0"
+  KUBERNETES_PATCH_TO_VERSION: "v1.32.1"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   NUM_NODES: 4
