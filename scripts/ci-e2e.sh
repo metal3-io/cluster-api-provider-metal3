@@ -27,7 +27,7 @@ export CAPI_CONFIG_FOLDER="${CONFIG_FOLDER}/cluster-api"
 # shellcheck source=./scripts/environment.sh
 source "${REPO_ROOT}/scripts/environment.sh"
 
-# Clone dev-env repo
+# Clone dev-env repo.
 sudo mkdir -p ${WORKING_DIR}
 sudo chown "${USER}":"${USER}" ${WORKING_DIR}
 M3_DEV_ENV_REPO="https://github.com/metal3-io/metal3-dev-env.git"
