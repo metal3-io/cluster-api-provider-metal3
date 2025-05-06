@@ -17,15 +17,15 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@latest-v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@latest-v1.10}/core-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/core-components.yaml"
     type: "url"
     contract: v1beta1
-    files:
-    - sourcePath: "../data/shared/v1.10/metadata.yaml"
     replacements:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/v1.10/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/core-components.yaml"
     type: "url"
@@ -47,8 +47,8 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@latest-v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@latest-v1.10}/bootstrap-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -77,8 +77,8 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: "{go://sigs.k8s.io/cluster-api@latest-v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@latest-v1.10}/control-plane-components.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -143,7 +143,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.10.99
+  - name: v1.11.99
     value: "${PWD}/config/default"
     files:
     - sourcePath: "../data/infrastructure-metal3/main/metadata.yaml"
