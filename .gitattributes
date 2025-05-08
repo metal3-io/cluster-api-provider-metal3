@@ -1,0 +1,2 @@
+# Hide generated crd yamls by default in the Github diff UX
+**/config/crd/bases/*.yaml linguist-generated=true
