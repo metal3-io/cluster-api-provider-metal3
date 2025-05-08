@@ -127,10 +127,11 @@ in the ephemeral cluster either before pivoting or after re-pivoting.
 
 <!-- markdownlint-disable MD013 -->
 
-| tests         | CAPM3 from             | CAPM3 to  | CAPI from             | CAPI to         |
-| --------------| ---------------------- | --------- | --------------------- |---------------- |
-| v1.9=>current | v1.9 latest patch      | main      | v1.9 latest patch     | latest release  |
-| v1.8=>current | v1.8 latest patch      | main      | v1.8 latest patch     | latest release  |
+| tests          | CAPM3 from             | CAPM3 to  | CAPI from             | CAPI to         |
+| ---------------| ---------------------- | --------- | --------------------- |---------------- |
+| v1.10=>current | v1.10 latest patch     | main      | v1.10 latest patch    | latest release  |
+| v1.9=>current  | v1.9 latest patch      | main      | v1.9 latest patch     | latest release  |
+| v1.8=>current  | v1.8 latest patch      | main      | v1.8 latest patch     | latest release  |
 
 <!-- markdownlint-disable MD013 -->
 
@@ -160,12 +161,8 @@ Release 1.8 branch k8s-upgrade test:
 
 - `v1.29` => `v1.30`
 
-Release 1.7 branch k8s-upgrade test:
-
-- `v1.29` => `v1.30`
-
-When Kubernetes 1.31 is released, k8s-upgrade `v1.30` => `v1.31` will be
-supported in v1.7.x (but not in v1.6.x)
+When Kubernetes 1.34 is released, k8s-upgrade `v1.33` => `v1.34` will be
+supported in v1.10.x (but not in v1.9.x)
 
 ## Guidelines to follow when adding new E2E tests
 
