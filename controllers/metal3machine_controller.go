@@ -215,7 +215,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr.SetFinalizer()
 
 	// if the machine is already provisioned, update and return
-	if machineMgr.IsProvisioned() {
+	if machineMgr.IsProvisioned() && machineMgr.MachineHasNodeRef() {
 		errType := capierrors.UpdateMachineError
 		err := machineMgr.Update(ctx)
 		return checkMachineError(machineMgr, err,
@@ -240,6 +240,8 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			return checkMachineError(machineMgr, err,
 				"failed to associate the Metal3Machine to a BareMetalHost", errType)
 		}
+
+		return ctrl.Result{}, nil
 	}
 	// Update Condition to reflect that we have an associated BMH
 	machineMgr.SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
@@ -258,30 +260,67 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 			"failed to update BareMetalHost", errType)
 	}
 
-	providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
-	if bmhID == nil {
-		bmhID, err = machineMgr.GetBaremetalHostID(ctx)
-		if err != nil {
-			r.Log.Error(err, "Failed to get the providerID for the Metal3Machine", "providerID", providerID)
-			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.MissingBMHReason, clusterv1.ConditionSeverityError, err.Error())
-			return checkMachineError(machineMgr, err,
-				"failed to get the providerID for the Metal3Machine", errType)
-		}
-	}
-	if providerID != "" || bmhID != nil {
-		// Set the providerID on the node if no Cloud provider
-		err = machineMgr.SetNodeProviderID(ctx, &providerID, r.CapiClientGetter)
-		if err != nil {
-			r.Log.Error(err, "Failed to set the target node providerID", "providerID", providerID)
-			machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.SettingProviderIDOnNodeFailedReason, clusterv1.ConditionSeverityError, err.Error())
-			return checkMachineError(machineMgr, err,
-				"failed to set the target node providerID", errType)
-		}
-		// Make sure Spec.ProviderID is set and mark the capm3Machine ready
-		machineMgr.SetProviderID(providerID)
+	if !machineMgr.IsBaremetalHostProvisioned(ctx) {
+		return ctrl.Result{}, nil
 	}
 
-	return ctrl.Result{}, err
+	if machineMgr.NodeWithMatchingProviderIDExists(ctx, r.CapiClientGetter) {
+		// Nothing to be done but wait for Machine.Spec.NodeRef
+		machineMgr.SetReadyTrue()
+		return ctrl.Result{}, nil
+	}
+
+	if machineMgr.CloudProviderEnabled() {
+		err = machineMgr.SetProviderIDFromCloudProviderNode(ctx, r.CapiClientGetter)
+		if err != nil {
+			return checkMachineError(machineMgr, err, "failed to set ProviderID on Metal3Machine based on Cloud Provider Node ProviderID", errType)
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// If we have "moved", the Node label will not match the baremetalhost.  However,
+	// The Node should have a matching ProviderID already set and we will have
+	// caught it above.
+	success, err := machineMgr.SetProviderIDFromNodeLabel(ctx, r.CapiClientGetter)
+	if err != nil {
+		return checkMachineError(machineMgr, err, "failed to set ProviderID on Metal3Machine based on Node label", errType)
+	}
+
+	if success {
+		machineMgr.SetReadyTrue()
+		return ctrl.Result{}, nil
+	}
+
+	if !machineMgr.Metal3MachineHasProviderID() {
+		err := machineMgr.SetDefaultProviderID()
+		if err != nil {
+			return checkMachineError(machineMgr, err,
+				"Failed to set default ProviderID the Metal3Machine", errType)
+		}
+		machineMgr.SetReadyTrue()
+
+		errType := capierrors.UpdateMachineError
+		err = machineMgr.Update(ctx)
+		if err != nil {
+			return checkMachineError(machineMgr, err,
+				"Failed to update the Metal3Machine", errType)
+		}
+	}
+
+	err = machineMgr.SetNodeProviderIDByHostname(ctx, r.CapiClientGetter)
+	if err != nil {
+		errType := capierrors.UpdateMachineError
+		return checkMachineError(machineMgr, err, "unable to find Node by hostname, it may not be ready yet", errType)
+	}
+
+	errType = capierrors.UpdateMachineError
+	err = machineMgr.Update(ctx)
+	if err != nil {
+		return checkMachineError(machineMgr, err,
+			"Failed to update the Metal3Machine", errType)
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
