@@ -554,6 +554,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		waiting := true
+		//nolint:exhaustive
 		switch host.Status.Provisioning.State {
 		case bmov1alpha1.StateRegistering,
 			bmov1alpha1.StateMatchProfile, bmov1alpha1.StateInspecting,
@@ -866,6 +867,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 				m.Log.Info("Found host with nodeReuseLabelName and it matches, adding it to availableHostsWithNodeReuse list", "host", host.Name)
 				availableHostsWithNodeReuse = append(availableHostsWithNodeReuse, &hosts.Items[i])
 			} else if !m.nodeReuseLabelExists(ctx, &host) {
+				//nolint:exhaustive
 				switch host.Status.Provisioning.State {
 				case bmov1alpha1.StateReady, bmov1alpha1.StateAvailable:
 				default:
