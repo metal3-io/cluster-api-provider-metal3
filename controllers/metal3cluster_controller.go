@@ -49,6 +49,7 @@ import (
 const (
 	clusterControllerName = "Metal3Cluster-controller"
 	requeueAfter          = time.Second * 30
+	VerbosityLevelDebug   = 4
 )
 
 // Metal3ClusterReconciler reconciles a Metal3Cluster object.
@@ -266,12 +267,12 @@ func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 				c := &infrav1.Metal3Cluster{}
 				if err := r.Client.Get(ctx, requests[0].NamespacedName, c); err != nil {
-					r.Log.V(baremetal.VerbosityLevelDebug).Error(err, "Failed to get Metal3 cluster")
+					r.Log.V(VerbosityLevelDebug).Error(err, "Failed to get Metal3 cluster")
 					return nil
 				}
 
 				if annotations.IsExternallyManaged(c) {
-					r.Log.V(baremetal.VerbosityLevelDebug).Info("Metal3Cluster is externally managed, skipping mapping.")
+					r.Log.V(VerbosityLevelDebug).Info("Metal3Cluster is externally managed, skipping mapping.")
 					return nil
 				}
 				return requests
