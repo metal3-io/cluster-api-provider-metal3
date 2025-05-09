@@ -202,6 +202,15 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 	}, "5s", "100ms").Should(Succeed(), "Failed to assert target API server stability")
 
+	Logf("Dump the target cluster resources before pivoting in folder %v", filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot"))
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
+
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
@@ -211,6 +220,15 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		Namespace:            input.Namespace,
 	})
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap", "logs", input.Namespace, "clusterctl-move.log"))
+
+	Logf("Dump the target cluster resources before pivoting in folder %v", filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot"))
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
 
 	By("Remove BMO deployment from the source cluster")
 	RemoveDeployment(ctx, func() RemoveDeploymentInput {
