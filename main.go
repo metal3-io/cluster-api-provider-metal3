@@ -225,6 +225,7 @@ func initFlags(fs *pflag.FlagSet) {
 	logsv1.AddFlags(logOptions, fs)
 	var maxClusterCacheQPS float32 = 20
 	maxClusterCacheClientBurst := 30
+	maxClusterCacheConcurrency := 100
 	defaultWebhookPort := 9443
 	defaultConcurrency := 10
 	var defaultKubeAPIQPS float32 = 20
@@ -298,6 +299,13 @@ func initFlags(fs *pflag.FlagSet) {
 		"clustercache-client-burst",
 		maxClusterCacheClientBurst,
 		"Maximum number of queries that should be allowed in one burst from the cluster cache clients to the Kubernetes API server of workload clusters.",
+	)
+
+	fs.IntVar(
+		&clusterCacheConcurrency,
+		"clustercache-concurrency",
+		maxClusterCacheConcurrency,
+		"Number of clusters to process simultaneously",
 	)
 
 	fs.IntVar(
