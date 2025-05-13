@@ -43,8 +43,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.9=>current) [cl
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
-		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
+		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
 	})
 
 	minorVersion := "1.9"
@@ -102,8 +101,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.8=>current) [cl
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
-		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
-		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
+		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
 	})
 
 	minorVersion := "1.8"
@@ -319,7 +317,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	bmoIronicNamespace := e2eConfig.MustGetVariable(ironicNamespace)
 	// install ironic
 	By("Install Ironic in the target cluster")
-	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", clusterProxy.GetName())
+	ironicDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, clusterProxy.GetName(), "ironic-deploy-logs")
 	ironicKustomizePath := "IRONIC_RELEASE_" + ironicRelease
 	initIronicKustomization := e2eConfig.MustGetVariable(ironicKustomizePath)
 	By(fmt.Sprintf("Installing Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
@@ -337,7 +335,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 
 	// install bmo
 	By("Install BMO in the target cluster")
-	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", clusterProxy.GetName())
+	bmoDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, clusterProxy.GetName(), "bmo-deploy-logs")
 	bmoKustomizePath := "BMO_RELEASE_" + bmoRelease
 	initBMOKustomization := e2eConfig.MustGetVariable(bmoKustomizePath)
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the upgrade cluster", initBMOKustomization))
@@ -382,7 +380,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 
 	bmoIronicNamespace := e2eConfig.MustGetVariable(ironicNamespace)
 	By("Upgrade Ironic in the target cluster")
-	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", clusterProxy.GetName())
+	ironicDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, clusterProxy.GetName(), "ironic-deploy-logs")
 	ironicKustomizePath := "IRONIC_RELEASE_" + ironicTag
 	initIronicKustomization := e2eConfig.MustGetVariable(ironicKustomizePath)
 	By(fmt.Sprintf("Upgrading Ironic from kustomization %s on the upgrade cluster", initIronicKustomization))
@@ -400,7 +398,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 
 	// install bmo
 	By("Upgrade BMO in the target cluster")
-	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", clusterProxy.GetName())
+	bmoDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, clusterProxy.GetName(), "bmo-deploy-logs")
 	bmoKustomizePath := "BMO_RELEASE_" + bmoTag
 	initBMOKustomization := e2eConfig.MustGetVariable(bmoKustomizePath)
 	By(fmt.Sprintf("Upgrading BMO from kustomization %s on the upgrade cluster", initBMOKustomization))
@@ -421,7 +419,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 // when upgrading from CAPM3 bundled IPAM.
 func postUpgrade(ctx context.Context, clusterProxy framework.ClusterProxy) {
 	By("Installing Metal3 IPAM provider")
-	ipamDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ipam-deploy-logs", clusterProxy.GetName())
+	ipamDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, clusterProxy.GetName(), "ipam-deploy-logs")
 	ipamVersions := e2eConfig.GetProviderLatestVersionsByContract(contract, e2eConfig.IPAMProviders()...)
 	Expect(ipamVersions).To(HaveLen(1), "Failed to get the latest version for the IPAM provider")
 	input := clusterctl.InitInput{
@@ -459,7 +457,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 			Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 		} else {
 			By("Install Ironic in the source cluster as deployments")
-			ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", bootstrapClusterProxy.GetName())
+			ironicDeployLogFolder := filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "ironic-deploy-logs")
 			ironicKustomizePath := "IRONIC_RELEASE_" + ironicRelease
 			initIronicKustomization := e2eConfig.MustGetVariable(ironicKustomizePath)
 			namePrefix := e2eConfig.MustGetVariable("NAMEPREFIX")

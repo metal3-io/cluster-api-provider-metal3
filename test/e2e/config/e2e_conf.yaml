@@ -107,15 +107,15 @@ providers:
 - name: metal3
   type: IPAMProvider
   versions:
-  - name: "v1.10.0"
-    value: "https://github.com/metal3-io/ip-address-manager/releases/download/v1.10.0/ipam-components.yaml"
+  - name: "{go://github.com/metal3-io/ip-address-manager@v1.10}"
+    value: "https://github.com/metal3-io/ip-address-manager/releases/download/{go://github.com/metal3-io/ip-address-manager@v1.10}/ipam-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/infrastructure-metal3/main/metadata.yaml"
+    - sourcePath: "../data/ipam-metal3/v1.10/metadata.yaml"
       targetName: "metadata.yaml"
 
 - name: metal3
