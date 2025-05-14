@@ -992,7 +992,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		entry := map[string]interface{}{
 			"type":                  "bond",
 			"id":                    link.Id,
 			"mtu":                   link.MTU,
@@ -1000,7 +1000,25 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 			"bond_mode":             link.BondMode,
 			"bond_xmit_hash_policy": link.BondXmitHashPolicy,
 			"bond_links":            link.BondLinks,
-		})
+		}
+
+		illegalParameters := []string{}
+		for opt, value := range link.Parameters {
+			target := "bond_" + opt
+			_, ok := entry[target]
+			if ok {
+				illegalParameters = append(illegalParameters, opt)
+				continue // Do not overwrite structured parameters
+			}
+			entry[target] = value
+		}
+
+		if 0 < len(illegalParameters) {
+			return nil, fmt.Errorf("illegal params \"%s\" into bond params blob into link id=%s",
+				strings.Join(illegalParameters, `", "`), link.Id)
+		}
+
+		data = append(data, entry)
 	}
 
 	// Ethernet links
