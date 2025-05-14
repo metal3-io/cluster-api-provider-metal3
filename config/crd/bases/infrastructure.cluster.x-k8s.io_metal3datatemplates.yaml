@@ -429,6 +429,12 @@ spec:
                               description: MTU is the MTU of the interface
                               maximum: 9000
                               type: integer
+                            parameters:
+                              additionalProperties:
+                                x-kubernetes-preserve-unknown-fields: true
+                              description: params blob passed without any validation/modifications
+                                into cloud-init config
+                              type: object
                           required:
                           - bondMode
                           - id
