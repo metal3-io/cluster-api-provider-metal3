@@ -553,7 +553,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return WithTransientError(errors.New(errMessage), 0*time.Second)
 		}
 
-		waiting := true
+		var waiting bool
 		switch host.Status.Provisioning.State {
 		case bmov1alpha1.StateRegistering,
 			bmov1alpha1.StateMatchProfile, bmov1alpha1.StateInspecting,
@@ -565,6 +565,12 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			// We have no control over provisioning, so just wait until the
 			// host is powered off.
 			waiting = host.Status.PoweredOn
+		case bmov1alpha1.StatePreparing, bmov1alpha1.StateProvisioning, bmov1alpha1.StateProvisioned,
+			bmov1alpha1.StateDeprovisioning, bmov1alpha1.StatePoweringOffBeforeDelete,
+			bmov1alpha1.StateDeleting:
+			waiting = true
+		default:
+			waiting = true
 		}
 		if waiting {
 			errMessage := "Deprovisioning BareMetalHost, requeuing"
@@ -868,6 +874,11 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			} else if !m.nodeReuseLabelExists(ctx, &host) {
 				switch host.Status.Provisioning.State {
 				case bmov1alpha1.StateReady, bmov1alpha1.StateAvailable:
+					// Break out of the switch
+				case bmov1alpha1.StateNone, bmov1alpha1.StateUnmanaged, bmov1alpha1.StateRegistering, bmov1alpha1.StateMatchProfile,
+					bmov1alpha1.StatePreparing, bmov1alpha1.StateProvisioning, bmov1alpha1.StateProvisioned, bmov1alpha1.StateExternallyProvisioned,
+					bmov1alpha1.StateDeprovisioning, bmov1alpha1.StateInspecting, bmov1alpha1.StatePoweringOffBeforeDelete, bmov1alpha1.StateDeleting:
+					continue
 				default:
 					continue
 				}
