@@ -24,6 +24,9 @@ var _ = Describe("When testing integration [integration]", Label("integration"),
 		numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 		numberOfControlplane = int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
+		By("Apply BMH for workload cluster")
+		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
+
 		By("Provision Workload cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{
