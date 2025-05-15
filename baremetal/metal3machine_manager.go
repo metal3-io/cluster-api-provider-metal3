@@ -237,7 +237,12 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
 			if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
+				if _, ok := annotations[bmov1alpha1.StatusAnnotation]; !ok {
+					m.Log.Info("BMH is missing status annotation. Not removing Pause Annotation.")
+					return nil
+				}
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
+				m.Log.Info("Removing Pause Annotation.")
 				delete(host.Annotations, bmov1alpha1.PausedAnnotation)
 			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
@@ -265,8 +270,11 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
-			m.Log.Info("BaremetalHost is already paused")
-			return nil
+			if _, statusOk := annotations[bmov1alpha1.StatusAnnotation]; statusOk {
+				m.Log.Info("BaremetalHost is already paused and has a status annotation")
+				return nil
+			}
+			m.Log.Info("BaremetalHost is already paused but does not have a status annotation")
 		}
 	} else {
 		host.Annotations = make(map[string]string)
@@ -465,6 +473,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("host already associated with another metal3 machine",
 				"host", host.Name)
+			// The following removal of ownerreference code will be removed in v1.11
 			// Remove the ownerreference to this machine, even if the consumer ref
 			// references another machine.
 			host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
@@ -651,6 +660,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 		host.Spec.ConsumerRef = nil
 
+		// The following removal of ownerreference code will be removed in v1.11
 		// Remove the ownerreference to this machine.
 		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
 		if err != nil {
@@ -1105,13 +1115,6 @@ func (m *MachineManager) setHostConsumerRef(_ context.Context, host *bmov1alpha1
 		Namespace:  m.Metal3Machine.Namespace,
 		APIVersion: m.Metal3Machine.APIVersion,
 	}
-
-	// Set OwnerReferences.
-	hostOwnerReferences, err := m.SetOwnerRef(host.OwnerReferences, true)
-	if err != nil {
-		return err
-	}
-	host.OwnerReferences = hostOwnerReferences
 
 	// Delete nodeReuseLabelName from host.
 	m.Log.Info("Deleting nodeReuseLabelName from host, if any")
