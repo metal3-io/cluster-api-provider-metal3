@@ -1,0 +1,3 @@
+resources:
+- ../bases/ubuntu-kubeadm-config
+- mhc.yaml
