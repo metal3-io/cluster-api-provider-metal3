@@ -1,0 +1,3 @@
+resources:
+- ../bases/centos-kubeadm-config
+- mhc.yaml
