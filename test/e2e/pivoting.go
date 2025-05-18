@@ -149,6 +149,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Add labels to BMO CRDs")
 	labelBMOCRDs(ctx, input.BootstrapClusterProxy)
+
 	By("Add Labels to hardwareData CRDs")
 	labelHDCRDs(ctx, input.BootstrapClusterProxy)
 
@@ -363,13 +364,33 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 }
 
 func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
+	bmhs, err := GetAllBmhs(ctx, targetCluster.GetClient(), "metal3")
+	Expect(err).ToNot(HaveOccurred(), "Cannot fetch BMHs")
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
-	labels[clusterv1.ProviderNameLabel] = "metal3"
+	labels[clusterv1.ProviderNameLabel] = "metal3" //nolint:goconst
 	crdName := "baremetalhosts.metal3.io"
-	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
+	err = LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label BMH CRDs")
+	for _, bmh := range bmhs {
+		// Merge new labels with existing labels
+		if bmh.ObjectMeta.Labels == nil {
+			bmh.ObjectMeta.Labels = map[string]string{}
+		}
+
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlLabel] = ""
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlMoveLabel] = ""
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
+		bmh.ObjectMeta.Labels[clusterv1.ProviderNameLabel] = "metal3"
+
+		err = targetCluster.GetClient().Update(ctx, &bmh)
+		if err != nil {
+			Logf("Cannot label BMH %s: %v", bmh.Name, err)
+		}
+		Logf("After adding the labels")
+		Logf(fmt.Sprintf("BMH metadata: %v", bmh.ObjectMeta.Labels))
+	}
+	Expect(err).ToNot(HaveOccurred(), "Cannot label BMHs")
 }
 
 func labelHDCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
