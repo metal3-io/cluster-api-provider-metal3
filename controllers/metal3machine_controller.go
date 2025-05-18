@@ -153,6 +153,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Check pause annotation on associated bmh (if any)
 	if annotations.IsPaused(cluster, capm3Machine) {
+		annotations.AddAnnotations(capm3Machine, map[string]string{"clusterctl.cluster.x-k8s.io/block-move": ""})
 		err := machineMgr.SetPauseAnnotation(ctx)
 		if err != nil {
 			machineLog.Info("failed to set pause annotation on associated bmh")
@@ -161,6 +162,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		machineLog.Info("reconciliation is paused for this object")
 		conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.Metal3MachinePausedReason, clusterv1.ConditionSeverityInfo, "")
+		delete(capm3Machine.Annotations, "clusterctl.cluster.x-k8s.io/block-move")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 	err = machineMgr.RemovePauseAnnotation(ctx)
