@@ -1347,6 +1347,7 @@ func (m *MachineManager) SetDefaultProviderID() error {
 	}
 
 	providerID := fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
+	m.Log.Info("Setting default providerID on the Metal3Machine", "providerID", providerID, "m3mName", m3mName, "bmhName", bmhName)
 	m.SetProviderID(providerID)
 	return nil
 }
@@ -1369,7 +1370,7 @@ func (m *MachineManager) getPossibleProviderIDs(ctx context.Context) (providerID
 		err = errors.Wrap(err, errMessage)
 		return
 	}
-	providerIDLegacy = "metal3://%s" + bmhUID
+	providerIDLegacy = "metal3://" + bmhUID
 	providerIDNew = fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
 
 	return
@@ -1481,7 +1482,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 			return true, nil
 		}
 
-		m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode)
+		m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode, "providerIDLegacy", providerIDLegacy, "providerIDNew", providerIDNew)
 		return false, errors.Wrap(err, "node using unsupported providerID format")
 	}
 
