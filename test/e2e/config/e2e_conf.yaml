@@ -143,6 +143,17 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
+  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.10}"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.10}/infrastructure-components.yaml"
+    type: "url"
+    contract: v1beta1
+    files:
+    - sourcePath: "../data/infrastructure-metal3/v1.10/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
   - name: v1.11.99
     value: "${PWD}/config/default"
     files:
@@ -219,9 +230,11 @@ variables:
   NODE_DRAIN_TIMEOUT: "0s"
   IRONIC_RELEASE_26.0: "data/ironic-deployment/overlays/release-26.0"
   IRONIC_RELEASE_27.0: "data/ironic-deployment/overlays/release-27.0"
+  IRONIC_RELEASE_29.0: "data/ironic-deployment/overlays/release-29.0"
   IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
   BMO_RELEASE_0.8: "data/bmo-deployment/overlays/release-0.8"
   BMO_RELEASE_0.9: "data/bmo-deployment/overlays/release-0.9"
+  BMO_RELEASE_0.10: "data/bmo-deployment/overlays/release-0.10"
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
   FKAS_RELEASE_LATEST: "data/fkas"
 

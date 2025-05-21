@@ -68,8 +68,6 @@ const (
 	oostRemoved = "removed"
 )
 
-var releaseMarkerPrefix = "go://github.com/metal3-io/cluster-api-provider-metal3@v%s"
-
 func Byf(format string, a ...interface{}) {
 	By(fmt.Sprintf(format, a...))
 }
@@ -772,7 +770,7 @@ func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[s
 }
 
 // GetCAPM3StableReleaseOfMinor returns latest stable version of minorRelease.
-func GetCAPM3StableReleaseOfMinor(ctx context.Context, minorRelease string) (string, error) {
+func GetStableReleaseOfMinor(ctx context.Context, releaseMarkerPrefix string, minorRelease string) (string, error) {
 	releaseMarker := fmt.Sprintf(releaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)
 }
