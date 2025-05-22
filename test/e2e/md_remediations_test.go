@@ -41,7 +41,7 @@ var _ = Describe("When testing MachineDeployment remediation [healthcheck] [reme
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			PostNamespaceCreated:  postNamespaceCreated,
+			PostNamespaceCreated:  createBMHsInNamespace,
 			Flavor:                ptr.To(osType + "-md-remediation"),
 		}
 	})
