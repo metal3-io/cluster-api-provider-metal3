@@ -219,9 +219,11 @@ variables:
   NODE_DRAIN_TIMEOUT: "0s"
   IRONIC_RELEASE_26.0: "data/ironic-deployment/overlays/release-26.0"
   IRONIC_RELEASE_27.0: "data/ironic-deployment/overlays/release-27.0"
+  IRONIC_RELEASE_CUSTOM_IMAGE: "data/ironic-deployment/overlays/release-custom-image"
   IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
   BMO_RELEASE_0.8: "data/bmo-deployment/overlays/release-0.8"
   BMO_RELEASE_0.9: "data/bmo-deployment/overlays/release-0.9"
+  BMO_RELEASE_CUSTOM_IMAGE: "data/bmo-deployment/overlays/release-custom-image"
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
   FKAS_RELEASE_LATEST: "data/fkas"
 
@@ -230,7 +232,7 @@ intervals:
   default/wait-cluster: ["20m", "30s"] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created
   default/wait-control-plane: ["30m", "10s"]
   default/wait-worker-nodes: ["60m", "10s"]
-  default/wait-delete-cluster: ["40m", "10s"]
+  default/wait-delete-cluster: ["80m", "10s"]
   default/wait-machine-upgrade: ["50m", "10s"]
   default/wait-machine-remediation: ["30m", "10s"]
   default/wait-vm-state: ["20m", "100ms"]
