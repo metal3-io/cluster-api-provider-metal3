@@ -107,6 +107,7 @@ IRONIC_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-26.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-27.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-latest"
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/local"
 )
 
 # Create usernames and passwords and other files related to ironi basic auth if they

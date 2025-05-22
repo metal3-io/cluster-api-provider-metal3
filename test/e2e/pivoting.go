@@ -155,7 +155,13 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Install Ironic in the target cluster")
 	// TODO(dtantsur): support ironic-standalone-operator
 	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
-	ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_LATEST")
+	var ironicOverlay string
+	if input.E2EConfig.MustGetVariable("REPO_NAME") == "ironic-image" {
+		ironicOverlay = "IRONIC_LOCAL"
+	} else {
+		ironicOverlay = "IRONIC_RELEASE_LATEST"
+	}
+	ironicKustomization := input.E2EConfig.MustGetVariable(ironicOverlay)
 	By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", ironicKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       ironicKustomization,
@@ -405,7 +411,13 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {
 		By("Install Ironic in the bootstrap cluster")
-		ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_LATEST")
+		var ironicOverlay string
+		if input.E2EConfig.MustGetVariable("REPO_NAME") == "ironic-image" {
+			ironicOverlay = "IRONIC_LOCAL"
+		} else {
+			ironicOverlay = "IRONIC_RELEASE_LATEST"
+		}
+		ironicKustomization := input.E2EConfig.MustGetVariable(ironicOverlay)
 		ironicDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
 		err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 			Kustomization:       ironicKustomization,
