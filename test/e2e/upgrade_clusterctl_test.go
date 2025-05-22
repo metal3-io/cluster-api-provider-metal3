@@ -82,7 +82,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current) [c
 				os.Setenv("CAPM3_VERSION", contract)
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 			},
-			PostNamespaceCreated: postNamespaceCreated,
+			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
 				preUpgrade(clusterProxy, bmoToRelease, ironicToRelease)
 			},
@@ -137,7 +137,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.9=>current) [cl
 				os.Setenv("CAPM3_VERSION", contract)
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 			},
-			PostNamespaceCreated: postNamespaceCreated,
+			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
 				preUpgrade(clusterProxy, bmoToRelease, ironicToRelease)
 			},
@@ -153,9 +153,9 @@ var _ = Describe("When testing cluster upgrade from releases (v1.9=>current) [cl
 	})
 })
 
-// postNamespaceCreated is a hook function that should be called from ClusterctlUpgradeSpec after creating
+// postClusterctlUpgradeNamespaceCreated is a hook function that should be called from ClusterctlUpgradeSpec after creating
 // the namespace, it creates the needed bmhs in namespace hosting the cluster.
-func postNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace string) {
+func postClusterctlUpgradeNamespaceCreated(clusterProxy framework.ClusterProxy, clusterNamespace string) {
 	// Check which from which cluster creation this call is coming
 	// if isBootstrapProxy==true then this call when creating the management else we are creating the workload.
 	isBootstrapProxy := !strings.HasPrefix(clusterProxy.GetName(), "clusterctl-upgrade")
