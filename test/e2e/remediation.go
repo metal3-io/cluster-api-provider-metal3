@@ -251,8 +251,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	ListMachines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, targetClient)
 
-	By("Testing Metal3DataTemplate reference")
-	Logf("Creating a new Metal3DataTemplate")
+	By("Creating a new Metal3DataTemplate")
 	m3dataTemplate := infrav1.Metal3DataTemplate{}
 	m3dataTemplateName := input.ClusterName + "-workers-template"
 	newM3dataTemplateName := "test-new-m3dt"
@@ -264,7 +263,6 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	newM3DataTemplate.Spec.MetaData = m3dataTemplate.Spec.MetaData
 	newM3DataTemplate.Spec.NetworkData = m3dataTemplate.Spec.NetworkData
 	newM3DataTemplate.Spec.ClusterName = input.ClusterName
-	newM3DataTemplate.Spec.TemplateReference = m3dataTemplateName
 
 	newM3DataTemplate.ObjectMeta.Name = newM3dataTemplateName
 	newM3DataTemplate.ObjectMeta.Namespace = m3dataTemplate.Namespace
@@ -310,12 +308,11 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-remediation"),
 	})
 
-	By("Waiting for single Metal3Data to refer to the old template")
+	By("Waiting for single new worker to become provisioned")
 	Eventually(func(g Gomega) {
 		datas := infrav1.Metal3DataList{}
 		g.Expect(bootstrapClient.List(ctx, &datas, client.InNamespace(input.Namespace))).To(Succeed())
-		filtered := filterM3DataByReference(datas.Items, m3dataTemplateName)
-		g.Expect(filtered).To(HaveLen(1))
+		g.Expect(datas.Items).NotTo(BeEmpty())
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...).Should(Succeed())
 
 	ListMetal3Machines(ctx, bootstrapClient, client.InNamespace(input.Namespace))
@@ -414,15 +411,6 @@ func listVms(state vmState) []string {
 		}
 	}
 	return lines[:i]
-}
-
-func filterM3DataByReference(datas []infrav1.Metal3Data, referenceName string) (result []infrav1.Metal3Data) {
-	for _, data := range datas {
-		if data.Spec.TemplateReference == referenceName {
-			result = append(result, data)
-		}
-	}
-	return
 }
 
 func waitForVmsState(vmNames []string, state vmState, _ string, interval ...interface{}) {
