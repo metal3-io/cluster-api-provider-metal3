@@ -1,5 +1,4 @@
 run:
-  deadline: 15m
   go: "1.23"
 linters:
   disable-all: true
@@ -53,7 +52,6 @@ linters:
 
 linters-settings:
   gosec:
-    go: "1.23"
     severity: medium
     confidence: medium
     concurrency: 8
@@ -94,7 +92,6 @@ linters-settings:
       alias: bmov1alpha1
   nolintlint:
     allow-unused: false
-    allow-leading-space: false
     require-specific: true
   gocritic:
     enabled-tags:
@@ -113,8 +110,6 @@ linters-settings:
     - unnecessaryDefer
     - whyNoLint
     - wrapperFunc
-  unused:
-    go: "1.23"
 issues:
   exclude-dirs:
   - mock*
