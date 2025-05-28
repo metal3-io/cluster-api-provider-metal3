@@ -199,11 +199,11 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Consistently(func() error {
 		kubeSystem := &corev1.Namespace{}
 		return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-	}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
+	}, "5s", "100ms").Should(Succeed(), "Failed to assert bootstrap API server stability")
 	Consistently(func() error {
 		kubeSystem := &corev1.Namespace{}
 		return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-	}, "5s", "100ms").Should(BeNil(), "Failed to assert target API server stability")
+	}, "5s", "100ms").Should(Succeed(), "Failed to assert target API server stability")
 
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
@@ -510,7 +510,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	Consistently(func() error {
 		kubeSystem := &corev1.Namespace{}
 		return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-	}, "5s", "100ms").Should(BeNil(), "Failed to assert bootstrap API server stability")
+	}, "5s", "100ms").Should(Succeed(), "Failed to assert bootstrap API server stability")
 
 	By("Move back to bootstrap cluster")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
