@@ -440,9 +440,19 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 	if err != nil {
 		Logf("Error: %v", err)
 	}
+	Logf("Management cluster starting PreCleanup")
+	ListPods(ctx, clusterProxy.GetClient(), &client.ListOptions{})
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 	bmoIronicNamespace := e2eConfig.MustGetVariable(ironicNamespace)
+	// Remove BMO to stop log watchers. They will otherwise spam errors as the cluster is deleted.
+	RemoveDeployment(ctx, func() RemoveDeploymentInput {
+		return RemoveDeploymentInput{
+			ManagementCluster: clusterProxy,
+			Namespace:         bmoIronicNamespace,
+			Name:              e2eConfig.MustGetVariable(NamePrefix) + "-controller-manager",
+		}
+	})
 	// Reinstall ironic
 	reInstallIronic := func() {
 		By("Reinstate Ironic containers and BMH")
@@ -487,6 +497,8 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 			NamePrefix:        e2eConfig.MustGetVariable(NamePrefix),
 		}
 	})
+	Logf("Management cluster after PreCleanup")
+	ListPods(ctx, clusterProxy.GetClient(), &client.ListOptions{})
 	reInstallIronic()
 
 	// Clean env variables set for management upgrade, defaults are set in e2e config file
