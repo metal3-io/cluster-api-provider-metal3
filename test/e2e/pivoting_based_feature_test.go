@@ -86,6 +86,9 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 		})
 
 		It("Should get a management cluster then test cert rotation and node reuse", func() {
+			By("Apply BMH for workload cluster")
+			ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
+			By("Provision Workload cluster")
 			targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 				return CreateTargetClusterInput{
 					E2EConfig:             e2eConfig,

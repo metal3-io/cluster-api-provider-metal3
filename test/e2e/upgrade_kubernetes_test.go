@@ -38,6 +38,8 @@ var _ = Describe("Kubernetes version upgrade in target nodes [k8s-upgrade]", Lab
 	})
 
 	It("Should create a cluster and run k8s_upgrade tests", func() {
+		By("Apply BMH for workload cluster")
+		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
 		By("Creating target cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{

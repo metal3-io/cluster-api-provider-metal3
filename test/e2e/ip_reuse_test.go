@@ -21,6 +21,9 @@ var _ = Describe("When testing ip reuse [ip-reuse] [features]", Label("ip-reuse"
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
 	It("Should create a workload cluster then verify ip allocation reuse while upgrading k8s", func() {
+		By("Apply BMH for workload cluster")
+		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
+		By("Provision Workload cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{
 				E2EConfig:             e2eConfig,
