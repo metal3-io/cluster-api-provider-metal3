@@ -48,27 +48,36 @@ export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 export USE_IRSO="${USE_IRSO:-false}"
 EOF
-# if running basic integration or clusterctl-upgrade test skip apply bmhs in dev-env
-if [[ "${GINKGO_FOCUS:-}" == "clusterctl-upgrade" ]] || [[ "${GINKGO_FOCUS:-}" == "basic" ]] || [[ "${GINKGO_FOCUS:-}" == "integration" ]]; then
+
+case "${GINKGO_FOCUS:-}" in
+  clusterctl-upgrade|k8s-upgrade|basic|integration)
+    # if running basic, integration, k8s upgrade or clusterctl-upgrade test, skip apply bmhs in dev-env
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-fi
-if [[ ${GINKGO_FOCUS:-} == "features" ]]; then
-    mkdir -p "$CAPI_CONFIG_FOLDER"
-    echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
-fi
-# if running a scalability tests, configure dev-env with fakeIPA
-if [[ ${GINKGO_FOCUS:-} == "scalability" ]]; then
+  ;;
+
+  features)
+    mkdir -p "${CAPI_CONFIG_FOLDER}"
+    echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
+    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+  ;;
+
+  scalability)
+    # if running a scalability tests, configure dev-env with fakeIPA
     export NUM_NODES="${NUM_NODES:-100}"
     echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     sed -i "s/^export NUM_NODES=.*/export NUM_NODES=${NUM_NODES:-100}/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    mkdir -p "$CAPI_CONFIG_FOLDER"
-    echo 'CLUSTER_TOPOLOGY: true' >"$CAPI_CONFIG_FOLDER/clusterctl.yaml"
+    mkdir -p "${CAPI_CONFIG_FOLDER}"
+    echo 'CLUSTER_TOPOLOGY: true' >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export EPHEMERAL_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-else
-    # Don't run scalability tests if not asked for.
+  ;;
+esac
+
+if [[ ${GINKGO_FOCUS:-} != "scalability" ]]; then
+  # Don't run scalability tests if not asked for.
     export GINKGO_SKIP="${GINKGO_SKIP:-} scalability"
 fi
+
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1
 make

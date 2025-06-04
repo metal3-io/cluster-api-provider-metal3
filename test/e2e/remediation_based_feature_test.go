@@ -71,6 +71,8 @@ var _ = Describe("Testing nodes remediation [remediation] [features]", Label("re
 	})
 
 	It("Should create a cluster and run remediation based tests", func() {
+		By("Apply BMH for workload cluster")
+		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
 		By("Creating target cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{

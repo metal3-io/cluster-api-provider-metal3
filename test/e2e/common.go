@@ -1060,8 +1060,9 @@ func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClu
 
 func ApplyBmh(ctx context.Context, e2eConfig *clusterctl.E2EConfig, clusterProxy framework.ClusterProxy, clusterNamespace string, specName string) {
 	workingDir := "/opt/metal3-dev-env/"
+	numNodes := int(*e2eConfig.MustGetInt32PtrVariable("NUM_NODES"))
 	// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
-	for i := range 2 {
+	for i := range numNodes {
 		resource, err := os.ReadFile(filepath.Join(workingDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
@@ -1071,7 +1072,7 @@ func ApplyBmh(ctx context.Context, e2eConfig *clusterctl.E2EConfig, clusterProxy
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
 		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(clusterNamespace)},
-		Replicas:  2,
+		Replicas:  numNodes,
 		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
 	})
 	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
