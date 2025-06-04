@@ -165,7 +165,7 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 			ClusterProxy:         bootstrapClusterProxy,
 			Namespace:            namespace,
 			ClusterctlConfigPath: clusterctlConfigPath,
-			ArtifactFolder:       artifactFolder,
+			ArtifactFolder:       filepath.Join(artifactFolder, "delete-cluster"),
 		}, intervalsGetter(specName, "wait-delete-cluster")...)
 
 		// Waiting for Metal3Datas, Metal3DataTemplates and Metal3DataClaims, as these may take longer time to delete
