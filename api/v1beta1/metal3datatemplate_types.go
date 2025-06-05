@@ -19,6 +19,7 @@ package v1beta1
 import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -264,10 +265,16 @@ type NetworkDataLinkBond struct {
 	// used to render it.
 	MACAddress *NetworkLinkEthernetMac `json:"macAddress"`
 
+	// params blob passed without any validation/modifications into cloud-init config
+	Parameters NetworkDataLinkBondParams `json:"parameters,omitempty"`
+
 	// BondLinks is the list of links that are part of the bond.
 	// +optional
 	BondLinks []string `json:"bondLinks"`
 }
+
+// NetworkDataLinkBondParams represent the set of bond params.
+type NetworkDataLinkBondParams map[string]apiextensionsv1.JSON
 
 // NetworkDataLinkVlan represents a vlan link object.
 type NetworkDataLinkVlan struct {
