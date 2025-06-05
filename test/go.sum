@@ -181,8 +181,8 @@ github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/mattn/go-runewidth v0.0.14 h1:+xnbZSEeDbOIg5/mE6JF0w6n9duR1l3/WmbinWVwUuU=
 github.com/mattn/go-runewidth v0.0.14/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
-github.com/metal3-io/baremetal-operator/apis v0.10.1 h1:nnvYzpJo0vj6uOjsRPaNK54HXgAQazkmjXyLyZB3HXo=
-github.com/metal3-io/baremetal-operator/apis v0.10.1/go.mod h1:HaPc8Czc6IAj3Fl72pOZHerDM+OwysMDTl52gLFRYUw=
+github.com/metal3-io/baremetal-operator/apis v0.10.2 h1:JvlonhC9uKw0IhNYDdswK80ZQz+k7wEpDpbOg/x/52I=
+github.com/metal3-io/baremetal-operator/apis v0.10.2/go.mod h1:+mUutTxI4UUITR30PcIoU2Vaiy78/dgMqztUH6SpGYU=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 h1:0VwWmCjrP3y8Sn4H82KBVo9wCgnrPZMuij2OnMd3vxk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
 github.com/metal3-io/ip-address-manager/api v1.10.0 h1:siItzDRB/ikIsk1dhTa32rKunWFOEuPg2+2s5SOY5g0=
