@@ -155,7 +155,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Install Ironic in the target cluster")
 	// TODO(dtantsur): support ironic-standalone-operator
 	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
-	ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_LATEST")
+	ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_PR_TEST")
 	By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", ironicKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       ironicKustomization,
@@ -171,7 +171,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Install BMO in the target cluster")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", input.TargetCluster.GetName())
-	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_LATEST")
+	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_PR_TEST")
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the target cluster", bmoKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       bmoKustomization,
@@ -405,7 +405,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {
 		By("Install Ironic in the bootstrap cluster")
-		ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_LATEST")
+		ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_PR_TEST")
 		ironicDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
 		err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 			Kustomization:       ironicKustomization,
@@ -421,7 +421,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	}
 
 	By("Reinstate BMO in Source cluster")
-	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_LATEST")
+	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_PR_TEST")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "bmo-deploy-logs", input.TargetCluster.GetName())
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the source cluster", bmoKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{

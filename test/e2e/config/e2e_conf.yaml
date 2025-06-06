@@ -231,12 +231,15 @@ variables:
   IRONIC_RELEASE_26.0: "data/ironic-deployment/overlays/release-26.0"
   IRONIC_RELEASE_27.0: "data/ironic-deployment/overlays/release-27.0"
   IRONIC_RELEASE_29.0: "data/ironic-deployment/overlays/release-29.0"
+  IRONIC_RELEASE_PR_TEST: "data/ironic-deployment/overlays/pr-test"
   IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
   BMO_RELEASE_0.8: "data/bmo-deployment/overlays/release-0.8"
   BMO_RELEASE_0.9: "data/bmo-deployment/overlays/release-0.9"
   BMO_RELEASE_0.10: "data/bmo-deployment/overlays/release-0.10"
+  BMO_RELEASE_PR_TEST: "data/bmo-deployment/overlays/pr-test"
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
   FKAS_RELEASE_LATEST: "data/fkas"
+  REPO_NAME: "${REPO_NAME:cluster-api-provider-metal3}"
 
 intervals:
   default/wait-controllers: ["10m", "10s"]
