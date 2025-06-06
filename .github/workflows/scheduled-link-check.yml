@@ -1,0 +1,18 @@
+name: Scheduled Link Check
+
+on:
+  workflow_dispatch:
+  schedule:
+  # random minute and hour as to not overlap with other scheduled checks
+  - cron: "30 14 1 * *"
+  repository_dispatch:
+    # run manually
+    types: [check-links]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check-links:
+    uses: metal3-io/project-infra/.github/workflows/scheduled-link-check.yml@main
