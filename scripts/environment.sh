@@ -58,25 +58,35 @@ export M3PATH=${M3PATH:-"${HOME}/go/src/github.com/metal3-io"}
 export CAPM3_LOCAL_IMAGE="${CAPM3PATH}"
 
 # Upgrade test environment vars and config
-if [[ ${GINKGO_FOCUS:-} == "clusterctl-upgrade" ]]; then
-  export NUM_NODES="5"
-fi
+case "${GINKGO_FOCUS:-}" in
+  # clusterctl upgrade var
+  clusterctl-upgrade)
+    export NUM_NODES="5"
+  ;;
 
-# Scalability test environment vars and config
-if [[ ${GINKGO_FOCUS:-} == "scalability" ]]; then
-  export NUM_NODES=${NUM_NODES:-"10"}
-  export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
-  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
-  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
-  export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
-fi
+  # Integration test environment vars and config
+  basic|integration)
+    export NUM_NODES=${NUM_NODES:-"2"}
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
+  ;;
 
-# Integration test environment vars and config
-if [[ ${GINKGO_FOCUS:-} == "integration" || ${GINKGO_FOCUS:-} == "basic" ]]; then
-  export NUM_NODES=${NUM_NODES:-"2"}
-  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
-  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
-fi
+  # Pivoting, k8s-upgrade and remediation vars and config
+  pivoting|k8s-upgrade|remediation)
+    export NUM_NODES="4"
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
+  ;;
+
+  # Scalability test environment vars and config
+  scalability)
+    export NUM_NODES=${NUM_NODES:-"10"}
+    export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
+    export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
+  ;;
+esac
 
 # IPReuse feature test environment vars and config
 if [[ ${GINKGO_FOCUS:-} == "features" && ${GINKGO_SKIP:-} == "pivoting remediation" ]]; then
