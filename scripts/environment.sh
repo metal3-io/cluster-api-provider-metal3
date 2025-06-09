@@ -85,8 +85,8 @@ if [[ ${GINKGO_FOCUS:-} == "features" && ${GINKGO_SKIP:-} == "pivoting remediati
   export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"2"}
 fi
 
-# Pivoting feature test environment vars and config
-if [[ ${GINKGO_FOCUS:-} == "pivoting" ]]; then
+# K8s-upgrade and pivoting feature test environment vars and config
+if [[ ${GINKGO_FOCUS:-} == "pivoting" ]] || [[ ${GINKGO_FOCUS:-} == "k8s-upgrade" ]] || [[ ${GINKGO_FOCUS:-} == "remediation" ]]; then
   export NUM_NODES="4"
   export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
   export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
