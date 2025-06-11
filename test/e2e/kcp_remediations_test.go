@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("When testing KubeadmControlPlane remediation [remediation] [features]", Label("remediation", "features"), func() {
+var _ = Describe("When testing KubeadmControlPlane remediation [kcp-remediation] [remediation] [features]", Label("remediation", "features"), func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
