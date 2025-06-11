@@ -14,11 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	bmhCrsFile = "bmhosts_crs.yaml"
-)
-
-var _ = Describe("When testing MachineDeployment remediation [healthcheck] [remediation] [features]", Label("healthcheck", "remediation", "features"), func() {
+var _ = Describe("When testing KubeadmControlPlane remediation [remediation] [features]", Label("remediation", "features"), func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
@@ -34,15 +30,16 @@ var _ = Describe("When testing MachineDeployment remediation [healthcheck] [reme
 		Expect(err).ToNot(HaveOccurred(), "Failed to delete existing BMHs")
 		Logf("BMHs are removed")
 	})
-	capi_e2e.MachineDeploymentRemediationSpec(ctx, func() capi_e2e.MachineDeploymentRemediationSpecInput {
-		return capi_e2e.MachineDeploymentRemediationSpecInput{
+
+	capi_e2e.KCPRemediationSpec(ctx, func() capi_e2e.KCPRemediationSpecInput {
+		return capi_e2e.KCPRemediationSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			PostNamespaceCreated:  createBMHsInNamespace,
-			Flavor:                ptr.To(osType + "-md-remediation"),
+			Flavor:                ptr.To(osType + "-kcp-remediation"),
 		}
 	})
 	AfterEach(func() {
