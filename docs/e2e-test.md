@@ -54,6 +54,7 @@ Below are the tests that you can use with `GINKGO_FOCUS` and `GINKGO_SKIP`
    - remediation
    - pivoting
 - k8s-upgrade
+- k8s-conformance
 - clusterctl-upgrade
 - scalability
 - integration
@@ -81,12 +82,13 @@ sudo rm -rf /opt/metal3-dev-env/
 
 ## Included tests
 
-The e2e tests currently include three different sets:
+The e2e tests currently include five different sets:
 
 1. Pivoting based feature tests
 1. Remediation based feature tests
 1. clusterctl upgrade tests
 1. K8s upgrade tests
+1. K8s conformance tests
 
 ### Pivoting based feature tests
 
@@ -163,6 +165,14 @@ Release 1.8 branch k8s-upgrade test:
 
 When Kubernetes 1.34 is released, k8s-upgrade `v1.33` => `v1.34` will be
 supported in v1.10.x (but not in v1.9.x)
+
+### K8s conformance tests
+
+The conformance tests are a subset of Kubernetes' E2E test set. The standard set
+of conformance tests includes those defined by the [Conformance] tag in the
+[kubernetes e2e suite](https://github.com/kubernetes/kubernetes/blob/master/test/conformance/testdata/conformance.yaml).
+Refer to [Conformance Tests per Release](https://github.com/cncf/k8s-conformance/blob/master/docs/README.md)
+for more information on which tests are required for each Kubernetes release.
 
 ## Guidelines to follow when adding new E2E tests
 

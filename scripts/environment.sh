@@ -95,6 +95,15 @@ if [[ ${GINKGO_FOCUS:-} == "features" && ${GINKGO_SKIP:-} == "pivoting remediati
   export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"2"}
 fi
 
+# K8s conformance test environment vars and config
+# The test needs 6 nodes in total because the tests run in parallel on 5 worker machines:
+# https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/k8s_conformance.go#L104
+if [[ ${GINKGO_FOCUS:-} == "k8s-conformance" ]]; then
+  export NUM_NODES="6"
+  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"5"}
+fi
+
 # Exported to the cluster templates
 # Generate user ssh key
 if [ ! -f "${HOME}/.ssh/id_rsa" ]; then

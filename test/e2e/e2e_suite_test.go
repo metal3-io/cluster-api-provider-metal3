@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -299,4 +300,27 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 	Expect(err).ToNot(HaveOccurred())
 	err = os.WriteFile(calicoYaml, yamlOut, 0600)
 	Expect(err).ToNot(HaveOccurred(), "Cannot print out the update to the file")
+}
+
+// createBMHsInNamespace is a hook function that can be called after creating
+// a namespace, it creates the needed bmhs in the namespace hosting the cluster.
+func createBMHsInNamespace(clusterProxy framework.ClusterProxy, clusterNamespace string) {
+	// Apply secrets and bmhs for all nodes in the cluster to host the target cluster
+	nodes := int(*e2eConfig.MustGetInt32PtrVariable("NUM_NODES"))
+	for i := range nodes {
+		resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
+	}
+	clusterClient := clusterProxy.GetClient()
+	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(clusterNamespace)},
+		Replicas:  nodes,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
+	})
+	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
+
+	ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(clusterNamespace))
 }

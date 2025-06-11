@@ -1,0 +1,11 @@
+ginkgo.focus: \[Conformance\]
+ginkgo.skip: \[Serial\]
+disable-log-dump: true
+ginkgo.slow-spec-threshold: 120s
+ginkgo.flake-attempts: 3
+ginkgo.trace: true
+ginkgo.v: true
+# Use 5m instead of the default 10m to fail faster
+# if kube-system Pods are not coming up.
+system-pods-startup-timeout: 5m
+ginkgo.no-color: true
