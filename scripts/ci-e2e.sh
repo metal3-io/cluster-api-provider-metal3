@@ -50,8 +50,8 @@ export USE_IRSO="${USE_IRSO:-false}"
 EOF
 
 case "${GINKGO_FOCUS:-}" in
-  clusterctl-upgrade|k8s-upgrade|basic|integration|remediation|k8s-conformance)
-    # if running basic, integration, k8s upgrade, clusterctl-upgrade, remediation or k8s conformance test, skip apply bmhs in dev-env
+  clusterctl-upgrade|k8s-upgrade|basic|integration|remediation|k8s-conformance|capi-md-tests)
+    # if running basic, integration, k8s upgrade, clusterctl-upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 
@@ -164,7 +164,7 @@ IRONIC_OVERLAYS=(
 )
 
 # Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
-case "${REPO_NAME}" in
+case "${REPO_NAME:-}" in
   baremetal-operator)
     # shellcheck disable=SC2034
     BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
@@ -174,7 +174,6 @@ case "${REPO_NAME}" in
     # shellcheck disable=SC2034
     IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
     ;;
-
 esac
 
 update_kustomize_image quay.io/metal3-io/baremetal-operator BARE_METAL_OPERATOR_IMAGE "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test

@@ -59,6 +59,7 @@ Below are the tests that you can use with `GINKGO_FOCUS` and `GINKGO_SKIP`
 - scalability
 - integration
 - basic
+- capi-md-tests
 
 You can combine both `GINKGO_FOCUS` and `GINKGO_SKIP` to run multiple tests
 according to your requirements. For example following will run ip-reuse and
@@ -82,13 +83,14 @@ sudo rm -rf /opt/metal3-dev-env/
 
 ## Included tests
 
-The e2e tests currently include five different sets:
+The e2e tests currently include six different sets:
 
 1. Pivoting based feature tests
 1. Remediation based feature tests
 1. clusterctl upgrade tests
 1. K8s upgrade tests
 1. K8s conformance tests
+1. CAPI MachineDeployment tests
 
 ### Pivoting based feature tests
 
@@ -173,6 +175,13 @@ of conformance tests includes those defined by the [Conformance] tag in the
 [kubernetes e2e suite](https://github.com/kubernetes/kubernetes/blob/master/test/conformance/testdata/conformance.yaml).
 Refer to [Conformance Tests per Release](https://github.com/cncf/k8s-conformance/blob/master/docs/README.md)
 for more information on which tests are required for each Kubernetes release.
+
+### CAPI MachineDeployment tests
+
+Includes the following MachineDeployment tests adopted from the Cluster API's e2e tests:
+
+- [MachineDeployment rolling upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_rollout.go)
+- [MachineDeployment scale](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_scale.go)
 
 ## Guidelines to follow when adding new E2E tests
 
