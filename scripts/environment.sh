@@ -86,6 +86,12 @@ case "${GINKGO_FOCUS:-}" in
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
     export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
   ;;
+
+  md-scale)
+    export NUM_NODES="4"
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"3"}
+  ;;
 esac
 
 # IPReuse feature test environment vars and config
