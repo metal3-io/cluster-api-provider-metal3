@@ -172,8 +172,8 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
-github.com/metal3-io/baremetal-operator/apis v0.9.1 h1:Qj0ALDQMIBGebDHhiKXvWs8Hve8KObCwUIlSgbozQ5A=
-github.com/metal3-io/baremetal-operator/apis v0.9.1/go.mod h1:D0NG169s4/Nt/TT//DVq/DdgfB23my/SqXbwTgIo198=
+github.com/metal3-io/baremetal-operator/apis v0.9.2 h1:jNVLSgwKgqxnLpH4yZo+MrYPgdNKsfjZGVhngWhT+rE=
+github.com/metal3-io/baremetal-operator/apis v0.9.2/go.mod h1:tw2xgvd+voXIYuQ5PNpS3sJvupP3b6nVc54HYadKxwE=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 h1:0VwWmCjrP3y8Sn4H82KBVo9wCgnrPZMuij2OnMd3vxk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
 github.com/metal3-io/ip-address-manager/api v1.9.4 h1:MGFu+5/C+K9qfeyFXJCMMhXOQHahfRxXCrSJ+kI5YNQ=
