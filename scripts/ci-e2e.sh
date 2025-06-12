@@ -2,6 +2,8 @@
 
 set -euxo pipefail
 
+export GINKGO_FOCUS="md-scale"
+
 REPO_ROOT=$(realpath "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"/..)
 cd "${REPO_ROOT}"
 export CAPM3PATH="${REPO_ROOT}"
@@ -50,7 +52,7 @@ export USE_IRSO="${USE_IRSO:-false}"
 EOF
 
 case "${GINKGO_FOCUS:-}" in
-  clusterctl-upgrade|k8s-upgrade|basic|integration|k8s-conformance)
+  clusterctl-upgrade|k8s-upgrade|basic|integration|k8s-conformance|md-scale)
     # if running basic, integration, k8s upgrade, clusterctl-upgrade or k8s conformance test, skip apply bmhs in dev-env
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
@@ -164,18 +166,19 @@ IRONIC_OVERLAYS=(
 )
 
 # Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
-case "${REPO_NAME}" in
-  baremetal-operator)
-    # shellcheck disable=SC2034
-    BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
-    ;;
+if [[ -n "${REPO_NAME:-}" ]]; then
+  case "${REPO_NAME}" in
+    baremetal-operator)
+      # shellcheck disable=SC2034
+      BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
+      ;;
 
-  ironic-image)
-    # shellcheck disable=SC2034
-    IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
-    ;;
-
-esac
+    ironic-image)
+      # shellcheck disable=SC2034
+      IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
+      ;;
+  esac
+fi
 
 update_kustomize_image quay.io/metal3-io/baremetal-operator BARE_METAL_OPERATOR_IMAGE "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
 update_kustomize_image quay.io/metal3-io/ironic IRONIC_IMAGE "${REPO_ROOT}"/test/e2e/data/ironic-deployment/overlays/pr-test
