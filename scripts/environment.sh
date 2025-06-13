@@ -86,23 +86,37 @@ case "${GINKGO_FOCUS:-}" in
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
     export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
   ;;
+
+  # IPReuse feature test environment vars and config
+  features)
+    if [[ "${GINKGO_SKIP:-}" == "pivoting remediation" ]]; then
+      export NUM_NODES="5"
+      export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+      export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"2"}
+    else
+      export NUM_NODES=${NUM_NODES:-"4"}
+      export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+      export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
+    fi
+  ;;
+
+  # K8s conformance test environment vars and config
+  # The test needs 6 nodes in total because the tests run in parallel on 5 worker machines:
+  # https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/k8s_conformance.go#L104
+  k8s-conformance)
+    export NUM_NODES="6"
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"5"}
+  ;;
+
+  *)
+    # unknown GINKGO_FOCUS, let's print out the crucial env and continue
+    echo "WARNING: unrecognized GINKGO_FOCUS='${GINKGO_FOCUS:-}'"
+  ;;
 esac
 
-# IPReuse feature test environment vars and config
-if [[ ${GINKGO_FOCUS:-} == "features" && ${GINKGO_SKIP:-} == "pivoting remediation" ]]; then
-  export NUM_NODES="5"
-  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
-  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"2"}
-fi
-
-# K8s conformance test environment vars and config
-# The test needs 6 nodes in total because the tests run in parallel on 5 worker machines:
-# https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/k8s_conformance.go#L104
-if [[ ${GINKGO_FOCUS:-} == "k8s-conformance" ]]; then
-  export NUM_NODES="6"
-  export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
-  export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"5"}
-fi
+echo -e "\nINFO: GINKGO_FOCUS='${GINKGO_FOCUS:-}' GINKGO_SKIP='${GINKGO_SKIP:-}'"
+echo -e "INFO: NUM_NODES='${NUM_NODES:-}', CONTROL_PLANE_MACHINE_COUNT='${CONTROL_PLANE_MACHINE_COUNT:-}', WORKER_MACHINE_COUNT='${WORKER_MACHINE_COUNT:-}'\n"
 
 # Exported to the cluster templates
 # Generate user ssh key
