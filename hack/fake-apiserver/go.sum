@@ -137,8 +137,8 @@ github.com/metal3-io/cluster-api-provider-metal3 v1.9.3 h1:Y+iqpGLEuxMoWo9FmX9AS
 github.com/metal3-io/cluster-api-provider-metal3 v1.9.3/go.mod h1:DAXa8gI9w+Kt+xx2C7VFLpg+HoZ1aUkpJqArNUn9SMQ=
 github.com/metal3-io/cluster-api-provider-metal3/api v1.10.0 h1:nxqVaxrvc8ha8CoDlACSd1z8jhpFIWcoh/atI+/jj5Q=
 github.com/metal3-io/cluster-api-provider-metal3/api v1.10.0/go.mod h1:wRjJOQtGfsuro7F+TYZBa2YLNSVHBREiaco36vpgUjg=
-github.com/metal3-io/ip-address-manager/api v1.10.0 h1:siItzDRB/ikIsk1dhTa32rKunWFOEuPg2+2s5SOY5g0=
-github.com/metal3-io/ip-address-manager/api v1.10.0/go.mod h1:hpE48m7DgPwQICKTN3TNO44yyTD+QGcd/BoCKquHDr4=
+github.com/metal3-io/ip-address-manager/api v1.10.1 h1:Sz2CX/yf2dSJdMtqbmmLYp+qt45rN8ej3qMYpqGM+r4=
+github.com/metal3-io/ip-address-manager/api v1.10.1/go.mod h1:Hyeq34VlcxylZf3l7WGyFY7KwaEMcbFdFC6BmxRc1DA=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=

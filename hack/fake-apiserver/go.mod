@@ -60,7 +60,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 // indirect
 	github.com/metal3-io/cluster-api-provider-metal3 v1.9.3
-	github.com/metal3-io/ip-address-manager/api v1.10.0 // indirect
+	github.com/metal3-io/ip-address-manager/api v1.10.1 // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
