@@ -189,6 +189,8 @@ cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/cluster-template-upgrade-workload.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/cluster-template-centos-md-remediation.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/cluster-template-ubuntu-md-remediation.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos-kcp-remediation > $(E2E_OUT_DIR)/cluster-template-centos-kcp-remediation.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu-kcp-remediation > $(E2E_OUT_DIR)/cluster-template-ubuntu-kcp-remediation.yaml
 	touch $(E2E_OUT_DIR)/clusterclass.yaml
 
 .PHONY: clusterclass-templates
@@ -218,7 +220,7 @@ e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be
 	$(GINKGO) --timeout=$(GINKGO_TIMEOUT) -v --trace --tags=e2e  \
 		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
 		--junit-report="junit.e2e_suite.1.xml" \
-		--focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
+		--focus="kcp-remediation" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \

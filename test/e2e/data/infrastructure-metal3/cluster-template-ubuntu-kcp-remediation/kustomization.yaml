@@ -1,0 +1,5 @@
+resources:
+- ../bases/ubuntu-kubeadm-config
+- mhc.yaml
+patchesStrategicMerge:
+- patch-kcp.yaml

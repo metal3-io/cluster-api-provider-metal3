@@ -1,0 +1,36 @@
+apiVersion: controlplane.cluster.x-k8s.io/${CAPI_VERSION}
+kind: KubeadmControlPlane
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  kubeadmConfigSpec:
+    files:
+    - path: /wait-signal.sh
+      content: |
+        #!/bin/bash
+
+        set -o errexit
+        set -o pipefail
+
+        echo "Waiting for signal..."
+
+        TOKEN=$1
+        SERVER=$2
+        NAMESPACE=$3
+
+        while true;
+        do
+          sleep 1s
+
+          signal=$(curl -k -s --header "Authorization: Bearer $TOKEN" $SERVER/api/v1/namespaces/$NAMESPACE/configmaps/mhc-test | jq -r .data.signal?)
+          echo "signal $signal"
+
+          if [ "$signal" == "pass" ]; then
+             curl -k -s --header "Authorization: Bearer $TOKEN" -XPATCH -H "Content-Type: application/strategic-merge-patch+json" --data '{"data": {"signal": "ack-pass"}}' $SERVER/api/v1/namespaces/$NAMESPACE/configmaps/mhc-test
+             exit 0
+          fi
+        done
+      permissions: "0777"
+    preKubeadmCommands:
+    - ./wait-signal.sh "${TOKEN}" "${SERVER}" "${NAMESPACE}"
