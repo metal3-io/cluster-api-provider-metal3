@@ -327,7 +327,10 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 
 	deploymentName := input.Name
 	ironicNamespace := input.Namespace
-	err := input.ManagementCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{})
+	foregroundDeletion := metav1.DeletePropagationForeground
+	err := input.ManagementCluster.GetClientSet().AppsV1().Deployments(ironicNamespace).Delete(ctx, deploymentName, metav1.DeleteOptions{
+		PropagationPolicy: &foregroundDeletion,
+	})
 	Expect(err).ToNot(HaveOccurred(), "Failed to delete %s Deployment", deploymentName)
 }
 
@@ -455,6 +458,16 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivot", "logs", input.Namespace, "clusterctl-move.log"))
+
+	// Remove BMO to stop log watchers. They will otherwise spam errors as the cluster is deleted.
+	By("Remove BMO deployment from the target cluster")
+	RemoveDeployment(ctx, func() RemoveDeploymentInput {
+		return RemoveDeploymentInput{
+			ManagementCluster: input.TargetCluster,
+			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
+			Name:              input.E2EConfig.MustGetVariable(NamePrefix) + "-controller-manager",
+		}
+	})
 
 	By("Check that the re-pivoted cluster is up and running")
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
