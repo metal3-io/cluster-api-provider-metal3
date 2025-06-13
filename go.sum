@@ -134,8 +134,8 @@ github.com/metal3-io/baremetal-operator/apis v0.9.2 h1:jNVLSgwKgqxnLpH4yZo+MrYPg
 github.com/metal3-io/baremetal-operator/apis v0.9.2/go.mod h1:tw2xgvd+voXIYuQ5PNpS3sJvupP3b6nVc54HYadKxwE=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 h1:0VwWmCjrP3y8Sn4H82KBVo9wCgnrPZMuij2OnMd3vxk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
-github.com/metal3-io/ip-address-manager/api v1.9.4 h1:MGFu+5/C+K9qfeyFXJCMMhXOQHahfRxXCrSJ+kI5YNQ=
-github.com/metal3-io/ip-address-manager/api v1.9.4/go.mod h1:Z0L032vV699SFb/rNKfmedzLvZLl9M3Jm8D2fsVXA1Q=
+github.com/metal3-io/ip-address-manager/api v1.9.5 h1:FmCddDrPKnwTKNApJkm9RL2XdGlgP5H+t3qX/Y4ERSs=
+github.com/metal3-io/ip-address-manager/api v1.9.5/go.mod h1:640HkhDx4Pk0ALXnKCia6II+4Ip9Vo5QO/DxKpjcB/s=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
