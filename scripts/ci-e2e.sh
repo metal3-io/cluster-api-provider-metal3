@@ -2,6 +2,8 @@
 
 set -euxo pipefail
 
+export GINKGO_FOCUS="capi-md-tests"
+
 REPO_ROOT=$(realpath "$(dirname "$(realpath "${BASH_SOURCE[0]}")")"/..)
 cd "${REPO_ROOT}"
 export CAPM3PATH="${REPO_ROOT}"
