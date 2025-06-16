@@ -70,7 +70,7 @@ GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
 # Helper function to get dependency version from go.mod
 get_go_version = $(shell $(GO) list -m $1 | awk '{print $$2}')
 GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
-ENVTEST_K8S_VERSION := 1.32.x
+ENVTEST_K8S_VERSION := 1.33.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
