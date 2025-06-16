@@ -216,7 +216,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 			framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
 				Getter:     clusterProxy.GetClient(),
 				Deployment: deployment,
-			}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
+			}, e2eConfig.GetIntervals(specName, "wait-all-pod-to-be-running-on-target-cluster")...)
 		}
 		By("Checking that cert-manager is functioning, by creating a self-signed certificate")
 		// Create an issuer and certificate to ensure that cert-manager is ready.
