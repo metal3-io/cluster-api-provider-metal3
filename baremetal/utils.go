@@ -44,6 +44,10 @@ const (
 	VerbosityLevelTrace = 5
 )
 
+var ErrMissingDataTemplateName = errors.New("data template is missing in tmpM3Machine spec")
+	var ErrDataTemplateNameMismatch = errors.New("data template name mismatch")
+	var ErrDataTemplateNamespaceMismatch = errors.New("data template namespace mismatch")
+
 // Contains returns true if a list contains a string.
 func Contains(list []string, strToSearch string) bool {
 	for _, item := range list {
@@ -199,8 +203,9 @@ func fetchM3DataTemplate(ctx context.Context,
 	clusterName string,
 ) (*infrav1.Metal3DataTemplate, error) {
 	// If the user did not specify a Metal3DataTemplate, just keep going.
+	var ErrTemplateRefIsNil = errors.New("Template ref is nil")
 	if templateRef == nil {
-		return nil, nil
+		return nil, ErrTemplateRefIsNil
 	}
 	if templateRef.Name == "" {
 		return nil, errors.New("Metal3DataTemplate name not set")
@@ -286,6 +291,7 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 		Namespace: namespace,
 	}
 	err := cl.Get(ctx, key, tmpM3Machine)
+	var ErrMetal3MachineNotFound = errors.New("Metal3Machine is not found")
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			mLog.Info("Metal3Machine is not found")
@@ -294,7 +300,7 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 				mLog.Info(errMessage)
 				return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 			}
-			return nil, nil
+			return nil, ErrMetal3MachineNotFound
 		}
 		err := errors.Wrap(err, "Failed to get Metal3Machine")
 		return nil, err
@@ -306,14 +312,14 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 
 	// Verify that the Metal3Machine fulfills the conditions.
 	if tmpM3Machine.Spec.DataTemplate == nil {
-		return nil, nil
+		return nil, ErrMissingDataTemplateName
 	}
 	if tmpM3Machine.Spec.DataTemplate.Name != dataTemplate.Name {
-		return nil, nil
+		return nil, ErrDataTemplateNameMismatch
 	}
 	if tmpM3Machine.Spec.DataTemplate.Namespace != "" &&
 		tmpM3Machine.Spec.DataTemplate.Namespace != dataTemplate.Namespace {
-		return nil, nil
+		return nil, ErrDataTemplateNamespaceMismatch
 	}
 	return tmpM3Machine, nil
 }
