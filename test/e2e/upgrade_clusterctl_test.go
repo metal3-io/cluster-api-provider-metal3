@@ -221,21 +221,6 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 		By("Checking that cert-manager is functioning, by creating a self-signed certificate")
 		// Create an issuer and certificate to ensure that cert-manager is ready.
 		Eventually(func() error {
-			// TODO(lentzi90): Bug in cert-manager. The webhook can be stuck refusing connections
-			// and still appear Running. We need to restart the pod to get it working.
-			// This is a workaround until the bug is fixed.
-			err := clusterProxy.GetClientSet().CoreV1().Pods("cert-manager").DeleteCollection(ctx, metav1.DeleteOptions{}, metav1.ListOptions{
-				LabelSelector: "app.kubernetes.io/name=webhook",
-			})
-			Expect(err).NotTo(HaveOccurred(), "Unable to delete webhook pod")
-			// Get the cert-manager-webhook deployment and wait for it to be available again.
-			deployment, err := clientSet.AppsV1().Deployments("cert-manager").Get(ctx, "cert-manager-webhook", metav1.GetOptions{})
-			Expect(err).ToNot(HaveOccurred(), "Unable to get the cert-manager-webhook deployment\nerror message: %s", err)
-			framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
-				Getter:     clusterProxy.GetClient(),
-				Deployment: deployment,
-			}, e2eConfig.GetIntervals(specName, "wait-controllers")...)
-
 			return BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 				ClusterProxy:  clusterProxy,
 				Kustomization: "data/cert-manager-test",
