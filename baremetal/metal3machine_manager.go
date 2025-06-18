@@ -77,9 +77,6 @@ const (
 var (
 	// Capm3FastTrack is the variable fetched from the CAPM3_FAST_TRACK environment variable.
 	Capm3FastTrack    = os.Getenv("CAPM3_FAST_TRACK")
-	ErrAnnotationsNotFound = errors.New("annotations not found")
-	ErrHostIsEmpty = errors.New("Host is empty")
-	ErrCredentialsSecretIsEmpty = errors.New("Credentials secret is empty")
 	errNotFound       *NotFoundError
 	associateBMHMutex sync.Mutex
 )
@@ -764,12 +761,11 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 ) (*bmov1alpha1.BareMetalHost, error) {
 	annotations := m3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
-		return nil, ErrAnnotationsNotFound
+		return nil, nil //nolint:nilnil
 	}
 	hostKey, ok := annotations[HostAnnotation]
-	var ErrHostKeyNotFound = errors.New("host key not found")
 	if !ok {
-		return nil, ErrHostKeyNotFound
+		return nil, nil //nolint:nilnil
 	}
 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
 	if err != nil {
@@ -783,11 +779,9 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 		Namespace: hostNamespace,
 	}
 	err = cl.Get(ctx, key, &host)
-
-	var ErrAnnotatedHostNotFound = errors.New("Annotated host not found")
 	if apierrors.IsNotFound(err) {
 		mLog.Info("Annotated host not found", "host", hostKey)
-		return nil, ErrAnnotatedHostNotFound
+		return nil, nil //nolint:nilnil
 	} else if err != nil {
 		return nil, err
 	}
@@ -1014,11 +1008,10 @@ func (m *MachineManager) nodeReuseLabelExists(_ context.Context, host *bmov1alph
 
 // getBMCSecret will return the BMCSecret associated with BMH.
 func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmov1alpha1.BareMetalHost) (*corev1.Secret, error) {
-
 	if host == nil {
-		return nil, ErrHostIsEmpty
+		return nil, errors.New("Host is empty")
 	} else if host.Spec.BMC.CredentialsName == "" {
-		return nil, ErrCredentialsSecretIsEmpty
+		return nil, errors.New("Credentials secret is empty")
 	}
 	tmpBMCSecret := corev1.Secret{}
 	key := host.CredentialsKey()
