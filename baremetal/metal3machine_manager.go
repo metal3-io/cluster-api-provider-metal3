@@ -761,11 +761,11 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 ) (*bmov1alpha1.BareMetalHost, error) {
 	annotations := m3Machine.ObjectMeta.GetAnnotations()
 	if annotations == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	hostKey, ok := annotations[HostAnnotation]
 	if !ok {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
 	if err != nil {
@@ -781,7 +781,7 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
 		mLog.Info("Annotated host not found", "host", hostKey)
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	} else if err != nil {
 		return nil, err
 	}
@@ -1008,8 +1008,10 @@ func (m *MachineManager) nodeReuseLabelExists(_ context.Context, host *bmov1alph
 
 // getBMCSecret will return the BMCSecret associated with BMH.
 func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmov1alpha1.BareMetalHost) (*corev1.Secret, error) {
-	if host == nil || host.Spec.BMC.CredentialsName == "" {
-		return nil, nil
+	if host == nil {
+		return nil, errors.New("Host is empty")
+	} else if host.Spec.BMC.CredentialsName == "" {
+		return nil, nil //nolint:nilnil
 	}
 	tmpBMCSecret := corev1.Secret{}
 	key := host.CredentialsKey()

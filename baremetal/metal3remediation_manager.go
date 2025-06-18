@@ -391,7 +391,7 @@ func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV
 
 	node, err := clusterClient.Nodes().Get(ctx, capiMachine.Status.NodeRef.Name, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	} else if err != nil {
 		r.Log.Error(err, "Could not get cluster node")
 		return nil, errors.Wrapf(err, "Could not get cluster node")
