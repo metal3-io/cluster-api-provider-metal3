@@ -1011,7 +1011,7 @@ func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmov1alpha1.Bar
 	if host == nil {
 		return nil, errors.New("Host is empty")
 	} else if host.Spec.BMC.CredentialsName == "" {
-		return nil, errors.New("Credentials secret is empty")
+		return nil, nil //nolint:nilnil
 	}
 	tmpBMCSecret := corev1.Secret{}
 	key := host.CredentialsKey()
