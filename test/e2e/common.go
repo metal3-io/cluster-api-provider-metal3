@@ -273,20 +273,25 @@ func FilterMachines(machines []clusterv1.Machine, accept func(clusterv1.Machine)
 }
 
 // AnnotateBmh annotates BaremetalHost with a given key and value.
-func AnnotateBmh(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, key string, value *string) {
-	helper, err := patch.NewHelper(&host, client)
+func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alpha1.BareMetalHost, key string, value *string) {
+	bmh := &bmov1alpha1.BareMetalHost{}
+	bmhKey := client.ObjectKey{Name: host.Name, Namespace: host.Namespace}
+	err := clusterClient.Get(ctx, bmhKey, bmh)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get BareMetalHost %s", host.Name)
+	helper, err := patch.NewHelper(bmh, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	annotations := host.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
+
 	if value == nil {
-		delete(annotations, key)
+		Logf("Removing annotation %s from BMH %s", key, bmh.Name)
+		delete(bmh.Annotations, key)
 	} else {
-		annotations[key] = *value
+		Logf("Adding annotation %s to BMH %s", key, bmh.Name)
+		if bmh.Annotations == nil {
+			bmh.Annotations = make(map[string]string)
+		}
+		bmh.Annotations[key] = *value
 	}
-	host.SetAnnotations(annotations)
-	Expect(helper.Patch(ctx, &host)).To(Succeed())
+	Expect(helper.Patch(ctx, bmh)).To(Succeed())
 }
 
 // DeleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
