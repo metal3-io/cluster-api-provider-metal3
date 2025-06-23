@@ -200,7 +200,7 @@ func fetchM3DataTemplate(ctx context.Context,
 ) (*infrav1.Metal3DataTemplate, error) {
 	// If the user did not specify a Metal3DataTemplate, just keep going.
 	if templateRef == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	if templateRef.Name == "" {
 		return nil, errors.New("Metal3DataTemplate name not set")
@@ -294,7 +294,7 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 				mLog.Info(errMessage)
 				return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 			}
-			return nil, nil
+			return nil, nil //nolint:nilnil
 		}
 		err := errors.Wrap(err, "Failed to get Metal3Machine")
 		return nil, err
@@ -306,14 +306,14 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 
 	// Verify that the Metal3Machine fulfills the conditions.
 	if tmpM3Machine.Spec.DataTemplate == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	if tmpM3Machine.Spec.DataTemplate.Name != dataTemplate.Name {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	if tmpM3Machine.Spec.DataTemplate.Namespace != "" &&
 		tmpM3Machine.Spec.DataTemplate.Namespace != dataTemplate.Namespace {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
 	return tmpM3Machine, nil
 }
