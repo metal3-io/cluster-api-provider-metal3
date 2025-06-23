@@ -57,8 +57,8 @@ github.com/fsnotify/fsnotify v1.8.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8
 github.com/fxamacker/cbor/v2 v2.7.0 h1:iM5WgngdRBanHcxugY4JySA0nk1wZorNOpTgCMedv5E=
 github.com/fxamacker/cbor/v2 v2.7.0/go.mod h1:pxXPTn3joSm21Gbwsv0w9OSA2y1HFR9qXEeXQVeNoDQ=
 github.com/go-logr/logr v1.2.2/go.mod h1:jdQByPbusPIv2/zmleS9BjJVeZ6kBagPoEUsqbVz/1A=
-github.com/go-logr/logr v1.4.2 h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=
-github.com/go-logr/logr v1.4.2/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
+github.com/go-logr/logr v1.4.3 h1:CjnDlHq8ikf6E492q6eKboGOC0T8CDaOvkHCIg8idEI=
+github.com/go-logr/logr v1.4.3/go.mod h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=
 github.com/go-logr/stdr v1.2.2 h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=
 github.com/go-logr/stdr v1.2.2/go.mod h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=
 github.com/go-logr/zapr v1.3.0 h1:XGdV8XW8zdwFiwOA2Dryh1gj2KRQyOOoNmBy4EplIcQ=
@@ -133,8 +133,8 @@ github.com/metal3-io/baremetal-operator/apis v0.10.2 h1:JvlonhC9uKw0IhNYDdswK80Z
 github.com/metal3-io/baremetal-operator/apis v0.10.2/go.mod h1:+mUutTxI4UUITR30PcIoU2Vaiy78/dgMqztUH6SpGYU=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 h1:0VwWmCjrP3y8Sn4H82KBVo9wCgnrPZMuij2OnMd3vxk=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
-github.com/metal3-io/cluster-api-provider-metal3 v1.9.3 h1:Y+iqpGLEuxMoWo9FmX9AStwhiACcofAS7i85hsY2b9c=
-github.com/metal3-io/cluster-api-provider-metal3 v1.9.3/go.mod h1:DAXa8gI9w+Kt+xx2C7VFLpg+HoZ1aUkpJqArNUn9SMQ=
+github.com/metal3-io/cluster-api-provider-metal3 v1.9.4 h1:G+L/xzInlelR+dILiAXyZGjp3Xb7JuLLORrB7GqabBU=
+github.com/metal3-io/cluster-api-provider-metal3 v1.9.4/go.mod h1:JVVTFuH4dLDrBu2cl82sd0kiMHf5ebBIH4f3PyDq/bw=
 github.com/metal3-io/cluster-api-provider-metal3/api v1.10.1 h1:jS1pAqF1AqXjPsOI+JQvQ96QD0h64oAh1I3xgUMsPp8=
 github.com/metal3-io/cluster-api-provider-metal3/api v1.10.1/go.mod h1:xa8OLhHAQPqAo8E6xo3YdJ2Mfe1aLn36lcKjVUI3vaE=
 github.com/metal3-io/ip-address-manager/api v1.10.1 h1:Sz2CX/yf2dSJdMtqbmmLYp+qt45rN8ej3qMYpqGM+r4=
