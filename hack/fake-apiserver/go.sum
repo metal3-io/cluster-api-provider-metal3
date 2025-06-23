@@ -135,8 +135,8 @@ github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 h1:0VwWmCjrP3y8
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
 github.com/metal3-io/cluster-api-provider-metal3 v1.10.1 h1:HtKbCRRTffTzTf/SDEv8ioNEwA7PVoZsyVlU047vs/w=
 github.com/metal3-io/cluster-api-provider-metal3 v1.10.1/go.mod h1:em4BjResPPcIa18ZAnqS1Bo8GBlrqTO9WliRXRBeG5g=
-github.com/metal3-io/cluster-api-provider-metal3/api v1.10.0 h1:nxqVaxrvc8ha8CoDlACSd1z8jhpFIWcoh/atI+/jj5Q=
-github.com/metal3-io/cluster-api-provider-metal3/api v1.10.0/go.mod h1:wRjJOQtGfsuro7F+TYZBa2YLNSVHBREiaco36vpgUjg=
+github.com/metal3-io/cluster-api-provider-metal3/api v1.10.1 h1:jS1pAqF1AqXjPsOI+JQvQ96QD0h64oAh1I3xgUMsPp8=
+github.com/metal3-io/cluster-api-provider-metal3/api v1.10.1/go.mod h1:xa8OLhHAQPqAo8E6xo3YdJ2Mfe1aLn36lcKjVUI3vaE=
 github.com/metal3-io/ip-address-manager/api v1.10.1 h1:Sz2CX/yf2dSJdMtqbmmLYp+qt45rN8ej3qMYpqGM+r4=
 github.com/metal3-io/ip-address-manager/api v1.10.1/go.mod h1:Hyeq34VlcxylZf3l7WGyFY7KwaEMcbFdFC6BmxRc1DA=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
