@@ -10,7 +10,7 @@ require (
 	k8s.io/apimachinery v0.31.9
 	k8s.io/client-go v0.31.9
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
-	sigs.k8s.io/cluster-api v1.9.8
+	sigs.k8s.io/cluster-api v1.9.9
 	sigs.k8s.io/controller-runtime v0.19.7
 )
 
@@ -64,5 +64,4 @@ require (
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
-
 )
