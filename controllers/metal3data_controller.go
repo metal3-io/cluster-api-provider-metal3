@@ -76,7 +76,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	// Always patch Metal3Data exiting this function so we can persist any changes.
 	defer func() {
-		err := helper.Patch(ctx, metal3Data)
+		err = helper.Patch(ctx, metal3Data)
 		if err != nil {
 			metadataLog.Info("failed to Patch Metal3Data")
 			rerr = err
