@@ -262,6 +262,7 @@ intervals:
   default/wait-bmh-deprovisioning: ["50m", "10s"]
   default/wait-bmh-available: ["50m", "20s"]
   default/wait-bmh-inspecting: ["10m", "2s"]
+  default/wait-bmh-deleting: ["15m", "2s"]
   default/wait-machine-deleting: ["15m", "2s"]
   default/wait-bmh-deprovisioning-available: ["7m", "500ms"]
   default/wait-bmh-available-provisioning: ["15m", "2s"]

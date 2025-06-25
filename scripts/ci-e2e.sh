@@ -50,8 +50,8 @@ export USE_IRSO="${USE_IRSO:-false}"
 EOF
 
 case "${GINKGO_FOCUS:-}" in
-  clusterctl-upgrade|k8s-upgrade|basic|integration|k8s-conformance)
-    # if running basic, integration, k8s upgrade, clusterctl-upgrade or k8s conformance test, skip apply bmhs in dev-env
+  clusterctl-upgrade|k8s-upgrade|basic|integration|remediation|k8s-conformance)
+    # if running basic, integration, k8s upgrade, clusterctl-upgrade, remediation or k8s conformance test, skip apply bmhs in dev-env
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 
