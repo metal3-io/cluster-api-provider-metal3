@@ -87,6 +87,15 @@ case "${GINKGO_FOCUS:-}" in
     export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
   ;;
 
+  # CAPI md-tests environment vars and config
+  # In the md_scale_test, the MachineDeployment starts with 1 worker and is scaled up to 3,
+  # so the worker machine count must be set to 3.
+  capi-md-tests)
+    export NUM_NODES="4"
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"3"}
+  ;;
+
   # IPReuse feature test environment vars and config
   features)
     if [[ "${GINKGO_SKIP:-}" == "pivoting remediation" ]]; then
