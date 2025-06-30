@@ -151,6 +151,24 @@ release!
 
 Some post-release actions are needed if new minor or major branch was created.
 
+### Dependabot configuration
+
+In `main` branch, Dependabot configuration must be amended to allow updates
+to release branch dependencies and GitHub Workflows.
+
+If project dependencies or modules have not changed, previous release branch
+configuration can be copied and amend the `target-branch` to point to our new
+release branch. Release branches that are End-of-Life should be removed in the
+same PR, as updating `dependabot.yml` causes Dependabot to run the rules,
+ignoring the configured schedules, causing unnecessary PR creation for EOL
+branches.
+
+If project dependencies have changed, then copy the configuration of `main`,
+and adjust the `ignore` rules to match release branches. As generic rule we
+don't allow major or minor bumps in release branches.
+
+[Prior art](https://github.com/metal3-io/cluster-api-provider-metal3/pull/2527)
+
 ### Branch protection rules
 
 Branch protection rules need to be applied to the new release branch. Copy the
