@@ -431,7 +431,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "Unable to create ClusterCache")
 		os.Exit(1)
 	}
-	if err := (&controllers.Metal3MachineReconciler{
+	if err = (&controllers.Metal3MachineReconciler{
 		Client:           mgr.GetClient(),
 		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
@@ -443,7 +443,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.Metal3ClusterReconciler{
+	if err = (&controllers.Metal3ClusterReconciler{
 		Client:           mgr.GetClient(),
 		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
@@ -454,7 +454,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.Metal3DataTemplateReconciler{
+	if err = (&controllers.Metal3DataTemplateReconciler{
 		Client:           mgr.GetClient(),
 		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
@@ -465,7 +465,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.Metal3DataReconciler{
+	if err = (&controllers.Metal3DataReconciler{
 		Client:           mgr.GetClient(),
 		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
@@ -476,7 +476,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.Metal3LabelSyncReconciler{
+	if err = (&controllers.Metal3LabelSyncReconciler{
 		Client:           mgr.GetClient(),
 		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
@@ -487,7 +487,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&controllers.Metal3MachineTemplateReconciler{
+	if err = (&controllers.Metal3MachineTemplateReconciler{
 		Client:         mgr.GetClient(),
 		ClusterCache:   clusterCache,
 		ManagerFactory: baremetal.NewManagerFactory(mgr.GetClient()),
