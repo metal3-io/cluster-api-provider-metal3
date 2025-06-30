@@ -218,7 +218,7 @@ func fetchM3DataTemplate(ctx context.Context,
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err := errors.Wrap(err, "Failed to get Metal3DataTemplate")
+		err = errors.Wrap(err, "Failed to get Metal3DataTemplate")
 		return nil, err
 	}
 
@@ -246,7 +246,7 @@ func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err := errors.Wrap(err, "Failed to get Metal3DataClaim")
+		err = errors.Wrap(err, "Failed to get Metal3DataClaim")
 		return nil, err
 	}
 	return m3DataClaim, nil
@@ -268,7 +268,7 @@ func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err := errors.Wrap(err, "Failed to get Metal3Data")
+		err = errors.Wrap(err, "Failed to get Metal3Data")
 		return nil, err
 	}
 	return m3Data, nil
@@ -296,7 +296,7 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 			}
 			return nil, nil //nolint:nilnil
 		}
-		err := errors.Wrap(err, "Failed to get Metal3Machine")
+		err = errors.Wrap(err, "Failed to get Metal3Machine")
 		return nil, err
 	}
 

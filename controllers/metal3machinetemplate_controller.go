@@ -74,7 +74,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 
 	// Always patch metal3MachineTemplate exiting this function so we can persist any metal3MachineTemplate changes.
 	defer func() {
-		err := helper.Patch(ctx, metal3MachineTemplate)
+		err = helper.Patch(ctx, metal3MachineTemplate)
 		if err != nil {
 			m3templateLog.Info("failed to patch Metal3MachineTemplate")
 			rerr = err
@@ -84,7 +84,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	// Fetch the Metal3MachineList
 	m3machinelist := &infrav1.Metal3MachineList{}
 
-	if err := r.Client.List(ctx, m3machinelist); err != nil {
+	if err = r.Client.List(ctx, m3machinelist); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "unable to fetch Metal3MachineList")
 	}
 
