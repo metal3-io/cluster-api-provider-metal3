@@ -50,10 +50,12 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
@@ -108,10 +110,20 @@ var (
 
 func init() {
 	_ = scheme.AddToScheme(myscheme)
+
+	// metal3Ipam and capipam schemes
 	_ = ipamv1.AddToScheme(myscheme)
-	_ = caipamv1.AddToScheme(myscheme)
+	_ = capipamv1beta1.AddToScheme(myscheme)
+	_ = capipamv1.AddToScheme(scheme.Scheme)
+
+	// infra provider schemes
 	_ = infrav1.AddToScheme(myscheme)
+
+	// cluster-api schemes
+	_ = clusterv1beta1.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
+
+	// BMO Operator schemes
 	_ = bmov1alpha1.AddToScheme(myscheme)
 }
 
@@ -148,7 +160,7 @@ func main() {
 		}
 	}
 
-	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
+	req, _ := labels.NewRequirement(clusterv1beta1.ClusterNameLabel, selection.Exists, nil)
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
@@ -276,7 +288,7 @@ func initFlags(fs *pflag.FlagSet) {
 		&watchFilterValue,
 		"watch-filter",
 		"",
-		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1beta1.WatchLabel),
 	)
 
 	fs.DurationVar(

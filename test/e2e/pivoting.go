@@ -17,7 +17,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	framework "sigs.k8s.io/cluster-api/test/framework"
@@ -250,7 +250,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 
 	By("Check that all machines become running.")
-	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
 		Client:    input.TargetCluster.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -334,7 +334,7 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterv1.ProviderNameLabel] = "metal3"
+	labels[clusterv1beta1.ProviderNameLabel] = "metal3"
 	crdName := "baremetalhosts.metal3.io"
 	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label BMH CRDs")
@@ -488,7 +488,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("Check that all machines become running.")
-	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
 		Client:    input.BootstrapClusterProxy.GetClient(),
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,

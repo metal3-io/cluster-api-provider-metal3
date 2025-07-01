@@ -28,7 +28,7 @@ import (
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -36,7 +36,7 @@ import (
 type testCaseRemediationManager struct {
 	Metal3Remediation *infrav1.Metal3Remediation
 	Metal3Machine     *infrav1.Metal3Machine
-	Machine           *clusterv1.Machine
+	Machine           *clusterv1beta1.Machine
 	ExpectSuccess     bool
 }
 
@@ -67,7 +67,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Entry("All fields defined", testCaseRemediationManager{
 				Metal3Remediation: &infrav1.Metal3Remediation{},
 				Metal3Machine:     &infrav1.Metal3Machine{},
-				Machine:           &clusterv1.Machine{},
+				Machine:           &clusterv1beta1.Machine{},
 				ExpectSuccess:     true,
 			}),
 			Entry("None of the fields defined", testCaseRemediationManager{
@@ -913,7 +913,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	})
 
 	Describe("Test Nodes", func() {
-		cluster := &clusterv1.Cluster{
+		cluster := &clusterv1beta1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "mycluster",
 			},
@@ -922,21 +922,21 @@ var _ = Describe("Metal3Remediation manager", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				OwnerReferences: []metav1.OwnerReference{
 					{
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: clusterv1beta1.GroupVersion.String(),
 						Kind:       "Machine",
 						Name:       "mymachine",
 					},
 				},
 			},
 		}
-		capiMachine := &clusterv1.Machine{
+		capiMachine := &clusterv1beta1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "mymachine",
 				Labels: map[string]string{
 					"cluster.x-k8s.io/cluster-name": "mycluster",
 				},
 			},
-			Status: clusterv1.MachineStatus{
+			Status: clusterv1beta1.MachineStatus{
 				NodeRef: &corev1.ObjectReference{
 					Name: "mynode",
 				},
@@ -953,7 +953,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			corev1Client := clientfake.NewSimpleClientset(&corev1.Node{ObjectMeta: metav1.ObjectMeta{
 				Name: node.Name,
 			}}).CoreV1()
-			clientGetter := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error) {
+			clientGetter := func(_ context.Context, _ client.Client, _ *clusterv1beta1.Cluster) (clientcorev1.CoreV1Interface, error) {
 				return corev1Client, nil
 			}
 			remediationMgr, err := NewRemediationManager(fakeClient, clientGetter, m3Remediation, nil, capiMachine,

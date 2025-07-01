@@ -27,8 +27,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -377,7 +377,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(savedSecret.ObjectMeta.Labels).To(Equal(map[string]string{
-				clusterv1.ClusterNameLabel: "ghi",
+				clusterv1beta1.ClusterNameLabel: "ghi",
 			}))
 			Expect(savedSecret.ObjectMeta.OwnerReferences).To(Equal(ownerRef))
 			Expect(savedSecret.Data).To(Equal(content))

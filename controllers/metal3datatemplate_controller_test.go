@@ -31,7 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -45,7 +45,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		expectRequeue        bool
 		expectManager        bool
 		m3dt                 *infrav1.Metal3DataTemplate
-		cluster              *clusterv1.Cluster
+		cluster              *clusterv1beta1.Cluster
 		managerError         bool
 		reconcileNormal      bool
 		reconcileNormalError bool
@@ -165,9 +165,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
-			cluster: &clusterv1.Cluster{
+			cluster: &clusterv1beta1.Cluster{
 				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
-				Spec: clusterv1.ClusterSpec{
+				Spec: clusterv1beta1.ClusterSpec{
 					Paused: true,
 				},
 			},
@@ -179,7 +179,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
-			cluster: &clusterv1.Cluster{
+			cluster: &clusterv1beta1.Cluster{
 				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
 			},
 			managerError: true,
@@ -189,7 +189,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
-			cluster: &clusterv1.Cluster{
+			cluster: &clusterv1beta1.Cluster{
 				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
 			},
 			reconcileNormal:      true,
@@ -201,7 +201,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
 				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
-			cluster: &clusterv1.Cluster{
+			cluster: &clusterv1beta1.Cluster{
 				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
 			},
 			reconcileNormal: true,

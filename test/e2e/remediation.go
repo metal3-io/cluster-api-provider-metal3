@@ -14,10 +14,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -224,7 +224,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	})
 
 	By("Waiting for all Machines to be Running")
-	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -286,10 +286,10 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	Expect(bootstrapClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")
 
 	By("Pointing MachineDeployment to the new Metal3MachineTemplate")
-	deployment := clusterv1.MachineDeployment{}
+	deployment := clusterv1beta1.MachineDeployment{}
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, &deployment)).To(Succeed())
 
-	helper, err := patch.NewHelper(&deployment, bootstrapClient)
+	helper, err := deprecatedpatch.NewHelper(&deployment, bootstrapClient)
 	Expect(err).NotTo(HaveOccurred())
 
 	deployment.Spec.Template.Spec.InfrastructureRef = corev1.ObjectReference{
@@ -329,7 +329,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	})
 
 	Byf("Waiting for all %d machines to be Running", numberOfAllBmh)
-	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
 		Client:    bootstrapClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,

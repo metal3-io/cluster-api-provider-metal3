@@ -61,7 +61,7 @@ Use the following examples as a basis for creating a MachineHealthCheck and
 Metal3Remediation for worker nodes:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineHealthCheck
 metadata:
   name: worker-healthcheck
@@ -121,7 +121,7 @@ Use the following examples as a basis for creating a MachineHealthCheck and
 Metal3Remediation for controlplane nodes:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineHealthCheck
 metadata:
   name: controlplane-healthcheck

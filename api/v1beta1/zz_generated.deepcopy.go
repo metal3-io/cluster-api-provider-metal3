@@ -25,7 +25,7 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	apiv1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -457,7 +457,7 @@ func (in *Metal3ClusterStatus) DeepCopyInto(out *Metal3ClusterStatus) {
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1beta1.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
@@ -1010,7 +1010,7 @@ func (in *Metal3MachineStatus) DeepCopyInto(out *Metal3MachineStatus) {
 	}
 	if in.Addresses != nil {
 		in, out := &in.Addresses, &out.Addresses
-		*out = make(apiv1beta1.MachineAddresses, len(*in))
+		*out = make(corev1beta1.MachineAddresses, len(*in))
 		copy(*out, *in)
 	}
 	if in.UserData != nil {
@@ -1035,7 +1035,7 @@ func (in *Metal3MachineStatus) DeepCopyInto(out *Metal3MachineStatus) {
 	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make(apiv1beta1.Conditions, len(*in))
+		*out = make(corev1beta1.Conditions, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

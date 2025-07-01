@@ -34,11 +34,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	k8strings "k8s.io/utils/strings"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -97,7 +95,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	helper, err := patch.NewHelper(host, r.Client)
+	helper, err := deprecatedpatch.NewHelper(host, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -137,7 +135,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Metal3Machine %v", capm3MachineKey))
 
 	// Fetch the Machine.
-	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
+	capiMachine, err := baremetal.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
 	}
@@ -152,7 +150,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Fetch the Cluster
-	cluster := &clusterv1.Cluster{}
+	cluster := &clusterv1beta1.Cluster{}
 	clusterKey := client.ObjectKey{
 		Name:      capiMachine.Spec.ClusterName,
 		Namespace: capiMachine.Namespace,
@@ -176,7 +174,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
 
-	if annotations.IsPaused(cluster, metal3Cluster) {
+	if baremetal.IsPaused(cluster, metal3Cluster) {
 		controllerLog.Info("Cluster and/or Metal3Cluster are currently paused. Remove pause to continue reconciliation.")
 		return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 	}
@@ -206,7 +204,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	return ctrl.Result{RequeueAfter: bmhSyncInterval}, nil
 }
 
-func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmov1alpha1.BareMetalHost, machine *clusterv1.Machine, cluster *clusterv1.Cluster, prefixSet map[string]struct{}) error {
+func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host *bmov1alpha1.BareMetalHost, machine *clusterv1beta1.Machine, cluster *clusterv1beta1.Cluster, prefixSet map[string]struct{}) error {
 	hostLabelSyncSet := buildLabelSyncSet(prefixSet, host.Labels)
 	// Get the Node from the workload cluster
 	corev1Remote, err := r.CapiClientGetter(ctx, r.Client, cluster)
@@ -284,7 +282,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 		return nil
 	}
 	log := r.Log.WithValues("Metal3ClusterToBareMetalHosts", c.Name, "Namespace", c.Namespace)
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
+	cluster, err := baremetal.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:
 		return nil
@@ -293,8 +291,8 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 		return nil
 	}
 
-	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
-	capiMachineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1beta1.ClusterNameLabel: cluster.Name}
+	capiMachineList := &clusterv1beta1.MachineList{}
 	if err := r.Client.List(ctx, capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Machines")
 		return nil

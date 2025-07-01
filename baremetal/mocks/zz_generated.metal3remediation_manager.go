@@ -33,8 +33,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v11 "k8s.io/client-go/kubernetes/typed/core/v1"
-	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
-	patch "sigs.k8s.io/cluster-api/util/patch"
+	v1beta10 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // MockRemediationManagerInterface is a mock of RemediationManagerInterface interface.

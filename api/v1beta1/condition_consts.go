@@ -16,14 +16,14 @@ limitations under the License.
 
 package v1beta1
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+import clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 
 // Metal3Cluster Conditions and Reasons.
 const (
 	// BaremetalInfrastructureReadyCondition reports the current status of
 	// cluster infrastructure. At the moment this is cosmetic since
 	// Metal3Cluster does not contain any infra setup steps.
-	BaremetalInfrastructureReadyCondition clusterv1.ConditionType = "BaremetalInfrastructureReady"
+	BaremetalInfrastructureReadyCondition clusterv1beta1.ConditionType = "BaremetalInfrastructureReady"
 	// ControlPlaneEndpointFailedReason is used to indicate that provided ControlPlaneEndpoint is invalid.
 	ControlPlaneEndpointFailedReason = "ControlPlaneEndpointFailed"
 	// InternalFailureReason is used to indicate that an internal failure
@@ -35,7 +35,7 @@ const (
 // Metal3Machine Conditions and Reasons.
 const (
 	// AssociateBMHCondition documents the status of associated the Metal3Machine with a BaremetalHost.
-	AssociateBMHCondition clusterv1.ConditionType = "AssociateBMH"
+	AssociateBMHCondition clusterv1beta1.ConditionType = "AssociateBMH"
 
 	// WaitingForClusterInfrastructureReason used when waiting for cluster
 	// infrastructure to be ready before proceeding.
@@ -57,13 +57,13 @@ const (
 	PauseAnnotationSetFailedReason = "PauseAnnotationSetFailedReason"
 
 	// KubernetesNodeReadyCondition documents the transition of a Metal3Machine into a Kubernetes Node.
-	KubernetesNodeReadyCondition clusterv1.ConditionType = "KubernetesNodeReady"
+	KubernetesNodeReadyCondition clusterv1beta1.ConditionType = "KubernetesNodeReady"
 	// Could not find the BMH associated with the Metal3Machine.
 	MissingBMHReason = "MissingBMH"
 	// Could not set the ProviderID on the target cluster's Node object.
 	SettingProviderIDOnNodeFailedReason = "SettingProviderIDOnNodeFailed"
 	// Metal3DataReadyCondition reports a summary of Metal3Data status.
-	Metal3DataReadyCondition clusterv1.ConditionType = "Metal3DataReady"
+	Metal3DataReadyCondition clusterv1beta1.ConditionType = "Metal3DataReady"
 	// WaitingForMetal3DataReason used when waiting for Metal3Data
 	// to be ready before proceeding.
 	WaitingForMetal3DataReason = "WaitingForMetal3Data"

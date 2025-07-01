@@ -19,7 +19,7 @@ package v1beta1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -131,7 +131,7 @@ type Metal3MachineStatus struct {
 	// Addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
 	// +optional
-	Addresses clusterv1.MachineAddresses `json:"addresses,omitempty"`
+	Addresses clusterv1beta1.MachineAddresses `json:"addresses,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
@@ -167,7 +167,7 @@ type Metal3MachineStatus struct {
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 	// Conditions defines current service state of the Metal3Machine.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -204,12 +204,12 @@ type Metal3MachineList struct {
 }
 
 // GetConditions returns the list of conditions for an Metal3Machine API object.
-func (c *Metal3Machine) GetConditions() clusterv1.Conditions {
+func (c *Metal3Machine) GetConditions() clusterv1beta1.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions will set the given conditions on an Metal3Machine object.
-func (c *Metal3Machine) SetConditions(conditions clusterv1.Conditions) {
+func (c *Metal3Machine) SetConditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
 }
 

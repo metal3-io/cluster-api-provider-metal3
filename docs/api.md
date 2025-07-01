@@ -48,7 +48,7 @@ A Cluster is a Cluster API core object representing a Kubernetes cluster.
 Example cluster:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   name: cluster
@@ -62,15 +62,13 @@ spec:
       cidrBlocks:
       - 192.168.0.0/18
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: Metal3Cluster
     name: m3cluster
-    namespace: metal3
   controlPlaneRef:
     kind: KubeadmControlPlane
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     name: m3cluster-controlplane
-    namespace: metal3
 ```
 
 ## Metal3Cluster
@@ -115,17 +113,16 @@ For example:
 
 ```yaml
 kind: KubeadmControlPlane
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 metadata:
   name: m3cluster-controlplane
   namespace: metal3
 spec:
   machineTemplate:
     infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiGroup: infrastructure.cluster.x-k8s.io
       kind: Metal3MachineTemplate
       name: m3cluster-controlplane
-      namespace: metal3
     nodeDrainTimeout: 0s
   replicas: 3
   rolloutStrategy:
@@ -139,12 +136,14 @@ spec:
       nodeRegistration:
         name: "{{ ds.meta_data.name }}"
         kubeletExtraArgs:
-          node-labels: "metal3.io/uuid={{ ds.meta_data.uuid }}"
+        - name: node-labels
+          value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
     initConfiguration:
       nodeRegistration:
         name: "{{ ds.meta_data.name }}"
         kubeletExtraArgs:
-          node-labels: "metal3.io/uuid={{ ds.meta_data.uuid }}"
+        - name: node-labels
+          value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
 ```
 
 ## KubeadmConfig
@@ -168,7 +167,7 @@ keys and values are passed to cloud-init through a `Metal3DataTemplate` object
 Example KubeadmConfig:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfig
 metadata:
   name: controlplane-0
@@ -178,7 +177,8 @@ spec:
     nodeRegistration:
       name: "{{ ds.meta_data.name }}"
       kubeletExtraArgs:
-        node-labels: "metal3.io/uuid={{ ds.meta_data.uuid }}"
+      - name: node-labels
+        value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
   preKubeadmCommands:
     - netplan apply
     - systemctl enable --now crio kubelet
@@ -226,7 +226,7 @@ has a reference to a KubeadmConfig and a reference to a metal3machine.
 Example Machine:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Machine
 metadata:
   name: controlplane-0
@@ -237,15 +237,13 @@ metadata:
 spec:
   bootstrap:
     configRef:
-      apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+      apiGroup: bootstrap.cluster.x-k8s.io
       kind: KubeadmConfig
       name: controlplane-0
-      namespace: metal3
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: Metal3Machine
     name: controlplane-0
-    namespace: metal3
   nodeDrainTimeout: 0s
   providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
   version: v1.33.0
@@ -443,7 +441,7 @@ pods. It refers to a KubeadmConfigTemplate and to a Metal3MachineTemplate.
 Example MachineDeployment:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   name: md-0
@@ -472,11 +470,11 @@ spec:
       bootstrap:
         configRef:
           name: md-0
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfigTemplate
       infrastructureRef:
         name: md-0
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: Metal3MachineTemplate
       version: v1.33.0
 ```
@@ -488,7 +486,7 @@ This contains a template to generate KubeadmConfig.
 Example KubeadmConfigTemplate:
 
 ```yaml
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: controlplane-0
@@ -500,7 +498,8 @@ spec:
         nodeRegistration:
           name: "{{ ds.meta_data.name }}"
           kubeletExtraArgs:
-            node-labels: "metal3.io/uuid={{ ds.meta_data.uuid }}"
+          - name: node-labels
+            value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
       preKubeadmCommands:
       - netplan apply
       - systemctl enable --now crio kubelet
