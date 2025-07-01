@@ -27,9 +27,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -44,7 +44,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		RequeueExpected     bool
 		ErrorReasonExpected bool
 		ErrorReason         capierrors.ClusterStatusError
-		ConditionsExpected  clusterv1.Conditions
+		ConditionsExpected  clusterv1beta1.Conditions
 	}
 
 	DescribeTable("Reconcile tests metal3Cluster",
@@ -89,7 +89,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.FailureReason))
 			}
 			for _, condExp := range tc.ConditionsExpected {
-				condGot := conditions.Get(testclstr, condExp.Type)
+				condGot := deprecatedconditions.Get(testclstr, condExp.Type)
 				Expect(condGot).NotTo(BeNil())
 				Expect(condGot.Status).To(Equal(condExp.Status))
 				if condExp.Reason != "" {
@@ -153,13 +153,13 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
-				ConditionsExpected: clusterv1.Conditions{
-					clusterv1.Condition{
+				ConditionsExpected: clusterv1beta1.Conditions{
+					clusterv1beta1.Condition{
 						Type:   infrav1.BaremetalInfrastructureReadyCondition,
 						Status: corev1.ConditionTrue,
 					},
-					clusterv1.Condition{
-						Type:   clusterv1.ReadyCondition,
+					clusterv1beta1.Condition{
+						Type:   clusterv1beta1.ReadyCondition,
 						Status: corev1.ConditionTrue,
 					},
 				},

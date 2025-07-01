@@ -22,12 +22,12 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/${CAPI_VERSION}
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfigTemplate
           name: ${CLUSTER_NAME}-workers
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: Metal3MachineTemplate
         name: ${CLUSTER_NAME}-workers
       nodeDrainTimeout: 0s
@@ -106,12 +106,18 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            cgroup-driver: systemd
-            container-runtime-endpoint: unix:///var/run/crio/crio.sock
-            feature-gates: AllAlpha=false
-            node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-            provider-id: ${PROVIDER_ID_FORMAT}
-            runtime-request-timeout: 5m
+          - name: cgroup-driver
+            value: systemd
+          - name: container-runtime-endpoint
+            value: unix:///var/run/crio/crio.sock
+          - name: feature-gates
+            value: AllAlpha=false
+          - name: node-labels
+            value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+          - name: provider-id
+            value: '${PROVIDER_ID_FORMAT}'
+          - name: runtime-request-timeout
+            value: '5m'
           name: '{{ ds.meta_data.name }}'
       users:
       - name: metal3

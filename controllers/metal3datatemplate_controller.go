@@ -25,10 +25,9 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,7 +81,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 		return ctrl.Result{}, err
 	}
-	helper, err := patch.NewHelper(metal3DataTemplate, r.Client)
+	helper, err := deprecatedpatch.NewHelper(metal3DataTemplate, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -95,7 +94,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		}
 	}()
 
-	cluster := &clusterv1.Cluster{}
+	cluster := &clusterv1beta1.Cluster{}
 	key := client.ObjectKey{
 		Name:      metal3DataTemplate.Spec.ClusterName,
 		Namespace: metal3DataTemplate.Namespace,
@@ -122,7 +121,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, err
 		}
 		// Return early if the Metal3DataTemplate or Cluster is paused.
-		if annotations.IsPaused(cluster, metal3DataTemplate) {
+		if baremetal.IsPaused(cluster, metal3DataTemplate) {
 			log.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
