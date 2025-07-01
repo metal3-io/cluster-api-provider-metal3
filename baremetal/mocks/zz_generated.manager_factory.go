@@ -29,7 +29,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
+	v1beta10 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 // MockManagerFactoryInterface is a mock of ManagerFactoryInterface interface.

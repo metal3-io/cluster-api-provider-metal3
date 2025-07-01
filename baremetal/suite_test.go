@@ -37,8 +37,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -123,7 +123,7 @@ var _ = AfterSuite(func() {
 })
 
 var bmcOwnerRef = &metav1.OwnerReference{
-	APIVersion: clusterv1.GroupVersion.String(),
+	APIVersion: clusterv1beta1.GroupVersion.String(),
 	Kind:       "Cluster",
 	Name:       clusterName,
 }
@@ -134,7 +134,7 @@ var bmcOwnerRef = &metav1.OwnerReference{
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := clusterv1.AddToScheme(s); err != nil {
+	if err := clusterv1beta1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := infrav1.AddToScheme(s); err != nil {
@@ -143,7 +143,7 @@ func setupScheme() *runtime.Scheme {
 	if err := ipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := caipamv1.AddToScheme(s); err != nil {
+	if err := capipamv1beta1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -163,8 +163,8 @@ func testObjectMeta(name string, namespace string, uid string) metav1.ObjectMeta
 	}
 }
 
-func newCluster(clusterName string) *clusterv1.Cluster {
-	return &clusterv1.Cluster{
+func newCluster(clusterName string) *clusterv1beta1.Cluster {
+	return &clusterv1beta1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Cluster",
 		},
@@ -172,7 +172,7 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 			Name:      clusterName,
 			Namespace: namespaceName,
 		},
-		Spec: clusterv1.ClusterSpec{
+		Spec: clusterv1beta1.ClusterSpec{
 			InfrastructureRef: &corev1.ObjectReference{
 				Name:       metal3ClusterName,
 				Namespace:  namespaceName,
@@ -180,7 +180,7 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 			},
 		},
-		Status: clusterv1.ClusterStatus{
+		Status: clusterv1beta1.ClusterStatus{
 			InfrastructureReady: true,
 		},
 	}
