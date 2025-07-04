@@ -15,7 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -131,16 +131,16 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	// From this point onward all the checks run in a async parallel way next to the scale in upgrade process
 
 	By("Check if only a single machine is in Deleting state and no other new machines are in Provisioning state [node_reuse]")
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseDeleting, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseDeleting, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  1,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-deleting"),
 	})
 	// Since we do scale in, no Machine should start provisioning yet (the old must be deleted first)
-	machineList := &clusterv1beta1.MachineList{}
+	machineList := &clusterv1.MachineList{}
 	Expect(managementClusterClient.List(ctx, machineList, client.InNamespace(input.Namespace))).To(Succeed())
-	Expect(FilterMachinesByPhase(machineList.Items, clusterv1beta1.MachinePhaseProvisioning)).To(BeEmpty())
+	Expect(FilterMachinesByPhase(machineList.Items, clusterv1.MachinePhaseProvisioning)).To(BeEmpty())
 
 	Byf("Wait until 1 BMH is in deprovisioning state [node_reuse]")
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
@@ -176,8 +176,8 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	).Should(Succeed())
 
 	Byf("Wait until two machines become running and updated with the new %s k8s version [node_reuse]", toK8sVersion)
-	runningAndUpgraded := func(machine clusterv1beta1.Machine) bool {
-		running := machine.Status.GetTypedPhase() == clusterv1beta1.MachinePhaseRunning
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
 		upgraded := *machine.Spec.Version == toK8sVersion
 		return (running && upgraded)
 	}
@@ -298,7 +298,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 
 	Byf("Wait until the worker machine becomes running [node_reuse]")
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
@@ -408,7 +408,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 
 	Byf("Wait until all %d machine(s) become(s) running [node_reuse]", numberOfAllBmh)
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -464,7 +464,7 @@ func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3Ma
 }
 
 func pointMDtoM3mt(ctx context.Context, namespace string, clusterName string, m3mtname, mdName string, managementClusterClient client.Client) {
-	md := clusterv1beta1.MachineDeployment{}
+	md := clusterv1.MachineDeployment{}
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: mdName}, &md)).To(Succeed())
 	helper, err := deprecatedpatch.NewHelper(&md, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())

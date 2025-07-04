@@ -30,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/util"
 	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -91,7 +92,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}()
 
 	// Fetch the Machine.
-	capiMachine, err := baremetal.GetOwnerMachine(ctx, r.Client, metal3Remediation.ObjectMeta)
+	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, metal3Remediation.ObjectMeta)
 	if err != nil {
 		remediationLog.Error(err, "metal3Remediation's owner Machine could not be retrieved")
 		return ctrl.Result{}, errors.Wrapf(err, "metal3Remediation's owner Machine could not be retrieved")
@@ -106,7 +107,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	metal3Machine := infrav1.Metal3Machine{}
 	key := client.ObjectKey{
 		Name:      capiMachine.Spec.InfrastructureRef.Name,
-		Namespace: capiMachine.Spec.InfrastructureRef.Namespace,
+		Namespace: capiMachine.Namespace,
 	}
 	err = r.Get(ctx, key, &metal3Machine)
 	if err != nil {

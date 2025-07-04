@@ -47,7 +47,10 @@ import (
 	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -115,21 +118,21 @@ type MachineManagerInterface interface {
 type MachineManager struct {
 	client client.Client
 
-	Cluster               *clusterv1beta1.Cluster
+	Cluster               *clusterv1.Cluster
 	Metal3Cluster         *infrav1.Metal3Cluster
-	MachineList           *clusterv1beta1.MachineList
-	Machine               *clusterv1beta1.Machine
+	MachineList           *clusterv1.MachineList
+	Machine               *clusterv1.Machine
 	Metal3Machine         *infrav1.Metal3Machine
 	Metal3MachineTemplate *infrav1.Metal3MachineTemplate
-	MachineSet            *clusterv1beta1.MachineSet
-	MachineSetList        *clusterv1beta1.MachineSetList
+	MachineSet            *clusterv1.MachineSet
+	MachineSetList        *clusterv1.MachineSetList
 	Log                   logr.Logger
 }
 
 // NewMachineManager returns a new helper for managing a machine.
 func NewMachineManager(client client.Client,
-	cluster *clusterv1beta1.Cluster, metal3Cluster *infrav1.Metal3Cluster,
-	machine *clusterv1beta1.Machine, metal3machine *infrav1.Metal3Machine,
+	cluster *clusterv1.Cluster, metal3Cluster *infrav1.Metal3Cluster,
+	machine *clusterv1.Machine, metal3machine *infrav1.Metal3Machine,
 	machineLog logr.Logger) (*MachineManager, error) {
 	return &MachineManager{
 		client: client,
@@ -144,7 +147,7 @@ func NewMachineManager(client client.Client,
 
 // NewMachineSetManager returns a new helper for managing a machineset.
 func NewMachineSetManager(client client.Client,
-	machine *clusterv1beta1.Machine, machineSetList *clusterv1beta1.MachineSetList,
+	machine *clusterv1.Machine, machineSetList *clusterv1.MachineSetList,
 	machineLog logr.Logger) (*MachineManager, error) {
 	return &MachineManager{
 		client:         client,
@@ -194,7 +197,8 @@ func (m *MachineManager) IsBaremetalHostProvisioned(ctx context.Context) bool {
 // IsBootstrapReady checks if the machine is given Bootstrap data.
 func (m *MachineManager) IsBootstrapReady() bool {
 	if m.Machine.Spec.Bootstrap.ConfigRef != nil {
-		return m.Machine.Status.BootstrapReady
+		bootstrapReadyCondition := v1beta1conditions.Get(m.Machine, clusterv1.BootstrapReadyV1Beta1Condition)
+		return bootstrapReadyCondition.Status == corev1.ConditionTrue
 	}
 
 	return m.Machine.Spec.Bootstrap.DataSecretName != nil
@@ -206,12 +210,12 @@ func (m *MachineManager) MachineHasNodeRef() bool {
 
 // isControlPlane returns true if the machine is a control plane.
 func (m *MachineManager) isControlPlane() bool {
-	return IsControlPlaneMachine(m.Machine)
+	return util.IsControlPlaneMachine(m.Machine)
 }
 
 // role returns the machine role from the labels.
 func (m *MachineManager) role() string {
-	if IsControlPlaneMachine(m.Machine) {
+	if util.IsControlPlaneMachine(m.Machine) {
 		return bmRoleControlPlane
 	}
 	return bmRoleNode
@@ -235,10 +239,10 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
-			if m.Cluster.Name == host.Labels[clusterv1beta1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
+			if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
 				delete(host.Annotations, bmov1alpha1.PausedAnnotation)
-			} else if m.Cluster.Name == host.Labels[clusterv1beta1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
+			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
 				return nil
 			}
@@ -437,7 +441,7 @@ func (m *MachineManager) getUserDataSecretName(_ context.Context) {
 	} else if m.Machine.Spec.Bootstrap.ConfigRef != nil {
 		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 			Name:      m.Machine.Spec.Bootstrap.ConfigRef.Name,
-			Namespace: m.Machine.Spec.Bootstrap.ConfigRef.Namespace,
+			Namespace: m.Machine.Namespace,
 		}
 	}
 }
@@ -479,8 +483,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			m.Log.Info("BMC credential not found for BareMetalhost", "host", host.Name)
 		} else if errBMC == nil && tmpBMCSecret != nil {
 			m.Log.Info("Deleting cluster label from BMC credential", "bmccredential", host.Spec.BMC.CredentialsName)
-			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1beta1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
-				delete(tmpBMCSecret.Labels, clusterv1beta1.ClusterNameLabel)
+			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
+				delete(tmpBMCSecret.Labels, clusterv1.ClusterNameLabel)
 				errBMC = updateObject(ctx, m.client, tmpBMCSecret)
 				if errBMC != nil {
 					var reconcileError ReconcileError
@@ -592,7 +596,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				}
 				if m.hasTemplateAnnotation() {
 					m3mtKey := client.ObjectKey{
-						Name:      m.Metal3Machine.ObjectMeta.GetAnnotations()[clusterv1beta1.TemplateClonedFromNameAnnotation],
+						Name:      m.Metal3Machine.ObjectMeta.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation],
 						Namespace: m.Metal3Machine.Namespace,
 					}
 					if err := m.client.Get(ctx, m3mtKey, m3mt); err != nil {
@@ -662,8 +666,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return err
 		}
 
-		if host.Labels != nil && host.Labels[clusterv1beta1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
-			delete(host.Labels, clusterv1beta1.ClusterNameLabel)
+		if host.Labels != nil && host.Labels[clusterv1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
+			delete(host.Labels, clusterv1.ClusterNameLabel)
 		}
 
 		m.Log.Info("Removing Paused Annotation (if any)")
@@ -1034,7 +1038,7 @@ func (m *MachineManager) setBMCSecretLabel(ctx context.Context, host *bmov1alpha
 		if tmpBMCSecret.Labels == nil {
 			tmpBMCSecret.Labels = make(map[string]string)
 		}
-		tmpBMCSecret.Labels[clusterv1beta1.ClusterNameLabel] = m.Machine.Spec.ClusterName
+		tmpBMCSecret.Labels[clusterv1.ClusterNameLabel] = m.Machine.Spec.ClusterName
 		return updateObject(ctx, m.client, tmpBMCSecret)
 	}
 
@@ -1046,7 +1050,7 @@ func (m *MachineManager) setHostLabel(_ context.Context, host *bmov1alpha1.BareM
 	if host.Labels == nil {
 		host.Labels = make(map[string]string)
 	}
-	host.Labels[clusterv1beta1.ClusterNameLabel] = m.Machine.Spec.ClusterName
+	host.Labels[clusterv1.ClusterNameLabel] = m.Machine.Spec.ClusterName
 }
 
 // setHostSpec will ensure the host's Spec is set according to the machine's
@@ -1182,7 +1186,7 @@ func (m *MachineManager) hasTemplateAnnotation() bool {
 	if annotations == nil {
 		return false
 	}
-	_, ok := annotations[clusterv1beta1.TemplateClonedFromNameAnnotation]
+	_, ok := annotations[clusterv1.TemplateClonedFromNameAnnotation]
 	return ok
 }
 
@@ -1292,7 +1296,7 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 }
 
 // ClientGetter prototype.
-type ClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1beta1.Cluster) (clientcorev1.CoreV1Interface, error)
+type ClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error)
 
 func (m *MachineManager) setNodeProviderID(ctx context.Context, client clientcorev1.CoreV1Interface, node corev1.Node, providerID string) error {
 	oldData, err := json.Marshal(node)
@@ -1825,7 +1829,7 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 		if err != nil {
 			return "", errors.New("Failed to parse the group and version")
 		}
-		if aGV.Group != clusterv1beta1.GroupVersion.Group {
+		if aGV.Group != clusterv1.GroupVersion.Group {
 			continue
 		}
 		// adding prefix to MachineDeployment name in order to be able to differentiate
@@ -1837,10 +1841,10 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 }
 
 // getMachineSet retrieves the MachineSet object corresponding to the CAPI machine.
-func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1beta1.MachineSet, error) {
+func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineSet, error) {
 	m.Log.Info("Fetching MachineSet name")
 	// Get list of MachineSets.
-	machineSets := &clusterv1beta1.MachineSetList{}
+	machineSets := &clusterv1.MachineSetList{}
 	if m.Machine == nil {
 		return nil, errors.New("Could not find corresponding machine object")
 	}
@@ -1855,6 +1859,7 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1beta1.Mac
 	}
 
 	// Iterate over MachineSets list and find MachineSet which references specific machine.
+	var machineSetError string
 	for index := range machineSets.Items {
 		machineset := &machineSets.Items[index]
 		for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
@@ -1862,18 +1867,24 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1beta1.Mac
 				continue
 			}
 			if mOwnerRef.APIVersion != machineset.APIVersion {
+				machineSetError += fmt.Sprintf("MachineSet %s has different API version %s than Machine %s with API version %s",
+					machineset.Name, machineset.APIVersion, m.Machine.Name, mOwnerRef.APIVersion)
 				continue
 			}
 			if mOwnerRef.UID != machineset.UID {
+				machineSetError = fmt.Sprintf("MachineSet %s has different UID %s than Machine %s with UID %s",
+					machineset.Name, machineset.UID, m.Machine.Name, mOwnerRef.UID)
 				continue
 			}
 			if mOwnerRef.Name == machineset.Name {
 				m.Log.Info("Found MachineSet corresponding to machine", "machineset", machineset.Name)
 				return machineset, nil
 			}
+			machineSetError = fmt.Sprintf("MachineSet %s does not match Machine %s owner reference %s", machineset.Name, m.Machine.Name, mOwnerRef.Name)
 		}
 	}
-	return nil, errors.New("MachineSet is not found")
+
+	return nil, errors.New(machineSetError)
 }
 
 // getBmhNameFromM3Machine retrieves bmhName from m3m annotations.

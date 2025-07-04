@@ -20,13 +20,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // NewClusterClient creates a new ClusterClient.
-func NewClusterClient(ctx context.Context, c client.Client, cluster *clusterv1beta1.Cluster) (corev1.CoreV1Interface, error) {
+func NewClusterClient(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (corev1.CoreV1Interface, error) {
 	kubeconfig, err := kcfg.FromSecret(ctx, c, types.NamespacedName{
 		Name:      cluster.Name,
 		Namespace: cluster.Namespace,

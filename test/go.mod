@@ -6,9 +6,9 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.3.2+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.10.1-0.20250630070757-6b650b7891dc
+	github.com/metal3-io/baremetal-operator/apis v0.11.0-alpha.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.10.1-0.20250701084858-f1771d9443f4
+	github.com/metal3-io/ip-address-manager/api v1.11.0-alpha.0
 	github.com/metal3-io/ironic-standalone-operator/api v0.4.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
@@ -23,8 +23,8 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.30.14
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
-	sigs.k8s.io/cluster-api v1.11.0-alpha.1
-	sigs.k8s.io/cluster-api/test v1.11.0-alpha.1
+	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/kustomize/api v0.20.0
 	sigs.k8s.io/kustomize/kyaml v0.20.0
@@ -32,7 +32,9 @@ require (
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
 
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.1
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.2
+
+replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.0-alpha.2
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
@@ -141,7 +143,7 @@ require (
 	gotest.tools/v3 v3.5.0 // indirect
 	k8s.io/apiserver v0.33.2 // indirect
 	k8s.io/cli-runtime v0.30.14 // indirect
-	k8s.io/cluster-bootstrap v0.33.1 // indirect
+	k8s.io/cluster-bootstrap v0.33.2 // indirect
 	k8s.io/component-base v0.33.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect

@@ -24,13 +24,18 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
@@ -99,7 +104,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}()
 
 	// Fetch the Machine.
-	capiMachine, err := baremetal.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
+	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
@@ -113,7 +118,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	machineLog = machineLog.WithValues("machine", capiMachine.Name)
 
 	// Fetch the Cluster.
-	cluster, err := baremetal.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		setErrorM3Machine(capm3Machine, "", "")
 		machineLog.Info("Machine is missing cluster label or cluster does not exist")
@@ -123,7 +128,8 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	machineLog = machineLog.WithValues("cluster", cluster.Name)
 
 	// Make sure infrastructure is ready
-	if !cluster.Status.InfrastructureReady {
+	infrastructureReadyCondition := v1beta1conditions.Get(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
+	if infrastructureReadyCondition.Status != corev1.ConditionTrue {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
 		deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
@@ -168,7 +174,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Return early if the M3Machine or Cluster is paused.
-	if baremetal.IsPaused(cluster, capm3Machine) {
+	if annotations.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
 		deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.Metal3MachinePausedReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
@@ -356,11 +362,11 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
-			&clusterv1beta1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(baremetal.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Machine"))),
+			&clusterv1.Machine{},
+			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Machine"))),
 		).
 		Watches(
-			&clusterv1beta1.Cluster{},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToMetal3Machines),
 		).
 		Watches(
@@ -386,7 +392,7 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 // requests for reconciliation of Metal3Machines.
 func (r *Metal3MachineReconciler) ClusterToMetal3Machines(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.(*clusterv1beta1.Cluster)
+	c, ok := o.(*clusterv1.Cluster)
 
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o),
@@ -395,8 +401,8 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(ctx context.Context, o
 		return nil
 	}
 
-	labels := map[string]string{clusterv1beta1.ClusterNameLabel: c.Name}
-	capiMachineList := &clusterv1beta1.MachineList{}
+	labels := map[string]string{clusterv1.ClusterNameLabel: c.Name}
+	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, capiMachineList, client.InNamespace(c.Namespace),
 		client.MatchingLabels(labels),
 	); err != nil {
@@ -408,8 +414,8 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(ctx context.Context, o
 			continue
 		}
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
-		if m.Spec.InfrastructureRef.Namespace != "" {
-			name = client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		if m.Namespace != "" {
+			name = client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
 		}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}
@@ -439,8 +445,8 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(ctx context.Cont
 		return result
 	}
 
-	labels := map[string]string{clusterv1beta1.ClusterNameLabel: cluster.Name}
-	capiMachineList := &clusterv1beta1.MachineList{}
+	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
+	capiMachineList := &clusterv1.MachineList{}
 	if err := r.Client.List(ctx, capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Metal3Machines")
 		return nil
@@ -450,8 +456,8 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(ctx context.Cont
 			continue
 		}
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
-		if m.Spec.InfrastructureRef.Namespace != "" {
-			name = client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		if m.Namespace != "" {
+			name = client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
 		}
 		result = append(result, ctrl.Request{NamespacedName: name})
 	}

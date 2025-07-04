@@ -160,7 +160,7 @@ func main() {
 		}
 	}
 
-	req, _ := labels.NewRequirement(clusterv1beta1.ClusterNameLabel, selection.Exists, nil)
+	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
 	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
 
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
@@ -288,7 +288,7 @@ func initFlags(fs *pflag.FlagSet) {
 		&watchFilterValue,
 		"watch-filter",
 		"",
-		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1beta1.WatchLabel),
+		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel),
 	)
 
 	fs.DurationVar(

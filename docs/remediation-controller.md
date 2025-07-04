@@ -61,7 +61,7 @@ Use the following examples as a basis for creating a MachineHealthCheck and
 Metal3Remediation for worker nodes:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta2
+apiVersion: cluster.x-k8s.io/${CAPI_VERSION}
 kind: MachineHealthCheck
 metadata:
   name: worker-healthcheck
@@ -73,7 +73,7 @@ spec:
   # (Optional) maxUnhealthy prevents further remediation if the cluster is
   # already partially unhealthy
   maxUnhealthy: 100%
-  # (Optional) nodeStartupTimeout determines how long a MachineHealthCheck
+  # (Optional) nodeStartupTimeoutSeconds determines how long a MachineHealthCheck
   # should wait for
   # a Node to join the cluster, before considering a Machine unhealthy.
   # Defaults to 10 minutes if not specified.
@@ -82,20 +82,20 @@ spec:
   # unhealthy when the Node it created has not yet registered with the cluster.
   # This can be useful when Nodes take a long time to start up or when you only
   # want condition based checks for Machine health.
-  nodeStartupTimeout: 0m
+  nodeStartupTimeoutSeconds: 0
   # selector is used to determine which Machines should be health checked
   selector:
     matchLabels:
       nodepool: nodepool-0
   # Conditions to check on Nodes for matched Machines, if any condition is
   # matched for the duration of its timeout, the Machine is considered unhealthy
-  unhealthyConditions:
+  unhealthyNodeConditions:
   - type: Ready
     status: Unknown
-    timeout: 300s
+    timeoutSeconds: 300
   - type: Ready
     status: "False"
-    timeout: 300s
+    timeoutSeconds: 300
   remediationTemplate: # added infrastructure reference
     kind: Metal3RemediationTemplate
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -121,7 +121,7 @@ Use the following examples as a basis for creating a MachineHealthCheck and
 Metal3Remediation for controlplane nodes:
 
 ```yaml
-apiVersion: cluster.x-k8s.io/v1beta2
+apiVersion: cluster.x-k8s.io/${CAPI_VERSION}
 kind: MachineHealthCheck
 metadata:
   name: controlplane-healthcheck
@@ -129,17 +129,17 @@ metadata:
 spec:
   clusterName: test1
   maxUnhealthy: 100%
-  nodeStartupTimeout: 0m
+  nodeStartupTimeoutSeconds: 0
   selector:
     matchLabels:
       cluster.x-k8s.io/control-plane: ""
-  unhealthyConditions:
+  unhealthyNodeConditions:
   - type: Ready
     status: Unknown
-    timeout: 300s
+    timeoutSeconds: 300
   - type: Ready
     status: "False"
-    timeout: 300s
+    timeoutSeconds: 300
   remediationTemplate: # added infrastructure reference
     kind: Metal3RemediationTemplate
     apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

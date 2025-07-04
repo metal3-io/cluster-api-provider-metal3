@@ -29,7 +29,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	v1beta10 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // MockManagerFactoryInterface is a mock of ManagerFactoryInterface interface.
@@ -56,7 +56,7 @@ func (m *MockManagerFactoryInterface) EXPECT() *MockManagerFactoryInterfaceMockR
 }
 
 // NewClusterManager mocks base method.
-func (m *MockManagerFactoryInterface) NewClusterManager(cluster *v1beta10.Cluster, metal3Cluster *v1beta1.Metal3Cluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
+func (m *MockManagerFactoryInterface) NewClusterManager(cluster *v1beta2.Cluster, metal3Cluster *v1beta1.Metal3Cluster, clusterLog logr.Logger) (baremetal.ClusterManagerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewClusterManager", cluster, metal3Cluster, clusterLog)
 	ret0, _ := ret[0].(baremetal.ClusterManagerInterface)
@@ -101,7 +101,7 @@ func (mr *MockManagerFactoryInterfaceMockRecorder) NewDataTemplateManager(arg0, 
 }
 
 // NewMachineManager mocks base method.
-func (m *MockManagerFactoryInterface) NewMachineManager(arg0 *v1beta10.Cluster, arg1 *v1beta1.Metal3Cluster, arg2 *v1beta10.Machine, arg3 *v1beta1.Metal3Machine, arg4 logr.Logger) (baremetal.MachineManagerInterface, error) {
+func (m *MockManagerFactoryInterface) NewMachineManager(arg0 *v1beta2.Cluster, arg1 *v1beta1.Metal3Cluster, arg2 *v1beta2.Machine, arg3 *v1beta1.Metal3Machine, arg4 logr.Logger) (baremetal.MachineManagerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewMachineManager", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(baremetal.MachineManagerInterface)
@@ -131,7 +131,7 @@ func (mr *MockManagerFactoryInterfaceMockRecorder) NewMachineTemplateManager(cap
 }
 
 // NewRemediationManager mocks base method.
-func (m *MockManagerFactoryInterface) NewRemediationManager(arg0 *v1beta1.Metal3Remediation, arg1 *v1beta1.Metal3Machine, arg2 *v1beta10.Machine, arg3 logr.Logger) (baremetal.RemediationManagerInterface, error) {
+func (m *MockManagerFactoryInterface) NewRemediationManager(arg0 *v1beta1.Metal3Remediation, arg1 *v1beta1.Metal3Machine, arg2 *v1beta2.Machine, arg3 logr.Logger) (baremetal.RemediationManagerInterface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "NewRemediationManager", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(baremetal.RemediationManagerInterface)

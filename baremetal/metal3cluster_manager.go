@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,14 +46,14 @@ type ClusterManagerInterface interface {
 type ClusterManager struct {
 	client client.Client
 
-	Cluster       *clusterv1beta1.Cluster
+	Cluster       *clusterv1.Cluster
 	Metal3Cluster *infrav1.Metal3Cluster
 	Log           logr.Logger
 	// name string
 }
 
 // NewClusterManager returns a new helper for managing a cluster with a given name.
-func NewClusterManager(client client.Client, cluster *clusterv1beta1.Cluster,
+func NewClusterManager(client client.Client, cluster *clusterv1.Cluster,
 	metal3Cluster *infrav1.Metal3Cluster,
 	clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	if metal3Cluster == nil {
@@ -173,8 +174,8 @@ func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
 
 // listDescendants returns a list of all Machines, for the cluster owning the
 // metal3Cluster.
-func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1beta1.MachineList, error) {
-	machines := clusterv1beta1.MachineList{}
+func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1.MachineList, error) {
+	machines := clusterv1.MachineList{}
 	cluster, err := GetOwnerCluster(ctx, s.client,
 		s.Metal3Cluster.ObjectMeta,
 	)
@@ -185,7 +186,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1beta1.Ma
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels(map[string]string{
-			clusterv1beta1.ClusterNameLabel: cluster.Name,
+			clusterv1.ClusterNameLabel: cluster.Name,
 		}),
 	}
 

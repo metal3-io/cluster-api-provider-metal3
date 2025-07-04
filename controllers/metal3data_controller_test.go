@@ -30,7 +30,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -46,7 +46,7 @@ var _ = Describe("Metal3Data manager", func() {
 			expectRequeue        bool
 			expectManager        bool
 			m3d                  *infrav1.Metal3Data
-			cluster              *clusterv1beta1.Cluster
+			cluster              *clusterv1.Cluster
 			managerError         bool
 			reconcileNormal      bool
 			reconcileNormalError bool
@@ -140,7 +140,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 					},
 				},
@@ -151,7 +151,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 						Finalizers:        []string{"foo"},
@@ -165,7 +165,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 						Finalizers:        []string{"foo"},
@@ -181,7 +181,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: "abc",
+							clusterv1.ClusterNameLabel: "abc",
 						},
 						DeletionTimestamp: &timestampNow,
 						Finalizers:        []string{"foo"},
@@ -197,16 +197,16 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1beta1.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 					},
-					Spec: clusterv1beta1.ClusterSpec{
+					Spec: clusterv1.ClusterSpec{
 						Paused: true,
 					},
 				},
@@ -218,11 +218,11 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1beta1.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
@@ -236,11 +236,11 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1beta1.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,
@@ -256,11 +256,11 @@ var _ = Describe("Metal3Data manager", func() {
 						Name:      metal3DataName,
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: metal3DataName,
+							clusterv1.ClusterNameLabel: metal3DataName,
 						},
 					},
 				},
-				cluster: &clusterv1beta1.Cluster{
+				cluster: &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      metal3DataName,
 						Namespace: namespaceName,

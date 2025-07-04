@@ -33,7 +33,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -71,7 +71,7 @@ type reconcileRemediationTestCase struct {
 	Metal3RemediationCantBeFound     bool
 	FailedToCreateRemediationManager bool
 	Metal3Remediation                *infrav1.Metal3Remediation
-	Machine                          *clusterv1beta1.Machine
+	Machine                          *clusterv1.Machine
 }
 type marshallRemediationTestCase struct {
 	Map map[string]string
@@ -304,7 +304,7 @@ var _ = Describe("Metal3Remediation controller", func() {
 					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1beta1.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "Machine",
 							Name:       "wrongName",
 						},
@@ -322,7 +322,7 @@ var _ = Describe("Metal3Remediation controller", func() {
 					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1beta1.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "wrongKind",
 							Name:       machineName,
 						},
@@ -340,7 +340,7 @@ var _ = Describe("Metal3Remediation controller", func() {
 					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: clusterv1beta1.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 							Kind:       "Machine",
 							Name:       machineName,
 						},

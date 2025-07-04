@@ -34,7 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -153,7 +153,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3dt                *infrav1.Metal3DataTemplate
 		m3m                 *infrav1.Metal3Machine
 		dataClaim           *infrav1.Metal3DataClaim
-		machine             *clusterv1beta1.Machine
+		machine             *clusterv1.Machine
 		bmh                 *bmov1alpha1.BareMetalHost
 		metadataSecret      *corev1.Secret
 		networkdataSecret   *corev1.Secret
@@ -430,7 +430,7 @@ var _ = Describe("Metal3Data manager", func() {
 						{
 							Name:       machineName,
 							Kind:       "Machine",
-							APIVersion: clusterv1beta1.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 					},
 					Annotations: map[string]string{
@@ -445,7 +445,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMetaWithOR(metal3DataClaimName, metal3machineName),
 				Spec:       infrav1.Metal3DataClaimSpec{},
 			},
-			machine: &clusterv1beta1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: testObjectMeta(machineName, namespaceName, muid),
 			},
 			bmh: &bmov1alpha1.BareMetalHost{
@@ -545,7 +545,7 @@ var _ = Describe("Metal3Data manager", func() {
 						{
 							Name:       machineName,
 							Kind:       "Machine",
-							APIVersion: clusterv1beta1.GroupVersion.String(),
+							APIVersion: clusterv1.GroupVersion.String(),
 						},
 					},
 				},
@@ -553,7 +553,7 @@ var _ = Describe("Metal3Data manager", func() {
 					DataTemplate: testObjectReference(metal3DataTemplateName),
 				},
 			},
-			machine: &clusterv1beta1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: testObjectMeta(machineName, namespaceName, muid),
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
@@ -2169,7 +2169,7 @@ var _ = Describe("Metal3Data manager", func() {
 	type testCaseRenderNetworkData struct {
 		m3dt           *infrav1.Metal3DataTemplate
 		m3m            *infrav1.Metal3Machine
-		machine        *clusterv1beta1.Machine
+		machine        *clusterv1.Machine
 		bmh            *bmov1alpha1.BareMetalHost
 		poolAddresses  map[string]addressFromPool
 		expectError    bool
@@ -2404,7 +2404,7 @@ var _ = Describe("Metal3Data manager", func() {
 	type testCaseRenderNetworkLinks struct {
 		links          infrav1.NetworkDataLink
 		m3m            *infrav1.Metal3Machine
-		machine        *clusterv1beta1.Machine
+		machine        *clusterv1.Machine
 		bmh            *bmov1alpha1.BareMetalHost
 		expectError    bool
 		expectedOutput []interface{}
@@ -3035,7 +3035,7 @@ var _ = Describe("Metal3Data manager", func() {
 	type testCaseGetLinkMacAddress struct {
 		mac         *infrav1.NetworkLinkEthernetMac
 		m3m         *infrav1.Metal3Machine
-		machine     *clusterv1beta1.Machine
+		machine     *clusterv1.Machine
 		bmh         *bmov1alpha1.BareMetalHost
 		expectError bool
 		expectedMAC string
@@ -3114,7 +3114,7 @@ var _ = Describe("Metal3Data manager", func() {
 					Annotation: "mac-address",
 				},
 			},
-			machine: &clusterv1beta1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: machineName,
 					Annotations: map[string]string{
@@ -3178,7 +3178,7 @@ var _ = Describe("Metal3Data manager", func() {
 					Annotation: "wrflbrmpfd",
 				},
 			},
-			machine: &clusterv1beta1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: machineName,
 					Annotations: map[string]string{
@@ -3195,7 +3195,7 @@ var _ = Describe("Metal3Data manager", func() {
 					Annotation: "mac-address",
 				},
 			},
-			machine: &clusterv1beta1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: machineName,
 					Annotations: map[string]string{
@@ -3211,7 +3211,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3d              *infrav1.Metal3Data
 		m3dt             *infrav1.Metal3DataTemplate
 		m3m              *infrav1.Metal3Machine
-		machine          *clusterv1beta1.Machine
+		machine          *clusterv1.Machine
 		bmh              *bmov1alpha1.BareMetalHost
 		poolAddresses    map[string]addressFromPool
 		expectedMetaData map[string]string
@@ -3410,7 +3410,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			machine: &clusterv1beta1.Machine{
+			machine: &clusterv1.Machine{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: machineName,
 					Labels: map[string]string{

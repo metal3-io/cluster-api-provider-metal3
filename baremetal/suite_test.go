@@ -38,6 +38,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -123,7 +124,7 @@ var _ = AfterSuite(func() {
 })
 
 var bmcOwnerRef = &metav1.OwnerReference{
-	APIVersion: clusterv1beta1.GroupVersion.String(),
+	APIVersion: clusterv1.GroupVersion.String(),
 	Kind:       "Cluster",
 	Name:       clusterName,
 }
@@ -135,6 +136,9 @@ var bmcOwnerRef = &metav1.OwnerReference{
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
 	if err := clusterv1beta1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := infrav1.AddToScheme(s); err != nil {
@@ -163,8 +167,8 @@ func testObjectMeta(name string, namespace string, uid string) metav1.ObjectMeta
 	}
 }
 
-func newCluster(clusterName string) *clusterv1beta1.Cluster {
-	return &clusterv1beta1.Cluster{
+func newCluster(clusterName string) *clusterv1.Cluster {
+	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Cluster",
 		},
@@ -172,16 +176,24 @@ func newCluster(clusterName string) *clusterv1beta1.Cluster {
 			Name:      clusterName,
 			Namespace: namespaceName,
 		},
-		Spec: clusterv1beta1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Name:       metal3ClusterName,
-				Namespace:  namespaceName,
-				Kind:       "InfrastructureConfig",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+		Spec: clusterv1.ClusterSpec{
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				Name:     metal3ClusterName,
+				Kind:     "InfrastructureConfig",
+				APIGroup: "infrastructure.cluster.x-k8s.io/v1beta1",
 			},
 		},
-		Status: clusterv1beta1.ClusterStatus{
-			InfrastructureReady: true,
+		Status: clusterv1.ClusterStatus{
+			Deprecated: &clusterv1.ClusterDeprecatedStatus{
+				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.InfrastructureReadyV1Beta1Condition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
 		},
 	}
 }

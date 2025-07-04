@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -52,12 +52,12 @@ func bmcSpecAPIEmpty() *infrav1.Metal3ClusterSpec {
 
 type testCaseBMClusterManager struct {
 	BMCluster     *infrav1.Metal3Cluster
-	Cluster       *clusterv1beta1.Cluster
+	Cluster       *clusterv1.Cluster
 	ExpectSuccess bool
 }
 
 type descendantsTestCase struct {
-	Machines            []*clusterv1beta1.Machine
+	Machines            []*clusterv1.Machine
 	OwnerRef            *metav1.OwnerReference
 	ExpectError         bool
 	ExpectedDescendants int
@@ -85,12 +85,12 @@ var _ = Describe("Metal3Cluster manager", func() {
 				}
 			},
 			Entry("Cluster and BMCluster Defined", testCaseBMClusterManager{
-				Cluster:       &clusterv1beta1.Cluster{},
+				Cluster:       &clusterv1.Cluster{},
 				BMCluster:     &infrav1.Metal3Cluster{},
 				ExpectSuccess: true,
 			}),
 			Entry("BMCluster undefined", testCaseBMClusterManager{
-				Cluster:       &clusterv1beta1.Cluster{},
+				Cluster:       &clusterv1.Cluster{},
 				BMCluster:     nil,
 				ExpectSuccess: false,
 			}),
@@ -180,7 +180,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 			}
 		},
 		Entry("deleting BMCluster", testCaseBMClusterManager{
-			Cluster:       &clusterv1beta1.Cluster{},
+			Cluster:       &clusterv1.Cluster{},
 			BMCluster:     &infrav1.Metal3Cluster{},
 			ExpectSuccess: true,
 		}),
@@ -212,7 +212,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 			ExpectSuccess: false,
 		}),
 		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{
-			Cluster: &clusterv1beta1.Cluster{},
+			Cluster: &clusterv1.Cluster{},
 			BMCluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
 				bmcSpec(), nil,
 			),
@@ -220,7 +220,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		}),
 		Entry("Cluster empty, BMCluster exists without owner",
 			testCaseBMClusterManager{
-				Cluster: &clusterv1beta1.Cluster{},
+				Cluster: &clusterv1.Cluster{},
 				BMCluster: newMetal3Cluster(metal3ClusterName, nil,
 					bmcSpec(), nil,
 				),
@@ -263,7 +263,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 			ExpectSuccess: false,
 		}),
 		Entry("Cluster empty, BMCluster exists", testCaseBMClusterManager{
-			Cluster: &clusterv1beta1.Cluster{},
+			Cluster: &clusterv1.Cluster{},
 			BMCluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef,
 				bmcSpec(), nil,
 			),
@@ -271,7 +271,7 @@ var _ = Describe("Metal3Cluster manager", func() {
 		}),
 		Entry("Cluster empty, BMCluster exists without owner",
 			testCaseBMClusterManager{
-				Cluster: &clusterv1beta1.Cluster{},
+				Cluster: &clusterv1.Cluster{},
 				BMCluster: newMetal3Cluster(metal3ClusterName, nil, bmcSpec(),
 					nil,
 				),
@@ -291,18 +291,18 @@ var _ = Describe("Metal3Cluster manager", func() {
 
 	var descendantsTestCases = []TableEntry{
 		Entry("No Cluster Descendants", descendantsTestCase{
-			Machines:            []*clusterv1beta1.Machine{},
+			Machines:            []*clusterv1.Machine{},
 			OwnerRef:            bmcOwnerRef,
 			ExpectError:         false,
 			ExpectedDescendants: 0,
 		}),
 		Entry("One Cluster Descendant with proper OwnerRef", descendantsTestCase{
-			Machines: []*clusterv1beta1.Machine{
+			Machines: []*clusterv1.Machine{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: clusterName,
+							clusterv1.ClusterNameLabel: clusterName,
 						},
 					},
 				},
@@ -312,12 +312,12 @@ var _ = Describe("Metal3Cluster manager", func() {
 			ExpectedDescendants: 1,
 		}),
 		Entry("One Cluster Descendant with wrong OwnerRef", descendantsTestCase{
-			Machines: []*clusterv1beta1.Machine{
+			Machines: []*clusterv1.Machine{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: namespaceName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterNameLabel: clusterName,
+							clusterv1.ClusterNameLabel: clusterName,
 						},
 					},
 				},

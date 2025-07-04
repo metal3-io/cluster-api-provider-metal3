@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -61,7 +61,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	)
 
 	type testCaseSetClusterOwnerRef struct {
-		cluster     *clusterv1beta1.Cluster
+		cluster     *clusterv1.Cluster
 		template    *infrav1.Metal3DataTemplate
 		expectError bool
 	}
@@ -89,7 +89,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, "", ""),
 			},
-			cluster: &clusterv1beta1.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
 			},
 		}),
@@ -104,7 +104,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			cluster: &clusterv1beta1.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
 			},
 		}),
@@ -122,7 +122,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			cluster: &clusterv1beta1.Cluster{
+			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
 			},
 		}),

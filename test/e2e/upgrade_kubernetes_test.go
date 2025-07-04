@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -147,8 +147,8 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	})
 
 	Byf("Wait until three Control Plane machines become running and updated with the new %s k8s version", upgradedK8sVersion)
-	runningAndUpgraded := func(machine clusterv1beta1.Machine) bool {
-		running := machine.Status.GetTypedPhase() == clusterv1beta1.MachinePhaseRunning
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
 		upgraded := *machine.Spec.Version == upgradedK8sVersion
 		return (running && upgraded)
 	}
@@ -228,7 +228,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	})
 
 	Byf("Wait until the worker machine becomes running")
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(namespace)},
 		Replicas:  numberOfAllBmh,

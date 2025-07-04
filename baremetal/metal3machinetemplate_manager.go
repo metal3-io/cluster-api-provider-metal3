@@ -20,13 +20,13 @@ import (
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
-	clonedFromName      = clusterv1beta1.TemplateClonedFromNameAnnotation
-	clonedFromGroupKind = clusterv1beta1.TemplateClonedFromGroupKindAnnotation
+	clonedFromName      = clusterv1.TemplateClonedFromNameAnnotation
+	clonedFromGroupKind = clusterv1.TemplateClonedFromGroupKindAnnotation
 )
 
 // TemplateManagerInterface is an interface for a TemplateManager.

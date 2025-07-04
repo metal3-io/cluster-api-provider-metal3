@@ -7,7 +7,7 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -59,8 +59,8 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
 
 	Byf("Wait until %d Control Plane machines become running and updated with the new %s k8s version", numberOfControlplane, toK8sVersion)
-	runningAndUpgraded := func(machine clusterv1beta1.Machine) bool {
-		running := machine.Status.GetTypedPhase() == clusterv1beta1.MachinePhaseRunning
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
 		upgraded := *machine.Spec.Version == toK8sVersion
 		return (running && upgraded)
 	}
@@ -144,7 +144,7 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	ListNodes(ctx, targetClusterClient)
 
 	Byf("Wait until all %d machine(s) become(s) running", numberOfAllBmh)
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  int(numberOfAllBmh),
