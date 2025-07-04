@@ -11,7 +11,7 @@ spec:
         port: 6443
         cloudProviderEnabled: false
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlaneTemplate
 metadata:
   name: example-controlplane
@@ -45,7 +45,7 @@ spec:
       dataTemplate:
         name: example-md-metadata
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: example-md-0
@@ -67,7 +67,7 @@ spec:
       dataTemplate:
         name: example-cp-metadata
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: example-clusterclass
@@ -200,7 +200,7 @@ spec:
           variable: controlPlaneDataTemplate
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: example-controlplane
     machineInfrastructure:
@@ -229,7 +229,7 @@ spec:
             nodepool: nodepool-0
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: example-md-0
         infrastructure:

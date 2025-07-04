@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: metal3
@@ -86,7 +86,7 @@ spec:
           variable: controlPlaneDataTemplate
   controlPlane:
     ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: metal3-control-plane
     machineInfrastructure:
@@ -109,12 +109,12 @@ spec:
             nodepool: nodepool-0
         bootstrap:
           ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            apiGroup: bootstrap.cluster.x-k8s.io
             kind: KubeadmConfigTemplate
             name: metal3-default-worker-bootstraptemplate
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            apiGroup: infrastructure.cluster.x-k8s.io
             kind: Metal3MachineTemplate
             name:  metal3-default-worker-machinetemplate
 ---
@@ -142,23 +142,35 @@ spec:
         initConfiguration:
           nodeRegistration:
             kubeletExtraArgs:
-              cgroup-driver: systemd
-              container-runtime-endpoint: unix:///var/run/crio/crio.sock
-              feature-gates: AllAlpha=false
-              node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-              provider-id: ${PROVIDER_ID_FORMAT}
-              runtime-request-timeout: 5m
+            - name: cgroup-driver
+              value: systemd
+            - name: container-runtime-endpoint
+              value: unix:///var/run/crio/crio.sock
+            - name: feature-gates
+              value: AllAlpha=false
+            - name: node-labels
+              value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+            - name: provider-id
+              value: '${PROVIDER_ID_FORMAT}'
+            - name: runtime-request-timeout
+              value: '5m'
             name: '{{ ds.meta_data.name }}'
         joinConfiguration:
           controlPlane: {}
           nodeRegistration:
             kubeletExtraArgs:
-              cgroup-driver: systemd
-              container-runtime-endpoint: unix:///var/run/crio/crio.sock
-              feature-gates: AllAlpha=false
-              node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-              provider-id: ${PROVIDER_ID_FORMAT}
-              runtime-request-timeout: 5m
+            - name: cgroup-driver
+              value: systemd
+            - name: container-runtime-endpoint
+              value: unix:///var/run/crio/crio.sock
+            - name: feature-gates
+              value: AllAlpha=false
+            - name: node-labels
+              value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+            - name: provider-id
+              value: '${PROVIDER_ID_FORMAT}'
+            - name: runtime-request-timeout
+              value: '5m'
             name: '{{ ds.meta_data.name }}'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
@@ -186,12 +198,18 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            cgroup-driver: systemd
-            container-runtime-endpoint: unix:///var/run/crio/crio.sock
-            feature-gates: AllAlpha=false
-            node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-            provider-id: ${PROVIDER_ID_FORMAT}
-            runtime-request-timeout: 5m
+          - name: cgroup-driver
+            value: systemd
+          - name: container-runtime-endpoint
+            value: unix:///var/run/crio/crio.sock
+          - name: feature-gates
+            value: AllAlpha=false
+          - name: node-labels
+            value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+          - name: provider-id
+            value: '${PROVIDER_ID_FORMAT}'
+          - name: runtime-request-timeout
+            value: '5m'
           name: '{{ ds.meta_data.name }}'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
