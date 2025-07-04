@@ -27,9 +27,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/annotations"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,7 +70,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 		return ctrl.Result{}, err
 	}
-	helper, err := deprecatedpatch.NewHelper(metal3Data, r.Client)
+	helper, err := v1beta1patch.NewHelper(metal3Data, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -82,14 +84,14 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}()
 
 	// Fetch the Cluster.
-	cluster, err := baremetal.GetClusterFromMetadata(ctx, r.Client, metal3Data.ObjectMeta)
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, metal3Data.ObjectMeta)
 	if metal3Data.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
 			metadataLog.Info("Metal3Data is missing cluster label or cluster does not exist")
 			return ctrl.Result{}, nil
 		}
 		if cluster == nil {
-			metadataLog.Info("This metadata is not yet associated with a cluster using the label : <name of cluster>", "label", clusterv1beta1.ClusterNameLabel)
+			metadataLog.Info("This metadata is not yet associated with a cluster using the label : <name of cluster>", "label", clusterv1.ClusterNameLabel)
 			return ctrl.Result{}, nil
 		}
 	}
@@ -98,7 +100,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
 
 		// Return early if the Metadata or Cluster is paused.
-		if baremetal.IsPaused(cluster, metal3Data) {
+		if annotations.IsPaused(cluster, metal3Data) {
 			metadataLog.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}

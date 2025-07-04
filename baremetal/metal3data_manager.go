@@ -35,8 +35,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/yaml"
@@ -133,7 +134,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[clusterv1beta1.ClusterNameLabel],
+		m.Log, m.Data.Labels[clusterv1.ClusterNameLabel],
 	)
 	if err != nil {
 		return err
@@ -212,7 +213,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	}
 
 	// Fetch the Machine.
-	capiMachine, err := GetOwnerMachine(ctx, m.client, m3m.ObjectMeta)
+	capiMachine, err := util.GetOwnerMachine(ctx, m.client, m3m.ObjectMeta)
 
 	if err != nil {
 		return errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
@@ -262,7 +263,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return err
 		}
 		if err := createSecret(ctx, m.client, m.Data.Spec.MetaData.Name,
-			m.Data.Namespace, m3dt.Labels[clusterv1beta1.ClusterNameLabel],
+			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterNameLabel],
 			ownerRefs, map[string][]byte{"metaData": metadata},
 		); err != nil {
 			return err
@@ -277,7 +278,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return err
 		}
 		if err := createSecret(ctx, m.client, m.Data.Spec.NetworkData.Name,
-			m.Data.Namespace, m3dt.Labels[clusterv1beta1.ClusterNameLabel],
+			m.Data.Namespace, m3dt.Labels[clusterv1.ClusterNameLabel],
 			ownerRefs, map[string][]byte{"networkData": networkData},
 		); err != nil {
 			return err
@@ -299,7 +300,7 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 	}
 	// Fetch the Metal3DataTemplate object to get the templates
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[clusterv1beta1.ClusterNameLabel],
+		m.Log, m.Data.Labels[clusterv1.ClusterNameLabel],
 	)
 	if err != nil {
 		return err
@@ -631,7 +632,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	}
 
 	m3dt, err := fetchM3DataTemplate(ctx, &m.Data.Spec.Template, m.client,
-		m.Log, m.Data.Labels[clusterv1beta1.ClusterNameLabel],
+		m.Log, m.Data.Labels[clusterv1.ClusterNameLabel],
 	)
 	if err != nil {
 		return reconciledClaim{m3Claim: ipClaim}, err
@@ -925,7 +926,7 @@ func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolRef corev1
 // renderNetworkData renders the networkData into an object that will be
 // marshalled into the secret.
 func renderNetworkData(m3dt *infrav1.Metal3DataTemplate,
-	m3m *infrav1.Metal3Machine, machine *clusterv1beta1.Machine, bmh *bmov1alpha1.BareMetalHost,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
 	poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.NetworkData == nil {
@@ -982,7 +983,7 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 
 // renderNetworkLinks renders the different types of links.
 func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
-	m3m *infrav1.Metal3Machine, machine *clusterv1beta1.Machine, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
 	data := []interface{}{}
 
 	// Bond links
@@ -1264,7 +1265,7 @@ func translateMask(maskInt int, ipv4 bool) interface{} {
 
 // getLinkMacAddress returns the mac address.
 func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
-	m3m *infrav1.Metal3Machine, machine *clusterv1beta1.Machine, bmh *bmov1alpha1.BareMetalHost) (
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) (
 	string, error,
 ) {
 	var macaddress, err = "", errors.New("no MAC address given")
@@ -1298,7 +1299,7 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
 
 // renderMetaData renders the MetaData items.
 func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
-	m3m *infrav1.Metal3Machine, machine *clusterv1beta1.Machine, bmh *bmov1alpha1.BareMetalHost,
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost,
 	poolAddresses map[string]addressFromPool,
 ) ([]byte, error) {
 	if m3dt.Spec.MetaData == nil {
@@ -1417,7 +1418,7 @@ func getBMHMacByName(name string, bmh *bmov1alpha1.BareMetalHost) (string, error
 
 // getValueFromAnnotation returns an annotation from an object representing a machine.
 func getValueFromAnnotation(object string, annotation string,
-	m3m *infrav1.Metal3Machine, machine *clusterv1beta1.Machine, bmh *bmov1alpha1.BareMetalHost) (string, error) {
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) (string, error) {
 	switch strings.ToLower(object) {
 	case m3machine:
 		return m3m.Annotations[annotation], nil

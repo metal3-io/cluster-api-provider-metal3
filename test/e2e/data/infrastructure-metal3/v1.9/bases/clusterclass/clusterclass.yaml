@@ -1,0 +1,165 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: test-clusterclass
+spec:
+  variables:
+  - name: controlPlaneEndpoint
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties: 
+          host: 
+            type: string
+          port:
+            type: integer
+  - name: image
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties: 
+          checksum: 
+            type: string
+          checksumType:
+            type: string
+          format:
+            type: string
+          url:
+            type: string
+  - name: workerDataTemplate
+    schema:
+      openAPIV3Schema:
+        type: string
+  - name: controlPlaneDataTemplate
+    schema:
+      openAPIV3Schema:
+        type: string
+  patches:
+  - name: controlPlaneEndpointSub
+    description: Overrides controlPlaneEndpoint data of Metal3ClusterTemplate used by the cluster
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3ClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: replace
+        path: /spec/template/spec/controlPlaneEndpoint
+        valueFrom:
+          variable: controlPlaneEndpoint
+  - name: imageSub
+    description: Overrides image data for worker nodes of example-worker class
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - worker
+      jsonPatches:
+      - op: replace
+        path: /spec/template/spec/image/checksum
+        valueFrom:
+          variable: image.checksum
+      - op: replace
+        path: /spec/template/spec/image/checksumType
+        valueFrom:
+          variable: image.checksumType
+      - op: replace
+        path: /spec/template/spec/image/format
+        valueFrom:
+          variable: image.format
+      - op: replace
+        path: /spec/template/spec/image/url
+        valueFrom:
+          variable: image.url
+  - name: workerDataTemplateSub
+    description: Overrides data-template for worker nodes
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - worker
+      jsonPatches:
+      - op: replace
+        path: /spec/template/spec/dataTemplate/name
+        valueFrom:
+          variable: workerDataTemplate
+  - name: controlPlaneImageSub
+    description: Overrides image data for worker nodes of control plane node
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: replace
+        path: /spec/template/spec/image/checksum
+        valueFrom:
+          variable: image.checksum
+      - op: replace
+        path: /spec/template/spec/image/checksumType
+        valueFrom:
+          variable: image.checksumType
+      - op: replace
+        path: /spec/template/spec/image/format
+        valueFrom:
+          variable: image.format
+      - op: replace
+        path: /spec/template/spec/image/url
+        valueFrom:
+          variable: image.url
+  - name: controlPlaneDataTemplateSub
+    description: Overrides data-template for control plane nodes
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: replace
+        path: /spec/template/spec/dataTemplate/name
+        valueFrom:
+          variable: controlPlaneDataTemplate
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: ${CLUSTER_NAME}
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: Metal3MachineTemplate
+        name: ${CLUSTER_NAME}-controlplane
+  workers:
+    machineDeployments:
+    - class: worker
+      template:
+        metadata:
+          labels:
+            cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+            nodepool: nodepool-0
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: ${CLUSTER_NAME}-workers
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+            kind: Metal3MachineTemplate
+            name: ${CLUSTER_NAME}-workers
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: Metal3ClusterTemplate
+      name: ${CLUSTER_NAME}

@@ -5,9 +5,9 @@ go 1.24.0
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/golang/mock v1.6.0
-	github.com/metal3-io/baremetal-operator/apis v0.10.1-0.20250630070757-6b650b7891dc
+	github.com/metal3-io/baremetal-operator/apis v0.11.0-alpha.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.10.1-0.20250701084858-f1771d9443f4
+	github.com/metal3-io/ip-address-manager/api v1.11.0-alpha.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/pkg/errors v0.9.1
@@ -20,14 +20,14 @@ require (
 	k8s.io/component-base v0.33.2
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
-	sigs.k8s.io/cluster-api v1.11.0-alpha.1
+	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/yaml v1.5.0
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./api
 
-// replace github.com/metal3-io/ip-address-manager/api => ./../metal3-ipam/api
+replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.2
 
 require (
 	cel.dev/expr v0.19.1 // indirect
@@ -104,7 +104,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.33.2 // indirect
-	k8s.io/cluster-bootstrap v0.33.1 // indirect
+	k8s.io/cluster-bootstrap v0.33.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect

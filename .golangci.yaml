@@ -107,10 +107,14 @@ linters-settings:
       alias: clusterv1
     - pkg: sigs.k8s.io/cluster-api/api/core/v1beta1
       alias: clusterv1beta1
-    - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions
-      alias: deprecatedconditions
+    - pkg: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+      alias: v1beta1conditions
     - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2
       alias: deprecatedv1beta2conditions
+    - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
+      alias: deprecatedv1beta1conditions
+    - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch
+      alias: v1beta1patch
     # CAPM3
     - pkg: github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1
       alias: infrav1

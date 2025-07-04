@@ -32,9 +32,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -56,7 +57,7 @@ type RemediationManagerInterface interface {
 	IsPowerOffRequested(ctx context.Context) (bool, error)
 	IsPoweredOn(ctx context.Context) (bool, error)
 	SetUnhealthyAnnotation(ctx context.Context) error
-	GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error)
+	GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error)
 	OnlineStatus(host *bmov1alpha1.BareMetalHost) bool
 	GetRemediationType() infrav1.RemediationType
 	RetryLimitIsSet() bool
@@ -68,7 +69,7 @@ type RemediationManagerInterface interface {
 	GetTimeout() *metav1.Duration
 	IncreaseRetryCount()
 	SetOwnerRemediatedConditionNew(ctx context.Context) error
-	GetCapiMachine(ctx context.Context) (*clusterv1beta1.Machine, error)
+	GetCapiMachine(ctx context.Context) (*clusterv1.Machine, error)
 	GetNode(ctx context.Context, clusterClient v1.CoreV1Interface) (*corev1.Node, error)
 	UpdateNode(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error
 	DeleteNode(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error
@@ -94,7 +95,7 @@ type RemediationManager struct {
 	CapiClientGetter  ClientGetter
 	Metal3Remediation *infrav1.Metal3Remediation
 	Metal3Machine     *infrav1.Metal3Machine
-	Machine           *clusterv1beta1.Machine
+	Machine           *clusterv1.Machine
 	Log               logr.Logger
 }
 
@@ -103,7 +104,7 @@ var _ RemediationManagerInterface = &RemediationManager{}
 
 // NewRemediationManager returns a new helper for managing a Metal3Remediation object.
 func NewRemediationManager(client client.Client, capiClientGetter ClientGetter,
-	metal3remediation *infrav1.Metal3Remediation, metal3Machine *infrav1.Metal3Machine, machine *clusterv1beta1.Machine,
+	metal3remediation *infrav1.Metal3Remediation, metal3Machine *infrav1.Metal3Machine, machine *clusterv1.Machine,
 	remediationLog logr.Logger) (*RemediationManager, error) {
 	return &RemediationManager{
 		Client:            client,
@@ -239,12 +240,12 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 
 // GetUnhealthyHost gets the associated host for unhealthy machine. Returns nil if not found. Assumes the
 // host is in the same namespace as the unhealthy machine.
-func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error) {
+func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
 	host, err := getUnhealthyHost(ctx, r.Metal3Machine, r.Client, r.Log)
 	if err != nil || host == nil {
 		return host, nil, err
 	}
-	helper, err := patch.NewHelper(host, r.Client)
+	helper, err := v1beta1patch.NewHelper(host, r.Client)
 	return host, helper, err
 }
 
@@ -352,12 +353,17 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		return err
 	}
 
-	machineHelper, err := patch.NewHelper(capiMachine, r.Client)
+	machineHelper, err := v1beta1patch.NewHelper(capiMachine, r.Client)
 	if err != nil {
 		r.Log.Info("Unable to create patch helper for Machine")
 		return err
 	}
-	deprecatedconditions.MarkFalse(capiMachine, clusterv1beta1.MachineOwnerRemediatedCondition, clusterv1beta1.WaitingForRemediationReason, clusterv1beta1.ConditionSeverityWarning, "")
+
+	deprecatedv1beta1conditions.MarkFalse(capiMachine,
+		clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+		clusterv1.WaitingForRemediationV1Beta1Reason,
+		clusterv1.ConditionSeverityWarning,
+		"")
 	err = machineHelper.Patch(ctx, capiMachine)
 	if err != nil {
 		r.Log.Info("Unable to patch Machine", "machine", capiMachine)
@@ -367,8 +373,8 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 }
 
 // GetCapiMachine returns CAPI machine object owning the current resource.
-func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*clusterv1beta1.Machine, error) {
-	capiMachine, err := GetOwnerMachine(ctx, r.Client, r.Metal3Remediation.ObjectMeta)
+func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*clusterv1.Machine, error) {
+	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, r.Metal3Remediation.ObjectMeta)
 	if err != nil {
 		r.Log.Error(err, "metal3Remediation's owner Machine could not be retrieved")
 		return nil, errors.Wrapf(err, "metal3Remediation's owner Machine could not be retrieved")
@@ -430,7 +436,7 @@ func (r *RemediationManager) GetClusterClient(ctx context.Context) (v1.CoreV1Int
 		return nil, errors.Wrapf(err, "metal3Remediation's node could not be retrieved")
 	}
 
-	cluster, err := GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		r.Log.Error(err, "Machine is missing cluster label or cluster does not exist")
 		return nil, errors.Wrapf(err, "Machine is missing cluster label or cluster does not exist")

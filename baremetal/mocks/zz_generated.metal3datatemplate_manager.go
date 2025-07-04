@@ -27,7 +27,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // MockDataTemplateManagerInterface is a mock of DataTemplateManagerInterface interface.
@@ -54,7 +54,7 @@ func (m *MockDataTemplateManagerInterface) EXPECT() *MockDataTemplateManagerInte
 }
 
 // SetClusterOwnerRef mocks base method.
-func (m *MockDataTemplateManagerInterface) SetClusterOwnerRef(arg0 *v1beta1.Cluster) error {
+func (m *MockDataTemplateManagerInterface) SetClusterOwnerRef(arg0 *v1beta2.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetClusterOwnerRef", arg0)
 	ret0, _ := ret[0].(error)

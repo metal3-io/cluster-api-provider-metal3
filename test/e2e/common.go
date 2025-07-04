@@ -39,12 +39,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
-	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/krusty"
@@ -256,15 +255,15 @@ func FilterBmhsByProvisioningState(bmhs []bmov1alpha1.BareMetalHost, state bmov1
 }
 
 // FilterMachinesByPhase returns a filtered list of CAPI machine objects in certain desired phase.
-func FilterMachinesByPhase(machines []clusterv1beta1.Machine, phase clusterv1beta1.MachinePhase) (result []clusterv1beta1.Machine) {
-	accept := func(machine clusterv1beta1.Machine) bool {
+func FilterMachinesByPhase(machines []clusterv1.Machine, phase clusterv1.MachinePhase) (result []clusterv1.Machine) {
+	accept := func(machine clusterv1.Machine) bool {
 		return machine.Status.GetTypedPhase() == phase
 	}
 	return FilterMachines(machines, accept)
 }
 
 // FilterMachines returns a filtered list of Machines that were accepted by the accept function.
-func FilterMachines(machines []clusterv1beta1.Machine, accept func(clusterv1beta1.Machine) bool) (result []clusterv1beta1.Machine) {
+func FilterMachines(machines []clusterv1.Machine, accept func(clusterv1.Machine) bool) (result []clusterv1.Machine) {
 	for _, machine := range machines {
 		if accept(machine) {
 			result = append(result, machine)
@@ -279,7 +278,7 @@ func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alp
 	bmhKey := client.ObjectKey{Name: host.Name, Namespace: host.Namespace}
 	err := clusterClient.Get(ctx, bmhKey, bmh)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get BareMetalHost %s", host.Name)
-	helper, err := deprecatedpatch.NewHelper(bmh, clusterClient)
+	helper, err := v1beta1patch.NewHelper(bmh, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 
 	if value == nil {
@@ -297,7 +296,7 @@ func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alp
 
 // DeleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
 func DeleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, nodeReuseLabelName string) {
-	helper, err := deprecatedpatch.NewHelper(&host, client)
+	helper, err := v1beta1patch.NewHelper(&host, client)
 	Expect(err).NotTo(HaveOccurred())
 	labels := host.GetLabels()
 	if labels != nil {
@@ -326,7 +325,7 @@ func ScaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int32) {
 	ctrlplane := controlplanev1.KubeadmControlPlane{}
 	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
-	helper, err := deprecatedpatch.NewHelper(&ctrlplane, c)
+	helper, err := v1beta1patch.NewHelper(&ctrlplane, c)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create new patch helper")
 
 	ctrlplane.Spec.Replicas = ptr.To(newReplicaCount)
@@ -409,7 +408,7 @@ func ListMetal3Machines(ctx context.Context, c client.Client, opts ...client.Lis
 // ListMachines logs the names, status phase, provider ID and Kubernetes version
 // of all Machines in the namespace. Similar to kubectl get machines.
 func ListMachines(ctx context.Context, c client.Client, opts ...client.ListOption) {
-	machines := clusterv1beta1.MachineList{}
+	machines := clusterv1.MachineList{}
 	Expect(c.List(ctx, &machines, opts...)).To(Succeed())
 
 	rows := make([][]string, len(machines.Items)+1)
@@ -503,9 +502,9 @@ func WaitForNumMetal3MachinesReady(ctx context.Context, input WaitForNumInput) {
 }
 
 // WaitForNumMachinesInState will wait for the given number of Machines to be in the given state.
-func WaitForNumMachinesInState(ctx context.Context, phase clusterv1beta1.MachinePhase, input WaitForNumInput) {
+func WaitForNumMachinesInState(ctx context.Context, phase clusterv1.MachinePhase, input WaitForNumInput) {
 	Logf("Waiting for %d Machines to be in %s phase", input.Replicas, phase)
-	inPhase := func(machine clusterv1beta1.Machine) bool {
+	inPhase := func(machine clusterv1.Machine) bool {
 		return machine.Status.GetTypedPhase() == phase
 	}
 	WaitForNumMachines(ctx, inPhase, input)
@@ -514,9 +513,9 @@ func WaitForNumMachinesInState(ctx context.Context, phase clusterv1beta1.Machine
 // WaitForNumMachines will wait for the given number of Machines to be accepted by the accept function.
 // This is a more generic function than WaitForNumMachinesInState. It can be used to wait for any condition,
 // e.g. that the Kubernetes version is correct.
-func WaitForNumMachines(ctx context.Context, accept func(clusterv1beta1.Machine) bool, input WaitForNumInput) {
+func WaitForNumMachines(ctx context.Context, accept func(clusterv1.Machine) bool, input WaitForNumInput) {
 	Eventually(func(g Gomega) {
-		machineList := clusterv1beta1.MachineList{}
+		machineList := clusterv1.MachineList{}
 		g.Expect(input.Client.List(ctx, &machineList, input.Options...)).To(Succeed())
 		g.Expect(FilterMachines(machineList.Items, accept)).To(HaveLen(input.Replicas))
 	}, input.Intervals...).Should(Succeed())
@@ -524,7 +523,7 @@ func WaitForNumMachines(ctx context.Context, accept func(clusterv1beta1.Machine)
 }
 
 // Get the machine object given its object name.
-func GetMachine(ctx context.Context, c client.Client, name client.ObjectKey) (result clusterv1beta1.Machine) {
+func GetMachine(ctx context.Context, c client.Client, name client.ObjectKey) (result clusterv1.Machine) {
 	Expect(c.Get(ctx, name, &result)).To(Succeed())
 	return
 }
@@ -535,7 +534,7 @@ func GetMetal3Machines(ctx context.Context, c client.Client, _, namespace string
 	Expect(c.List(ctx, allMachines, client.InNamespace(namespace))).To(Succeed())
 
 	for _, machine := range allMachines.Items {
-		if _, ok := machine.GetLabels()[clusterv1beta1.MachineControlPlaneLabel]; ok {
+		if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
 			controlplane = append(controlplane, machine)
 		} else {
 			workers = append(workers, machine)
@@ -654,7 +653,7 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 	return "", errors.New("no matching Metal3Machine found for current Machine")
 }
 
-func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1beta1.Machine) (string, error) {
+func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
 	allMetal3Machines := &infrav1.Metal3MachineList{}
 	Expect(cli.List(ctx, allMetal3Machines, client.InNamespace(m.Namespace))).To(Succeed())
 	for _, machine := range allMetal3Machines.Items {
@@ -668,18 +667,17 @@ func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1
 	return "", errors.New("no matching Metal3Machine found for current Machine")
 }
 
-// MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
-//
-//nolint:dupl
+// MachineToIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
 func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
+	namespace := m.GetObjectMeta().GetNamespace()
 	err := cli.Get(ctx, types.NamespacedName{
-		Namespace: m.Spec.InfrastructureRef.Namespace,
+		Namespace: namespace,
 		Name:      m.Spec.InfrastructureRef.Name},
 		m3Machine)
 
 	if err != nil {
-		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name, err)
+		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", namespace, m.Spec.InfrastructureRef.Name, err)
 	}
 	m3DataList := &infrav1.Metal3DataList{}
 	m3Data := &infrav1.Metal3Data{}
@@ -720,17 +718,15 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 
 // MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
 // This is a duplicate of MachineToIPAddress, but for v1beta1 API. Remove this function when we switch to CAPI v1beta2 API only.
-//
-//nolint:dupl
-func MachineToIPAddress1beta1(ctx context.Context, cli client.Client, m *clusterv1beta1.Machine, ippool ipamv1.IPPool) (string, error) {
+func MachineToIPAddress1beta1(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
 	err := cli.Get(ctx, types.NamespacedName{
-		Namespace: m.Spec.InfrastructureRef.Namespace,
+		Namespace: m.Namespace,
 		Name:      m.Spec.InfrastructureRef.Name},
 		m3Machine)
 
 	if err != nil {
-		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name, err)
+		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Namespace, m.Spec.InfrastructureRef.Name, err)
 	}
 	m3DataList := &infrav1.Metal3DataList{}
 	m3Data := &infrav1.Metal3Data{}

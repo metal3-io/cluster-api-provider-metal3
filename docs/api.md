@@ -123,7 +123,7 @@ spec:
       apiGroup: infrastructure.cluster.x-k8s.io
       kind: Metal3MachineTemplate
       name: m3cluster-controlplane
-    nodeDrainTimeout: 0s
+    nodeDrainTimeoutSeconds: 0
   replicas: 3
   rolloutStrategy:
     rollingUpdate:
@@ -244,7 +244,7 @@ spec:
     apiGroup: infrastructure.cluster.x-k8s.io
     kind: Metal3Machine
     name: controlplane-0
-  nodeDrainTimeout: 0s
+  nodeDrainTimeoutSeconds: 0
   providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
   version: v1.33.0
 ```

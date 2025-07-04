@@ -2,8 +2,6 @@ module github.com/metal3-io/cluster-api-provider-metal3/hack/tools
 
 go 1.24.0
 
-toolchain go1.24.4
-
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/drone/envsubst v1.0.3

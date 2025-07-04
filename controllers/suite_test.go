@@ -35,6 +35,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -68,6 +69,7 @@ func init() {
 	// Register required object kinds with global scheme.
 	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
 	_ = clusterv1beta1.AddToScheme(scheme.Scheme)
+	_ = clusterv1.AddToScheme(scheme.Scheme)
 	_ = infrav1.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
 	_ = corev1.AddToScheme(scheme.Scheme)
@@ -77,6 +79,9 @@ func init() {
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
 	if err := clusterv1beta1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := infrav1.AddToScheme(s); err != nil {
@@ -140,14 +145,13 @@ var _ = AfterSuite(func() {
 
 var deletionTimestamp = metav1.Now()
 
-func clusterPauseSpec() *clusterv1beta1.ClusterSpec {
-	return &clusterv1beta1.ClusterSpec{
+func clusterPauseSpec() *clusterv1.ClusterSpec {
+	return &clusterv1.ClusterSpec{
 		Paused: true,
-		InfrastructureRef: &corev1.ObjectReference{
-			Name:       metal3ClusterName,
-			Namespace:  namespaceName,
-			Kind:       "Metal3Cluster",
-			APIVersion: infrav1.GroupVersion.String(),
+		InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			Name:     metal3ClusterName,
+			Kind:     "Metal3Cluster",
+			APIGroup: infrav1.GroupVersion.Group,
 		},
 	}
 }
@@ -158,7 +162,7 @@ func m3mObjectMetaWithOwnerRef() *metav1.ObjectMeta {
 		Namespace:       namespaceName,
 		OwnerReferences: m3mOwnerRefs(),
 		Labels: map[string]string{
-			clusterv1beta1.ClusterNameLabel: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		},
 	}
 }
@@ -176,7 +180,7 @@ func bmcSpec() *infrav1.Metal3ClusterSpec {
 
 func bmcOwnerRef() *metav1.OwnerReference {
 	return &metav1.OwnerReference{
-		APIVersion: clusterv1beta1.GroupVersion.String(),
+		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       "Cluster",
 		Name:       clusterName,
 	}
@@ -198,26 +202,34 @@ func getKey(objectName string) *client.ObjectKey {
 	}
 }
 
-func newCluster(clusterName string, spec *clusterv1beta1.ClusterSpec, status *clusterv1beta1.ClusterStatus) *clusterv1beta1.Cluster {
+func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *clusterv1.ClusterStatus) *clusterv1.Cluster {
 	if spec == nil {
-		spec = &clusterv1beta1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Name:       metal3ClusterName,
-				Namespace:  namespaceName,
-				Kind:       "Metal3Cluster",
-				APIVersion: infrav1.GroupVersion.String(),
+		spec = &clusterv1.ClusterSpec{
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				Name:     metal3ClusterName,
+				Kind:     "Metal3Cluster",
+				APIGroup: infrav1.GroupVersion.Group,
 			},
 		}
 	}
 	if status == nil {
-		status = &clusterv1beta1.ClusterStatus{
-			InfrastructureReady: true,
+		status = &clusterv1.ClusterStatus{
+			Deprecated: &clusterv1.ClusterDeprecatedStatus{
+				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.InfrastructureReadyV1Beta1Condition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
 		}
 	}
-	return &clusterv1beta1.Cluster{
+	return &clusterv1.Cluster{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Cluster",
-			APIVersion: clusterv1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      clusterName,
@@ -250,13 +262,13 @@ func newMetal3Cluster(metal3ClusterName string, ownerRef *metav1.OwnerReference,
 			Namespace: namespaceName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: clusterv1beta1.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Cluster",
 					Name:       clusterName,
 				},
 			},
 			Annotations: map[string]string{
-				clusterv1beta1.PausedAnnotation: "true",
+				clusterv1.PausedAnnotation: "true",
 			},
 		}
 	}
@@ -275,32 +287,30 @@ func newMetal3Cluster(metal3ClusterName string, ownerRef *metav1.OwnerReference,
 	}
 }
 
-func newMachine(clusterName, machineName string, metal3machineName string, nodeRefName string) *clusterv1beta1.Machine {
-	machine := &clusterv1beta1.Machine{
+func newMachine(clusterName, machineName string, metal3machineName string, nodeRefName string) *clusterv1.Machine {
+	machine := &clusterv1.Machine{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Machine",
-			APIVersion: clusterv1beta1.GroupVersion.String(),
+			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName,
 			Namespace: namespaceName,
 			Labels: map[string]string{
-				clusterv1beta1.ClusterNameLabel: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 	}
 	if metal3machineName != "" {
 		machine.Spec.ClusterName = clusterName
-		machine.Spec.InfrastructureRef = corev1.ObjectReference{
-			Name:       metal3machineName,
-			Namespace:  namespaceName,
-			Kind:       "Metal3Machine",
-			APIVersion: infrav1.GroupVersion.String(),
+		machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+			Name:     metal3machineName,
+			Kind:     "Metal3Machine",
+			APIGroup: infrav1.GroupVersion.Group,
 		}
 	}
 	if nodeRefName != "" {
-		machine.Status.NodeRef = &corev1.ObjectReference{
-			Kind: "Node",
+		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
 			Name: nodeRefName,
 		}
 	}
@@ -340,13 +350,13 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 			Namespace: namespaceName,
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion: clusterv1beta1.GroupVersion.String(),
+					APIVersion: clusterv1.GroupVersion.String(),
 					Kind:       "Machine",
 					Name:       machineName,
 				},
 			},
 			Annotations: map[string]string{
-				clusterv1beta1.PausedAnnotation: "true",
+				clusterv1.PausedAnnotation: "true",
 			},
 		}
 	}

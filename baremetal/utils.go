@@ -29,16 +29,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
-	ctrl "sigs.k8s.io/controller-runtime"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 const (
@@ -76,7 +71,7 @@ func (e *NotFoundError) Error() string {
 	return "Object not found"
 }
 
-func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object) error {
+func patchIfFound(ctx context.Context, helper *v1beta1patch.Helper, host client.Object) error {
 	err := helper.Patch(ctx, host)
 	if err != nil {
 		notFound := true
@@ -335,182 +330,3 @@ func parseProviderID(providerID string) string {
 	return strings.TrimPrefix(providerID, ProviderIDPrefix)
 }
 
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.GetOwnerMachine instead.
-// GetOwnerMachine returns the Machine object owning the current resource.
-func GetOwnerMachine(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1beta1.Machine, error) {
-	for _, ref := range obj.GetOwnerReferences() {
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return nil, err
-		}
-		if ref.Kind == "Machine" && gv.Group == clusterv1beta1.GroupVersion.Group {
-			return GetMachineByName(ctx, c, obj.Namespace, ref.Name)
-		}
-	}
-	return nil, nil //nolint:nilnil
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.GetMachineByName instead.
-// GetMachineByName finds and return a Machine object using the specified params.
-func GetMachineByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1beta1.Machine, error) {
-	m := &clusterv1beta1.Machine{}
-	key := client.ObjectKey{Name: name, Namespace: namespace}
-	if err := c.Get(ctx, key, m); err != nil {
-		return nil, err
-	}
-	return m, nil
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.IsControlPlaneMachine instead.
-// IsControlPlaneMachine checks machine is a control plane node.
-func IsControlPlaneMachine(machine *clusterv1beta1.Machine) bool {
-	_, ok := machine.Labels[clusterv1beta1.MachineControlPlaneLabel]
-	return ok
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.GetClusterFromMetadata instead.
-// GetClusterFromMetadata returns the Cluster object (if present) using the object metadata.
-func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1beta1.Cluster, error) {
-	if obj.Labels[clusterv1beta1.ClusterNameLabel] == "" {
-		return nil, errors.WithStack(ErrNoCluster)
-	}
-	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1beta1.ClusterNameLabel])
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.GetClusterByName instead.
-// GetClusterByName finds and return a Cluster object using the specified params.
-func GetClusterByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1beta1.Cluster, error) {
-	cluster := &clusterv1beta1.Cluster{}
-	key := client.ObjectKey{
-		Namespace: namespace,
-		Name:      name,
-	}
-
-	if err := c.Get(ctx, key, cluster); err != nil {
-		return nil, errors.Wrapf(err, "failed to get Cluster/%s", name)
-	}
-
-	return cluster, nil
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.GetOwnerCluster instead.
-// GetOwnerCluster returns the Cluster object owning the current resource.
-func GetOwnerCluster(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1beta1.Cluster, error) {
-	for _, ref := range obj.GetOwnerReferences() {
-		if ref.Kind != "Cluster" {
-			continue
-		}
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return nil, errors.WithStack(err)
-		}
-		if gv.Group == clusterv1beta1.GroupVersion.Group {
-			return GetClusterByName(ctx, c, obj.Namespace, ref.Name)
-		}
-	}
-	return nil, nil //nolint:nilnil
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.IsPaused instead.
-// IsPaused returns true if the Cluster is paused or the object has the `paused` annotation.
-func IsPaused(cluster *clusterv1beta1.Cluster, o metav1.Object) bool {
-	if cluster.Spec.Paused {
-		return true
-	}
-	return HasPaused(o)
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.HasPaused instead.
-// HasPaused returns true if the object has the `paused` annotation.
-func HasPaused(o metav1.Object) bool {
-	return hasAnnotation(o, clusterv1beta1.PausedAnnotation)
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.hasAnnotation instead.
-// hasAnnotation returns true if the object has the specified annotation.
-func hasAnnotation(o metav1.Object, annotation string) bool {
-	annotations := o.GetAnnotations()
-	if annotations == nil {
-		return false
-	}
-	_, ok := annotations[annotation]
-	return ok
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.ClusterToInfrastructureMapFunc instead.
-// ClusterToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
-// Cluster events and returns reconciliation requests for an infrastructure provider object.
-func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.MapFunc {
-	log := ctrl.LoggerFrom(ctx)
-	return func(ctx context.Context, o client.Object) []reconcile.Request {
-		cluster, ok := o.(*clusterv1beta1.Cluster)
-		if !ok {
-			return nil
-		}
-
-		// Return early if the InfrastructureRef is nil.
-		if cluster.Spec.InfrastructureRef == nil {
-			return nil
-		}
-		gk := gvk.GroupKind()
-		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := cluster.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
-		if gk != infraGK {
-			return nil
-		}
-		providerCluster, ok := providerCluster.DeepCopyObject().(client.Object)
-		if !ok {
-			log.V(VerbosityLevelDebug).Info(fmt.Sprintf("Failed to get %T", providerCluster))
-			return nil
-		}
-
-		key := types.NamespacedName{Namespace: cluster.Namespace, Name: cluster.Spec.InfrastructureRef.Name}
-
-		if err := c.Get(ctx, key, providerCluster); err != nil {
-			log.V(VerbosityLevelDebug).Info(fmt.Sprintf("Failed to get %T", providerCluster), "err", err)
-			return nil
-		}
-
-		if annotations.IsExternallyManaged(providerCluster) {
-			log.V(VerbosityLevelDebug).Info(fmt.Sprintf("%T is externally managed, skipping mapping", providerCluster))
-			return nil
-		}
-
-		return []reconcile.Request{
-			{
-				NamespacedName: client.ObjectKey{
-					Namespace: cluster.Namespace,
-					Name:      cluster.Spec.InfrastructureRef.Name,
-				},
-			},
-		}
-	}
-}
-
-// Note: Once we switch to v1beta2 of cluster-api, we can remove this function and use util.MachineToInfrastructureMapFunc instead.
-// MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
-// Machine events and returns reconciliation requests for an infrastructure provider object.
-func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
-	return func(_ context.Context, o client.Object) []reconcile.Request {
-		m, ok := o.(*clusterv1beta1.Machine)
-		if !ok {
-			return nil
-		}
-
-		gk := gvk.GroupKind()
-		// Return early if the GroupKind doesn't match what we expect.
-		infraGK := m.Spec.InfrastructureRef.GroupVersionKind().GroupKind()
-		if gk != infraGK {
-			return nil
-		}
-
-		return []reconcile.Request{
-			{
-				NamespacedName: client.ObjectKey{
-					Namespace: m.Namespace,
-					Name:      m.Spec.InfrastructureRef.Name,
-				},
-			},
-		}
-	}
-}

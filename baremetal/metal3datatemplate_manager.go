@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -39,7 +39,7 @@ import (
 type DataTemplateManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
-	SetClusterOwnerRef(*clusterv1beta1.Cluster) error
+	SetClusterOwnerRef(*clusterv1.Cluster) error
 	// UpdateDatas handles the Metal3DataClaims and creates or deletes Metal3Data accordingly.
 	// It returns if there are still Data object and undeleted DataClaims objects.
 	UpdateDatas(context.Context) (bool, bool, error)
@@ -77,7 +77,7 @@ func (m *DataTemplateManager) UnsetFinalizer() {
 }
 
 // SetClusterOwnerRef sets ownerRef.
-func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1beta1.Cluster) error {
+func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1.Cluster) error {
 	// Verify that the owner reference is there, if not add it and update object,
 	// if error requeue.
 	if cluster == nil {
@@ -192,7 +192,7 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 func (m *DataTemplateManager) updateData(ctx context.Context,
 	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
-	helper, err := deprecatedpatch.NewHelper(dataClaim, m.client)
+	helper, err := v1beta1patch.NewHelper(dataClaim, m.client)
 	if err != nil {
 		return indexes, errors.Wrap(err, "failed to init patch helper")
 	}

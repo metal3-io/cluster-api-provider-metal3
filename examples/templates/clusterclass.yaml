@@ -210,15 +210,15 @@ spec:
         name: example-md-0
     # This will create a MachineHealthCheck for ControlPlane machines.
     machineHealthCheck:
-      nodeStartupTimeout: 3m
+      nodeStartupTimeoutSeconds: 180
       maxUnhealthy: 33%
-      unhealthyConditions:
+      unhealthyNodeConditions:
         - type: Ready
           status: Unknown
-          timeout: 300s
+          timeoutSeconds: 300
         - type: Ready
           status: "False"
-          timeout: 300s
+          timeoutSeconds: 300
   workers:
     machineDeployments:
     - class: example-worker
@@ -239,13 +239,13 @@ spec:
             name: example-md-0
       # This will create a health check for each deployment created with the "test-worker" MachineDeploymentClass
       machineHealthCheck:
-        unhealthyConditions:
+        unhealthyNodeConditions:
           - type: Ready
             status: Unknown
-            timeout: 300s
+            timeoutSeconds: 300
           - type: Ready
             status: "False"
-            timeout: 300s
+            timeoutSeconds: 300
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

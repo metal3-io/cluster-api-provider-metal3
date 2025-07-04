@@ -15,10 +15,10 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -115,7 +115,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		ClusterName: input.ClusterName,
 		Namespace:   input.Namespace,
 	})
-	helper, err := deprecatedpatch.NewHelper(kcpObj, managementClusterClient)
+	helper, err := v1beta1patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = toK8sVersion
@@ -131,16 +131,16 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	// From this point onward all the checks run in a async parallel way next to the scale in upgrade process
 
 	By("Check if only a single machine is in Deleting state and no other new machines are in Provisioning state [node_reuse]")
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseDeleting, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseDeleting, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  1,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-deleting"),
 	})
 	// Since we do scale in, no Machine should start provisioning yet (the old must be deleted first)
-	machineList := &clusterv1beta1.MachineList{}
+	machineList := &clusterv1.MachineList{}
 	Expect(managementClusterClient.List(ctx, machineList, client.InNamespace(input.Namespace))).To(Succeed())
-	Expect(FilterMachinesByPhase(machineList.Items, clusterv1beta1.MachinePhaseProvisioning)).To(BeEmpty())
+	Expect(FilterMachinesByPhase(machineList.Items, clusterv1.MachinePhaseProvisioning)).To(BeEmpty())
 
 	Byf("Wait until 1 BMH is in deprovisioning state [node_reuse]")
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
@@ -176,8 +176,8 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	).Should(Succeed())
 
 	Byf("Wait until two machines become running and updated with the new %s k8s version [node_reuse]", toK8sVersion)
-	runningAndUpgraded := func(machine clusterv1beta1.Machine) bool {
-		running := machine.Status.GetTypedPhase() == clusterv1beta1.MachinePhaseRunning
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
 		upgraded := *machine.Spec.Version == toK8sVersion
 		return (running && upgraded)
 	}
@@ -229,7 +229,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		ClusterName: input.ClusterName,
 		Namespace:   input.Namespace,
 	})
-	helper, err = deprecatedpatch.NewHelper(kcpObj, managementClusterClient)
+	helper, err = v1beta1patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 1
 	for range 3 {
@@ -298,7 +298,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 
 	Byf("Wait until the worker machine becomes running [node_reuse]")
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  2,
@@ -334,7 +334,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", fromK8sVersion, toK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
 	// must allow maxUnavailable 1 here or it will get stuck.
-	helper, err = deprecatedpatch.NewHelper(machineDeploy, managementClusterClient)
+	helper, err = v1beta1patch.NewHelper(machineDeploy, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	machineDeploy.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
@@ -408,7 +408,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 
 	Byf("Wait until all %d machine(s) become(s) running [node_reuse]", numberOfAllBmh)
-	WaitForNumMachinesInState(ctx, clusterv1beta1.MachinePhaseRunning, WaitForNumInput{
+	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAllBmh,
@@ -453,7 +453,7 @@ func getProvisionedBmhNamesUuids(ctx context.Context, namespace string, manageme
 func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3MachineTemplateName string, managementClusterClient client.Client) {
 	m3machineTemplate := infrav1.Metal3MachineTemplate{}
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
-	helper, err := deprecatedpatch.NewHelper(&m3machineTemplate, managementClusterClient)
+	helper, err := v1beta1patch.NewHelper(&m3machineTemplate, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	m3machineTemplate.Spec.NodeReuse = nodeReuse
 	Expect(helper.Patch(ctx, &m3machineTemplate)).To(Succeed())
@@ -464,9 +464,9 @@ func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3Ma
 }
 
 func pointMDtoM3mt(ctx context.Context, namespace string, clusterName string, m3mtname, mdName string, managementClusterClient client.Client) {
-	md := clusterv1beta1.MachineDeployment{}
+	md := clusterv1.MachineDeployment{}
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: mdName}, &md)).To(Succeed())
-	helper, err := deprecatedpatch.NewHelper(&md, managementClusterClient)
+	helper, err := v1beta1patch.NewHelper(&md, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	md.Spec.Template.Spec.InfrastructureRef.Name = m3mtname
 	Expect(helper.Patch(ctx, &md)).To(Succeed())
@@ -482,7 +482,7 @@ func untaintNodes(ctx context.Context, targetClusterClient client.Client, nodes 
 		Logf("Untainting node %v ...", nodes.Items[i].Name)
 		newNode, changed := removeTaint(&nodes.Items[i], taints)
 		if changed {
-			patchHelper, err := deprecatedpatch.NewHelper(&nodes.Items[i], targetClusterClient)
+			patchHelper, err := v1beta1patch.NewHelper(&nodes.Items[i], targetClusterClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(patchHelper.Patch(ctx, newNode)).To(Succeed(), "Failed to patch node")
 			count++

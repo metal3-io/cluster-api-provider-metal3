@@ -30,7 +30,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
-	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -70,7 +71,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	helper, err := deprecatedpatch.NewHelper(metal3Remediation, r.Client)
+	helper, err := v1beta1patch.NewHelper(metal3Remediation, r.Client)
 	if err != nil {
 		remediationLog.Error(err, "failed to init patch helper")
 		return ctrl.Result{}, err
@@ -79,8 +80,8 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	defer func() {
 		// Always attempt to Patch the Remediation object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
-		patchOpts := []deprecatedpatch.Option{}
-		patchOpts = append(patchOpts, deprecatedpatch.WithStatusObservedGeneration{})
+		patchOpts := []v1beta1patch.Option{}
+		patchOpts = append(patchOpts, v1beta1patch.WithStatusObservedGeneration{})
 
 		patchErr := helper.Patch(ctx, metal3Remediation, patchOpts...)
 		if patchErr != nil {
@@ -91,7 +92,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}()
 
 	// Fetch the Machine.
-	capiMachine, err := baremetal.GetOwnerMachine(ctx, r.Client, metal3Remediation.ObjectMeta)
+	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, metal3Remediation.ObjectMeta)
 	if err != nil {
 		remediationLog.Error(err, "metal3Remediation's owner Machine could not be retrieved")
 		return ctrl.Result{}, errors.Wrapf(err, "metal3Remediation's owner Machine could not be retrieved")
@@ -106,7 +107,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	metal3Machine := infrav1.Metal3Machine{}
 	key := client.ObjectKey{
 		Name:      capiMachine.Spec.InfrastructureRef.Name,
-		Namespace: capiMachine.Spec.InfrastructureRef.Namespace,
+		Namespace: capiMachine.Namespace,
 	}
 	err = r.Get(ctx, key, &metal3Machine)
 	if err != nil {

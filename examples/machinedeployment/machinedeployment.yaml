@@ -18,7 +18,7 @@ spec:
         cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
         nodepool: nodepool-0
     spec:
-      nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT:-"0s"}
+      nodeDrainTimeoutSeconds: ${NODE_DRAIN_TIMEOUT:-0}
       clusterName: ${CLUSTER_NAME}
       version: ${KUBERNETES_VERSION}
       bootstrap:

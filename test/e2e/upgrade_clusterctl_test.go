@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -22,7 +23,8 @@ import (
 
 const (
 	workDir                  = "/opt/metal3-dev-env/"
-	contract                 = "v1beta1"
+	capiContract             = "v1beta2"
+	capm3Contract            = "v1beta1"
 	releaseMarkerPrefixCAPM3 = "go://github.com/metal3-io/cluster-api-provider-metal3@v%s"
 	releaseMarkerPrefixIPAM  = "go://github.com/metal3-io/ip-address-manager@v%s"
 )
@@ -78,9 +80,14 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current) [c
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease)
 				// Override capi/capm3 versions exported in preInit
-				os.Setenv("CAPI_VERSION", contract)
-				os.Setenv("CAPM3_VERSION", contract)
+				os.Setenv("CAPI_VERSION", capiContract)
+				os.Setenv("CAPM3_VERSION", capm3Contract)
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
+			},
+			Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest v1beta2.
+					Contract: clusterv1.GroupVersion.Version,
+				},
 			},
 			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
@@ -133,9 +140,14 @@ var _ = Describe("When testing cluster upgrade from releases (v1.9=>current) [cl
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease)
 				// Override capi/capm3 versions exported in preInit
-				os.Setenv("CAPI_VERSION", contract)
-				os.Setenv("CAPM3_VERSION", contract)
+				os.Setenv("CAPI_VERSION", capiContract)
+				os.Setenv("CAPM3_VERSION", capm3Contract)
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
+			},
+			Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
+				{ // Upgrade to latest v1beta2.
+					Contract: clusterv1.GroupVersion.Version,
+				},
 			},
 			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
@@ -338,8 +350,8 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	Expect(err).NotTo(HaveOccurred(), "Failed to install BMO on target cluster %v", err)
 
 	// Export capi/capm3 versions
-	os.Setenv("CAPI_VERSION", contract)
-	os.Setenv("CAPM3_VERSION", contract)
+	os.Setenv("CAPI_VERSION", capiContract)
+	os.Setenv("CAPM3_VERSION", capm3Contract)
 
 	// These exports bellow we need them after applying the management cluster template and before
 	// applying the workload. if exported before it will break creating the management because it uses v1beta1 templates and default IPs.
@@ -406,7 +418,7 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 func postUpgrade(ctx context.Context, clusterProxy framework.ClusterProxy) {
 	By("Installing Metal3 IPAM provider")
 	ipamDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, clusterProxy.GetName(), "ipam-deploy-logs")
-	ipamVersions := e2eConfig.GetProviderLatestVersionsByContract(contract, e2eConfig.IPAMProviders()...)
+	ipamVersions := e2eConfig.GetProviderLatestVersionsByContract(capm3Contract, e2eConfig.IPAMProviders()...)
 	Expect(ipamVersions).To(HaveLen(1), "Failed to get the latest version for the IPAM provider")
 	input := clusterctl.InitInput{
 		ClusterctlConfigPath: clusterctlConfigPath,

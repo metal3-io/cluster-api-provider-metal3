@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -89,7 +89,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.FailureReason))
 			}
 			for _, condExp := range tc.ConditionsExpected {
-				condGot := deprecatedconditions.Get(testclstr, condExp.Type)
+				condGot := v1beta1conditions.Get(testclstr, condExp.Type)
 				Expect(condGot).NotTo(BeNil())
 				Expect(condGot.Status).To(Equal(condExp.Status))
 				if condExp.Reason != "" {

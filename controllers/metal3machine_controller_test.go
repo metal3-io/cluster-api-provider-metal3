@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -280,11 +281,11 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type TestCaseMetal3ClusterToM3M struct {
-		Cluster       *clusterv1beta1.Cluster
+		Cluster       *clusterv1.Cluster
 		M3Cluster     *infrav1.Metal3Cluster
-		Machine0      *clusterv1beta1.Machine
-		Machine1      *clusterv1beta1.Machine
-		Machine2      *clusterv1beta1.Machine
+		Machine0      *clusterv1.Machine
+		Machine1      *clusterv1.Machine
+		Machine2      *clusterv1.Machine
 		ExpectRequest bool
 	}
 
@@ -496,10 +497,10 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type TestCaseClusterToM3M struct {
-		Cluster       *clusterv1beta1.Cluster
-		Machine       *clusterv1beta1.Machine
-		Machine1      *clusterv1beta1.Machine
-		Machine2      *clusterv1beta1.Machine
+		Cluster       *clusterv1.Cluster
+		Machine       *clusterv1.Machine
+		Machine1      *clusterv1.Machine
+		Machine2      *clusterv1.Machine
 		M3Machine     *infrav1.Metal3Machine
 		ExpectRequest bool
 	}
@@ -525,8 +526,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				err := fakeClient.Get(context.TODO(), reqs[0].NamespacedName, &req)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(req.Labels[clusterv1beta1.ClusterNameLabel]).To(Equal(tc.Cluster.Name),
-					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[clusterv1beta1.ClusterNameLabel])
+				Expect(req.Labels[clusterv1.ClusterNameLabel]).To(Equal(tc.Cluster.Name),
+					"Expected label %s, found %s", tc.Cluster.Name, req.Labels[clusterv1.ClusterNameLabel])
 			} else {
 				Expect(reqs).To(BeEmpty(), "Expected 0 request, found %d", len(reqs))
 			}

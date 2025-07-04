@@ -22,10 +22,10 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,8 +35,8 @@ import (
 
 const (
 	templateControllerName = "Metal3MachineTemplate-controller"
-	clonedFromGroupKind    = clusterv1beta1.TemplateClonedFromGroupKindAnnotation
-	clonedFromName         = clusterv1beta1.TemplateClonedFromNameAnnotation
+	clonedFromGroupKind    = clusterv1.TemplateClonedFromGroupKindAnnotation
+	clonedFromName         = clusterv1.TemplateClonedFromNameAnnotation
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates,verbs=get;list;watch;create;update;patch;delete
@@ -67,7 +67,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.Wrap(err, "unable to fetch Metal3MachineTemplate")
 	}
 
-	helper, err := deprecatedpatch.NewHelper(metal3MachineTemplate, r.Client)
+	helper, err := v1beta1patch.NewHelper(metal3MachineTemplate, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
