@@ -6,9 +6,9 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.2.2+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.10.1-0.20250630070757-6b650b7891dc
+	github.com/metal3-io/baremetal-operator/apis v0.11.0-alpha.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.10.1-0.20250701084858-f1771d9443f4
+	github.com/metal3-io/ip-address-manager/api v1.11.0-alpha.0
 	github.com/metal3-io/ironic-standalone-operator/api v0.4.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0

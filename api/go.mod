@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/api
 go 1.24.0
 
 require (
-	github.com/metal3-io/ip-address-manager/api v1.10.1-0.20250701084858-f1771d9443f4
+	github.com/metal3-io/ip-address-manager/api v1.11.0-alpha.0
 	github.com/onsi/gomega v1.37.0
 	github.com/pkg/errors v0.9.1
 	k8s.io/api v0.33.2
