@@ -13,7 +13,8 @@ spec:
     services:
       cidrBlocks: ["${SERVICE_CIDR}"]
   topology:
-    class: metal3
+    classRef:
+      name: metal3
     version: ${KUBERNETES_VERSION}
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}

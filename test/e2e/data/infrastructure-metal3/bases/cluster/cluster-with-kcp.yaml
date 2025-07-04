@@ -38,7 +38,7 @@ metadata:
   namespace: ${NAMESPACE}
 spec:
   machineTemplate:
-    nodeDrainTimeout: ${NODE_DRAIN_TIMEOUT}
+    nodeDrainTimeoutSeconds: ${NODE_DRAIN_TIMEOUT}
     infrastructureRef:
       apiGroup: infrastructure.cluster.x-k8s.io
       kind: Metal3MachineTemplate

@@ -229,7 +229,8 @@ metadata:
   namespace: ${NAMESPACE}
 spec:
   topology:
-    class: example-clusterclass
+    classRef:
+      name: example-clusterclass
     version: ${KUBERNETES_VERSION}
     controlPlane:
       replicas: 1

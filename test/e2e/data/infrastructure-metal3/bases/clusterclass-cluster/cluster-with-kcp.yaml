@@ -93,7 +93,8 @@ spec:
     services:
       cidrBlocks: ["${SERVICE_CIDR}"]
   topology:
-    class: test-clusterclass
+    classRef:
+      name: test-clusterclass
     version: ${KUBERNETES_VERSION}
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}

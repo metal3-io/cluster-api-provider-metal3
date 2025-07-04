@@ -669,17 +669,16 @@ func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1
 }
 
 // MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
-//
-//nolint:dupl
 func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
+	namespace := m.GetObjectMeta().GetNamespace()
 	err := cli.Get(ctx, types.NamespacedName{
-		Namespace: m.Spec.InfrastructureRef.Namespace,
+		Namespace: namespace,
 		Name:      m.Spec.InfrastructureRef.Name},
 		m3Machine)
 
 	if err != nil {
-		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name, err)
+		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", namespace, m.Spec.InfrastructureRef.Name, err)
 	}
 	m3DataList := &infrav1.Metal3DataList{}
 	m3Data := &infrav1.Metal3Data{}
@@ -720,8 +719,6 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 
 // MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
 // This is a duplicate of MachineToIPAddress, but for v1beta1 API. Remove this function when we switch to CAPI v1beta2 API only.
-//
-//nolint:dupl
 func MachineToIPAddress1beta1(ctx context.Context, cli client.Client, m *clusterv1beta1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
 	err := cli.Get(ctx, types.NamespacedName{
