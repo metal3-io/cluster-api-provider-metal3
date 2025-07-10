@@ -26,7 +26,8 @@ The cluster should either :
 nodeRegistration:
   name: '{{ ds.meta_data.name }}'
   kubeletExtraArgs:
-    node-labels: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+  - name: node-labels
+    value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
 ```
 
 ## Deploying the CRs

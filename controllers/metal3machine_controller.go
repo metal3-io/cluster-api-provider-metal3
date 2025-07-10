@@ -28,13 +28,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -89,7 +87,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
-	patchHelper, err := patch.NewHelper(capm3Machine, r.Client)
+	patchHelper, err := deprecatedpatch.NewHelper(capm3Machine, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -101,21 +99,21 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}()
 
 	// Fetch the Machine.
-	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
+	capiMachine, err := baremetal.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
 
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
 	}
 	if capiMachine == nil {
 		machineLog.Info("Waiting for Machine Controller to set OwnerRef on Metal3Machine")
-		conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForMetal3MachineOwnerRefReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForMetal3MachineOwnerRefReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
 	machineLog = machineLog.WithValues("machine", capiMachine.Name)
 
 	// Fetch the Cluster.
-	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
+	cluster, err := baremetal.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		setErrorM3Machine(capm3Machine, "", "")
 		machineLog.Info("Machine is missing cluster label or cluster does not exist")
@@ -127,7 +125,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Make sure infrastructure is ready
 	if !cluster.Status.InfrastructureReady {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
-		conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -139,7 +137,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 	if err := r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create the Metal3Cluster")
-		conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingforMetal3ClusterReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingforMetal3ClusterReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -156,7 +154,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		err := machineMgr.RemovePauseAnnotation(ctx)
 		if err != nil {
 			machineLog.Info("failed to check pause annotation on associated bmh")
-			conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationRemoveFailedReason, clusterv1.ConditionSeverityInfo, "")
+			deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationRemoveFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
 			return ctrl.Result{}, nil
 		}
 	} else {
@@ -164,15 +162,15 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		err := machineMgr.SetPauseAnnotation(ctx)
 		if err != nil {
 			machineLog.Info("failed to set pause annotation on associated bmh")
-			conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationSetFailedReason, clusterv1.ConditionSeverityInfo, "")
+			deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationSetFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
 			return ctrl.Result{}, nil
 		}
 	}
 
 	// Return early if the M3Machine or Cluster is paused.
-	if annotations.IsPaused(cluster, capm3Machine) {
+	if baremetal.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
-		conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.Metal3MachinePausedReason, clusterv1.ConditionSeverityInfo, "")
+		deprecatedconditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.Metal3MachinePausedReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
@@ -185,10 +183,10 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return r.reconcileNormal(ctx, machineMgr)
 }
 
-func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Machine *infrav1.Metal3Machine, options ...patch.Option) error {
+func patchMetal3Machine(ctx context.Context, patchHelper *deprecatedpatch.Helper, metal3Machine *infrav1.Metal3Machine, options ...deprecatedpatch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
-	conditions.SetSummary(metal3Machine,
-		conditions.WithConditions(
+	deprecatedconditions.SetSummary(metal3Machine,
+		deprecatedconditions.WithConditions(
 			infrav1.AssociateBMHCondition,
 			infrav1.Metal3DataReadyCondition,
 			infrav1.KubernetesNodeReadyCondition,
@@ -197,13 +195,13 @@ func patchMetal3Machine(ctx context.Context, patchHelper *patch.Helper, metal3Ma
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
+		deprecatedpatch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			clusterv1beta1.ReadyCondition,
 			infrav1.AssociateBMHCondition,
 			infrav1.Metal3DataReadyCondition,
 			infrav1.KubernetesNodeReadyCondition,
 		}},
-		patch.WithStatusObservedGeneration{},
+		deprecatedpatch.WithStatusObservedGeneration{},
 	)
 	return patchHelper.Patch(ctx, metal3Machine, options...)
 }
@@ -225,7 +223,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// Make sure bootstrap data is available and populated. If not, return, we
 	// will get an event from the machine update when the flag is set to true.
 	if !machineMgr.IsBootstrapReady() {
-		machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.WaitingForBootstrapReadyReason, clusterv1.ConditionSeverityInfo, "")
+		machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.WaitingForBootstrapReadyReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
 	}
 
@@ -236,7 +234,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		// Associate the baremetalhost hosting the machine
 		err := machineMgr.Associate(ctx)
 		if err != nil {
-			machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.AssociateBMHFailedReason, clusterv1.ConditionSeverityError, err.Error())
+			machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.AssociateBMHFailedReason, clusterv1beta1.ConditionSeverityError, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to associate the Metal3Machine to a BareMetalHost", errType)
 		}
@@ -249,7 +247,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	// Make sure that the metadata is ready if any
 	err := machineMgr.AssociateM3Metadata(ctx)
 	if err != nil {
-		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.AssociateM3MetaDataFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.AssociateM3MetaDataFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
 		return checkMachineError(machineMgr, err,
 			"Failed to get the Metal3Metadata", errType)
 	}
@@ -327,19 +325,19 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface,
 ) (ctrl.Result, error) {
 	// set machine condition to Deleting
-	machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
+	machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
 
 	errType := capierrors.DeleteMachineError
 
 	// delete the machine
 	if err := machineMgr.Delete(ctx); err != nil {
-		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
 		return checkMachineError(machineMgr, err,
 			"failed to delete Metal3Machine", errType)
 	}
 
 	if err := machineMgr.DissociateM3Metadata(ctx); err != nil {
-		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DisassociateM3MetaDataFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DisassociateM3MetaDataFailedReason, clusterv1beta1.ConditionSeverityWarning, err.Error())
 		return checkMachineError(machineMgr, err,
 			"failed to dissociate Metadata", errType)
 	}
@@ -358,11 +356,11 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
-			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Machine"))),
+			&clusterv1beta1.Machine{},
+			handler.EnqueueRequestsFromMapFunc(baremetal.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Machine"))),
 		).
 		Watches(
-			&clusterv1.Cluster{},
+			&clusterv1beta1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.ClusterToMetal3Machines),
 		).
 		Watches(
@@ -388,7 +386,7 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 // requests for reconciliation of Metal3Machines.
 func (r *Metal3MachineReconciler) ClusterToMetal3Machines(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
-	c, ok := o.(*clusterv1.Cluster)
+	c, ok := o.(*clusterv1beta1.Cluster)
 
 	if !ok {
 		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o),
@@ -397,8 +395,8 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(ctx context.Context, o
 		return nil
 	}
 
-	labels := map[string]string{clusterv1.ClusterNameLabel: c.Name}
-	capiMachineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1beta1.ClusterNameLabel: c.Name}
+	capiMachineList := &clusterv1beta1.MachineList{}
 	if err := r.Client.List(ctx, capiMachineList, client.InNamespace(c.Namespace),
 		client.MatchingLabels(labels),
 	); err != nil {
@@ -432,7 +430,7 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(ctx context.Cont
 	}
 	log := r.Log.WithValues("Metal3Cluster", c.Name, "Namespace", c.Namespace)
 
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
+	cluster, err := baremetal.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:
 		return result
@@ -441,8 +439,8 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(ctx context.Cont
 		return result
 	}
 
-	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
-	capiMachineList := &clusterv1.MachineList{}
+	labels := map[string]string{clusterv1beta1.ClusterNameLabel: cluster.Name}
+	capiMachineList := &clusterv1beta1.MachineList{}
 	if err := r.Client.List(ctx, capiMachineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		log.Error(err, "failed to list Metal3Machines")
 		return nil
