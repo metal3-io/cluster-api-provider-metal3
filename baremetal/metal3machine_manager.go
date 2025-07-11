@@ -797,6 +797,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 	// without this ListOption, all namespaces would be including in the listing.
 	opts := &client.ListOptions{
 		Namespace: m.Metal3Machine.Namespace,
+		Limit:     DefaultListLimit,
 	}
 
 	err := m.client.List(ctx, &hosts, opts)

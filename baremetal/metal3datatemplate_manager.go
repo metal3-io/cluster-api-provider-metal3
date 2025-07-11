@@ -158,6 +158,7 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 	// without this ListOption, all namespaces would be including in the listing
 	opts := &client.ListOptions{
 		Namespace: m.DataTemplate.Namespace,
+		Limit:     DefaultListLimit,
 	}
 
 	err = m.client.List(ctx, &dataClaimObjects, opts)
