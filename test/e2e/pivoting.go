@@ -400,7 +400,8 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 		//#nosec G204:gosec
 		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
-		stdoutStderr, err := cmd.CombinedOutput()
+		var stdoutStderr []byte
+		stdoutStderr, err = cmd.CombinedOutput()
 		Logf("Output: %s", stdoutStderr)
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {

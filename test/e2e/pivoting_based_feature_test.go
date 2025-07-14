@@ -77,7 +77,7 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 	func() {
 
 		BeforeEach(func() {
-			osType := strings.ToLower(os.Getenv("OS"))
+			osType = strings.ToLower(os.Getenv("OS"))
 			Expect(osType).ToNot(Equal(""))
 			validateGlobals(specName)
 
