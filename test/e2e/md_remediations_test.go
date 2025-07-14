@@ -17,11 +17,6 @@ const (
 
 var _ = Describe("When testing MachineDeployment remediation [healthcheck] [remediation] [features]", Label("healthcheck", "remediation", "features"), func() {
 
-	var (
-		specName  = "metal3"
-		namespace = "metal3"
-	)
-
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
