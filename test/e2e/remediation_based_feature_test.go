@@ -52,7 +52,6 @@ import (
  */
 var _ = Describe("Testing nodes remediation [remediation] [features]", Label("remediation", "features"), func() {
 
-
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))

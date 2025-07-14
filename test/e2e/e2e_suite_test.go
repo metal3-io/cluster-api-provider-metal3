@@ -277,7 +277,6 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 	calicoNodes, err := yamlContainKeyValue(yamlDocuments, "calico-node", "metadata", "labels", "k8s-app")
 	Expect(err).ToNot(HaveOccurred())
 	for _, calicoNode := range calicoNodes {
-
 		var calicoNodeSpecTemplateSpec, calicoNodeContainerEnvs *yaml.Node
 		var calicoNodeContainers []*yaml.Node
 
