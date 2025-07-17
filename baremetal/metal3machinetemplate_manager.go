@@ -68,6 +68,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 	// without this ListOption, all namespaces would be included in the listing
 	opts := &client.ListOptions{
 		Namespace: m.Metal3MachineTemplate.Namespace,
+		Limit:     DefaultListLimit,
 	}
 
 	if err := m.client.List(ctx, m3ms, opts); err != nil {

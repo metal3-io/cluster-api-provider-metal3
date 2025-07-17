@@ -42,6 +42,7 @@ const (
 	metal3MachineKind   = "Metal3Machine"
 	VerbosityLevelDebug = 4
 	VerbosityLevelTrace = 5
+	DefaultListLimit    = 200
 )
 
 // Contains returns true if a list contains a string.
