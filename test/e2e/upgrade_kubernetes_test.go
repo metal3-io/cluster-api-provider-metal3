@@ -22,14 +22,11 @@ var _ = Describe("Kubernetes version upgrade in target nodes [k8s-upgrade]", Lab
 
 	var (
 		ctx                 = context.TODO()
-		specName            = "metal3"
-		namespace           = "metal3"
-		clusterName         = "test1"
 		clusterctlLogFolder string
 	)
 
 	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
+		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 

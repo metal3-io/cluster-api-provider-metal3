@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -53,16 +52,8 @@ import (
  */
 var _ = Describe("Testing nodes remediation [remediation] [features]", Label("remediation", "features"), func() {
 
-	var (
-		ctx                 = context.TODO()
-		specName            = "metal3"
-		namespace           = "metal3"
-		clusterName         = "test1"
-		clusterctlLogFolder string
-	)
-
 	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
+		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 

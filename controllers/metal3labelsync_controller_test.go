@@ -334,7 +334,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		),
 	)
 	Describe("Test labelsync Reconcile functions", func() {
-		Labels := map[string]string{
+		Labels := map[string]string{ //nolint:govet
 			"foo.metal3.io/bar": "blue",
 		}
 		metal3MachineSpec := bmov1alpha1.BareMetalHostSpec{

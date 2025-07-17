@@ -139,7 +139,10 @@ linters-settings:
     case:
       rules:
         json: goCamel
-      
+  govet:
+    enable:
+    - shadow
+
 issues:
   exclude-dirs:
   - mock*
