@@ -32,10 +32,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -358,7 +358,12 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		r.Log.Info("Unable to create patch helper for Machine")
 		return err
 	}
-	conditions.MarkFalse(capiMachine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
+
+	v1beta1conditions.MarkFalse(capiMachine,
+		clusterv1.MachineOwnerRemediatedV1Beta1Condition,
+		clusterv1.WaitingForRemediationV1Beta1Reason,
+		clusterv1.ConditionSeverityWarning,
+		"")
 	err = machineHelper.Patch(ctx, capiMachine)
 	if err != nil {
 		r.Log.Info("Unable to patch Machine", "machine", capiMachine)

@@ -33,8 +33,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v11 "k8s.io/client-go/kubernetes/typed/core/v1"
-	v1beta10 "sigs.k8s.io/cluster-api/api/v1beta1"
-	patch "sigs.k8s.io/cluster-api/util/patch"
+	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 // MockRemediationManagerInterface is a mock of RemediationManagerInterface interface.
@@ -89,10 +89,10 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) DeleteNode(ctx, clusterCl
 }
 
 // GetCapiMachine mocks base method.
-func (m *MockRemediationManagerInterface) GetCapiMachine(ctx context.Context) (*v1beta10.Machine, error) {
+func (m *MockRemediationManagerInterface) GetCapiMachine(ctx context.Context) (*v1beta2.Machine, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCapiMachine", ctx)
-	ret0, _ := ret[0].(*v1beta10.Machine)
+	ret0, _ := ret[0].(*v1beta2.Machine)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

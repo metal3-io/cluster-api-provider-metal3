@@ -76,11 +76,11 @@ For example:
 #### NODE_DRAIN_TIMEOUT
 
 This variable sets the nodeDrainTimout for cluster, controlplane and
-machinedeployment template. Users can set desired value in seconds ("300s") or
-minutes ("5m"). If it is not set, default value will be "0s" which will not make
+machinedeployment template. Users can set desired value in seconds `300`.
+If it is not set, default value will be `0` which will not make
 any change in the current deployment. For example:
 
-`NODE_DRAIN_TIMEOUT="300s"`
+`NODE_DRAIN_TIMEOUT=300`
 
 #### CTLPLANE_KUBEADM_EXTRA_CONFIG
 

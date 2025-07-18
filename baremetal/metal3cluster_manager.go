@@ -24,10 +24,10 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -130,13 +130,13 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	if err != nil {
 		s.Metal3Cluster.Status.Ready = false
 		s.setError("Invalid ControlPlaneEndpoint values", capierrors.InvalidConfigurationClusterError)
-		conditions.MarkFalse(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.ControlPlaneEndpointFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		deprecatedconditions.MarkFalse(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.ControlPlaneEndpointFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return err
 	}
 
 	// Mark the metal3Cluster ready.
 	s.Metal3Cluster.Status.Ready = true
-	conditions.MarkTrue(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition)
+	deprecatedconditions.MarkTrue(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition)
 	now := metav1.Now()
 	s.Metal3Cluster.Status.LastUpdated = &now
 	return nil
@@ -176,7 +176,7 @@ func (s *ClusterManager) CountDescendants(ctx context.Context) (int, error) {
 // metal3Cluster.
 func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1.MachineList, error) {
 	machines := clusterv1.MachineList{}
-	cluster, err := util.GetOwnerCluster(ctx, s.client,
+	cluster, err := GetOwnerCluster(ctx, s.client,
 		s.Metal3Cluster.ObjectMeta,
 	)
 	if err != nil {

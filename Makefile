@@ -172,7 +172,9 @@ SKIP_CREATE_MGMT_CLUSTER ?= true
 ## Processes e2e_conf file
 .PHONY: e2e-substitutions
 e2e-substitutions: $(ENVSUBST)
-	mkdir -p $(E2E_OUT_DIR)
+	mkdir -p $(E2E_OUT_DIR)/main
+	mkdir -p $(E2E_OUT_DIR)/v1.10
+	mkdir -p $(E2E_OUT_DIR)/v1.9
 	$(ENVSUBST) < $(E2E_CONF_FILE) > $(E2E_CONF_FILE_ENVSUBST)
 
 ## --------------------------------------
@@ -180,23 +182,71 @@ e2e-substitutions: $(ENVSUBST)
 ## --------------------------------------
 ##@ templates
 E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/test/e2e/data/infrastructure-metal3
-.PHONY: cluster-templates
-cluster-templates: $(KUSTOMIZE) ## Generate cluster templates
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu > $(E2E_OUT_DIR)/cluster-template-ubuntu.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos > $(E2E_OUT_DIR)/cluster-template-centos.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos-fake > $(E2E_OUT_DIR)/cluster-template-centos-fake.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass-metal3 > $(E2E_OUT_DIR)/clusterclass-metal3.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/cluster-template-upgrade-workload.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/cluster-template-centos-md-remediation.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/cluster-template-ubuntu-md-remediation.yaml
-	touch $(E2E_OUT_DIR)/clusterclass.yaml
+.PHONY: cluster-templates cluster-templates-main cluster-templates-v1.10 cluster-templates-v1.9
+cluster-templates: cluster-templates-main cluster-templates-v1.10 cluster-templates-v1.9
 
-.PHONY: clusterclass-templates
-clusterclass-templates: $(KUSTOMIZE) ## Generate cluster templates
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass-template-ubuntu > $(E2E_OUT_DIR)/cluster-template-ubuntu.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass-template-centos > $(E2E_OUT_DIR)/cluster-template-centos.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass-template-upgrade-workload > $(E2E_OUT_DIR)/cluster-template-upgrade-workload.yaml
-	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/clusterclass > $(E2E_OUT_DIR)/clusterclass.yaml
+PHONY: clusterclass-templates clusterclass-templates-main clusterclass-templates-v1.10 clusterclass-templates-v1.9
+clusterclass-templates: clusterclass-templates-main clusterclass-templates-v1.10 clusterclass-templates-v1.9
+
+.PHONY: cluster-templates-main
+cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/main
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu > $(E2E_OUT_DIR)/main/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos > $(E2E_OUT_DIR)/main/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-fake > $(E2E_OUT_DIR)/main/cluster-template-centos-fake.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-metal3 > $(E2E_OUT_DIR)/main/clusterclass-metal3.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/main/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-centos-md-remediation.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-remediation.yaml
+	touch $(E2E_OUT_DIR)/main/clusterclass.yaml
+
+.PHONY: clusterclass-templates-main
+clusterclass-templates-main: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/main
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-template-ubuntu > $(E2E_OUT_DIR)/main/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-template-centos > $(E2E_OUT_DIR)/main/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-template-upgrade-workload > $(E2E_OUT_DIR)/main/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass > $(E2E_OUT_DIR)/main/clusterclass.yaml
+
+.PHONY: cluster-templates-v1.10
+cluster-templates-v1.10: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/v1.10
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/cluster-template-ubuntu > $(E2E_OUT_DIR)/v1.10/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/cluster-template-centos > $(E2E_OUT_DIR)/v1.10/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/cluster-template-centos-fake > $(E2E_OUT_DIR)/v1.10/cluster-template-centos-fake.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/clusterclass-metal3 > $(E2E_OUT_DIR)/v1.10/clusterclass-metal3.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/v1.10/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/v1.10/cluster-template-centos-md-remediation.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/v1.10/cluster-template-ubuntu-md-remediation.yaml
+	touch $(E2E_OUT_DIR)/v1.10/clusterclass.yaml
+
+.PHONY: clusterclass-templates-v1.10
+clusterclass-templates-v1.10: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/v1.10
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/clusterclass-template-ubuntu > $(E2E_OUT_DIR)/v1.10/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/clusterclass-template-centos > $(E2E_OUT_DIR)/v1.10/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/clusterclass-template-upgrade-workload > $(E2E_OUT_DIR)/v1.10/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.10/clusterclass > $(E2E_OUT_DIR)/v1.10/clusterclass.yaml
+
+.PHONY: cluster-templates-v1.9
+cluster-templates-v1.9: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/v1.9
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/cluster-template-ubuntu > $(E2E_OUT_DIR)/v1.9/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/cluster-template-centos > $(E2E_OUT_DIR)/v1.9/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/cluster-template-centos-fake > $(E2E_OUT_DIR)/v1.9/cluster-template-centos-fake.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/clusterclass-metal3 > $(E2E_OUT_DIR)/v1.9/clusterclass-metal3.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/v1.9/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/v1.9/cluster-template-centos-md-remediation.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/v1.9/cluster-template-ubuntu-md-remediation.yaml
+	touch $(E2E_OUT_DIR)/v1.9/clusterclass.yaml
+
+.PHONY: clusterclass-templates-v1.9
+clusterclass-templates-v1.9: $(KUSTOMIZE) ## Generate cluster templates
+	mkdir -p $(E2E_OUT_DIR)/v1.9
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/clusterclass-template-ubuntu > $(E2E_OUT_DIR)/v1.9/cluster-template-ubuntu.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/clusterclass-template-centos > $(E2E_OUT_DIR)/v1.9/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/clusterclass-template-upgrade-workload > $(E2E_OUT_DIR)/v1.9/cluster-template-upgrade-workload.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/v1.9/clusterclass > $(E2E_OUT_DIR)/v1.9/clusterclass.yaml
 
 ## --------------------------------------
 ## E2E Testing

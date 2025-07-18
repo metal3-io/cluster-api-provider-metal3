@@ -27,13 +27,13 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedconditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	deprecatedpatch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -95,7 +95,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
-	patchHelper, err := patch.NewHelper(metal3Cluster, r.Client)
+	patchHelper, err := deprecatedpatch.NewHelper(metal3Cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -108,12 +108,12 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}()
 
 	// Fetch the Cluster.
-	cluster, err := util.GetOwnerCluster(ctx, r.Client, metal3Cluster.ObjectMeta)
+	cluster, err := baremetal.GetOwnerCluster(ctx, r.Client, metal3Cluster.ObjectMeta)
 	if err != nil {
 		invalidConfigError := capierrors.InvalidConfigurationClusterError
 		metal3Cluster.Status.FailureReason = &invalidConfigError
 		metal3Cluster.Status.FailureMessage = ptr.To("Unable to get owner cluster")
-		conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		deprecatedconditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
 		return ctrl.Result{}, err
 	}
 	if cluster == nil {
@@ -163,21 +163,21 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return res, err
 }
 
-func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cluster *infrav1.Metal3Cluster, options ...patch.Option) error {
+func patchMetal3Cluster(ctx context.Context, patchHelper *deprecatedpatch.Helper, metal3Cluster *infrav1.Metal3Cluster, options ...deprecatedpatch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
-	conditions.SetSummary(metal3Cluster,
-		conditions.WithConditions(
+	deprecatedconditions.SetSummary(metal3Cluster,
+		deprecatedconditions.WithConditions(
 			infrav1.BaremetalInfrastructureReadyCondition,
 		),
 	)
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-			clusterv1.ReadyCondition,
+		deprecatedpatch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
+			clusterv1beta1.ReadyCondition,
 			infrav1.BaremetalInfrastructureReadyCondition,
 		}},
-		patch.WithStatusObservedGeneration{},
+		deprecatedpatch.WithStatusObservedGeneration{},
 	)
 	return patchHelper.Patch(ctx, metal3Cluster, options...)
 }
@@ -224,7 +224,7 @@ func reconcileDelete(ctx context.Context,
 
 // SetupWithManager will add watches for this controller.
 func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	clusterToInfraFn := util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("Metal3Cluster"), mgr.GetClient(), &infrav1.Metal3Cluster{})
+	clusterToInfraFn := baremetal.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("Metal3Cluster"), mgr.GetClient(), &infrav1.Metal3Cluster{})
 	return ctrl.NewControllerManagedBy(mgr).
 		For(
 			&infrav1.Metal3Cluster{},

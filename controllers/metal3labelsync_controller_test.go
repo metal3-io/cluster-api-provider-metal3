@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -362,11 +362,10 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		nodeName := "testNode"
 		cluserCapiSpec := clusterv1.ClusterSpec{
 			Paused: true,
-			InfrastructureRef: &corev1.ObjectReference{
-				Name:       metal3ClusterName,
-				Namespace:  namespaceName,
-				Kind:       "Metal3Cluster",
-				APIVersion: infrav1.GroupVersion.String(),
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				Name:     metal3ClusterName,
+				Kind:     "Metal3Cluster",
+				APIGroup: infrav1.GroupVersion.Group,
 			},
 		}
 		type testCaseReconcile struct {
