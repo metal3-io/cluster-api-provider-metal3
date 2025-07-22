@@ -218,6 +218,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		Logf("Error: %v", err)
 	}
 
+	By("Add paused annotation to BMHs")
+	addPausedAnnotation(ctx, input.BootstrapClusterProxy)
+
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
@@ -242,6 +245,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
 		ClusterctlConfigPath: input.ClusterctlConfigPath,
 	})
+
+	By("Remove paused annotation from BMH")
+	removePausedAnnotation(ctx, input.TargetCluster)
 
 	By("Remove BMO deployment from the source cluster")
 	RemoveDeployment(ctx, func() RemoveDeploymentInput {
@@ -500,6 +506,9 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 	}, "5s", "100ms").Should(Succeed(), "Failed to assert bootstrap API server stability")
 
+	By("Add paused annotation to BMHs")
+	addPausedAnnotation(ctx, input.TargetCluster)
+
 	By("Move back to bootstrap cluster")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivot"),
@@ -525,6 +534,9 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Namespace:   pivotingCluster.Namespace,
 	})
 	Expect(controlPlane).ToNot(BeNil())
+
+	By("Remove paused annotation from BMHs")
+	removePausedAnnotation(ctx, input.BootstrapClusterProxy)
 
 	By("Check that BMHs are in provisioned state")
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
@@ -585,4 +597,39 @@ func fetchContainerLogs(containerNames *[]string, folder string, containerComman
 		writeErr := os.WriteFile(filepath.Join(logDir, "stdout.log"), out, 0400)
 		Expect(writeErr).ToNot(HaveOccurred())
 	}
+}
+
+func removePausedAnnotation(ctx context.Context, targetCluster framework.ClusterProxy) {
+	bmhs, err := GetAllBmhs(ctx, targetCluster.GetClient(), "metal3")
+	Expect(err).ToNot(HaveOccurred(), "Cannot fetch BMHs")
+	for _, bmh := range bmhs {
+		if bmh.ObjectMeta.Annotations != nil {
+			if _, ok := bmh.ObjectMeta.Annotations[bmov1alpha1.PausedAnnotation]; ok {
+				delete(bmh.ObjectMeta.Annotations, bmov1alpha1.PausedAnnotation)
+				err = targetCluster.GetClient().Update(ctx, &bmh)
+				if err != nil {
+					Logf("Cannot remove paused annotation from BMH %s: %v", bmh.Name, err)
+				}
+				Logf("Removed paused annotation from BMH %s", bmh.Name)
+			}
+		}
+	}
+	Expect(err).ToNot(HaveOccurred(), "Cannot remove paused annotation from BMHs")
+}
+
+func addPausedAnnotation(ctx context.Context, targetCluster framework.ClusterProxy) {
+	bmhs, err := GetAllBmhs(ctx, targetCluster.GetClient(), "metal3")
+	Expect(err).ToNot(HaveOccurred(), "Cannot fetch BMHs")
+	for _, bmh := range bmhs {
+		if bmh.ObjectMeta.Annotations == nil {
+			bmh.ObjectMeta.Annotations = map[string]string{}
+		}
+		bmh.ObjectMeta.Annotations[bmov1alpha1.PausedAnnotation] = "manual-pivoting"
+		err = targetCluster.GetClient().Update(ctx, &bmh)
+		if err != nil {
+			Logf("Cannot add paused annotation to BMH %s: %v", bmh.Name, err)
+		}
+		Logf("Added paused annotation to BMH %s", bmh.Name)
+	}
+	Expect(err).ToNot(HaveOccurred(), "Cannot add paused annotation to BMHs")
 }
