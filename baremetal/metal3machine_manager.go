@@ -272,8 +272,10 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
-			m.Log.Info("BaremetalHost is already paused")
-			return nil
+			if annotations[bmov1alpha1.PausedAnnotation] == PausedAnnotationKey {
+				m.Log.Info("BaremetalHost is already paused by CAPM3. No action needed.")
+				return nil
+			}
 		}
 	} else {
 		host.Annotations = make(map[string]string)
