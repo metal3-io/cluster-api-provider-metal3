@@ -149,6 +149,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Add labels to BMO CRDs")
 	labelBMOCRDs(ctx, input.BootstrapClusterProxy)
+
 	By("Add Labels to hardwareData CRDs")
 	labelHDCRDs(ctx, input.BootstrapClusterProxy)
 
@@ -202,6 +203,24 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 	}, "5s", "100ms").Should(Succeed(), "Failed to assert target API server stability")
 
+	Logf("Dump the target cluster resources before pivoting")
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
+
+	By("Fetch logs from target cluster before pivoting")
+	err = FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
+	By("Add paused annotation to BMHs")
+	addPausedAnnotation(ctx, input.BootstrapClusterProxy)
+
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
@@ -212,6 +231,24 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap", "logs", input.Namespace, "clusterctl-move.log"))
 
+	By("Fetch logs from target cluster after pivoting")
+	err = FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-after-pivot", "resources"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
+	Logf("Dump the target cluster resources after pivoting")
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-after-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
+
+	By("Remove paused annotation from BMH")
+	removePausedAnnotation(ctx, input.TargetCluster)
+
 	By("Remove BMO deployment from the source cluster")
 	RemoveDeployment(ctx, func() RemoveDeploymentInput {
 		return RemoveDeploymentInput{
@@ -220,6 +257,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			Name:              input.E2EConfig.MustGetVariable(NamePrefix) + "-controller-manager",
 		}
 	})
+
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.TargetCluster.GetClient(),
 		Namespace: input.Namespace,
@@ -332,18 +370,40 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 }
 
 func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
+	bmhs, err := GetAllBmhs(ctx, targetCluster.GetClient(), "metal3")
+	Expect(err).ToNot(HaveOccurred(), "Cannot fetch BMHs")
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterv1.ProviderNameLabel] = "metal3"
+	labels[clusterv1.ProviderNameLabel] = "metal3" //nolint:goconst
 	crdName := "baremetalhosts.metal3.io"
-	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
+	err = LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label BMH CRDs")
+	for _, bmh := range bmhs {
+		// Merge new labels with existing labels
+		if bmh.ObjectMeta.Labels == nil {
+			bmh.ObjectMeta.Labels = map[string]string{}
+		}
+
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlLabel] = ""
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlMoveLabel] = ""
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
+		bmh.ObjectMeta.Labels[clusterv1.ProviderNameLabel] = "metal3"
+
+		err = targetCluster.GetClient().Update(ctx, &bmh)
+		if err != nil {
+			Logf("Cannot label BMH %s: %v", bmh.Name, err)
+		}
+		Logf("After adding the labels")
+		Logf(fmt.Sprintf("BMH metadata: %v", bmh.ObjectMeta.Labels))
+	}
+	Expect(err).ToNot(HaveOccurred(), "Cannot label BMHs")
 }
 
 func labelHDCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterctlv1.ClusterctlMoveLabel] = ""
+	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
+	labels[clusterv1.ProviderNameLabel] = "metal3"
 	crdName := "hardwaredata.metal3.io"
 	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label HD CRDs")
@@ -445,6 +505,9 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 	}, "5s", "100ms").Should(Succeed(), "Failed to assert bootstrap API server stability")
 
+	By("Add paused annotation to BMHs")
+	addPausedAnnotation(ctx, input.TargetCluster)
+
 	By("Move back to bootstrap cluster")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivot"),
@@ -470,6 +533,9 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Namespace:   pivotingCluster.Namespace,
 	})
 	Expect(controlPlane).ToNot(BeNil())
+
+	By("Remove paused annotation from BMHs")
+	removePausedAnnotation(ctx, input.BootstrapClusterProxy)
 
 	By("Check that BMHs are in provisioned state")
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateProvisioned, WaitForNumInput{
@@ -530,4 +596,39 @@ func fetchContainerLogs(containerNames *[]string, folder string, containerComman
 		writeErr := os.WriteFile(filepath.Join(logDir, "stdout.log"), out, 0400)
 		Expect(writeErr).ToNot(HaveOccurred())
 	}
+}
+
+func removePausedAnnotation(ctx context.Context, targetCluster framework.ClusterProxy) {
+	bmhs, err := GetAllBmhs(ctx, targetCluster.GetClient(), "metal3")
+	Expect(err).ToNot(HaveOccurred(), "Cannot fetch BMHs")
+	for _, bmh := range bmhs {
+		if bmh.ObjectMeta.Annotations != nil {
+			if _, ok := bmh.ObjectMeta.Annotations[bmov1alpha1.PausedAnnotation]; ok {
+				delete(bmh.ObjectMeta.Annotations, bmov1alpha1.PausedAnnotation)
+				err = targetCluster.GetClient().Update(ctx, &bmh)
+				if err != nil {
+					Logf("Cannot remove paused annotation from BMH %s: %v", bmh.Name, err)
+				}
+				Logf("Removed paused annotation from BMH %s", bmh.Name)
+			}
+		}
+	}
+	Expect(err).ToNot(HaveOccurred(), "Cannot remove paused annotation from BMHs")
+}
+
+func addPausedAnnotation(ctx context.Context, targetCluster framework.ClusterProxy) {
+	bmhs, err := GetAllBmhs(ctx, targetCluster.GetClient(), "metal3")
+	Expect(err).ToNot(HaveOccurred(), "Cannot fetch BMHs")
+	for _, bmh := range bmhs {
+		if bmh.ObjectMeta.Annotations == nil {
+			bmh.ObjectMeta.Annotations = map[string]string{}
+		}
+		bmh.ObjectMeta.Annotations[bmov1alpha1.PausedAnnotation] = "manual-pivoting"
+		err = targetCluster.GetClient().Update(ctx, &bmh)
+		if err != nil {
+			Logf("Cannot add paused annotation to BMH %s: %v", bmh.Name, err)
+		}
+		Logf("Added paused annotation to BMH %s", bmh.Name)
+	}
+	Expect(err).ToNot(HaveOccurred(), "Cannot add paused annotation to BMHs")
 }
