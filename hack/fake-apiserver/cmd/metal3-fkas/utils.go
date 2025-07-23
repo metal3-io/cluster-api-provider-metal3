@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"errors"
 	"fmt"
-	"math/rand"
+	"log"
+	"math/big"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -149,18 +152,18 @@ func getSecretKeyAndCert(
 		Name:      secretName,
 	}, secret)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get secret: %v", err)
+		return nil, nil, fmt.Errorf("failed to get secret: %w", err)
 	}
 
 	// Extract tls.crt and tls.key
 	tlsCrt, ok := secret.Data["tls.crt"]
 	if !ok {
-		return nil, nil, fmt.Errorf("tls.crt not found in secret")
+		return nil, nil, errors.New("tls.crt not found in secret")
 	}
 
 	tlsKey, ok := secret.Data["tls.key"]
 	if !ok {
-		return nil, nil, fmt.Errorf("tls.key not found in secret")
+		return nil, nil, errors.New("tls.key not found in secret")
 	}
 
 	return tlsCrt, tlsKey, nil
@@ -168,12 +171,14 @@ func getSecretKeyAndCert(
 
 func waitForRandomSeconds() {
 	// Generate a random number of seconds between 1 and 10
-	randomSeconds := rand.Intn(10) + 1
+	const maxRandomSeconds = 10
+	n, _ := rand.Int(rand.Reader, big.NewInt(int64(maxRandomSeconds)))
 
-	fmt.Printf("Waiting for %d seconds...\n", randomSeconds)
+	randomSeconds := n.Int64() + 1
+	log.Printf("Waiting for %d seconds...\n", randomSeconds)
 
 	// Wait for the random number of seconds
 	time.Sleep(time.Duration(randomSeconds) * time.Second)
 
-	fmt.Println("Done waiting!")
+	log.Println("Done waiting!")
 }
