@@ -31,7 +31,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -330,3 +332,34 @@ func parseProviderID(providerID string) string {
 	return strings.TrimPrefix(providerID, ProviderIDPrefix)
 }
 
+func ConvertTypedLocalObjectReferenceToIPPoolReference(
+	ref corev1.TypedLocalObjectReference,
+) capipamv1.IPPoolReference {
+	if ref.APIGroup == nil || *ref.APIGroup == "" {
+		ref.APIGroup = ptr.To("ipam.metal3.io")
+	}
+	if ref.Kind == "" {
+		ref.Kind = "IPPool"
+	}
+	return capipamv1.IPPoolReference{
+		Name:     ref.Name,
+		APIGroup: *ref.APIGroup,
+		Kind:     ref.Kind,
+	}
+}
+
+func ConvertIPPoolReferenceToTypedLocalObjectReference(
+	ref capipamv1.IPPoolReference,
+) corev1.TypedLocalObjectReference {
+	if ref.APIGroup == "" {
+		ref.APIGroup = "ipam.metal3.io"
+	}
+	if ref.Kind == "" {
+		ref.Kind = "IPPool"
+	}
+	return corev1.TypedLocalObjectReference{
+		Name:     ref.Name,
+		APIGroup: &ref.APIGroup,
+		Kind:     ref.Kind,
+	}
+}

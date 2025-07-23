@@ -21,6 +21,8 @@ else
     export CAPM3RELEASE="v1.11.99"
     export IPAMRELEASE="v1.11.99"
     export CAPI_RELEASE_PREFIX="v1.11."
+    # Hard code CAPI_RELEASE for now, as we are not using the latest CAPI release
+    export CAPIRELEASE="v1.11.0-alpha.2"
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set

@@ -40,6 +40,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -145,6 +146,9 @@ func setupScheme() *runtime.Scheme {
 		panic(err)
 	}
 	if err := ipamv1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := capipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := capipamv1beta1.AddToScheme(s); err != nil {
