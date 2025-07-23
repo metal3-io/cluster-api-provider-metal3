@@ -10,7 +10,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.32.7
 	k8s.io/apimachinery v0.32.7
 	k8s.io/client-go v0.32.7
-	sigs.k8s.io/cluster-api v1.10.3
+	sigs.k8s.io/cluster-api v1.10.4
 	sigs.k8s.io/controller-runtime v0.20.4
 )
 
