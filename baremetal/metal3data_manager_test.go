@@ -34,8 +34,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -644,12 +644,12 @@ var _ = Describe("Metal3Data manager", func() {
 				objects = append(objects, claim)
 			}
 			for _, claimName := range tc.ipClaims {
-				claim := &caipamv1.IPAddressClaim{
+				claim := &capipamv1.IPAddressClaim{
 					ObjectMeta: testObjectMeta(metal3DataName+"-"+claimName, namespaceName, ""),
-					Spec: caipamv1.IPAddressClaimSpec{
-						PoolRef: corev1.TypedLocalObjectReference{
+					Spec: capipamv1.IPAddressClaimSpec{
+						PoolRef: capipamv1.IPPoolReference{
 							Name:     "abc",
-							APIGroup: ptr.To("ipam.cluster.x-k8s.io"),
+							APIGroup: "ipam.cluster.x-k8s.io",
 							Kind:     "TestPool",
 						},
 					},
@@ -1022,15 +1022,15 @@ var _ = Describe("Metal3Data manager", func() {
 				})
 			}
 			for _, poolName := range tc.ipClaims {
-				objects = append(objects, &caipamv1.IPAddressClaim{
+				objects = append(objects, &capipamv1.IPAddressClaim{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:       metal3DataName + "-" + poolName,
 						Namespace:  namespaceName,
 						Finalizers: []string{infrav1.DataFinalizer},
 					},
-					Spec: caipamv1.IPAddressClaimSpec{
-						PoolRef: corev1.TypedLocalObjectReference{
-							APIGroup: ptr.To("ipam.cluster.x-k8s.io"),
+					Spec: capipamv1.IPAddressClaimSpec{
+						PoolRef: capipamv1.IPPoolReference{
+							APIGroup: "ipam.cluster.x-k8s.io",
 							Kind:     "TestPool",
 							Name:     "test",
 						},
@@ -1077,7 +1077,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Expect(apierrors.IsNotFound(err)).To(BeTrue())
 			}
 			for _, poolName := range tc.ipClaims {
-				claim := &caipamv1.IPAddressClaim{}
+				claim := &capipamv1.IPAddressClaim{}
 				claimNamespacedName := types.NamespacedName{
 					Name:      metal3DataName + "-" + poolName,
 					Namespace: m3d.Namespace,
@@ -1893,7 +1893,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	type testCaseEnsureClaim struct {
 		poolRef          corev1.TypedLocalObjectReference
-		ipClaim          *caipamv1.IPAddressClaim
+		ipClaim          *capipamv1.IPAddressClaim
 		expectError      bool
 		expectFetchAgain bool
 		expectClaim      bool
@@ -1917,7 +1917,7 @@ var _ = Describe("Metal3Data manager", func() {
 		Expect(rc.fetchAgain).To(Equal(tc.expectFetchAgain))
 		if tc.expectClaim {
 			Expect(rc.claim).NotTo(BeNil())
-			claim := &caipamv1.IPAddressClaim{}
+			claim := &capipamv1.IPAddressClaim{}
 			nn := types.NamespacedName{
 				Name:      m3d.Name + "-" + tc.poolRef.Name,
 				Namespace: m3d.Namespace,
@@ -1941,7 +1941,7 @@ var _ = Describe("Metal3Data manager", func() {
 		}),
 		Entry("claim exists", testCaseEnsureClaim{
 			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
-			ipClaim: &caipamv1.IPAddressClaim{
+			ipClaim: &capipamv1.IPAddressClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      metal3DataName + "-" + testPoolName,
 					Namespace: namespaceName,
@@ -1963,8 +1963,8 @@ var _ = Describe("Metal3Data manager", func() {
 		m3d             *infrav1.Metal3Data
 		poolName        string
 		poolRef         corev1.TypedLocalObjectReference
-		ipClaim         *caipamv1.IPAddressClaim
-		ipAddress       *caipamv1.IPAddress
+		ipClaim         *capipamv1.IPAddressClaim
+		ipAddress       *capipamv1.IPAddress
 		expectError     bool
 		expectRequeue   bool
 		expectedAddress addressFromPool
@@ -2006,7 +2006,7 @@ var _ = Describe("Metal3Data manager", func() {
 			}
 			Expect(poolAddress).To(Equal(tc.expectedAddress))
 			if tc.expectClaim {
-				claim := &caipamv1.IPAddressClaim{}
+				claim := &capipamv1.IPAddressClaim{}
 				nn := types.NamespacedName{
 					Name:      tc.m3d.Name + "-" + tc.poolName,
 					Namespace: tc.m3d.Namespace,
@@ -2026,7 +2026,7 @@ var _ = Describe("Metal3Data manager", func() {
 			poolName:        testPoolName,
 			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
 			expectedAddress: addressFromPool{},
-			ipClaim: &caipamv1.IPAddressClaim{
+			ipClaim: &capipamv1.IPAddressClaim{
 				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
 			},
 			expectRequeue: true,
@@ -2037,22 +2037,22 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			poolName:        testPoolName,
 			expectedAddress: addressFromPool{},
-			ipClaim: &caipamv1.IPAddressClaim{
+			ipClaim: &capipamv1.IPAddressClaim{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              metal3DataName + "-" + testPoolName,
 					Namespace:         namespaceName,
 					DeletionTimestamp: &metav1.Time{Time: time.Now().Add(time.Minute)},
 					Finalizers:        []string{"ipclaim.ipam.metal3.io"},
 				},
-				Status: caipamv1.IPAddressClaimStatus{
-					AddressRef: corev1.LocalObjectReference{
+				Status: capipamv1.IPAddressClaimStatus{
+					AddressRef: capipamv1.IPAddressReference{
 						Name: "abc-192.168.0.10",
 					},
 				},
 			},
-			ipAddress: &caipamv1.IPAddress{
+			ipAddress: &capipamv1.IPAddress{
 				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
-				Spec: caipamv1.IPAddressSpec{
+				Spec: capipamv1.IPAddressSpec{
 					Address: "192.168.0.10",
 					Prefix:  26,
 					Gateway: "192.168.0.1",
@@ -2067,10 +2067,10 @@ var _ = Describe("Metal3Data manager", func() {
 			poolName:        testPoolName,
 			poolRef:         corev1.TypedLocalObjectReference{Name: testPoolName},
 			expectedAddress: addressFromPool{},
-			ipClaim: &caipamv1.IPAddressClaim{
+			ipClaim: &capipamv1.IPAddressClaim{
 				ObjectMeta: testObjectMeta("abc-abc", namespaceName, ""),
-				Status: caipamv1.IPAddressClaimStatus{
-					AddressRef: corev1.LocalObjectReference{
+				Status: capipamv1.IPAddressClaimStatus{
+					AddressRef: capipamv1.IPAddressReference{
 						Name: "abc-192.168.0.11",
 					},
 				},
@@ -2089,17 +2089,17 @@ var _ = Describe("Metal3Data manager", func() {
 				Gateway:    ipamv1.IPAddressStr("192.168.0.1"),
 				dnsServers: []ipamv1.IPAddressStr{},
 			},
-			ipClaim: &caipamv1.IPAddressClaim{
+			ipClaim: &capipamv1.IPAddressClaim{
 				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
-				Status: caipamv1.IPAddressClaimStatus{
-					AddressRef: corev1.LocalObjectReference{
+				Status: capipamv1.IPAddressClaimStatus{
+					AddressRef: capipamv1.IPAddressReference{
 						Name: "abc-192.168.0.10",
 					},
 				},
 			},
-			ipAddress: &caipamv1.IPAddress{
+			ipAddress: &capipamv1.IPAddress{
 				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
-				Spec: caipamv1.IPAddressSpec{
+				Spec: capipamv1.IPAddressSpec{
 					Address: "192.168.0.10",
 					Prefix:  26,
 					Gateway: "192.168.0.1",
@@ -2111,7 +2111,7 @@ var _ = Describe("Metal3Data manager", func() {
 	type testCaseReleaseAddressFromPool struct {
 		m3d         *infrav1.Metal3Data
 		poolRef     corev1.TypedLocalObjectReference
-		ipClaim     *caipamv1.IPAddressClaim
+		ipClaim     *capipamv1.IPAddressClaim
 		expectError bool
 	}
 
@@ -2135,7 +2135,7 @@ var _ = Describe("Metal3Data manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.ipClaim != nil {
-				capm3IPClaim := &caipamv1.IPAddressClaim{}
+				capm3IPClaim := &capipamv1.IPAddressClaim{}
 				nn := types.NamespacedName{
 					Name:      tc.m3d.Name,
 					Namespace: tc.m3d.Namespace,
@@ -2154,7 +2154,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			poolRef: corev1.TypedLocalObjectReference{Name: testPoolName},
-			ipClaim: &caipamv1.IPAddressClaim{
+			ipClaim: &capipamv1.IPAddressClaim{
 				ObjectMeta: testObjectMeta(metal3DataName+"-"+testPoolName, namespaceName, ""),
 			},
 		}),

@@ -34,11 +34,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/cache"
 	k8strings "k8s.io/utils/strings"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -97,7 +97,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}
 
-	helper, err := patch.NewHelper(host, r.Client)
+	helper, err := v1beta1patch.NewHelper(host, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
@@ -304,8 +304,8 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 			continue
 		}
 		name := client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
-		if m.Spec.InfrastructureRef.Namespace != "" {
-			name = client.ObjectKey{Namespace: m.Spec.InfrastructureRef.Namespace, Name: m.Spec.InfrastructureRef.Name}
+		if m.Namespace != "" {
+			name = client.ObjectKey{Namespace: m.Namespace, Name: m.Spec.InfrastructureRef.Name}
 		}
 		capm3Machine := &infrav1.Metal3Machine{}
 		if err := r.Client.Get(ctx, name, capm3Machine); err != nil {

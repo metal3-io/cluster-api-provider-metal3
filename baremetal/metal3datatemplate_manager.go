@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -192,7 +192,7 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 func (m *DataTemplateManager) updateData(ctx context.Context,
 	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
 ) (map[int]string, error) {
-	helper, err := patch.NewHelper(dataClaim, m.client)
+	helper, err := v1beta1patch.NewHelper(dataClaim, m.client)
 	if err != nil {
 		return indexes, errors.Wrap(err, "failed to init patch helper")
 	}

@@ -20,6 +20,8 @@ import (
 	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -168,6 +170,8 @@ func initScheme() *runtime.Scheme {
 	Expect(infrav1.AddToScheme(sc)).To(Succeed())
 	Expect(ipamv1.AddToScheme(sc)).To(Succeed())
 	Expect(irsov1alpha1.AddToScheme(sc)).To(Succeed())
+	Expect(clusterv1beta1.AddToScheme(sc)).To(Succeed())
+	Expect(clusterv1.AddToScheme(sc)).To(Succeed())
 
 	return sc
 }

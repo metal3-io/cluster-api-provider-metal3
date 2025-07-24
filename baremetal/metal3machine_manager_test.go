@@ -35,10 +35,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -115,7 +116,7 @@ func consumerRefSome() *corev1.ObjectReference {
 		Name:       "someoneelsesmachine",
 		Namespace:  namespaceName,
 		Kind:       "M3Machine",
-		APIVersion: clusterv1.GroupVersion.String(),
+		APIVersion: clusterv1beta1.GroupVersion.String(),
 	}
 }
 
@@ -396,8 +397,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Status: infrav1.Metal3MachineStatus{
 					Ready: true,
-					Conditions: clusterv1.Conditions{
-						*conditions.TrueCondition(infrav1.KubernetesNodeReadyCondition),
+					Conditions: clusterv1beta1.Conditions{
+						*v1beta1conditions.TrueCondition(infrav1.KubernetesNodeReadyCondition),
 					},
 				},
 			},
@@ -431,7 +432,9 @@ var _ = Describe("Metal3Machine manager", func() {
 	}
 
 	testCaseBootstrapReadySecretName := "secret"
-
+	v1beta1BootstrapReadyTrue := clusterv1.Conditions{
+		clusterv1.Condition{Type: clusterv1.BootstrapReadyV1Beta1Condition, Status: corev1.ConditionTrue},
+	}
 	DescribeTable("Test BootstrapReady",
 		func(tc testCaseBootstrapReady) {
 			machineMgr, err := NewMachineManager(nil, nil, nil, &tc.Machine, nil,
@@ -447,11 +450,15 @@ var _ = Describe("Metal3Machine manager", func() {
 			Machine: clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{},
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{},
 					},
 				},
 				Status: clusterv1.MachineStatus{
-					BootstrapReady: true,
+					Deprecated: &clusterv1.MachineDeprecatedStatus{
+						V1Beta1: &clusterv1.MachineV1Beta1DeprecatedStatus{
+							Conditions: v1beta1BootstrapReadyTrue,
+						},
+					},
 				},
 			},
 			ExpectTrue: true,
@@ -686,7 +693,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 						OwnerReferences: []metav1.OwnerReference{
 							{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
 								Name:       "test1",
 								Kind:       "KubeadmControlPlane",
 							},
@@ -711,7 +718,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 						OwnerReferences: []metav1.OwnerReference{
 							{
-								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
 								Name:       "test1",
 								Kind:       "KubeadmControlPlane",
 							},
@@ -790,7 +797,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 							OwnerReferences: []metav1.OwnerReference{
 								{
-									APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+									APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
 									Name:       "test1",
 									Kind:       "KubeadmControlPlane",
 								},
@@ -2118,7 +2125,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 					OwnerReferences: []metav1.OwnerReference{
 						{
-							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
 							Name:       "test1",
 							UID:        "123456789",
 							Kind:       "KubeadmControlPlane",
@@ -2152,7 +2159,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: clusterName,
+						clusterv1beta1.ClusterNameLabel: clusterName,
 					},
 					Annotations: map[string]string{
 						HostAnnotation:                           namespaceName + "/" + baremetalhostName,
@@ -2221,7 +2228,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 				if tc.M3Machine.Status.Addresses != nil {
 					for i, address := range tc.ExpectedMachine.Status.Addresses {
-						Expect(m3machine.Status.Addresses[i]).To(Equal(address))
+						Expect(m3machine.Status.Addresses[i].Address).To(Equal(address.Address))
 					}
 				}
 			},
@@ -2258,10 +2265,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "M3Machine",
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: clusterv1beta1.GroupVersion.String(),
 					},
 					Status: infrav1.Metal3MachineStatus{
-						Addresses: []clusterv1.MachineAddress{
+						Addresses: []clusterv1beta1.MachineAddress{
 							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
@@ -2322,10 +2329,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					TypeMeta: metav1.TypeMeta{
 						Kind:       "M3Machine",
-						APIVersion: clusterv1.GroupVersion.String(),
+						APIVersion: clusterv1beta1.GroupVersion.String(),
 					},
 					Status: infrav1.Metal3MachineStatus{
-						Addresses: []clusterv1.MachineAddress{
+						Addresses: []clusterv1beta1.MachineAddress{
 							{
 								Address: "192.168.1.1",
 								Type:    "InternalIP",
@@ -2370,10 +2377,10 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 						TypeMeta: metav1.TypeMeta{
 							Kind:       "M3Machine",
-							APIVersion: clusterv1.GroupVersion.String(),
+							APIVersion: clusterv1beta1.GroupVersion.String(),
 						},
 						Status: infrav1.Metal3MachineStatus{
-							Addresses: []clusterv1.MachineAddress{},
+							Addresses: []clusterv1beta1.MachineAddress{},
 							Ready:     true,
 						},
 					},
@@ -2394,18 +2401,18 @@ var _ = Describe("Metal3Machine manager", func() {
 			IP: "172.0.20.2",
 		}
 
-		addr1 := clusterv1.MachineAddress{
-			Type:    clusterv1.MachineInternalIP,
+		addr1 := clusterv1beta1.MachineAddress{
+			Type:    clusterv1beta1.MachineInternalIP,
 			Address: "192.168.1.1",
 		}
 
-		addr2 := clusterv1.MachineAddress{
-			Type:    clusterv1.MachineInternalIP,
+		addr2 := clusterv1beta1.MachineAddress{
+			Type:    clusterv1beta1.MachineInternalIP,
 			Address: "172.0.20.2",
 		}
 
-		addr3 := clusterv1.MachineAddress{
-			Type:    clusterv1.MachineHostName,
+		addr3 := clusterv1beta1.MachineAddress{
+			Type:    clusterv1beta1.MachineHostName,
 			Address: "mygreathost",
 		}
 
@@ -2413,12 +2420,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			Machine               clusterv1.Machine
 			M3Machine             infrav1.Metal3Machine
 			Host                  *bmov1alpha1.BareMetalHost
-			ExpectedNodeAddresses []clusterv1.MachineAddress
+			ExpectedNodeAddresses []clusterv1beta1.MachineAddress
 		}
 
 		DescribeTable("Test NodeAddress",
 			func(tc testCaseNodeAddress) {
-				var nodeAddresses []clusterv1.MachineAddress
+				var nodeAddresses []clusterv1beta1.MachineAddress
 
 				fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).Build()
 				machineMgr, err := NewMachineManager(fakeClient, nil, nil, &tc.Machine,
@@ -2442,7 +2449,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
+				ExpectedNodeAddresses: []clusterv1beta1.MachineAddress{addr1},
 			}),
 			Entry("Two NICs", testCaseNodeAddress{
 				Host: &bmov1alpha1.BareMetalHost{
@@ -2452,7 +2459,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1, addr2},
+				ExpectedNodeAddresses: []clusterv1beta1.MachineAddress{addr1, addr2},
 			}),
 			Entry("Hostname is set", testCaseNodeAddress{
 				Host: &bmov1alpha1.BareMetalHost{
@@ -2462,7 +2469,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr3},
+				ExpectedNodeAddresses: []clusterv1beta1.MachineAddress{addr3},
 			}),
 			Entry("Empty Hostname", testCaseNodeAddress{
 				Host: &bmov1alpha1.BareMetalHost{
@@ -2472,7 +2479,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
-				ExpectedNodeAddresses: []clusterv1.MachineAddress{},
+				ExpectedNodeAddresses: []clusterv1beta1.MachineAddress{},
 			}),
 			Entry("No host at all, so this is a no-op", testCaseNodeAddress{
 				Host:                  nil,
@@ -2517,7 +2524,7 @@ var _ = Describe("Metal3Machine manager", func() {
 
 	Describe("Test SetNodeProviderID", func() {
 		s := runtime.NewScheme()
-		err := clusterv1.AddToScheme(s)
+		err := clusterv1beta1.AddToScheme(s)
 		if err != nil {
 			log.Printf("AddToScheme failed: %v", err)
 		}
@@ -2677,9 +2684,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							Name:      "abc",
-							Namespace: "def",
+						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+							Name: "abc",
 						},
 						DataSecretName: ptr.To("Foobar"),
 					},
@@ -2792,8 +2798,8 @@ var _ = Describe("Metal3Machine manager", func() {
 					&savedCred,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(savedHost.Labels[clusterv1.ClusterNameLabel]).To(Equal(tc.Machine.Spec.ClusterName))
-				Expect(savedCred.Labels[clusterv1.ClusterNameLabel]).To(Equal(tc.Machine.Spec.ClusterName))
+				Expect(savedHost.Labels[clusterv1beta1.ClusterNameLabel]).To(Equal(tc.Machine.Spec.ClusterName))
+				Expect(savedCred.Labels[clusterv1beta1.ClusterNameLabel]).To(Equal(tc.Machine.Spec.ClusterName))
 			}
 		},
 		Entry("Associate empty machine, Metal3 machine spec nil",
@@ -3737,7 +3743,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						clusterv1beta1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -3766,7 +3772,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						clusterv1beta1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -3793,7 +3799,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						clusterv1beta1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -3813,7 +3819,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "",
+						clusterv1beta1.MachineControlPlaneLabel: "",
 					},
 				},
 			},
@@ -3833,7 +3839,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineDeploymentNameLabel: "cluster.x-k8s.io/deployment-name",
+						clusterv1beta1.MachineDeploymentNameLabel: "cluster.x-k8s.io/deployment-name",
 					},
 				},
 			},
@@ -4284,7 +4290,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				TypeMeta: metav1.TypeMeta{},
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						clusterv1beta1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
 					},
 				},
 			},
@@ -4561,6 +4567,9 @@ func setupSchemeMm() *runtime.Scheme {
 	if err := corev1.AddToScheme(s); err != nil {
 		panic(err)
 	}
+	if err := clusterv1beta1.AddToScheme(s); err != nil {
+		panic(err)
+	}
 	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
@@ -4569,7 +4578,7 @@ func setupSchemeMm() *runtime.Scheme {
 
 func newConfig(userDataNamespace string,
 	labels map[string]string, reqs []infrav1.HostSelectorRequirement,
-) (*infrav1.Metal3Machine, *corev1.ObjectReference) {
+) (*infrav1.Metal3Machine, *clusterv1.ContractVersionedObjectReference) {
 	config := infrav1.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespaceName,
@@ -4605,23 +4614,22 @@ func newConfig(userDataNamespace string,
 		},
 	}
 
-	infrastructureRef := &corev1.ObjectReference{
-		Name:       "someothermachine",
-		Namespace:  namespaceName,
-		Kind:       "M3Machine",
-		APIVersion: infrav1.GroupVersion.String(),
+	infrastructureRef := &clusterv1.ContractVersionedObjectReference{
+		Name:     "someothermachine",
+		Kind:     "M3Machine",
+		APIGroup: infrav1.GroupVersion.Group,
 	}
 	return &config, infrastructureRef
 }
 
-func newMachine(machineName string, infraRef *corev1.ObjectReference,
+func newMachine(machineName string, infraRef *clusterv1.ContractVersionedObjectReference,
 ) *clusterv1.Machine {
 	if machineName == "" {
 		return &clusterv1.Machine{}
 	}
 
 	if infraRef == nil {
-		infraRef = &corev1.ObjectReference{}
+		infraRef = &clusterv1.ContractVersionedObjectReference{}
 	}
 
 	machine := &clusterv1.Machine{
@@ -4637,7 +4645,7 @@ func newMachine(machineName string, infraRef *corev1.ObjectReference,
 			ClusterName:       clusterName,
 			InfrastructureRef: *infraRef,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef:      &corev1.ObjectReference{},
+				ConfigRef:      &clusterv1.ContractVersionedObjectReference{},
 				DataSecretName: nil,
 			},
 		},
@@ -4780,8 +4788,8 @@ func newSecret() *corev1.Secret {
 	}
 }
 
-func filterCondition(conditions clusterv1.Conditions, conditionType clusterv1.ConditionType) []clusterv1.Condition {
-	filtered := []clusterv1.Condition{}
+func filterCondition(conditions clusterv1beta1.Conditions, conditionType clusterv1beta1.ConditionType) []clusterv1beta1.Condition {
+	filtered := []clusterv1beta1.Condition{}
 	for i := range conditions {
 		if conditions[i].Type == conditionType {
 			filtered = append(filtered, conditions[i])

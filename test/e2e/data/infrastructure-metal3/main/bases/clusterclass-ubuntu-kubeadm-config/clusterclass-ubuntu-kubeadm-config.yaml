@@ -1,0 +1,170 @@
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration: {}
+        users:
+        - name: ${IMAGE_USERNAME}
+          sshAuthorizedKeys:
+          - ${SSH_PUB_KEY_CONTENT}
+          sudo: ALL=(ALL) NOPASSWD:ALL
+        files:
+        - content: |
+            #!/bin/bash
+            while :; do
+              curl -sk https://127.0.0.1:6443/healthz 1>&2 > /dev/null
+              isOk=$?
+              isActive=$(systemctl show -p ActiveState keepalived.service | cut -d'=' -f2)
+              if [ $isOk == "0" ] &&  [ $isActive != "active" ]; then
+                logger 'API server is healthy, however keepalived is not running, starting keepalived'
+                echo 'API server is healthy, however keepalived is not running, starting keepalived'
+                sudo systemctl start keepalived.service
+              elif [ $isOk != "0" ] &&  [ $isActive == "active" ]; then
+                logger 'API server is not healthy, however keepalived running, stopping keepalived'
+                echo 'API server is not healthy, however keepalived running, stopping keepalived'
+                sudo systemctl stop keepalived.service
+              fi
+              sleep 5
+            done
+          owner: root:root
+          path: /usr/local/bin/monitor.keepalived.sh
+          permissions: "0755"
+        - content: |
+            [Unit]
+            Description=Monitors keepalived adjusts status with that of API server
+            After=syslog.target network-online.target
+
+            [Service]
+            Type=simple
+            Restart=always
+            ExecStart=/usr/local/bin/monitor.keepalived.sh
+
+            [Install]
+            WantedBy=multi-user.target
+          owner: root:root
+          path: /lib/systemd/system/monitor.keepalived.service
+        - content: |
+            ! Configuration File for keepalived
+            global_defs {
+                notification_email {
+                sysadmin@example.com
+                support@example.com
+                }
+                notification_email_from lb@example.com
+                smtp_server localhost
+                smtp_connect_timeout 30
+            }
+            vrrp_instance VI_2 {
+                state MASTER
+                interface enp2s0
+                virtual_router_id 2
+                priority 101
+                advert_int 1
+                virtual_ipaddress {
+                    ${CLUSTER_APIENDPOINT_HOST}
+                }
+            }
+          path: /etc/keepalived/keepalived.conf
+        - content: |
+            network:
+              version: 2
+              renderer: networkd
+              bridges:
+                ${CLUSTER_PROVISIONING_INTERFACE}:
+                  interfaces: [enp1s0]
+                  addresses:
+                  - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
+          owner: root:root
+          path: /etc/netplan/52-ironicendpoint.yaml
+          permissions: "0644"
+        - content: |
+            [registries.search]
+            registries = ['docker.io']
+
+            [registries.insecure]
+            registries = ['${REGISTRY}']
+          path: /etc/containers/registries.conf
+        joinConfiguration:
+          controlPlane: {}
+          nodeRegistration:
+            kubeletExtraArgs:
+            - name: cgroup-driver
+              value: systemd
+            - name: container-runtime-endpoint
+              value: unix:///var/run/crio/crio.sock
+            - name: feature-gates
+              value: AllAlpha=false
+            - name: node-labels
+              value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+            - name: provider-id
+              value: '${PROVIDER_ID_FORMAT}'
+            - name: runtime-request-timeout
+              value: '5m'
+            name: '{{ ds.meta_data.name }}'
+        initConfiguration:
+          nodeRegistration:
+            kubeletExtraArgs:
+            - name: cgroup-driver
+              value: systemd
+            - name: container-runtime-endpoint
+              value: unix:///var/run/crio/crio.sock
+            - name: feature-gates
+              value: AllAlpha=false
+            - name: node-labels
+              value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+            - name: provider-id
+              value: '${PROVIDER_ID_FORMAT}'
+            - name: runtime-request-timeout
+              value: '5m'
+            name: '{{ ds.meta_data.name }}'
+        postKubeadmCommands:
+        - mkdir -p /home/${IMAGE_USERNAME}/.kube
+        - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube
+        - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
+        - systemctl enable --now keepalived
+        - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
+        preKubeadmCommands:
+        - sed -i "s/MACAddressPolicy=persistent/MACAddressPolicy=none/g" /usr/lib/systemd/network/99-default.link
+        - netplan apply
+        - systemctl enable --now crio kubelet
+        - if (curl -sk --max-time 10 https://${CLUSTER_APIENDPOINT_HOST}:${CLUSTER_APIENDPOINT_PORT}/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
+        - systemctl enable --now /lib/systemd/system/monitor.keepalived.service
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+kind: KubeadmConfigTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      files:
+      - content: |
+          network:
+            version: 2
+            renderer: networkd
+            bridges:
+              ${CLUSTER_PROVISIONING_INTERFACE}:
+                interfaces: [enp1s0]
+                addresses:
+                - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
+        owner: root:root
+        path: /etc/netplan/52-ironicendpoint.yaml
+        permissions: "0644"
+      - content: |
+          [registries.search]
+          registries = ['docker.io']
+
+          [registries.insecure]
+          registries = ['${REGISTRY}']
+        path: /etc/containers/registries.conf
+      preKubeadmCommands:
+      - sed -i "s/MACAddressPolicy=persistent/MACAddressPolicy=none/g" /usr/lib/systemd/network/99-default.link
+      - netplan apply
+      - systemctl enable --now crio kubelet

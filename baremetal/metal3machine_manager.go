@@ -45,12 +45,14 @@ import (
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -106,8 +108,8 @@ type MachineManagerInterface interface {
 	DissociateM3Metadata(context.Context) error
 	AssociateM3Metadata(context.Context) error
 	SetError(string, capierrors.MachineStatusError)
-	SetConditionMetal3MachineToFalse(clusterv1.ConditionType, string, clusterv1.ConditionSeverity, string, ...interface{})
-	SetConditionMetal3MachineToTrue(clusterv1.ConditionType)
+	SetConditionMetal3MachineToFalse(clusterv1beta1.ConditionType, string, clusterv1beta1.ConditionSeverity, string, ...interface{})
+	SetConditionMetal3MachineToTrue(clusterv1beta1.ConditionType)
 	CloudProviderEnabled() bool
 	SetReadyTrue()
 }
@@ -195,7 +197,8 @@ func (m *MachineManager) IsBaremetalHostProvisioned(ctx context.Context) bool {
 // IsBootstrapReady checks if the machine is given Bootstrap data.
 func (m *MachineManager) IsBootstrapReady() bool {
 	if m.Machine.Spec.Bootstrap.ConfigRef != nil {
-		return m.Machine.Status.BootstrapReady
+		bootstrapReadyCondition := deprecatedv1beta1conditions.Get(m.Machine, clusterv1.BootstrapReadyV1Beta1Condition)
+		return bootstrapReadyCondition.Status == corev1.ConditionTrue
 	}
 
 	return m.Machine.Spec.Bootstrap.DataSecretName != nil
@@ -438,7 +441,7 @@ func (m *MachineManager) getUserDataSecretName(_ context.Context) {
 	} else if m.Machine.Spec.Bootstrap.ConfigRef != nil {
 		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 			Name:      m.Machine.Spec.Bootstrap.ConfigRef.Name,
-			Namespace: m.Machine.Spec.Bootstrap.ConfigRef.Namespace,
+			Namespace: m.Machine.Namespace,
 		}
 	}
 }
@@ -747,12 +750,12 @@ func (m *MachineManager) exists(ctx context.Context) (bool, error) {
 // getHost gets the associated host by looking for an annotation on the machine
 // that contains a reference to the host. Returns nil if not found. Assumes the
 // host is in the same namespace as the machine.
-func (m *MachineManager) getHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error) {
+func (m *MachineManager) getHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
 	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil || host == nil {
 		return host, nil, err
 	}
-	helper, err := patch.NewHelper(host, m.client)
+	helper, err := v1beta1patch.NewHelper(host, m.client)
 	return host, helper, err
 }
 
@@ -791,7 +794,7 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 // chooseHost iterates through known hosts and returns one that can be
 // associated with the metal3 machine. It searches all hosts in case one already has an
 // association with this metal3 machine.
-func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error) {
+func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
 	// get list of BMH.
 	hosts := bmov1alpha1.BareMetalHostList{}
 	// without this ListOption, all namespaces would be including in the listing.
@@ -842,7 +845,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 	for i, host := range hosts.Items {
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
-			helper, err := patch.NewHelper(&hosts.Items[i], m.client)
+			helper, err := v1beta1patch.NewHelper(&hosts.Items[i], m.client)
 			return &hosts.Items[i], helper, err
 		}
 		if host.Spec.ConsumerRef != nil ||
@@ -934,7 +937,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 		chosenHost = availableHosts[randomHost]
 	}
 
-	helper, err := patch.NewHelper(chosenHost, m.client)
+	helper, err := v1beta1patch.NewHelper(chosenHost, m.client)
 	return chosenHost, helper, err
 }
 
@@ -1196,13 +1199,13 @@ func (m *MachineManager) SetError(message string, reason capierrors.MachineStatu
 }
 
 // SetConditionMetal3MachineToFalse sets Metal3Machine condition status to False.
-func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
-	conditions.MarkFalse(m.Metal3Machine, t, reason, severity, messageFormat, messageArgs...)
+func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1beta1.ConditionType, reason string, severity clusterv1beta1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+	v1beta1conditions.MarkFalse(m.Metal3Machine, t, reason, severity, messageFormat, messageArgs...)
 }
 
 // SetConditionMetal3MachineToTrue sets Metal3Machine condition status to True.
-func (m *MachineManager) SetConditionMetal3MachineToTrue(t clusterv1.ConditionType) {
-	conditions.MarkTrue(m.Metal3Machine, t)
+func (m *MachineManager) SetConditionMetal3MachineToTrue(t clusterv1beta1.ConditionType) {
+	v1beta1conditions.MarkTrue(m.Metal3Machine, t)
 }
 
 func (m *MachineManager) CloudProviderEnabled() bool {
@@ -1224,7 +1227,7 @@ func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha
 	metal3MachineOld := m.Metal3Machine.DeepCopy()
 
 	m.Metal3Machine.Status.Addresses = addrs
-	conditions.MarkTrue(m.Metal3Machine, infrav1.AssociateBMHCondition)
+	v1beta1conditions.MarkTrue(m.Metal3Machine, infrav1.AssociateBMHCondition)
 
 	if equality.Semantic.DeepEqual(m.Metal3Machine.Status, metal3MachineOld.Status) {
 		// Status did not change
@@ -1238,8 +1241,8 @@ func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha
 
 // NodeAddresses returns a slice of corev1.NodeAddress objects for a
 // given Metal3 machine.
-func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []clusterv1.MachineAddress {
-	addrs := []clusterv1.MachineAddress{}
+func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []clusterv1beta1.MachineAddress {
+	addrs := []clusterv1beta1.MachineAddress{}
 
 	// If the host is nil or we have no hw details, return an empty address array.
 	if host == nil || host.Status.HardwareDetails == nil {
@@ -1247,8 +1250,8 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 	}
 
 	for _, nic := range host.Status.HardwareDetails.NIC {
-		address := clusterv1.MachineAddress{
-			Type:    clusterv1.MachineInternalIP,
+		address := clusterv1beta1.MachineAddress{
+			Type:    clusterv1beta1.MachineInternalIP,
 			Address: nic.IP,
 		}
 		if address.Address == "" {
@@ -1258,12 +1261,12 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 	}
 
 	if host.Status.HardwareDetails.Hostname != "" {
-		addrs = append(addrs, clusterv1.MachineAddress{
-			Type:    clusterv1.MachineHostName,
+		addrs = append(addrs, clusterv1beta1.MachineAddress{
+			Type:    clusterv1beta1.MachineHostName,
 			Address: host.Status.HardwareDetails.Hostname,
 		})
-		addrs = append(addrs, clusterv1.MachineAddress{
-			Type:    clusterv1.MachineInternalDNS,
+		addrs = append(addrs, clusterv1beta1.MachineAddress{
+			Type:    clusterv1beta1.MachineInternalDNS,
 			Address: host.Status.HardwareDetails.Hostname,
 		})
 	}
@@ -1325,7 +1328,7 @@ func (m *MachineManager) getMetal3MachineHostnames() []string {
 	hostnames := []string{}
 
 	for _, address := range m.Metal3Machine.Status.Addresses {
-		if address.Type == clusterv1.MachineHostName {
+		if address.Type == clusterv1beta1.MachineHostName {
 			hostnames = append(hostnames, address.Address)
 		}
 	}
@@ -1709,7 +1712,7 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 	if !metal3Data.Status.Ready {
 		errMessage := "Waiting for Metal3Data to become ready"
 		m.Log.Info(errMessage)
-		m.SetConditionMetal3MachineToFalse(infrav1.Metal3DataReadyCondition, infrav1.WaitingForMetal3DataReason, clusterv1.ConditionSeverityInfo, "")
+		m.SetConditionMetal3MachineToFalse(infrav1.Metal3DataReadyCondition, infrav1.WaitingForMetal3DataReason, clusterv1beta1.ConditionSeverityInfo, "")
 		// Secret generation not ready
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
@@ -1856,6 +1859,7 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 	}
 
 	// Iterate over MachineSets list and find MachineSet which references specific machine.
+	var machineSetError string
 	for index := range machineSets.Items {
 		machineset := &machineSets.Items[index]
 		for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
@@ -1863,18 +1867,24 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 				continue
 			}
 			if mOwnerRef.APIVersion != machineset.APIVersion {
+				machineSetError += fmt.Sprintf("MachineSet %s has different API version %s than Machine %s with API version %s",
+					machineset.Name, machineset.APIVersion, m.Machine.Name, mOwnerRef.APIVersion)
 				continue
 			}
 			if mOwnerRef.UID != machineset.UID {
+				machineSetError = fmt.Sprintf("MachineSet %s has different UID %s than Machine %s with UID %s",
+					machineset.Name, machineset.UID, m.Machine.Name, mOwnerRef.UID)
 				continue
 			}
 			if mOwnerRef.Name == machineset.Name {
 				m.Log.Info("Found MachineSet corresponding to machine", "machineset", machineset.Name)
 				return machineset, nil
 			}
+			machineSetError = fmt.Sprintf("MachineSet %s does not match Machine %s owner reference %s", machineset.Name, m.Machine.Name, mOwnerRef.Name)
 		}
 	}
-	return nil, errors.New("MachineSet is not found")
+
+	return nil, errors.New(machineSetError)
 }
 
 // getBmhNameFromM3Machine retrieves bmhName from m3m annotations.

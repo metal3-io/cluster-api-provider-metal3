@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -30,8 +31,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/patch"
+	"k8s.io/utils/ptr"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -43,6 +46,12 @@ const (
 	VerbosityLevelDebug = 4
 	VerbosityLevelTrace = 5
 	DefaultListLimit    = 200
+)
+
+var (
+	// ErrNoCluster is returned when the cluster
+	// label could not be found on the object passed in.
+	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1beta1.ClusterNameLabel)
 )
 
 // Contains returns true if a list contains a string.
@@ -64,7 +73,7 @@ func (e *NotFoundError) Error() string {
 	return "Object not found"
 }
 
-func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object) error {
+func patchIfFound(ctx context.Context, helper *v1beta1patch.Helper, host client.Object) error {
 	err := helper.Patch(ctx, host)
 	if err != nil {
 		notFound := true
@@ -137,7 +146,7 @@ func createSecret(ctx context.Context, cl client.Client, name string,
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterNameLabel: clusterName,
+				clusterv1beta1.ClusterNameLabel: clusterName,
 			},
 			OwnerReferences: ownerRefs,
 		},
@@ -321,4 +330,36 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 
 func parseProviderID(providerID string) string {
 	return strings.TrimPrefix(providerID, ProviderIDPrefix)
+}
+
+func ConvertTypedLocalObjectReferenceToIPPoolReference(
+	ref corev1.TypedLocalObjectReference,
+) capipamv1.IPPoolReference {
+	if ref.APIGroup == nil || *ref.APIGroup == "" {
+		ref.APIGroup = ptr.To("ipam.metal3.io")
+	}
+	if ref.Kind == "" {
+		ref.Kind = "IPPool"
+	}
+	return capipamv1.IPPoolReference{
+		Name:     ref.Name,
+		APIGroup: *ref.APIGroup,
+		Kind:     ref.Kind,
+	}
+}
+
+func ConvertIPPoolReferenceToTypedLocalObjectReference(
+	ref capipamv1.IPPoolReference,
+) corev1.TypedLocalObjectReference {
+	if ref.APIGroup == "" {
+		ref.APIGroup = "ipam.metal3.io"
+	}
+	if ref.Kind == "" {
+		ref.Kind = "IPPool"
+	}
+	return corev1.TypedLocalObjectReference{
+		Name:     ref.Name,
+		APIGroup: &ref.APIGroup,
+		Kind:     ref.Kind,
+	}
 }

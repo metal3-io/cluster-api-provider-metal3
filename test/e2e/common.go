@@ -38,12 +38,12 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
-	"sigs.k8s.io/cluster-api/util/patch"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/krusty"
@@ -278,7 +278,7 @@ func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alp
 	bmhKey := client.ObjectKey{Name: host.Name, Namespace: host.Namespace}
 	err := clusterClient.Get(ctx, bmhKey, bmh)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get BareMetalHost %s", host.Name)
-	helper, err := patch.NewHelper(bmh, clusterClient)
+	helper, err := v1beta1patch.NewHelper(bmh, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 
 	if value == nil {
@@ -296,7 +296,7 @@ func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alp
 
 // DeleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
 func DeleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, nodeReuseLabelName string) {
-	helper, err := patch.NewHelper(&host, client)
+	helper, err := v1beta1patch.NewHelper(&host, client)
 	Expect(err).NotTo(HaveOccurred())
 	labels := host.GetLabels()
 	if labels != nil {
@@ -325,7 +325,7 @@ func ScaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int32) {
 	ctrlplane := controlplanev1.KubeadmControlPlane{}
 	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
-	helper, err := patch.NewHelper(&ctrlplane, c)
+	helper, err := v1beta1patch.NewHelper(&ctrlplane, c)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create new patch helper")
 
 	ctrlplane.Spec.Replicas = ptr.To(newReplicaCount)
@@ -653,16 +653,80 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 	return "", errors.New("no matching Metal3Machine found for current Machine")
 }
 
-// MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
+func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
+	allMetal3Machines := &infrav1.Metal3MachineList{}
+	Expect(cli.List(ctx, allMetal3Machines, client.InNamespace(m.Namespace))).To(Succeed())
+	for _, machine := range allMetal3Machines.Items {
+		name, err := Metal3MachineToMachineName(machine)
+		if err != nil {
+			Logf("error getting Machine name from Metal3machine: %w", err)
+		} else if name == m.Name {
+			return BmhNameToVMName(Metal3MachineToBmhName(machine)), nil
+		}
+	}
+	return "", errors.New("no matching Metal3Machine found for current Machine")
+}
+
+// MachineToIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
 func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
 	m3Machine := &infrav1.Metal3Machine{}
+	namespace := m.GetObjectMeta().GetNamespace()
 	err := cli.Get(ctx, types.NamespacedName{
-		Namespace: m.Spec.InfrastructureRef.Namespace,
+		Namespace: namespace,
 		Name:      m.Spec.InfrastructureRef.Name},
 		m3Machine)
 
 	if err != nil {
-		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name, err)
+		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", namespace, m.Spec.InfrastructureRef.Name, err)
+	}
+	m3DataList := &infrav1.Metal3DataList{}
+	m3Data := &infrav1.Metal3Data{}
+	err = cli.List(ctx, m3DataList)
+	if err != nil {
+		return "", fmt.Errorf("coudln't list Metal3Data objects: %w", err)
+	}
+	for i, m3d := range m3DataList.Items {
+		for _, owner := range m3d.OwnerReferences {
+			if owner.Name == m3Machine.Name {
+				m3Data = &m3DataList.Items[i]
+			}
+		}
+	}
+	if m3Data.Name == "" {
+		return "", errors.New("couldn't find a matching Metal3Data object")
+	}
+
+	IPAddresses := &ipamv1.IPAddressList{}
+	IPAddress := &ipamv1.IPAddress{}
+	err = cli.List(ctx, IPAddresses)
+	if err != nil {
+		return "", fmt.Errorf("couldn't list IPAddress objects: %w", err)
+	}
+	for i, ip := range IPAddresses.Items {
+		for _, owner := range ip.OwnerReferences {
+			if owner.Name == m3Data.Name && ip.Spec.Pool.Name == ippool.Name {
+				IPAddress = &IPAddresses.Items[i]
+			}
+		}
+	}
+	if IPAddress.Name == "" {
+		return "", errors.New("couldn't find a matching IPAddress object")
+	}
+
+	return string(IPAddress.Spec.Address), nil
+}
+
+// MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
+// This is a duplicate of MachineToIPAddress, but for v1beta1 API. Remove this function when we switch to CAPI v1beta2 API only.
+func MachineToIPAddress1beta1(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
+	m3Machine := &infrav1.Metal3Machine{}
+	err := cli.Get(ctx, types.NamespacedName{
+		Namespace: m.Namespace,
+		Name:      m.Spec.InfrastructureRef.Name},
+		m3Machine)
+
+	if err != nil {
+		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Namespace, m.Spec.InfrastructureRef.Name, err)
 	}
 	m3DataList := &infrav1.Metal3DataList{}
 	m3Data := &infrav1.Metal3Data{}

@@ -19,7 +19,7 @@ package v1beta1
 import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -95,7 +95,7 @@ type Metal3ClusterStatus struct {
 	Ready bool `json:"ready"`
 	// Conditions defines current service state of the Metal3Cluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -131,12 +131,12 @@ type Metal3ClusterList struct {
 }
 
 // GetConditions returns the list of conditions for an Metal3Cluster API object.
-func (c *Metal3Cluster) GetConditions() clusterv1.Conditions {
+func (c *Metal3Cluster) GetConditions() clusterv1beta1.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions will set the given conditions on an Metal3Cluster object.
-func (c *Metal3Cluster) SetConditions(conditions clusterv1.Conditions) {
+func (c *Metal3Cluster) SetConditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
 }
 

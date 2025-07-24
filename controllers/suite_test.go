@@ -34,7 +34,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -67,6 +68,7 @@ func init() {
 
 	// Register required object kinds with global scheme.
 	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
+	_ = clusterv1beta1.AddToScheme(scheme.Scheme)
 	_ = clusterv1.AddToScheme(scheme.Scheme)
 	_ = infrav1.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
@@ -76,6 +78,9 @@ func init() {
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
+	if err := clusterv1beta1.AddToScheme(s); err != nil {
+		panic(err)
+	}
 	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
@@ -143,11 +148,10 @@ var deletionTimestamp = metav1.Now()
 func clusterPauseSpec() *clusterv1.ClusterSpec {
 	return &clusterv1.ClusterSpec{
 		Paused: true,
-		InfrastructureRef: &corev1.ObjectReference{
-			Name:       metal3ClusterName,
-			Namespace:  namespaceName,
-			Kind:       "Metal3Cluster",
-			APIVersion: infrav1.GroupVersion.String(),
+		InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			Name:     metal3ClusterName,
+			Kind:     "Metal3Cluster",
+			APIGroup: infrav1.GroupVersion.Group,
 		},
 	}
 }
@@ -201,17 +205,25 @@ func getKey(objectName string) *client.ObjectKey {
 func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *clusterv1.ClusterStatus) *clusterv1.Cluster {
 	if spec == nil {
 		spec = &clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Name:       metal3ClusterName,
-				Namespace:  namespaceName,
-				Kind:       "Metal3Cluster",
-				APIVersion: infrav1.GroupVersion.String(),
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				Name:     metal3ClusterName,
+				Kind:     "Metal3Cluster",
+				APIGroup: infrav1.GroupVersion.Group,
 			},
 		}
 	}
 	if status == nil {
 		status = &clusterv1.ClusterStatus{
-			InfrastructureReady: true,
+			Deprecated: &clusterv1.ClusterDeprecatedStatus{
+				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.InfrastructureReadyV1Beta1Condition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
 		}
 	}
 	return &clusterv1.Cluster{
@@ -291,16 +303,14 @@ func newMachine(clusterName, machineName string, metal3machineName string, nodeR
 	}
 	if metal3machineName != "" {
 		machine.Spec.ClusterName = clusterName
-		machine.Spec.InfrastructureRef = corev1.ObjectReference{
-			Name:       metal3machineName,
-			Namespace:  namespaceName,
-			Kind:       "Metal3Machine",
-			APIVersion: infrav1.GroupVersion.String(),
+		machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
+			Name:     metal3machineName,
+			Kind:     "Metal3Machine",
+			APIGroup: infrav1.GroupVersion.Group,
 		}
 	}
 	if nodeRefName != "" {
-		machine.Status.NodeRef = &corev1.ObjectReference{
-			Kind: "Node",
+		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
 			Name: nodeRefName,
 		}
 	}

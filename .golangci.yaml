@@ -100,15 +100,21 @@ linters-settings:
     - pkg: sigs.k8s.io/controller-runtime
       alias: ctrl
     # KCP
-    - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+    - pkg: sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2
       alias: controlplanev1
     # CAPI
-    - pkg: sigs.k8s.io/cluster-api/api/v1alpha3
-      alias: clusterv1alpha3
-    - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
-      alias: clusterv1alpha4
-    - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+    - pkg: sigs.k8s.io/cluster-api/api/core/v1beta2
       alias: clusterv1
+    - pkg: sigs.k8s.io/cluster-api/api/core/v1beta1
+      alias: clusterv1beta1
+    - pkg: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+      alias: v1beta1conditions
+    - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2
+      alias: deprecatedv1beta2conditions
+    - pkg: sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1
+      alias: deprecatedv1beta1conditions
+    - pkg: sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch
+      alias: v1beta1patch
     # CAPM3
     - pkg: github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1
       alias: infrav1
@@ -139,7 +145,7 @@ linters-settings:
     case:
       rules:
         json: goCamel
-      
+
 issues:
   exclude-dirs:
   - mock*
@@ -176,6 +182,15 @@ issues:
     text: should not use dot imports
   - path: (test|e2e)/.*.go
     text: should not use dot imports
+  - linters:
+    - staticcheck
+    text: 'SA1019: "sigs.k8s.io/cluster-api/api/core/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+  - linters:
+    - staticcheck
+    text: 'SA1019: "sigs.k8s.io/cluster-api/api/ipam/v1beta1" is deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.'
+  - linters:
+    - staticcheck
+    text: 'SA1019: "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/.*" is deprecated'
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"

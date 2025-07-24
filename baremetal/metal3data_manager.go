@@ -35,8 +35,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -51,6 +51,7 @@ const (
 	PoolLabelName     = "infrastructure.cluster.x-k8s.io/pool-name"
 	networkDataSuffix = "-networkdata"
 	metaDataSuffix    = "-metadata"
+	IPPoolKind        = "IPPool"
 )
 
 var (
@@ -322,7 +323,7 @@ type addressFromPool struct {
 }
 
 type reconciledClaim struct {
-	claim      *caipamv1.IPAddressClaim
+	claim      *capipamv1.IPAddressClaim
 	m3Claim    *ipamv1.IPClaim
 	fetchAgain bool
 }
@@ -396,7 +397,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 }
 
 func isMetal3IPPoolRef(ref corev1.TypedLocalObjectReference) bool {
-	return (ref.APIGroup != nil && *ref.APIGroup == "ipam.metal3.io" && ref.Kind == "IPPool") ||
+	return (ref.APIGroup != nil && *ref.APIGroup == "ipam.metal3.io" && ref.Kind == IPPoolKind) ||
 		((ref.APIGroup == nil || *ref.APIGroup == "") && ref.Kind == "")
 }
 
@@ -433,7 +434,7 @@ func (p poolRefs) addRef(ref corev1.TypedLocalObjectReference) error {
 		ref.APIGroup = ptr.To("ipam.metal3.io")
 	}
 	if ref.Kind == "" {
-		ref.Kind = "IPPool"
+		ref.Kind = IPPoolKind
 	}
 
 	old, exists := p[ref.Name]
@@ -817,7 +818,7 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 
 // ensureIPClaim creates a CAPI IPAddressClaim for a pool if it does not exist yet.
 func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
-	claim := &caipamv1.IPAddressClaim{}
+	claim := &capipamv1.IPAddressClaim{}
 	nn := types.NamespacedName{
 		Namespace: m.Data.Namespace,
 		Name:      m.Data.Name + "-" + poolRef.Name,
@@ -832,7 +833,7 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 	}
 
 	// No claim exists, we create a new one
-	claim = &caipamv1.IPAddressClaim{
+	claim = &capipamv1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      m.Data.Name + "-" + poolRef.Name,
 			Namespace: m.Data.Namespace,
@@ -850,8 +851,8 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 				infrav1.DataFinalizer,
 			},
 		},
-		Spec: caipamv1.IPAddressClaimSpec{
-			PoolRef: poolRef,
+		Spec: capipamv1.IPAddressClaimSpec{
+			PoolRef: ConvertTypedLocalObjectReferenceToIPPoolReference(poolRef),
 		},
 	}
 
@@ -864,7 +865,7 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 }
 
 // addressFromClaim retrieves the IPAddress for a CAPI IPAddressClaim.
-func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalObjectReference, claim *caipamv1.IPAddressClaim) (addressFromPool, bool, error) {
+func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalObjectReference, claim *capipamv1.IPAddressClaim) (addressFromPool, bool, error) {
 	if claim == nil {
 		return addressFromPool{}, true, errors.New("no claim provided")
 	}
@@ -878,7 +879,7 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalO
 		return addressFromPool{}, true, nil
 	}
 
-	address := &caipamv1.IPAddress{}
+	address := &capipamv1.IPAddress{}
 	addressNamespacedName := types.NamespacedName{
 		Name:      claim.Status.AddressRef.Name,
 		Namespace: m.Data.Namespace,
@@ -893,7 +894,7 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalO
 
 	a := addressFromPool{
 		Address:    ipamv1.IPAddressStr(address.Spec.Address),
-		Prefix:     address.Spec.Prefix,
+		Prefix:     int(address.Spec.Prefix),
 		Gateway:    ipamv1.IPAddressStr(address.Spec.Gateway),
 		dnsServers: []ipamv1.IPAddressStr{},
 	}
@@ -902,7 +903,7 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalO
 
 // releaseAddressFromPool deletes the CAPI IP claim for a pool.
 func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolRef corev1.TypedLocalObjectReference) error {
-	claim := &caipamv1.IPAddressClaim{}
+	claim := &capipamv1.IPAddressClaim{}
 	nn := types.NamespacedName{
 		Namespace: m.Data.Namespace,
 		Name:      m.Data.Name + "-" + poolRef.Name,

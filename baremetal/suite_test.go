@@ -37,8 +37,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	caipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
+	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -134,6 +136,9 @@ var bmcOwnerRef = &metav1.OwnerReference{
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
+	if err := clusterv1beta1.AddToScheme(s); err != nil {
+		panic(err)
+	}
 	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
@@ -143,7 +148,10 @@ func setupScheme() *runtime.Scheme {
 	if err := ipamv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
-	if err := caipamv1.AddToScheme(s); err != nil {
+	if err := capipamv1.AddToScheme(s); err != nil {
+		panic(err)
+	}
+	if err := capipamv1beta1.AddToScheme(s); err != nil {
 		panic(err)
 	}
 	if err := corev1.AddToScheme(s); err != nil {
@@ -173,15 +181,23 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 			Namespace: namespaceName,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &corev1.ObjectReference{
-				Name:       metal3ClusterName,
-				Namespace:  namespaceName,
-				Kind:       "InfrastructureConfig",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+				Name:     metal3ClusterName,
+				Kind:     "InfrastructureConfig",
+				APIGroup: "infrastructure.cluster.x-k8s.io/v1beta1",
 			},
 		},
 		Status: clusterv1.ClusterStatus{
-			InfrastructureReady: true,
+			Deprecated: &clusterv1.ClusterDeprecatedStatus{
+				V1Beta1: &clusterv1.ClusterV1Beta1DeprecatedStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.InfrastructureReadyV1Beta1Condition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
 		},
 	}
 }

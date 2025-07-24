@@ -28,7 +28,7 @@ import (
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -937,7 +937,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 				},
 			},
 			Status: clusterv1.MachineStatus{
-				NodeRef: &corev1.ObjectReference{
+				NodeRef: &clusterv1.MachineNodeReference{
 					Name: "mynode",
 				},
 			},
