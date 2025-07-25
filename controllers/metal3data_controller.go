@@ -76,6 +76,15 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	// Always patch Metal3Data exiting this function so we can persist any changes.
 	defer func() {
+		// Check if the object still exists before attempting to patch
+		var currentObj infrav1.Metal3Data
+		if err := r.Client.Get(ctx, req.NamespacedName, &currentObj); err != nil {
+			if apierrors.IsNotFound(err) {
+				metadataLog.Info("Metal3Data no longer exists, skipping patch")
+				return
+			}
+			metadataLog.Info("Failed to check if Metal3Data exists, attempting patch")
+		}
 		err := helper.Patch(ctx, metal3Data)
 		if err != nil {
 			metadataLog.Info("failed to Patch Metal3Data")
@@ -123,6 +132,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			return ctrl.Result{}, err
 		}
 		// Requeue until Metal3DataClaim is gone.
+		metadataLog.Info("Metal3Data is being deleted, but the Metal3DataClaim still exists, requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
