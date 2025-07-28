@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -117,12 +118,12 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 	helper, err := v1beta1patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3MachineTemplateName
+	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = toK8sVersion
-	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	Logf("Disable tainting of CP nodes during the remainder of the node reuse test [node_reuse]")
-	kcpObj.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.Taints = emptyTaint
-	kcpObj.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.Taints = emptyTaint
+	kcpObj.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.Taints = ptr.To(emptyTaint)
+	kcpObj.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.Taints = ptr.To(emptyTaint)
 	patchRequestError := helper.Patch(ctx, kcpObj)
 	if patchRequestError != nil {
 		Logf("Error while patching KCP: %s [node_reuse]", patchRequestError.Error())
@@ -178,7 +179,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Byf("Wait until two machines become running and updated with the new %s k8s version [node_reuse]", toK8sVersion)
 	runningAndUpgraded := func(machine clusterv1.Machine) bool {
 		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
-		upgraded := *machine.Spec.Version == toK8sVersion
+		upgraded := machine.Spec.Version == toK8sVersion
 		return (running && upgraded)
 	}
 	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
@@ -231,7 +232,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 	helper, err = v1beta1patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 1
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 1
 	for range 3 {
 		err = helper.Patch(ctx, kcpObj)
 		if err == nil {
@@ -336,10 +337,10 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	// must allow maxUnavailable 1 here or it will get stuck.
 	helper, err = v1beta1patch.NewHelper(machineDeploy, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	machineDeploy.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
-	machineDeploy.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
+	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
+	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
 	machineDeploy.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
-	machineDeploy.Spec.Template.Spec.Version = &toK8sVersion
+	machineDeploy.Spec.Template.Spec.Version = toK8sVersion
 	Expect(helper.Patch(ctx, machineDeploy)).To(Succeed())
 
 	Byf("Wait until %d BMH(s) in deprovisioning state [node_reuse]", 1)

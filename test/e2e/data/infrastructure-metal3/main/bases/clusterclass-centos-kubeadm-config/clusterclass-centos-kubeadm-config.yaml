@@ -8,7 +8,6 @@ spec:
   template:
     spec:
       kubeadmConfigSpec:
-        clusterConfiguration: {}
         users:
         - name: ${IMAGE_USERNAME}
           sshAuthorizedKeys:

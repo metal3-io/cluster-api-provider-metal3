@@ -417,10 +417,10 @@ func ListMachines(ctx context.Context, c client.Client, opts ...client.ListOptio
 	rows[0] = []string{"Name:", "Status:", "Provider ID:", "Version:"}
 	for i, machine := range machines.Items {
 		providerID := ""
-		if machine.Spec.ProviderID != nil {
-			providerID = *machine.Spec.ProviderID
+		if machine.Spec.ProviderID != "" {
+			providerID = machine.Spec.ProviderID
 		}
-		rows[i+1] = []string{machine.GetName(), fmt.Sprint(machine.Status.GetTypedPhase()), providerID, *machine.Spec.Version}
+		rows[i+1] = []string{machine.GetName(), fmt.Sprint(machine.Status.GetTypedPhase()), providerID, machine.Spec.Version}
 	}
 	logTable("Listing Machines", rows)
 }

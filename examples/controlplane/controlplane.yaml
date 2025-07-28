@@ -4,16 +4,19 @@ metadata:
   name: ${CLUSTER_NAME}-controlplane
 spec:
   machineTemplate:
-    nodeDrainTimeoutSeconds: ${NODE_DRAIN_TIMEOUT:-0}
-    infrastructureRef:
-      kind: Metal3MachineTemplate
-      apiGroup: infrastructure.cluster.x-k8s.io
-      name: ${CLUSTER_NAME}-controlplane
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: Metal3MachineTemplate
+        name: ${CLUSTER_NAME}-controlplane
+      deletion:
+        nodeDrainTimeoutSeconds: ${NODE_DRAIN_TIMEOUT:-0}
   replicas: 3
-  rolloutStrategy:
-    rollingUpdate:
-      maxSurge: 1
-    type: RollingUpdate
+  rollout:
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+      type: RollingUpdate
   version: ${KUBERNETES_VERSION}
   kubeadmConfigSpec:
     initConfiguration:

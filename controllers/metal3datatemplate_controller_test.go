@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -168,7 +169,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			cluster: &clusterv1.Cluster{
 				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
 				Spec: clusterv1.ClusterSpec{
-					Paused: true,
+					Paused: ptr.To(true),
 				},
 			},
 			expectRequeue: true,

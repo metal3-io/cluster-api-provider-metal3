@@ -130,9 +130,9 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	})
 	helper, err := v1beta1patch.NewHelper(kcpObj, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = newM3MachineTemplateName
+	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = upgradedK8sVersion
-	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
 
 	Byf("Wait until %d BMH(s) in deprovisioning state", 1)
@@ -146,7 +146,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	Byf("Wait until three Control Plane machines become running and updated with the new %s k8s version", upgradedK8sVersion)
 	runningAndUpgraded := func(machine clusterv1.Machine) bool {
 		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
-		upgraded := *machine.Spec.Version == upgradedK8sVersion
+		upgraded := machine.Spec.Version == upgradedK8sVersion
 		return (running && upgraded)
 	}
 	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
@@ -168,7 +168,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	})
 	helper, err = v1beta1patch.NewHelper(kcpObj, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 1
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 1
 	for range 3 {
 		err = helper.Patch(ctx, kcpObj)
 		if err == nil {
@@ -194,10 +194,10 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
 	helper, err = v1beta1patch.NewHelper(machineDeploy, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	machineDeploy.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
-	machineDeploy.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
+	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
+	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
 	machineDeploy.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
-	machineDeploy.Spec.Template.Spec.Version = &upgradedK8sVersion
+	machineDeploy.Spec.Template.Spec.Version = upgradedK8sVersion
 	Expect(helper.Patch(ctx, machineDeploy)).To(Succeed())
 
 	Byf("Wait until %d BMH(s) in deprovisioning state", 1)
