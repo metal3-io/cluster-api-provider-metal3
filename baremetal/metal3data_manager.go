@@ -346,7 +346,6 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 
 	for pool, ref := range poolRefs {
 		var rc reconciledClaim
-		var err error
 		if isMetal3IPPoolRef(ref) {
 			rc, err = m.ensureM3IPClaim(ctx, ref)
 		} else {
@@ -365,7 +364,6 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 			continue
 		}
 		if rc.fetchAgain {
-			var err error
 			if rc.m3Claim != nil {
 				rc.m3Claim, err = fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+ref.Name, m.Data.Namespace)
 			} else {
@@ -1489,7 +1487,7 @@ func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err := errors.Wrap(err, "Failed to get address claim")
+		err = errors.Wrap(err, "Failed to get address claim")
 		return nil, err
 	}
 	return metal3IPClaim, nil

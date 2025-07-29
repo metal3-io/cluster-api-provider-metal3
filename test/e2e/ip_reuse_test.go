@@ -13,7 +13,7 @@ import (
 var _ = Describe("When testing ip reuse [ip-reuse] [features]", Label("ip-reuse", "features"), func() {
 
 	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
+		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 

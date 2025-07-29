@@ -88,7 +88,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	// Always patch the Metal3DataTemplate exiting this function so we can persist any changes.
 	defer func() {
-		err := helper.Patch(ctx, metal3DataTemplate)
+		err = helper.Patch(ctx, metal3DataTemplate)
 		if err != nil {
 			log.Info("failed to Patch Metal3DataTemplate")
 			rerr = err

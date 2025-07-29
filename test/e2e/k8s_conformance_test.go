@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("When testing K8S conformance [k8s-conformance]", Label("k8s-conformance"), func() {
 	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
+		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.

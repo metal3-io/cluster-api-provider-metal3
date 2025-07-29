@@ -107,7 +107,7 @@ func getSha256Hash(filename string) ([]byte, error) {
 		return nil, err
 	}
 	defer func() {
-		err := file.Close()
+		err = file.Close()
 		Expect(err).ToNot(HaveOccurred(), "Error closing file: "+filename)
 	}()
 	hash := sha256.New()
@@ -219,7 +219,8 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		cmd := exec.Command("qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
 		err = cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
-		sha256sum, err := getSha256Hash(rawImagePath)
+		var sha256sum []byte
+		sha256sum, err = getSha256Hash(rawImagePath)
 		Expect(err).ToNot(HaveOccurred())
 		formattedSha256sum := hex.EncodeToString(sha256sum)
 		err = os.WriteFile(fmt.Sprintf("%s/%s.sha256sum", ironicImageDir, rawImageName), []byte(formattedSha256sum), 0544) //#nosec G306:gosec
@@ -1061,7 +1062,7 @@ func CreateOrUpdateWithNamespace(ctx context.Context, p framework.ClusterProxy, 
 		if err := p.GetClient().Get(ctx, objectKey, existingObject); err != nil {
 			// Expected error -- if the object does not exist, create it
 			if apierrors.IsNotFound(err) {
-				if err := p.GetClient().Create(ctx, &o); err != nil {
+				if err = p.GetClient().Create(ctx, &o); err != nil {
 					retErrs = append(retErrs, err)
 				}
 			} else {

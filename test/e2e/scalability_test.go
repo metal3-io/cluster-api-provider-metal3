@@ -50,7 +50,7 @@ var (
 
 var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]", Label("scalability"), func() {
 	BeforeEach(func() {
-		osType := strings.ToLower(os.Getenv("OS"))
+		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
 		validateGlobals(specName)
 		specName = "scale"

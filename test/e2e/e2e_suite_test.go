@@ -143,7 +143,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	artifactFolder = parts[0]
 	configPath = parts[1]
 	clusterctlConfigPath = parts[2]
-	kubeconfigPath := parts[3]
+	kubeconfigPath = parts[3]
 
 	e2eConfig = loadE2EConfig(configPath)
 	withMetal3LogCollectorOpt := framework.WithMachineLogCollector(Metal3LogCollector{})
@@ -281,14 +281,17 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 	calicoNodes, err := yamlContainKeyValue(yamlDocuments, "calico-node", "metadata", "labels", "k8s-app")
 	Expect(err).ToNot(HaveOccurred())
 	for _, calicoNode := range calicoNodes {
-		calicoNodeSpecTemplateSpec, err := yamlFindByValue(calicoNode, "spec", "template", "spec", "containers")
+		var calicoNodeSpecTemplateSpec, calicoNodeContainerEnvs *yaml.Node
+		var calicoNodeContainers []*yaml.Node
+
+		calicoNodeSpecTemplateSpec, err = yamlFindByValue(calicoNode, "spec", "template", "spec", "containers")
 		Expect(err).ToNot(HaveOccurred())
-		calicoNodeContainers, err := yamlContainKeyValue(calicoNodeSpecTemplateSpec.Content, "calico-node", "name")
+		calicoNodeContainers, err = yamlContainKeyValue(calicoNodeSpecTemplateSpec.Content, "calico-node", "name")
 		Expect(err).ToNot(HaveOccurred())
 		// Since we find the container by name, we expect to get only one container.
 		Expect(calicoNodeContainers).To(HaveLen(1), "Found 0 or more than 1 container with name `calico-node`")
 		calicoNodeContainer := calicoNodeContainers[0]
-		calicoNodeContainerEnvs, err := yamlFindByValue(calicoNodeContainer, "env")
+		calicoNodeContainerEnvs, err = yamlFindByValue(calicoNodeContainer, "env")
 		Expect(err).ToNot(HaveOccurred())
 		addItem := &yaml.Node{}
 		err = copier.CopyWithOption(addItem, calicoNodeContainerEnvs.Content[0], copier.Option{IgnoreEmpty: true, DeepCopy: true})

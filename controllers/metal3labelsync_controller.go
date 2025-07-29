@@ -102,7 +102,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
 	defer func() {
-		err := helper.Patch(ctx, host)
+		err = helper.Patch(ctx, host)
 		if err != nil {
 			controllerLog.Info("Failed to Patch BareMetalHost")
 			rerr = err
@@ -124,7 +124,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Name:      host.Spec.ConsumerRef.Name,
 		Namespace: host.Spec.ConsumerRef.Namespace,
 	}
-	if err := r.Client.Get(ctx, capm3MachineKey, capm3Machine); err != nil {
+	if err = r.Client.Get(ctx, capm3MachineKey, capm3Machine); err != nil {
 		if apierrors.IsNotFound(err) {
 			controllerLog.Info("Could not find associated Metal3Machine for BareMetalHost, will retry",
 				"machinekey", capm3MachineKey,
@@ -170,7 +170,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Namespace: capm3Machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	if err := r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
+	if err = r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
 		controllerLog.Info("Error fetching Metal3Cluster, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
