@@ -208,7 +208,8 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	Logf("Verifying that the unhealthy BMH doesn't go to provisioning")
 	Consistently(func(g Gomega) {
-		bmhs, err := GetAllBmhs(ctx, bootstrapClient, input.Namespace)
+		var bmhs []bmov1alpha1.BareMetalHost
+		bmhs, err = GetAllBmhs(ctx, bootstrapClient, input.Namespace)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(FilterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioned)).To(HaveLen(3))
 		g.Expect(FilterBmhsByProvisioningState(bmhs, bmov1alpha1.StateProvisioning)).To(BeEmpty())

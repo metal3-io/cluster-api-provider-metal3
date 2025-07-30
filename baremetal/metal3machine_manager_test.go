@@ -1602,7 +1602,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				}
 				host := bmov1alpha1.BareMetalHost{}
 
-				err := fakeClient.Get(context.TODO(), key, &host)
+				err = fakeClient.Get(context.TODO(), key, &host)
 				Expect(err).NotTo(HaveOccurred())
 
 				name := ""

@@ -78,14 +78,14 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	defer func() {
 		// Check if the object still exists before attempting to patch
 		var currentObj infrav1.Metal3Data
-		if err := r.Client.Get(ctx, req.NamespacedName, &currentObj); err != nil {
+		if err = r.Client.Get(ctx, req.NamespacedName, &currentObj); err != nil {
 			if apierrors.IsNotFound(err) {
 				metadataLog.Info("Metal3Data no longer exists, skipping patch")
 				return
 			}
 			metadataLog.Info("Failed to check if Metal3Data exists, attempting patch")
 		}
-		err := helper.Patch(ctx, metal3Data)
+		err = helper.Patch(ctx, metal3Data)
 		if err != nil {
 			metadataLog.Info("failed to Patch Metal3Data")
 			rerr = err

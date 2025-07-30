@@ -198,7 +198,7 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 	}
 	// Always patch dataClaim exiting this function so we can persist any changes.
 	defer func() {
-		err := helper.Patch(ctx, dataClaim)
+		err = helper.Patch(ctx, dataClaim)
 		if err != nil {
 			m.Log.Info("failed to Patch capm3DataClaim")
 		}

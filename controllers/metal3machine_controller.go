@@ -97,7 +97,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
 	defer func() {
-		if err := patchMetal3Machine(ctx, patchHelper, capm3Machine); err != nil {
+		if err = patchMetal3Machine(ctx, patchHelper, capm3Machine); err != nil {
 			machineLog.Error(err, "failed to Patch metal3Machine")
 			rerr = err
 		}
@@ -141,7 +141,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		Namespace: capm3Machine.Namespace,
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
-	if err := r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
+	if err = r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create the Metal3Cluster")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingforMetal3ClusterReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
@@ -296,14 +296,14 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	if !machineMgr.Metal3MachineHasProviderID() {
-		err := machineMgr.SetDefaultProviderID()
+		err = machineMgr.SetDefaultProviderID()
 		if err != nil {
 			return checkMachineError(machineMgr, err,
 				"Failed to set default ProviderID the Metal3Machine", errType)
 		}
 		machineMgr.SetReadyTrue()
 
-		errType := capierrors.UpdateMachineError
+		errType = capierrors.UpdateMachineError
 		err = machineMgr.Update(ctx)
 		if err != nil {
 			return checkMachineError(machineMgr, err,
@@ -313,7 +313,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 
 	err = machineMgr.SetNodeProviderIDByHostname(ctx, r.CapiClientGetter)
 	if err != nil {
-		errType := capierrors.UpdateMachineError
+		errType = capierrors.UpdateMachineError
 		return checkMachineError(machineMgr, err, "unable to find Node by hostname, it may not be ready yet", errType)
 	}
 

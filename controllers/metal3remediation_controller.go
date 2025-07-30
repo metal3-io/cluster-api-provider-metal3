@@ -196,7 +196,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 				return ctrl.Result{}, errors.Wrap(err, "error getting poweroff annotation status")
 			} else if ok {
 				r.Log.Info("Powering on the host")
-				err := remediationMgr.RemovePowerOffAnnotation(ctx)
+				err = remediationMgr.RemovePowerOffAnnotation(ctx)
 				if err != nil {
 					r.Log.Error(err, "error removing poweroff annotation")
 					return ctrl.Result{}, errors.Wrap(err, "error removing poweroff annotation")
@@ -204,7 +204,8 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			}
 
 			// Wait until powered on
-			if on, err := remediationMgr.IsPoweredOn(ctx); err != nil {
+			var on bool
+			if on, err = remediationMgr.IsPoweredOn(ctx); err != nil {
 				r.Log.Error(err, "error getting power status")
 				return ctrl.Result{}, errors.Wrap(err, "error getting power status")
 			} else if !on {
@@ -217,14 +218,14 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 				if node != nil {
 					if r.IsOutOfServiceTaintEnabled {
 						if remediationMgr.HasOutOfServiceTaint(node) {
-							if err := remediationMgr.RemoveOutOfServiceTaint(ctx, clusterClient, node); err != nil {
+							if err = remediationMgr.RemoveOutOfServiceTaint(ctx, clusterClient, node); err != nil {
 								return ctrl.Result{}, errors.Wrapf(err, "error removing out-of-service taint from node %s", node.Name)
 							}
 						}
 					} else {
 						// Node was recreated, restore annotations and labels
 						r.Log.Info("Restoring the node")
-						if err := r.restoreNode(ctx, remediationMgr, clusterClient, node); err != nil {
+						if err = r.restoreNode(ctx, remediationMgr, clusterClient, node); err != nil {
 							return ctrl.Result{}, err
 						}
 					}

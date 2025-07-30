@@ -102,7 +102,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 	// Always patch metal3Cluster when exiting this function so we can persist any metal3Cluster changes.
 	defer func() {
-		if err := patchMetal3Cluster(ctx, patchHelper, metal3Cluster); err != nil {
+		if err = patchMetal3Cluster(ctx, patchHelper, metal3Cluster); err != nil {
 			clusterLog.Error(err, "failed to Patch metal3Cluster")
 			rerr = err
 		}
@@ -143,7 +143,8 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle deleted clusters
 	if !metal3Cluster.DeletionTimestamp.IsZero() {
-		res, err := reconcileDelete(ctx, clusterMgr)
+		var res ctrl.Result
+		res, err = reconcileDelete(ctx, clusterMgr)
 		// Requeue if the reconcile failed because the ClusterCache was locked for
 		// the current cluster because of concurrent access.
 		if errors.Is(err, clustercache.ErrClusterNotConnected) {

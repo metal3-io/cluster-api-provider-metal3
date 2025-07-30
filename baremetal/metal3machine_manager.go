@@ -286,7 +286,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		return errors.Wrap(err, "failed to marshall status annotation")
 	}
 	obj := map[string]interface{}{}
-	if err := json.Unmarshal(newAnnotation, &obj); err != nil {
+	if err = json.Unmarshal(newAnnotation, &obj); err != nil {
 		return errors.Wrap(err, "failed to unmarshall status annotation")
 	}
 	delete(obj, "hardware")
@@ -382,7 +382,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	if m.Metal3Machine.Spec.DataTemplate != nil {
 		// Requeue to get the DataTemplate output. We need to requeue to trigger the
 		// wait on the Metal3DataTemplate
-		if err := m.WaitForM3Metadata(ctx); err != nil {
+		if err = m.WaitForM3Metadata(ctx); err != nil {
 			return err
 		}
 
@@ -547,7 +547,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if bmhUpdated {
 			// Update the BMH object, if the errors are NotFound, do not return the
 			// errors.
-			if err := patchIfFound(ctx, helper, host); err != nil {
+			if err = patchIfFound(ctx, helper, host); err != nil {
 				return err
 			}
 
@@ -599,7 +599,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 						Name:      m.Metal3Machine.ObjectMeta.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation],
 						Namespace: m.Metal3Machine.Namespace,
 					}
-					if err := m.client.Get(ctx, m3mtKey, m3mt); err != nil {
+					if err = m.client.Get(ctx, m3mtKey, m3mt); err != nil {
 						// we are here, because while normal deprovisioning, Metal3MachineTemplate will be deleted first
 						// and we can't get it even though Metal3Machine has reference to it. We consider it nil and move
 						// forward with normal deprovisioning.
@@ -620,7 +620,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 						if m.isControlPlane() {
 							// Fetch ControlPlane name for controlplane machine
 							m.Log.Info("Fetch ControlPlane name while deprovisioning host", "host", host.Name)
-							cpName, err := m.getControlPlaneName(ctx)
+							var cpName string
+							cpName, err = m.getControlPlaneName(ctx)
 							if err != nil {
 								return err
 							}
@@ -630,7 +631,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 						} else {
 							// Fetch MachineDeployment name for worker machine
 							m.Log.Info("Fetch MachineDeployment name while deprovisioning host", "host", host.Name)
-							mdName, err := m.getMachineDeploymentName(ctx)
+							var mdName string
+							mdName, err = m.getMachineDeploymentName(ctx)
 							if err != nil {
 								return err
 							}
@@ -698,7 +700,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 
-	if err := m.WaitForM3Metadata(ctx); err != nil {
+	if err = m.WaitForM3Metadata(ctx); err != nil {
 		return err
 	}
 
@@ -812,12 +814,13 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 	// I think it's because we have a local cache of all BareMetalHosts.
 	labelSelector := labels.NewSelector()
 	var reqs labels.Requirements
+	var r *labels.Requirement
 
 	for labelKey, labelVal := range m.Metal3Machine.Spec.HostSelector.MatchLabels {
 		m.Log.Info("Adding requirement to match label",
 			"label key", labelKey,
 			"label value", labelVal)
-		r, err := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
+		r, err = labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
 		if err != nil {
 			m.Log.Error(err, "Failed to create MatchLabel requirement, not choosing host")
 			return nil, nil, err
@@ -830,7 +833,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			"label operator", req.Operator,
 			"label value", req.Values)
 		lowercaseOperator := selection.Operator(strings.ToLower(string(req.Operator)))
-		r, err := labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
+		r, err = labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
 		if err != nil {
 			m.Log.Error(err, "Failed to create MatchExpression requirement, not choosing host")
 			return nil, nil, err
@@ -844,8 +847,9 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 
 	for i, host := range hosts.Items {
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
+			var helper *v1beta1patch.Helper
 			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
-			helper, err := v1beta1patch.NewHelper(&hosts.Items[i], m.client)
+			helper, err = v1beta1patch.NewHelper(&hosts.Items[i], m.client)
 			return &hosts.Items[i], helper, err
 		}
 		if host.Spec.ConsumerRef != nil ||
@@ -1467,7 +1471,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 			// By default we use the new format, if not set on the node.
 			m.SetProviderID(providerIDNew)
 			m.SetReadyTrue()
-			err := m.setNodeProviderID(ctx, corev1Remote, node, providerIDNew)
+			err = m.setNodeProviderID(ctx, corev1Remote, node, providerIDNew)
 
 			if err != nil {
 				return false, err

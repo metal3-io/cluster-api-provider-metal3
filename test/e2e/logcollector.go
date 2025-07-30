@@ -37,23 +37,24 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 	}
 
 	qemuFolder := path.Join(outputPath, VMName)
-	if err := os.MkdirAll(qemuFolder, 0o750); err != nil {
+	if err = os.MkdirAll(qemuFolder, 0o750); err != nil {
 		fmt.Fprintf(GinkgoWriter, "couldn't create directory %q : %s\n", qemuFolder, err)
 	}
 
 	serialLog := fmt.Sprintf("/var/log/libvirt/qemu/%s-serial0.log", VMName)
-	if _, err := os.Stat(serialLog); os.IsNotExist(err) {
+	if _, err = os.Stat(serialLog); os.IsNotExist(err) {
 		return fmt.Errorf("error finding the serial log: %w", err)
 	}
 
 	copyCmd := fmt.Sprintf("sudo cp %s %s", serialLog, qemuFolder)
 	cmd := exec.Command("/bin/sh", "-c", copyCmd) // #nosec G204:gosec
-	if output, err := cmd.Output(); err != nil {
+	var output []byte
+	if output, err = cmd.Output(); err != nil {
 		return fmt.Errorf("something went wrong when executing '%s': %w, output: %s", cmd.String(), err, output)
 	}
 	setPermsCmd := "sudo chmod -v 777 " + path.Join(qemuFolder, filepath.Base(serialLog))
 	cmd = exec.Command("/bin/sh", "-c", setPermsCmd) // #nosec G204:gosec
-	output, err := cmd.Output()
+	output, err = cmd.Output()
 	if err != nil {
 		return fmt.Errorf("error changing file permissions after copying: %w, output: %s", err, output)
 	}
@@ -269,7 +270,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 
 			machineName := pod.Spec.NodeName
 			podDir := filepath.Join(baseDir, "machines", machineName, namespace.Name, pod.Name)
-			if err := os.MkdirAll(podDir, 0o750); err != nil {
+			if err = os.MkdirAll(podDir, 0o750); err != nil {
 				return fmt.Errorf("couldn't create directory: %w", err)
 			}
 			err = writeToFile([]byte(podDescription), "stdout_describe.log", podDir)
