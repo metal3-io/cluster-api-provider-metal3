@@ -23,18 +23,14 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.30.14
 	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
-	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api v1.11.0-beta.2
+	sigs.k8s.io/cluster-api/test v1.11.0-beta.2
 	sigs.k8s.io/controller-runtime v0.21.0
 	sigs.k8s.io/kustomize/api v0.20.0
 	sigs.k8s.io/kustomize/kyaml v0.20.0
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3/api => ./../api
-
-replace sigs.k8s.io/cluster-api => sigs.k8s.io/cluster-api v1.11.0-alpha.2
-
-replace sigs.k8s.io/cluster-api/test => sigs.k8s.io/cluster-api/test v1.11.0-alpha.2
 
 require (
 	al.essio.dev/pkg/shellescape v1.5.1 // indirect
@@ -113,21 +109,21 @@ require (
 	github.com/spf13/afero v1.12.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.7 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.58.0 // indirect
-	go.opentelemetry.io/otel v1.33.0 // indirect
-	go.opentelemetry.io/otel/metric v1.33.0 // indirect
-	go.opentelemetry.io/otel/trace v1.33.0 // indirect
+	go.opentelemetry.io/otel v1.34.0 // indirect
+	go.opentelemetry.io/otel/metric v1.34.0 // indirect
+	go.opentelemetry.io/otel/trace v1.34.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.3 // indirect
-	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/net v0.42.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
@@ -143,12 +139,12 @@ require (
 	gotest.tools/v3 v3.5.0 // indirect
 	k8s.io/apiserver v0.33.3 // indirect
 	k8s.io/cli-runtime v0.30.14 // indirect
-	k8s.io/cluster-bootstrap v0.33.2 // indirect
+	k8s.io/cluster-bootstrap v0.33.3 // indirect
 	k8s.io/component-base v0.33.3 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/kind v0.29.0 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
-	sigs.k8s.io/yaml v1.5.0 // indirect
+	sigs.k8s.io/yaml v1.6.0 // indirect
 )

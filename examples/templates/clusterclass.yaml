@@ -19,7 +19,6 @@ spec:
   template:
     spec:
       kubeadmConfigSpec:
-        clusterConfiguration: {}
         initConfiguration:
           nodeRegistration:
             name: '{{ ds.meta_data.local_hostname }}'
@@ -210,15 +209,18 @@ spec:
         name: example-md-0
     # This will create a MachineHealthCheck for ControlPlane machines.
     machineHealthCheck:
-      nodeStartupTimeoutSeconds: 180
-      maxUnhealthy: 33%
-      unhealthyNodeConditions:
-        - type: Ready
-          status: Unknown
-          timeoutSeconds: 300
-        - type: Ready
-          status: "False"
-          timeoutSeconds: 300
+      remediation:
+        triggerIf:
+          unhealthyLessThanOrEqualTo: 33%
+      checks:
+        nodeStartupTimeoutSeconds: 180
+        unhealthyNodeConditions:
+          - type: Ready
+            status: Unknown
+            timeoutSeconds: 300
+          - type: Ready
+            status: "False"
+            timeoutSeconds: 300
   workers:
     machineDeployments:
     - class: example-worker
@@ -238,14 +240,15 @@ spec:
             kind: Metal3MachineTemplate
             name: example-md-0
       # This will create a health check for each deployment created with the "test-worker" MachineDeploymentClass
-      machineHealthCheck:
-        unhealthyNodeConditions:
-          - type: Ready
-            status: Unknown
-            timeoutSeconds: 300
-          - type: Ready
-            status: "False"
-            timeoutSeconds: 300
+      healthCheck:
+        checks:
+          unhealthyNodeConditions:
+            - type: Ready
+              status: Unknown
+              timeoutSeconds: 300
+            - type: Ready
+              status: "False"
+              timeoutSeconds: 300
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

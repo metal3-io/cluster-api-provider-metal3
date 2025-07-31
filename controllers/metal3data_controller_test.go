@@ -30,6 +30,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -207,7 +208,7 @@ var _ = Describe("Metal3Data manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: clusterv1.ClusterSpec{
-						Paused: true,
+						Paused: ptr.To(true),
 					},
 				},
 				expectRequeue: true,

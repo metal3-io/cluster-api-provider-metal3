@@ -70,36 +70,40 @@ spec:
   # clusterName is required to associate this MachineHealthCheck
   # with a particular cluster
   clusterName: test1
-  # (Optional) maxUnhealthy prevents further remediation if the cluster is
-  # already partially unhealthy
-  maxUnhealthy: 100%
-  # (Optional) nodeStartupTimeoutSeconds determines how long a MachineHealthCheck
-  # should wait for
-  # a Node to join the cluster, before considering a Machine unhealthy.
-  # Defaults to 10 minutes if not specified.
-  # Set to 0 to disable the node startup timeout.
-  # Disabling this timeout will prevent a Machine from being considered
-  # unhealthy when the Node it created has not yet registered with the cluster.
-  # This can be useful when Nodes take a long time to start up or when you only
-  # want condition based checks for Machine health.
-  nodeStartupTimeoutSeconds: 0
+  remediation:
+    triggerIf:
+      # (Optional) unhealthyLessThanOrEqualTo prevents further remediation if
+      # the cluster is already partially unhealthy
+      unhealthyLessThanOrEqualTo: 100%
+    templateRef: # added infrastructure reference
+      kind: Metal3RemediationTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: worker-remediation-request
+  checks:
+    # (Optional) nodeStartupTimeoutSeconds determines how long a
+    # MachineHealthCheck should wait for
+    # a Node to join the cluster, before considering a Machine unhealthy.
+    # Defaults to 10 minutes if not specified.
+    # Set to 0 to disable the node startup timeout.
+    # Disabling this timeout will prevent a Machine from being considered
+    # unhealthy when the Node it created has not yet registered with the
+    # cluster. This can be useful when Nodes take a long time to start up or
+    # when you only want condition based checks for Machine health.
+    nodeStartupTimeoutSeconds: 0
+    # Conditions to check on Nodes for matched Machines, if any condition is
+    # matched for the duration of its timeout, the Machine is considered
+    # unhealthy
+    unhealthyNodeConditions:
+    - type: Ready
+      status: Unknown
+      timeoutSeconds: 300
+    - type: Ready
+      status: "False"
+      timeoutSeconds: 300
   # selector is used to determine which Machines should be health checked
   selector:
     matchLabels:
       nodepool: nodepool-0
-  # Conditions to check on Nodes for matched Machines, if any condition is
-  # matched for the duration of its timeout, the Machine is considered unhealthy
-  unhealthyNodeConditions:
-  - type: Ready
-    status: Unknown
-    timeoutSeconds: 300
-  - type: Ready
-    status: "False"
-    timeoutSeconds: 300
-  remediationTemplate: # added infrastructure reference
-    kind: Metal3RemediationTemplate
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-    name: worker-remediation-request
 ```
 
 ```yaml
@@ -128,22 +132,25 @@ metadata:
   namespace: metal3
 spec:
   clusterName: test1
-  maxUnhealthy: 100%
-  nodeStartupTimeoutSeconds: 0
+  remediation:
+    triggerIf:
+      unhealthyLessThanOrEqualTo: 100%
+    templateRef: # added infrastructure reference
+      kind: Metal3RemediationTemplate
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      name: controlplane-remediation-request
+  checks:
+    nodeStartupTimeoutSeconds: 0
+    unhealthyNodeConditions:
+    - type: Ready
+      status: Unknown
+      timeoutSeconds: 300
+    - type: Ready
+      status: "False"
+      timeoutSeconds: 300
   selector:
     matchLabels:
       cluster.x-k8s.io/control-plane: ""
-  unhealthyNodeConditions:
-  - type: Ready
-    status: Unknown
-    timeoutSeconds: 300
-  - type: Ready
-    status: "False"
-    timeoutSeconds: 300
-  remediationTemplate: # added infrastructure reference
-    kind: Metal3RemediationTemplate
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-    name: controlplane-remediation-request
 ```
 
 ```yaml

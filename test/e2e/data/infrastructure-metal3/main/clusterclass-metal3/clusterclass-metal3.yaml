@@ -139,7 +139,6 @@ spec:
   template:
     spec:
       kubeadmConfigSpec:
-        clusterConfiguration: {}
         initConfiguration:
           nodeRegistration:
             kubeletExtraArgs:

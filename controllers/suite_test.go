@@ -147,7 +147,7 @@ var deletionTimestamp = metav1.Now()
 
 func clusterPauseSpec() *clusterv1.ClusterSpec {
 	return &clusterv1.ClusterSpec{
-		Paused: true,
+		Paused: ptr.To(true),
 		InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
 			Name:     metal3ClusterName,
 			Kind:     "Metal3Cluster",

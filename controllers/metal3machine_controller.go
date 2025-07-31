@@ -156,19 +156,20 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Check pause annotation on associated bmh (if any)
-	if !cluster.Spec.Paused {
-		err := machineMgr.RemovePauseAnnotation(ctx)
-		if err != nil {
-			machineLog.Info("failed to check pause annotation on associated bmh")
-			v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationRemoveFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
-			return ctrl.Result{}, nil
-		}
-	} else {
+	setPause := cluster.Spec.Paused != nil && *cluster.Spec.Paused
+	if setPause {
 		// set pause annotation on associated bmh (if any)
 		err := machineMgr.SetPauseAnnotation(ctx)
 		if err != nil {
 			machineLog.Info("failed to set pause annotation on associated bmh")
 			v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationSetFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
+			return ctrl.Result{}, nil
+		}
+	} else {
+		err := machineMgr.RemovePauseAnnotation(ctx)
+		if err != nil {
+			machineLog.Info("failed to check pause annotation on associated bmh")
+			v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationRemoveFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
 			return ctrl.Result{}, nil
 		}
 	}

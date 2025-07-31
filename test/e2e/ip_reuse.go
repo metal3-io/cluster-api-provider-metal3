@@ -52,16 +52,16 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	})
 	helper, err := v1beta1patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	kcpObj.Spec.MachineTemplate.InfrastructureRef.Name = KCPNewM3MachineTemplateName
+	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = KCPNewM3MachineTemplateName
 	kcpObj.Spec.Version = toK8sVersion
-	kcpObj.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = 0
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 
 	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
 
 	Byf("Wait until %d Control Plane machines become running and updated with the new %s k8s version", numberOfControlplane, toK8sVersion)
 	runningAndUpgraded := func(machine clusterv1.Machine) bool {
 		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
-		upgraded := *machine.Spec.Version == toK8sVersion
+		upgraded := machine.Spec.Version == toK8sVersion
 		return (running && upgraded)
 	}
 	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
@@ -125,9 +125,9 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	helper, err = v1beta1patch.NewHelper(md, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	md.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
-	md.Spec.Template.Spec.Version = &toK8sVersion
-	md.Spec.Strategy.RollingUpdate.MaxSurge.IntVal = 0
-	md.Spec.Strategy.RollingUpdate.MaxUnavailable.IntVal = numberOfWorkers
+	md.Spec.Template.Spec.Version = toK8sVersion
+	md.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
+	md.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable.IntVal = numberOfWorkers
 	Expect(helper.Patch(ctx, md)).To(Succeed())
 
 	Byf("Wait until %d BMH(s) in deprovisioning state", numberOfWorkers)

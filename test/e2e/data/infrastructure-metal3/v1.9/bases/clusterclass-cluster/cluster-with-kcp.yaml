@@ -15,7 +15,7 @@ spec:
       controlPlaneEndpoint:
         host: ${CLUSTER_APIENDPOINT_HOST}
         port: ${CLUSTER_APIENDPOINT_PORT}
-      cloudProviderEnabled: false
+      noCloudProvider: true
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
 kind: Metal3MachineTemplate

@@ -119,16 +119,19 @@ metadata:
   namespace: metal3
 spec:
   machineTemplate:
-    infrastructureRef:
-      apiGroup: infrastructure.cluster.x-k8s.io
-      kind: Metal3MachineTemplate
-      name: m3cluster-controlplane
-    nodeDrainTimeoutSeconds: 0
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: Metal3MachineTemplate
+        name: m3cluster-controlplane
+      deletion:
+        nodeDrainTimeoutSeconds: 0
   replicas: 3
-  rolloutStrategy:
-    rollingUpdate:
-      maxSurge: 1
-    type: RollingUpdate
+  rollout:
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
+      type: RollingUpdate
   version: v1.33.0
   kubeadmConfigSpec:
     joinConfiguration:
@@ -244,7 +247,8 @@ spec:
     apiGroup: infrastructure.cluster.x-k8s.io
     kind: Metal3Machine
     name: controlplane-0
-  nodeDrainTimeoutSeconds: 0
+  deletion:
+    nodeDrainTimeoutSeconds: 0
   providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
   version: v1.33.0
 ```
@@ -456,11 +460,12 @@ spec:
     matchLabels:
       cluster.x-k8s.io/cluster-name: cluster
       nodepool: nodepool-0
-  strategy:
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
-    type: RollingUpdate
+  rollout:
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
   template:
     metadata:
       labels:

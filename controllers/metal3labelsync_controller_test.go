@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -361,7 +362,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		}
 		nodeName := "testNode"
 		cluserCapiSpec := clusterv1.ClusterSpec{
-			Paused: true,
+			Paused: ptr.To(true),
 			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
 				Name:     metal3ClusterName,
 				Kind:     "Metal3Cluster",

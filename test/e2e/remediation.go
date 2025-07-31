@@ -298,7 +298,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 		APIGroup: infrav1.GroupVersion.Group,
 		Name:     newM3MachineTemplateName,
 	}
-	deployment.Spec.Strategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{IntVal: 1}
+	deployment.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{IntVal: 1}
 	Expect(helper.Patch(ctx, &deployment)).To(Succeed())
 
 	By("Waiting for the old worker to deprovision")

@@ -13,7 +13,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -109,7 +110,7 @@ func healthcheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 }
 
 // DeployControlplaneHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate for controlplane machines.
-func DeployControlplaneHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1beta1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
+func DeployControlplaneHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
 	remediationTemplateName := "controlplane-remediation-request"
 	healthCheckName := "controlplane-healthcheck"
 	matchLabels := map[string]string{
@@ -123,7 +124,7 @@ func DeployControlplaneHealthCheck(ctx context.Context, cli client.Client, names
 }
 
 // DeployWorkerHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate for worker machines.
-func DeployWorkerHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1beta1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
+func DeployWorkerHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName string) (*clusterv1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
 	remediationTemplateName := "worker-remediation-request"
 	healthCheckName := "worker-healthcheck"
 	matchLabels := map[string]string{
@@ -137,7 +138,7 @@ func DeployWorkerHealthCheck(ctx context.Context, cli client.Client, namespace, 
 }
 
 // DeployMachineHealthCheck creates a MachineHealthcheck and Metal3RemediationTemplate with given values.
-func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName, remediationTemplateName, healthCheckName string, matchLabels map[string]string) (*clusterv1beta1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
+func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace, clusterName, remediationTemplateName, healthCheckName string, matchLabels map[string]string) (*clusterv1.MachineHealthCheck, *infrav1.Metal3RemediationTemplate, error) {
 	remediationTemplate := &infrav1.Metal3RemediationTemplate{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "Metal3RemediationTemplate",
@@ -164,7 +165,7 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 		return nil, nil, fmt.Errorf("couldn't create remediation template: %w", err)
 	}
 
-	healthCheck := &clusterv1beta1.MachineHealthCheck{
+	healthCheck := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "MachineHealthCheck",
 		},
@@ -172,36 +173,38 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 			Name:      healthCheckName,
 			Namespace: namespace,
 		},
-		Spec: clusterv1beta1.MachineHealthCheckSpec{
+		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: clusterName,
 			Selector: metav1.LabelSelector{
 				MatchLabels: matchLabels,
 			},
-			UnhealthyConditions: []clusterv1beta1.UnhealthyCondition{
-				{
-					Type:   corev1.NodeReady,
-					Status: corev1.ConditionUnknown,
-					Timeout: metav1.Duration{
-						Duration: time.Second * 300,
+			Checks: clusterv1.MachineHealthCheckChecks{
+				NodeStartupTimeoutSeconds: ptr.To(int32(0)),
+				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
+					{
+						Type:           corev1.NodeReady,
+						Status:         corev1.ConditionUnknown,
+						TimeoutSeconds: 300,
 					},
-				},
-				{
-					Type:   corev1.NodeReady,
-					Status: "False",
-					Timeout: metav1.Duration{
-						Duration: time.Second * 300,
+					{
+						Type:           corev1.NodeReady,
+						Status:         "False",
+						TimeoutSeconds: 300,
 					},
 				},
 			},
-			MaxUnhealthy: &intstr.IntOrString{
-				Type:   intstr.String,
-				StrVal: "100%",
-			},
-			NodeStartupTimeout: &clusterv1beta1.ZeroDuration,
-			RemediationTemplate: &corev1.ObjectReference{
-				Kind:       "Metal3RemediationTemplate",
-				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Name:       remediationTemplateName,
+			Remediation: clusterv1.MachineHealthCheckRemediation{
+				TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{
+					Kind:       "Metal3RemediationTemplate",
+					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+					Name:       remediationTemplateName,
+				},
+				TriggerIf: clusterv1.MachineHealthCheckRemediationTriggerIf{
+					UnhealthyLessThanOrEqualTo: &intstr.IntOrString{
+						Type:   intstr.String,
+						StrVal: "100%",
+					},
+				},
 			},
 		},
 	}
@@ -213,8 +216,8 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 }
 
 // WaitForHealthCheckCurrentHealthyToMatch waits for current healthy machines watched by healthcheck to match the number given.
-func WaitForHealthCheckCurrentHealthyToMatch(ctx context.Context, cli client.Client, number int32, healthcheck *clusterv1beta1.MachineHealthCheck, timeout, frequency time.Duration) {
-	Eventually(func(g Gomega) int32 {
+func WaitForHealthCheckCurrentHealthyToMatch(ctx context.Context, cli client.Client, number int32, healthcheck *clusterv1.MachineHealthCheck, timeout, frequency time.Duration) {
+	Eventually(func(g Gomega) *int32 {
 		g.Expect(cli.Get(ctx, client.ObjectKeyFromObject(healthcheck), healthcheck)).To(Succeed())
 		return healthcheck.Status.CurrentHealthy
 	}, timeout, frequency).Should(Equal(number))
