@@ -164,6 +164,8 @@ providers:
       targetName: "cluster-template-centos-md-remediation.yaml"
     - sourcePath: "../_out/main/cluster-template-ubuntu-md-remediation.yaml"
       targetName: "cluster-template-ubuntu-md-remediation.yaml"
+    - sourcePath: "../_out/main/cluster-template-sles.yaml"
+      targetName: "cluster-template-sles.yaml"
 
 variables:
   CNI: "/tmp/calico.yaml"

@@ -24,7 +24,7 @@ function os_check() {
   export DISTRO="${ID}${VERSION_ID%.*}"
   export OS="${ID}"
   export OS_VERSION_ID=$VERSION_ID
-  export SUPPORTED_DISTROS=(centos8 centos9 rhel8 ubuntu20 ubuntu22)
+  export SUPPORTED_DISTROS=(centos8 centos9 rhel8 ubuntu20 ubuntu22 sles15)
 
   if [[ ! "${SUPPORTED_DISTROS[*]}" =~ $DISTRO ]]; then
     echo "Supported OS distros for the host are: CentOS Stream 8/9 or RHEL8/9 or Ubuntu20.04 or Ubuntu22.04"
@@ -37,8 +37,11 @@ os_check
 if [[ "${OS}" == ubuntu ]]; then
   export IMAGE_OS="ubuntu"
   export CONTAINER_RUNTIME="docker"
-else
+elif [[ "${OS}" == centos ]]; then
   export IMAGE_OS="centos"
+  export CONTAINER_RUNTIME="podman"
+elif [[ "${OS}" == sles ]]; then
+  export IMAGE_OS="sles"
   export CONTAINER_RUNTIME="podman"
 fi
 

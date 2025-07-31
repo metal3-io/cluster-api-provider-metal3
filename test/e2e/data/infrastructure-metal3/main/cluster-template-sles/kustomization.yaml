@@ -1,0 +1,3 @@
+resources:
+- ../bases/ippool
+- ../bases/sles-kubeadm-config
