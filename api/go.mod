@@ -6,10 +6,10 @@ require (
 	github.com/metal3-io/ip-address-manager/api v1.11.0-alpha.0
 	github.com/onsi/gomega v1.38.0
 	github.com/pkg/errors v0.9.1
-	k8s.io/api v0.33.2
-	k8s.io/apiextensions-apiserver v0.33.2
-	k8s.io/apimachinery v0.33.2
-	k8s.io/client-go v0.33.2
+	k8s.io/api v0.33.3
+	k8s.io/apiextensions-apiserver v0.33.3
+	k8s.io/apimachinery v0.33.3
+	k8s.io/client-go v0.33.3
 	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.21.0
 )
