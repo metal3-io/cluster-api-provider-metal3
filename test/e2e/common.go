@@ -63,6 +63,7 @@ const (
 	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
 	osTypeCentos           = "centos"
 	osTypeUbuntu           = "ubuntu"
+	osTypeLeap             = "opensuse-leap"
 	ironicSuffix           = "-ironic"
 	// Out-of-service Taint test actions.
 	oostAdded   = "added"
@@ -197,10 +198,15 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 
 func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	osType := strings.ToLower(os.Getenv("OS"))
-	Expect(osType).To(BeElementOf([]string{osTypeUbuntu, osTypeCentos}))
-	imageNamePrefix := "CENTOS_9_NODE_IMAGE_K8S"
-	if osType != osTypeCentos {
+	Expect(osType).To(BeElementOf([]string{osTypeUbuntu, osTypeCentos, osTypeLeap}))
+	imageNamePrefix := ""
+	switch osType {
+	case osTypeCentos:
+		imageNamePrefix = "CENTOS_9_NODE_IMAGE_K8S"
+	case osTypeUbuntu:
 		imageNamePrefix = "UBUNTU_24.04_NODE_IMAGE_K8S"
+	case osTypeLeap:
+		imageNamePrefix = "LEAP_15_6_NODE_IMAGE_K8S"
 	}
 	imageName := fmt.Sprintf("%s_%s.qcow2", imageNamePrefix, k8sVersion)
 	rawImageName := fmt.Sprintf("%s_%s-raw.img", imageNamePrefix, k8sVersion)
