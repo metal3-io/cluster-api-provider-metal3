@@ -88,7 +88,7 @@ declare -a release_note_strings=(
 # required strings that are postfixed with correct release number
 declare -a release_note_tag_strings=(
     "The image for this release is: v${VERSION}"
-    "Mariadb image tag is capm3-v${VERSION}"
+    "Mariadb image tag is: capm3-v${VERSION}"
 )
 
 # release artefacts
