@@ -10,14 +10,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jinzhu/copier"
+	"github.com/blang/semver/v4"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	irsov1alpha1 "github.com/metal3-io/ironic-standalone-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -192,11 +192,9 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file as in place of the CNI_RESOURCES envSubst variable.
 	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
 	cniPath := config.MustGetVariable(capi_e2e.CNIPath)
-	if osType == "centos" {
-		updateCalico(config, cniPath, "eth1")
-	} else {
-		updateCalico(config, cniPath, "enp2s0")
-	}
+
+	updateCilium()
+
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
 
@@ -263,50 +261,33 @@ func validateGlobals(specName string) {
 	Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid argument. artifactFolder can't be created for %s spec", specName)
 }
 
-func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface string) {
-	calicoManifestURL := fmt.Sprintf("https://raw.githubusercontent.com/projectcalico/calico/%s/manifests/calico.yaml", config.MustGetVariable("CALICO_PATCH_RELEASE"))
-	err := DownloadFile(calicoYaml, calicoManifestURL)
-	Expect(err).ToNot(HaveOccurred(), "Unable to download Calico manifest")
-	cniYaml, err := os.ReadFile(calicoYaml)
-	Expect(err).ToNot(HaveOccurred(), "Unable to read Calico manifest")
-
-	Logf("Replace the default CIDR with the one set in $POD_CIDR")
-	podCIDR := config.MustGetVariable("POD_CIDR")
-	calicoContainerRegistry := config.MustGetVariable("DOCKER_HUB_PROXY")
-	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
-	cniYaml = []byte(strings.Replace(string(cniYaml), "docker.io", calicoContainerRegistry, -1))
-
-	yamlDocuments, err := splitYAML(cniYaml)
-	Expect(err).ToNot(HaveOccurred(), "Cannot unmarshal the calico yaml elements to golang objects")
-	calicoNodes, err := yamlContainKeyValue(yamlDocuments, "calico-node", "metadata", "labels", "k8s-app")
-	Expect(err).ToNot(HaveOccurred())
-	for _, calicoNode := range calicoNodes {
-		var calicoNodeSpecTemplateSpec, calicoNodeContainerEnvs *yaml.Node
-		var calicoNodeContainers []*yaml.Node
-
-		calicoNodeSpecTemplateSpec, err = yamlFindByValue(calicoNode, "spec", "template", "spec", "containers")
-		Expect(err).ToNot(HaveOccurred())
-		calicoNodeContainers, err = yamlContainKeyValue(calicoNodeSpecTemplateSpec.Content, "calico-node", "name")
-		Expect(err).ToNot(HaveOccurred())
-		// Since we find the container by name, we expect to get only one container.
-		Expect(calicoNodeContainers).To(HaveLen(1), "Found 0 or more than 1 container with name `calico-node`")
-		calicoNodeContainer := calicoNodeContainers[0]
-		calicoNodeContainerEnvs, err = yamlFindByValue(calicoNodeContainer, "env")
-		Expect(err).ToNot(HaveOccurred())
-		addItem := &yaml.Node{}
-		err = copier.CopyWithOption(addItem, calicoNodeContainerEnvs.Content[0], copier.Option{IgnoreEmpty: true, DeepCopy: true})
-		Expect(err).ToNot(HaveOccurred())
-		addItem.Content[1].SetString("IP_AUTODETECTION_METHOD")
-		addItem.Content[3].SetString("interface=" + calicoInterface)
-		addItem.HeadComment = "Start section modified by CAPM3 e2e test framework"
-		addItem.FootComment = "End section modified by CAPM3 e2e test framework"
-		calicoNodeContainerEnvs.Content = append(calicoNodeContainerEnvs.Content, addItem)
+func updateCilium() {
+	ctx = context.Background()
+	cniPath := e2eConfig.MustGetVariable(capi_e2e.CNIPath)
+	ciliumVersion := e2eConfig.MustGetVariable("CILIUM_VERSION")
+	if ciliumVersion[0] == 'v' {
+		ciliumVersion = ciliumVersion[1:]
 	}
+	settings := cli.New()
+	settings.SetNamespace("kube-system")
+	helmDriver := os.Getenv("HELM_DRIVER")
+	opts := HelmOpts{
+		Logger:         log.Default(),
+		Settings:       settings,
+		ReleaseName:    "cilium",
+		ChartRef:       fmt.Sprintf("https://helm.cilium.io/cilium-%s.tgz", ciliumVersion),
+		ChartLocation:  fmt.Sprintf("/tmp/cilium-%s.tgz", ciliumVersion),
+		ReleaseVersion: semver.MustParse(ciliumVersion),
+		Driver:         helmDriver,
+	}
+	manifestOverwriteValues := map[string]interface{}{}
 
-	yamlOut, err := printYaml(yamlDocuments)
-	Expect(err).ToNot(HaveOccurred())
-	err = os.WriteFile(calicoYaml, yamlOut, 0600)
-	Expect(err).ToNot(HaveOccurred(), "Cannot print out the update to the file")
+	manifest, err := generateTemplateFromHelmChart(ctx, opts, manifestOverwriteValues)
+	Expect(err).ToNot(HaveOccurred(), "failed to generate template: %v", err)
+
+	err = os.WriteFile(cniPath, []byte(manifest), 0644)
+	Expect(err).ToNot(HaveOccurred(), "Failed to write Cilium manifest to file: %v", err)
+
 }
 
 // createBMHsInNamespace is a hook function that can be called after creating
