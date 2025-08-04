@@ -13,7 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -179,7 +178,6 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 				MatchLabels: matchLabels,
 			},
 			Checks: clusterv1.MachineHealthCheckChecks{
-				NodeStartupTimeoutSeconds: ptr.To(int32(0)),
 				UnhealthyNodeConditions: []clusterv1.UnhealthyNodeCondition{
 					{
 						Type:           corev1.NodeReady,
@@ -217,9 +215,9 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 
 // WaitForHealthCheckCurrentHealthyToMatch waits for current healthy machines watched by healthcheck to match the number given.
 func WaitForHealthCheckCurrentHealthyToMatch(ctx context.Context, cli client.Client, number int32, healthcheck *clusterv1.MachineHealthCheck, timeout, frequency time.Duration) {
-	Eventually(func(g Gomega) *int32 {
+	Eventually(func(g Gomega) int32 {
 		g.Expect(cli.Get(ctx, client.ObjectKeyFromObject(healthcheck), healthcheck)).To(Succeed())
-		return healthcheck.Status.CurrentHealthy
+		return *healthcheck.Status.CurrentHealthy
 	}, timeout, frequency).Should(Equal(number))
 }
 
