@@ -54,7 +54,7 @@ spec:
         }
         vrrp_instance VI_2 {
             state MASTER
-            interface enp2s0
+            interface eth1
             virtual_router_id 2
             priority 101
             advert_int 1
@@ -137,9 +137,6 @@ spec:
         name: '{{ ds.meta_data.name }}'
     preKubeadmCommands:
       - rm /etc/cni/net.d/*
-      - systemctl stop wicked
-      - systemctl disable wicked
-      - systemctl enable NetworkManager.service
       - systemctl restart NetworkManager.service
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint
@@ -219,10 +216,10 @@ spec:
         content: |
           [kubernetes]
           name=Kubernetes
-          baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_MINOR_VERSION/rpm/
+          baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION_MINOR/rpm/
           enabled=1
           gpgcheck=1
-          gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_MINOR_VERSION/rpm/repodata/repomd.xml.key
+          gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION_MINOR/rpm/repodata/repomd.xml.key
       - path : /etc/containers/registries.conf
         owner: root:root
         permissions: '0644'
@@ -234,10 +231,6 @@ spec:
           registries = ['${REGISTRY}']
       preKubeadmCommands:
       - rm /etc/cni/net.d/*
-      - systemctl stop wicked
-      - systemctl disable wicked
-      - systemctl enable NetworkManager.service
-      - systemctl restart NetworkManager.service
       - systemctl restart NetworkManager.service
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint

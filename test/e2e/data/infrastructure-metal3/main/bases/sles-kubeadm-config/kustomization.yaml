@@ -1,4 +1,0 @@
-resources:
-- ../cluster
-patches:
-- path: sles-kubeadm-config.yaml
