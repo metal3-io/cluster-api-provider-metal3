@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +9,8 @@ import (
 	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -37,7 +38,8 @@ var (
 	ironicGoproxy         = "https://proxy.golang.org/github.com/metal3-io/ironic-image/@v/list"
 	bmoGoproxy            = "https://proxy.golang.org/github.com/metal3-io/baremetal-operator/@v/list"
 
-	k8sVersion string
+	k8sVersion                 string
+	managementClusterNamespace string
 )
 
 var _ = Describe("When testing cluster upgrade from releases (v1.10=>current) [clusterctl-upgrade]", func() {
@@ -86,7 +88,8 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current) [c
 			},
 			Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 				{ // Upgrade to latest v1beta2.
-					Contract: clusterv1.GroupVersion.Version,
+					Contract:    clusterv1.GroupVersion.Version,
+					PostUpgrade: postUpgradeWaitDeletingResources,
 				},
 			},
 			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
@@ -146,16 +149,15 @@ var _ = Describe("When testing cluster upgrade from releases (v1.9=>current) [cl
 			},
 			Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
 				{ // Upgrade to latest v1beta2.
-					Contract: clusterv1.GroupVersion.Version,
+					Contract:    clusterv1.GroupVersion.Version,
+					PostUpgrade: postUpgradeWaitDeletingResources,
 				},
 			},
 			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
 				preUpgrade(clusterProxy, bmoToRelease, ironicToRelease)
 			},
-			PostUpgrade: func(clusterProxy framework.ClusterProxy, _ string, _ string) {
-				postUpgrade(ctx, clusterProxy)
-			},
+			PostUpgrade: postUpgrade,
 			PreCleanupManagementCluster: func(clusterProxy framework.ClusterProxy) {
 				preCleanupManagementCluster(clusterProxy, ironicToRelease)
 			},
@@ -172,6 +174,7 @@ func postClusterctlUpgradeNamespaceCreated(clusterProxy framework.ClusterProxy, 
 	// if isBootstrapProxy==true then this call when creating the management else we are creating the workload.
 	isBootstrapProxy := !strings.HasPrefix(clusterProxy.GetName(), "clusterctl-upgrade")
 	if isBootstrapProxy {
+		managementClusterNamespace = clusterNamespace
 		// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
 		for i := range 2 {
 			resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
@@ -415,18 +418,37 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 
 // postUpgrade hook is for installing the new Metal3 IPAM provider
 // when upgrading from CAPM3 bundled IPAM.
-func postUpgrade(ctx context.Context, clusterProxy framework.ClusterProxy) {
+func postUpgrade(managementClusterProxy framework.ClusterProxy, _ string, _ string) {
 	By("Installing Metal3 IPAM provider")
-	ipamDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, clusterProxy.GetName(), "ipam-deploy-logs")
+	ipamDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, managementClusterProxy.GetName(), "ipam-deploy-logs")
 	ipamVersions := e2eConfig.GetProviderLatestVersionsByContract(capm3Contract, e2eConfig.IPAMProviders()...)
 	Expect(ipamVersions).To(HaveLen(1), "Failed to get the latest version for the IPAM provider")
 	input := clusterctl.InitInput{
 		ClusterctlConfigPath: clusterctlConfigPath,
-		KubeconfigPath:       clusterProxy.GetKubeconfigPath(),
+		KubeconfigPath:       managementClusterProxy.GetKubeconfigPath(),
 		LogFolder:            ipamDeployLogFolder,
 		IPAMProviders:        []string{ipamVersions[0]},
 	}
 	clusterctl.Init(ctx, input)
+}
+
+// postUpgradeWaitDeletingResources hook waits IPAddress, IPClaim, IPPool, Metal3Data and Secret reource that has deletion timestamp set to be deleted.
+func postUpgradeWaitDeletingResources(managementClusterProxy framework.ClusterProxy, clusterNamespace string, clusterName string) {
+	By(fmt.Sprintf("Running post upgrade steps to delete resources that have deletion timestamp in cluster %s/%s", clusterNamespace, clusterName))
+
+	Logf("managementClusterProxy %s\n", managementClusterProxy.GetName())
+
+	iPAddresses := ipamv1.IPAddressList{}
+	iPClaims := ipamv1.IPClaimList{}
+	iPPools := ipamv1.IPPoolList{}
+	metal3DataList := infrav1.Metal3DataList{}
+
+	Expect(managementClusterProxy.GetClient().List(ctx, &iPAddresses, client.InNamespace(clusterNamespace))).To(Succeed())
+	Expect(managementClusterProxy.GetClient().List(ctx, &iPClaims, client.InNamespace(clusterNamespace))).To(Succeed())
+	Expect(managementClusterProxy.GetClient().List(ctx, &iPPools, client.InNamespace(clusterNamespace))).To(Succeed())
+	Expect(managementClusterProxy.GetClient().List(ctx, &metal3DataList, client.InNamespace(clusterNamespace))).To(Succeed())
+
+	WaitForDeletingResources(ctx, managementClusterProxy, &iPAddresses, &iPClaims, &iPPools, &metal3DataList, e2eConfig.GetIntervals(specName, "wait-resource-deletion"))
 }
 
 // preCleanupManagementCluster hook should be called from ClusterctlUpgradeSpec before cleaning the target management cluster

@@ -159,7 +159,7 @@ func machineWithBootstrap() *clusterv1.Machine {
 		clusterName, machineName, metal3machineName, "",
 	)
 	machine.Spec.Bootstrap = clusterv1.Bootstrap{
-		ConfigRef:      &clusterv1.ContractVersionedObjectReference{},
+		ConfigRef:      clusterv1.ContractVersionedObjectReference{},
 		DataSecretName: &bootstrapDataSecretName,
 	}
 	machine.Status = clusterv1.MachineStatus{

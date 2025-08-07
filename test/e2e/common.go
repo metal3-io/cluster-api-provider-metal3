@@ -1147,3 +1147,51 @@ func ApplyBmh(ctx context.Context, e2eConfig *clusterctl.E2EConfig, clusterProxy
 	})
 	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
 }
+
+// WaitForDeletingResources waits for the specified resources to be deleted.
+func WaitForDeletingResources(
+	ctx context.Context,
+	clusterProxy framework.ClusterProxy,
+	iPAddresses *ipamv1.IPAddressList,
+	iPClaims *ipamv1.IPClaimList,
+	iPPools *ipamv1.IPPoolList,
+	metal3DataList *infrav1.Metal3DataList,
+	intervals []interface{},
+) {
+	Logf("Checking cluster %s \n", clusterProxy.GetName())
+
+	Logf("Found %d resources of kind %s \n", len(iPAddresses.Items), iPAddresses.GroupVersionKind().Kind)
+	Logf("Found %d resources of kind %s \n", len(iPClaims.Items), iPClaims.GroupVersionKind().Kind)
+	Logf("Found %d resources of kind %s \n", len(iPPools.Items), iPPools.GroupVersionKind().Kind)
+	Logf("Found %d resources of kind %s \n", len(metal3DataList.Items), metal3DataList.GroupVersionKind().Kind)
+
+	checkAndWait := func(obj client.Object) {
+		if obj.GetDeletionTimestamp() != nil {
+			key := client.ObjectKey{Namespace: obj.GetNamespace(), Name: obj.GetName()}
+			Eventually(func() error {
+				err := clusterProxy.GetClient().Get(ctx, key, obj)
+				if client.IgnoreNotFound(err) == nil {
+					return nil // Deleted
+				}
+				return err // Still exists
+			}, intervals...).Should(Succeed(), "Resource %s/%s not deleted", obj.GetNamespace(), obj.GetName())
+		}
+	}
+
+	for _, ip := range iPAddresses.Items {
+		Logf("Found res %s  of kind %s \n", ip.Name, ip.Kind)
+		checkAndWait(&ip)
+	}
+	for _, claim := range iPClaims.Items {
+		Logf("Found res %s  of kind %s \n", claim.Name, claim.Kind)
+		checkAndWait(&claim)
+	}
+	for _, pool := range iPPools.Items {
+		Logf("Found res %s  of kind %s \n", pool.Name, pool.Kind)
+		checkAndWait(&pool)
+	}
+	for _, m3d := range metal3DataList.Items {
+		Logf("Found res %s  of kind %s \n", m3d.Name, m3d.Kind)
+		checkAndWait(&m3d)
+	}
+}

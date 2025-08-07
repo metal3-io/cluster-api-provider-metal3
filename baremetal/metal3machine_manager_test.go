@@ -450,7 +450,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			Machine: clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{},
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name: "abc",
+						},
 					},
 				},
 				Status: clusterv1.MachineStatus{
@@ -2684,7 +2686,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &clusterv1.ContractVersionedObjectReference{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
 							Name: "abc",
 						},
 						DataSecretName: ptr.To("Foobar"),
@@ -4645,7 +4647,7 @@ func newMachine(machineName string, infraRef *clusterv1.ContractVersionedObjectR
 			ClusterName:       clusterName,
 			InfrastructureRef: *infraRef,
 			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef:      &clusterv1.ContractVersionedObjectReference{},
+				ConfigRef:      clusterv1.ContractVersionedObjectReference{},
 				DataSecretName: nil,
 			},
 		},
