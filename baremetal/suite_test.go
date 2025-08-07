@@ -181,7 +181,7 @@ func newCluster(clusterName string) *clusterv1.Cluster {
 			Namespace: namespaceName,
 		},
 		Spec: clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name:     metal3ClusterName,
 				Kind:     "InfrastructureConfig",
 				APIGroup: "infrastructure.cluster.x-k8s.io/v1beta1",

@@ -2054,7 +2054,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
 				Spec: capipamv1.IPAddressSpec{
 					Address: "192.168.0.10",
-					Prefix:  26,
+					Prefix:  ptr.To(int32(26)),
 					Gateway: "192.168.0.1",
 				},
 			},
@@ -2101,7 +2101,7 @@ var _ = Describe("Metal3Data manager", func() {
 				ObjectMeta: testObjectMeta("abc-192.168.0.10", namespaceName, ""),
 				Spec: capipamv1.IPAddressSpec{
 					Address: "192.168.0.10",
-					Prefix:  26,
+					Prefix:  ptr.To(int32(26)),
 					Gateway: "192.168.0.1",
 				},
 			},
