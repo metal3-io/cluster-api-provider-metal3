@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
@@ -182,17 +183,17 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 					{
 						Type:           corev1.NodeReady,
 						Status:         corev1.ConditionUnknown,
-						TimeoutSeconds: 300,
+						TimeoutSeconds: ptr.To(int32(300)),
 					},
 					{
 						Type:           corev1.NodeReady,
 						Status:         "False",
-						TimeoutSeconds: 300,
+						TimeoutSeconds: ptr.To(int32(300)),
 					},
 				},
 			},
 			Remediation: clusterv1.MachineHealthCheckRemediation{
-				TemplateRef: &clusterv1.MachineHealthCheckRemediationTemplateReference{
+				TemplateRef: clusterv1.MachineHealthCheckRemediationTemplateReference{
 					Kind:       "Metal3RemediationTemplate",
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 					Name:       remediationTemplateName,
