@@ -892,7 +892,7 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalO
 
 	a := addressFromPool{
 		Address:    ipamv1.IPAddressStr(address.Spec.Address),
-		Prefix:     int(address.Spec.Prefix),
+		Prefix:     int(*address.Spec.Prefix),
 		Gateway:    ipamv1.IPAddressStr(address.Spec.Gateway),
 		dnsServers: []ipamv1.IPAddressStr{},
 	}

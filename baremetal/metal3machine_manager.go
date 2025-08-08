@@ -196,7 +196,7 @@ func (m *MachineManager) IsBaremetalHostProvisioned(ctx context.Context) bool {
 
 // IsBootstrapReady checks if the machine is given Bootstrap data.
 func (m *MachineManager) IsBootstrapReady() bool {
-	if m.Machine.Spec.Bootstrap.ConfigRef != nil {
+	if m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapReadyCondition := deprecatedv1beta1conditions.Get(m.Machine, clusterv1.BootstrapReadyV1Beta1Condition)
 		return bootstrapReadyCondition.Status == corev1.ConditionTrue
 	}
@@ -205,7 +205,7 @@ func (m *MachineManager) IsBootstrapReady() bool {
 }
 
 func (m *MachineManager) MachineHasNodeRef() bool {
-	return m.Machine.Status.NodeRef != nil
+	return m.Machine.Status.NodeRef.IsDefined()
 }
 
 // isControlPlane returns true if the machine is a control plane.
@@ -438,7 +438,7 @@ func (m *MachineManager) getUserDataSecretName(_ context.Context) {
 			Namespace: m.Machine.Namespace,
 		}
 		return
-	} else if m.Machine.Spec.Bootstrap.ConfigRef != nil {
+	} else if m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 			Name:      m.Machine.Spec.Bootstrap.ConfigRef.Name,
 			Namespace: m.Machine.Namespace,
@@ -1446,7 +1446,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		m.Log.Info(errMessage)
 		return false, WithTransientError(errors.Wrap(err, errMessage), requeueAfter)
 	}
-	if countNodesWithLabel == 0 && m.Machine.Spec.Bootstrap.ConfigRef != nil {
+	if countNodesWithLabel == 0 && m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		// The node could either be still running cloud-init or have been
 		// deleted manually. TODO: handle a manual deletion case.
 		errMessage := "requeuing, could not find node with label: " + nodeLabel

@@ -148,7 +148,7 @@ var deletionTimestamp = metav1.Now()
 func clusterPauseSpec() *clusterv1.ClusterSpec {
 	return &clusterv1.ClusterSpec{
 		Paused: ptr.To(true),
-		InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+		InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 			Name:     metal3ClusterName,
 			Kind:     "Metal3Cluster",
 			APIGroup: infrav1.GroupVersion.Group,
@@ -205,7 +205,7 @@ func getKey(objectName string) *client.ObjectKey {
 func newCluster(clusterName string, spec *clusterv1.ClusterSpec, status *clusterv1.ClusterStatus) *clusterv1.Cluster {
 	if spec == nil {
 		spec = &clusterv1.ClusterSpec{
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name:     metal3ClusterName,
 				Kind:     "Metal3Cluster",
 				APIGroup: infrav1.GroupVersion.Group,
@@ -310,7 +310,7 @@ func newMachine(clusterName, machineName string, metal3machineName string, nodeR
 		}
 	}
 	if nodeRefName != "" {
-		machine.Status.NodeRef = &clusterv1.MachineNodeReference{
+		machine.Status.NodeRef = clusterv1.MachineNodeReference{
 			Name: nodeRefName,
 		}
 	}
