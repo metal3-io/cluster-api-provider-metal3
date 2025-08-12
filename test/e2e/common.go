@@ -190,7 +190,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	Expect(osType).To(BeElementOf([]string{osTypeUbuntu, osTypeCentos}))
 	imageNamePrefix := "CENTOS_9_NODE_IMAGE_K8S"
 	if osType != osTypeCentos {
-		imageNamePrefix = "UBUNTU_22.04_NODE_IMAGE_K8S"
+		imageNamePrefix = "UBUNTU_24.04_NODE_IMAGE_K8S"
 	}
 	imageName := fmt.Sprintf("%s_%s.qcow2", imageNamePrefix, k8sVersion)
 	rawImageName := fmt.Sprintf("%s_%s-raw.img", imageNamePrefix, k8sVersion)
