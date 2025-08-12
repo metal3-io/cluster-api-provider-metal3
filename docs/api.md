@@ -420,10 +420,10 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   image:
-    checksum: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.33.0-raw.img.sha256sum
+    checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.33.0-raw.img.sha256sum
     checksumType: sha256
     format: raw
-    url: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.33.0-raw.img
+    url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.33.0-raw.img
   hostSelector:
     matchLabels:
       key1: value1
@@ -566,10 +566,10 @@ spec:
     spec:
       automatedCleaningMode: metadata
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.33.0-raw.img.sha256sum
+        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.33.0-raw.img.sha256sum
         checksumType: sha256
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_22.04_NODE_IMAGE_K8S_v1.33.0-raw.img
+        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.33.0-raw.img
       hostSelector:
         matchLabels:
           key1: value1
