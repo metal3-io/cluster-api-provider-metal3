@@ -34,6 +34,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
@@ -1146,4 +1147,78 @@ func ApplyBmh(ctx context.Context, e2eConfig *clusterctl.E2EConfig, clusterProxy
 		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
 	})
 	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
+}
+
+// WaitForResourceVersionsToStabilize waits for the resource versions of the specified GVKs in the given namespace to stabilize.
+func WaitForResourceVersionsToStabilize(ctx context.Context, clusterProxy framework.ClusterProxy, namespace string, gvkList []schema.GroupVersionKind, intervals []interface{}) {
+	for _, gvk := range gvkList {
+		list := &unstructured.UnstructuredList{}
+		list.SetGroupVersionKind(gvk)
+		Expect(clusterProxy.GetClient().List(ctx, list, client.InNamespace(namespace))).To(Succeed())
+		Logf("Found %d resources of kind %s \n", len(list.Items), gvk.Kind)
+
+		for _, obj := range list.Items {
+			Logf("Found res %s  of kind %s \n", obj.GetName(), obj.GetKind())
+			if obj.GetDeletionTimestamp() != nil {
+				Logf("Res %s  of kind %s has deletionTimeStamp \n", obj.GetName(), obj.GetKind())
+				key := client.ObjectKey{Namespace: namespace, Name: obj.GetName()}
+				Eventually(func() error {
+					err := clusterProxy.GetClient().Get(ctx, key, &obj)
+					if apierrors.IsNotFound(err) {
+						Logf("Res %s  of kind %s has deleted \n", obj.GetName(), obj.GetKind())
+						return nil // Deleted
+					}
+					Logf("Res %s  of kind %s still exists \n", obj.GetName(), obj.GetKind())
+					return err // Still exists
+				}, intervals...).Should(Succeed(), "Resource %s/%s of kind %s not deleted", namespace, obj.GetName(), gvk.Kind)
+			}
+		}
+	}
+
+	// Check if the number of Metal3Data and Machine resources are equal
+	Logf("Checking if the number of Metal3Data and Machine resources are equal in namespace %s", namespace)
+	Eventually(func() bool {
+		return IsMetal3DataCountEqualToMachineCount(ctx, clusterProxy.GetClient(), namespace)
+	}, intervals...).Should(BeTrue(), "Metal3Data and Machine counts are not equal")
+
+	// Check resource versions of the specified GVKs in the given namespace are stabilized
+	var prevResourceVersions map[string]string
+	Eventually(func(g Gomega) {
+		currResourceVersions := getResourceVersions(ctx, clusterProxy.GetClient(), namespace, gvkList)
+		if prevResourceVersions != nil {
+			g.Expect(currResourceVersions).To(BeComparableTo(prevResourceVersions))
+		}
+		prevResourceVersions = currResourceVersions
+	}, intervals...).Should(Succeed(), "resourceVersions never became stable")
+}
+
+func getResourceVersions(ctx context.Context, c client.Client, namespace string, gvkList []schema.GroupVersionKind) map[string]string {
+	resourceVersions := make(map[string]string)
+	for _, gvk := range gvkList {
+		list := &unstructured.UnstructuredList{}
+		list.SetGroupVersionKind(gvk)
+		err := c.List(ctx, list, client.InNamespace(namespace))
+		Expect(err).To(Succeed(), "Failed to list resources for kind %s", gvk.Kind)
+		Logf("Found %d resources of kind %s checking resourceVersions stability \n", len(list.Items), gvk.Kind)
+		for _, obj := range list.Items {
+			key := fmt.Sprintf("%s/%s/%s", obj.GetKind(), obj.GetNamespace(), obj.GetName())
+			resourceVersions[key] = obj.GetResourceVersion()
+		}
+	}
+	return resourceVersions
+}
+
+func IsMetal3DataCountEqualToMachineCount(ctx context.Context, c client.Client, namespace string) bool {
+	m3DataList := &infrav1.Metal3DataList{}
+	machineList := &clusterv1.MachineList{}
+
+	err1 := c.List(ctx, m3DataList, client.InNamespace(namespace))
+	err2 := c.List(ctx, machineList, client.InNamespace(namespace))
+
+	if err1 != nil || err2 != nil {
+		Logf("Error listing Metal3Data or Machine resources: %v %v", err1, err2)
+		return false
+	}
+
+	return len(m3DataList.Items) == len(machineList.Items)
 }

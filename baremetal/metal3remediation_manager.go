@@ -389,7 +389,7 @@ func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV
 		r.Log.Error(err, "metal3Remediation's node could not be retrieved")
 		return nil, errors.Wrapf(err, "metal3Remediation's node could not be retrieved")
 	}
-	if capiMachine.Status.NodeRef == nil {
+	if !capiMachine.Status.NodeRef.IsDefined() {
 		r.Log.Error(nil, "metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
 		return nil, errors.Errorf("metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
 	}

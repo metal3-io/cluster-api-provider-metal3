@@ -937,7 +937,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 				},
 			},
 			Status: clusterv1.MachineStatus{
-				NodeRef: &clusterv1.MachineNodeReference{
+				NodeRef: clusterv1.MachineNodeReference{
 					Name: "mynode",
 				},
 			},

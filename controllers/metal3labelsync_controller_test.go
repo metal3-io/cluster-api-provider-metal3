@@ -363,7 +363,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 		nodeName := "testNode"
 		cluserCapiSpec := clusterv1.ClusterSpec{
 			Paused: ptr.To(true),
-			InfrastructureRef: &clusterv1.ContractVersionedObjectReference{
+			InfrastructureRef: clusterv1.ContractVersionedObjectReference{
 				Name:     metal3ClusterName,
 				Kind:     "Metal3Cluster",
 				APIGroup: infrav1.GroupVersion.Group,

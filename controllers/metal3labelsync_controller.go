@@ -146,7 +146,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Machine %v/%v", capiMachine.Name, capiMachine.Namespace))
-	if capiMachine.Status.NodeRef == nil {
+	if !capiMachine.Status.NodeRef.IsDefined() {
 		controllerLog.Info("Could not find Node Ref on Machine object, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
