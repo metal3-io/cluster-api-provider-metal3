@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/docker/docker v27.4.1+incompatible
+	github.com/docker/docker v28.0.2+incompatible
 	github.com/jinzhu/copier v0.4.0
 	github.com/metal3-io/baremetal-operator/apis v0.9.2
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
@@ -22,8 +22,8 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.30.14
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
-	sigs.k8s.io/cluster-api v1.9.10
-	sigs.k8s.io/cluster-api/test v1.9.10
+	sigs.k8s.io/cluster-api v1.9.11
+	sigs.k8s.io/cluster-api/test v1.9.11
 	sigs.k8s.io/controller-runtime v0.19.7
 	sigs.k8s.io/kustomize/api v0.18.0
 	sigs.k8s.io/kustomize/kyaml v0.18.1
