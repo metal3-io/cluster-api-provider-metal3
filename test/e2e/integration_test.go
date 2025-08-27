@@ -18,7 +18,7 @@ import (
 // - The provisioning of a workload cluster proceeds smoothly, and that BMHs are created, inspected and provisioned as expected.
 // - The pivoting functionality enables the seamless moving of resources and control components from the bootstrap cluster to the target cluster and vice versa.
 // - Deprovisioning the cluster and BMHs happens smoothly.
-var _ = Describe("When testing integration [integration]", Label("integration"), func() {
+var _ = Describe("When testing integration", Label("integration"), func() {
 
 	It("CI Test Provision", func() {
 		numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))

@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("When testing basic cluster creation [basic]", Label("basic"), func() {
+var _ = Describe("When testing basic cluster creation", Label("basic"), func() {
 	BeforeEach(func() {
 		osType := strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))

@@ -256,8 +256,25 @@ GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
 GINKGO_TIMEOUT ?= 6h
 
-ifneq ($(strip $(GINKGO_SKIP)),)
-_SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-skip="$(arg)")
+space :=  $(subst ,, )
+
+FOCUS_LABELS := $(strip $(GINKGO_FOCUS))
+SKIP_LABELS := $(strip $(GINKGO_SKIP))
+
+FOCUS_EXPR := $(subst $(space), && ,$(FOCUS_LABELS))
+SKIP_EXPR := $(subst $(space), && !,$(SKIP_LABELS))
+
+LABEL_FILTER :=
+ifneq ($(FOCUS_LABELS),)
+	LABEL_FILTER := $(FOCUS_EXPR)
+endif
+
+ifneq ($(SKIP_LABELS),)
+	ifneq ($(LABEL_FILTER),)
+		LABEL_FILTER := $(LABEL_FILTER) && !$(SKIP_EXPR)
+	else
+		LABEL_FILTER := !$(SKIP_EXPR)
+	endif
 endif
 
 .PHONY: e2e-tests
@@ -268,7 +285,7 @@ e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be
 	$(GINKGO) --timeout=$(GINKGO_TIMEOUT) -v --trace --tags=e2e  \
 		--show-node-events --no-color=$(GINKGO_NOCOLOR) \
 		--junit-report="junit.e2e_suite.1.xml" \
-		--focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
+		--label-filter="$(LABEL_FILTER)" "$(ROOT_DIR)/$(TEST_DIR)/e2e/" -- \
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \

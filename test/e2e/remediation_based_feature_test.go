@@ -50,7 +50,7 @@ import (
  * - Unhealthy Annotation: Mark a BMH as unhealthy and ensure it is not picked up for provisioning.
  * - Metal3 Data Template: Create a new Metal3DataTemplate (M3DT), create a new Metal3MachineTemplate (M3MT), and update the MachineDeployment (MD) to point to the new M3MT. Wait for the old worker to deprovision.
  */
-var _ = Describe("Testing nodes remediation [remediation] [features]", Label("remediation", "features"), func() {
+var _ = Describe("Testing nodes remediation", Label("remediation", "features"), func() {
 
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
