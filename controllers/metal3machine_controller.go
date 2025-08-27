@@ -292,17 +292,18 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 
 	errType := capierrors.DeleteMachineError
 
+	// dissociate metadata if any
+	if err := machineMgr.DissociateM3Metadata(ctx); err != nil {
+		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DisassociateM3MetaDataFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+		return checkMachineError(machineMgr, err,
+			"failed to dissociate Metadata", errType)
+	}
+
 	// delete the machine
 	if err := machineMgr.Delete(ctx); err != nil {
 		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return checkMachineError(machineMgr, err,
 			"failed to delete Metal3Machine", errType)
-	}
-
-	if err := machineMgr.DissociateM3Metadata(ctx); err != nil {
-		machineMgr.SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DisassociateM3MetaDataFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return checkMachineError(machineMgr, err,
-			"failed to dissociate Metadata", errType)
 	}
 
 	// metal3machine is marked for deletion and ready to be deleted,

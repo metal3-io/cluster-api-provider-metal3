@@ -161,10 +161,11 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 }
 
 type reconcileDeleteTestCase struct {
-	ExpectError   bool
-	ExpectRequeue bool
-	DeleteFails   bool
-	DeleteRequeue bool
+	ExpectError               bool
+	ExpectRequeue             bool
+	DeleteFails               bool
+	DissociateM3MetadataFails bool
+	DeleteRequeue             bool
 }
 
 func setReconcileDeleteExpectations(ctrl *gomock.Controller,
@@ -173,19 +174,28 @@ func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 	m := baremetal_mocks.NewMockMachineManagerInterface(ctrl)
 	m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 
-	if tc.DeleteFails {
-		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
-		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
+	if tc.DissociateM3MetadataFails {
+		m.EXPECT().DissociateM3Metadata(context.TODO()).Return(errors.New("failed"))
+		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DisassociateM3MetaDataFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
+		m.EXPECT().Delete(context.TODO()).MaxTimes(0)
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
-		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
-		return m
-	} else if tc.DeleteRequeue {
-		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
-		m.EXPECT().Delete(context.TODO()).Return(baremetal.WithTransientError(errors.New("failed"), requeueAfter))
-		m.EXPECT().UnsetFinalizer().MaxTimes(0)
-		m.EXPECT().DissociateM3Metadata(context.TODO()).MaxTimes(0)
 		return m
 	}
+	if tc.DeleteFails {
+		m.EXPECT().DissociateM3Metadata(context.TODO())
+		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
+		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
+		m.EXPECT().UnsetFinalizer().MaxTimes(0)
+		return m
+	}
+	if tc.DeleteRequeue {
+		m.EXPECT().DissociateM3Metadata(context.TODO())
+		m.EXPECT().Delete(context.TODO()).Return(baremetal.WithTransientError(errors.New("failed"), requeueAfter))
+		m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition, infrav1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, gomock.Any())
+		m.EXPECT().UnsetFinalizer().MaxTimes(0)
+		return m
+	}
+
 	m.EXPECT().DissociateM3Metadata(context.TODO())
 	m.EXPECT().Delete(context.TODO()).Return(nil)
 	m.EXPECT().UnsetFinalizer()
@@ -335,6 +345,12 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectError:   false,
 				ExpectRequeue: true,
 				DeleteRequeue: true,
+			}),
+			Entry("DissociateM3Metadata failure", reconcileDeleteTestCase{
+				ExpectError:               true,
+				ExpectRequeue:             false,
+				DeleteRequeue:             false,
+				DissociateM3MetadataFails: true,
 			}),
 		)
 	})
