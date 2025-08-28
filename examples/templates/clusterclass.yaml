@@ -77,17 +77,18 @@ spec:
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          host: 
+        properties:
+          host:
             type: string
           port:
             type: integer
   - name: image
+    required: false
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          checksum: 
+        properties:
+          checksum:
             type: string
           checksumType:
             type: string
@@ -96,10 +97,12 @@ spec:
           url:
             type: string
   - name: workerDataTemplate
+    required: false
     schema:
       openAPIV3Schema:
         type: string
   - name: controlPlaneDataTemplate
+    required: false
     schema:
       openAPIV3Schema:
         type: string
@@ -198,12 +201,12 @@ spec:
         valueFrom:
           variable: controlPlaneDataTemplate
   controlPlane:
-    ref:
+    templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: example-controlplane
     machineInfrastructure:
-      ref:
+      templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
         name: example-md-0
@@ -223,34 +226,33 @@ spec:
             timeoutSeconds: 300
   workers:
     machineDeployments:
-    - class: example-worker
-      template:
+      - class: example-worker
         metadata:
           labels:
             cluster.x-k8s.io/cluster-name: example
             nodepool: nodepool-0
         bootstrap:
-          ref:
+          templateRef:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: example-md-0
         infrastructure:
-          ref:
+          templateRef:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: Metal3MachineTemplate
             name: example-md-0
-      # This will create a health check for each deployment created with the "test-worker" MachineDeploymentClass
-      healthCheck:
-        checks:
-          unhealthyNodeConditions:
-            - type: Ready
-              status: Unknown
-              timeoutSeconds: 300
-            - type: Ready
-              status: "False"
-              timeoutSeconds: 300
+        # This will create a health check for each deployment created with the "test-worker" MachineDeploymentClass
+        healthCheck:
+          checks:
+            unhealthyNodeConditions:
+              - type: Ready
+                status: Unknown
+                timeoutSeconds: 300
+              - type: Ready
+                status: "False"
+                timeoutSeconds: 300
   infrastructure:
-    ref:
+    templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: Metal3ClusterTemplate
       name: example-cluster-template
