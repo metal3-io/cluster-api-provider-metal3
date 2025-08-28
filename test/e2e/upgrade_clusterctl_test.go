@@ -45,7 +45,7 @@ var (
 
 var _ = Describe("When testing cluster upgrade from releases (v1.10=>current) [clusterctl-upgrade]", func() {
 	BeforeEach(func() {
-		k8sVersion = "v1.33.0"
+		k8sVersion = "v1.34.0"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
