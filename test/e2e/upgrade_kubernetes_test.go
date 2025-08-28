@@ -18,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("Kubernetes version upgrade in target nodes [k8s-upgrade]", Label("k8s-upgrade"), func() {
+var _ = Describe("Kubernetes version upgrade in target nodes", Label("k8s-upgrade"), func() {
 
 	var (
 		ctx                 = context.TODO()

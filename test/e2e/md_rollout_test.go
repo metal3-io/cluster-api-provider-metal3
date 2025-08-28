@@ -10,7 +10,7 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-var _ = Describe("When testing MachineDeployment rolling upgrades [capi-md-tests]", Label("capi-md-tests"), func() {
+var _ = Describe("When testing MachineDeployment rolling upgrades", Label("capi-md-tests"), func() {
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))

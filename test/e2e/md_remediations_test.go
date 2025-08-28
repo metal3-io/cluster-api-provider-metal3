@@ -15,7 +15,7 @@ const (
 	bmhCrsFile = "bmhosts_crs.yaml"
 )
 
-var _ = Describe("When testing MachineDeployment remediation [healthcheck] [remediation] [features]", Label("healthcheck", "remediation", "features"), func() {
+var _ = Describe("When testing MachineDeployment remediation", Label("healthcheck", "remediation", "features"), func() {
 
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))

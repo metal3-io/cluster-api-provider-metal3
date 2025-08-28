@@ -48,7 +48,7 @@ var (
 	scaleSpecConcurrency int64
 )
 
-var _ = Describe("When testing scalability with fakeIPA and FKAS [scalability]", Label("scalability"), func() {
+var _ = Describe("When testing scalability with fakeIPA and FKAS", Label("scalability"), func() {
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))

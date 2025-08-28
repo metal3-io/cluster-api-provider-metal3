@@ -43,7 +43,7 @@ var (
 	managementClusterNamespace string
 )
 
-var _ = Describe("When testing cluster upgrade from releases (v1.10=>current) [clusterctl-upgrade]", func() {
+var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
 		k8sVersion = "v1.33.0"
 		validateGlobals(specName)
@@ -106,7 +106,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current) [c
 	})
 })
 
-var _ = Describe("When testing cluster upgrade from releases (v1.9=>current) [clusterctl-upgrade]", func() {
+var _ = Describe("When testing cluster upgrade from releases (v1.9=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
 		k8sVersion = "v1.33.0"
 		validateGlobals(specName)

@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("When testing ip reuse [ip-reuse] [features]", Label("ip-reuse", "features"), func() {
+var _ = Describe("When testing ip reuse", Label("ip-reuse", "features"), func() {
 
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))

@@ -73,7 +73,7 @@ var (
  * Finally, the cluster is re-pivoted and cleaned up.
  */
 
-var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [features]", Label("pivoting", "features"),
+var _ = Describe("Testing features in ephemeral or target cluster", Label("pivoting", "features"),
 	func() {
 
 		BeforeEach(func() {

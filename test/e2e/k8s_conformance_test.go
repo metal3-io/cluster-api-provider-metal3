@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("When testing K8S conformance [k8s-conformance]", Label("k8s-conformance"), func() {
+var _ = Describe("When testing K8S conformance", Label("k8s-conformance"), func() {
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
 		Expect(osType).ToNot(Equal(""))
