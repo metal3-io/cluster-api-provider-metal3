@@ -28,6 +28,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
@@ -398,6 +399,18 @@ func (m *MockMachineManagerInterface) SetReadyTrue() {
 func (mr *MockMachineManagerInterfaceMockRecorder) SetReadyTrue() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReadyTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetReadyTrue))
+}
+
+// SetV1beta2Condition mocks base method.
+func (m *MockMachineManagerInterface) SetV1beta2Condition(arg0 string, arg1 v1.ConditionStatus, arg2, arg3 string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetV1beta2Condition", arg0, arg1, arg2, arg3)
+}
+
+// SetV1beta2Condition indicates an expected call of SetV1beta2Condition.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetV1beta2Condition(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetV1beta2Condition", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetV1beta2Condition), arg0, arg1, arg2, arg3)
 }
 
 // UnsetFinalizer mocks base method.
