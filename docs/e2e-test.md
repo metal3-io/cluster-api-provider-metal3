@@ -151,7 +151,7 @@ For example:
 
 Main branch k8s-upgrade tests:
 
-- `v1.32` => `v1.33`
+- `v1.33` => `v1.34`
 
 Release 1.10 branch k8s-upgrade test:
 
@@ -165,8 +165,8 @@ Release 1.8 branch k8s-upgrade test:
 
 - `v1.29` => `v1.30`
 
-When Kubernetes 1.34 is released, k8s-upgrade `v1.33` => `v1.34` will be
-supported in v1.10.x (but not in v1.9.x)
+When Kubernetes 1.35 is released, k8s-upgrade `v1.33` => `v1.34` will be
+supported in v1.11.x (but not in v1.10.x)
 
 ### K8s conformance tests
 
@@ -220,9 +220,9 @@ clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | -------------------- | -------------------- |
-| integration         | v1.33.0           | v1.33.0              | x                    |
-| remediation         | v1.33.0           | v1.33.0              | x                    |
-| pivot based feature | v1.33.0           | v1.33.0              | v1.33.0              |
-| upgrade             | v1.33.0           | v1.33.0              | v1.33.0              |
+| integration         | v1.34.0           | v1.34.0              | x                    |
+| remediation         | v1.34.0           | v1.34.0              | x                    |
+| pivot based feature | v1.34.0           | v1.34.0              | v1.34.0              |
+| upgrade             | v1.34.0           | v1.34.0              | v1.34.0              |
 
 <!-- markdownlint-enable MD013 -->
