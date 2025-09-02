@@ -29,6 +29,20 @@ const (
 	ClusterFinalizer = "metal3cluster.infrastructure.cluster.x-k8s.io"
 )
 
+// Metal3Cluster Conditions and Reasons.
+const (
+	// Metal3ClusterReadyConditionV1Beta2Condition reports the current status of
+	// cluster infrastructure. At the moment this is cosmetic since
+	// Metal3Cluster does not contain any infra setup steps.
+	Metal3ClusterReadyConditionV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
+	// Metal3ClusterReadyConditionV1Beta2Reason surfaces when the cluster modules for a Metal3Cluster are ready.
+	Metal3ClusterReadyConditionV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	// Metal3ClusterNotReadyConditionV1Beta2Reason surfaces when the Metal3Cluster readiness criteria is not met.
+	ControlPlaneEndpointFailedReasonV1Beta2Reason = "ControlPlaneEndpointFailed"
+	FailedToGetOwnerClusterReasonV1Beta2Reason    = "FailedToGetOwnerCluster"
+	Metal3ClusterDeletingV1Beta2Reason            = clusterv1beta1.DeletingReason
+)
+
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.
 type Metal3ClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
@@ -96,6 +110,21 @@ type Metal3ClusterStatus struct {
 	// Conditions defines current service state of the Metal3Cluster.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+	// v1beta2 groups all the fields that will be added or modified in Metal3Cluster's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *Metal3ClusterV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// Metal3ClusterV1Beta2Status groups all the fields that will be added or modified in Metal3ClusterStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type Metal3ClusterV1Beta2Status struct {
+	// conditions represents the observations of a Metal3Cluster's current state.
+	// Known condition types are Ready, FailureDomainsReady, VCenterAvailable, ClusterModulesReady and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -138,6 +167,22 @@ func (c *Metal3Cluster) GetConditions() clusterv1beta1.Conditions {
 // SetConditions will set the given conditions on an Metal3Cluster object.
 func (c *Metal3Cluster) SetConditions(conditions clusterv1beta1.Conditions) {
 	c.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (c *Metal3Cluster) GetV1Beta2Conditions() []metav1.Condition {
+	if c.Status.V1Beta2 == nil {
+		return nil
+	}
+	return c.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (c *Metal3Cluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if c.Status.V1Beta2 == nil {
+		c.Status.V1Beta2 = &Metal3ClusterV1Beta2Status{}
+	}
+	c.Status.V1Beta2.Conditions = conditions
 }
 
 func init() {
