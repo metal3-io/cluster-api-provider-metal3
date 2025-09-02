@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -114,7 +114,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if capiMachine == nil {
 		machineLog.Info("Waiting for Machine Controller to set OwnerRef on Metal3Machine")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForMetal3MachineOwnerRefReason, clusterv1beta1.ConditionSeverityInfo, "")
-		deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
+		v1beta2conditions.Set(capm3Machine, metav1.Condition{
 			Type:    infrav1.AssociateBareMetalHostV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.WaitingForMetal3MachineOwnerRefV1Beta2Reason,
@@ -140,7 +140,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if infrastructureReadyCondition.Status != corev1.ConditionTrue {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
-		deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
+		v1beta2conditions.Set(capm3Machine, metav1.Condition{
 			Type:    infrav1.AssociateBareMetalHostV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.WaitingForClusterInfrastructureReadyV1Beta2Reason,
@@ -158,7 +158,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err = r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create the Metal3Cluster")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingforMetal3ClusterReason, clusterv1beta1.ConditionSeverityInfo, "")
-		deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
+		v1beta2conditions.Set(capm3Machine, metav1.Condition{
 			Type:    infrav1.AssociateBareMetalHostV1Beta2Condition,
 			Status:  metav1.ConditionFalse,
 			Reason:  infrav1.WaitingforMetal3ClusterV1Beta2Reason,
@@ -184,7 +184,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			machineLog.Info("failed to set pause annotation on associated bmh")
 			v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationSetFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
 			message := "Failed to set pause annotation on associated BareMetalHost. Error: " + err.Error()
-			deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
+			v1beta2conditions.Set(capm3Machine, metav1.Condition{
 				Type:    clusterv1beta1.PausedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.BareMetalHostPauseAnnotationSetFailedV1Beta2Reason,
@@ -198,7 +198,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			machineLog.Info("failed to check pause annotation on associated bmh")
 			v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationRemoveFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
 			message := "Failed to remove pause annotation on associated BareMetalHost. Error: " + err.Error()
-			deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
+			v1beta2conditions.Set(capm3Machine, metav1.Condition{
 				Type:    clusterv1beta1.PausedV1Beta2Condition,
 				Status:  metav1.ConditionFalse,
 				Reason:  infrav1.BareMetalHostPauseAnnotationRemoveFailedV1Beta2Reason,
@@ -206,7 +206,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			})
 			return ctrl.Result{}, nil
 		}
-		deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
+		v1beta2conditions.Set(capm3Machine, metav1.Condition{
 			Type:   clusterv1beta1.PausedV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1beta1.NotPausedV1Beta2Reason,
@@ -217,7 +217,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if annotations.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.Metal3MachinePausedReason, clusterv1beta1.ConditionSeverityInfo, "")
-		deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
+		v1beta2conditions.Set(capm3Machine, metav1.Condition{
 			Type:   clusterv1beta1.PausedV1Beta2Condition,
 			Status: metav1.ConditionTrue,
 			Reason: clusterv1beta1.PausedV1Beta2Reason,
@@ -244,17 +244,17 @@ func patchMetal3Machine(ctx context.Context, patchHelper *v1beta1patch.Helper, m
 		),
 	)
 
-	if err := deprecatedv1beta2conditions.SetSummaryCondition(metal3Machine, metal3Machine, infrav1.Metal3MachineReadyV1Beta2Condition,
-		deprecatedv1beta2conditions.ForConditionTypes{
+	if err := v1beta2conditions.SetSummaryCondition(metal3Machine, metal3Machine, infrav1.Metal3MachineReadyV1Beta2Condition,
+		v1beta2conditions.ForConditionTypes{
 			infrav1.AssociateBareMetalHostV1Beta2Condition,
 			infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,
 			infrav1.Metal3DataReadyV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
-		deprecatedv1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: deprecatedv1beta2conditions.DefaultMergeStrategy(
+		v1beta2conditions.CustomMergeStrategy{
+			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
 				// Use custom reasons.
-				deprecatedv1beta2conditions.ComputeReasonFunc(deprecatedv1beta2conditions.GetDefaultComputeMergeReasonFunc(
+				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
 					infrav1.Metal3MachineNotReadyV1Beta2Reason,
 					infrav1.Metal3MachineReadyUnknownV1Beta2Reason,
 					infrav1.Metal3MachineReadyV1Beta2Reason,
