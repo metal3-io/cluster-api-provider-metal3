@@ -434,3 +434,17 @@ func evaluateTestError(expected *string, actual error) {
 		Expect(actual.Error()).To(ContainSubstring(*expected))
 	}
 }
+
+func Metal3ClusterStatusWithPausedConditionFalse() *infrav1.Metal3ClusterStatus {
+	return &infrav1.Metal3ClusterStatus{
+		V1Beta2: &infrav1.Metal3ClusterV1Beta2Status{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1beta1.PausedV1Beta2Condition,
+					Status: metav1.ConditionFalse,
+					Reason: clusterv1beta1.NotPausedV1Beta2Reason,
+				},
+			},
+		},
+	}
+}
