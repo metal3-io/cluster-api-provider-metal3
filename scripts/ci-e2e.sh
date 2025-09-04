@@ -22,6 +22,7 @@ else
     export IPAMRELEASE="v1.11.99"
     export CAPI_RELEASE_PREFIX="v1.11."
     # Hard code CAPI_RELEASE for now, as we are not using the latest CAPI release
+    # on all of tests on the main branch.
     export CAPIRELEASE="v1.11.1"
 fi
 
@@ -35,8 +36,8 @@ source "${REPO_ROOT}/scripts/environment.sh"
 # Clone dev-env repo
 sudo mkdir -p ${WORKING_DIR}
 sudo chown "${USER}":"${USER}" ${WORKING_DIR}
-M3_DEV_ENV_REPO="https://github.com/metal3-io/metal3-dev-env.git"
-M3_DEV_ENV_BRANCH=main
+M3_DEV_ENV_REPO="https://github.com/Nordix/metal3-dev-env.git"
+M3_DEV_ENV_BRANCH=erja/capi-nightly-builds
 M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
@@ -52,9 +53,17 @@ export USE_IRSO="${USE_IRSO:-false}"
 EOF
 
 case "${GINKGO_FOCUS:-}" in
-  clusterctl-upgrade|k8s-upgrade|basic|integration|remediation|k8s-conformance|capi-md-tests)
-    # if running basic, integration, k8s upgrade, clusterctl-upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
+  k8s-upgrade|basic|remediation|k8s-conformance|capi-md-tests)
+    # if running basic, k8s upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+  ;;
+
+  clusterctl-upgrade|integration)
+    # if running clusterctl-upgrade or integration tests, use CAPI nightly builds and skip apply bmhs in dev-env
+    export DATE=$(date '+%Y%m%d' -d "1 day ago")
+    export CAPIRELEASE="v1.11.99"
+    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo 'export CAPI_NIGHTLY_BUILD="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 
   features)
