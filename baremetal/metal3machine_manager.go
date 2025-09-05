@@ -1639,6 +1639,7 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		m.Metal3Machine.Name, m.Metal3Machine.Namespace,
 	)
 	if err != nil {
+		m.Log.Info("Unable to fetch Metal3DataClaim", err, metal3DataClaim.Name)
 		var reconcileError ReconcileError
 		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			return err
