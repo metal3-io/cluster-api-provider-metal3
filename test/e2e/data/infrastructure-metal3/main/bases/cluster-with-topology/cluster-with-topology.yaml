@@ -96,11 +96,13 @@ spec:
     networks:
       ipv4:
       - id: baremetalv4
-        ipAddressFromIPPool: ${CLUSTER_NAME}-baremetalv4-pool
+        fromPoolRef:
+          name: ${CLUSTER_NAME}-baremetalv4-pool
         link: enp2s0
         routes:
         - gateway:
-            fromIPPool: ${CLUSTER_NAME}-baremetalv4-pool
+            fromPoolRef:
+              name: ${CLUSTER_NAME}-baremetalv4-pool
           network: 0.0.0.0
           prefix: 0
     services:

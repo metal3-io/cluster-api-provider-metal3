@@ -2893,6 +2893,13 @@ var _ = Describe("Metal3Data manager", func() {
 					DNSFromIPPool: ptr.To("abc"),
 				},
 			},
+			{
+				Gateway: infrav1.NetworkGatewayv4{
+					FromPoolRef: &corev1.TypedLocalObjectReference{
+						Name: "abc",
+					},
+				},
+			},
 		}
 		poolAddresses := map[string]addressFromPool{
 			"abc": {
@@ -2928,6 +2935,12 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
+			map[string]interface{}{
+				"network":  ipamv1.IPAddressv4Str(""),
+				"netmask":  ipamv1.IPAddressv4Str("0.0.0.0"),
+				"gateway":  ipamv1.IPAddressv4Str("192.168.2.1"),
+				"services": []interface{}{},
+			},
 		}
 		output, err := getRoutesv4(netRoutes, poolAddresses)
 		Expect(output).To(Equal(ExpectedOutput))
@@ -2957,6 +2970,13 @@ var _ = Describe("Metal3Data manager", func() {
 						ipamv1.IPAddressv6Str("fe80:2001::8844"),
 					},
 					DNSFromIPPool: ptr.To("abc"),
+				},
+			},
+			{
+				Gateway: infrav1.NetworkGatewayv6{
+					FromPoolRef: &corev1.TypedLocalObjectReference{
+						Name: "abc",
+					},
 				},
 			},
 		}
@@ -2993,6 +3013,12 @@ var _ = Describe("Metal3Data manager", func() {
 						"address": ipamv1.IPAddressStr("fe80:2001::1111"),
 					},
 				},
+			},
+			map[string]interface{}{
+				"network":  ipamv1.IPAddressv6Str(""),
+				"netmask":  ipamv1.IPAddressv6Str("::"),
+				"gateway":  ipamv1.IPAddressv6Str("fe80::1"),
+				"services": []interface{}{},
 			},
 		}
 		output, err := getRoutesv6(netRoutes, poolAddresses)

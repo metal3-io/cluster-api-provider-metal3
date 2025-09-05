@@ -357,9 +357,13 @@ type NetworkGatewayv4 struct {
 	// +optional
 	String *ipamv1.IPAddressv4Str `json:"string,omitempty"`
 
-	// FromIPPool is the name of the IPPool to fetch the gateway from
+	// FromIPPool is the name of the IPPool to fetch the gateway from.
+	// Deprecated: This field is deprecated, use fromPoolRef instead
 	// +optional
 	FromIPPool *string `json:"fromIPPool,omitempty"`
+
+	// FromPoolRef is a reference to a IP pool to fetch the gateway from
+	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
 }
 
 // NetworkGatewayv6 represents a gateway, given as a string or as a reference to
@@ -370,9 +374,13 @@ type NetworkGatewayv6 struct {
 	// +optional
 	String *ipamv1.IPAddressv6Str `json:"string,omitempty"`
 
-	// FromIPPool is the name of the IPPool to fetch the gateway from
+	// FromIPPool is the name of the IPPool to fetch the gateway from.
+	// Deprecated: This field is deprecated, use fromPoolRef instead
 	// +optional
 	FromIPPool *string `json:"fromIPPool,omitempty"`
+
+	// FromPoolRef is a reference to a IP pool to fetch the gateway from
+	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object.
@@ -420,7 +428,8 @@ type NetworkDataIPv4 struct {
 	// Link is the link on which the network applies
 	Link string `json:"link"`
 
-	// IPAddressFromIPPool contains the name of the IP pool to use to get an ip address
+	// IPAddressFromIPPool contains the name of the IP pool to use to get an ip address.
+	// Deprecated: This field is deprecated, use fromPoolRef instead
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool,omitempty"`
 
 	// FromPoolRef is a reference to a IP pool to allocate an address from.
@@ -440,7 +449,8 @@ type NetworkDataIPv6 struct {
 	// Link is the link on which the network applies
 	Link string `json:"link"`
 
-	// IPAddressFromIPPool contains the name of the IPPool to use to get an ip address
+	// IPAddressFromIPPool contains the name of the IPPool to use to get an ip address.
+	// Deprecated: This field is deprecated, use fromPoolRef instead
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// FromPoolRef is a reference to a IP pool to allocate an address from.
