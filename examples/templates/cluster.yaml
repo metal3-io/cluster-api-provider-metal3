@@ -27,6 +27,8 @@ spec:
     ipAddressesFromIPPool:
       - key: ip_1
         name: pool1
+        # apiGroup: ipam.metal3.io
+        # kind: IPPool
       - key: ip_2
         name: pool2
       - key: ip6_1
@@ -36,6 +38,8 @@ spec:
     prefixesFromIPPool:
       - key: prefix_1
         name: pool1
+        # apiGroup: ipam.metal3.io
+        # kind: IPPool
       - key: prefix_2
         name: pool2
       - key: prefix6_1
@@ -45,6 +49,8 @@ spec:
     gatewaysFromIPPool:
       - key: gateway_1
         name: pool1
+        # apiGroup: ipam.metal3.io
+        # kind: IPPool
       - key: gateway_2
         name: pool2
       - key: gateway6_1
@@ -72,12 +78,18 @@ spec:
       ipv4:
         - id: baremetal
           link: enp2s0
-          ipAddressFromIPPool: pool1
+          fromPoolRef:
+            name: pool1
+            # apiGroup: ipam.metal3.io
+            # kind: IPPool
           routes:
             - network: 0.0.0.0
               prefix: 0
               gateway:
-                fromIPPool: pool1
+                fromPoolRef:
+                  name: pool1
+                  # apiGroup: ipam.metal3.io
+                  # kind: IPPool
               services:
                 dns:
                   - 8.8.4.4
@@ -114,6 +126,8 @@ spec:
     ipAddressesFromIPPool:
       - key: ip_1
         name: pool1
+        # apiGroup: ipam.metal3.io
+        # kind: IPPool
       - key: ip_2
         name: pool2
       - key: ip6_1
@@ -123,6 +137,8 @@ spec:
     prefixesFromIPPool:
       - key: prefix_1
         name: pool1
+        # apiGroup: ipam.metal3.io
+        # kind: IPPool
       - key: prefix_2
         name: pool2
       - key: prefix6_1
@@ -132,6 +148,8 @@ spec:
     gatewaysFromIPPool:
       - key: gateway_1
         name: pool1
+        # apiGroup: ipam.metal3.io
+        # kind: IPPool
       - key: gateway_2
         name: pool2
       - key: gateway6_1
@@ -159,12 +177,18 @@ spec:
       ipv4:
         - id: baremetal
           link: enp2s0
-          ipAddressFromIPPool: pool1
+          fromPoolRef:
+            name: pool1
+            # apiGroup: ipam.metal3.io
+            # kind: IPPool
           routes:
             - network: 0.0.0.0
               prefix: 0
               gateway:
-                fromIPPool: pool1
+                fromPoolRef:
+                  name: pool1
+                  # apiGroup: ipam.metal3.io
+                  # kind: IPPool
               services:
                 dns:
                   - 8.8.4.4

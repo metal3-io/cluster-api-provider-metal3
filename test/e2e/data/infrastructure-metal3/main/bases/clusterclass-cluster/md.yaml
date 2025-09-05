@@ -49,11 +49,13 @@ spec:
     networks:
       ipv4:
       - id: baremetalv4
-        ipAddressFromIPPool: baremetalv4-pool
+        fromPoolRef:
+          name: baremetalv4-pool
         link: enp2s0
         routes:
         - gateway:
-            fromIPPool: baremetalv4-pool
+            fromPoolRef:
+              name: baremetalv4-pool
           network: 0.0.0.0
           prefix: 0
     services:
