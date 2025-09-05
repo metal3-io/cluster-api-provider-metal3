@@ -6,9 +6,9 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.0.4+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.9.2
+	github.com/metal3-io/baremetal-operator/apis v0.9.3
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.9.5
+	github.com/metal3-io/ip-address-manager/api v1.9.6
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.36.3
 	github.com/pkg/errors v0.9.1
@@ -96,7 +96,7 @@ require (
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 // indirect
+	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.3 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
