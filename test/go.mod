@@ -6,9 +6,9 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.10.2
+	github.com/metal3-io/baremetal-operator/apis v0.10.3
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.10.1
+	github.com/metal3-io/ip-address-manager/api v1.10.2
 	github.com/metal3-io/ironic-standalone-operator/api v0.0.0-20250402103806-d91a8f698be5
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
@@ -98,7 +98,7 @@ require (
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.1 // indirect
+	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.10.3 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
