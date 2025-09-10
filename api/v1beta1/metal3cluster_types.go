@@ -50,6 +50,25 @@ type Metal3ClusterSpec struct {
 	// Default value is true, it is set in the webhook.
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
+
+	// FailureDomains specifies a list fo failure zones that can be used
+	// +optional
+	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
+}
+
+// FailureDomains is a slice of FailureDomainSpecs.
+type FailureDomains map[string]FailureDomainSpec
+
+// FailureDomainSpec is the Schema for Cluster API failure domains.
+// It allows controllers to understand how many failure domains a cluster can optionally span across.
+type FailureDomainSpec struct {
+	// ControlPlane determines if this failure domain is suitable for use by control plane machines.
+	// +optional
+	ControlPlane bool `json:"controlPlane"`
+
+	// Attributes is a free form map of attributes an infrastructure provider might use or require.
+	// +optional
+	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
@@ -96,6 +115,10 @@ type Metal3ClusterStatus struct {
 	// Conditions defines current service state of the Metal3Cluster.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
+	// FailureDomains specifies a list fo failure zones that can be used
+	// +optional
+	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
