@@ -20,6 +20,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -50,6 +51,16 @@ type Metal3ClusterSpec struct {
 	// Default value is true, it is set in the webhook.
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
+
+	// FailureDomains specifies the failure domains available in the cluster.
+	// This will be used by Cluster API to try and spread the control plane
+	// machines across failure domains
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1beta2.FailureDomain `json:"failureDomains,omitempty"`
 }
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
@@ -96,6 +107,16 @@ type Metal3ClusterStatus struct {
 	// Conditions defines current service state of the Metal3Cluster.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
+	// FailureDomains specifies the failure domains available in the cluster.
+	// This will be used by Cluster API to try and spread the control plane
+	// machines across failure domains
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1beta2.FailureDomain `json:"failureDomains,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

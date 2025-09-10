@@ -25,6 +25,7 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -107,6 +108,12 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			rerr = err
 		}
 	}()
+
+	// Set FailureDomains to status if it is not already set
+	if !equality.Semantic.DeepEqual(metal3Cluster.Spec.FailureDomains, metal3Cluster.Status.FailureDomains) {
+		metal3Cluster.Status.FailureDomains = metal3Cluster.Spec.FailureDomains
+		//return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	}
 
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, metal3Cluster.ObjectMeta)
