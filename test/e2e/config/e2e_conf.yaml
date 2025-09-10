@@ -187,7 +187,7 @@ providers:
       targetName: "cluster-template-ubuntu-md-remediation.yaml"
 
 variables:
-  CNI: "/tmp/calico.yaml"
+  CNI: "/tmp/cni.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.34.0}"
   # KUBERNETES_PATCH_FROM_VERSION and KUBERNETES_PATCH_TO_VERSION are used to
@@ -217,8 +217,11 @@ variables:
   UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
 
   PROVIDER_ID_FORMAT: "metal3://{{ ds.meta_data.providerid }}"
+  CNI_NAME: "${CNI_NAME:-calico}"
   # Pin Calico version
-  CALICO_PATCH_RELEASE: "v3.25.2"
+  CALICO_VERSION: "${CALICO_VERSION:-v3.30.3}"
+  # Pin Cilium version 
+  CILIUM_VERSION: "${CILIUM_VERSION:-v1.18.0}"
   # Pin CertManager for upgrade tests
   CERT_MANAGER_RELEASE: v1.17.1
   # Default vars for the template, those values could be overridden by the env-vars.
