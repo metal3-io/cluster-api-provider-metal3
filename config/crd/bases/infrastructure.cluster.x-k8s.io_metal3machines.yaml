@@ -134,6 +134,10 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
+              failureDomain:
+                description: FailureDomain is the failure domain unique identifier
+                  this Machine should be attached to, as defined in Cluster API.
+                type: string
               hostSelector:
                 description: |-
                   HostSelector specifies matching criteria for labels on BareMetalHosts.
