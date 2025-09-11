@@ -1,0 +1,12 @@
+kind: Kustomization
+namespace: ${IRONIC_NAMESPACE}
+
+resources:
+- ../../base
+
+components:
+- ../../components/basic-auth
+- ../../components/tls
+
+patches:
+- path: ironic.yaml

@@ -118,11 +118,11 @@ var _ = Describe("Testing features in target cluster", Label("pivoting", "featur
 				}
 			})
 
-			certRotation(ctx, func() CertRotationInput {
+			CertRotation(ctx, func() CertRotationInput {
 				return CertRotationInput{
-					E2EConfig:         e2eConfig,
-					ManagementCluster: managementCluster,
-					SpecName:          specName,
+					E2EConfig:    e2eConfig,
+					ClusterProxy: managementCluster,
+					SpecName:     specName,
 				}
 			})
 

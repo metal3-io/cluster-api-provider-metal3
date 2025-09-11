@@ -1,0 +1,18 @@
+kind: Kustomization
+namespace: ${IRONIC_NAMESPACE}
+
+resources:
+- ../../base
+
+components:
+- ../../components/basic-auth
+- ../../components/tls
+
+patches:
+- target:
+    kind: Ironic
+    name: ironic
+  patch: |-
+    - op: replace
+      path: /spec/version
+      value: "31.0"
