@@ -184,6 +184,8 @@ update_kustomize_image quay.io/metal3-io/ironic IRONIC_IMAGE "${REPO_ROOT}"/test
 # Apply envsubst to kustomization.yaml files in BMO and Ironic overlays
 kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
 kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-deployment/overlays/pr-test
+kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/operator
+kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic
 
 # Create usernames and passwords and other files related to ironi basic auth if they
 # are missing
