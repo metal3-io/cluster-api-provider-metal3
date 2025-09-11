@@ -141,6 +141,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 		"bmh",
 		"hardwaredata",
 		"cluster",
+		"clusterclass",
 		"machine",
 		"machinedeployment",
 		"machinehealthchecks",
@@ -158,6 +159,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 		"m3data",
 		"m3dataclaim",
 		"m3datatemplate",
+		"ironic",
 	}
 	client := clusterProxy.GetClient()
 
