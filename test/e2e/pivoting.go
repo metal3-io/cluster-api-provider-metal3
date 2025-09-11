@@ -37,6 +37,7 @@ const (
 	ironicNamespace              = "IRONIC_NAMESPACE"
 	clusterLogCollectionBasePath = "/tmp/target_cluster_logs"
 	Metal3ipamProviderName       = "metal3"
+	IRSOControllerNameSpace      = "ironic-standalone-operator-system"
 )
 
 type PivotingInput struct {
@@ -108,7 +109,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 
 	By("Remove Ironic containers from the source cluster")
-	ironicDeploymentType := IronicDeploymentTypeBMO
+	ironicDeploymentType := IronicDeploymentTypeIrSO
 	if bootstrapCluster == Kind {
 		ironicDeploymentType = IronicDeploymentTypeLocal
 	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
@@ -122,16 +123,6 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			NamePrefix:        input.E2EConfig.MustGetVariable(NamePrefix),
 		}
 	})
-
-	By("Create Ironic namespace")
-	targetClusterClientSet := input.TargetCluster.GetClientSet()
-	ironicNamespaceObj := &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: input.E2EConfig.MustGetVariable(ironicNamespace),
-		},
-	}
-	_, err = targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespaceObj, metav1.CreateOptions{})
-	Expect(err).ToNot(HaveOccurred(), "Unable to create the Ironic namespace")
 
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
@@ -152,20 +143,14 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Add Labels to hardwareData CRDs")
 	labelHDCRDs(ctx, input.BootstrapClusterProxy)
 
-	By("Install Ironic in the target cluster")
-	// TODO(dtantsur): support ironic-standalone-operator
-	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
-	ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_PR_TEST")
-	By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", ironicKustomization))
-	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
-		Kustomization:       ironicKustomization,
-		ClusterProxy:        input.TargetCluster,
-		WaitForDeployment:   true,
-		WatchDeploymentLogs: true,
-		LogPath:             ironicDeployLogFolder,
-		DeploymentName:      "baremetal-operator-ironic",
-		DeploymentNamespace: ironicNamespaceObj.Name,
-		WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
+	By("Pivoting: Install IRSO in the target cluster")
+	err = InstallIRSO(ctx, InstallIRSOInput{
+		E2EConfig:             input.E2EConfig,
+		ClusterProxy:          input.TargetCluster,
+		IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
+		ClusterName:           input.TargetCluster.GetName(),
+		IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST"),
+		IronicKustomize:       input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST"),
 	})
 	Expect(err).NotTo(HaveOccurred())
 
@@ -180,15 +165,11 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		WatchDeploymentLogs: true,
 		LogPath:             bmoDeployLogFolder,
 		DeploymentName:      "baremetal-operator-controller-manager",
-		DeploymentNamespace: ironicNamespaceObj.Name,
+		DeploymentNamespace: input.E2EConfig.MustGetVariable(ironicNamespace),
 		WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	By("Add labels to BMO CRDs in the target cluster")
-	labelBMOCRDs(ctx, input.TargetCluster)
-	By("Add Labels to hardwareData CRDs in the target cluster")
-	labelHDCRDs(ctx, input.TargetCluster)
 	By("Ensure API servers are stable before doing move")
 	// Nb. This check was introduced to prevent doing move to self-hosted in an aggressive way and thus avoid flakes.
 	// More specifically, we were observing the test failing to get objects from the API server during move, so we
@@ -264,7 +245,6 @@ type IronicDeploymentType string
 
 const (
 	IronicDeploymentTypeLocal IronicDeploymentType = "local"
-	IronicDeploymentTypeBMO   IronicDeploymentType = "deploy.sh"
 	IronicDeploymentTypeIrSO  IronicDeploymentType = "irso"
 )
 
@@ -277,16 +257,7 @@ type RemoveIronicInput struct {
 
 func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
-	if input.DeploymentType == IronicDeploymentTypeBMO {
-		deploymentName := input.NamePrefix + ironicSuffix
-		RemoveDeployment(ctx, func() RemoveDeploymentInput {
-			return RemoveDeploymentInput{
-				ManagementCluster: input.ManagementCluster,
-				Namespace:         input.Namespace,
-				Name:              deploymentName,
-			}
-		})
-	} else if input.DeploymentType == IronicDeploymentTypeIrSO {
+	if input.DeploymentType == IronicDeploymentTypeIrSO {
 		// NOTE(dtantsur): metal3-dev-env hardcodes the name "ironic".
 		ironicObj := &irsov1alpha1.Ironic{
 			ObjectMeta: metav1.ObjectMeta{
@@ -331,21 +302,22 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 	Expect(err).ToNot(HaveOccurred(), "Failed to delete %s Deployment", deploymentName)
 }
 
-func labelBMOCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
+func labelBMOCRDs(ctx context.Context, clusterProxy framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterv1.ProviderNameLabel] = "metal3"
+	labels[clusterctlv1.ClusterctlMoveLabel] = ""
+	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
 	crdName := "baremetalhosts.metal3.io"
-	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
+	err := LabelCRD(ctx, clusterProxy.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label BMH CRDs")
 }
 
-func labelHDCRDs(ctx context.Context, targetCluster framework.ClusterProxy) {
+func labelHDCRDs(ctx context.Context, clusterProxy framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
 	labels[clusterctlv1.ClusterctlMoveLabel] = ""
 	crdName := "hardwaredata.metal3.io"
-	err := LabelCRD(ctx, targetCluster.GetClient(), crdName, labels)
+	err := LabelCRD(ctx, clusterProxy.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label HD CRDs")
 }
 
@@ -381,17 +353,20 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	}
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 
-	By("Remove Ironic deployment from target cluster")
-	ironicDeploymentType := IronicDeploymentTypeBMO
-	// TODO(dtantsur): support USE_IRSO in the target cluster
-	removeIronic(ctx, func() RemoveIronicInput {
-		return RemoveIronicInput{
-			ManagementCluster: input.TargetCluster,
-			DeploymentType:    ironicDeploymentType,
-			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
-			NamePrefix:        input.E2EConfig.MustGetVariable(NamePrefix),
-		}
-	})
+	By("Add labels to BMO CRDs in the target cluster")
+	labelBMOCRDs(ctx, input.TargetCluster)
+	By("Add Labels to hardwareData CRDs in the target cluster")
+	labelHDCRDs(ctx, input.TargetCluster)
+
+	By("Remove Ironic CR in the target cluster")
+	ironicKustomization := input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST")
+	err = BuildAndRemoveKustomization(ctx, ironicKustomization, input.TargetCluster)
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Remove IRSO in the target cluster")
+	irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
+	err = BuildAndRemoveKustomization(ctx, irsoKustomization, input.TargetCluster)
+	Expect(err).NotTo(HaveOccurred())
 
 	By("Reinstate Ironic containers and BMH")
 	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
@@ -405,26 +380,22 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Logf("Output: %s", stdoutStderr)
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {
-		By("Install Ironic in the bootstrap cluster")
-		ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_PR_TEST")
-		ironicDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
-		err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
-			Kustomization:       ironicKustomization,
-			ClusterProxy:        input.BootstrapClusterProxy,
-			WaitForDeployment:   true,
-			WatchDeploymentLogs: true,
-			LogPath:             ironicDeployLogFolder,
-			DeploymentName:      "baremetal-operator-ironic",
-			DeploymentNamespace: input.E2EConfig.MustGetVariable(ironicNamespace),
-			WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
+		By("Repivoting: Install IRSO in the bootstrap cluster")
+		err = InstallIRSO(ctx, InstallIRSOInput{
+			E2EConfig:             input.E2EConfig,
+			ClusterProxy:          input.BootstrapClusterProxy,
+			IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
+			ClusterName:           input.BootstrapClusterProxy.GetName(),
+			IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST"),
+			IronicKustomize:       input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST"),
 		})
 		Expect(err).NotTo(HaveOccurred())
 	}
 
-	By("Reinstate BMO in Source cluster")
+	By("Reinstate BMO in bootstrap cluster")
 	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_PR_TEST")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "bmo-deploy-logs", input.TargetCluster.GetName())
-	By(fmt.Sprintf("Installing BMO from kustomization %s on the source cluster", bmoKustomization))
+	By(fmt.Sprintf("Installing BMO from kustomization %s on the bootstrap cluster", bmoKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       bmoKustomization,
 		ClusterProxy:        input.BootstrapClusterProxy,
@@ -444,7 +415,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	Consistently(func() error {
 		kubeSystem := &corev1.Namespace{}
 		return input.BootstrapClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
-	}, "5s", "100ms").Should(Succeed(), "Failed to assert bootstrap API server stability")
+	}, "15s", "100ms").Should(Succeed(), "Failed to assert bootstrap API server stability")
 
 	By("Move back to bootstrap cluster")
 	clusterctl.Move(ctx, clusterctl.MoveInput{

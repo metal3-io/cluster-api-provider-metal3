@@ -81,6 +81,16 @@ var _ = Describe("When testing integration", Label("integration"), func() {
 	})
 
 	AfterEach(func() {
+		By("Fetch manifest for targetCluster cluster before pivot")
+		err := FetchManifests(targetCluster, "/tmp/manifests/")
+		if err != nil {
+			Logf("Error fetching manifests for targetCluster cluster before pivot: %v", err)
+		}
+		By("Fetch manifest for bootstrapCluster cluster before pivot")
+		err = FetchManifests(bootstrapClusterProxy, "/tmp/manifests/")
+		if err != nil {
+			Logf("Error fetching manifests for bootstrapCluster cluster before pivot: %v", err)
+		}
 		DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup, clusterctlConfigPath)
 	})
 })

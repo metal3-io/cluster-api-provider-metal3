@@ -24,6 +24,7 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
+	irsov1alpha1 "github.com/metal3-io/ironic-standalone-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -1226,4 +1227,96 @@ func IsMetal3DataCountEqualToMachineCount(ctx context.Context, c client.Client, 
 	}
 
 	return len(m3DataList.Items) == len(machineList.Items)
+}
+
+type InstallIRSOInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	ClusterProxy          framework.ClusterProxy
+	IronicNamespace       string
+	ClusterName           string
+	IrsoOperatorKustomize string
+	IronicKustomize       string
+}
+
+func InstallIRSO(ctx context.Context, input InstallIRSOInput) error {
+	By("Create Ironic namespace")
+	targetClusterClientSet := input.ClusterProxy.GetClientSet()
+	ironicNamespaceObj := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: input.IronicNamespace,
+		},
+	}
+	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespaceObj, metav1.CreateOptions{})
+	if err != nil {
+		if apierrors.IsAlreadyExists(err) {
+			Logf("Ironic namespace %q already exists, continuing", input.IronicNamespace)
+		} else {
+			Expect(err).ToNot(HaveOccurred(), "Unable to create the Ironic namespace")
+		}
+	}
+
+	irsoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.ClusterProxy.GetName())
+	By(fmt.Sprintf("Installing IRSO from kustomization %s on the target cluster", input.IrsoOperatorKustomize))
+	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+		Kustomization:       input.IrsoOperatorKustomize,
+		ClusterProxy:        input.ClusterProxy,
+		WaitForDeployment:   true,
+		WatchDeploymentLogs: true,
+		LogPath:             irsoDeployLogFolder,
+		DeploymentName:      "ironic-standalone-operator-controller-manager",
+		DeploymentNamespace: IRSOControllerNameSpace,
+		WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Install Ironic CR in the target cluster")
+	By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", input.IronicKustomize))
+	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+		Kustomization:       input.IronicKustomize,
+		ClusterProxy:        input.ClusterProxy,
+		WaitForDeployment:   false,
+		WatchDeploymentLogs: false,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	WaitForIronicReady(ctx, WaitForIronicInput{
+		Client:    input.ClusterProxy.GetClient(),
+		Name:      "ironic",
+		Namespace: input.IronicNamespace,
+		Intervals: input.E2EConfig.GetIntervals("default", "wait-deployment"),
+	})
+	return nil
+}
+
+// WaitForIronicReady waits until the given Ironic resource has Ready condition = True.
+func WaitForIronicReady(ctx context.Context, input WaitForIronicInput) {
+	Logf("Waiting for Ironic %q to be Ready", input.Name)
+
+	Eventually(func(g Gomega) {
+		ironic := &irsov1alpha1.Ironic{}
+		err := input.Client.Get(ctx, client.ObjectKey{
+			Namespace: input.Namespace,
+			Name:      input.Name,
+		}, ironic)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		ready := false
+		for _, cond := range ironic.Status.Conditions {
+			if cond.Type == string(irsov1alpha1.IronicStatusReady) && cond.Status == metav1.ConditionTrue && ironic.Status.InstalledVersion != "" {
+				ready = true
+				break
+			}
+		}
+		g.Expect(ready).To(BeTrue(), "Ironic %q is not Ready yet", input.Name)
+	}, input.Intervals...).Should(Succeed())
+
+	Logf("Ironic %q is Ready", input.Name)
+}
+
+// WaitForIronicInput bundles the parameters for WaitForIronicReady.
+type WaitForIronicInput struct {
+	Client    client.Client
+	Name      string
+	Namespace string
+	Intervals []interface{} // e.g. []interface{}{time.Minute * 15, time.Second * 5}
 }
