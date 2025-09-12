@@ -25,6 +25,7 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -168,13 +169,25 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 
 // SetupWithManager will add watches for this controller.
 func (r *Metal3DataReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.Metal3Data{}).
-		WithOptions(options).
-		Watches(
-			&ipamv1.IPClaim{},
-			handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
-		).
+		WithOptions(options)
+	// Test for IPClaim existence
+	ipClaimList := &ipamv1.IPClaimList{}
+	err := r.Client.List(ctx, ipClaimList, client.Limit(1))
+	if err != nil {
+		if !meta.IsNoMatchError(err) {
+			return err
+		}
+		ctrl.LoggerFrom(ctx).Info("IPClaim CRD not found, skipping watch")
+	} else {
+		builder = builder.
+			Watches(
+				&ipamv1.IPClaim{},
+				handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
+			)
+	}
+	return builder.
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
