@@ -152,22 +152,38 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	By("Add Labels to hardwareData CRDs")
 	labelHDCRDs(ctx, input.BootstrapClusterProxy)
 
-	By("Install Ironic in the target cluster")
-	// TODO(dtantsur): support ironic-standalone-operator
-	ironicDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
-	ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_PR_TEST")
-	By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", ironicKustomization))
+	By("Install IRSO in the target cluster")
+	irsoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
+	irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
+	By(fmt.Sprintf("Installing IRSO from kustomization %s on the target cluster", irsoKustomization))
 	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
-		Kustomization:       ironicKustomization,
+		Kustomization:       irsoKustomization,
 		ClusterProxy:        input.TargetCluster,
 		WaitForDeployment:   true,
 		WatchDeploymentLogs: true,
-		LogPath:             ironicDeployLogFolder,
-		DeploymentName:      "baremetal-operator-ironic",
+		LogPath:             irsoDeployLogFolder,
+		DeploymentName:      "ironic-stanalone-operator",
 		DeploymentNamespace: ironicNamespaceObj.Name,
 		WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
 	})
 	Expect(err).NotTo(HaveOccurred())
+
+	By("Install Ironic CR in the target cluster")
+	ironicKustomization := input.E2EConfig.MustGetVariable("IRSO_IRONIC_MAIN")
+	By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", ironicKustomization))
+	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+		Kustomization:       ironicKustomization,
+		ClusterProxy:        input.TargetCluster,
+		WaitForDeployment:   false,
+		WatchDeploymentLogs: false,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	WaitForIronicReady(ctx, WaitForIronicInput{
+		Client:    input.TargetCluster.GetClient(),
+		Name:      "ironic",
+		Namespace: ironicNamespaceObj.Name,
+	})
 
 	By("Install BMO in the target cluster")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "bmo-deploy-logs", input.TargetCluster.GetName())
@@ -405,20 +421,38 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Logf("Output: %s", stdoutStderr)
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {
-		By("Install Ironic in the bootstrap cluster")
-		ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_PR_TEST")
-		ironicDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
+		By("Install IRSO in the target cluster")
+		irsoDeployLogFolder := filepath.Join(os.TempDir(), "target_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
+		irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
+		By(fmt.Sprintf("Installing IRSO from kustomization %s on the target cluster", irsoKustomization))
 		err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
-			Kustomization:       ironicKustomization,
+			Kustomization:       irsoKustomization,
 			ClusterProxy:        input.BootstrapClusterProxy,
 			WaitForDeployment:   true,
 			WatchDeploymentLogs: true,
-			LogPath:             ironicDeployLogFolder,
-			DeploymentName:      "baremetal-operator-ironic",
+			LogPath:             irsoDeployLogFolder,
+			DeploymentName:      "ironic-stanalone-operator",
 			DeploymentNamespace: input.E2EConfig.MustGetVariable(ironicNamespace),
 			WaitIntervals:       input.E2EConfig.GetIntervals("default", "wait-deployment"),
 		})
 		Expect(err).NotTo(HaveOccurred())
+
+		By("Install Ironic CR in the target cluster")
+		ironicKustomization := input.E2EConfig.MustGetVariable("IRSO_IRONIC_MAIN")
+		By(fmt.Sprintf("Installing Ironic from kustomization %s on the target cluster", ironicKustomization))
+		err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+			Kustomization:       ironicKustomization,
+			ClusterProxy:        input.BootstrapClusterProxy,
+			WaitForDeployment:   false,
+			WatchDeploymentLogs: false,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		WaitForIronicReady(ctx, WaitForIronicInput{
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Name:      "ironic",
+			Namespace: input.E2EConfig.MustGetVariable(ironicNamespace),
+		})
 	}
 
 	By("Reinstate BMO in Source cluster")
