@@ -9,7 +9,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	github.com/pkg/errors v0.9.1
-	golang.org/x/oauth2 v0.30.0
+	golang.org/x/oauth2 v0.31.0
 	k8s.io/code-generator v0.33.5
 	sigs.k8s.io/controller-tools v0.18.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.7.1
