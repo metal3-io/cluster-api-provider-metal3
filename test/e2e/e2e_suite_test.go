@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/blang/semver/v4"
 	"github.com/jinzhu/copier"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
@@ -18,6 +19,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
@@ -192,11 +194,9 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file as in place of the CNI_RESOURCES envSubst variable.
 	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
 	cniPath := config.MustGetVariable(capi_e2e.CNIPath)
-	if osType == "centos" {
-		updateCalico(config, cniPath, "eth1")
-	} else {
-		updateCalico(config, cniPath, "enp2s0")
-	}
+
+	updateCilium()
+
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
 
@@ -307,6 +307,50 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 	Expect(err).ToNot(HaveOccurred())
 	err = os.WriteFile(calicoYaml, yamlOut, 0600)
 	Expect(err).ToNot(HaveOccurred(), "Cannot print out the update to the file")
+}
+
+// updateCilium generates and writes a Cilium CNI manifest to the CNI path specified in e2e config.
+// It retrieves the Cilium version from e2e configuration, downloads the corresponding Helm chart, generates a manifest from the chart template, and writes the manifest to the CNI path.
+func updateCilium() {
+	ctx = context.Background()
+	cniPath := e2eConfig.MustGetVariable(capi_e2e.CNIPath)
+	ciliumVersion := e2eConfig.MustGetVariable("CILIUM_VERSION")
+	if ciliumVersion[0] == 'v' {
+		ciliumVersion = ciliumVersion[1:]
+	}
+	settings := cli.New()
+	settings.SetNamespace("kube-system")
+	helmDriver := os.Getenv("HELM_DRIVER")
+	opts := HelmOpts{
+		Logger:         log.Default(),
+		Settings:       settings,
+		ReleaseName:    "cilium",
+		ChartRef:       fmt.Sprintf("https://helm.cilium.io/cilium-%s.tgz", ciliumVersion),
+		ChartLocation:  fmt.Sprintf("/tmp/cilium-%s.tgz", ciliumVersion),
+		ReleaseVersion: semver.MustParse(ciliumVersion),
+		Driver:         helmDriver,
+	}
+	manifestOverwriteValues := map[string]interface{}{
+		"operator": map[string]interface{}{
+			"replicas": 1,
+			"updateStrategy": map[string]interface{}{
+				"rollingUpdate": map[string]interface{}{
+					"maxUnavailable": "100%",
+				},
+			},
+		},
+	}
+
+	manifest, err := generateTemplateFromHelmChart(ctx, opts, manifestOverwriteValues)
+	Expect(err).ToNot(HaveOccurred(), "failed to generate template: %v", err)
+
+	// Replace ${BIN_PATH} with /opt/cni/bin. This is done to prevent
+	// framework.RegisterClusterResourceSetConfigMapTransformation from throwing
+	// an error due to unresolvable "envsubst" variable.
+	manifest = strings.Replace(manifest, "${BIN_PATH}", "/opt/cni/bin", -1)
+
+	err = os.WriteFile(cniPath, []byte(manifest), 0600)
+	Expect(err).ToNot(HaveOccurred(), "Failed to write Cilium manifest to file: %v", err)
 }
 
 // createBMHsInNamespace is a hook function that can be called after creating
