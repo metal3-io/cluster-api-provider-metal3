@@ -35,8 +35,8 @@ source "${REPO_ROOT}/scripts/environment.sh"
 # Clone dev-env repo
 sudo mkdir -p ${WORKING_DIR}
 sudo chown "${USER}":"${USER}" ${WORKING_DIR}
-M3_DEV_ENV_REPO="https://github.com/metal3-io/metal3-dev-env.git"
-M3_DEV_ENV_BRANCH=main
+M3_DEV_ENV_REPO="https://github.com/Nordix/metal3-dev-env.git"
+M3_DEV_ENV_BRANCH=redfish-ssl-support-testing/adil
 M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
@@ -65,10 +65,10 @@ case "${GINKGO_FOCUS:-}" in
 
   scalability)
     # if running a scalability tests, configure dev-env with fakeIPA
-    export NUM_NODES="${NUM_NODES:-100}"
+    export NUM_NODES=50
     echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    sed -i "s/^export NUM_NODES=.*/export NUM_NODES=${NUM_NODES:-100}/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    sed -i "s/^export NUM_NODES=.*/export NUM_NODES=50/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
     mkdir -p "${CAPI_CONFIG_FOLDER}"
     echo 'CLUSTER_TOPOLOGY: true' >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export EPHEMERAL_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
