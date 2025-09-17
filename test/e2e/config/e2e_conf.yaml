@@ -35,15 +35,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/core-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
 - name: kubeadm
   type: BootstrapProvider
   versions:
@@ -65,15 +56,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
@@ -95,15 +77,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.9}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.9}/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/capi/v1.9/metadata.yaml"
 - name: metal3
   type: IPAMProvider
   versions:
@@ -131,17 +104,6 @@ providers:
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.9}"
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.9}/infrastructure-components.yaml"
-    type: "url"
-    contract: v1beta1
-    files:
-    - sourcePath: "../data/shared/infrastructure-metal3/v1.9/metadata.yaml"
-      targetName: "metadata.yaml"
-    - sourcePath: "../_out/v1.9/cluster-template-ubuntu.yaml"
-      targetName: "cluster-template-ubuntu.yaml"
-    - sourcePath: "../_out/v1.9/cluster-template-upgrade-workload.yaml"
-      targetName: "cluster-template-upgrade-workload.yaml"
   - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.10}"
     value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.10}/infrastructure-components.yaml"
     type: "url"
@@ -241,13 +203,10 @@ variables:
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: 0
-  IRONIC_RELEASE_26.0: "data/ironic-deployment/overlays/release-26.0"
-  IRONIC_RELEASE_27.0: "data/ironic-deployment/overlays/release-27.0"
   IRONIC_RELEASE_29.0: "data/ironic-deployment/overlays/release-29.0"
   IRONIC_RELEASE_31.0: "data/ironic-deployment/overlays/release-31.0"
   IRONIC_RELEASE_PR_TEST: "data/ironic-deployment/overlays/pr-test"
   IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
-  BMO_RELEASE_0.9: "data/bmo-deployment/overlays/release-0.9"
   BMO_RELEASE_0.10: "data/bmo-deployment/overlays/release-0.10"
   BMO_RELEASE_0.11: "data/bmo-deployment/overlays/release-0.11"
   BMO_RELEASE_PR_TEST: "data/bmo-deployment/overlays/pr-test"
