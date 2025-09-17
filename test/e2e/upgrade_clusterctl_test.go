@@ -55,8 +55,8 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 	ironicFromRelease := "31.0"
 	bmoToRelease := "latest"
 	ironicToRelease := "latest"
-	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	// This will upgrade from v1.11.0 to latest patch release of v1.11.x
+	capiStableRelease := "1.11.0"
 	capm3StableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixCAPM3, minorVersion)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion)
 	ipamStableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixIPAM, minorVersion)
