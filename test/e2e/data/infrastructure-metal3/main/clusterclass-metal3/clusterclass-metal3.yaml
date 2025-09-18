@@ -10,17 +10,18 @@ spec:
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          host: 
+        properties:
+          host:
             type: string
           port:
             type: integer
   - name: image
+    required: false
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          checksum: 
+        properties:
+          checksum:
             type: string
           checksumType:
             type: string
@@ -29,6 +30,7 @@ spec:
           url:
             type: string
   - name: controlPlaneDataTemplate
+    required: false
     schema:
       openAPIV3Schema:
         type: string
@@ -85,36 +87,34 @@ spec:
         valueFrom:
           variable: controlPlaneDataTemplate
   controlPlane:
-    ref:
+    templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: metal3-control-plane
     machineInfrastructure:
-      ref:
+      templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
         name: metal3-control-plane
   infrastructure:
-    ref:
+    templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: Metal3ClusterTemplate
       name: metal3-cluster
   workers:
     machineDeployments:
-    - class: worker
-      template:
+      - class: worker
         metadata:
           labels:
             cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
             nodepool: nodepool-0
         bootstrap:
-          ref:
-            apiGroup: bootstrap.cluster.x-k8s.io
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: metal3-default-worker-bootstraptemplate
         infrastructure:
-          ref:
-            apiGroup: infrastructure.cluster.x-k8s.io
+          templateRef:
             apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
             kind: Metal3MachineTemplate
             name:  metal3-default-worker-machinetemplate
