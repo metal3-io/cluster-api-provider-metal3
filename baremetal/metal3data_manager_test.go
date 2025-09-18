@@ -2632,6 +2632,73 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 		}),
+		Entry("IPv4 network CAPI IPAM", testCaseRenderNetworkNetworks{
+			poolAddresses: map[string]addressFromPool{
+				"abc": {
+					Address: ipamv1.IPAddressStr("192.168.0.14"),
+					Prefix:  24,
+					Gateway: ipamv1.IPAddressStr("192.168.1.1"),
+				},
+			},
+			networks: infrav1.NetworkDataNetwork{
+				IPv4: []infrav1.NetworkDataIPv4{
+					{
+						ID:   "abc",
+						Link: "def",
+						FromPoolRef: &corev1.TypedLocalObjectReference{
+							Name:     "abc",
+							Kind:     "InClusterIPPool",
+							APIGroup: ptr.To("ipam.metal3.io"),
+						},
+						Routes: []infrav1.NetworkDataRoutev4{
+							{
+								Network: "10.0.0.0",
+								Prefix:  16,
+								Gateway: infrav1.NetworkGatewayv4{
+									FromPoolRef: &corev1.TypedLocalObjectReference{
+										Name:     "abc",
+										Kind:     "InClusterIPPool",
+										APIGroup: ptr.To("ipam.metal3.io"),
+									},
+								},
+								Services: infrav1.NetworkDataServicev4{
+									DNS: []ipamv1.IPAddressv4Str{
+										ipamv1.IPAddressv4Str("8.8.8.8"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			m3d: &infrav1.Metal3Data{
+				Spec: infrav1.Metal3DataSpec{
+					Index: 2,
+				},
+			},
+			expectedOutput: []interface{}{
+				map[string]interface{}{
+					"ip_address": ipamv1.IPAddressv4Str("192.168.0.14"),
+					"routes": []interface{}{
+						map[string]interface{}{
+							"network": ipamv1.IPAddressv4Str("10.0.0.0"),
+							"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
+							"gateway": ipamv1.IPAddressv4Str("192.168.1.1"),
+							"services": []interface{}{
+								map[string]interface{}{
+									"type":    "dns",
+									"address": ipamv1.IPAddressv4Str("8.8.8.8"),
+								},
+							},
+						},
+					},
+					"type":    "ipv4",
+					"id":      "abc",
+					"link":    "def",
+					"netmask": ipamv1.IPAddressv4Str("255.255.255.0"),
+				},
+			},
+		}),
 		Entry("IPv4 network, error", testCaseRenderNetworkNetworks{
 			networks: infrav1.NetworkDataNetwork{
 				IPv4: []infrav1.NetworkDataIPv4{

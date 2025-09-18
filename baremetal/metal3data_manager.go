@@ -1081,7 +1081,13 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 
 	// IPv4 networks static allocation
 	for _, network := range networks.IPv4 {
-		poolAddress, ok := poolAddresses[network.IPAddressFromIPPool]
+		var poolAddress addressFromPool
+		var ok bool
+		if network.FromPoolRef != nil && network.FromPoolRef.Name != "" {
+			poolAddress, ok = poolAddresses[network.FromPoolRef.Name]
+		} else {
+			poolAddress, ok = poolAddresses[network.IPAddressFromIPPool]
+		}
 		if !ok {
 			return nil, errors.New("Pool not found in cache")
 		}
