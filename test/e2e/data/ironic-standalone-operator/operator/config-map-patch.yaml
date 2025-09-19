@@ -1,0 +1,13 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ironic-standalone-operator-controller-manager
+  namespace: ironic-standalone-operator-system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        envFrom:
+        - configMapRef:
+            name: ironic-operator-config
