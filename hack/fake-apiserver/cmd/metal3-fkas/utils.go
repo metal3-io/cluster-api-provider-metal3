@@ -2,8 +2,9 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"math/rand"
+	"strconv"
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
@@ -105,7 +106,7 @@ func createFakePod(ctx context.Context, c inmemoryclient.Client, f FakePod) erro
 	err := c.Get(ctx, client.ObjectKey{Name: f.Namespace}, ns)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
-			return fmt.Errorf("failed to get namespace: %w", err)
+			return errors.New("failed to get namespace: " + err.Error())
 		}
 
 		// Namespace does not exist, create it
@@ -115,7 +116,7 @@ func createFakePod(ctx context.Context, c inmemoryclient.Client, f FakePod) erro
 			},
 		}
 		if err := c.Create(ctx, ns); err != nil {
-			return fmt.Errorf("failed to create namespace: %w", err)
+			return errors.New("failed to create namespace: " + err.Error())
 		}
 	}
 
@@ -149,31 +150,31 @@ func getSecretKeyAndCert(
 		Name:      secretName,
 	}, secret)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get secret: %v", err)
+		return nil, nil, errors.New("failed to get secret: " + err.Error())
 	}
 
 	// Extract tls.crt and tls.key
 	tlsCrt, ok := secret.Data["tls.crt"]
 	if !ok {
-		return nil, nil, fmt.Errorf("tls.crt not found in secret")
+		return nil, nil, errors.New("tls.crt not found in secret")
 	}
 
 	tlsKey, ok := secret.Data["tls.key"]
 	if !ok {
-		return nil, nil, fmt.Errorf("tls.key not found in secret")
+		return nil, nil, errors.New("tls.key not found in secret")
 	}
 
 	return tlsCrt, tlsKey, nil
 }
 
 func waitForRandomSeconds() {
-	// Generate a random number of seconds between 1 and 10
-	randomSeconds := rand.Intn(10) + 1
+	// Generate a random number of seconds between 1 and timeoutDuration
+	randomSeconds := rand.Intn(int(timeoutDuration.Seconds())) + 1 //nolint:gosec // weak random number generator is good enough here
 
-	fmt.Printf("Waiting for %d seconds...\n", randomSeconds)
+	setupLog.Info("Waiting for " + strconv.Itoa(randomSeconds) + " seconds...\n")
 
 	// Wait for the random number of seconds
 	time.Sleep(time.Duration(randomSeconds) * time.Second)
 
-	fmt.Println("Done waiting!")
+	setupLog.Info("Done waiting!")
 }

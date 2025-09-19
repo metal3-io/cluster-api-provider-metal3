@@ -4,10 +4,10 @@ import (
 	"context"
 	"crypto/rsa"
 	"encoding/json"
-	"fmt"
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap/zapcore"
@@ -38,6 +38,8 @@ var (
 	etcdInfoMap                 = make(map[string]etcdInfo)
 	podIP                       string
 	workloadListenerActivations = make(map[string]bool)
+	timeoutDuration             = 10 * time.Second
+	idleDuration                = 15 * time.Second
 )
 
 func init() {
@@ -65,7 +67,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resourceName := fmt.Sprintf("%s/%s", requestData.Namespace, requestData.ClusterName)
+	resourceName := requestData.Namespace + "/" + requestData.ClusterName
 	setupLog.Info("Registering new resource", "resource", resourceName)
 	resp := &ResourceData{}
 	resp.ResourceName = resourceName
@@ -79,7 +81,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to initialize listener", http.StatusInternalServerError)
 		return
 	}
-	if err := apiServerMux.RegisterResourceGroup(listenerName, resourceName); err != nil {
+	if err = apiServerMux.RegisterResourceGroup(listenerName, resourceName); err != nil {
 		setupLog.Error(err, "Failed to register resource group to listener", "resourceName", resourceName)
 		http.Error(w, "Failed to register resource group to listener", http.StatusInternalServerError)
 		setupLog.Error(err, "failed to Register resource group to listener")
@@ -194,7 +196,7 @@ func activateCluster(resourceName string, w http.ResponseWriter, k8sVersion stri
 					Containers: []corev1.Container{
 						{
 							Name:  "kube-proxy",
-							Image: fmt.Sprintf("registry.k8s.io/kube-proxy:%s", k8sVersion),
+							Image: "registry.k8s.io/kube-proxy:" + k8sVersion,
 						},
 					},
 				},
@@ -273,7 +275,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	nodeLabels["metal3.io/uuid"] = requestData.UUID
 	namespace := requestData.Namespace
 	clusterName := requestData.ClusterName
-	resourceName := fmt.Sprintf("%s/%s", namespace, clusterName)
+	resourceName := namespace + "/" + clusterName
 	nodeName := requestData.NodeName
 	_, isControlPlane := nodeLabels["cluster.x-k8s.io/control-plane"]
 
@@ -288,10 +290,10 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	if isControlPlane {
 		// Add node role control-plane label
 		nodeLabels["node-role.kubernetes.io/control-plane"] = ""
-		caSecretName := fmt.Sprintf("%s-ca", clusterName)
+		caSecretName := clusterName + "-ca"
 		caCertRaw, caKeyRaw, err := getSecretKeyAndCert(ctx, bootstrapClient, requestData.Namespace, caSecretName)
 		if err != nil {
-			logLine := fmt.Sprintf("Error adding node %s", nodeName)
+			logLine := "Error adding node: " + nodeName
 			http.Error(w, logLine, http.StatusInternalServerError)
 			setupLog.Error(err, "Failed to get ca secrets for cluster", "cluster name", resourceName)
 			return
@@ -312,7 +314,13 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		}
 
 		apiServerPodName := nodeName
-		err = apiServerMux.AddAPIServer(resourceName, apiServerPodName, caCert, caKey.(*rsa.PrivateKey))
+		var caPrivKey *rsa.PrivateKey
+		caPrivKey, ok = caKey.(*rsa.PrivateKey)
+		if !ok {
+			setupLog.Error(nil, "caKey is not *rsa.PrivateKey")
+			return
+		}
+		err = apiServerMux.AddAPIServer(resourceName, apiServerPodName, caCert, caPrivKey)
 		if err != nil {
 			http.Error(w, "Failed to add API server", http.StatusInternalServerError)
 			setupLog.Error(err, "failed to add API server")
@@ -320,7 +328,11 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		}
 		// For first CP, we need to install some cluster-wide resources
 		if !workloadActivated {
-			activateCluster(resourceName, w, requestData.K8sVersion)
+			err = activateCluster(resourceName, w, requestData.K8sVersion)
+			if err != nil {
+				setupLog.Error(err, "failed to activate cluster", "resourceName", resourceName)
+				return
+			}
 		}
 		workloadListenerActivations[resourceName] = true
 	}
@@ -331,7 +343,6 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	c := listener.GetClient()
-	timeOutput := metav1.Now()
 
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
@@ -344,38 +355,38 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
 				{
-					LastHeartbeatTime:  timeOutput,
-					LastTransitionTime: timeOutput,
+					LastHeartbeatTime:  metav1.Now(),
+					LastTransitionTime: metav1.Now(),
 					Type:               corev1.NodeReady,
 					Status:             corev1.ConditionTrue,
 				},
 				{
-					LastHeartbeatTime:  timeOutput,
-					LastTransitionTime: timeOutput,
+					LastHeartbeatTime:  metav1.Now(),
+					LastTransitionTime: metav1.Now(),
 					Type:               corev1.NodeMemoryPressure,
 					Status:             corev1.ConditionFalse,
 					Message:            "kubelet has sufficient memory available",
 					Reason:             "KubeletHasSufficientMemory",
 				},
 				{
-					LastHeartbeatTime:  timeOutput,
-					LastTransitionTime: timeOutput,
+					LastHeartbeatTime:  metav1.Now(),
+					LastTransitionTime: metav1.Now(),
 					Message:            "kubelet has no disk pressure",
 					Reason:             "KubeletHasNoDiskPressure",
 					Status:             corev1.ConditionFalse,
 					Type:               corev1.NodeDiskPressure,
 				},
 				{
-					LastHeartbeatTime:  timeOutput,
-					LastTransitionTime: timeOutput,
+					LastHeartbeatTime:  metav1.Now(),
+					LastTransitionTime: metav1.Now(),
 					Message:            "kubelet has sufficient PID available",
 					Reason:             "KubeletHasSufficientPID",
 					Status:             corev1.ConditionFalse,
 					Type:               corev1.NodePIDPressure,
 				},
 				{
-					LastHeartbeatTime:  timeOutput,
-					LastTransitionTime: timeOutput,
+					LastHeartbeatTime:  metav1.Now(),
+					LastTransitionTime: metav1.Now(),
 					Message:            "kubelet is posting ready status",
 					Reason:             "KubeletReady",
 					Status:             corev1.ConditionTrue,
@@ -392,22 +403,22 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		logLine := fmt.Sprintf("Error adding node %s: %s", nodeName, err)
-		fmt.Println(err, "Error adding node:", nodeName)
+		logLine := "Error adding node: " + nodeName + " " + err.Error()
+		setupLog.Error(err, "Error adding node", "nodeName", nodeName)
 		http.Error(w, logLine, http.StatusInternalServerError)
 		return
 	}
-	fmt.Printf("Created node object: %v\n", node)
+	setupLog.Info("Created node object", "nodeName", nodeName)
 
 	// Start a goroutine to update the LastHeartbeatTime every 10 seconds
 	go func(nodeName string) {
 		setupLog.Info("Starting heartbeat goroutine", "nodeName", nodeName)
-		ticker := time.NewTicker(10 * time.Second)
+		ticker := time.NewTicker(timeoutDuration)
 		defer ticker.Stop()
 
 		for range ticker.C {
 			node := &corev1.Node{}
-			if err := c.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
+			if err = c.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
 				setupLog.Error(err, "Failed to get node for heartbeat update", "nodeName", nodeName)
 				continue
 			}
@@ -419,7 +430,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 
-			err := c.Update(ctx, node)
+			err = c.Update(ctx, node)
 			if err != nil {
 				setupLog.Error(err, "Failed to update node heartbeat", "nodeName", nodeName)
 			} else {
@@ -435,10 +446,10 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	// create etcd member
 	// Wait for some time after the node is provisioned
 	waitForRandomSeconds()
-	etcdSecretName := fmt.Sprintf("%s-etcd", clusterName)
+	etcdSecretName := clusterName + "-etcd"
 	etcdCertRaw, etcdKeyRaw, err := getSecretKeyAndCert(ctx, bootstrapClient, requestData.Namespace, etcdSecretName)
 	if err != nil {
-		logLine := fmt.Sprintf("Error adding node %s", nodeName)
+		logLine := "Error adding node: " + nodeName
 		http.Error(w, logLine, http.StatusInternalServerError)
 		setupLog.Error(err, "Failed to get etcd secrets for cluster", "cluster name", resourceName)
 		return
@@ -463,7 +474,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create the etcd pod
-	etcdPodMember := fmt.Sprintf("etcd-%s", nodeName)
+	etcdPodMember := "etcd-" + nodeName
 	etcdLabels := map[string]string{
 		"component": "etcd",
 		"tier":      "control-plane",
@@ -473,10 +484,10 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		Namespace:       metav1.NamespaceSystem,
 		NodeName:        nodeName,
 		Labels:          etcdLabels,
-		TransactionTime: timeOutput,
+		TransactionTime: metav1.Now(),
 	})
 
-	if err := c.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
+	if err = c.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			setupLog.Error(err, "failed to get etcd pod")
 			http.Error(w, "", http.StatusInternalServerError)
@@ -484,11 +495,12 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Gets info about the current etcd cluster, if any.
-		info, ok := etcdInfoMap[resourceName]
+		var info etcdInfo
+		info, ok = etcdInfoMap[resourceName]
 		if !ok {
 			info = etcdInfo{}
 			for {
-				info.clusterID = fmt.Sprintf("%d", rand.Uint32()) //nolint:gosec // weak random number generator is good enough here
+				info.clusterID = strconv.Itoa(int(rand.Uint32())) //nolint:gosec // weak random number generator is good enough here
 				if info.clusterID != "0" {
 					break
 				}
@@ -498,7 +510,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		// Computes a unique memberID.
 		var memberID string
 		for {
-			memberID = fmt.Sprintf("%d", rand.Uint32()) //nolint:gosec // weak random number generator is good enough here
+			memberID = strconv.Itoa(int(rand.Uint32())) //nolint:gosec // weak random number generator is good enough here
 			if !info.members.Has(memberID) && memberID != "0" {
 				break
 			}
@@ -517,14 +529,19 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 
 		etcdInfoMap[resourceName] = info
 
-		if err := c.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
+		if err = c.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
 			setupLog.Error(err, "failed to create etcd pod")
 			http.Error(w, "Failed to create etcd pod", http.StatusInternalServerError)
 			return
 		}
 	}
 
-	err = apiServerMux.AddEtcdMember(resourceName, nodeName, etcdCert, etcdKey.(*rsa.PrivateKey))
+	etcdPrivKey, ok := etcdKey.(*rsa.PrivateKey)
+	if !ok {
+		setupLog.Error(nil, "etcdKey is not *rsa.PrivateKey")
+		return
+	}
+	err = apiServerMux.AddEtcdMember(resourceName, nodeName, etcdCert, etcdPrivKey)
 	if err != nil {
 		setupLog.Error(err, "failed to add etcd member")
 		http.Error(w, "", http.StatusInternalServerError)
@@ -533,9 +550,9 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 
 	// Create the kube-apiserver pod
 	if err := createControlPlanePod(ctx, c, "kube-apiserver", FakePod{
-		PodName:         fmt.Sprintf("kube-apiserver-%s", nodeName),
+		PodName:         "kube-apiserver-" + nodeName,
 		NodeName:        nodeName,
-		TransactionTime: timeOutput,
+		TransactionTime: metav1.Now(),
 	}); err != nil {
 		setupLog.Error(err, "failed to create kube-apiserver pod")
 		http.Error(w, "", http.StatusInternalServerError)
@@ -544,9 +561,9 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 
 	// Create the kube-controller-manager
 	if err := createControlPlanePod(ctx, c, "kube-controller-manager", FakePod{
-		PodName:         fmt.Sprintf("kube-controller-manager-%s", nodeName),
+		PodName:         "kube-controller-manager-" + nodeName,
 		NodeName:        nodeName,
-		TransactionTime: timeOutput,
+		TransactionTime: metav1.Now(),
 	}); err != nil {
 		setupLog.Error(err, "failed to create kube-controller-manager pod")
 		http.Error(w, "", http.StatusInternalServerError)
@@ -555,9 +572,9 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 
 	// Create the kube-scheduler
 	if err := createControlPlanePod(ctx, c, "kube-scheduler", FakePod{
-		PodName:         fmt.Sprintf("kube-scheduler-%s", nodeName),
+		PodName:         "kube-scheduler-" + nodeName,
 		NodeName:        nodeName,
-		TransactionTime: timeOutput,
+		TransactionTime: metav1.Now(),
 	}); err != nil {
 		setupLog.Error(err, "failed to create scheduler Pod")
 		http.Error(w, "", http.StatusInternalServerError)
@@ -605,9 +622,9 @@ func main() {
 	server := &http.Server{
 		Addr:         ":3333",
 		Handler:      nil,
-		ReadTimeout:  10 * time.Second,
-		WriteTimeout: 10 * time.Second,
-		IdleTimeout:  15 * time.Second,
+		ReadTimeout:  timeoutDuration,
+		WriteTimeout: timeoutDuration,
+		IdleTimeout:  idleDuration,
 	}
 	if err := server.ListenAndServe(); err != nil {
 		setupLog.Error(err, "Error starting server")

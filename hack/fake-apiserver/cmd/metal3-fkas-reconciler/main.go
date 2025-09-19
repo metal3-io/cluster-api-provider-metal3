@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ import (
 func main() {
 	// Set up logger
 	debug := os.Getenv("DEBUG")
+	var err error
 	logLevel := zapcore.InfoLevel // Default log level
 	if debug == "true" {
 		logLevel = zapcore.DebugLevel // Set log level to Debug if DEBUG=true
@@ -43,15 +45,15 @@ func main() {
 
 	// Add BareMetalHost to scheme
 	scheme := runtime.NewScheme()
-	if err := bmov1alpha1.AddToScheme(scheme); err != nil {
+	if err = bmov1alpha1.AddToScheme(scheme); err != nil {
 		setupLog.Error(err, "Error adding BareMetalHost to scheme")
 	}
 
-	if err := infrav1.AddToScheme(scheme); err != nil {
+	if err = infrav1.AddToScheme(scheme); err != nil {
 		setupLog.Error(err, "Error adding Metal3Machine to scheme")
 	}
 
-	if err := clusterv1.AddToScheme(scheme); err != nil {
+	if err = clusterv1.AddToScheme(scheme); err != nil {
 		setupLog.Error(err, "Error adding Machine to scheme")
 	}
 
@@ -62,12 +64,12 @@ func main() {
 	}
 
 	// Set up the BareMetalHost controller
-	if err := ctrl.NewControllerManagedBy(mgr).
+	if err = ctrl.NewControllerManagedBy(mgr).
 		For(&bmov1alpha1.BareMetalHost{}).
 		Complete(reconcile.Func(func(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 			setupLog.Info("Detected change in BMH", "namespace", req.Namespace, "name", req.Name)
 			bmh := &bmov1alpha1.BareMetalHost{}
-			if err := mgr.GetClient().Get(ctx, req.NamespacedName, bmh); err != nil {
+			if err = mgr.GetClient().Get(ctx, req.NamespacedName, bmh); err != nil {
 				setupLog.Error(err, "Error fetching BareMetalHost")
 				return reconcile.Result{}, err
 			}
@@ -86,14 +88,14 @@ func main() {
 				Namespace: bmh.Spec.ConsumerRef.Namespace,
 				Name:      bmh.Spec.ConsumerRef.Name,
 			}
-			if err := mgr.GetClient().Get(ctx, m3mKey, m3m); err != nil {
+			if err = mgr.GetClient().Get(ctx, m3mKey, m3m); err != nil {
 				setupLog.Error(err, "Error fetching Metal3Machine", "namespace", bmh.Spec.ConsumerRef.Namespace, "name", bmh.Spec.ConsumerRef.Name)
 				return reconcile.Result{}, err
 			}
 			// Get the Machine object referenced by m3m.Metadata.OwnerReference.Name
 			if len(m3m.OwnerReferences) == 0 {
-				setupLog.Error(fmt.Errorf("no owner reference found"), "Metal3Machine has no owner reference")
-				return reconcile.Result{}, fmt.Errorf("no owner reference found")
+				setupLog.Error(errors.New("no owner reference found"), "Metal3Machine has no owner reference")
+				return reconcile.Result{}, errors.New("no owner reference found")
 			}
 
 			machineName := m3m.ObjectMeta.OwnerReferences[0].Name
@@ -103,7 +105,7 @@ func main() {
 				Namespace: namespace,
 				Name:      machineName,
 			}
-			if err := mgr.GetClient().Get(ctx, machineKey, machine); err != nil {
+			if err = mgr.GetClient().Get(ctx, machineKey, machine); err != nil {
 				setupLog.Error(err, "Error fetching Machine", "namespace", m3m.Namespace, "name", machineName)
 				return reconcile.Result{}, err
 			}
@@ -123,20 +125,23 @@ func main() {
 				"labels":     labels,
 				"k8sversion": machine.Spec.Version,
 			}
-			jsonData, err := json.Marshal(requestData)
+			var jsonData []byte
+			jsonData, err = json.Marshal(requestData)
 			if err != nil {
 				setupLog.Error(err, "Error marshalling JSON")
 				return reconcile.Result{}, err
 			}
 			setupLog.Info("Making PUT request", "content", string(jsonData))
-			putReq, err := http.NewRequest(http.MethodPut, url, bytes.NewBuffer(jsonData))
+			var putReq *http.Request
+			putReq, err = http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewBuffer(jsonData))
 			if err != nil {
 				setupLog.Error(err, "Error creating PUT request")
 				return reconcile.Result{}, err
 			}
 			putReq.Header.Set("Content-Type", "application/json")
 			client := &http.Client{}
-			resp, err := client.Do(putReq)
+			var resp *http.Response
+			resp, err = client.Do(putReq)
 			if err != nil {
 				setupLog.Error(err, "Error making PUT request")
 				return reconcile.Result{}, err
@@ -144,8 +149,8 @@ func main() {
 			defer resp.Body.Close()
 
 			if resp.StatusCode != http.StatusOK {
-				setupLog.Info(fmt.Sprintf("PUT request failed with status: %s", resp.Status))
-				return reconcile.Result{}, fmt.Errorf("PUT request failed with status: %s", resp.Status)
+				setupLog.Info("PUT request failed with status: " + resp.Status)
+				return reconcile.Result{}, errors.New("PUT request failed with status: " + resp.Status)
 			}
 
 			return reconcile.Result{}, nil
@@ -155,7 +160,7 @@ func main() {
 
 	// Start the manager
 	setupLog.Info("Starting controller...")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err = mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "Error starting manager")
 	}
 }
