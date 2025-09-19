@@ -193,12 +193,10 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
 	cniPath := config.MustGetVariable(capi_e2e.CNIPath)
 	switch osType {
-	case osTypeCentos:
-		updateCalico(config, cniPath, "eth1")
-	case osTypeUbuntu:
-		updateCalico(config, cniPath, "enp2s0")
 	case osTypeLeap:
 		updateCalico(config, cniPath, "eth1")
+	default:
+		updateCalico(config, cniPath, "enp2s0")
 	}
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
