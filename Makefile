@@ -356,6 +356,10 @@ build-api: ## Builds api directory.
 build-e2e: ## Builds test directory.
 	cd $(TEST_DIR) && $(GO) build ./...
 
+.PHONY: build-fkas
+build-fkas: ## Builds fkas directory.
+	cd $(FAKE_APISERVER_DIR) && $(GO) build ./...
+
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
@@ -414,6 +418,7 @@ lint: $(GOLANGCI_LINT) ## Lint codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -423,6 +428,7 @@ lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
 	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
+	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run manifest validation
 .PHONY: manifest-lint
@@ -549,12 +555,12 @@ docker-build: ## Build the docker image for controller-manager
 docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
-.PHONY: build-fkas
+.PHONY: docker-build-fkas
 # Allow overriding this by setting CONTAINER_RUNTIME var
 CONTAINER_RUNTIME := $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),docker)
 export CONTAINER_RUNTIME
 
-build-fkas:
+docker-build-fkas:
 	cd $(FAKE_APISERVER_DIR) && $(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:latest" .
 
 ## --------------------------------------
