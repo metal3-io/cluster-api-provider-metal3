@@ -14,6 +14,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.22.1
 )
 
+replace github.com/metal3-io/cluster-api-provider-metal3 => ../..
+
 require (
 	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
