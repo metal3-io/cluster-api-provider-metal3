@@ -187,11 +187,8 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	// Ensuring a CNI file is defined in the config and register a FileTransformation to inject the referenced file as in place of the CNI_RESOURCES envSubst variable.
 	Expect(config.Variables).To(HaveKey(capi_e2e.CNIPath), "Missing %s variable in the config", capi_e2e.CNIPath)
 	cniPath := config.MustGetVariable(capi_e2e.CNIPath)
-	if osType == "centos" {
-		updateCalico(config, cniPath, "eth1")
-	} else {
-		updateCalico(config, cniPath, "enp2s0")
-	}
+	updateCalico(config, cniPath, "enp2s0")
+
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
 
