@@ -1,0 +1,28 @@
+resources:
+  - ../../base
+
+kind: Kustomization
+namespace: ${IRONIC_NAMESPACE}
+
+secretGenerator:
+  - name: ironic-cert
+    files:
+      - tls.key=ironic.key
+      - tls.crt=ironic.crt
+    type: kubernetes.io/tls
+  - name: ironic-auth
+    files:
+      - username=ironic-username
+      - password=ironic-password
+generatorOptions:
+  disableNameSuffixHash: true
+
+patches:
+  - target:
+      kind: Ironic
+      name: ironic
+    patch: |-
+      - op: replace
+        path: /spec/images/ironic
+        value: "quay.io/metal3-io/ironic:release-26.0"
+        images:
