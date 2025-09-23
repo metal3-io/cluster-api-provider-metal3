@@ -360,6 +360,9 @@ type NetworkGatewayv4 struct {
 	// FromIPPool is the name of the IPPool to fetch the gateway from
 	// +optional
 	FromIPPool *string `json:"fromIPPool,omitempty"`
+
+	// FromPoolRef is a reference to a IP pool to fetch the gateway from
+	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
 }
 
 // NetworkGatewayv6 represents a gateway, given as a string or as a reference to
@@ -373,6 +376,9 @@ type NetworkGatewayv6 struct {
 	// FromIPPool is the name of the IPPool to fetch the gateway from
 	// +optional
 	FromIPPool *string `json:"fromIPPool,omitempty"`
+
+	// FromPoolRef is a reference to a IP pool to fetch the gateway from
+	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object.
