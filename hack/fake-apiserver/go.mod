@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/hack/fake-apiserver
 
-go 1.24.4
+go 1.24.0
 
 require (
 	github.com/metal3-io/baremetal-operator/apis v0.11.0
@@ -17,14 +17,12 @@ require (
 replace github.com/metal3-io/cluster-api-provider-metal3 => ../..
 
 require (
-	github.com/gobuffalo/flect v1.0.3 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/onsi/gomega v1.38.2 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	k8s.io/cluster-bootstrap v0.33.3 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 )
@@ -65,7 +63,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/metal3-io/cluster-api-provider-metal3 v1.11.0
 	github.com/metal3-io/ip-address-manager/api v1.11.0 // indirect
 	github.com/moby/spdystream v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
