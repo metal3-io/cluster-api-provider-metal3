@@ -801,7 +801,10 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 	var ipClaim *ipamv1.IPClaim
 	var err, finalizerErr error
 	ipClaimsList, err := m.fetchIPClaimsWithLabels(ctx, poolRef.Name)
-	if err == nil {
+	if err != nil {
+		m.Log.Error(err, "Failed to fetch IPClaims with labels", "poolRef", poolRef, "Metal3Data", m.Data.Name)
+	}
+	if len(ipClaimsList) > 0 {
 		for _, ipClaimWithLabels := range ipClaimsList {
 			// remove finalizers from Metal3IPClaim first before proceeding to deletion in case
 			// EnableBMHNameBasedPreallocation is set to True.
