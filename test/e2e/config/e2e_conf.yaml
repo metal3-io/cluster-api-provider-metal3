@@ -17,6 +17,15 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
+  - name: "v1.12.99"
+    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.12/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/core-components.yaml"
     type: "url"
@@ -56,6 +65,15 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
+  - name: "v1.12.99"
+    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.12/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/bootstrap-components.yaml"
     type: "url"
@@ -95,6 +113,15 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
+  - name: "v1.12.99"
+    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.12/metadata.yaml"
   - name: "{go://sigs.k8s.io/cluster-api@v1.11}"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.11}/control-plane-components.yaml"
     type: "url"
