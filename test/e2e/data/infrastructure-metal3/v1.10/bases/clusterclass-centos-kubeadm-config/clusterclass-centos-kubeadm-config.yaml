@@ -56,7 +56,7 @@ spec:
 
             vrrp_instance VI_1 {
                 state MASTER
-                interface eth1
+                interface enp2s0
                 virtual_router_id 1
                 priority 101
                 advert_int 1
@@ -67,14 +67,14 @@ spec:
                     k8s_api_check
                 }
             }
-        - path: /etc/NetworkManager/system-connections/eth0.nmconnection
+        - path: /etc/NetworkManager/system-connections/enp1s0.nmconnection
           owner: root:root
           permissions: '0600'
           content: |
             [connection]
-            id=eth0
+            id=enp1s0
             type=ethernet
-            interface-name=eth0
+            interface-name=enp1s0
             master=ironicendpoint
             slave-type=bridge
         - content: |
@@ -143,8 +143,8 @@ spec:
           - systemctl restart NetworkManager.service
           - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
           - nmcli connection up ironicendpoint
-          - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
-          - nmcli connection up eth0
+          - nmcli connection load /etc/NetworkManager/system-connections/enp1s0.nmconnection
+          - nmcli connection up enp1s0
           - systemctl enable --now keepalived
           - sleep 60
           - systemctl enable --now crio kubelet
@@ -184,14 +184,14 @@ spec:
         permissions: "0755"
       - content: |
           [connection]
-          id=eth0
+          id=enp1s0
           type=ethernet
-          interface-name=eth0
+          interface-name=enp1s0
           master=ironicendpoint
           slave-type=bridge
           autoconnect=yes
           autoconnect-priority=999
-        path: /etc/NetworkManager/system-connections/eth0.nmconnection
+        path: /etc/NetworkManager/system-connections/enp1s0.nmconnection
         owner: root:root
         permissions: '0600'
       - path: /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
@@ -238,7 +238,7 @@ spec:
       - systemctl restart NetworkManager.service
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint
-      - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
-      - nmcli connection up eth0
+      - nmcli connection load /etc/NetworkManager/system-connections/enp1s0.nmconnection
+      - nmcli connection up enp1s0
       - systemctl enable --now crio kubelet
       - sleep 120
