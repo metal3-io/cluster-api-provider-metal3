@@ -71,6 +71,17 @@ export GINKGO_SKIP=healthcheck remediation
 make test-e2e
 ```
 
+### Testing against CAPI nightly builds
+
+Cluster API publishes nightly versions of the project components’ manifests from
+the main branch. If you want to run tests against the nightly builds you can set:
+
+```sh
+export CAPI_NIGHTLY_BUILD=true
+```
+
+The used build is from the previous day.
+
 ## Cleanup
 
 After a finished test, cleanup is performed automatically. If the test setup
