@@ -11,17 +11,20 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+)
+
+const (
+	VerbosityLevelDebug = 4
 )
 
 func main() {
@@ -53,7 +56,7 @@ func main() {
 		setupLog.Error(err, "Error adding Metal3Machine to scheme")
 	}
 
-	if err = clusterv1.AddToScheme(scheme); err != nil {
+	if err = clusterv1beta1.AddToScheme(scheme); err != nil {
 		setupLog.Error(err, "Error adding Machine to scheme")
 	}
 
@@ -76,7 +79,7 @@ func main() {
 
 			// Check if the state has changed to "provisioned"
 			if bmh.Status.Provisioning.State != "provisioned" {
-				setupLog.V(baremetal.VerbosityLevelDebug).Info(fmt.Sprintf("BMH %s/%s state is not in 'provisioning' or 'provisioned' state.", req.Namespace, req.Name))
+				setupLog.V(VerbosityLevelDebug).Info(fmt.Sprintf("BMH %s/%s state is not in 'provisioning' or 'provisioned' state.", req.Namespace, req.Name))
 				return reconcile.Result{}, nil
 			}
 			uuid := bmh.ObjectMeta.UID
@@ -100,7 +103,7 @@ func main() {
 
 			machineName := m3m.ObjectMeta.OwnerReferences[0].Name
 			namespace := m3m.Namespace
-			machine := &clusterv1.Machine{}
+			machine := &clusterv1beta1.Machine{}
 			machineKey := client.ObjectKey{
 				Namespace: namespace,
 				Name:      machineName,

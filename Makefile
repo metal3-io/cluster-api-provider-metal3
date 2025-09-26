@@ -42,6 +42,7 @@ TEST_DIR := test
 BIN_DIR := bin
 TOOLS_BIN_DIR :=  $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 FAKE_APISERVER_DIR := hack/fake-apiserver
+MAKE_ROOT_DIR := $(CURDIR)
 
 # Set --output-base for conversion-gen if we are not within GOPATH
 ifneq ($(abspath $(ROOT_DIR)),$(shell $(GO) env GOPATH)/src/github.com/metal3-io/cluster-api-provider-metal3)
@@ -357,6 +358,10 @@ build-api: ## Builds api directory.
 build-e2e: ## Builds test directory.
 	cd $(TEST_DIR) && $(GO) build ./...
 
+.PHONY: build-fkas
+build-fkas: ## Builds fkas directory.
+	cd $(FAKE_APISERVER_DIR) && $(GO) build ./...
+
 ## --------------------------------------
 ## Tooling Binaries
 ## --------------------------------------
@@ -552,13 +557,20 @@ docker-build: ## Build the docker image for controller-manager
 docker-push: ## Push the docker image
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 
-.PHONY: build-fkas
+.PHONY: docker-build-fkas
 # Allow overriding this by setting CONTAINER_RUNTIME var
 CONTAINER_RUNTIME := $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),docker)
 export CONTAINER_RUNTIME
 
-build-fkas:
-	cd $(FAKE_APISERVER_DIR) && $(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:latest" .
+docker-build-fkas:
+	cp -r $(FAKE_APISERVER_DIR) /tmp && \
+	mkdir -p /tmp/fake-apiserver/capm3  && \
+	cp -r ./api /tmp/fake-apiserver/capm3 && \
+	cd /tmp/fake-apiserver && \
+	$(GO) mod edit -replace=github.com/metal3-io/cluster-api-provider-metal3=./capm3 && \
+	$(GO) mod tidy && \
+	$(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:latest" . || true
+	rm -rf /tmp/fake-apiserver
 
 ## --------------------------------------
 ## Docker — All ARCH
