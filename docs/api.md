@@ -432,9 +432,9 @@ spec:
       operator: in
       values: { ‘abc’, ‘123’, ‘value2’ }
   dataTemplate:
-    Name: controlplane-metadata
+    name: controlplane-metadata
   metaData:
-    Name: controlplane-0-metadata-0
+    name: controlplane-0-metadata-0
 ```
 
 ## MachineDeployment
@@ -578,7 +578,7 @@ spec:
           operator: in
           values: { ‘abc’, ‘123’, ‘value2’ }
       dataTemplate:
-        Name: m3mt-0-metadata
+        name: m3mt-0-metadata
 ```
 
 ## Metal3DataTemplate
@@ -612,16 +612,24 @@ spec:
       step: 1
     ipAddressesFromIPPool:
     - key: ip
-      Name: pool-1
+      name: pool-1
+      # apiGroup: ipam.metal3.io
+      # kind: IPPool
     prefixesFromIPPool:
     - key: ip
-      Name: pool-1
+      name: pool-1
+      # apiGroup: ipam.metal3.io
+      # kind: IPPool
     gatewaysFromIPPool:
     - key: gateway
-      Name: pool-1
+      name: pool-1
+      # apiGroup: ipam.metal3.io
+      # kind: IPPool
     dnsServersFromIPPool:
     - key: dns
-      Name: pool-1
+      name: pool-1
+      # apiGroup: ipam.metal3.io
+      # kind: IPPool
     fromHostInterfaces:
     - key: mac
       interface: "eth0"
@@ -672,12 +680,26 @@ spec:
       ipv4:
       - id: "Baremetal"
         link: "vlan1"
-        IPAddressFromIPPool: pool-1
+        # using an ipam.metal3.io IPPool
+        ipAddressFromIPPool: pool-1
+        # # alternatively using a CAPI IPAM provider:
+        # fromPoolRef:
+        #   name: pool-1
+        #   apiGroup: ipam.cluster.x-k8s.io
+        #   kind: InClusterIPPool
         routes:
         - network: "0.0.0.0"
           netmask: 0
           gateway:
+            # using an ipam.metal3.io IPPool
             fromIPPool: pool-1
+            # # alternatively using a CAPI IPAM provider:
+            # fromPoolRef:
+            #   name: pool-1
+            #   apiGroup: ipam.cluster.x-k8s.io
+            #   kind: InClusterIPPool
+            # # can also be a fixed address with:
+            # sring: 10.20.30.40
           services:
             dns:
             - "8.8.4.4"
@@ -691,11 +713,25 @@ spec:
       ipv6:
       - id: "Baremetal6"
         link: "vlan1"
-        IPAddressFromIPPool: pool6-1
+        # using an ipam.metal3.io IPPool
+        ipAddressFromIPPool: pool6-1
+        # # alternatively using a CAPI IPAM provider:
+        # fromPoolRef:
+        #   name: pool6-1
+        #   apiGroup: ipam.cluster.x-k8s.io
+        #   kind: InClusterIPPool
         routes:
         - network: "0::0"
           netmask: 0
           gateway:
+            # using an ipam.metal3.io IPPool
+            # fromIPPool: pool6-1
+            # # alternatively using a CAPI IPAM provider:
+            # fromPoolRef:
+            #   name: pool6-1
+            #   apiGroup: ipam.cluster.x-k8s.io
+            #   kind: InClusterIPPool
+            # # can also be a fixed address with:
             string: "2001:0db8:85a3::8a2e:0370:1"
           services:
             dns:
@@ -740,17 +776,25 @@ ways. The following types of objects are available and accept lists:
   unspecified (default value being 0), the controller will automatically change
   it for 1. The `prefix` and `suffix` attributes are to provide a prefix and a
   suffix for the rendered index.
-- **ipAddressesFromIPPool**: renders an ip address from an _IPPool_ object. The
-  _IPPool_ objects are defined in the
+- **ipAddressesFromIPPool**: renders an ip address from either:
+   - a pool implementing the
+     [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
+   - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
-- **prefixesFromIPPool**: renders a network prefix from an _IPPool_ object. The
-  _IPPool_ objects are defined in the
+- **prefixesFromIPPool**: renders a network prefix from either:
+   - a pool implementing the
+     [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
+   - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
-- **gatewaysFromIPPool**: renders a network gateway from an _IPPool_ object. The
-  _IPPool_ objects are defined in the
+- **gatewaysFromIPPool**: renders a network gateway from either:
+   - a pool implementing the
+     [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
+   - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
-- **dnsServersFromIPPool**: renders a dns servers list from an _IPPool_ object.
-  The _IPPool_ objects are defined in the
+- **dnsServersFromIPPool**: either:
+   - a pool implementing the
+     [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
+   - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
 - **fromHostInterfaces**: renders the MAC address of the BareMetalHost that
   matches the name given as value.
@@ -852,6 +896,11 @@ The **networks/ipv4** object contains the following:
 - **ipAddressFromIPPool**: renders an ip address from an _IPPool_ object. The
   _IPPool_ objects are defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
+- **fromPoolRef**: renders an ip address from either:
+   - a pool implementing the
+     [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
+   - an _IPPool_ object as defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
 - **routes**: the list of route objects
 
 The **networks/ipv\*/routes** is a route object containing:
@@ -859,7 +908,7 @@ The **networks/ipv\*/routes** is a route object containing:
 - **network**: the subnet to reach
 - **netmask**: the mask of the subnet as integer
 - **gateway**: the gateway to use, it can either be given as a string in
-  _string_ or as an IPPool name in _fromIPPool_
+  _string_, as an IPPool name in _fromIPPool_, or as an IPAM pool reference in _fromPoolRef_
 - **services**: a list of services object as defined later
 
 The **networks/ipv4Dhcp** object contains the following:
@@ -874,6 +923,11 @@ The **networks/ipv6** object contains the following:
 - **link**: The name of the link to configure this network for
 - **ipAddressFromIPPool**: renders an ip address from an _IPPool_ object. The
   _IPPool_ objects are defined in the
+  [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
+- **fromPoolRef**: renders an ip address from either:
+   - a pool implementing the
+     [Cluster-API IPAM provider specification](https://cluster-api.sigs.k8s.io/reference/providers.html#ip-address-management-ipam)
+   - an _IPPool_ object as defined in the
   [IP Address manager repo](https://github.com/metal3-io/ip-address-manager)
 - **routes**: the list of route objects
 
