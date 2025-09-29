@@ -9,6 +9,7 @@ updates:
   schedule:
     interval: "monthly"
     day: "tuesday"
+    time: "02:30" # 2.30am utc
   target-branch: main
   ## group all action bumps into single PR
   groups:
@@ -32,7 +33,8 @@ updates:
   - "/test"
   schedule:
     interval: "weekly"
-    day: "wednesday"
+    day: "tuesday"
+    time: "03:00" # 3am utc
   target-branch: main
   ## group all dependencies with a k8s.io prefix into a single PR.
   groups:
@@ -63,6 +65,7 @@ updates:
   schedule:
     interval: "monthly"
     day: "tuesday"
+    time: "03:30" # 3.30am utc
   target-branch: release-1.11
   ## group all action bumps into single PR
   groups:
@@ -86,7 +89,8 @@ updates:
   - "/test"
   schedule:
     interval: "weekly"
-    day: "wednesday"
+    day: "tuesday"
+    time: "04:00" # 4am utc
   target-branch: release-1.11
   ## group all dependencies with a k8s.io prefix into a single PR.
   groups:
@@ -116,6 +120,7 @@ updates:
   schedule:
     interval: "monthly"
     day: "tuesday"
+    time: "04:30" # 4.30am utc
   target-branch: release-1.10
   ## group all action bumps into single PR
   groups:
@@ -139,7 +144,8 @@ updates:
   - "/test"
   schedule:
     interval: "weekly"
-    day: "wednesday"
+    day: "tuesday"
+    time: "05:00" # 5am utc
   target-branch: release-1.10
   ## group all dependencies with a k8s.io prefix into a single PR.
   groups:
