@@ -549,7 +549,6 @@ generate-examples-clusterclass: $(KUSTOMIZE) clean-examples ## Generate examples
 .PHONY: docker-build
 docker-build: ## Build the docker image for controller-manager
 	docker build --network=host --pull \
-	--build-arg LDFLAGS="-s -w -extldflags=-static" \
 	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
