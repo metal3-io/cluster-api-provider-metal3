@@ -31,7 +31,7 @@ COPY api/go.mod api/go.sum api/
 COPY test/go.mod test/go.sum test/
 # Cache deps before building and copying source so that we don't need to re-download as much
 # and so that source changes don't invalidate our downloaded layer
-RUN go mod download
+RUN --mount=type=cache,target=/go/pkg/mod/ go mod download
 
 # Copy the sources
 COPY main.go main.go
@@ -41,25 +41,23 @@ COPY controllers/ controllers/
 COPY internal/ internal/
 
 # Build
-ARG ARCH
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
+RUN CGO_ENABLED=0 GOOS=linux \
     go build -a -ldflags "${LDFLAGS}" \
     -o manager .
 
 # Copy the controller-manager into a thin image
 FROM $BASE_IMAGE
+# Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
+USER 65532:65532
 
 # image.version is set during image build by automation
-LABEL org.opencontainers.image.authors="metal3-dev@googlegroups.com"
-LABEL org.opencontainers.image.description="This is the image for the Cluster API Provider Metal3"
-LABEL org.opencontainers.image.documentation="https://book.metal3.io/capm3/introduction"
-LABEL org.opencontainers.image.licenses="Apache License 2.0"
-LABEL org.opencontainers.image.title="Cluster API Provider Metal3"
-LABEL org.opencontainers.image.url="https://github.com/metal3-io/cluster-api-provider-metal3"
-LABEL org.opencontainers.image.vendor="Metal3-io"
+LABEL org.opencontainers.image.authors="metal3-dev@googlegroups.com" \
+    org.opencontainers.image.description="This is the image for the Cluster API Provider Metal3" \
+    org.opencontainers.image.documentation="https://book.metal3.io/capm3/introduction" \
+    org.opencontainers.image.licenses="Apache License 2.0" \
+    org.opencontainers.image.title="Cluster API Provider Metal3" \
+    org.opencontainers.image.url="https://github.com/metal3-io/cluster-api-provider-metal3" \
+    org.opencontainers.image.vendor="Metal3-io"
 
-WORKDIR /
 COPY --from=builder /workspace/manager .
-# Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
-USER 65532
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["./manager"]
