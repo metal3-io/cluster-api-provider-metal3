@@ -550,16 +550,16 @@ generate-examples-clusterclass: $(KUSTOMIZE) clean-examples ## Generate examples
 docker-build: ## Build the docker image for controller-manager
 	docker build --network=host --pull \
 	--build-arg LDFLAGS="-s -w -extldflags=-static" \
-	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
+	. -t $(CONTROLLER_IMG):$(TAG)
+	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
 .PHONY: docker-build-debug
 docker-build-debug: ## Build the docker image for controller-manager with debug info
 	docker build --network=host --pull \
 	--build-arg LDFLAGS="-extldflags=-static" \
-	--build-arg ARCH=$(ARCH) . -t $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
+	. -t $(CONTROLLER_IMG):$(TAG)
+	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
 .PHONY: docker-push
