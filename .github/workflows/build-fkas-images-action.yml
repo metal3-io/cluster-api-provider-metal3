@@ -6,14 +6,38 @@ on:
     - 'main'
     paths:
     - 'hack/fake-apiserver/**'
+    - 'api/**'
 
 permissions:
   contents: read
 
 jobs:
+  prepare:
+    name: Prepare FKAS build
+    if: github.repository == 'metal3-io/cluster-api-provider-metal3'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - name: Calculate go version
+      id: vars
+      run: echo "go_version=$(make go-version)" >> "${GITHUB_OUTPUT}"
+    - name: Set up Go
+      uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+      with:
+        go-version: ${{ steps.vars.outputs.go_version }}
+    - name: Prepare fake-apiserver
+      run: |
+        mkdir -p hack/fake-apiserver/capm3
+        cp -r api/ hack/fake-apiserver/capm3
+        cd hack/fake-apiserver
+        go mod edit -replace=github.com/metal3-io/cluster-api-provider-metal3=./capm3
+        go mod tidy
+
   build_FKAS:
     name: Build Metal3-FKAS image
     if: github.repository == 'metal3-io/cluster-api-provider-metal3'
+    needs: prepare
     uses: metal3-io/project-infra/.github/workflows/container-image-build.yml@main
     with:
       image-name: "metal3-fkas"
