@@ -214,10 +214,10 @@ func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clust
 	clusterTemplateYAML = bytes.ReplaceAll(clusterTemplateYAML, []byte("CLUSTER_APIENDPOINT_PORT_HOLDER"), []byte(strconv.Itoa(newClusterEndpoint.Port)))
 
 	clusterClassYAML, clusterTemplateYAML := extractDataTemplateIppool(baseClusterClassYAML, clusterTemplateYAML)
-	Logf("save " + clusterName + " cluster in a file")
-	LogToFile("/tmp/"+clusterName+"-cluster.log", clusterTemplateYAML)
-	Logf("save " + clusterName + " clusterclass in a file")
-	LogToFile("/tmp/"+clusterName+"-clusterclass.log", clusterClassYAML)
+	clusterTemplateYAML, err := RemoveEmptyWorkers(clusterTemplateYAML)
+	Expect(err).ShouldNot(HaveOccurred())
+	LogToFile(artifactFolder+"/"+clusterName+"-cluster.log", clusterTemplateYAML)
+	LogToFile(artifactFolder+"/"+clusterName+"-clusterclass.log", clusterClassYAML)
 	return clusterClassYAML, clusterTemplateYAML
 }
 
@@ -252,4 +252,21 @@ func FilterAvialableBmhsName(bmhs []bmov1alpha1.BareMetalHost, bmhsNameList []st
 		}
 	}
 	return
+}
+
+// RemoveEmptyWorkers removes the "workers" section from the input YAML if it is empty.
+func RemoveEmptyWorkers(input []byte) ([]byte, error) {
+	var ret []byte
+	objs, err := yaml.ToUnstructured(input)
+	if err == nil {
+		// Iterate through the objects and remove empty "workers" sections
+		for _, obj := range objs {
+			if obj.GetKind() == "Cluster" {
+				unstructured.RemoveNestedField(obj.Object, "spec", "topology", "workers")
+			}
+		}
+		ret, err = yaml.FromUnstructured(objs)
+		return ret, err
+	}
+	return nil, err
 }
