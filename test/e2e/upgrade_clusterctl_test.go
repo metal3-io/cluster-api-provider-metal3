@@ -51,7 +51,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 
 	minorVersion := "1.11"
 	bmoFromRelease := "0.11"
-	ironicFromRelease := "31.0"
+	ironicFromRelease := "32.0"
 	bmoToRelease := "latest"
 	ironicToRelease := "latest"
 	// This will upgrade from v1.11.0 to latest patch release of v1.11.x
@@ -122,7 +122,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", 
 
 	minorVersion110 := "1.10"
 	bmoFromRelease := "0.10"
-	ironicFromRelease := "29.0"
+	ironicFromRelease := "31.0"
 	bmoToRelease := "latest"
 	ironicToRelease := "latest"
 	capiStableRelease110, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion110)

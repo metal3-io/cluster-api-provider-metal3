@@ -171,6 +171,7 @@ IRONIC_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-27.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-29.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-31.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-32.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-latest"
 )
