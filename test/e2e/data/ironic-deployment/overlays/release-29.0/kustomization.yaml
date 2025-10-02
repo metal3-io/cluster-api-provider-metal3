@@ -23,7 +23,7 @@ images:
 - name: quay.io/metal3-io/ironic
   newTag: release-29.0
 
-# NOTE: These credentials are generated automatically in hack/ci-e2e.sh
+# NOTE: These credentials are generated automatically in scripts/ci-e2e.sh
 secretGenerator:
 - name: ironic-htpasswd
   behavior: create
