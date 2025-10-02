@@ -1,4 +1,4 @@
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
   labels:
@@ -12,11 +12,11 @@ spec:
     services:
       cidrBlocks: ["${SERVICE_CIDR}"]
   controlPlaneRef:
-    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    apiGroup: controlplane.cluster.x-k8s.io
     kind: KubeadmControlPlane
     name: ${CLUSTER_NAME}
   infrastructureRef:
-    apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+    apiGroup: infrastructure.cluster.x-k8s.io
     kind: Metal3Cluster
     name: ${CLUSTER_NAME}
 ---
@@ -31,29 +31,31 @@ spec:
     port: ${CLUSTER_APIENDPOINT_PORT}
   cloudProviderEnabled: false
 ---
-apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+apiVersion: controlplane.cluster.x-k8s.io/v1beta2
 kind: KubeadmControlPlane
 metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 spec:
   machineTemplate:
-    nodeDrainTimeout: "0s"
-    infrastructureRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
-      kind: Metal3MachineTemplate
-      name: ${CLUSTER_NAME}-controlplane
+    spec:
+      infrastructureRef:
+        apiGroup: infrastructure.cluster.x-k8s.io
+        kind: Metal3MachineTemplate
+        name: ${CLUSTER_NAME}-controlplane
+      deletion:
+        nodeDrainTimeoutSeconds: ${NODE_DRAIN_TIMEOUT}
   kubeadmConfigSpec:
-    clusterConfiguration: {}
     users:
     - name: ${IMAGE_USERNAME}
       sshAuthorizedKeys:
       - ${SSH_PUB_KEY_CONTENT}
       sudo: ALL=(ALL) NOPASSWD:ALL
   replicas: ${CONTROL_PLANE_MACHINE_COUNT}
-  rolloutStrategy:
-    rollingUpdate:
-      maxSurge: 1
+  rollout:
+    strategy:
+      rollingUpdate:
+        maxSurge: 1
   version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}

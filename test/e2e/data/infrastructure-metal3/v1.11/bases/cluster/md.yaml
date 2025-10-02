@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: MachineDeployment
 metadata:
   labels:
@@ -22,15 +22,16 @@ spec:
     spec:
       bootstrap:
         configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          apiGroup: bootstrap.cluster.x-k8s.io
           kind: KubeadmConfigTemplate
           name: ${CLUSTER_NAME}-workers
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+        apiGroup: infrastructure.cluster.x-k8s.io
         kind: Metal3MachineTemplate
         name: ${CLUSTER_NAME}-workers
-      nodeDrainTimeout: 0s
+      deletion:
+        nodeDrainTimeoutSeconds: 0
       version: ${KUBERNETES_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
@@ -95,7 +96,7 @@ spec:
       dns:
       - 8.8.8.8
 ---
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers
@@ -106,12 +107,18 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            cgroup-driver: systemd
-            container-runtime-endpoint: unix:///var/run/crio/crio.sock
-            feature-gates: AllAlpha=false
-            node-labels: metal3.io/uuid={{ ds.meta_data.uuid }}
-            provider-id: ${PROVIDER_ID_FORMAT}
-            runtime-request-timeout: 5m
+          - name: cgroup-driver
+            value: systemd
+          - name: container-runtime-endpoint
+            value: unix:///var/run/crio/crio.sock
+          - name: feature-gates
+            value: AllAlpha=false
+          - name: node-labels
+            value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+          - name: provider-id
+            value: '${PROVIDER_ID_FORMAT}'
+          - name: runtime-request-timeout
+            value: '5m'
           name: '{{ ds.meta_data.name }}'
       users:
       - name: metal3

@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
     labels:
@@ -13,7 +13,8 @@ spec:
     services:
       cidrBlocks: ["${SERVICE_CIDR}"]
   topology:
-    class: metal3
+    classRef:
+      name: metal3
     version: ${KUBERNETES_VERSION}
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
