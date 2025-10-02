@@ -24,7 +24,7 @@ images:
 # cannot be aware of what suffixes we add.
 generatorOptions:
   disableNameSuffixHash: true
-# NOTE: These credentials are generated automatically in hack/ci-e2e.sh
+# NOTE: These credentials are generated automatically in scripts/ci-e2e.sh
 secretGenerator:
 - name: ironic-credentials
   files:

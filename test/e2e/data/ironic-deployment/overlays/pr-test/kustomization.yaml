@@ -23,7 +23,7 @@ images:
 - name: quay.io/metal3-io/ironic
   newTag: main
 
-# NOTE: These credentials are generated automatically in hack/ci-e2e.sh
+# NOTE: These credentials are generated automatically in scripts/ci-e2e.sh
 secretGenerator:
 - behavior: create
   envs:
