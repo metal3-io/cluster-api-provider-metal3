@@ -1,5 +1,5 @@
 ---
-apiVersion: cluster.x-k8s.io/v1beta1
+apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: test-clusterclass
@@ -10,17 +10,18 @@ spec:
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          host: 
+        properties:
+          host:
             type: string
           port:
             type: integer
   - name: image
+    required: false
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          checksum: 
+        properties:
+          checksum:
             type: string
           checksumType:
             type: string
@@ -29,6 +30,7 @@ spec:
           url:
             type: string
   - name: workerDataTemplate
+    required: false
     schema:
       openAPIV3Schema:
         type: string
@@ -131,35 +133,34 @@ spec:
         valueFrom:
           variable: controlPlaneDataTemplate
   controlPlane:
-    ref:
-      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    templateRef:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta2
       kind: KubeadmControlPlaneTemplate
       name: ${CLUSTER_NAME}
     machineInfrastructure:
-      ref:
+      templateRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
         name: ${CLUSTER_NAME}-controlplane
   workers:
     machineDeployments:
-    - class: worker
-      template:
+      - class: worker
         metadata:
           labels:
             cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
             nodepool: nodepool-0
         bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          templateRef:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
             kind: KubeadmConfigTemplate
             name: ${CLUSTER_NAME}-workers
         infrastructure:
-          ref:
+          templateRef:
             apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
             kind: Metal3MachineTemplate
             name: ${CLUSTER_NAME}-workers
   infrastructure:
-    ref:
+    templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: Metal3ClusterTemplate
       name: ${CLUSTER_NAME}
