@@ -33,6 +33,85 @@ const (
 	LiveIsoDiskFormat    = "live-iso"
 )
 
+// Metal3Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// Metal3MachineReadyV1Beta2Condition is true if the Metal3Machine's deletionTimestamp is not set, Metal3Machine's
+	// BareMetalHostProvisioned is true.
+	Metal3MachineReadyV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
+
+	// Metal3MachineReadyV1Beta2Reason surfaces when the Metal3Machine readiness criteria is met.
+	Metal3MachineReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+
+	// Metal3MachineNotReadyV1Beta2Reason surfaces when the Metal3Machine readiness criteria is not met.
+	Metal3MachineNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+
+	// Metal3MachineReadyUnknownV1Beta2Reason surfaces when at least one Metal3Machine readiness criteria is unknown
+	// and no Metal3Machine readiness criteria is not met.
+	Metal3MachineReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
+)
+
+// Metal3Machine condition and corresponding reasons that will be used in v1Beta2 API version.
+const (
+	// AssociateBareMetalHostV1Beta2Condition documents the status of the association of Metal3Machine with a BareMetalHost.
+	AssociateBareMetalHostV1Beta2Condition = "AssociateBareMetalHost"
+
+	// AssociateBareMetalHostFailedV1Beta2Reason documents any errors while associating Metal3Machine with a BareMetalHost.
+	AssociateBareMetalHostFailedV1Beta2Reason = "AssociateBareMetalHostFailed"
+
+	// AssociateBareMetalHostSuccessV1Beta2Reason surfaces when the Metal3Machine is successfully associated with a BareMetalHost.
+	AssociateBareMetalHostSuccessV1Beta2Reason = "AssociateBareMetalHostSuccess"
+
+	// WaitingForClusterInfrastructureReadyV1Beta2Reason used when waiting for cluster
+	// infrastructure to be ready before proceeding.
+	WaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1beta1.WaitingForClusterInfrastructureReadyV1Beta2Reason
+
+	// WaitingForBootstrapDataV1Beta2Reason used when waiting for bootstrap to be ready before proceeding.
+	WaitingForBootstrapDataV1Beta2Reason = clusterv1beta1.WaitingForBootstrapDataV1Beta2Reason
+
+	// WaitingForMetal3MachineOwnerRefV1Beta2Reason is used when Metal3Machine is waiting for OwnerReference to be
+	// set before proceeding.
+	WaitingForMetal3MachineOwnerRefV1Beta2Reason = "WaitingForMetal3MachineOwnerRef"
+
+	// WaitingforMetal3ClusterReason is used when Metal3Machine is waiting for Metal3Cluster.
+	WaitingforMetal3ClusterV1Beta2Reason = "WaitingforMetal3Cluster"
+
+	// BareMetalHostPauseAnnotationRemoveFailedV1Beta2Reason is used when failed to remove/check pause annotation on associated BareMetalHost.
+	BareMetalHostPauseAnnotationRemoveFailedV1Beta2Reason = "BareMetalHostPauseAnnotationRemoveFailed"
+
+	// BareMetalHostPauseAnnotationSetFailedV1Beta2Reason is used when failed to set pause annotation on associated BareMetalHost.
+	BareMetalHostPauseAnnotationSetFailedV1Beta2Reason = "BareMetalHostPauseAnnotationSetFailed"
+
+	// AssociateMetal3MachineMetaDataV1Beta2Condition documents the transition of a Metal3Machine into a Kubernetes Node.
+	AssociateMetal3MachineMetaDataV1Beta2Condition = "AssociateMetal3MachineMetaData"
+
+	// AssociateMetal3MachineMetaDataFailedV1Beta2Reason is used when failed to associate Metadata to Metal3Machine.
+	AssociateMetal3MachineMetaDataFailedV1Beta2Reason = "AssociateMetal3MachineMetaDataFailed"
+
+	// AssociateMetal3MachineMetaDataSuccessV1Beta2Reason is used when successfully associated Metadata to Metal3Machine.
+	AssociateMetal3MachineMetaDataSuccessV1Beta2Reason = "AssociateMetal3MachineMetaDataSuccess"
+
+	// Metal3DataReadyV1Beta2Condition reports a summary of Metal3Data status.
+	Metal3DataReadyV1Beta2Condition = "Metal3DataReady"
+
+	// WaitingForMetal3DataV1Beta2Reason used when waiting for Metal3Data
+	// to be ready before proceeding.
+	WaitingForMetal3DataV1Beta2Reason = "WaitingForMetal3Data"
+
+	// Metal3DataSecretsReadyV1Beta2Reason used when metal3data secrets are ready
+	// to be ready before proceeding.
+	Metal3DataSecretsReadyV1Beta2Reason = "Metal3DataSecretsReady"
+
+	// DisassociateM3MetaDataFailedReason is used when failed to remove OwnerReference of Meta3DataTemplate.
+	DisassociateM3MetaDataFailedV1Beta2Reason = "DisassociateM3MetaDataFailed"
+
+	// DeletingV1Beta2Reason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
+	Metal3MachineDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
+
+	// Metal3MachineDeletingFailedV1Beta2Reason (Severity=Warning) documents a condition not in Status=True because the underlying object
+	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
+	Metal3MachineDeletingFailedV1Beta2Reason = "DeletionFailed"
+)
+
 // Metal3MachineSpec defines the desired state of Metal3Machine.
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
@@ -168,6 +247,22 @@ type Metal3MachineStatus struct {
 	// Conditions defines current service state of the Metal3Machine.
 	// +optional
 	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in Metal3Machine's status with the V1Beta2 version.
+	// +optional
+	V1Beta2 *Metal3MachineV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// Metal3MachineV1Beta2Status groups all the fields that will be added or modified in Metal3MachineStatus with the V1Beta2 version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type Metal3MachineV1Beta2Status struct {
+	// conditions represents the observations of a Metal3Machine's current state.
+	// Known condition types are Ready, AssociateBareMetalHost, KubernetesNodeReady, Metal3DataReady and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -215,4 +310,20 @@ func (c *Metal3Machine) SetConditions(conditions clusterv1beta1.Conditions) {
 
 func init() {
 	objectTypes = append(objectTypes, &Metal3Machine{}, &Metal3MachineList{})
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (c *Metal3Machine) GetV1Beta2Conditions() []metav1.Condition {
+	if c.Status.V1Beta2 == nil {
+		return nil
+	}
+	return c.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (c *Metal3Machine) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if c.Status.V1Beta2 == nil {
+		c.Status.V1Beta2 = &Metal3MachineV1Beta2Status{}
+	}
+	c.Status.V1Beta2.Conditions = conditions
 }
