@@ -1,0 +1,4 @@
+namespace: ${IRONIC_NAMESPACE}
+resources:
+- namespace.yaml
+- ironic.yaml

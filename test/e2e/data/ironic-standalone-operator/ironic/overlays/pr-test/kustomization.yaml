@@ -1,0 +1,17 @@
+kind: Kustomization
+namespace: ${IRONIC_NAMESPACE}
+
+resources:
+  - ../../base
+
+components:
+  - ../../components/secrets
+
+patches:
+  - target:
+      kind: Ironic
+      name: ironic
+    patch: |-
+      - op: replace
+        path: /spec/images/ironic
+        value: ${IRONIC_IMAGE}
