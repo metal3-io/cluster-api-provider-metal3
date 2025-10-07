@@ -107,12 +107,12 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
 		m.EXPECT().SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition,
 			metav1.ConditionTrue, infrav1.AssociateBareMetalHostSuccessV1Beta2Reason,
-			"Metal3Machine is associated with a BareMetalHost")
+			"")
 		if tc.Metal3DataClaimCreated {
 			m.EXPECT().AssociateM3Metadata(context.TODO())
 			m.EXPECT().SetV1beta2Condition(infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,
 				metav1.ConditionTrue, infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason,
-				"Metal3Machine metadata is associated successfully")
+				"")
 		} else {
 			m.EXPECT().AssociateM3Metadata(context.TODO()).Return(errors.New("Failed"))
 			m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition,

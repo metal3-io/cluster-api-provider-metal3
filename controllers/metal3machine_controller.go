@@ -218,10 +218,9 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		machineLog.Info("reconciliation is paused for this object")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.Metal3MachinePausedReason, clusterv1beta1.ConditionSeverityInfo, "")
 		deprecatedv1beta2conditions.Set(capm3Machine, metav1.Condition{
-			Type:    clusterv1beta1.PausedV1Beta2Condition,
-			Status:  metav1.ConditionTrue,
-			Reason:  clusterv1beta1.PausedV1Beta2Reason,
-			Message: "Pause annotation set on associated BareMetalHost",
+			Type:   clusterv1beta1.PausedV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1beta1.PausedV1Beta2Reason,
 		})
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
@@ -325,7 +324,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	}
 	// Update Condition to reflect that we have an associated BMH
 	machineMgr.SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
-	machineMgr.SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateBareMetalHostSuccessV1Beta2Reason, "Metal3Machine is associated with a BareMetalHost")
+	machineMgr.SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateBareMetalHostSuccessV1Beta2Reason, "")
 
 	// Make sure that the metadata is ready if any
 	err := machineMgr.AssociateM3Metadata(ctx)
@@ -335,7 +334,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		return checkMachineError(machineMgr, err,
 			"Failed to get the Metal3Metadata", errType)
 	}
-	machineMgr.SetV1beta2Condition(infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason, "Metal3Machine metadata is associated successfully")
+	machineMgr.SetV1beta2Condition(infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason, "")
 
 	err = machineMgr.Update(ctx)
 	if err != nil {
