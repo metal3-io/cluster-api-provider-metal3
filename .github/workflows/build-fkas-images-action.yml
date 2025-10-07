@@ -33,6 +33,11 @@ jobs:
         cd hack/fake-apiserver
         go mod edit -replace=github.com/metal3-io/cluster-api-provider-metal3=./capm3
         go mod tidy
+    - name: Upload artifact of prepared fkas env
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2 
+      with:
+        name: prepared-fkas
+        path: hack/fake-apiserver/**
 
   build_FKAS:
     name: Build Metal3-FKAS image
@@ -42,7 +47,7 @@ jobs:
     with:
       image-name: "metal3-fkas"
       pushImage: true
-      dockerfile-directory: hack/fake-apiserver
+      artifact-name: prepared-fkas
     secrets:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
