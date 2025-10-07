@@ -9,24 +9,39 @@ spec:
     files:
     - content: |
         #!/bin/bash
-        set -e
-        url="$1"
-        dst="$2"
-        filename="$(basename $url)"
-        tmpfile="/tmp/$filename"
-        curl -sSL -w "%{http_code}" "$url" | sed "s:/usr/bin:/usr/local/bin:g" > /tmp/"$filename"
-        http_status=$(cat "$tmpfile" | tail -n 1)
-        if [ "$http_status" != "200" ]; then
-          echo "Error: unable to retrieve $filename file";
-          exit 1;
-        else
-          cat "$tmpfile"| sed '$d' > "$dst";
-        fi
+        while :; do
+          curl -sk https://127.0.0.1:6443/healthz 1>&2 > /dev/null
+          isOk=$?
+          isActive=$(systemctl show -p ActiveState keepalived.service | cut -d'=' -f2)
+          if [ $isOk == "0" ] &&  [ $isActive != "active" ]; then
+            logger 'API server is healthy, however keepalived is not running, starting keepalived'
+            echo 'API server is healthy, however keepalived is not running, starting keepalived'
+            sudo systemctl start keepalived.service
+          elif [ $isOk != "0" ] &&  [ $isActive == "active" ]; then
+            logger 'API server is not healthy, however keepalived running, stopping keepalived'
+            echo 'API server is not healthy, however keepalived running, stopping keepalived'
+            sudo systemctl stop keepalived.service
+          fi
+          sleep 5
+        done
       owner: root:root
-      path: /usr/local/bin/retrieve.configuration.files.sh
+      path: /usr/local/bin/monitor.keepalived.sh
       permissions: "0755"
-    - path: /etc/keepalived/keepalived.conf
-      content: |
+    - content: |
+        [Unit]
+        Description=Monitors keepalived adjusts status with that of API server
+        After=syslog.target network-online.target
+
+        [Service]
+        Type=simple
+        Restart=always
+        ExecStart=/usr/local/bin/monitor.keepalived.sh
+
+        [Install]
+        WantedBy=multi-user.target
+      owner: root:root
+      path: /lib/systemd/system/monitor.keepalived.service
+    - content: |
         ! Configuration File for keepalived
         global_defs {
             notification_email {
@@ -37,36 +52,25 @@ spec:
             smtp_server localhost
             smtp_connect_timeout 30
         }
-
-        vrrp_script k8s_api_check {
-            script "curl -sk https://127.0.0.1:6443/healthz"
-            interval 5
-            timeout 5
-            rise 3
-            fall 3
-        }
-
-        vrrp_instance VI_1 {
+        vrrp_instance VI_2 {
             state MASTER
-            interface enp2s0
-            virtual_router_id 1
+            interface eth1
+            virtual_router_id 2
             priority 101
             advert_int 1
             virtual_ipaddress {
                 ${CLUSTER_APIENDPOINT_HOST}
             }
-            track_script {
-                k8s_api_check
-            }
         }
-    - path: /etc/NetworkManager/system-connections/enp1s0.nmconnection
+      path: /etc/keepalived/keepalived.conf
+    - path: /etc/NetworkManager/system-connections/eth0.nmconnection
       owner: root:root
       permissions: '0600'
       content: |
         [connection]
-        id=enp1s0
+        id=eth0
         type=ethernet
-        interface-name=enp1s0
+        interface-name=eth0
         master=ironicendpoint
         slave-type=bridge
     - content: |
@@ -91,17 +95,6 @@ spec:
       path: /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       owner: root:root
       permissions: '0600'
-    - content: |
-        [kubernetes]
-        name=Kubernetes
-        baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-        enabled=1
-        gpgcheck=1
-        repo_gpgcheck=0
-        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-      owner: root:root
-      path: /etc/yum.repos.d/kubernetes.repo
-      permissions: '0644'
     - content: |
         [registries.search]
         registries = ['docker.io']
@@ -147,8 +140,8 @@ spec:
       - systemctl restart NetworkManager.service
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint
-      - nmcli connection load /etc/NetworkManager/system-connections/enp1s0.nmconnection
-      - nmcli connection up enp1s0
+      - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
+      - nmcli connection up eth0
       - systemctl enable --now keepalived
       - sleep 60
       - systemctl enable --now crio kubelet
@@ -188,14 +181,14 @@ spec:
         permissions: "0755"
       - content: |
           [connection]
-          id=enp1s0
+          id=eth0
           type=ethernet
-          interface-name=enp1s0
+          interface-name=eth0
           master=ironicendpoint
           slave-type=bridge
           autoconnect=yes
           autoconnect-priority=999
-        path: /etc/NetworkManager/system-connections/enp1s0.nmconnection
+        path: /etc/NetworkManager/system-connections/eth0.nmconnection
         owner: root:root
         permissions: '0600'
       - path: /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
@@ -217,17 +210,16 @@ spec:
           [ipv6]
           addr-gen-mode=eui64
           method=ignore
-      - path: /etc/yum.repos.d/kubernetes.repo
+      - path: /etc/zypp/repos.d/kubernetes.repo
         owner: root:root
         permissions: '0644'
         content: |
           [kubernetes]
           name=Kubernetes
-          baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+          baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION_MINOR/rpm/
           enabled=1
           gpgcheck=1
-          repo_gpgcheck=0
-          gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+          gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION_MINOR/rpm/repodata/repomd.xml.key
       - path : /etc/containers/registries.conf
         owner: root:root
         permissions: '0644'
@@ -242,7 +234,7 @@ spec:
       - systemctl restart NetworkManager.service
       - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
       - nmcli connection up ironicendpoint
-      - nmcli connection load /etc/NetworkManager/system-connections/enp1s0.nmconnection
-      - nmcli connection up enp1s0
+      - nmcli connection load /etc/NetworkManager/system-connections/eth0.nmconnection
+      - nmcli connection up eth0
       - systemctl enable --now crio kubelet
       - sleep 120
