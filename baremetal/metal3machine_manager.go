@@ -52,7 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	deprecatedv1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -1211,7 +1211,7 @@ func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1beta1.Condi
 
 // SetV1beta2Condition sets v1beta2 condition in Metal3Machine status.
 func (m *MachineManager) SetV1beta2Condition(conditionType string, status metav1.ConditionStatus, reason string, message string) {
-	deprecatedv1beta2conditions.Set(m.Metal3Machine, metav1.Condition{
+	v1beta2conditions.Set(m.Metal3Machine, metav1.Condition{
 		Type:    conditionType,
 		Status:  status,
 		Reason:  reason,
@@ -1244,7 +1244,7 @@ func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha
 
 	m.Metal3Machine.Status.Addresses = addrs
 	v1beta1conditions.MarkTrue(m.Metal3Machine, infrav1.AssociateBMHCondition)
-	deprecatedv1beta2conditions.Set(m.Metal3Machine, metav1.Condition{
+	v1beta2conditions.Set(m.Metal3Machine, metav1.Condition{
 		Type:   infrav1.AssociateBareMetalHostV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: infrav1.AssociateBareMetalHostSuccessV1Beta2Reason,

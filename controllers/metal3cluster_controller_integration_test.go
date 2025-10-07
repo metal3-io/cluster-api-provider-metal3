@@ -134,7 +134,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should return an error if APIEndpoint is not set",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), nil, nil, nil, false),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), nil, Metal3ClusterStatusWithPausedConditionFalse(), nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:       true,
@@ -148,7 +148,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		Entry("Should not return an error when mandatory fields are provided",
 			TestCaseReconcileBMC{
 				Objects: []client.Object{
-					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
+					newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), Metal3ClusterStatusWithPausedConditionFalse(), nil, false),
 					newCluster(clusterName, nil, nil),
 				},
 				ErrorExpected:   false,
@@ -208,7 +208,8 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 							Finalizers:        []string{"foo"},
 							OwnerReferences:   []metav1.OwnerReference{*bmcOwnerRef()},
 						},
-						Spec: *bmcSpec(),
+						Spec:   *bmcSpec(),
+						Status: *Metal3ClusterStatusWithPausedConditionFalse(),
 					},
 					newCluster(clusterName, nil, nil),
 				},
