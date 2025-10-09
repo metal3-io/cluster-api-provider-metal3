@@ -41,6 +41,8 @@ M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
 # Config devenv
+# SKIP_NODE_IMAGE_PREPULL is set to true to avoid dev-env downloading the node 
+# image
 cat <<-EOF >"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 export CAPI_VERSION="v1beta2"
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
@@ -48,6 +50,7 @@ export NUM_NODES=${NUM_NODES:-"4"}
 export KUBERNETES_VERSION=${KUBERNETES_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
+export SKIP_NODE_IMAGE_PREPULL="true"
 export USE_IRSO="${USE_IRSO:-false}"
 EOF
 
@@ -55,12 +58,14 @@ case "${GINKGO_FOCUS:-}" in
   clusterctl-upgrade|k8s-upgrade|basic|integration|remediation|k8s-conformance|capi-md-tests)
     # if running basic, integration, k8s upgrade, clusterctl-upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo 'export SKIP_NODE_IMAGE_PREPULL="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 
   features)
     mkdir -p "${CAPI_CONFIG_FOLDER}"
     echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo 'export SKIP_NODE_IMAGE_PREPULL="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 
   scalability)
@@ -68,6 +73,7 @@ case "${GINKGO_FOCUS:-}" in
     export NUM_NODES="${NUM_NODES:-50}"
     echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo 'export SKIP_NODE_IMAGE_PREPULL="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     sed -i "s/^export NUM_NODES=.*/export NUM_NODES=${NUM_NODES:-50}/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
     mkdir -p "${CAPI_CONFIG_FOLDER}"
     echo 'CLUSTER_TOPOLOGY: true' >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
