@@ -1770,9 +1770,11 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			return err
 		}
+		m.Log.Error(errors.New("related claim can't be retrieved because of unknown error"), "unknown error", "Metal3Machine", m.Metal3Machine.Name)
 		return nil
 	}
 	if metal3DataClaim == nil {
+		m.Log.Info("Related Metal3DataClaim is nil!", "Metal3Machine", m.Metal3Machine.Name)
 		return nil
 	}
 
@@ -1782,7 +1784,7 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		m.Log.Info("Unable to remove finalizers from Metal3DataClaim", "Metal3DataClaim", metal3DataClaim.Name)
 		return err
 	}
-
+	m.Log.Info("Finalizers successfully removed. Initiate deletion of related claim.", "Metal3DataClaim", metal3DataClaim.Name)
 	return deleteObject(ctx, m.client, metal3DataClaim)
 }
 
