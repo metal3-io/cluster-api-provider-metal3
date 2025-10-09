@@ -210,16 +210,6 @@ spec:
           [ipv6]
           addr-gen-mode=eui64
           method=ignore
-      - path: /etc/zypp/repos.d/kubernetes.repo
-        owner: root:root
-        permissions: '0644'
-        content: |
-          [kubernetes]
-          name=Kubernetes
-          baseurl=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION_MINOR/rpm/
-          enabled=1
-          gpgcheck=1
-          gpgkey=https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION_MINOR/rpm/repodata/repomd.xml.key
       - path : /etc/containers/registries.conf
         owner: root:root
         permissions: '0644'
