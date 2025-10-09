@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -360,10 +361,8 @@ func crdIsInList(crd apiextensionsv1.CustomResourceDefinition, list []string) bo
 		if name == singular {
 			return true
 		}
-		for _, shortName := range shortNames {
-			if name == shortName {
-				return true
-			}
+		if slices.Contains(shortNames, name) {
+			return true
 		}
 	}
 	return false

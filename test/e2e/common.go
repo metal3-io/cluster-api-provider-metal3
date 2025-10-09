@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/http"
 	"os"
@@ -70,11 +71,11 @@ const (
 	oostRemoved = "removed"
 )
 
-func Byf(format string, a ...interface{}) {
+func Byf(format string, a ...any) {
 	By(fmt.Sprintf(format, a...))
 }
 
-func Logf(format string, a ...interface{}) {
+func Logf(format string, a ...any) {
 	fmt.Fprintf(GinkgoWriter, "INFO: "+format+"\n", a...)
 }
 
@@ -134,7 +135,7 @@ func GetBoolVariable(e2eConfig *clusterctl.E2EConfig, varName string) bool {
 }
 
 // TODO change this function to handle multiple workload(target) clusters.
-func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrapClusterProxy framework.ClusterProxy, targetClusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []interface{}, clusterName, clusterctlLogFolder string, skipCleanup bool, clusterctlConfigPath string) {
+func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrapClusterProxy framework.ClusterProxy, targetClusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []any, clusterName, clusterctlLogFolder string, skipCleanup bool, clusterctlConfigPath string) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
 	clusterClient := bootstrapClusterProxy.GetClient()
 
@@ -324,7 +325,7 @@ func ScaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 	})
 	Expect(machineDeployments).To(HaveLen(1), "Expected exactly 1 MachineDeployment")
 	machineDeploy := machineDeployments[0]
-	patch := []byte(fmt.Sprintf(`{"spec": {"replicas": %d}}`, newReplicas))
+	patch := fmt.Appendf(nil, `{"spec": {"replicas": %d}}`, newReplicas)
 	err := clusterClient.Patch(ctx, machineDeploy, client.RawPatch(types.MergePatchType, patch))
 	Expect(err).ToNot(HaveOccurred(), "Failed to patch workers MachineDeployment")
 }
@@ -478,7 +479,7 @@ type WaitForNumInput struct {
 	Client    client.Client
 	Options   []client.ListOption
 	Replicas  int
-	Intervals []interface{}
+	Intervals []any
 }
 
 // WaitForNumBmhInState will wait for the given number of BMHs to be in the given state.
@@ -834,9 +835,7 @@ func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[s
 	if crd.Labels == nil {
 		crd.Labels = make(map[string]string)
 	}
-	for key, value := range labels {
-		crd.Labels[key] = value
-	}
+	maps.Copy(crd.Labels, labels)
 	// Update the CRD
 	err = c.Update(ctx, crd)
 	if err != nil {
@@ -897,7 +896,7 @@ func getVersions(gomodulePath string) (semver.Versions, error) {
 		return nil, retryError
 	}
 	parsedVersions := semver.Versions{}
-	for _, s := range strings.Split(string(rawResponse), "\n") {
+	for s := range strings.SplitSeq(string(rawResponse), "\n") {
 		if s == "" {
 			continue
 		}
@@ -942,7 +941,7 @@ type BuildAndApplyKustomizationInput struct {
 	LogPath string
 
 	// Intervals to use in checking and waiting for the deployment
-	WaitIntervals []interface{}
+	WaitIntervals []any
 }
 
 func (input *BuildAndApplyKustomizationInput) validate() error {
@@ -1156,7 +1155,7 @@ func ApplyBmh(ctx context.Context, e2eConfig *clusterctl.E2EConfig, clusterProxy
 }
 
 // WaitForResourceVersionsToStabilize waits for the resource versions of the specified GVKs in the given namespace to stabilize.
-func WaitForResourceVersionsToStabilize(ctx context.Context, clusterProxy framework.ClusterProxy, namespace string, gvkList []schema.GroupVersionKind, intervals []interface{}) {
+func WaitForResourceVersionsToStabilize(ctx context.Context, clusterProxy framework.ClusterProxy, namespace string, gvkList []schema.GroupVersionKind, intervals []any) {
 	for _, gvk := range gvkList {
 		list := &unstructured.UnstructuredList{}
 		list.SetGroupVersionKind(gvk)

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"path/filepath"
+	"slices"
 	"testing"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -106,7 +107,7 @@ func TestControllers(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	done := make(chan interface{})
+	done := make(chan any)
 
 	go func() {
 		logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
@@ -187,12 +188,7 @@ func bmcOwnerRef() *metav1.OwnerReference {
 }
 
 func contains(haystack []string, needle string) bool {
-	for _, straw := range haystack {
-		if straw == needle {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(haystack, needle)
 }
 
 func getKey(objectName string) *client.ObjectKey {

@@ -956,7 +956,7 @@ func renderNetworkData(m3dt *infrav1.Metal3DataTemplate,
 	}
 	var err error
 
-	networkData := map[string][]interface{}{}
+	networkData := map[string][]any{}
 
 	networkData["links"], err = renderNetworkLinks(m3dt.Spec.NetworkData.Links, m3m, machine, bmh)
 	if err != nil {
@@ -977,11 +977,11 @@ func renderNetworkData(m3dt *infrav1.Metal3DataTemplate,
 }
 
 // renderNetworkServices renders the services.
-func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses map[string]addressFromPool) ([]interface{}, error) {
-	data := []interface{}{}
+func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses map[string]addressFromPool) ([]any, error) {
+	data := []any{}
 
 	for _, service := range services.DNS {
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":    "dns",
 			"address": service,
 		})
@@ -993,7 +993,7 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 			return nil, errors.New("Pool not found in cache")
 		}
 		for _, service := range poolAddress.dnsServers {
-			data = append(data, map[string]interface{}{
+			data = append(data, map[string]any{
 				"type":    "dns",
 				"address": service,
 			})
@@ -1005,8 +1005,8 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 
 // renderNetworkLinks renders the different types of links.
 func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
-	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) ([]interface{}, error) {
-	data := []interface{}{}
+	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) ([]any, error) {
+	data := []any{}
 
 	// Bond links
 	for _, link := range networkLinks.Bonds {
@@ -1014,7 +1014,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		if err != nil {
 			return nil, err
 		}
-		entry := map[string]interface{}{
+		entry := map[string]any{
 			"type":                  "bond",
 			"id":                    link.Id,
 			"mtu":                   link.MTU,
@@ -1049,7 +1049,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":                 link.Type,
 			"id":                   link.Id,
 			"mtu":                  link.MTU,
@@ -1063,7 +1063,7 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":             "vlan",
 			"id":               link.Id,
 			"mtu":              link.MTU,
@@ -1079,8 +1079,8 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 // renderNetworkNetworks renders the different types of network.
 func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 	poolAddresses map[string]addressFromPool,
-) ([]interface{}, error) {
-	data := []interface{}{}
+) ([]any, error) {
+	data := []any{}
 
 	// IPv4 networks static allocation
 	for _, network := range networks.IPv4 {
@@ -1100,7 +1100,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":       "ipv4",
 			"id":         network.ID,
 			"link":       network.Link,
@@ -1122,7 +1122,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":       "ipv6",
 			"id":         network.ID,
 			"link":       network.Link,
@@ -1138,7 +1138,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":   "ipv4_dhcp",
 			"id":     network.ID,
 			"link":   network.Link,
@@ -1152,7 +1152,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":   "ipv6_dhcp",
 			"id":     network.ID,
 			"link":   network.Link,
@@ -1166,7 +1166,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 		if err != nil {
 			return nil, err
 		}
-		data = append(data, map[string]interface{}{
+		data = append(data, map[string]any{
 			"type":   "ipv6_slaac",
 			"id":     network.ID,
 			"link":   network.Link,
@@ -1184,8 +1184,8 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 //nolint:dupl
 func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 	poolAddresses map[string]addressFromPool,
-) ([]interface{}, error) {
-	routes := []interface{}{}
+) ([]any, error) {
+	routes := []any{}
 	for _, route := range netRoutes {
 		gateway := ipamv1.IPAddressv4Str("")
 		if route.Gateway.String != nil {
@@ -1193,19 +1193,19 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 		} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
 			poolAddress, ok := poolAddresses[route.Gateway.FromPoolRef.Name]
 			if !ok {
-				return []interface{}{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("Failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv4Str(poolAddress.Gateway)
 		} else if route.Gateway.FromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Gateway.FromIPPool]
 			if !ok {
-				return []interface{}{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("Failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv4Str(poolAddress.Gateway)
 		}
-		services := []interface{}{}
+		services := []any{}
 		for _, service := range route.Services.DNS {
-			services = append(services, map[string]interface{}{
+			services = append(services, map[string]any{
 				"type":    "dns",
 				"address": service,
 			})
@@ -1213,17 +1213,17 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 		if route.Services.DNSFromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Services.DNSFromIPPool]
 			if !ok {
-				return []interface{}{}, errors.New("Pool not found in cache")
+				return []any{}, errors.New("Pool not found in cache")
 			}
 			for _, service := range poolAddress.dnsServers {
-				services = append(services, map[string]interface{}{
+				services = append(services, map[string]any{
 					"type":    "dns",
 					"address": service,
 				})
 			}
 		}
 		mask := translateMask(route.Prefix, true)
-		routes = append(routes, map[string]interface{}{
+		routes = append(routes, map[string]any{
 			"network":  route.Network,
 			"netmask":  mask,
 			"gateway":  gateway,
@@ -1238,8 +1238,8 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 //nolint:dupl
 func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 	poolAddresses map[string]addressFromPool,
-) ([]interface{}, error) {
-	routes := []interface{}{}
+) ([]any, error) {
+	routes := []any{}
 	for _, route := range netRoutes {
 		gateway := ipamv1.IPAddressv6Str("")
 		if route.Gateway.String != nil {
@@ -1247,19 +1247,19 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 		} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
 			poolAddress, ok := poolAddresses[route.Gateway.FromPoolRef.Name]
 			if !ok {
-				return []interface{}{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("Failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv6Str(poolAddress.Gateway)
 		} else if route.Gateway.FromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Gateway.FromIPPool]
 			if !ok {
-				return []interface{}{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("Failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv6Str(poolAddress.Gateway)
 		}
-		services := []interface{}{}
+		services := []any{}
 		for _, service := range route.Services.DNS {
-			services = append(services, map[string]interface{}{
+			services = append(services, map[string]any{
 				"type":    "dns",
 				"address": service,
 			})
@@ -1267,17 +1267,17 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 		if route.Services.DNSFromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Services.DNSFromIPPool]
 			if !ok {
-				return []interface{}{}, errors.New("Pool not found in cache")
+				return []any{}, errors.New("Pool not found in cache")
 			}
 			for _, service := range poolAddress.dnsServers {
-				services = append(services, map[string]interface{}{
+				services = append(services, map[string]any{
 					"type":    "dns",
 					"address": service,
 				})
 			}
 		}
 		mask := translateMask(route.Prefix, false)
-		routes = append(routes, map[string]interface{}{
+		routes = append(routes, map[string]any{
 			"network":  route.Network,
 			"netmask":  mask,
 			"gateway":  gateway,
@@ -1288,7 +1288,7 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 }
 
 // translateMask transforms a mask given as integer into a dotted-notation string.
-func translateMask(maskInt int, ipv4 bool) interface{} {
+func translateMask(maskInt int, ipv4 bool) any {
 	IPv4MaskLen := 32
 	IPv6MaskLen := 128
 	if ipv4 {

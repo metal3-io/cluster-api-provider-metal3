@@ -254,7 +254,7 @@ func (mr *MockMachineManagerInterfaceMockRecorder) RemovePauseAnnotation(arg0 in
 }
 
 // SetConditionMetal3MachineToFalse mocks base method.
-func (m *MockMachineManagerInterface) SetConditionMetal3MachineToFalse(arg0 v1beta1.ConditionType, arg1 string, arg2 v1beta1.ConditionSeverity, arg3 string, arg4 ...interface{}) {
+func (m *MockMachineManagerInterface) SetConditionMetal3MachineToFalse(arg0 v1beta1.ConditionType, arg1 string, arg2 v1beta1.ConditionSeverity, arg3 string, arg4 ...any) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1, arg2, arg3}
 	for _, a := range arg4 {

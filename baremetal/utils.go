@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -56,12 +57,7 @@ var (
 
 // Contains returns true if a list contains a string.
 func Contains(list []string, strToSearch string) bool {
-	for _, item := range list {
-		if item == strToSearch {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, strToSearch)
 }
 
 // NotFoundError represents that an object was not found.
