@@ -92,17 +92,6 @@ spec:
       owner: root:root
       permissions: '0600'
     - content: |
-        [kubernetes]
-        name=Kubernetes
-        baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-        enabled=1
-        gpgcheck=1
-        repo_gpgcheck=0
-        gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
-      owner: root:root
-      path: /etc/yum.repos.d/kubernetes.repo
-      permissions: '0644'
-    - content: |
         [registries.search]
         registries = ['docker.io']
 
@@ -205,17 +194,6 @@ spec:
           [ipv6]
           addr-gen-mode=eui64
           method=ignore
-      - path: /etc/yum.repos.d/kubernetes.repo
-        owner: root:root
-        permissions: '0644'
-        content: |
-          [kubernetes]
-          name=Kubernetes
-          baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
-          enabled=1
-          gpgcheck=1
-          repo_gpgcheck=0
-          gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
       - path : /etc/containers/registries.conf
         owner: root:root
         permissions: '0644'
