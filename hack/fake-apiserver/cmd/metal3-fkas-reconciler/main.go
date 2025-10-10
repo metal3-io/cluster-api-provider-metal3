@@ -119,7 +119,7 @@ func main() {
 			}
 			providerID := m3m.Spec.ProviderID
 			url := "http://localhost:3333/updateNode"
-			requestData := map[string]interface{}{
+			requestData := map[string]any{
 				"cluster":    clusterName,
 				"nodeName":   machineName,
 				"namespace":  namespace,

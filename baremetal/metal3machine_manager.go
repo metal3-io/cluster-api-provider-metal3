@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -109,7 +110,7 @@ type MachineManagerInterface interface {
 	DissociateM3Metadata(context.Context) error
 	AssociateM3Metadata(context.Context) error
 	SetError(string, capierrors.MachineStatusError)
-	SetConditionMetal3MachineToFalse(clusterv1beta1.ConditionType, string, clusterv1beta1.ConditionSeverity, string, ...interface{})
+	SetConditionMetal3MachineToFalse(clusterv1beta1.ConditionType, string, clusterv1beta1.ConditionSeverity, string, ...any)
 	SetConditionMetal3MachineToTrue(clusterv1beta1.ConditionType)
 	SetV1beta2Condition(string, metav1.ConditionStatus, string, string)
 	CloudProviderEnabled() bool
@@ -287,7 +288,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		)
 		return errors.Wrap(err, "failed to marshall status annotation")
 	}
-	obj := map[string]interface{}{}
+	obj := map[string]any{}
 	if err = json.Unmarshal(newAnnotation, &obj); err != nil {
 		return errors.Wrap(err, "failed to unmarshall status annotation")
 	}
@@ -367,10 +368,8 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	if err != nil {
 		var aggr kerrors.Aggregate
 		if ok := errors.As(err, &aggr); ok {
-			for _, kerr := range aggr.Errors() {
-				if apierrors.IsConflict(kerr) {
-					return WithTransientError(nil, requeueAfter)
-				}
+			if slices.ContainsFunc(aggr.Errors(), apierrors.IsConflict) {
+				return WithTransientError(nil, requeueAfter)
 			}
 		}
 		return err
@@ -1205,7 +1204,7 @@ func (m *MachineManager) SetError(message string, reason capierrors.MachineStatu
 }
 
 // SetConditionMetal3MachineToFalse sets Metal3Machine condition status to False.
-func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1beta1.ConditionType, reason string, severity clusterv1beta1.ConditionSeverity, messageFormat string, messageArgs ...interface{}) {
+func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1beta1.ConditionType, reason string, severity clusterv1beta1.ConditionSeverity, messageFormat string, messageArgs ...any) {
 	v1beta1conditions.MarkFalse(m.Metal3Machine, t, reason, severity, messageFormat, messageArgs...)
 }
 
@@ -1995,11 +1994,8 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 			continue
 		}
 
-		for _, metal3MachineHostname := range metal3MachineHostnames {
-			if metal3MachineHostname == hostnameLabel {
-				matchingNodes = append(matchingNodes, node)
-				break
-			}
+		if slices.Contains(metal3MachineHostnames, hostnameLabel) {
+			matchingNodes = append(matchingNodes, node)
 		}
 	}
 

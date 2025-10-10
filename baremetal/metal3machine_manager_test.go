@@ -902,7 +902,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				// annotation data, because it wasn't re-ordered by the JSON marshaller.
 				// That's why we are marshaling status data as well so that its fields are
 				// also alphabetically reordered to match the annotation keys style..
-				obj := map[string]interface{}{}
+				obj := map[string]any{}
 				err = json.Unmarshal(annotation, &obj)
 				Expect(err).ToNot(HaveOccurred())
 				annotation, _ = json.Marshal(obj)

@@ -2173,7 +2173,7 @@ var _ = Describe("Metal3Data manager", func() {
 		bmh            *bmov1alpha1.BareMetalHost
 		poolAddresses  map[string]addressFromPool
 		expectError    bool
-		expectedOutput map[string][]interface{}
+		expectedOutput map[string][]any
 	}
 
 	DescribeTable("Test renderNetworkData",
@@ -2184,7 +2184,7 @@ var _ = Describe("Metal3Data manager", func() {
 				return
 			}
 			Expect(err).NotTo(HaveOccurred())
-			output := map[string][]interface{}{}
+			output := map[string][]any{}
 			err = yaml.Unmarshal(result, output)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(output).To(Equal(tc.expectedOutput))
@@ -2243,19 +2243,19 @@ var _ = Describe("Metal3Data manager", func() {
 					Prefix:  24,
 				},
 			},
-			expectedOutput: map[string][]interface{}{
+			expectedOutput: map[string][]any{
 				"services": {
-					map[interface{}]interface{}{
+					map[any]any{
 						"type":    "dns",
 						"address": "8.8.8.8",
 					},
-					map[interface{}]interface{}{
+					map[any]any{
 						"type":    "dns",
 						"address": "2001::8888",
 					},
 				},
 				"links": {
-					map[interface{}]interface{}{
+					map[any]any{
 						"type":                 "phy",
 						"id":                   "eth0",
 						"mtu":                  1500,
@@ -2263,15 +2263,15 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 				"networks": {
-					map[interface{}]interface{}{
+					map[any]any{
 						"ip_address": "192.168.0.14",
-						"routes": []interface{}{
-							map[interface{}]interface{}{
+						"routes": []any{
+							map[any]any{
 								"network": "10.0.0.0",
 								"netmask": "255.255.0.0",
 								"gateway": "192.168.1.1",
-								"services": []interface{}{
-									map[interface{}]interface{}{
+								"services": []any{
+									map[any]any{
 										"type":    "dns",
 										"address": "8.8.8.8",
 									},
@@ -2331,14 +2331,14 @@ var _ = Describe("Metal3Data manager", func() {
 					NetworkData: nil,
 				},
 			},
-			expectedOutput: map[string][]interface{}{},
+			expectedOutput: map[string][]any{},
 		}),
 	)
 
 	type testRenderNetworkServices struct {
 		services       infrav1.NetworkDataService
 		poolAddresses  map[string]addressFromPool
-		expectedOutput []interface{}
+		expectedOutput []any
 		expectError    bool
 	}
 
@@ -2367,16 +2367,16 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
 					"type":    "dns",
 					"address": ipamv1.IPAddressStr("8.8.8.8"),
 				},
-				map[string]interface{}{
+				map[string]any{
 					"type":    "dns",
 					"address": ipamv1.IPAddressStr("2001::8888"),
 				},
-				map[string]interface{}{
+				map[string]any{
 					"type":    "dns",
 					"address": ipamv1.IPAddressStr("8.8.4.4"),
 				},
@@ -2407,7 +2407,7 @@ var _ = Describe("Metal3Data manager", func() {
 		machine        *clusterv1.Machine
 		bmh            *bmov1alpha1.BareMetalHost
 		expectError    bool
-		expectedOutput []interface{}
+		expectedOutput []any
 	}
 
 	DescribeTable("Test renderNetworkLinks",
@@ -2433,8 +2433,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
 					"type":                 "phy",
 					"id":                   "eth0",
 					"mtu":                  1500,
@@ -2476,8 +2476,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
 					"type":                  "bond",
 					"id":                    "bond0",
 					"mtu":                   1500,
@@ -2522,8 +2522,8 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
 					"vlan_mac_address": "12:34:56:78:9A:BC",
 					"vlan_id":          2222,
 					"vlan_link":        "eth0",
@@ -2560,7 +2560,7 @@ var _ = Describe("Metal3Data manager", func() {
 		m3d            *infrav1.Metal3Data
 		poolAddresses  map[string]addressFromPool
 		expectError    bool
-		expectedOutput []interface{}
+		expectedOutput []any
 	}
 
 	DescribeTable("Test renderNetworkNetworks",
@@ -2609,16 +2609,16 @@ var _ = Describe("Metal3Data manager", func() {
 					Index: 2,
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
 					"ip_address": ipamv1.IPAddressv4Str("192.168.0.14"),
-					"routes": []interface{}{
-						map[string]interface{}{
+					"routes": []any{
+						map[string]any{
 							"network": ipamv1.IPAddressv4Str("10.0.0.0"),
 							"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
 							"gateway": ipamv1.IPAddressv4Str("192.168.1.1"),
-							"services": []interface{}{
-								map[string]interface{}{
+							"services": []any{
+								map[string]any{
 									"type":    "dns",
 									"address": ipamv1.IPAddressv4Str("8.8.8.8"),
 								},
@@ -2676,16 +2676,16 @@ var _ = Describe("Metal3Data manager", func() {
 					Index: 2,
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
 					"ip_address": ipamv1.IPAddressv4Str("192.168.0.14"),
-					"routes": []interface{}{
-						map[string]interface{}{
+					"routes": []any{
+						map[string]any{
 							"network": ipamv1.IPAddressv4Str("10.0.0.0"),
 							"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
 							"gateway": ipamv1.IPAddressv4Str("192.168.1.1"),
-							"services": []interface{}{
-								map[string]interface{}{
+							"services": []any{
+								map[string]any{
 									"type":    "dns",
 									"address": ipamv1.IPAddressv4Str("8.8.8.8"),
 								},
@@ -2750,16 +2750,16 @@ var _ = Describe("Metal3Data manager", func() {
 					Index: 2,
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
 					"ip_address": ipamv1.IPAddressv6Str("fe80::2001:38"),
-					"routes": []interface{}{
-						map[string]interface{}{
+					"routes": []any{
+						map[string]any{
 							"network": ipamv1.IPAddressv6Str("2001::"),
 							"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
 							"gateway": ipamv1.IPAddressv6Str("fe80::2001:1"),
-							"services": []interface{}{
-								map[string]interface{}{
+							"services": []any{
+								map[string]any{
 									"type":    "dns",
 									"address": ipamv1.IPAddressv6Str("2001::8888"),
 								},
@@ -2816,15 +2816,15 @@ var _ = Describe("Metal3Data manager", func() {
 					Index: 2,
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
-					"routes": []interface{}{
-						map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
+					"routes": []any{
+						map[string]any{
 							"network": ipamv1.IPAddressv4Str("10.0.0.0"),
 							"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
 							"gateway": ipamv1.IPAddressv4Str("192.168.1.1"),
-							"services": []interface{}{
-								map[string]interface{}{
+							"services": []any{
+								map[string]any{
 									"type":    "dns",
 									"address": ipamv1.IPAddressv4Str("8.8.8.8"),
 								},
@@ -2865,15 +2865,15 @@ var _ = Describe("Metal3Data manager", func() {
 					Index: 2,
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
-					"routes": []interface{}{
-						map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
+					"routes": []any{
+						map[string]any{
 							"network": ipamv1.IPAddressv6Str("2001::"),
 							"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
 							"gateway": ipamv1.IPAddressv6Str("fe80::2001:1"),
-							"services": []interface{}{
-								map[string]interface{}{
+							"services": []any{
+								map[string]any{
 									"type":    "dns",
 									"address": ipamv1.IPAddressv6Str("2001::8888"),
 								},
@@ -2914,15 +2914,15 @@ var _ = Describe("Metal3Data manager", func() {
 					Index: 2,
 				},
 			},
-			expectedOutput: []interface{}{
-				map[string]interface{}{
-					"routes": []interface{}{
-						map[string]interface{}{
+			expectedOutput: []any{
+				map[string]any{
+					"routes": []any{
+						map[string]any{
 							"network": ipamv1.IPAddressv6Str("2001::"),
 							"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
 							"gateway": ipamv1.IPAddressv6Str("fe80::2001:1"),
-							"services": []interface{}{
-								map[string]interface{}{
+							"services": []any{
+								map[string]any{
 									"type":    "dns",
 									"address": ipamv1.IPAddressv6Str("2001::8888"),
 								},
@@ -2976,37 +2976,37 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 		}
-		ExpectedOutput := []interface{}{
-			map[string]interface{}{
+		ExpectedOutput := []any{
+			map[string]any{
 				"network":  ipamv1.IPAddressv4Str("192.168.0.0"),
 				"netmask":  ipamv1.IPAddressv4Str("255.255.255.0"),
 				"gateway":  ipamv1.IPAddressv4Str("192.168.1.1"),
-				"services": []interface{}{},
+				"services": []any{},
 			},
-			map[string]interface{}{
+			map[string]any{
 				"network": ipamv1.IPAddressv4Str("10.0.0.0"),
 				"netmask": ipamv1.IPAddressv4Str("255.255.0.0"),
 				"gateway": ipamv1.IPAddressv4Str("192.168.2.1"),
-				"services": []interface{}{
-					map[string]interface{}{
+				"services": []any{
+					map[string]any{
 						"type":    "dns",
 						"address": ipamv1.IPAddressv4Str("8.8.8.8"),
 					},
-					map[string]interface{}{
+					map[string]any{
 						"type":    "dns",
 						"address": ipamv1.IPAddressv4Str("8.8.4.4"),
 					},
-					map[string]interface{}{
+					map[string]any{
 						"type":    "dns",
 						"address": ipamv1.IPAddressStr("1.1.1.1"),
 					},
 				},
 			},
-			map[string]interface{}{
+			map[string]any{
 				"network":  ipamv1.IPAddressv4Str(""),
 				"netmask":  ipamv1.IPAddressv4Str("0.0.0.0"),
 				"gateway":  ipamv1.IPAddressv4Str("192.168.2.1"),
-				"services": []interface{}{},
+				"services": []any{},
 			},
 		}
 		output, err := getRoutesv4(netRoutes, poolAddresses)
@@ -3055,37 +3055,37 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 		}
-		ExpectedOutput := []interface{}{
-			map[string]interface{}{
+		ExpectedOutput := []any{
+			map[string]any{
 				"network":  ipamv1.IPAddressv6Str("2001::0"),
 				"netmask":  ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff:ffff:ffff::"),
 				"gateway":  ipamv1.IPAddressv6Str("2001::1"),
-				"services": []interface{}{},
+				"services": []any{},
 			},
-			map[string]interface{}{
+			map[string]any{
 				"network": ipamv1.IPAddressv6Str("fe80::0"),
 				"netmask": ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
 				"gateway": ipamv1.IPAddressv6Str("fe80::1"),
-				"services": []interface{}{
-					map[string]interface{}{
+				"services": []any{
+					map[string]any{
 						"type":    "dns",
 						"address": ipamv1.IPAddressv6Str("fe80:2001::8888"),
 					},
-					map[string]interface{}{
+					map[string]any{
 						"type":    "dns",
 						"address": ipamv1.IPAddressv6Str("fe80:2001::8844"),
 					},
-					map[string]interface{}{
+					map[string]any{
 						"type":    "dns",
 						"address": ipamv1.IPAddressStr("fe80:2001::1111"),
 					},
 				},
 			},
-			map[string]interface{}{
+			map[string]any{
 				"network":  ipamv1.IPAddressv6Str(""),
 				"netmask":  ipamv1.IPAddressv6Str("::"),
 				"gateway":  ipamv1.IPAddressv6Str("fe80::1"),
-				"services": []interface{}{},
+				"services": []any{},
 			},
 		}
 		output, err := getRoutesv6(netRoutes, poolAddresses)
@@ -3098,7 +3098,7 @@ var _ = Describe("Metal3Data manager", func() {
 	type testCaseTranslateMask struct {
 		mask         int
 		ipv4         bool
-		expectedMask interface{}
+		expectedMask any
 	}
 
 	DescribeTable("Test translateMask",

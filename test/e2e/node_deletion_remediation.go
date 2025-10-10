@@ -148,7 +148,7 @@ func nodeRemediation(ctx context.Context, inputGetter func() NodeRemediation) {
 	By("NODE REMEDIATION TESTS PASSED!")
 }
 
-func waitForNodeDeletion(ctx context.Context, cl client.Client, name string, intervals ...interface{}) {
+func waitForNodeDeletion(ctx context.Context, cl client.Client, name string, intervals ...any) {
 	Byf("Waiting for Node '%s' to be removed", name)
 	Eventually(
 		func() bool {
@@ -158,7 +158,7 @@ func waitForNodeDeletion(ctx context.Context, cl client.Client, name string, int
 		}, intervals...).Should(BeTrue())
 }
 
-func waitForOutOfServiceTaint(ctx context.Context, cl client.Client, name, action string, intervals ...interface{}) {
+func waitForOutOfServiceTaint(ctx context.Context, cl client.Client, name, action string, intervals ...any) {
 	Byf("Waiting for Out of service taint to Node '%s' to be %s", name, action)
 	var oostExpectedToExist bool
 	if action == oostAdded {
