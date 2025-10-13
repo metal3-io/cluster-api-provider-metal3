@@ -231,7 +231,7 @@ spec:
   topology:
     classRef:
       name: example-clusterclass
-    version: ${KUBERNETES_VERSION}
+    version: ${K8S_VERSION}
     controlPlane:
       replicas: 1
     workers:

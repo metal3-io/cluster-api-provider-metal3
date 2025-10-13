@@ -56,7 +56,7 @@ spec:
     strategy:
       rollingUpdate:
         maxSurge: 1
-  version: ${KUBERNETES_VERSION}
+  version: ${K8S_VERSION}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
 kind: Metal3MachineTemplate

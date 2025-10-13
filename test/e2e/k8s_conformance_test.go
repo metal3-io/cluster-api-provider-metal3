@@ -19,7 +19,7 @@ var _ = Describe("When testing K8S conformance", Label("k8s-conformance"), func(
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
-	// Note: This installs a cluster based on KUBERNETES_VERSION and runs conformance tests.
+	// Note: This installs a cluster based on K8S_VERSION and runs conformance tests.
 	capi_e2e.K8SConformanceSpec(ctx, func() capi_e2e.K8SConformanceSpecInput {
 		return capi_e2e.K8SConformanceSpecInput{
 			E2EConfig:             e2eConfig,

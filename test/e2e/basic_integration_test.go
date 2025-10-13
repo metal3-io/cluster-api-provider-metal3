@@ -23,7 +23,7 @@ var _ = Describe("When testing basic cluster creation", Label("basic"), func() {
 		By("Apply BMH for workload cluster")
 		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
 		By("Fetching cluster configuration")
-		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
+		k8sVersion := e2eConfig.MustGetVariable("K8S_VERSION")
 		By("Provision Workload cluster")
 		targetCluster, _ = CreateTargetCluster(ctx, func() CreateTargetClusterInput {
 			return CreateTargetClusterInput{

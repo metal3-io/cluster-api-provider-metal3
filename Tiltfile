@@ -14,7 +14,7 @@ settings = {
     "preload_images_for_kind": True,
     "kind_cluster_name": "capm3",
     "capi_version": "$CAPIRELEASE",
-    "kubernetes_version": "$KUBERNETES_VERSION",
+    "kubernetes_version": "$K8S_VERSION",
     "cert_manager_version": "v1.17.1",
     "enable_providers": [],
 }
@@ -326,7 +326,7 @@ def deploy_worker_templates(flavor, substitutions):
     substitutions = {
         "CLUSTER_NAME": flavor + "-template",
         "CONTROL_PLANE_MACHINE_COUNT": "1",
-        "KUBERNETES_VERSION": settings.get("kubernetes_version"),
+        "K8S_VERSION": settings.get("kubernetes_version"),
         "WORKER_MACHINE_COUNT": "1",
         "POD_CIDR": os.environ["POD_CIDR"],
         "SERVICE_CIDR": os.environ["SERVICE_CIDR"],

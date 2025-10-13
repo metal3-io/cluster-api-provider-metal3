@@ -17,7 +17,7 @@ spec:
       rollingUpdate:
         maxSurge: 1
       type: RollingUpdate
-  version: ${KUBERNETES_VERSION}
+  version: ${K8S_VERSION}
   kubeadmConfigSpec:
     initConfiguration:
       nodeRegistration:

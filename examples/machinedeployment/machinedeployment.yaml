@@ -21,7 +21,7 @@ spec:
       deletion:
         nodeDrainTimeoutSeconds: ${NODE_DRAIN_TIMEOUT:-0}
       clusterName: ${CLUSTER_NAME}
-      version: ${KUBERNETES_VERSION}
+      version: ${K8S_VERSION}
       bootstrap:
         configRef:
           name: ${CLUSTER_NAME}-md-0
