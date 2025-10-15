@@ -1621,8 +1621,8 @@ func findOwnerRefFromList(refList []metav1.OwnerReference, objType metav1.TypeMe
 	return 0, &NotFoundError{}
 }
 
-// AssociateM3Metadata fetches the Metal3DataTemplate object and sets the
-// owner references.
+// AssociateM3Metadata associates metal3Data object to metal3Machine, if it
+// does not find Metal3DataClaim it creates one with ownerReference.
 func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 	// If the secrets were provided by the user, use them.
 	if m.Metal3Machine.Spec.MetaData != nil {
@@ -1632,8 +1632,8 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 		m.Metal3Machine.Status.NetworkData = m.Metal3Machine.Spec.NetworkData
 	}
 
-	// If we have RenderedData set already, it means that the owner reference was
-	// already set.
+	// If we have RenderedData set already, it means that the metadata secrets
+	// are already generated.
 	if m.Metal3Machine.Status.RenderedData != nil {
 		return nil
 	}
@@ -1686,8 +1686,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 	return nil
 }
 
-// WaitForM3Metadata fetches the Metal3DataTemplate object and sets the
-// owner references.
+// WaitForM3Metadata fetches the metal3Data and checks if it is ready.
 func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 	// If we do not have RenderedData set yet, try to find it in
 	// Metal3DataTemplate. If it is not there yet, it means that the reconciliation
