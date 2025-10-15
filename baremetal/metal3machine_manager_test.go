@@ -2886,7 +2886,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host:               newBareMetalHost(baremetalhostName, bmhSpecBMC(), bmov1alpha1.StateNone, nil, false, "metadata", false, ""),
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
-				ExpectRequeue:      true,
+				ExpectRequeue:      false,
 				ExpectOwnerRef:     true,
 			},
 		),
