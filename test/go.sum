@@ -177,12 +177,12 @@ github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/mattn/go-runewidth v0.0.14 h1:+xnbZSEeDbOIg5/mE6JF0w6n9duR1l3/WmbinWVwUuU=
 github.com/mattn/go-runewidth v0.0.14/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
-github.com/metal3-io/baremetal-operator/apis v0.10.3 h1:DytMgx6dBEXpJlXXYumunLLo8N1Bco3PXHAEGHlGY3s=
-github.com/metal3-io/baremetal-operator/apis v0.10.3/go.mod h1:YGKMWs4FhNzjZedAwISM2MBg+5sv68c+arkKQ4AHJ0Y=
+github.com/metal3-io/baremetal-operator/apis v0.10.4 h1:dO/QS3osAv/BS3IpYxHCdH94GpHVghYpCEH7weEk1zY=
+github.com/metal3-io/baremetal-operator/apis v0.10.4/go.mod h1:8So7kek+BAsxNd/xV0ZDH0qDF/ROVXMrwjRhafxpiqI=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.10.3 h1:HmJYQWy5OYR2iwFUPCK1OP5KuX2/NUPmpuXoMuFIJJ8=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.10.3/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
-github.com/metal3-io/ip-address-manager/api v1.10.2 h1:CEGy7DjrrUWbsZ3SIT+B3ioMHFaauUxwliLAVVQKfio=
-github.com/metal3-io/ip-address-manager/api v1.10.2/go.mod h1:vDfNFQDJQKRK49pF8XoEoGMh2SkMzMN0JeIYahiHvY8=
+github.com/metal3-io/ip-address-manager/api v1.10.3 h1:kDAEzOAa9Zcwn5pewcxIX66oo6jt1+0/x7w75tIKzP4=
+github.com/metal3-io/ip-address-manager/api v1.10.3/go.mod h1:k1O3LHaTZ6WAXjgciku+Ro3PDWaN/z5P01n7bWlqotA=
 github.com/metal3-io/ironic-standalone-operator/api v0.0.0-20250402103806-d91a8f698be5 h1:NeCn+cnTNE2moBj+xK9J5zi9OGPVDakh4Dl8VinrYkw=
 github.com/metal3-io/ironic-standalone-operator/api v0.0.0-20250402103806-d91a8f698be5/go.mod h1:OeNr5HCWyFYZPlgsLqsi5/Yc/lnX8frETljrpvMJi6c=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
