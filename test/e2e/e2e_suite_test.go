@@ -256,7 +256,7 @@ func validateGlobals(specName string) {
 }
 
 func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface string) {
-	calicoManifestURL := fmt.Sprintf("https://raw.githubusercontent.com/projectcalico/calico/%s/manifests/calico.yaml", config.MustGetVariable("CALICO_PATCH_RELEASE"))
+	calicoManifestURL := fmt.Sprintf("https://raw.githubusercontent.com/projectcalico/calico/%s/manifests/calico.yaml", config.MustGetVariable("CALICO_VERSION"))
 	err := DownloadFile(calicoYaml, calicoManifestURL)
 	Expect(err).ToNot(HaveOccurred(), "Unable to download Calico manifest")
 	cniYaml, err := os.ReadFile(calicoYaml)
@@ -265,8 +265,10 @@ func updateCalico(config *clusterctl.E2EConfig, calicoYaml, calicoInterface stri
 	Logf("Replace the default CIDR with the one set in $POD_CIDR")
 	podCIDR := config.MustGetVariable("POD_CIDR")
 	calicoContainerRegistry := config.MustGetVariable("DOCKER_HUB_PROXY")
-	cniYaml = []byte(strings.Replace(string(cniYaml), "192.168.0.0/16", podCIDR, -1))
-	cniYaml = []byte(strings.Replace(string(cniYaml), "docker.io", calicoContainerRegistry, -1))
+	// Uncomment the CALICO_IPV4POOL_CIDR environment variable
+	cniYaml = []byte(strings.ReplaceAll(string(cniYaml), "# - name: CALICO_IPV4POOL_CIDR", "- name: CALICO_IPV4POOL_CIDR"))
+	cniYaml = []byte(strings.ReplaceAll(string(cniYaml), "#   value: \"192.168.0.0/16\"", "  value: \""+podCIDR+"\""))
+	cniYaml = []byte(strings.ReplaceAll(string(cniYaml), "docker.io", calicoContainerRegistry))
 
 	yamlDocuments, err := splitYAML(cniYaml)
 	Expect(err).ToNot(HaveOccurred(), "Cannot unmarshal the calico yaml elements to golang objects")
