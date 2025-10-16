@@ -202,7 +202,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1.Machine
 		}),
 	}
 
-	if s.client.List(ctx, &machines, listOptions...) != nil {
+	if err := s.client.List(ctx, &machines, listOptions...); err != nil {
 		errMsg := fmt.Sprintf("failed to list metal3machines for cluster %s/%s", cluster.Namespace, cluster.Name)
 		return machines, errors.Wrapf(err, "%s", errMsg)
 	}
