@@ -55,9 +55,8 @@ An outline of the workflow is below.
    available.
 1. Once the machine has been associated with a BaremetalHost, the CAPM3
    controller will check if the Metal3Machine references a
-   Metal3DataTemplate object. In that case, it will set an OwnerReference on the
-   Metal3DataTemplate object referencing the Metal3Machine and wait for the
-   metadata and/or network data secrets to be created.
+   Metal3DataTemplate object. In that case, it will create Metal3DataClaim and
+   waits for the metadata and/or network data secrets to be created.
 1. The CAPM3 controller reconciling the Metal3DataTemplate object will select
    the lowest available index for the new machine and create a Metal3Data
    object that will then create the secrets containing the rendered data.
