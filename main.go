@@ -145,7 +145,7 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
-	restConfig.UserAgent = "controllerName"
+	restConfig.UserAgent = controllerName
 
 	tlsOptions, metricsOptions, err := flags.GetManagerOptions(managerOptions)
 	if err != nil {
