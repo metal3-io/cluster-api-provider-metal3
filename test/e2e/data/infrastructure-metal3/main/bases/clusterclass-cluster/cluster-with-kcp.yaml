@@ -95,7 +95,7 @@ spec:
   topology:
     classRef:
       name: test-clusterclass
-    version: ${KUBERNETES_VERSION}
+    version: ${K8S_VERSION}
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:

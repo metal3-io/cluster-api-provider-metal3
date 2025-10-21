@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	KubernetesVersion = "KUBERNETES_VERSION"
+	KubernetesVersion = "K8S_VERSION"
 )
 
 // Test suite flags.

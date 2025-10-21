@@ -245,13 +245,18 @@ providers:
 variables:
   CNI: "/tmp/calico.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
-  KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.34.1}"
-  KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
-  # KUBERNETES_PATCH_FROM_VERSION and KUBERNETES_PATCH_TO_VERSION are used to
-  # test upgrade scenarios where we only want to upgrade the patch version of
-  # kubernetes.
-  KUBERNETES_PATCH_FROM_VERSION: "v1.33.4"
-  KUBERNETES_PATCH_TO_VERSION: "v1.33.5"
+  # Unified Kubernetes version variables for e2e testing
+  # K8S_VERSION: Primary Kubernetes version for cluster creation and target version for upgrades
+  K8S_VERSION: "${KUBERNETES_VERSION:-v1.34.1}"
+  K8S_VERSION_MINOR: "${K8S_VERSION%.*}"
+  # K8S_VERSION_FROM: Starting version for upgrade tests (defaults to one minor version back if not set)
+  K8S_VERSION_FROM: "${K8S_VERSION_FROM:-v1.33.5}"
+  # K8S_VERSION_TO: Target version for upgrade tests (defaults to K8S_VERSION if not set)
+  K8S_VERSION_TO: "${K8S_VERSION_TO:-${K8S_VERSION}}"
+  # K8S_PATCH_VERSION_FROM and K8S_PATCH_VERSION_TO are used for patch-level upgrade testing
+  # These allow testing patch upgrades within the same minor version
+  K8S_PATCH_VERSION_FROM: "v1.33.4"
+  K8S_PATCH_VERSION_TO: "v1.33.5"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   NUM_NODES: 4

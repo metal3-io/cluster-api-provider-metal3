@@ -51,8 +51,13 @@ else
   export EPHEMERAL_CLUSTER="minikube"
 fi
 
-export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.33.5"}
-export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.34.1"}
+# Unified Kubernetes version variables
+# K8S_VERSION: Primary Kubernetes version (can be overridden by KUBERNETES_VERSION for backward compatibility)
+export K8S_VERSION=${K8S_VERSION:-${KUBERNETES_VERSION:-"v1.34.1"}}
+# K8S_VERSION_FROM: Starting version for upgrade tests (can be overridden by FROM_K8S_VERSION for backward compatibility)
+export K8S_VERSION_FROM=${K8S_VERSION_FROM:-${FROM_K8S_VERSION:-"v1.33.5"}}
+# K8S_VERSION_TO: Target version for upgrade tests (defaults to K8S_VERSION)
+export K8S_VERSION_TO=${K8S_VERSION_TO:-${K8S_VERSION}}
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta2"}
@@ -87,7 +92,7 @@ case "${GINKGO_FOCUS:-}" in
     export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
-    export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
+    export KUBERNETES_VERSION_UPGRADE_FROM=${K8S_VERSION_FROM}
   ;;
 
   # CAPI md-tests environment vars and config
