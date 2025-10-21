@@ -76,6 +76,8 @@ const (
 	ProviderIDPrefix = "metal3://"
 	// ProviderLabelPrefix is a label prefix for ProviderID.
 	ProviderLabelPrefix = "metal3.io/uuid"
+	// FailureDomainLabelName is a label name for FailureDomains.
+	FailureDomainLabelName = "infrastructure.cluster.x-k8s.io/failure-domain"
 )
 
 var (
@@ -924,9 +926,11 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			// If host is found in `Ready` state, pick it
 			if len(hostsInAvailableStateWithNodeReuse) != 0 {
 				m.Log.Info("Found host(s) with nodeReuseLabelName in Ready/Available state, choosing the host", "availabeHostCount", len(hostsInAvailableStateWithNodeReuse), "host", host.Name)
-				rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(hostsInAvailableStateWithNodeReuse))))
-				randomHost := rHost.Int64()
-				chosenHost = hostsInAvailableStateWithNodeReuse[randomHost]
+				chosenHost, err = m.pickHost(hostsInAvailableStateWithNodeReuse)
+				if err != nil {
+					m.Log.Error(err, "Failed to choose host, not choosing host")
+					return nil, nil, err
+				}
 			} else if len(hostsInNotAvailableStateWithNodeReuse) != 0 {
 				errMessage := fmt.Sprint("Found BareMetalHost(s) with nodeReuseLabelName in not-available state, requeuing the BareMetalHost", "notAvailabeHostCount", len(hostsInNotAvailableStateWithNodeReuse), "hoststate", host.Status.Provisioning.State, "host", host.Name)
 				m.Log.Info(errMessage)
@@ -937,9 +941,11 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 		// If there are no hosts with nodeReuseLabelName, fall back
 		// to the current flow and select hosts randomly.
 		m.Log.Info("host(s) count available, choosing a random host", "availabeHostCount", len(availableHosts))
-		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(availableHosts))))
-		randomHost := rHost.Int64()
-		chosenHost = availableHosts[randomHost]
+		chosenHost, err = m.pickHost(availableHosts)
+		if err != nil {
+			m.Log.Error(err, "Failed to choose host, not choosing host")
+			return nil, nil, err
+		}
 	}
 
 	helper, err := v1beta1patch.NewHelper(chosenHost, m.client)
@@ -2114,4 +2120,47 @@ func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]corev
 		return errors.New(errMessage)
 	}
 	return nil
+}
+
+// Picks host from list of available hosts, if failureDomain is set, tries to choose from hosts in failureDomain.
+// When none available in failureDomain it chooses from all available hosts.
+func (m *MachineManager) pickHost(availableHosts []*bmov1alpha1.BareMetalHost) (*bmov1alpha1.BareMetalHost, error) {
+	var chosenHost *bmov1alpha1.BareMetalHost
+	var availableHostsInFailureDomain []*bmov1alpha1.BareMetalHost
+
+	// When failureDomain is set, create a list from available hosts in failureDomain
+	if m.Metal3Machine.Spec.FailureDomain != "" {
+		labelSelector := labels.NewSelector()
+		var reqs labels.Requirements
+		var r *labels.Requirement
+		r, err := labels.NewRequirement(FailureDomainLabelName, selection.Equals, []string{m.Metal3Machine.Spec.FailureDomain})
+
+		if err != nil {
+			m.Log.Error(err, "Failed to create FailureDomain MatchLabel requirement, not choosing host")
+			return nil, err
+		}
+		reqs = append(reqs, *r)
+		labelSelector = labelSelector.Add(reqs...)
+
+		for _, host := range availableHosts {
+			if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
+				availableHostsInFailureDomain = append(availableHostsInFailureDomain, host)
+			}
+		}
+		if len(availableHostsInFailureDomain) == 0 {
+			m.Log.Info("No available hosts in FailureDomain", m.Metal3Machine.Spec.FailureDomain, "choosing from other available hosts")
+		}
+	}
+
+	if len(availableHostsInFailureDomain) > 0 {
+		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(availableHostsInFailureDomain))))
+		randomHost := rHost.Int64()
+		chosenHost = availableHostsInFailureDomain[randomHost]
+	} else {
+		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(availableHosts))))
+		randomHost := rHost.Int64()
+		chosenHost = availableHosts[randomHost]
+	}
+
+	return chosenHost, nil
 }
