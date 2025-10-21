@@ -25,9 +25,11 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -46,6 +48,7 @@ const (
 // Metal3DataReconciler reconciles a Metal3Data object.
 type Metal3DataReconciler struct {
 	Client           client.Client
+	ClientReader     client.Reader
 	ClusterCache     clustercache.ClusterCache
 	ManagerFactory   baremetal.ManagerFactoryInterface
 	Log              logr.Logger
@@ -168,23 +171,53 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 
 // SetupWithManager will add watches for this controller.
 func (r *Metal3DataReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.Metal3Data{}).
-		WithOptions(options).
-		Watches(
-			&ipamv1.IPClaim{},
-			handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
-		).
+		WithOptions(options)
+
+	// Test for CAPI IPAddressClaim existence
+	ipAddressClaimList := &capipamv1beta1.IPAddressClaimList{}
+	err := r.ClientReader.List(ctx, ipAddressClaimList, client.Limit(1))
+	if err != nil {
+		if !meta.IsNoMatchError(err) {
+			return err
+		}
+		ctrl.LoggerFrom(ctx).Info("IPAddressClaim CRD not found, skipping watch")
+	} else {
+		builder = builder.
+			Watches(
+				&capipamv1beta1.IPAddressClaim{},
+				handler.EnqueueRequestsFromMapFunc(r.IPAddressClaimToMetal3Data),
+			)
+	}
+
+	// Test for IPClaim existence
+	ipClaimList := &ipamv1.IPClaimList{}
+	err = r.ClientReader.List(ctx, ipClaimList, client.Limit(1))
+	if err != nil {
+		if !meta.IsNoMatchError(err) {
+			return err
+		}
+		ctrl.LoggerFrom(ctx).Info("IPClaim CRD not found, skipping watch")
+	} else {
+		builder = builder.
+			Watches(
+				&ipamv1.IPClaim{},
+				handler.EnqueueRequestsFromMapFunc(r.Metal3IPClaimToMetal3Data),
+			)
+	}
+
+	return builder.
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
 }
 
-// Metal3IPClaimToMetal3Data will return a reconcile request for a Metal3Data if the event is for a
-// Metal3IPClaim and that Metal3IPClaim references a Metal3Data.
-func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(_ context.Context, obj client.Object) []ctrl.Request {
+// IPAddressClaimToMetal3Data will return a reconcile request for a Metal3Data if the event is for a
+// CAPI IPAddressClaim and that IPAddressClaim references a Metal3Data.
+func (r *Metal3DataReconciler) IPAddressClaimToMetal3Data(_ context.Context, obj client.Object) []ctrl.Request {
 	requests := []ctrl.Request{}
-	if m3dc, ok := obj.(*ipamv1.IPClaim); ok {
-		for _, ownerRef := range m3dc.OwnerReferences {
+	if ipAddressClaim, ok := obj.(*capipamv1beta1.IPAddressClaim); ok {
+		for _, ownerRef := range ipAddressClaim.OwnerReferences {
 			if ownerRef.Kind != "Metal3Data" {
 				continue
 			}
@@ -199,7 +232,35 @@ func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(_ context.Context, obj 
 			requests = append(requests, ctrl.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      ownerRef.Name,
-					Namespace: m3dc.Namespace,
+					Namespace: ipAddressClaim.Namespace,
+				},
+			})
+		}
+	}
+	return requests
+}
+
+// Metal3IPClaimToMetal3Data will return a reconcile request for a Metal3Data if the event is for a
+// Metal3IPClaim and that Metal3IPClaim references a Metal3Data.
+func (r *Metal3DataReconciler) Metal3IPClaimToMetal3Data(_ context.Context, obj client.Object) []ctrl.Request {
+	requests := []ctrl.Request{}
+	if ipClaim, ok := obj.(*ipamv1.IPClaim); ok {
+		for _, ownerRef := range ipClaim.OwnerReferences {
+			if ownerRef.Kind != "Metal3Data" {
+				continue
+			}
+			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+			if err != nil {
+				r.Log.Error(err, "failed to parse the API version")
+				continue
+			}
+			if aGV.Group != infrav1.GroupVersion.Group {
+				continue
+			}
+			requests = append(requests, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      ownerRef.Name,
+					Namespace: ipClaim.Namespace,
 				},
 			})
 		}

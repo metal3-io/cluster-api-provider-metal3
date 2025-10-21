@@ -479,6 +479,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err = (&controllers.Metal3DataReconciler{
 		Client:           mgr.GetClient(),
+		ClientReader:     mgr.GetAPIReader(),
 		ClusterCache:     clusterCache,
 		ManagerFactory:   baremetal.NewManagerFactory(mgr.GetClient()),
 		Log:              ctrl.Log.WithName("controllers").WithName("Metal3Data"),
