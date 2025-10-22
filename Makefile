@@ -193,6 +193,7 @@ cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 	mkdir -p $(E2E_OUT_DIR)/main
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu > $(E2E_OUT_DIR)/main/cluster-template-ubuntu.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos > $(E2E_OUT_DIR)/main/cluster-template-centos.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-opensuse-leap > $(E2E_OUT_DIR)/main/cluster-template-opensuse-leap.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-fake > $(E2E_OUT_DIR)/main/cluster-template-centos-fake.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-metal3 > $(E2E_OUT_DIR)/main/clusterclass-metal3.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/main/cluster-template-upgrade-workload.yaml

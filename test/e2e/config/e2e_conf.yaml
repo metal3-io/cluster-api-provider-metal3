@@ -174,11 +174,14 @@ providers:
       targetName: "cluster-template-centos-md-remediation.yaml"
     - sourcePath: "../_out/main/cluster-template-ubuntu-md-remediation.yaml"
       targetName: "cluster-template-ubuntu-md-remediation.yaml"
+    - sourcePath: "../_out/main/cluster-template-opensuse-leap.yaml"
+      targetName: "cluster-template-opensuse-leap.yaml"
 
 variables:
   CNI: "/tmp/calico.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.34.0}"
+  KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
   # KUBERNETES_PATCH_FROM_VERSION and KUBERNETES_PATCH_TO_VERSION are used to
   # test upgrade scenarios where we only want to upgrade the patch version of
   # kubernetes.
@@ -207,7 +210,7 @@ variables:
 
   PROVIDER_ID_FORMAT: "metal3://{{ ds.meta_data.providerid }}"
   # Pin Calico version
-  CALICO_PATCH_RELEASE: "v3.25.2"
+  CALICO_VERSION: "${CALICO_VERSION:-v3.30.3}"
   # Pin CertManager for upgrade tests
   CERT_MANAGER_RELEASE: v1.17.1
   # Default vars for the template, those values could be overridden by the env-vars.
