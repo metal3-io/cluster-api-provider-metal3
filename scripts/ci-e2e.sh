@@ -49,7 +49,7 @@ export KUBERNETES_VERSION=${KUBERNETES_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 export SKIP_NODE_IMAGE_PREPULL="true"
-export USE_IRSO="${USE_IRSO:-false}"
+export USE_IRSO="true"
 EOF
 
 # Always set DATE variable for nightly builds because it is needed to form
@@ -162,44 +162,62 @@ kustomize_envsubst() {
   echo "envsubst applied to ${file}"
 }
 
+yaml_envsubst() {
+  local kustomize_dir="$1"
+
+  for file in "${kustomize_dir}"/*.yaml; do
+    if [[ -f "${file}" ]]; then
+      local tmp_file
+      tmp_file=$(mktemp)
+      envsubst < "${file}" > "${tmp_file}" && mv "${tmp_file}" "${file}"
+      echo "envsubst applied to ${file}"
+    fi
+  done
+}
+
 # Generate credentials
 BMO_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.9"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.10"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.11"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-latest"
 )
-IRONIC_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-27.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-29.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-31.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-32.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/pr-test"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-latest"
+IRSO_IRONIC_OVERLAYS=(
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-31.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-32.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test"
 )
 
 # Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
 case "${REPO_NAME:-}" in
   baremetal-operator)
     # shellcheck disable=SC2034
-    BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
+    export BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
     ;;
 
   ironic-image)
     # shellcheck disable=SC2034
-    IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
+    export IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
     ;;
 esac
 
+IRONIC_IMAGE="${IRONIC_IMAGE:-quay.io/metal3-io/ironic:main}"
 update_kustomize_image quay.io/metal3-io/baremetal-operator BARE_METAL_OPERATOR_IMAGE "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
-update_kustomize_image quay.io/metal3-io/ironic IRONIC_IMAGE "${REPO_ROOT}"/test/e2e/data/ironic-deployment/overlays/pr-test
 
 # Apply envsubst to kustomization.yaml files in BMO and Ironic overlays
 kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
-kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-deployment/overlays/pr-test
+kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/base
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/base/
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/operator
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test/
 
-# Create usernames and passwords and other files related to ironi basic auth if they
+for overlay in "${IRSO_IRONIC_OVERLAYS[@]}"; do
+  kustomize_envsubst "${overlay}"
+done
+
+# Create usernames and passwords and other files related to ironic basic auth if they
 # are missing
 if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
   IRONIC_AUTH_DIR="${IRONIC_AUTH_DIR:-${IRONIC_DATA_DIR}/auth}"
@@ -222,14 +240,16 @@ if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
       IRONIC_PASSWORD="$(cat "${IRONIC_AUTH_DIR}/ironic-password")"
     fi
   fi
-  IRONIC_INSPECTOR_USERNAME="${IRONIC_INSPECTOR_USERNAME:-${IRONIC_USERNAME}}"
-  IRONIC_INSPECTOR_PASSWORD="${IRONIC_INSPECTOR_PASSWORD:-${IRONIC_PASSWORD}}"
 
   export IRONIC_USERNAME
   export IRONIC_PASSWORD
-  export IRONIC_INSPECTOR_USERNAME
-  export IRONIC_INSPECTOR_PASSWORD
 fi
+
+echo "${IRONIC_USERNAME}" > "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/ironic-username
+echo "${IRONIC_PASSWORD}" > "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/ironic-password
+
+cp "${IRONIC_KEY_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
+cp "${IRONIC_CERT_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
 
 for overlay in "${BMO_OVERLAYS[@]}"; do
   echo "${IRONIC_USERNAME}" > "${overlay}/ironic-username"
@@ -240,19 +260,6 @@ for overlay in "${BMO_OVERLAYS[@]}"; do
   fi
 done
 
-for overlay in "${IRONIC_OVERLAYS[@]}"; do
-  echo "IRONIC_HTPASSWD=$(htpasswd -n -b -B "${IRONIC_USERNAME}" "${IRONIC_PASSWORD}")" > \
-    "${overlay}/ironic-htpasswd"
-  envsubst < "${REPO_ROOT}/test/e2e/data/ironic-deployment/components/basic-auth/ironic-auth-config-tpl" > \
-  "${overlay}/ironic-auth-config"
-  IRONIC_INSPECTOR_AUTH_CONFIG_TPL="/tmp/ironic-inspector-auth-config-tpl"
-  curl -o "${IRONIC_INSPECTOR_AUTH_CONFIG_TPL}" https://raw.githubusercontent.com/metal3-io/baremetal-operator/release-0.5/ironic-deployment/components/basic-auth/ironic-inspector-auth-config-tpl
-  envsubst < "${IRONIC_INSPECTOR_AUTH_CONFIG_TPL}" > \
-    "${overlay}/ironic-inspector-auth-config"
-  echo "INSPECTOR_HTPASSWD=$(htpasswd -n -b -B "${IRONIC_INSPECTOR_USERNAME}" \
-    "${IRONIC_INSPECTOR_PASSWORD}")" > "${overlay}/ironic-inspector-htpasswd"
-done
-
 # run e2e tests
 if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   export CLUSTER_TOPOLOGY=true
@@ -260,3 +267,6 @@ if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
 else
   make e2e-tests
 fi
+
+mkdir -p "/tmp/manifests/irso_yamls"
+cp -r "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/" "/tmp/manifests/irso_yamls/"
