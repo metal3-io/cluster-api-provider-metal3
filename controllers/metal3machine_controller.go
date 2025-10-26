@@ -125,6 +125,11 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	machineLog = machineLog.WithValues("machine", capiMachine.Name)
 
+	// Set Failuredomain from machine to metal3Machine
+	if capm3Machine.Spec.FailureDomain != capiMachine.Spec.FailureDomain {
+		capm3Machine.Spec.FailureDomain = capiMachine.Spec.FailureDomain
+	}
+
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
