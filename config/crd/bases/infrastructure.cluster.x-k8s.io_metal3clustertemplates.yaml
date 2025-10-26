@@ -74,6 +74,26 @@ spec:
                         - host
                         - port
                         type: object
+                      failureDomains:
+                        additionalProperties:
+                          description: |-
+                            FailureDomainSpec is the Schema for Cluster API failure domains.
+                            It allows controllers to understand how many failure domains a cluster can optionally span across.
+                          properties:
+                            attributes:
+                              additionalProperties:
+                                type: string
+                              description: attributes is a free form map of attributes
+                                an infrastructure provider might use or require.
+                              type: object
+                            controlPlane:
+                              description: controlPlane determines if this failure
+                                domain is suitable for use by control plane machines.
+                              type: boolean
+                          type: object
+                        description: FailureDomains specifies a list fo failure zones
+                          that can be used
+                        type: object
                       noCloudProvider:
                         description: |-
                           Determines if the cluster is not to be deployed with an external cloud provider.

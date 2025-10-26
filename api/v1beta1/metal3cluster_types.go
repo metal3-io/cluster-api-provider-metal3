@@ -66,7 +66,14 @@ type Metal3ClusterSpec struct {
 	// Default value is true, it is set in the webhook.
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
+
+	// FailureDomains specifies a list fo failure zones that can be used
+	// +optional
+	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 }
+
+// FailureDomains is a slice of FailureDomainSpecs.
+type FailureDomains clusterv1beta1.FailureDomains
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
 // string representation of the error is suitable for human consumption.
@@ -115,6 +122,9 @@ type Metal3ClusterStatus struct {
 	// v1beta2 groups all the fields that will be added or modified in Metal3Cluster's status with the V1Beta2 version.
 	// +optional
 	V1Beta2 *Metal3ClusterV1Beta2Status `json:"v1beta2,omitempty"`
+	// FailureDomains specifies a list fo failure zones that can be used
+	// +optional
+	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
 }
 
 // Metal3ClusterV1Beta2Status groups all the fields that will be added or modified in Metal3ClusterStatus with the V1Beta2 version.
