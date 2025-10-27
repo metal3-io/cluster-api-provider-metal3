@@ -50,9 +50,6 @@ var (
 
 	// upgradeTest triggers only e2e upgrade test if true.
 	upgradeTest bool
-
-	// ephemeralTest triggers only e2e test in ephemeral cluster if true.
-	ephemeralTest bool
 )
 
 // Test suite global vars.
@@ -86,7 +83,6 @@ func init() {
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&upgradeTest, "e2e.trigger-upgrade-test", false, "if true, the e2e upgrade test will be triggered and other tests will be skipped")
-	flag.BoolVar(&ephemeralTest, "e2e.trigger-ephemeral-test", false, "if true, all e2e tests run in the ephemeral cluster without pivoting to the target cluster")
 	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", true, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&kubeconfigPath, "e2e.kubeconfig-path", os.Getenv("HOME")+"/.kube/config", "if e2e.use-existing-cluster is true, path to the kubeconfig file")
 	e2eTestsPath = getE2eTestsPath()
