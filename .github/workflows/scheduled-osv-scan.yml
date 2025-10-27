@@ -18,8 +18,12 @@ permissions:
 jobs:
   osv-scan:
     if: ${{ github.repository == 'metal3-io/cluster-api-provider-metal3' }}
+    strategy:
+      matrix:
+        branch: [main, release-1.11, release-1.10, release-1.9]
     uses: metal3-io/project-infra/.github/workflows/scheduled-osv-scan.yml@main
     with:
       repository-name: ${{ github.repository }}
+      ref: ${{ matrix.branch }}
     secrets:
       SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
