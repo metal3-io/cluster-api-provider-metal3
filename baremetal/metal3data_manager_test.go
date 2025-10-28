@@ -627,6 +627,9 @@ var _ = Describe("Metal3Data manager", func() {
 		m3dtSpec      infrav1.Metal3DataTemplateSpec
 		m3IPClaims    []string
 		ipClaims      []string
+		m3m           *infrav1.Metal3Machine
+		machine       *clusterv1.Machine
+		bmh           *bmov1alpha1.BareMetalHost
 		expectError   bool
 		expectRequeue bool
 	}
@@ -675,7 +678,7 @@ var _ = Describe("Metal3Data manager", func() {
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
-			poolAddresses, err := dataMgr.getAddressesFromPool(context.TODO(), m3dt)
+			poolAddresses, err := dataMgr.getAddressesFromPool(context.TODO(), m3dt, tc.m3m, tc.machine, tc.bmh)
 			if tc.expectError || tc.expectRequeue {
 				Expect(err).To(HaveOccurred())
 				if tc.expectRequeue {
@@ -999,6 +1002,378 @@ var _ = Describe("Metal3Data manager", func() {
 				"test-2",
 			},
 			expectRequeue: true,
+		}),
+		Entry("IPv4 with FromPoolAnnotation - objects not provided", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								ID:   "network-1",
+								Link: "eth0",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ippool.metal3.io/network-1",
+								},
+							},
+						},
+					},
+				},
+			},
+			// No pool refs or claims expected when objects are nil
+			expectError: false,
+		}),
+		Entry("IPv4 gateway with FromPoolAnnotation - objects not provided", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								ID:                  "network-1",
+								Link:                "eth0",
+								IPAddressFromIPPool: "pool-1",
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Network: "0.0.0.0",
+										Prefix:  0,
+										Gateway: infrav1.NetworkGatewayv4{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "baremetalhost",
+												Annotation: "ippool.metal3.io/gateway",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			m3IPClaims: []string{
+				"pool-1",
+			},
+			expectRequeue: true,
+		}),
+		Entry("IPv6 with FromPoolAnnotation - objects not provided", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								ID:   "network-ipv6",
+								Link: "eth0",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ippool.metal3.io/ipv6-network",
+								},
+							},
+						},
+					},
+				},
+			},
+			// No pool refs or claims expected when objects are nil
+			expectError: false,
+		}),
+		Entry("IPv6 gateway with FromPoolAnnotation - objects not provided", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								ID:                  "network-ipv6",
+								Link:                "eth0",
+								IPAddressFromIPPool: "pool-ipv6",
+								Routes: []infrav1.NetworkDataRoutev6{
+									{
+										Network: "::",
+										Prefix:  0,
+										Gateway: infrav1.NetworkGatewayv6{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "baremetalhost",
+												Annotation: "ippool.metal3.io/ipv6-gateway",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			m3IPClaims: []string{
+				"pool-ipv6",
+			},
+			expectRequeue: true,
+		}),
+		Entry("IPv4 with FromPoolAnnotation - BareMetalHost annotation resolution", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								ID:   "network-1",
+								Link: "eth0",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ippool.metal3.io/provisioning",
+								},
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/provisioning": "provisioning-pool-zone-a",
+					},
+				},
+			},
+			m3IPClaims:    []string{"provisioning-pool-zone-a"},
+			expectRequeue: true,
+		}),
+		Entry("IPv4 gateway with FromPoolAnnotation - BareMetalHost annotation resolution", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								ID:                  "network-1",
+								Link:                "eth0",
+								IPAddressFromIPPool: "static-pool",
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Network: "0.0.0.0",
+										Prefix:  0,
+										Gateway: infrav1.NetworkGatewayv4{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "baremetalhost",
+												Annotation: "ippool.metal3.io/gateway",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/gateway": "gateway-pool-bmh",
+					},
+				},
+			},
+			m3IPClaims:    []string{"static-pool", "gateway-pool-bmh"},
+			expectRequeue: true,
+		}),
+		Entry("IPv6 with FromPoolAnnotation - BareMetalHost annotation resolution", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								ID:   "network-ipv6",
+								Link: "eth0",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ippool.metal3.io/ipv6-network",
+								},
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/ipv6-network": "ipv6-pool-bmh",
+					},
+				},
+			},
+			m3IPClaims:    []string{"ipv6-pool-bmh"},
+			expectRequeue: true,
+		}),
+		Entry("IPv6 gateway with FromPoolAnnotation - BareMetalHost annotation resolution", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								ID:                  "network-ipv6",
+								Link:                "eth0",
+								IPAddressFromIPPool: "ipv6-static-pool",
+								Routes: []infrav1.NetworkDataRoutev6{
+									{
+										Network: "::",
+										Prefix:  0,
+										Gateway: infrav1.NetworkGatewayv6{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "baremetalhost",
+												Annotation: "ippool.metal3.io/ipv6-gateway",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/ipv6-gateway": "ipv6-gateway-pool",
+					},
+				},
+			},
+			m3IPClaims:    []string{"ipv6-static-pool", "ipv6-gateway-pool"},
+			expectRequeue: true,
+		}),
+		Entry("Multiple pools from different annotations", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								ID:   "network-1",
+								Link: "eth0",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ippool.metal3.io/network-1",
+								},
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Network: "0.0.0.0",
+										Prefix:  0,
+										Gateway: infrav1.NetworkGatewayv4{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "machine",
+												Annotation: "ippool.metal3.io/gateway-1",
+											},
+										},
+									},
+								},
+							},
+						},
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								ID:   "network-2",
+								Link: "eth1",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "metal3machine",
+									Annotation: "ippool.metal3.io/network-2",
+								},
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/network-1": "pool-a",
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/gateway-1": "pool-b",
+					},
+				},
+			},
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/network-2": "pool-c",
+					},
+				},
+			},
+			m3IPClaims:    []string{"pool-a", "pool-b", "pool-c"},
+			expectRequeue: true,
+		}),
+		Entry("FromPoolAnnotation with missing annotation - error case", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								ID:   "network-1",
+								Link: "eth0",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ippool.metal3.io/nonexistent",
+								},
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/other": "some-pool",
+					},
+				},
+			},
+			expectError: true,
+		}),
+		Entry("FromPoolAnnotation with empty annotation value - error case", testCaseGetAddressesFromPool{
+			m3dtSpec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								ID:   "network-1",
+								Link: "eth0",
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "machine",
+									Annotation: "ippool.metal3.io/empty",
+								},
+							},
+						},
+					},
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      machineName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/empty": "",
+					},
+				},
+			},
+			expectError: true,
 		}),
 	)
 
@@ -2559,13 +2934,16 @@ var _ = Describe("Metal3Data manager", func() {
 		networks       infrav1.NetworkDataNetwork
 		m3d            *infrav1.Metal3Data
 		poolAddresses  map[string]addressFromPool
+		bmh            *bmov1alpha1.BareMetalHost
+		m3m            *infrav1.Metal3Machine
+		machine        *clusterv1.Machine
 		expectError    bool
 		expectedOutput []any
 	}
 
 	DescribeTable("Test renderNetworkNetworks",
 		func(tc testCaseRenderNetworkNetworks) {
-			result, err := renderNetworkNetworks(tc.networks, tc.poolAddresses)
+			result, err := renderNetworkNetworks(tc.networks, tc.poolAddresses, tc.m3m, tc.machine, tc.bmh)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 				return
@@ -2935,6 +3313,88 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 		}),
+		Entry("IPv4 network with FromPoolAnnotation", testCaseRenderNetworkNetworks{
+			poolAddresses: map[string]addressFromPool{
+				"test-pool": {
+					Address: ipamv1.IPAddressStr("192.168.10.20"),
+					Prefix:  24,
+					Gateway: ipamv1.IPAddressStr("192.168.10.1"),
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      baremetalhostName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/test-network": "test-pool",
+					},
+				},
+			},
+			networks: infrav1.NetworkDataNetwork{
+				IPv4: []infrav1.NetworkDataIPv4{
+					{
+						ID:   "net1",
+						Link: "eth0",
+						FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+							Object:     "baremetalhost",
+							Annotation: "ippool.metal3.io/test-network",
+						},
+						Routes: []infrav1.NetworkDataRoutev4{},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"ip_address": ipamv1.IPAddressv4Str("192.168.10.20"),
+					"routes":     []any{},
+					"type":       "ipv4",
+					"id":         "net1",
+					"link":       "eth0",
+					"netmask":    ipamv1.IPAddressv4Str("255.255.255.0"),
+				},
+			},
+		}),
+		Entry("IPv6 network with FromPoolAnnotation", testCaseRenderNetworkNetworks{
+			poolAddresses: map[string]addressFromPool{
+				"test-pool-v6": {
+					Address: ipamv1.IPAddressStr("2001:db8::100"),
+					Prefix:  64,
+					Gateway: ipamv1.IPAddressStr("2001:db8::1"),
+				},
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-machine",
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						"ippool.metal3.io/test-network-v6": "test-pool-v6",
+					},
+				},
+			},
+			networks: infrav1.NetworkDataNetwork{
+				IPv6: []infrav1.NetworkDataIPv6{
+					{
+						ID:   "net1",
+						Link: "eth0",
+						FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+							Object:     "machine",
+							Annotation: "ippool.metal3.io/test-network-v6",
+						},
+						Routes: []infrav1.NetworkDataRoutev6{},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"ip_address": ipamv1.IPAddressv6Str("2001:db8::100"),
+					"routes":     []any{},
+					"type":       "ipv6",
+					"id":         "net1",
+					"link":       "eth0",
+					"netmask":    ipamv1.IPAddressv6Str("ffff:ffff:ffff:ffff::"),
+				},
+			},
+		}),
 	)
 
 	It("Test getRoutesv4", func() {
@@ -3009,10 +3469,10 @@ var _ = Describe("Metal3Data manager", func() {
 				"services": []any{},
 			},
 		}
-		output, err := getRoutesv4(netRoutes, poolAddresses)
+		output, err := getRoutesv4(netRoutes, poolAddresses, nil, nil, nil)
 		Expect(output).To(Equal(ExpectedOutput))
 		Expect(err).NotTo(HaveOccurred())
-		_, err = getRoutesv4(netRoutes, map[string]addressFromPool{})
+		_, err = getRoutesv4(netRoutes, map[string]addressFromPool{}, nil, nil, nil)
 		Expect(err).To(HaveOccurred())
 	})
 
@@ -3088,10 +3548,10 @@ var _ = Describe("Metal3Data manager", func() {
 				"services": []any{},
 			},
 		}
-		output, err := getRoutesv6(netRoutes, poolAddresses)
+		output, err := getRoutesv6(netRoutes, poolAddresses, nil, nil, nil)
 		Expect(output).To(Equal(ExpectedOutput))
 		Expect(err).NotTo(HaveOccurred())
-		_, err = getRoutesv6(netRoutes, map[string]addressFromPool{})
+		_, err = getRoutesv6(netRoutes, map[string]addressFromPool{}, nil, nil, nil)
 		Expect(err).To(HaveOccurred())
 	})
 
