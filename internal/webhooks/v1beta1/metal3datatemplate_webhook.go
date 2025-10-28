@@ -110,7 +110,7 @@ func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTempla
 
 	if newM3dt.Spec.NetworkData != nil {
 		for i, network := range newM3dt.Spec.NetworkData.Networks.IPv4 {
-			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" {
+			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == nil {
 				allErrs = append(allErrs, field.Required(
 					field.NewPath("spec", "networkData", "networks", "ipv4", strconv.Itoa(i), "fromPoolRef", "name"),
 					"fromPoolRef needs to contain a reference to an IPPool",
@@ -118,7 +118,7 @@ func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTempla
 			}
 		}
 		for i, network := range newM3dt.Spec.NetworkData.Networks.IPv6 {
-			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" {
+			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == nil {
 				allErrs = append(allErrs, field.Required(
 					field.NewPath("spec", "networkData", "networks", "ipv6", strconv.Itoa(i), "fromPoolRef", "name"),
 					"fromPoolRef needs to contain a reference to an IPPool",

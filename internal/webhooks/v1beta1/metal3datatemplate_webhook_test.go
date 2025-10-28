@@ -56,6 +56,100 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 				Spec: infrav1.Metal3DataTemplateSpec{},
 			},
 		},
+		{
+			name:      "should succeed with fromPoolAnnotation in IPv4",
+			expectErr: false,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Networks: infrav1.NetworkDataNetwork{
+							IPv4: []infrav1.NetworkDataIPv4{
+								{
+									ID:   "test",
+									Link: "eth0",
+									FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+										Object:     "baremetalhost",
+										Annotation: "ippool.metal3.io/provisioning",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should succeed with fromPoolAnnotation in IPv6",
+			expectErr: false,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Networks: infrav1.NetworkDataNetwork{
+							IPv6: []infrav1.NetworkDataIPv6{
+								{
+									ID:   "test",
+									Link: "eth0",
+									FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+										Object:     "machine",
+										Annotation: "ippool.metal3.io/provisioning",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should fail when IPv4 network has no pool reference",
+			expectErr: true,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Networks: infrav1.NetworkDataNetwork{
+							IPv4: []infrav1.NetworkDataIPv4{
+								{
+									ID:   "test",
+									Link: "eth0",
+									// No FromPoolRef, FromPoolAnnotation, or IPAddressFromIPPool
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should fail when IPv6 network has no pool reference",
+			expectErr: true,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					NetworkData: &infrav1.NetworkData{
+						Networks: infrav1.NetworkDataNetwork{
+							IPv6: []infrav1.NetworkDataIPv6{
+								{
+									ID:   "test",
+									Link: "eth0",
+									// No FromPoolRef, FromPoolAnnotation, or IPAddressFromIPPool
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
