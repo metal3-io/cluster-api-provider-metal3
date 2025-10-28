@@ -167,7 +167,6 @@ E2E_CONF_FILE ?= $(ROOT_DIR)/test/e2e/config/e2e_conf.yaml
 E2E_OUT_DIR ?= $(ROOT_DIR)/test/e2e/_out
 E2E_CONF_FILE_ENVSUBST ?= $(E2E_OUT_DIR)/$(notdir $(E2E_CONF_FILE))
 SKIP_CLEANUP ?= false
-EPHEMERAL_TEST ?= false
 SKIP_CREATE_MGMT_CLUSTER ?= true
 
 ## Processes e2e_conf file
@@ -313,7 +312,6 @@ e2e-tests: $(GINKGO) e2e-substitutions cluster-templates # This target should be
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
-		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 
 	rm $(E2E_CONF_FILE_ENVSUBST)
@@ -330,7 +328,6 @@ e2e-clusterclass-tests: $(GINKGO) e2e-substitutions clusterclass-templates # Thi
 		-e2e.artifacts-folder="$(ARTIFACTS)" \
 		-e2e.config="$(E2E_CONF_FILE_ENVSUBST)" \
 		-e2e.skip-resource-cleanup=$(SKIP_CLEANUP) \
-		-e2e.trigger-ephemeral-test=$(EPHEMERAL_TEST) \
 		-e2e.use-existing-cluster=$(SKIP_CREATE_MGMT_CLUSTER)
 
 	rm $(E2E_CONF_FILE_ENVSUBST)
