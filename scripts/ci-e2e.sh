@@ -39,7 +39,7 @@ M3_DEV_ENV_PATH="${M3_DEV_ENV_PATH:-${WORKING_DIR}/metal3-dev-env}"
 clone_repo "${M3_DEV_ENV_REPO}" "${M3_DEV_ENV_BRANCH}" "${M3_DEV_ENV_PATH}"
 
 # Config devenv
-# SKIP_NODE_IMAGE_PREPULL is set to true to avoid dev-env downloading the node 
+# SKIP_NODE_IMAGE_PREPULL is set to true to avoid dev-env downloading the node
 # image
 cat <<-EOF >"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 export CAPI_VERSION="v1beta2"
@@ -84,7 +84,7 @@ case "${GINKGO_FOCUS:-}" in
     sed -i "s/^export NUM_NODES=.*/export NUM_NODES=${NUM_NODES:-50}/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
     mkdir -p "${CAPI_CONFIG_FOLDER}"
     echo 'CLUSTER_TOPOLOGY: true' >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
-    echo 'export EPHEMERAL_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo 'export BOOTSTRAP_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 esac
 
