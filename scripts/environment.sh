@@ -43,9 +43,9 @@ else
 fi
 
 if [ "${CONTAINER_RUNTIME}" == "docker" ]; then
-  export EPHEMERAL_CLUSTER="kind"
+  export BOOTSTRAP_CLUSTER="kind"
 else
-  export EPHEMERAL_CLUSTER="minikube"
+  export BOOTSTRAP_CLUSTER="minikube"
 fi
 
 export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.32.9"}

@@ -73,7 +73,7 @@ var (
  * Finally, the cluster is re-pivoted and cleaned up.
  */
 
-var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [features]", Label("pivoting", "features"),
+var _ = Describe("Testing features in target cluster [pivoting] [features]", Label("pivoting", "features"),
 	func() {
 
 		BeforeEach(func() {
@@ -101,23 +101,19 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 					Namespace:             namespace,
 				}
 			})
-			managementCluster := bootstrapClusterProxy
-			// If not running ephemeral test, use the target cluster for management
-			if !ephemeralTest {
-				managementCluster = targetCluster
-				pivoting(ctx, func() PivotingInput {
-					return PivotingInput{
-						E2EConfig:             e2eConfig,
-						BootstrapClusterProxy: bootstrapClusterProxy,
-						TargetCluster:         targetCluster,
-						SpecName:              specName,
-						ClusterName:           clusterName,
-						Namespace:             namespace,
-						ArtifactFolder:        artifactFolder,
-						ClusterctlConfigPath:  clusterctlConfigPath,
-					}
-				})
-			}
+			managementCluster := targetCluster
+			pivoting(ctx, func() PivotingInput {
+				return PivotingInput{
+					E2EConfig:             e2eConfig,
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					TargetCluster:         targetCluster,
+					SpecName:              specName,
+					ClusterName:           clusterName,
+					Namespace:             namespace,
+					ArtifactFolder:        artifactFolder,
+					ClusterctlConfigPath:  clusterctlConfigPath,
+				}
+			})
 
 			certRotation(ctx, func() CertRotationInput {
 				return CertRotationInput{
@@ -146,36 +142,33 @@ var _ = Describe("Testing features in ephemeral or target cluster [pivoting] [fe
 			ListMachines(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(namespace))
 			ListNodes(ctx, bootstrapClusterProxy.GetClient())
 			Logf("Logging state of target cluster")
-			if !ephemeralTest {
-				ListBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-				ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-				ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
-			}
-			ListNodes(ctx, targetCluster.GetClient())
-			if !ephemeralTest {
-				// Dump the target cluster resources before re-pivoting.
-				Logf("Dump the target cluster resources before re-pivoting")
-				framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-					Lister:               targetCluster.GetClient(),
-					Namespace:            namespace,
-					LogPath:              filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
-					KubeConfigPath:       targetCluster.GetKubeconfigPath(),
-					ClusterctlConfigPath: clusterctlConfigPath,
-				})
+			ListBareMetalHosts(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			ListMetal3Machines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
+			ListMachines(ctx, targetCluster.GetClient(), client.InNamespace(namespace))
 
-				rePivoting(ctx, func() RePivotingInput {
-					return RePivotingInput{
-						E2EConfig:             e2eConfig,
-						BootstrapClusterProxy: bootstrapClusterProxy,
-						TargetCluster:         targetCluster,
-						SpecName:              specName,
-						ClusterName:           clusterName,
-						Namespace:             namespace,
-						ArtifactFolder:        artifactFolder,
-						ClusterctlConfigPath:  clusterctlConfigPath,
-					}
-				})
-			}
+			ListNodes(ctx, targetCluster.GetClient())
+			// Dump the target cluster resources before re-pivoting.
+			Logf("Dump the target cluster resources before re-pivoting")
+			framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+				Lister:               targetCluster.GetClient(),
+				Namespace:            namespace,
+				LogPath:              filepath.Join(artifactFolder, "clusters", clusterName, "resources"),
+				KubeConfigPath:       targetCluster.GetKubeconfigPath(),
+				ClusterctlConfigPath: clusterctlConfigPath,
+			})
+
+			rePivoting(ctx, func() RePivotingInput {
+				return RePivotingInput{
+					E2EConfig:             e2eConfig,
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					TargetCluster:         targetCluster,
+					SpecName:              specName,
+					ClusterName:           clusterName,
+					Namespace:             namespace,
+					ArtifactFolder:        artifactFolder,
+					ClusterctlConfigPath:  clusterctlConfigPath,
+				}
+			})
 			DumpSpecResourcesAndCleanup(ctx, specName, bootstrapClusterProxy, targetCluster, artifactFolder, namespace, e2eConfig.GetIntervals, clusterName, clusterctlLogFolder, skipCleanup, clusterctlConfigPath)
 		})
 
