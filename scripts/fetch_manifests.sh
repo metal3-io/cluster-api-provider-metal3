@@ -10,7 +10,7 @@ DIR_NAME_AFTER_REPIVOT="/tmp/manifests/bootstrap-after-repivot"
 if [[ -d "${DIR_NAME}" ]] && [[ -d "${DIR_NAME_AFTER_PIVOT}" ]]; then
   DIR_NAME="${DIR_NAME_AFTER_REPIVOT}"
   mkdir -p "${DIR_NAME}"
-  # Ephemeral cluster kubeconfig
+  # Bootstrap cluster kubeconfig
   kconfig="${KUBECONFIG_BOOTSTRAP}"
 elif [[ -d "${DIR_NAME}" ]] && [[ ! -d "${DIR_NAME_AFTER_PIVOT}" ]]; then
   DIR_NAME="${DIR_NAME_AFTER_PIVOT}"
@@ -19,7 +19,7 @@ elif [[ -d "${DIR_NAME}" ]] && [[ ! -d "${DIR_NAME_AFTER_PIVOT}" ]]; then
   kconfig="${KUBECONFIG_WORKLOAD}"
 else
   mkdir -p "${DIR_NAME}"
-  # Ephemeral cluster kubeconfig
+  # Bootstrap cluster kubeconfig
   kconfig="${KUBECONFIG_BOOTSTRAP}"
 fi
 

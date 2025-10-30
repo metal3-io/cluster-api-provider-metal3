@@ -114,7 +114,7 @@ order:
 - Node reuse
 - Re-pivoting
 
-However, in case we need to run them in the ephemeral cluster pivoting and
+However, in case we need to run them in the bootstrap cluster pivoting and
 re-pivoting should be ignored.
 
 ### Remediation based feature tests
@@ -129,10 +129,10 @@ Independent from the previous tests and can run independently includes:
 [in the middle of the remediation test](https://github.com/metal3-io/cluster-api-provider-metal3/blob/8d08f375de93a793f839b42b5ec40e6bebf98664/test/e2e/remediation_test.go#L108)
 for practical reasons at the moment.
 
-The ephemeral cluster is first launched using
+The bootstrap cluster is first launched using
 [metal3-dev-env](https://github.com/metal3-io/metal3-dev-env). The remediation,
 inspection and Metal3Remediation tests are then run with the controllers still
-in the ephemeral cluster either before pivoting or after re-pivoting.
+in the bootstrap cluster either before pivoting or after re-pivoting.
 
 ### clusterctl upgrade tests
 
