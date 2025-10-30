@@ -286,9 +286,9 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	installCertManager(clusterProxy)
 	// Remove ironic
 	By("Remove Ironic containers from the source cluster")
-	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
+	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
 	ironicDeploymentType := IronicDeploymentTypeBMO
-	if ephemeralCluster == Kind {
+	if bootstrapCluster == Kind {
 		ironicDeploymentType = IronicDeploymentTypeLocal
 	} else if GetBoolVariable(e2eConfig, "USE_IRSO") {
 		ironicDeploymentType = IronicDeploymentTypeIrSO
@@ -432,8 +432,8 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 	// Reinstall ironic
 	reInstallIronic := func() {
 		By("Reinstate Ironic containers and BMH")
-		ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-		if ephemeralCluster == Kind {
+		bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
+		if bootstrapCluster == Kind {
 			By("Install Ironic in the source cluster as containers")
 			bmoPath := e2eConfig.MustGetVariable("BMOPATH")
 			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"

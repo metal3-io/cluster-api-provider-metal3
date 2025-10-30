@@ -83,9 +83,9 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	}
 
 	By("Fetch container logs")
-	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
+	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
 	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
-	if ephemeralCluster == Kind {
+	if bootstrapCluster == Kind {
 		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
 	}
 
@@ -109,7 +109,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Remove Ironic containers from the source cluster")
 	ironicDeploymentType := IronicDeploymentTypeBMO
-	if ephemeralCluster == Kind {
+	if bootstrapCluster == Kind {
 		ironicDeploymentType = IronicDeploymentTypeLocal
 	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
 		ironicDeploymentType = IronicDeploymentTypeIrSO
@@ -394,8 +394,8 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("Reinstate Ironic containers and BMH")
-	ephemeralCluster := os.Getenv("EPHEMERAL_CLUSTER")
-	if ephemeralCluster == Kind {
+	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
+	if bootstrapCluster == Kind {
 		bmoPath := input.E2EConfig.MustGetVariable("BMOPATH")
 		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 		//#nosec G204:gosec
