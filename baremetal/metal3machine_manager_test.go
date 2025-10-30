@@ -570,6 +570,18 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 		}
+		hostWithFailureDomainLabel := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "hostWithFailureDomainLabel",
+				Namespace: namespaceName,
+				Labels:    map[string]string{FailureDomainLabelName: "my-fd-1"},
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
+		}
 		hostWithUnhealthyAnnotation := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "hostWithUnhealthyAnnotation",
@@ -607,6 +619,19 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 		}
+		hostWithNodeReuseLabelSetToCPinFailureDomain := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "hostWithNodeReuseLabelSetToCPinFailureDomain",
+				Namespace: namespaceName,
+				Labels:    map[string]string{nodeReuseLabelName: "cp-test1", FailureDomainLabelName: "my-fd-1"},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
+		}
 		hostWithNodeReuseLabelStateNone := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "hostWithNodeReuseLabelStateNone",
@@ -622,13 +647,13 @@ var _ = Describe("Metal3Machine manager", func() {
 		}
 
 		m3mconfig, infrastructureRef := newConfig("", map[string]string{},
-			[]infrav1.HostSelectorRequirement{},
+			[]infrav1.HostSelectorRequirement{}, "",
 		)
 		m3mconfig2, infrastructureRef2 := newConfig("",
-			map[string]string{"key1": "value1"}, []infrav1.HostSelectorRequirement{},
+			map[string]string{"key1": "value1"}, []infrav1.HostSelectorRequirement{}, "",
 		)
 		m3mconfig3, infrastructureRef3 := newConfig("",
-			map[string]string{"boguskey": "value"}, []infrav1.HostSelectorRequirement{},
+			map[string]string{"boguskey": "value"}, []infrav1.HostSelectorRequirement{}, "",
 		)
 		m3mconfig4, infrastructureRef4 := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{
@@ -638,6 +663,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Values:   []string{"abc", "value1", "123"},
 				},
 			},
+			"",
 		)
 		m3mconfig5, infrastructureRef5 := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{
@@ -647,6 +673,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					Values:   []string{"abc", "value1", "123"},
 				},
 			},
+			"",
+		)
+		m3mconfig6, infrastructureRef6 := newConfig("", map[string]string{},
+			[]infrav1.HostSelectorRequirement{}, "my-fd-1",
 		)
 
 		type testCaseChooseHost struct {
@@ -848,6 +878,68 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef}},
 				M3Machine:        m3mconfig5,
 				ExpectedHostName: "",
+			}),
+			Entry("Choose a host in Failure Domain", testCaseChooseHost{
+				Machine:          newMachine(machineName, infrastructureRef6),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithOtherConsRef, hostWithFailureDomainLabel}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: hostWithFailureDomainLabel.Name,
+			}),
+			Entry("Choose available host, when hosts in FailureDomain not available", testCaseChooseHost{
+				Machine:          newMachine(machineName, infrastructureRef6),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithOtherConsRef, hostWithNodeReuseLabelSetToCP}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: availableHost.Name,
+			}),
+			Entry("Choose a host in Failure Domain, when NodeReuse is set", testCaseChooseHost{
+				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      machineName,
+						Namespace: namespaceName,
+
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
+								Name:       "test1",
+								Kind:       "KubeadmControlPlane",
+							},
+						},
+						Labels: map[string]string{
+							clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						},
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: *infrastructureRef,
+					},
+				},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithFailureDomainLabel, hostWithNodeReuseLabelSetToCPinFailureDomain}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: hostWithNodeReuseLabelSetToCPinFailureDomain.Name,
+			}),
+			Entry("Choose host is not in Failure Domain, when NodeReuse is set", testCaseChooseHost{
+				Machine: &clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      machineName,
+						Namespace: namespaceName,
+
+						OwnerReferences: []metav1.OwnerReference{
+							{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta2",
+								Name:       "test1",
+								Kind:       "KubeadmControlPlane",
+							},
+						},
+						Labels: map[string]string{
+							clusterv1.MachineControlPlaneLabel: "cluster.x-k8s.io/control-plane",
+						},
+					},
+					Spec: clusterv1.MachineSpec{
+						InfrastructureRef: *infrastructureRef,
+					},
+				},
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithFailureDomainLabel, hostWithNodeReuseLabelSetToCP}},
+				M3Machine:        m3mconfig6,
+				ExpectedHostName: hostWithNodeReuseLabelSetToCP.Name,
 			}),
 		)
 	})
@@ -1085,7 +1177,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
 
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
-				map[string]string{}, []infrav1.HostSelectorRequirement{},
+				map[string]string{}, []infrav1.HostSelectorRequirement{}, "",
 			)
 			if tc.UseCustomDeploy != nil {
 				m3mconfig.Spec.Image = infrav1.Image{}
@@ -1205,7 +1297,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(tc.Host).Build()
 
 			m3mconfig, infrastructureRef := newConfig(tc.UserDataNamespace,
-				map[string]string{}, []infrav1.HostSelectorRequirement{},
+				map[string]string{}, []infrav1.HostSelectorRequirement{}, "",
 			)
 			machine := newMachine(machineName, infrastructureRef)
 
@@ -4579,7 +4671,7 @@ func setupSchemeMm() *runtime.Scheme {
 }
 
 func newConfig(userDataNamespace string,
-	labels map[string]string, reqs []infrav1.HostSelectorRequirement,
+	labels map[string]string, reqs []infrav1.HostSelectorRequirement, failureDomain string,
 ) (*infrav1.Metal3Machine, *clusterv1.ContractVersionedObjectReference) {
 	config := infrav1.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -4599,6 +4691,7 @@ func newConfig(userDataNamespace string,
 				MatchLabels:      labels,
 				MatchExpressions: reqs,
 			},
+			FailureDomain: failureDomain,
 		},
 		Status: infrav1.Metal3MachineStatus{
 			UserData: &corev1.SecretReference{
