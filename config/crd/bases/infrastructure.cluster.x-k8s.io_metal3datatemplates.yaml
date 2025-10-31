@@ -590,6 +590,29 @@ spec:
                           description: NetworkDataIPv4 represents an ipv4 static network
                             object.
                           properties:
+                            fromPoolAnnotation:
+                              description: |-
+                                FromPoolAnnotation allows specifying the pool reference via an annotation on
+                                a Machine, Metal3Machine, or BareMetalHost object.
+                                When set, IPAddressFromIPPool and FromPoolRef are ignored.
+                              properties:
+                                annotation:
+                                  description: |-
+                                    Annotation is the key of the annotation that contains the pool name.
+                                    The annotation value should be a string containing the pool name.
+                                  type: string
+                                object:
+                                  description: Object is the type of the object from
+                                    which we retrieve the annotation
+                                  enum:
+                                  - machine
+                                  - metal3machine
+                                  - baremetalhost
+                                  type: string
+                              required:
+                              - annotation
+                              - object
+                              type: object
                             fromPoolRef:
                               description: FromPoolRef is a reference to a IP pool
                                 to allocate an address from.
@@ -637,6 +660,29 @@ spec:
                                         description: FromIPPool is the name of the
                                           IPPool to fetch the gateway from
                                         type: string
+                                      fromPoolAnnotation:
+                                        description: |-
+                                          FromPoolAnnotation allows specifying the pool name via an annotation on
+                                          a Machine, Metal3Machine, or BareMetalHost object.
+                                          When set, FromIPPool and FromPoolRef are ignored.
+                                        properties:
+                                          annotation:
+                                            description: |-
+                                              Annotation is the key of the annotation that contains the pool name.
+                                              The annotation value should be a string containing the pool name.
+                                            type: string
+                                          object:
+                                            description: Object is the type of the
+                                              object from which we retrieve the annotation
+                                            enum:
+                                            - machine
+                                            - metal3machine
+                                            - baremetalhost
+                                            type: string
+                                        required:
+                                        - annotation
+                                        - object
+                                        type: object
                                       fromPoolRef:
                                         description: FromPoolRef is a reference to
                                           a IP pool to fetch the gateway from
@@ -727,6 +773,29 @@ spec:
                                         description: FromIPPool is the name of the
                                           IPPool to fetch the gateway from
                                         type: string
+                                      fromPoolAnnotation:
+                                        description: |-
+                                          FromPoolAnnotation allows specifying the pool name via an annotation on
+                                          a Machine, Metal3Machine, or BareMetalHost object.
+                                          When set, FromIPPool and FromPoolRef are ignored.
+                                        properties:
+                                          annotation:
+                                            description: |-
+                                              Annotation is the key of the annotation that contains the pool name.
+                                              The annotation value should be a string containing the pool name.
+                                            type: string
+                                          object:
+                                            description: Object is the type of the
+                                              object from which we retrieve the annotation
+                                            enum:
+                                            - machine
+                                            - metal3machine
+                                            - baremetalhost
+                                            type: string
+                                        required:
+                                        - annotation
+                                        - object
+                                        type: object
                                       fromPoolRef:
                                         description: FromPoolRef is a reference to
                                           a IP pool to fetch the gateway from
@@ -797,6 +866,29 @@ spec:
                           description: NetworkDataIPv6 represents an ipv6 static network
                             object.
                           properties:
+                            fromPoolAnnotation:
+                              description: |-
+                                FromPoolAnnotation allows specifying the pool reference via an annotation on
+                                a Machine, Metal3Machine, or BareMetalHost object.
+                                When set, IPAddressFromIPPool and FromPoolRef are ignored.
+                              properties:
+                                annotation:
+                                  description: |-
+                                    Annotation is the key of the annotation that contains the pool name.
+                                    The annotation value should be a string containing the pool name.
+                                  type: string
+                                object:
+                                  description: Object is the type of the object from
+                                    which we retrieve the annotation
+                                  enum:
+                                  - machine
+                                  - metal3machine
+                                  - baremetalhost
+                                  type: string
+                              required:
+                              - annotation
+                              - object
+                              type: object
                             fromPoolRef:
                               description: FromPoolRef is a reference to a IP pool
                                 to allocate an address from.
@@ -844,6 +936,29 @@ spec:
                                         description: FromIPPool is the name of the
                                           IPPool to fetch the gateway from
                                         type: string
+                                      fromPoolAnnotation:
+                                        description: |-
+                                          FromPoolAnnotation allows specifying the pool name via an annotation on
+                                          a Machine, Metal3Machine, or BareMetalHost object.
+                                          When set, FromIPPool and FromPoolRef are ignored.
+                                        properties:
+                                          annotation:
+                                            description: |-
+                                              Annotation is the key of the annotation that contains the pool name.
+                                              The annotation value should be a string containing the pool name.
+                                            type: string
+                                          object:
+                                            description: Object is the type of the
+                                              object from which we retrieve the annotation
+                                            enum:
+                                            - machine
+                                            - metal3machine
+                                            - baremetalhost
+                                            type: string
+                                        required:
+                                        - annotation
+                                        - object
+                                        type: object
                                       fromPoolRef:
                                         description: FromPoolRef is a reference to
                                           a IP pool to fetch the gateway from
@@ -935,6 +1050,29 @@ spec:
                                         description: FromIPPool is the name of the
                                           IPPool to fetch the gateway from
                                         type: string
+                                      fromPoolAnnotation:
+                                        description: |-
+                                          FromPoolAnnotation allows specifying the pool name via an annotation on
+                                          a Machine, Metal3Machine, or BareMetalHost object.
+                                          When set, FromIPPool and FromPoolRef are ignored.
+                                        properties:
+                                          annotation:
+                                            description: |-
+                                              Annotation is the key of the annotation that contains the pool name.
+                                              The annotation value should be a string containing the pool name.
+                                            type: string
+                                          object:
+                                            description: Object is the type of the
+                                              object from which we retrieve the annotation
+                                            enum:
+                                            - machine
+                                            - metal3machine
+                                            - baremetalhost
+                                            type: string
+                                        required:
+                                        - annotation
+                                        - object
+                                        type: object
                                       fromPoolRef:
                                         description: FromPoolRef is a reference to
                                           a IP pool to fetch the gateway from
@@ -1025,6 +1163,29 @@ spec:
                                         description: FromIPPool is the name of the
                                           IPPool to fetch the gateway from
                                         type: string
+                                      fromPoolAnnotation:
+                                        description: |-
+                                          FromPoolAnnotation allows specifying the pool name via an annotation on
+                                          a Machine, Metal3Machine, or BareMetalHost object.
+                                          When set, FromIPPool and FromPoolRef are ignored.
+                                        properties:
+                                          annotation:
+                                            description: |-
+                                              Annotation is the key of the annotation that contains the pool name.
+                                              The annotation value should be a string containing the pool name.
+                                            type: string
+                                          object:
+                                            description: Object is the type of the
+                                              object from which we retrieve the annotation
+                                            enum:
+                                            - machine
+                                            - metal3machine
+                                            - baremetalhost
+                                            type: string
+                                        required:
+                                        - annotation
+                                        - object
+                                        type: object
                                       fromPoolRef:
                                         description: FromPoolRef is a reference to
                                           a IP pool to fetch the gateway from
