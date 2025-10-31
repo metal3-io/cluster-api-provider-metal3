@@ -142,6 +142,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 		"bmh",
 		"hardwaredata",
 		"cluster",
+		"clusterclass",
 		"machine",
 		"machinedeployment",
 		"machinehealthchecks",
@@ -159,6 +160,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 		"m3data",
 		"m3dataclaim",
 		"m3datatemplate",
+		"ironic",
 	}
 	client := clusterProxy.GetClient()
 
@@ -175,6 +177,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 	// If it is, dump it to a file
 	for _, crd := range crds.Items {
 		if crdIsInList(crd, manifests) {
+			Logf("Successfully collected manifests %s.", crd.Spec.Names)
 			gvr := schema.GroupVersionResource{
 				Group:    crd.Spec.Group,
 				Version:  crd.Status.StoredVersions[0],
