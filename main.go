@@ -36,6 +36,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -55,6 +56,7 @@ import (
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
+	"sigs.k8s.io/cluster-api/controllers/crdmigrator"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -106,6 +108,7 @@ var (
 	logOptions                       = logs.NewOptions()
 	enableBMHNameBasedPreallocation  bool
 	managerOptions                   = flags.ManagerOptions{}
+	skipCRDMigrationPhases           []string
 )
 
 func init() {
@@ -125,11 +128,17 @@ func init() {
 
 	// BMO Operator schemes
 	_ = bmov1alpha1.AddToScheme(myscheme)
+
+	// Add apiextensions scheme
+	_ = apiextensionsv1.AddToScheme(myscheme)
 }
 
 // Add RBAC for the authorized diagnostics endpoint.
 // +kubebuilder:rbac:groups=authentication.k8s.io,resources=tokenreviews,verbs=create
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
+// ADD CRD RBAC for CRD Migrator.
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
+// +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=metal3clusters.infrastructure.cluster.x-k8s.io;metal3clustertemplates.infrastructure.cluster.x-k8s.io;metal3machines.infrastructure.cluster.x-k8s.io;metal3machinetemplates.infrastructure.cluster.x-k8s.io;metal3datas.infrastructure.cluster.x-k8s.io;metal3datatemplates.infrastructure.cluster.x-k8s.io
 
 func main() {
 	initFlags(pflag.CommandLine)
@@ -361,6 +370,9 @@ func initFlags(fs *pflag.FlagSet) {
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
 
 	flags.AddManagerOptions(fs, &managerOptions)
+
+	fs.StringArrayVar(&skipCRDMigrationPhases, "skip-crd-migration-phases", []string{},
+		"List of CRD migration phases to skip. Valid values are: StorageVersionMigration, CleanupManagedFields.")
 }
 
 func waitForAPIs(cfg *rest.Config) error {
@@ -401,6 +413,43 @@ func setupChecks(mgr ctrl.Manager) {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+	crdMigratorConfig := map[client.Object]crdmigrator.ByObjectConfig{
+		&infrav1.Metal3Cluster{}: {
+			UseCache: true,
+		},
+		&infrav1.Metal3ClusterTemplate{}: {
+			UseCache: false,
+		},
+		&infrav1.Metal3Machine{}: {
+			UseCache: true,
+		},
+		&infrav1.Metal3MachineTemplate{}: {
+			UseCache: true,
+		},
+		&infrav1.Metal3Data{}: {
+			UseCache: true,
+		},
+		&infrav1.Metal3DataTemplate{}: {
+			UseCache: true,
+		},
+	}
+
+	crdMigratorSkipPhases := []crdmigrator.Phase{}
+	for _, p := range skipCRDMigrationPhases {
+		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
+	}
+	if err := (&crdmigrator.CRDMigrator{
+		Client:                 mgr.GetClient(),
+		APIReader:              mgr.GetAPIReader(),
+		SkipCRDMigrationPhases: crdMigratorSkipPhases,
+		Config:                 crdMigratorConfig,
+		// The CRDMigrator is run with only concurrency 1 to ensure we don't overwhelm the apiserver by patching a
+		// lot of CRs concurrently.
+	}).SetupWithManager(ctx, mgr, concurrency(1)); err != nil {
+		setupLog.Error(err, "Unable to create controller", "controller", "CRDMigrator")
+		os.Exit(1)
+	}
+
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
