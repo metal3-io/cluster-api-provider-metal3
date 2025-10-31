@@ -1227,3 +1227,105 @@ func IsMetal3DataCountEqualToMachineCount(ctx context.Context, c client.Client, 
 
 	return len(m3DataList.Items) == len(machineList.Items)
 }
+
+type UpgradeControlPlaneInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	BootstrapClusterProxy framework.ClusterProxy
+	TargetCluster         framework.ClusterProxy
+	SpecName              string
+	ClusterName           string
+	Namespace             string
+	K8sToVersion          string
+	K8sFromVersion        string
+}
+
+func UpgradeControlPlane(ctx context.Context, inputGetter func() UpgradeControlPlaneInput) {
+	input := inputGetter()
+	e2eConfig := input.E2EConfig
+	clusterClient := input.BootstrapClusterProxy.GetClient()
+	targetClusterClient := input.TargetCluster.GetClient()
+	clientSet := input.TargetCluster.GetClientSet()
+	k8sToVersion := input.K8sToVersion
+	k8sFromVersion := input.K8sFromVersion
+	specName := input.SpecName
+	namespace := input.Namespace
+	clusterName := input.ClusterName
+	numberOfControlplane := int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+	var (
+		controlplaneTaints = []corev1.Taint{{Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule},
+			{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}}
+	)
+	// Upgrade process starts here
+	// Download node image
+	By("Download image")
+	imageURL, imageChecksum := EnsureImage(k8sToVersion)
+
+	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
+	m3MachineTemplateName := clusterName + k8sFromVersion + "-controlplane"
+	newM3MachineTemplateName := clusterName + k8sToVersion + "-new-controlplane"
+	CreateNewM3MachineTemplate(ctx, namespace, newM3MachineTemplateName, m3MachineTemplateName, clusterClient, imageURL, imageChecksum)
+
+	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", k8sFromVersion, k8sToVersion)
+	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+		Lister:      clusterClient,
+		ClusterName: clusterName,
+		Namespace:   namespace,
+	})
+	helper, err := v1beta1patch.NewHelper(kcpObj, clusterClient)
+	Expect(err).NotTo(HaveOccurred())
+	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = newM3MachineTemplateName
+	kcpObj.Spec.Version = k8sToVersion
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
+	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
+
+	Byf("Wait until %d BMH(s) are in deprovisioning state", 1)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  1,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning"),
+	})
+
+	Byf("Wait until three Control Plane machines become running and updated with the new %s k8s version", k8sToVersion)
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		upgraded := machine.Spec.Version == k8sToVersion
+		return (running && upgraded)
+	}
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfControlplane,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
+
+	By("Untaint Control Plane nodes")
+	controlplaneNodes := getControlplaneNodes(ctx, clientSet)
+	untaintNodes(ctx, targetClusterClient, controlplaneNodes, controlplaneTaints)
+
+	By("Update maxSurge field in KubeadmControlPlane back to default value(1)")
+	kcpObj = framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+		Lister:      clusterClient,
+		ClusterName: clusterName,
+		Namespace:   namespace,
+	})
+	helper, err = v1beta1patch.NewHelper(kcpObj, clusterClient)
+	Expect(err).NotTo(HaveOccurred())
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 1
+	for range 3 {
+		err = helper.Patch(ctx, kcpObj)
+		if err == nil {
+			break
+		}
+		time.Sleep(30 * time.Second)
+	}
+
+	// Verify that all three control plane nodes are using the k8s version
+	Byf("Verify all three control plane machines become running and updated with new %s k8s version", k8sToVersion)
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfControlplane,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
+}
