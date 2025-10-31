@@ -54,6 +54,7 @@ Below are the tests that you can use with `GINKGO_FOCUS` and `GINKGO_SKIP`
    - remediation
    - pivoting
 - k8s-upgrade
+- k8s-upgrade-n3
 - k8s-conformance
 - clusterctl-upgrade
 - scalability
@@ -179,6 +180,41 @@ Release 1.8 branch k8s-upgrade test:
 When Kubernetes 1.35 is released, k8s-upgrade `v1.33` => `v1.34` will be
 supported in v1.11.x (but not in v1.10.x)
 
+### K8s N+3 upgrade tests
+
+Kubernetes N+3(v1.34) version upgrade in target control plane nodes.
+We start the test with version N(v1.31) and gradually upgrade the
+target cluster control plane one by one for main branch. We are
+excluding the worker node upgrade and keep it to initial N version.
+When a new Kubernetes minor release is available, we will try to support
+it in main branch. This will have a check on weekly basis.
+
+```sh
+export GINKGO_FOCUS=k8s-upgrade-n3
+```
+
+Main branch k8s-upgrade-n3 tests:
+
+- `v1.31` => `v1.32`
+
+- `v1.32` => `v1.33`
+
+- `v1.33` => `v1.34`
+
+When Kubernetes 1.35 is released, k8s-upgrade-n3 test will be updated accordingly.
+
+### Test matrix for n+3 k8s upgrade version
+
+Kubernetes n+3 e2e test uses the following Kubernetes versions for n+3 upgrade control
+planes:
+
+<!-- markdownlint-disable MD013 -->
+| KUBERNETES_N0_VERSION | KUBERNETES_N1_VERSION | KUBERNETES_N2_VERSION | KUBERNETES_N3_VERSION |
+| ********************* | ********************* | ********************* | ********************* |
+|       v1.31.13        |        v1.32.9        |       v1.33.5         |        v1.34.1        |
+| ********************* | ********************* | ********************* | ********************* |
+<!-- markdownlint-enable MD013 -->
+
 ### K8s conformance tests
 
 The conformance tests are a subset of Kubernetes' E2E test set. The standard set
@@ -189,7 +225,8 @@ for more information on which tests are required for each Kubernetes release.
 
 ### CAPI MachineDeployment tests
 
-Includes the following MachineDeployment tests adopted from the Cluster API's e2e tests:
+Includes the following MachineDeployment tests adopted from the Cluster API's
+e2e tests:
 
 - [MachineDeployment rolling upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_rollout.go)
 - [MachineDeployment scale](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_scale.go)
