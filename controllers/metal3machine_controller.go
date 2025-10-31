@@ -181,10 +181,9 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Check pause annotation on associated bmh (if any)
-	setPause := cluster.Spec.Paused != nil && *cluster.Spec.Paused
-	if setPause {
-		// set pause annotation on associated bmh (if any)
-		err := machineMgr.SetPauseAnnotation(ctx)
+	if annotations.IsPaused(cluster, capm3Machine) {
+		annotations.AddAnnotations(capm3Machine, map[string]string{"clusterctl.cluster.x-k8s.io/block-move": ""})
+		err = machineMgr.SetPauseAnnotation(ctx)
 		if err != nil {
 			machineLog.Info("failed to set pause annotation on associated bmh")
 			v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationSetFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
@@ -197,29 +196,6 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			})
 			return ctrl.Result{}, nil
 		}
-	} else {
-		err := machineMgr.RemovePauseAnnotation(ctx)
-		if err != nil {
-			machineLog.Info("failed to check pause annotation on associated bmh")
-			v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationRemoveFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
-			message := "Failed to remove pause annotation on associated BareMetalHost. Error: " + err.Error()
-			v1beta2conditions.Set(capm3Machine, metav1.Condition{
-				Type:    clusterv1beta1.PausedV1Beta2Condition,
-				Status:  metav1.ConditionFalse,
-				Reason:  infrav1.BareMetalHostPauseAnnotationRemoveFailedV1Beta2Reason,
-				Message: message,
-			})
-			return ctrl.Result{}, nil
-		}
-		v1beta2conditions.Set(capm3Machine, metav1.Condition{
-			Type:   clusterv1beta1.PausedV1Beta2Condition,
-			Status: metav1.ConditionTrue,
-			Reason: clusterv1beta1.NotPausedV1Beta2Reason,
-		})
-	}
-
-	// Return early if the M3Machine or Cluster is paused.
-	if annotations.IsPaused(cluster, capm3Machine) {
 		machineLog.Info("reconciliation is paused for this object")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.Metal3MachinePausedReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(capm3Machine, metav1.Condition{
@@ -228,6 +204,12 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			Reason: clusterv1beta1.PausedV1Beta2Reason,
 		})
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
+	}
+	err = machineMgr.RemovePauseAnnotation(ctx)
+	if err != nil {
+		machineLog.Info("failed to remove pause annotation on associated bmh")
+		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.PauseAnnotationRemoveFailedReason, clusterv1beta1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, nil
 	}
 
 	// Handle deleted machines
