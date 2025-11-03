@@ -4604,6 +4604,717 @@ var _ = Describe("poolRefs map", func() {
 			Expect(refs["foo"]).To(Equal(existing))
 		})
 	})
+
+	When("using addFromAnnotation method", func() {
+		It("returns nil when FromPoolAnnotation is nil", func() {
+			refs := poolRefs{}
+			m3m := &infrav1.Metal3Machine{}
+			machine := &clusterv1.Machine{}
+			bmh := &bmov1alpha1.BareMetalHost{}
+
+			Expect(refs.addFromAnnotation(nil, m3m, machine, bmh)).To(Succeed())
+			Expect(refs).To(BeEmpty())
+		})
+
+		It("returns nil when all objects are nil (during release)", func() {
+			refs := poolRefs{}
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "baremetalhost",
+				Annotation: "test-annotation",
+			}
+
+			Expect(refs.addFromAnnotation(annotation, nil, nil, nil)).To(Succeed())
+			Expect(refs).To(BeEmpty())
+		})
+
+		It("successfully adds ref from BareMetalHost annotation", func() {
+			refs := poolRefs{}
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"ippool-annotation": "test-pool",
+					},
+				},
+			}
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "baremetalhost",
+				Annotation: "ippool-annotation",
+			}
+
+			Expect(refs.addFromAnnotation(annotation, nil, nil, bmh)).To(Succeed())
+			Expect(refs["test-pool"]).To(Equal(corev1.TypedLocalObjectReference{
+				Name:     "test-pool",
+				Kind:     "IPPool",
+				APIGroup: ptr.To("ipam.metal3.io"),
+			}))
+		})
+
+		It("returns error when annotation is not found", func() {
+			refs := poolRefs{}
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"other-annotation": "value",
+					},
+				},
+			}
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "baremetalhost",
+				Annotation: "missing-annotation",
+			}
+
+			err := refs.addFromAnnotation(annotation, nil, nil, bmh)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("annotation missing-annotation not found or empty"))
+		})
+
+		It("returns error when annotation value is empty", func() {
+			refs := poolRefs{}
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"empty-annotation": "",
+					},
+				},
+			}
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "baremetalhost",
+				Annotation: "empty-annotation",
+			}
+
+			err := refs.addFromAnnotation(annotation, nil, nil, bmh)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("annotation empty-annotation not found or empty"))
+		})
+
+		It("accepts adding the same pool from annotation multiple times", func() {
+			refs := poolRefs{}
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"ippool-annotation": "duplicate-pool",
+					},
+				},
+			}
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "baremetalhost",
+				Annotation: "ippool-annotation",
+			}
+
+			Expect(refs.addFromAnnotation(annotation, nil, nil, bmh)).To(Succeed())
+			Expect(refs.addFromAnnotation(annotation, nil, nil, bmh)).To(Succeed())
+			Expect(refs["duplicate-pool"]).To(Equal(corev1.TypedLocalObjectReference{
+				Name:     "duplicate-pool",
+				Kind:     "IPPool",
+				APIGroup: ptr.To("ipam.metal3.io"),
+			}))
+		})
+
+		It("rejects adding conflicting pool with different kind from annotation", func() {
+			refs := poolRefs{
+				"conflict-pool": corev1.TypedLocalObjectReference{
+					Name:     "conflict-pool",
+					Kind:     "InClusterIPPool",
+					APIGroup: ptr.To("ipam.metal3.io"),
+				},
+			}
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"ippool-annotation": "conflict-pool",
+					},
+				},
+			}
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "baremetalhost",
+				Annotation: "ippool-annotation",
+			}
+
+			err := refs.addFromAnnotation(annotation, nil, nil, bmh)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("multiple references with the same name but different resource types"))
+		})
+
+		It("returns error for invalid object type", func() {
+			refs := poolRefs{}
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"test-annotation": "pool-name",
+					},
+				},
+			}
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "unknownobject",
+				Annotation: "test-annotation",
+			}
+
+			err := refs.addFromAnnotation(annotation, nil, nil, bmh)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Unknown object type"))
+		})
+
+		It("returns error when object is nil but referenced", func() {
+			refs := poolRefs{}
+			m3m := &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"test-annotation": "pool-name",
+					},
+				},
+			}
+			machine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"test-annotation": "pool-name",
+					},
+				},
+			}
+			bmh := &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"test-annotation": "pool-name",
+					},
+				},
+			}
+
+			annotation := &infrav1.FromPoolAnnotation{
+				Object:     "metal3machine",
+				Annotation: "test-annotation",
+			}
+			err := refs.addFromAnnotation(annotation, nil, machine, bmh)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("is nil but referenced"))
+
+			annotation = &infrav1.FromPoolAnnotation{
+				Object:     "machine",
+				Annotation: "test-annotation",
+			}
+			err = refs.addFromAnnotation(annotation, m3m, nil, bmh)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("is nil but referenced"))
+
+			annotation = &infrav1.FromPoolAnnotation{
+				Object:     "baremetalhost",
+				Annotation: "test-annotation",
+			}
+			err = refs.addFromAnnotation(annotation, m3m, machine, nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("is nil but referenced"))
+		})
+	})
+})
+
+var _ = Describe("getReferencedPools", func() {
+	It("returns empty map when no pools are referenced", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(BeEmpty())
+	})
+
+	It("resolves network pools from BareMetalHost annotation for both IPv4 and IPv6", func() {
+		bmh := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"ipv4-network-pool": "ipv4-pool",
+					"ipv6-network-pool": "ipv6-pool",
+				},
+			},
+		}
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ipv4-network-pool",
+								},
+							},
+						},
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "ipv6-network-pool",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, bmh)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(2))
+		Expect(pools["ipv4-pool"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "ipv4-pool",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+		Expect(pools["ipv6-pool"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "ipv6-pool",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+	})
+
+	It("resolves gateway pools from BareMetalHost annotation for both IPv4 and IPv6", func() {
+		bmh := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"ipv4-gateway-pool": "gateway-pool-v4",
+					"ipv6-gateway-pool": "gateway-pool-v6",
+				},
+			},
+		}
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								IPAddressFromIPPool: "network-pool-v4",
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Gateway: infrav1.NetworkGatewayv4{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "baremetalhost",
+												Annotation: "ipv4-gateway-pool",
+											},
+										},
+									},
+								},
+							},
+						},
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								IPAddressFromIPPool: "network-pool-v6",
+								Routes: []infrav1.NetworkDataRoutev6{
+									{
+										Gateway: infrav1.NetworkGatewayv6{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "baremetalhost",
+												Annotation: "ipv6-gateway-pool",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, bmh)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(4))
+		Expect(pools["gateway-pool-v4"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "gateway-pool-v4",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+		Expect(pools["gateway-pool-v6"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "gateway-pool-v6",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+		Expect(pools["network-pool-v4"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "network-pool-v4",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+		Expect(pools["network-pool-v6"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "network-pool-v6",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+	})
+
+	It("handles mix of FromPoolAnnotation and FromPoolRef", func() {
+		bmh := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"annotation-pool": "pool-from-annotation",
+				},
+			},
+		}
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "annotation-pool",
+								},
+							},
+							{
+								FromPoolRef: &corev1.TypedLocalObjectReference{
+									Name: "pool-from-ref",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, bmh)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(2))
+		Expect(pools["pool-from-annotation"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "pool-from-annotation",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+		Expect(pools["pool-from-ref"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "pool-from-ref",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+	})
+
+	It("handles metadata IPAddressesFromPool", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
+						{Name: "metadata-pool-1"},
+						{Name: "metadata-pool-2"},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(2))
+		Expect(pools["metadata-pool-1"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "metadata-pool-1",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+		Expect(pools["metadata-pool-2"]).To(Equal(corev1.TypedLocalObjectReference{
+			Name:     "metadata-pool-2",
+			Kind:     "IPPool",
+			APIGroup: ptr.To("ipam.metal3.io"),
+		}))
+	})
+
+	It("handles nil objects when using FromPoolAnnotation", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "pool-annotation",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(BeEmpty())
+	})
+
+	It("resolves multiple pools from different sources", func() {
+		bmh := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"bmh-pool":     "pool-from-bmh",
+					"gateway-pool": "gateway-from-bmh",
+				},
+			},
+		}
+		m3m := &infrav1.Metal3Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"m3m-pool": "pool-from-m3m",
+				},
+			},
+		}
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Annotations: map[string]string{
+					"machine-pool": "pool-from-machine",
+				},
+			},
+		}
+
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					IPAddressesFromPool: []infrav1.FromPool{
+						{Name: "metadata-pool"},
+					},
+				},
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "baremetalhost",
+									Annotation: "bmh-pool",
+								},
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Gateway: infrav1.NetworkGatewayv4{
+											FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+												Object:     "baremetalhost",
+												Annotation: "gateway-pool",
+											},
+										},
+									},
+								},
+							},
+						},
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "metal3machine",
+									Annotation: "m3m-pool",
+								},
+							},
+							{
+								FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									Object:     "machine",
+									Annotation: "machine-pool",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, m3m, machine, bmh)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(5))
+		Expect(pools).To(HaveKey("metadata-pool"))
+		Expect(pools).To(HaveKey("pool-from-bmh"))
+		Expect(pools).To(HaveKey("gateway-from-bmh"))
+		Expect(pools).To(HaveKey("pool-from-m3m"))
+		Expect(pools).To(HaveKey("pool-from-machine"))
+	})
+
+	It("handles metadata PrefixesFromPool", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					PrefixesFromPool: []infrav1.FromPool{
+						{Name: "prefix-pool-1"},
+						{Name: "prefix-pool-2"},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(2))
+		Expect(pools).To(HaveKey("prefix-pool-1"))
+		Expect(pools).To(HaveKey("prefix-pool-2"))
+	})
+
+	It("handles metadata GatewaysFromPool", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					GatewaysFromPool: []infrav1.FromPool{
+						{Name: "gateway-pool"},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(1))
+		Expect(pools).To(HaveKey("gateway-pool"))
+	})
+
+	It("handles metadata DNSServersFromPool", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				MetaData: &infrav1.MetaData{
+					DNSServersFromPool: []infrav1.FromPool{
+						{Name: "dns-pool"},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(1))
+		Expect(pools).To(HaveKey("dns-pool"))
+	})
+
+	It("handles global Services DNSFromIPPool", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Services: infrav1.NetworkDataService{
+						DNSFromIPPool: ptr.To("global-dns-pool"),
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(1))
+		Expect(pools).To(HaveKey("global-dns-pool"))
+	})
+
+	It("handles route gateway FromPoolRef for both IPv4 and IPv6", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								IPAddressFromIPPool: "network-pool-v4",
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Gateway: infrav1.NetworkGatewayv4{
+											FromPoolRef: &corev1.TypedLocalObjectReference{
+												Name: "gateway-ref-pool-v4",
+											},
+										},
+									},
+								},
+							},
+						},
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								IPAddressFromIPPool: "network-pool-v6",
+								Routes: []infrav1.NetworkDataRoutev6{
+									{
+										Gateway: infrav1.NetworkGatewayv6{
+											FromPoolRef: &corev1.TypedLocalObjectReference{
+												Name: "gateway-ref-pool-v6",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(4))
+		Expect(pools).To(HaveKey("network-pool-v4"))
+		Expect(pools).To(HaveKey("gateway-ref-pool-v4"))
+		Expect(pools).To(HaveKey("network-pool-v6"))
+		Expect(pools).To(HaveKey("gateway-ref-pool-v6"))
+	})
+
+	It("handles route gateway FromIPPool for both IPv4 and IPv6", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								IPAddressFromIPPool: "network-pool-v4",
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Gateway: infrav1.NetworkGatewayv4{
+											FromIPPool: ptr.To("gateway-ippool-v4"),
+										},
+									},
+								},
+							},
+						},
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								IPAddressFromIPPool: "network-pool-v6",
+								Routes: []infrav1.NetworkDataRoutev6{
+									{
+										Gateway: infrav1.NetworkGatewayv6{
+											FromIPPool: ptr.To("gateway-ippool-v6"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(4))
+		Expect(pools).To(HaveKey("network-pool-v4"))
+		Expect(pools).To(HaveKey("gateway-ippool-v4"))
+		Expect(pools).To(HaveKey("network-pool-v6"))
+		Expect(pools).To(HaveKey("gateway-ippool-v6"))
+	})
+
+	It("handles route DNS pools for both IPv4 and IPv6", func() {
+		m3dt := infrav1.Metal3DataTemplate{
+			Spec: infrav1.Metal3DataTemplateSpec{
+				NetworkData: &infrav1.NetworkData{
+					Networks: infrav1.NetworkDataNetwork{
+						IPv4: []infrav1.NetworkDataIPv4{
+							{
+								IPAddressFromIPPool: "network-pool-v4",
+								Routes: []infrav1.NetworkDataRoutev4{
+									{
+										Services: infrav1.NetworkDataServicev4{
+											DNSFromIPPool: ptr.To("dns-route-pool-v4"),
+										},
+									},
+								},
+							},
+						},
+						IPv6: []infrav1.NetworkDataIPv6{
+							{
+								IPAddressFromIPPool: "network-pool-v6",
+								Routes: []infrav1.NetworkDataRoutev6{
+									{
+										Services: infrav1.NetworkDataServicev6{
+											DNSFromIPPool: ptr.To("dns-route-pool-v6"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		pools, err := getReferencedPools(m3dt, nil, nil, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(pools).To(HaveLen(4))
+		Expect(pools).To(HaveKey("network-pool-v4"))
+		Expect(pools).To(HaveKey("dns-route-pool-v4"))
+		Expect(pools).To(HaveKey("network-pool-v6"))
+		Expect(pools).To(HaveKey("dns-route-pool-v6"))
+	})
 })
 
 var _ = Describe("When using BMH name based pre-allocation", func() {
