@@ -382,41 +382,6 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		return err
 	}
 
-	if m.Metal3Machine.Spec.DataTemplate != nil {
-		// Requeue to get the DataTemplate output. We need to requeue to trigger the
-		// wait on the Metal3DataTemplate
-		if err = m.WaitForM3Metadata(ctx); err != nil {
-			return err
-		}
-
-		// If the requeue is not needed, then get the updated host and set the host
-		// specs
-		host, helper, err = m.getHost(ctx)
-		if err != nil {
-			errMessage := "Failed to get BaremetalHost while setting Host Spec, requeuing"
-			m.Log.Info(errMessage)
-			return WithTransientError(errors.New(errMessage), requeueAfter)
-		}
-
-		if err = m.setHostSpec(ctx, host); err != nil {
-			return err
-		}
-
-		// Update the BMH object.
-		err = helper.Patch(ctx, host)
-		if err != nil {
-			var aggr kerrors.Aggregate
-			if ok := errors.As(err, &aggr); ok {
-				for _, kerr := range aggr.Errors() {
-					if apierrors.IsConflict(kerr) {
-						return WithTransientError(kerr, requeueAfter)
-					}
-				}
-			}
-			return err
-		}
-	}
-
 	m.Log.Info("Finished associating machine")
 	return nil
 }
