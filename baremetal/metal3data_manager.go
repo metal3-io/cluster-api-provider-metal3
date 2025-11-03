@@ -1555,10 +1555,19 @@ func getValueFromAnnotation(object string, annotation string,
 	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) (string, error) {
 	switch strings.ToLower(object) {
 	case m3machine:
+		if m3m == nil {
+			return "", fmt.Errorf("%s is nil but referenced in annotation %s", object, annotation)
+		}
 		return m3m.Annotations[annotation], nil
 	case capimachine:
+		if machine == nil {
+			return "", fmt.Errorf("%s is nil but referenced in annotation %s", object, annotation)
+		}
 		return machine.Annotations[annotation], nil
 	case host:
+		if bmh == nil {
+			return "", fmt.Errorf("%s is nil but referenced in annotation %s", object, annotation)
+		}
 		return bmh.Annotations[annotation], nil
 	default:
 		return "", errors.New("Unknown object type")
