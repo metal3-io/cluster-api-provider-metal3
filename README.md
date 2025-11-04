@@ -168,13 +168,6 @@ Release-1.9 branch:
 - **/test metal3-centos-e2e-integration-test-release-1-9** runs integration e2e
   tests with CAPM3 API version v1beta1 and branch release-1.9 on CentOS
 
-Release-1.8 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-8** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.8 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-8** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.8 on CentOS
-
 ## Basic tests
 
 Unlike integration tests, basic tests focus on the target cluster creation
