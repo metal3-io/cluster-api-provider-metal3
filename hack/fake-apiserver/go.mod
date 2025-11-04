@@ -11,7 +11,7 @@ require (
 	k8s.io/client-go v0.34.1
 	sigs.k8s.io/cluster-api v1.11.2
 	sigs.k8s.io/cluster-api/test v1.11.2
-	sigs.k8s.io/controller-runtime v0.22.3
+	sigs.k8s.io/controller-runtime v0.22.4
 )
 
 replace github.com/metal3-io/cluster-api-provider-metal3 => ../..
