@@ -797,50 +797,19 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 // associated with the metal3 machine. It searches all hosts in case one already has an
 // association with this metal3 machine.
 func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
-	// get list of BMH.
-	hosts := bmov1alpha1.BareMetalHostList{}
-	// without this ListOption, all namespaces would be including in the listing.
-	opts := &client.ListOptions{
-		Namespace: m.Metal3Machine.Namespace,
-		Limit:     DefaultListLimit,
-	}
-
-	err := m.client.List(ctx, &hosts, opts)
+	labelSelector, err := hostLabelSelectorForMachine(m.Metal3Machine, m.Log)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Using the label selector on ListOptions above doesn't seem to work.
-	// I think it's because we have a local cache of all BareMetalHosts.
-	labelSelector := labels.NewSelector()
-	var reqs labels.Requirements
-	var r *labels.Requirement
-
-	for labelKey, labelVal := range m.Metal3Machine.Spec.HostSelector.MatchLabels {
-		m.Log.Info("Adding requirement to match label",
-			"label key", labelKey,
-			"label value", labelVal)
-		r, err = labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
-		if err != nil {
-			m.Log.Error(err, "Failed to create MatchLabel requirement, not choosing host")
-			return nil, nil, err
-		}
-		reqs = append(reqs, *r)
+	hosts := bmov1alpha1.BareMetalHostList{}
+	err = m.client.List(ctx, &hosts,
+		client.InNamespace(m.Metal3Machine.Namespace),
+		client.MatchingLabelsSelector{Selector: labelSelector},
+	)
+	if err != nil {
+		return nil, nil, err
 	}
-	for _, req := range m.Metal3Machine.Spec.HostSelector.MatchExpressions {
-		m.Log.Info("Adding requirement to match label",
-			"label key", req.Key,
-			"label operator", req.Operator,
-			"label value", req.Values)
-		lowercaseOperator := selection.Operator(strings.ToLower(string(req.Operator)))
-		r, err = labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
-		if err != nil {
-			m.Log.Error(err, "Failed to create MatchExpression requirement, not choosing host")
-			return nil, nil, err
-		}
-		reqs = append(reqs, *r)
-	}
-	labelSelector = labelSelector.Add(reqs...)
 
 	availableHosts := []*bmov1alpha1.BareMetalHost{}
 	availableHostsWithNodeReuse := []*bmov1alpha1.BareMetalHost{}
@@ -875,26 +844,22 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			}
 		}
 
-		if labelSelector.Matches(labels.Set(host.ObjectMeta.Labels)) {
-			if m.nodeReuseLabelExists(ctx, &host) && m.nodeReuseLabelMatches(ctx, &host) {
-				m.Log.Info("Found host with nodeReuseLabelName and it matches, adding it to availableHostsWithNodeReuse list", "host", host.Name)
-				availableHostsWithNodeReuse = append(availableHostsWithNodeReuse, &hosts.Items[i])
-			} else if !m.nodeReuseLabelExists(ctx, &host) {
-				switch host.Status.Provisioning.State {
-				case bmov1alpha1.StateReady, bmov1alpha1.StateAvailable:
-					// Break out of the switch
-				case bmov1alpha1.StateNone, bmov1alpha1.StateUnmanaged, bmov1alpha1.StateRegistering, bmov1alpha1.StateMatchProfile,
-					bmov1alpha1.StatePreparing, bmov1alpha1.StateProvisioning, bmov1alpha1.StateProvisioned, bmov1alpha1.StateExternallyProvisioned,
-					bmov1alpha1.StateDeprovisioning, bmov1alpha1.StateInspecting, bmov1alpha1.StatePoweringOffBeforeDelete, bmov1alpha1.StateDeleting:
-					continue
-				default:
-					continue
-				}
-				m.Log.Info("Host matched hostSelector for Metal3Machine, adding it to availableHosts list", "host", host.Name)
-				availableHosts = append(availableHosts, &hosts.Items[i])
+		if m.nodeReuseLabelExists(ctx, &host) && m.nodeReuseLabelMatches(ctx, &host) {
+			m.Log.Info("Found host with nodeReuseLabelName and it matches, adding it to availableHostsWithNodeReuse list", "host", host.Name)
+			availableHostsWithNodeReuse = append(availableHostsWithNodeReuse, &hosts.Items[i])
+		} else if !m.nodeReuseLabelExists(ctx, &host) {
+			switch host.Status.Provisioning.State {
+			case bmov1alpha1.StateReady, bmov1alpha1.StateAvailable:
+				// Break out of the switch
+			case bmov1alpha1.StateNone, bmov1alpha1.StateUnmanaged, bmov1alpha1.StateRegistering, bmov1alpha1.StateMatchProfile,
+				bmov1alpha1.StatePreparing, bmov1alpha1.StateProvisioning, bmov1alpha1.StateProvisioned, bmov1alpha1.StateExternallyProvisioned,
+				bmov1alpha1.StateDeprovisioning, bmov1alpha1.StateInspecting, bmov1alpha1.StatePoweringOffBeforeDelete, bmov1alpha1.StateDeleting:
+				continue
+			default:
+				continue
 			}
-		} else {
-			m.Log.Info("Host did not match hostSelector for Metal3Machine", "host", host.Name)
+			m.Log.Info("Host matched hostSelector for Metal3Machine, adding it to availableHosts list", "host", host.Name)
+			availableHosts = append(availableHosts, &hosts.Items[i])
 		}
 	}
 
@@ -943,6 +908,38 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 
 	helper, err := v1beta1patch.NewHelper(chosenHost, m.client)
 	return chosenHost, helper, err
+}
+
+// hostLabelSelectorForMachine builds a label selector from the Metal3Machine's host selector.
+func hostLabelSelectorForMachine(machine *infrav1.Metal3Machine, log logr.Logger) (labels.Selector, error) {
+	labelSelector := labels.NewSelector()
+
+	for labelKey, labelVal := range machine.Spec.HostSelector.MatchLabels {
+		log.Info("Adding requirement to match label",
+			"label key", labelKey,
+			"label value", labelVal)
+		r, err := labels.NewRequirement(labelKey, selection.Equals, []string{labelVal})
+		if err != nil {
+			log.Error(err, "Failed to create MatchLabel requirement, not choosing host")
+			return nil, err
+		}
+		labelSelector = labelSelector.Add(*r)
+	}
+
+	for _, req := range machine.Spec.HostSelector.MatchExpressions {
+		log.Info("Adding requirement to match label",
+			"label key", req.Key,
+			"label operator", req.Operator,
+			"label value", req.Values)
+		lowercaseOperator := selection.Operator(strings.ToLower(string(req.Operator)))
+		r, err := labels.NewRequirement(req.Key, lowercaseOperator, req.Values)
+		if err != nil {
+			log.Error(err, "Failed to create MatchExpression requirement, not choosing host")
+			return nil, err
+		}
+		labelSelector = labelSelector.Add(*r)
+	}
+	return labelSelector, nil
 }
 
 // consumerRefMatches returns a boolean based on whether the consumer
