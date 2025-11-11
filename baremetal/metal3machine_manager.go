@@ -917,19 +917,26 @@ func hostLabelSelectorForMachine(machine *infrav1.Metal3Machine, log logr.Logger
 // consumerRefMatches returns a boolean based on whether the consumer
 // reference and bare metal machine metadata match.
 func consumerRefMatches(consumer *corev1.ObjectReference, m3machine *infrav1.Metal3Machine) bool {
+	if m3machine == nil || consumer == nil {
+		return false
+	}
 	if consumer.Name != m3machine.Name {
 		return false
 	}
 	if consumer.Namespace != m3machine.Namespace {
 		return false
 	}
-	if consumer.Kind != m3machine.Kind {
+	if consumer.Kind != "Metal3Machine" {
 		return false
 	}
-	if consumer.GroupVersionKind().Group != m3machine.GroupVersionKind().Group {
+
+	// Parse and compare Group from consumer APIVersion
+	gv, err := schema.ParseGroupVersion(consumer.APIVersion)
+	if err != nil {
+		// If we cannot parse it, it certainly does not match.
 		return false
 	}
-	return true
+	return gv.Group == infrav1.GroupVersion.Group
 }
 
 // nodeReuseLabelMatches returns true if nodeReuseLabelName matches ControlPlane or MachineDeployment name on the host.
@@ -1855,10 +1862,14 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 	for index := range machineSets.Items {
 		machineset := &machineSets.Items[index]
 		for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
-			if mOwnerRef.Kind != machineset.Kind {
+			if mOwnerRef.Kind != "MachineSet" {
 				continue
 			}
-			if mOwnerRef.APIVersion != machineset.APIVersion {
+			gv, err := schema.ParseGroupVersion(mOwnerRef.APIVersion)
+			if err != nil {
+				return nil, errors.New("Failed to parse ownerRef Group of Machine")
+			}
+			if gv.Group != clusterv1.GroupVersion.Group {
 				machineSetError += fmt.Sprintf("MachineSet %s has different API version %s than Machine %s with API version %s",
 					machineset.Name, machineset.APIVersion, m.Machine.Name, mOwnerRef.APIVersion)
 				continue
