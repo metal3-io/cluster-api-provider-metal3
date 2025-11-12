@@ -341,7 +341,7 @@ var _ = Describe("Metal3 manager utils", func() {
 						OwnerReferences: []metav1.OwnerReference{
 							{
 								Name:       "ghij",
-								Kind:       "Metal3Machine",
+								Kind:       metal3MachineKind,
 								APIVersion: infrav1.GroupVersion.String(),
 								UID:        "7df7fe8e-9cdb-4c57-8144-0a30bf6b9496",
 							},
@@ -356,7 +356,7 @@ var _ = Describe("Metal3 manager utils", func() {
 			}
 			ownerRef := []metav1.OwnerReference{{
 				Name:       "abcd",
-				Kind:       "Metal3Machine",
+				Kind:       metal3MachineKind,
 				APIVersion: infrav1.GroupVersion.String(),
 				UID:        "7df7fe8e-9cdb-4c57-8144-0a30bf6b9496",
 			}}

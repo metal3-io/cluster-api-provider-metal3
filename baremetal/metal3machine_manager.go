@@ -926,7 +926,7 @@ func consumerRefMatches(consumer *corev1.ObjectReference, m3machine *infrav1.Met
 	if consumer.Namespace != m3machine.Namespace {
 		return false
 	}
-	if consumer.Kind != "Metal3Machine" {
+	if consumer.Kind != metal3MachineKind {
 		return false
 	}
 
@@ -1097,7 +1097,7 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 // Metal3Machine.
 func (m *MachineManager) setHostConsumerRef(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
 	host.Spec.ConsumerRef = &corev1.ObjectReference{
-		Kind:       "Metal3Machine",
+		Kind:       metal3MachineKind,
 		Name:       m.Metal3Machine.Name,
 		Namespace:  m.Metal3Machine.Namespace,
 		APIVersion: m.Metal3Machine.APIVersion,

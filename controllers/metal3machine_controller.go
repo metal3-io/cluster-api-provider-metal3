@@ -50,6 +50,8 @@ import (
 
 const (
 	machineControllerName = "Metal3Machine-controller"
+	// metal3MachineKind is the Kind of the Metal3Machine.
+	metal3MachineKind = "Metal3Machine"
 )
 
 // Metal3MachineReconciler reconciles a Metal3Machine object.
@@ -452,7 +454,7 @@ func (r *Metal3MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(mgr.GetScheme(), ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
 			&clusterv1.Machine{},
-			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("Metal3Machine"))),
+			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind(metal3MachineKind))),
 		).
 		Watches(
 			&clusterv1.Cluster{},
@@ -558,7 +560,7 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(ctx context.Cont
 func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(_ context.Context, obj client.Object) []ctrl.Request {
 	if host, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
 		if host.Spec.ConsumerRef != nil &&
-			host.Spec.ConsumerRef.Kind == Metal3Machine &&
+			host.Spec.ConsumerRef.Kind == metal3MachineKind &&
 			host.Spec.ConsumerRef.GroupVersionKind().Group == infrav1.GroupVersion.Group {
 			return []ctrl.Request{
 				{
@@ -592,7 +594,7 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(_ context.Cont
 			}
 			// not matching on UID since when pivoting it might change
 			// Not matching on API version as this might change
-			if ownerRef.Kind == "Metal3Machine" &&
+			if ownerRef.Kind == metal3MachineKind &&
 				oGV.Group == infrav1.GroupVersion.Group {
 				requests = append(requests, ctrl.Request{
 					NamespacedName: types.NamespacedName{
@@ -616,7 +618,7 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(_ context.Context, 
 	requests := []ctrl.Request{}
 	if m3d, ok := obj.(*infrav1.Metal3Data); ok {
 		for _, ownerRef := range m3d.OwnerReferences {
-			if ownerRef.Kind != "Metal3Machine" {
+			if ownerRef.Kind != metal3MachineKind {
 				continue
 			}
 			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)

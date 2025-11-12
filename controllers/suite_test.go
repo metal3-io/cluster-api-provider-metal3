@@ -301,7 +301,7 @@ func newMachine(clusterName, machineName string, metal3machineName string, nodeR
 		machine.Spec.ClusterName = clusterName
 		machine.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 			Name:     metal3machineName,
-			Kind:     "Metal3Machine",
+			Kind:     metal3MachineKind,
 			APIGroup: infrav1.GroupVersion.Group,
 		}
 	}
@@ -367,7 +367,7 @@ func newMetal3Machine(name string, meta *metav1.ObjectMeta,
 
 	return &infrav1.Metal3Machine{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Metal3Machine",
+			Kind:       metal3MachineKind,
 			APIVersion: infrav1.GroupVersion.String(),
 		},
 		ObjectMeta: *meta,

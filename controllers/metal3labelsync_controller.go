@@ -54,8 +54,6 @@ const (
 	labelSyncControllerName = "metal3-label-sync-controller"
 	// PrefixAnnotationKey is prefix for annotation key.
 	PrefixAnnotationKey = "metal3.io/metal3-label-sync-prefixes"
-	// Metal3Machine is name of the Metal3 CRD.
-	Metal3Machine = "Metal3Machine"
 )
 
 // Metal3LabelSyncReconciler reconciles label updates to BareMetalHost objects with the corresponding K Node objects in the workload cluster.
@@ -114,7 +112,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// ignore BMH with no ConsumerRef
 		return ctrl.Result{}, nil
 	}
-	if host.Spec.ConsumerRef.Kind != Metal3Machine &&
+	if host.Spec.ConsumerRef.Kind != metal3MachineKind &&
 		host.Spec.ConsumerRef.GroupVersionKind().Group != infrav1.GroupVersion.Group {
 		controllerLog.Info("Unknown GroupVersionKind in BareMetalHost Consumer Ref", "groupversion", host.Spec.ConsumerRef.GroupVersionKind())
 		return ctrl.Result{}, nil

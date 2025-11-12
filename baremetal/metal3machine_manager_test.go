@@ -106,7 +106,7 @@ func consumerRef() *corev1.ObjectReference {
 	return &corev1.ObjectReference{
 		Name:       metal3machineName,
 		Namespace:  namespaceName,
-		Kind:       "Metal3Machine",
+		Kind:       metal3MachineKind,
 		APIVersion: infrav1.GroupVersion.String(),
 	}
 }
@@ -115,7 +115,7 @@ func consumerRefSome() *corev1.ObjectReference {
 	return &corev1.ObjectReference{
 		Name:       "someoneelsesmachine",
 		Namespace:  namespaceName,
-		Kind:       "Metal3Machine",
+		Kind:       metal3MachineKind,
 		APIVersion: clusterv1beta1.GroupVersion.String(),
 	}
 }
@@ -515,7 +515,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ConsumerRef: &corev1.ObjectReference{
 					Name:       "someothermachine",
 					Namespace:  namespaceName,
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 				},
 			},
@@ -532,7 +532,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				ConsumerRef: &corev1.ObjectReference{
 					Name:       metal3machineName,
 					Namespace:  namespaceName,
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 				},
 			},
@@ -1010,7 +1010,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       metal3machineName,
 						Namespace:  namespaceName,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
@@ -1027,7 +1027,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       metal3machineName,
 						Namespace:  namespaceName,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
@@ -1044,7 +1044,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       metal3machineName,
 						Namespace:  namespaceName,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
@@ -1113,7 +1113,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       metal3machineName,
 						Namespace:  namespaceName,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
@@ -1131,7 +1131,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       metal3machineName,
 						Namespace:  namespaceName,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
@@ -1149,7 +1149,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					ConsumerRef: &corev1.ObjectReference{
 						Name:       metal3machineName,
 						Namespace:  namespaceName,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: infrav1.GroupVersion.String(),
 					},
 				},
@@ -1314,7 +1314,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(tc.Host.Spec.ConsumerRef.Name).To(Equal(m3mconfig.Name))
 			Expect(tc.Host.Spec.ConsumerRef.Namespace).
 				To(Equal(m3mconfig.Namespace))
-			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal("Metal3Machine"))
+			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal(metal3MachineKind))
 			_, err = machineMgr.FindOwnerRef(tc.Host.OwnerReferences)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -2358,7 +2358,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						Namespace: namespaceName,
 					},
 					TypeMeta: metav1.TypeMeta{
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: clusterv1beta1.GroupVersion.String(),
 					},
 					Status: infrav1.Metal3MachineStatus{
@@ -2422,7 +2422,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						Namespace: namespaceName,
 					},
 					TypeMeta: metav1.TypeMeta{
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						APIVersion: clusterv1beta1.GroupVersion.String(),
 					},
 					Status: infrav1.Metal3MachineStatus{
@@ -2470,7 +2470,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							Namespace: namespaceName,
 						},
 						TypeMeta: metav1.TypeMeta{
-							Kind:       "Metal3Machine",
+							Kind:       metal3MachineKind,
 							APIVersion: clusterv1beta1.GroupVersion.String(),
 						},
 						Status: infrav1.Metal3MachineStatus{
@@ -3124,7 +3124,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3149,7 +3149,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					UID:        "adfasdf",
 				},
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3168,7 +3168,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					UID:        "adfasdf",
 				},
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3187,7 +3187,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					UID:        "adfasdf",
 				},
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: "nfrastructure.cluster.x-k8s.io/v1alpha1",
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3234,7 +3234,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3257,7 +3257,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					UID:        "adfasdf",
 				},
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3268,7 +3268,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3309,7 +3309,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
 			OwnerRefs: []metav1.OwnerReference{
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3332,7 +3332,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					UID:        "adfasdf",
 				},
 				{
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 					Name:       "myName",
 					UID:        "adfasdf",
@@ -3429,7 +3429,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "myName",
-							Kind:       "Metal3Machine",
+							Kind:       metal3MachineKind,
 							APIVersion: infrav1.GroupVersion.String(),
 						},
 					},
@@ -3457,7 +3457,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "myName",
-							Kind:       "Metal3Machine",
+							Kind:       metal3MachineKind,
 							APIVersion: infrav1.GroupVersion.String(),
 						},
 					},
@@ -4711,7 +4711,7 @@ func newConfig(userDataNamespace string,
 
 	infrastructureRef := &clusterv1.ContractVersionedObjectReference{
 		Name:     "someothermachine",
-		Kind:     "Metal3Machine",
+		Kind:     metal3MachineKind,
 		APIGroup: infrav1.GroupVersion.Group,
 	}
 	return &config, infrastructureRef
@@ -4763,7 +4763,7 @@ func newMetal3Machine(name string,
 	}
 
 	typeMeta := &metav1.TypeMeta{
-		Kind:       "Metal3Machine",
+		Kind:       metal3MachineKind,
 		APIVersion: infrav1.GroupVersion.String(),
 	}
 

@@ -447,7 +447,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						ConsumerRef: &corev1.ObjectReference{
 							Name:       "someothermachine",
 							Namespace:  namespaceName,
-							Kind:       "Metal3Machine",
+							Kind:       metal3MachineKind,
 							APIVersion: infrav1.GroupVersion.String(),
 						},
 					},
@@ -512,7 +512,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.String(),
 				},
 				ExpectRequest: true,
@@ -532,7 +532,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: infrav1.GroupVersion.Group + "/v1blah1",
 				},
 				ExpectRequest: true,
@@ -542,7 +542,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			TestCaseM3DToM3M{
 				OwnerRef: &metav1.OwnerReference{
 					Name:       "abc",
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					APIVersion: "foo.bar/" + infrav1.GroupVersion.Version,
 				},
 				ExpectRequest: false,
@@ -637,7 +637,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			ownerRefs: []metav1.OwnerReference{
 				{
 					APIVersion: infrav1.GroupVersion.String(),
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					Name:       "abc",
 				},
 				{
@@ -647,7 +647,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				{
 					APIVersion: "foo.bar/v1",
-					Kind:       "Metal3Machine",
+					Kind:       metal3MachineKind,
 					Name:       "cde",
 				},
 			},
