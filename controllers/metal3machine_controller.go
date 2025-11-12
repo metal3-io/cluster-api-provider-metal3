@@ -297,13 +297,22 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 ) (ctrl.Result, error) {
 	// If the Metal3Machine doesn't have finalizer, add it.
 	machineMgr.SetFinalizer()
-
 	// if the machine is already provisioned, update and return
 	if machineMgr.IsProvisioned() && machineMgr.MachineHasNodeRef() {
-		errType := capierrors.UpdateMachineError
+		// If machine is provisioned and has NodeRef we should set that means metal3metadata
+		// is also associated. In normal flow this is done in the later part of this function.
+		// But in case of clusterctl upgrade from 1.10 or 1.11 to newer version of CAPM3,
+		// the machine can be already provisioned, this condition might not be set. So, we set it here.
+		// This can be removed in future once 1.10 and 1.11 are not supported.
+		machineMgr.SetV1beta2Condition(infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason, "")
+
 		err := machineMgr.Update(ctx)
-		return checkMachineError(machineMgr, err,
-			"Failed to update the Metal3Machine", errType)
+		if err != nil {
+			errType := capierrors.UpdateMachineError
+			return checkMachineError(machineMgr, err,
+				"Failed to update the Metal3Machine", errType)
+		}
+		return ctrl.Result{}, nil
 	}
 
 	// Make sure bootstrap data is available and populated. If not, return, we
@@ -350,6 +359,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	}
 
 	if !machineMgr.IsBaremetalHostProvisioned(ctx) {
+		r.Log.Info("IsBaremetalHostProvisioned check failed")
 		return ctrl.Result{}, nil
 	}
 
