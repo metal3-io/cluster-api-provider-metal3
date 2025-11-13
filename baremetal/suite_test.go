@@ -237,7 +237,7 @@ func testObjectMetaWithOR(name string, m3mName string) metav1.ObjectMeta {
 		OwnerReferences: []metav1.OwnerReference{
 			{
 				Name:       m3mName,
-				Kind:       "Metal3Machine",
+				Kind:       metal3MachineKind,
 				APIVersion: infrav1.GroupVersion.String(),
 				UID:        m3muid,
 			},

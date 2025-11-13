@@ -1802,7 +1802,7 @@ var _ = Describe("Metal3Data manager", func() {
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						Name:       m3m.Name,
 					},
 				},
@@ -4192,7 +4192,7 @@ var _ = Describe("When using BMH name based pre-allocation", func() {
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion: infrav1.GroupVersion.Group + "/" + infrav1.GroupVersion.Version,
-						Kind:       "Metal3Machine",
+						Kind:       metal3MachineKind,
 						Name:       m3m.Name,
 					},
 				},

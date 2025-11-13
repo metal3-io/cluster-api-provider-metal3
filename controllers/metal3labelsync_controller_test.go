@@ -342,7 +342,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 			ConsumerRef: &corev1.ObjectReference{
 				Name:       metal3machineName,
 				Namespace:  namespaceName,
-				Kind:       "Metal3Machine",
+				Kind:       metal3MachineKind,
 				APIVersion: infrav1.GroupVersion.String(),
 			},
 		}
