@@ -253,6 +253,11 @@ for overlay in "${IRONIC_OVERLAYS[@]}"; do
     "${IRONIC_INSPECTOR_PASSWORD}")" > "${overlay}/ironic-inspector-htpasswd"
 done
 
+# Set CNI related variables
+export CNI_NAME="${CNI_NAME:-calico}"
+export CALICO_VERSION="${CALICO_VERSION:-v3.30.3}"
+export CILIUM_VERSION="${CILIUM_VERSION:-v1.18.0}"
+
 # run e2e tests
 if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   export CLUSTER_TOPOLOGY=true
