@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta1
 
 import (
-	"context"
 	"testing"
 
 	"github.com/onsi/gomega"
@@ -48,20 +47,20 @@ func TestStorageMetal3MachineSpec(t *testing.T) {
 
 	// Test Create
 	fetched := &Metal3Machine{}
-	g.Expect(c.Create(context.TODO(), created)).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Create(t.Context(), created)).NotTo(gomega.HaveOccurred())
 
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Get(t.Context(), key, fetched)).NotTo(gomega.HaveOccurred())
 	g.Expect(fetched).To(gomega.Equal(created))
 
 	// Test Updating the Labels
 	updated := fetched.DeepCopy()
 	updated.Labels = map[string]string{"hello": "world"}
-	g.Expect(c.Update(context.TODO(), updated)).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Update(t.Context(), updated)).NotTo(gomega.HaveOccurred())
 
-	g.Expect(c.Get(context.TODO(), key, fetched)).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Get(t.Context(), key, fetched)).NotTo(gomega.HaveOccurred())
 	g.Expect(fetched).To(gomega.Equal(updated))
 
 	// Test Delete
-	g.Expect(c.Delete(context.TODO(), fetched)).NotTo(gomega.HaveOccurred())
-	g.Expect(c.Get(context.TODO(), key, fetched)).To(gomega.HaveOccurred())
+	g.Expect(c.Delete(t.Context(), fetched)).NotTo(gomega.HaveOccurred())
+	g.Expect(c.Get(t.Context(), key, fetched)).To(gomega.HaveOccurred())
 }
