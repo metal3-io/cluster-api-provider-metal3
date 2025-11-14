@@ -31,7 +31,7 @@ spec:
         kind: Metal3MachineTemplate
         name: ${CLUSTER_NAME}-workers
       nodeDrainTimeout: 0s
-      version: ${KUBERNETES_VERSION}
+      version: 
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
 kind: Metal3MachineTemplate

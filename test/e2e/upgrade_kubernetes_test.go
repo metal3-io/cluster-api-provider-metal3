@@ -44,7 +44,7 @@ var _ = Describe("Kubernetes version upgrade in target nodes", Label("k8s-upgrad
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				SpecName:              specName,
 				ClusterName:           clusterName,
-				K8sVersion:            e2eConfig.MustGetVariable("FROM_K8S_VERSION"),
+				K8sVersion:            e2eConfig.MustGetVariable("K8S_VERSION_FROM"),
 				KCPMachineCount:       int64(numberOfControlplane),
 				WorkerMachineCount:    int64(numberOfWorkers),
 				ClusterctlLogFolder:   clusterctlLogFolder,
@@ -93,8 +93,8 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	clusterClient := input.BootstrapClusterProxy.GetClient()
 	targetClusterClient := input.TargetCluster.GetClient()
 	clientSet := input.TargetCluster.GetClientSet()
-	kubernetesVersion := input.E2EConfig.MustGetVariable("FROM_K8S_VERSION")
-	upgradedK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_VERSION")
+	kubernetesVersion := input.E2EConfig.MustGetVariable("K8S_VERSION_FROM")
+	upgradedK8sVersion := input.E2EConfig.MustGetVariable("K8S_VERSION_TO")
 	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 
