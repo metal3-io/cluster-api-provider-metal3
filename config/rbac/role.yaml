@@ -136,6 +136,17 @@ rules:
   - patch
   - update
 - apiGroups:
+  - infrastructure.cluster.x-k8s.io
+  resources:
+  - metal3clustertemplates.infrastructure.cluster.x-k8s.io
+  - metal3machinetemplates.infrastructure.cluster.x-k8s.io
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - ipam.cluster.x-k8s.io
   resources:
   - ipaddressclaims

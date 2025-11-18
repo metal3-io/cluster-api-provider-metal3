@@ -139,6 +139,7 @@ func init() {
 // ADD CRD RBAC for CRD Migrator.
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions;customresourcedefinitions/status,verbs=update;patch,resourceNames=metal3clusters.infrastructure.cluster.x-k8s.io;metal3clustertemplates.infrastructure.cluster.x-k8s.io;metal3machines.infrastructure.cluster.x-k8s.io;metal3machinetemplates.infrastructure.cluster.x-k8s.io;metal3datas.infrastructure.cluster.x-k8s.io;metal3datatemplates.infrastructure.cluster.x-k8s.io
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machinetemplates.infrastructure.cluster.x-k8s.io;metal3clustertemplates.infrastructure.cluster.x-k8s.io,verbs=get;list;watch;patch;update
 
 func main() {
 	initFlags(pflag.CommandLine)
