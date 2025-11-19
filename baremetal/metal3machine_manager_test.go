@@ -469,6 +469,19 @@ var _ = Describe("Metal3Machine manager", func() {
 			Machine:    clusterv1.Machine{},
 			ExpectTrue: false,
 		}),
+		Entry("ConfigRef defined but condition not set", testCaseBootstrapReady{
+			Machine: clusterv1.Machine{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: clusterv1.ContractVersionedObjectReference{
+							Name: "abc",
+						},
+					},
+				},
+				// No Status.Deprecated.V1Beta1.Conditions set - should return nil from Get()
+			},
+			ExpectTrue: false,
+		}),
 		Entry("ready data secret", testCaseBootstrapReady{
 			Machine: clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{

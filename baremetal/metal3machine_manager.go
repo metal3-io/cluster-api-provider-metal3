@@ -203,6 +203,9 @@ func (m *MachineManager) IsBaremetalHostProvisioned(ctx context.Context) bool {
 func (m *MachineManager) IsBootstrapReady() bool {
 	if m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		bootstrapReadyCondition := deprecatedv1beta1conditions.Get(m.Machine, clusterv1.BootstrapReadyV1Beta1Condition)
+		if bootstrapReadyCondition == nil {
+			return false
+		}
 		return bootstrapReadyCondition.Status == corev1.ConditionTrue
 	}
 
