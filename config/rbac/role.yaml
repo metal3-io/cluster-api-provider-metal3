@@ -108,6 +108,7 @@ rules:
   - infrastructure.cluster.x-k8s.io
   resources:
   - metal3clusters
+  - metal3clustertemplates
   - metal3dataclaims
   - metal3datas
   - metal3datatemplates
