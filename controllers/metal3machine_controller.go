@@ -144,7 +144,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Make sure infrastructure is ready
 	infrastructureReadyCondition := deprecatedv1beta1conditions.Get(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
-	if infrastructureReadyCondition.Status != corev1.ConditionTrue {
+	if infrastructureReadyCondition == nil || infrastructureReadyCondition.Status != corev1.ConditionTrue {
 		machineLog.Info("Waiting for Metal3Cluster Controller to create cluster infrastructure")
 		v1beta1conditions.MarkFalse(capm3Machine, infrav1.AssociateBMHCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
 		v1beta2conditions.Set(capm3Machine, metav1.Condition{
