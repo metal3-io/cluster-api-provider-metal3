@@ -24,7 +24,7 @@ function os_check() {
   export DISTRO="${ID}${VERSION_ID%.*}"
   export OS="${ID}"
   export OS_VERSION_ID=$VERSION_ID
-  export SUPPORTED_DISTROS=(centos9 rhel9 centos10 rhel10 ubuntu20 ubuntu22 ubuntu24)
+  export SUPPORTED_DISTROS=(centos9 rhel9 centos10 rhel10 ubuntu20 ubuntu22 ubuntu24 opensuse-leap15)
 
   if [[ ! "${SUPPORTED_DISTROS[*]}" =~ $DISTRO ]]; then
     echo "Supported OS distros for the host are: CentOS Stream 9/10 or RHEL9/10 or Ubuntu20.04/22.04/24.04"
