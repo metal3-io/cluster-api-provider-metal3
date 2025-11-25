@@ -5,7 +5,7 @@ go 1.23.7
 require (
 	github.com/metal3-io/baremetal-operator/apis v0.10.5
 	github.com/metal3-io/cluster-api-provider-metal3/api v1.10.4
-	go.uber.org/zap v1.27.0
+	go.uber.org/zap v1.27.1
 	k8s.io/api v0.32.10
 	k8s.io/apimachinery v0.32.10
 	k8s.io/client-go v0.32.10
