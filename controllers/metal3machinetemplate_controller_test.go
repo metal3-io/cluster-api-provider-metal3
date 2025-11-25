@@ -29,6 +29,7 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -284,7 +285,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 				WatchFilterValue: "",
 			}
 
-			result, err := testReconciler.reconcileNormal(context.TODO(), m)
+			result, err := testReconciler.reconcileNormal(context.TODO(), m, klogr.New())
 			Expect(result).To(Equal(tc.common.expectedResult))
 			evaluateTestError(tc.common.expectedError, err)
 			mockController.Finish()

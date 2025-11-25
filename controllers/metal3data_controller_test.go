@@ -30,6 +30,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -303,7 +304,7 @@ var _ = Describe("Metal3Data manager", func() {
 					m.EXPECT().Reconcile(context.TODO()).Return(nil)
 				}
 
-				res, err := dataReconcile.reconcileNormal(context.TODO(), m)
+				res, err := dataReconcile.reconcileNormal(context.TODO(), m, klogr.New())
 				gomockCtrl.Finish()
 
 				if tc.ExpectError {
@@ -364,7 +365,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m.EXPECT().UnsetFinalizer()
 			}
 
-			res, err := dataReconcile.reconcileDelete(context.TODO(), m)
+			res, err := dataReconcile.reconcileDelete(context.TODO(), m, klogr.New())
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {

@@ -73,17 +73,21 @@ type Metal3ClusterReconciler struct {
 // Reconcile reads that state of the cluster for a Metal3Cluster object and makes changes based on the state read
 // and what is in the Metal3Cluster.Spec.
 func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	clusterLog := log.Log.WithName(clusterControllerName).WithValues("metal3-cluster", req.NamespacedName)
+	clusterLog := log.Log.WithName(clusterControllerName).WithValues(
+		"metal3-cluster", req.NamespacedName,
+	)
+	defer logReconcileOutcome(clusterLog, clusterControllerName, &rerr)
 
 	// Fetch the Metal3Cluster instance
 	metal3Cluster := &infrav1.Metal3Cluster{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3Cluster); err != nil {
 		if apierrors.IsNotFound(err) {
+			logLogicGate(clusterLog, "Metal3Cluster resource not found in cache, skipping")
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed to get Metal3Cluster")
 	}
 
 	// This is checking if default values are changed or not if the default
@@ -121,6 +125,8 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, metal3Cluster.ObjectMeta)
 	if err != nil {
+		// Only log error once, with full context
+		clusterLog.Error(err, "Unable to get owner cluster for Metal3Cluster")
 		invalidConfigError := capierrors.InvalidConfigurationClusterError
 		metal3Cluster.Status.FailureReason = &invalidConfigError
 		metal3Cluster.Status.FailureMessage = ptr.To("Unable to get owner cluster")
@@ -142,6 +148,10 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Return early if Metal3Cluster or Cluster is paused.
 	var isPaused, requeue bool
 	if isPaused, requeue, err = paused.EnsurePausedCondition(ctx, r.Client, cluster, metal3Cluster); err != nil || isPaused || requeue {
+		if err != nil {
+			clusterLog.Error(err, "Failed to evaluate paused condition")
+		}
+		logLogicGate(clusterLog, "Pause condition active", "isPaused", isPaused, "requeue", requeue)
 		return ctrl.Result{Requeue: requeue, RequeueAfter: requeueAfter}, nil
 	}
 
@@ -158,13 +168,14 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle deleted clusters
 	if !metal3Cluster.DeletionTimestamp.IsZero() {
+		logLogicGate(clusterLog, "Metal3Cluster has deletion timestamp, entering delete reconciliation")
 		v1beta2conditions.Set(metal3Cluster, metav1.Condition{
 			Type:   infrav1.Metal3ClusterReadyV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.Metal3ClusterDeletingV1Beta2Reason,
 		})
 		var res ctrl.Result
-		res, err = reconcileDelete(ctx, clusterMgr)
+		res, err = reconcileDelete(ctx, clusterMgr, clusterLog)
 		// Requeue if the reconcile failed because the ClusterCache was locked for
 		// the current cluster because of concurrent access.
 		if errors.Is(err, clustercache.ErrClusterNotConnected) {
@@ -175,7 +186,8 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Handle non-deleted clusters
-	res, err := reconcileNormal(ctx, clusterMgr)
+	logLogicGate(clusterLog, "Metal3Cluster is active, entering normal reconciliation")
+	res, err := reconcileNormal(ctx, clusterMgr, clusterLog)
 	// Requeue if the reconcile failed because the ClusterCache was locked for
 	// the current cluster because of concurrent access.
 	if errors.Is(err, clustercache.ErrClusterNotConnected) {
@@ -228,42 +240,52 @@ func patchMetal3Cluster(ctx context.Context, patchHelper *v1beta1patch.Helper, m
 	return patchHelper.Patch(ctx, metal3Cluster, options...)
 }
 
-func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) { //nolint:unparam
+func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInterface, logger logr.Logger) (ctrl.Result, error) { //nolint:unparam
 	// If the Metal3Cluster doesn't have finalizer, add it.
+	logLogicGate(logger, "Ensuring finalizer exists on Metal3Cluster")
 	clusterMgr.SetFinalizer()
 
 	// Create the Metal3 cluster (no-op)
+	logLogicGate(logger, "Invoking cluster creation/update flow")
 	if err := clusterMgr.Create(ctx); err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed during Metal3Cluster create")
 	}
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull it
 	if err := clusterMgr.UpdateClusterStatus(); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the API endpoint")
 	}
+	logLogicGate(logger, "Successfully reconciled Metal3Cluster status")
 
 	return ctrl.Result{}, nil
 }
 
 func reconcileDelete(ctx context.Context,
-	clusterMgr baremetal.ClusterManagerInterface) (ctrl.Result, error) {
+	clusterMgr baremetal.ClusterManagerInterface,
+	logger logr.Logger,
+) (ctrl.Result, error) {
 	// Verify that no metal3machine depend on the metal3cluster
+	logLogicGate(logger, "Checking for descendant resources before delete")
 	descendants, err := clusterMgr.CountDescendants(ctx)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed to count descendants")
 	}
 	if descendants > 0 {
 		// Requeue so we can check the next time to see if there are still any
 		// descendants left.
+		logLogicGate(logger, "Descendants still present, will requeue delete", "descendantCount", descendants)
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
+	logLogicGate(logger, "No descendants found, deleting Metal3Cluster resources")
 	if err := clusterMgr.Delete(); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete Metal3Cluster")
 	}
 
 	// Cluster is deleted so remove the finalizer.
+	logLogicGate(logger, "Removing Metal3Cluster finalizer")
 	clusterMgr.UnsetFinalizer()
+	logLogicGate(logger, "Delete reconciliation completed")
 
 	return ctrl.Result{}, nil
 }

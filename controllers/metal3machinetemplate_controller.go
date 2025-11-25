@@ -54,13 +54,17 @@ type Metal3MachineTemplateReconciler struct {
 
 // Reconcile handles Metal3MachineTemplate events.
 func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	m3templateLog := r.Log.WithName(templateControllerName).WithValues("metal3-machine-template", req.NamespacedName)
+	m3templateLog := r.Log.WithName(templateControllerName).WithValues(
+		"metal3-machine-template", req.NamespacedName,
+	)
+	defer logReconcileOutcome(m3templateLog, templateControllerName, &rerr)
 
 	// Fetch the Metal3MachineTemplate instance.
 	metal3MachineTemplate := &infrav1.Metal3MachineTemplate{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3MachineTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
+			logLogicGate(m3templateLog, "Metal3MachineTemplate resource not found, skipping")
 			return ctrl.Result{}, nil
 		}
 
@@ -76,7 +80,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	defer func() {
 		err = helper.Patch(ctx, metal3MachineTemplate)
 		if err != nil {
-			m3templateLog.Info("failed to patch Metal3MachineTemplate")
+			m3templateLog.Error(err, "Failed to patch Metal3MachineTemplate")
 			rerr = err
 		}
 	}()
@@ -101,18 +105,22 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, templateMgr)
+	logLogicGate(m3templateLog, "Metal3MachineTemplate active, entering normal reconciliation")
+	return r.reconcileNormal(ctx, templateMgr, m3templateLog)
 }
 
 func (r *Metal3MachineTemplateReconciler) reconcileNormal(ctx context.Context,
 	templateMgr baremetal.TemplateManagerInterface,
+	logger logr.Logger,
 ) (ctrl.Result, error) { //nolint:unparam
 	// Find the Metal3Machines with clonedFromName annotation referencing
 	// to the same Metal3MachineTemplate
+	logLogicGate(logger, "Reconciling automated cleaning mode for template descendants")
 	if err := templateMgr.UpdateAutomatedCleaningMode(ctx); err != nil {
-		r.Log.Error(err, "failed to list Metal3Machines with clonedFromName annotation")
+		logger.Error(err, "failed to list Metal3Machines with clonedFromName annotation")
 		return ctrl.Result{}, err
 	}
+	logLogicGate(logger, "Metal3MachineTemplate reconcile completed")
 
 	return ctrl.Result{}, nil
 }
