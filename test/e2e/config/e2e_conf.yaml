@@ -243,7 +243,7 @@ providers:
       targetName: "cluster-template-opensuse-leap.yaml"
 
 variables:
-  CNI: "/tmp/calico.yaml"
+  CNI: "/tmp/cni.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.34.1}"
   KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
@@ -274,8 +274,9 @@ variables:
   UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
 
   PROVIDER_ID_FORMAT: "metal3://{{ ds.meta_data.providerid }}"
-  # Pin Calico version
+  CNI_PROVIDER: "${CNI_PROVIDER:-calico}"
   CALICO_VERSION: "${CALICO_VERSION:-v3.30.3}"
+  CILIUM_VERSION: "${CILIUM_VERSION:-v1.18.0}"
   # Pin CertManager for upgrade tests
   CERT_MANAGER_RELEASE: v1.17.1
   # Default vars for the template, those values could be overridden by the env-vars.
