@@ -131,10 +131,10 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/metal3-io/baremetal-operator/apis v0.10.5 h1:XEilA4PHdUhfZorV1tckuwlKdGXO9HwjDnJOU/1Avao=
 github.com/metal3-io/baremetal-operator/apis v0.10.5/go.mod h1:8So7kek+BAsxNd/xV0ZDH0qDF/ROVXMrwjRhafxpiqI=
-github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.3 h1:pPHGFZJz437nBYDjeT/Rb+d0rrgtH1kK5iTeqrQ/6zA=
-github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.9.3/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
-github.com/metal3-io/cluster-api-provider-metal3 v1.9.5 h1:TgIfeEyDWdStUalsIOuvNmS3vVnL7HI+/oWk9IGkvvE=
-github.com/metal3-io/cluster-api-provider-metal3 v1.9.5/go.mod h1:1QQECt39K45+xCzH817ARWBvFRPza3y6pDR+S8ALAqA=
+github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.10.3 h1:HmJYQWy5OYR2iwFUPCK1OP5KuX2/NUPmpuXoMuFIJJ8=
+github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.10.3/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
+github.com/metal3-io/cluster-api-provider-metal3 v1.10.4 h1:iO3km7gp8u28ej/n+vdCFDjbaPVJkuEWML0l1WypBxQ=
+github.com/metal3-io/cluster-api-provider-metal3 v1.10.4/go.mod h1:HDZEa3oYsLNM4MVXQlTaiJATjsesJrZr6V2ZFFG3F+0=
 github.com/metal3-io/cluster-api-provider-metal3/api v1.10.4 h1:SSVf2Y9evAfbh9TgCNBso9OAmKK7W4G0i15ZpWLwS4g=
 github.com/metal3-io/cluster-api-provider-metal3/api v1.10.4/go.mod h1:mvzPQW5kpWDi6Pc2EDPl6ifTaEXdOtEVnOZm6exYz/s=
 github.com/metal3-io/ip-address-manager/api v1.10.4 h1:t/c/vLtJT3k5kCGYlH6D5tCBruSXs2T5qcAzi0E/rT8=
