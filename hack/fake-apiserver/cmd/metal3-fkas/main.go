@@ -87,7 +87,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp.Host = listener.Host()
-	resp.Port = listener.Port()
+	resp.Port = int(listener.Port())
 
 	workloadListenerActivations[listenerName] = false
 
