@@ -63,7 +63,9 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	remediationLog := r.Log.WithName(remediationControllerName).WithValues(
 		"metal3remediation", req.NamespacedName,
 	)
-	defer logReconcileOutcome(remediationLog, remediationControllerName, &rerr)
+	defer func() {
+		logReconcileOutcome(remediationLog, remediationControllerName, rerr)
+	}()
 
 	// Fetch the Metal3Remediation instance.
 	metal3Remediation := &infrav1.Metal3Remediation{}

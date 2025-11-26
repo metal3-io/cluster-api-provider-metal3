@@ -76,7 +76,9 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	clusterLog := log.Log.WithName(clusterControllerName).WithValues(
 		"metal3-cluster", req.NamespacedName,
 	)
-	defer logReconcileOutcome(clusterLog, clusterControllerName, &rerr)
+	defer func() {
+		logReconcileOutcome(clusterLog, clusterControllerName, rerr)
+	}()
 
 	// Fetch the Metal3Cluster instance
 	metal3Cluster := &infrav1.Metal3Cluster{}

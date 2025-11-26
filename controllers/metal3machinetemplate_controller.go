@@ -57,7 +57,9 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	m3templateLog := r.Log.WithName(templateControllerName).WithValues(
 		"metal3-machine-template", req.NamespacedName,
 	)
-	defer logReconcileOutcome(m3templateLog, templateControllerName, &rerr)
+	defer func() {
+		logReconcileOutcome(m3templateLog, templateControllerName, rerr)
+	}()
 
 	// Fetch the Metal3MachineTemplate instance.
 	metal3MachineTemplate := &infrav1.Metal3MachineTemplate{}

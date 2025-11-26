@@ -65,7 +65,9 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	metadataLog := r.Log.WithName(dataControllerName).WithValues(
 		"metal3-data", req.NamespacedName,
 	)
-	defer logReconcileOutcome(metadataLog, dataControllerName, &rerr)
+	defer func() {
+		logReconcileOutcome(metadataLog, dataControllerName, rerr)
+	}()
 
 	// Fetch the Metal3Data instance.
 	metal3Data := &infrav1.Metal3Data{}

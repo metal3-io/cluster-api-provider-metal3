@@ -8,12 +8,8 @@ import (
 // logReconcileOutcome centralizes logging for controller reconciliation lifecycle events.
 // It ensures every reconciliation emits a completion log on the debug level and records
 // failures uniformly so that callers do not have to duplicate error logging.
-func logReconcileOutcome(logger logr.Logger, controllerName string, rerr *error) {
-	if rerr == nil {
-		return
-	}
-
-	if *rerr != nil {
+func logReconcileOutcome(logger logr.Logger, controllerName string, reconcileErr error) {
+	if reconcileErr != nil {
 		// Controller-runtime already logs returned errors; avoid duplicate noise here.
 		return
 	}

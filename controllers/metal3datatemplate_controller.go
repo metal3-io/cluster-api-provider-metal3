@@ -74,7 +74,9 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	log := r.Log.WithName(dataTemplateControllerName).WithValues(
 		"metal3-datatemplate", req.NamespacedName,
 	)
-	defer logReconcileOutcome(log, dataTemplateControllerName, &rerr)
+	defer func() {
+		logReconcileOutcome(log, dataTemplateControllerName, rerr)
+	}()
 
 	// Fetch the Metal3DataTemplate instance.
 	metal3DataTemplate := &infrav1.Metal3DataTemplate{}

@@ -87,7 +87,9 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	machineLog := r.Log.WithName(machineControllerName).WithValues(
 		"metal3-machine", req.NamespacedName,
 	)
-	defer logReconcileOutcome(machineLog, machineControllerName, &rerr)
+	defer func() {
+		logReconcileOutcome(machineLog, machineControllerName, rerr)
+	}()
 
 	// Fetch the Metal3Machine instance.
 	capm3Machine := &infrav1.Metal3Machine{}

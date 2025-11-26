@@ -79,7 +79,9 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues(
 		"metal3-label-sync", req.NamespacedName,
 	)
-	defer logReconcileOutcome(controllerLog, labelSyncControllerName, &rerr)
+	defer func() {
+		logReconcileOutcome(controllerLog, labelSyncControllerName, rerr)
+	}()
 
 	// We need to get the NodeRef from the CAPI Machine object:
 	// BareMetalHost.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
