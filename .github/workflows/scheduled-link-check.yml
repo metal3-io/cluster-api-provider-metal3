@@ -7,7 +7,7 @@ on:
   - cron: "30 14 1 * *"
   repository_dispatch:
     # run manually
-    types: [check-links]
+    types: [ check-links ]
 
 permissions:
   contents: read

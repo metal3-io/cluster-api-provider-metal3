@@ -8,12 +8,12 @@ spec:
   template:
     spec:
       tolerations:
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/master
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/control-plane
-        - key: CriticalAddonsOnly
-          operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      - key: CriticalAddonsOnly
+        operator: Exists
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -24,12 +24,12 @@ spec:
   template:
     spec:
       tolerations:
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/master
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/control-plane
-        - key: CriticalAddonsOnly
-          operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      - key: CriticalAddonsOnly
+        operator: Exists
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -40,12 +40,12 @@ spec:
   template:
     spec:
       tolerations:
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/master
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/control-plane
-        - key: CriticalAddonsOnly
-          operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      - key: CriticalAddonsOnly
+        operator: Exists
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -56,9 +56,9 @@ spec:
   template:
     spec:
       tolerations:
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/master
-        - effect: NoSchedule
-          key: node-role.kubernetes.io/control-plane
-        - key: CriticalAddonsOnly
-          operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+      - key: CriticalAddonsOnly
+        operator: Exists

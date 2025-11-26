@@ -8,8 +8,8 @@ spec:
   clusterName: ${CLUSTER_NAME}
   namePrefix: ${CLUSTER_NAME}-prov
   pools:
-    - start: ${IPAM_PROVISIONING_POOL_RANGE_START}
-      end: ${IPAM_PROVISIONING_POOL_RANGE_END}
+  - start: ${IPAM_PROVISIONING_POOL_RANGE_START}
+    end: ${IPAM_PROVISIONING_POOL_RANGE_END}
   prefix: ${BARE_METAL_PROVISIONER_CIDR}
 ---
 apiVersion: ipam.metal3.io/v1alpha1
@@ -21,7 +21,7 @@ spec:
   clusterName: ${CLUSTER_NAME}
   namePrefix: ${CLUSTER_NAME}-bmv4
   pools:
-    - start: ${IPAM_EXTERNALV4_POOL_RANGE_START}
-      end: ${IPAM_EXTERNALV4_POOL_RANGE_END}
+  - start: ${IPAM_EXTERNALV4_POOL_RANGE_START}
+    end: ${IPAM_EXTERNALV4_POOL_RANGE_END}
   prefix: ${EXTERNAL_SUBNET_V4_PREFIX}
   gateway: ${EXTERNAL_SUBNET_V4_HOST}

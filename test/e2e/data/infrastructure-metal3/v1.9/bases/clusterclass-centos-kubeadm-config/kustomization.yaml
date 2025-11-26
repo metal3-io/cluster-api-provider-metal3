@@ -1,4 +1,4 @@
 resources:
 - ../clusterclass-cluster
 patchesStrategicMerge:
-  - clusterclass-centos-kubeadm-config.yaml
+- clusterclass-centos-kubeadm-config.yaml

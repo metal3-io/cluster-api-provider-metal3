@@ -10,8 +10,8 @@ spec:
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          host: 
+        properties:
+          host:
             type: string
           port:
             type: integer
@@ -19,8 +19,8 @@ spec:
     schema:
       openAPIV3Schema:
         type: object
-        properties: 
-          checksum: 
+        properties:
+          checksum:
             type: string
           checksumType:
             type: string
@@ -116,7 +116,7 @@ spec:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: Metal3MachineTemplate
-            name:  metal3-default-worker-machinetemplate
+            name: metal3-default-worker-machinetemplate
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
 kind: Metal3ClusterTemplate

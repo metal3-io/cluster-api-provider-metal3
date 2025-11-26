@@ -7,8 +7,8 @@ spec:
   template:
     spec:
       containers:
-        - name: manager
-          image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:main
+      - name: manager
+        image: gcr.io/k8s-staging-cluster-api/cluster-api-controller:main
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -19,8 +19,8 @@ spec:
   template:
     spec:
       containers:
-        - name: manager
-          image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:main
+      - name: manager
+        image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:main
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,6 +31,5 @@ spec:
   template:
     spec:
       containers:
-        - name: manager
-          image: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:main
-
+      - name: manager
+        image: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:main

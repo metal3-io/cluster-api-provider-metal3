@@ -82,16 +82,16 @@ spec:
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: Cluster
 metadata:
-    labels:
-      cni: ${CLUSTER_NAME}-crs-0
-    name: ${CLUSTER_NAME}
-    namespace: ${NAMESPACE}
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
 spec:
   clusterNetwork:
     pods:
-      cidrBlocks: ["${POD_CIDR}"]
+      cidrBlocks: [ "${POD_CIDR}" ]
     services:
-      cidrBlocks: ["${SERVICE_CIDR}"]
+      cidrBlocks: [ "${SERVICE_CIDR}" ]
   topology:
     classRef:
       name: test-clusterclass

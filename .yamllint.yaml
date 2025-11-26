@@ -3,6 +3,9 @@ yaml-files:
 - '*.yml'
 - '.yamllint'
 
+ignore: |
+  examples/clusterctl-templates/
+
 rules:
   trailing-spaces: enable
   key-duplicates: enable

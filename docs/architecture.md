@@ -64,9 +64,9 @@ metadata:
 spec:
   clusterNetwork:
     services:
-      cidrBlocks: ["10.96.0.0/12"]
+      cidrBlocks: [ "10.96.0.0/12" ]
     pods:
-      cidrBlocks: ["192.168.0.0/18"]
+      cidrBlocks: [ "192.168.0.0/18" ]
     serviceDomain: "cluster.local"
   infrastructureRef:
     apiGroup: infrastructure.cluster.x-k8s.io
@@ -91,13 +91,11 @@ spec:
     services:
       cidrBlocks:
       - 10.96.0.0/12
-  |----------------------------------------------------------------------------|
-  |# infrastructureRef comes from 'Metal3Cluster' and is added by 'CAPM3'      |
-  | infrastructureRef:                                                         |
-  |  apiGroup: infrastructure.cluster.x-k8s.io                                 |
-  |  kind: Metal3Cluster                                                       |
-  |  name: test1                                                               |
-  |-----------------------------------------------------------------------------
+  # infrastructureRef comes from 'Metal3Cluster' and is added by 'CAPM3'      |
+    infrastructureRef:
+      apiGroup: infrastructure.cluster.x-k8s.io
+      kind: Metal3Cluster
+      name: test1
 status:
   apiEndpoints:
   - host: 192.168.111.249
@@ -106,8 +104,6 @@ status:
   infrastructureReady: true
   phase: provisioned
 ```
-
----
 
 ### Metal3Cluster
 
@@ -131,14 +127,12 @@ kind: Metal3Cluster
 metadata:
   name: test1
   namespace: metal3
-  |----------------------------------------------------------------------------|
-  |# ownerReferences refers to the linked Cluster and is added by 'CAPM3'      |
-  |ownerReferences:                                                            |
-  |- apiVersion: cluster.x-k8s.io/v1beta2                                     |
-  |  kind: Cluster                                                             |
-  |  name: test1                                                               |
-  |  uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d                                 |
-  |----------------------------------------------------------------------------|
+  # ownerReferences refers to the linked Cluster and is added by 'CAPM3'
+  ownerReferences:
+  - apiVersion: cluster.x-k8s.io/v1beta2
+    kind: Cluster
+    name: test1
+    uid: 193ec580-89db-46cd-b6f7-ddc0cd79636d
 spec:
   apiEndpoint: https://192.168.111.249:6443
   cloudProviderEnabled: false
@@ -148,8 +142,6 @@ status:
     port: 6443
   ready: true
 ```
-
----
 
 ### Machine
 
@@ -198,11 +190,7 @@ spec:
       apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
       kind: KubeadmConfig
       name: test1-controlplane-0
-  |----------------------------------------------------------------------------|
-  |# dataSecretName comes from Secret 'test1-controlplane-0'                   |
-  |# & is added by 'CAPI'                                                      |
-  | dataSecretName: test1-controlplane-0                                       |
-  |----------------------------------------------------------------------------|
+    dataSecretName: test1-controlplane-0
   infrastructureRef:
     apiGroup: infrastructure.cluster.x-k8s.io
     kind: Metal3Machine
@@ -225,8 +213,6 @@ status:
     name: node-1
   phase: running
 ```
-
----
 
 ### Metal3Machine
 
@@ -262,12 +248,10 @@ spec:
     checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum
     url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
   providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
-  |----------------------------------------------------------------------------|
-  |# dataTemplate comes from CR 'dataTemplate' and is added by 'CAPM3'         |
-  |dataTemplate:                                                               |
-  |  name: test1-workers-template                                              |
-  |  namespace: metal3                                                         |
-  |----------------------------------------------------------------------------|
+  # dataTemplate comes from CR 'dataTemplate' and is added by 'CAPM3'
+  dataTemplate:
+    name: test1-workers-template
+    namespace: metal3
 status:
   addresses:
   - address: 172.22.0.10
@@ -280,8 +264,6 @@ status:
     type: InternalDNS
   ready: true
 ```
-
----
 
 ### BareMetalHost
 
@@ -315,23 +297,18 @@ spec:
     address: ipmi://192.168.111.1:6231
     credentialsName: node-1-bmc-secret
   bootMACAddress: 00:b2:8c:ee:22:98
-  |-------------------------------------------------------------------------------|
-  |# consumerRef refers to the linked Metal3Machine is added by 'CAPM3'           |
-  |consumerRef:                                                                   |
-  |  apiVersion: infrastructure.cluster.x-k8s.io/v1beta1                          |
-  |  kind: Metal3Machine                                                          |
-  |  name: test1-controlplane-0                                                   |
-  |  namespace: metal3                                                            |
-  |# Image comes from 'Metal3Machine' and is added by 'CAPM3'                     |
-  |image:                                                                         |
-  |  checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum|
-  |  url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img               |
-  |online: true                                                                   |
-  |# UserData comes from 'Metal3Machine' and is added by 'CAPBK'                  |
-  |userData:                                                                      |
-  |  name: test1-controlplane-0-user-data                                         |
-  |  namespace: metal3                                                            |
-  |-------------------------------------------------------------------------------|
+  consumerRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: Metal3Machine
+    name: test1-controlplane-0
+    namespace: metal3
+  image:
+    checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum
+    url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
+  online: true
+  userData:
+    name: test1-controlplane-0-user-data
+    namespace: metal3
 status:
   goodCredentials:
     credentials:
@@ -339,7 +316,6 @@ status:
       namespace: metal3
   hardware: <Hardware related data>
   hardwareProfile: unknown
-
   operationHistory: ....
   operationalStatus: OK
   poweredOn: true
@@ -415,17 +391,13 @@ spec:
     nodeRegistration:
       kubeletExtraArgs:
       - name: node-labels
-        value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
-      name: '{{ ds.meta_data.name }}'
+        value: metal3.io/uuid={{ ds.meta_data.uuid }}
+      name: "{{ ds.meta_data.name }}"
   postKubeadmCommands: <list of commands>
 status:
-  |----------------------------------------------------------------------------|
-  |bootstrapData: <user data in base64 format>                                 |
-  |----------------------------------------------------------------------------|
+  bootstrapData: <user data in base64 format>
   ready: true
 ```
-
----
 
 #### Flow of information
 

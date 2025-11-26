@@ -218,39 +218,39 @@ spec:
       checks:
         nodeStartupTimeoutSeconds: 180
         unhealthyNodeConditions:
+        - type: Ready
+          status: Unknown
+          timeoutSeconds: 300
+        - type: Ready
+          status: "False"
+          timeoutSeconds: 300
+  workers:
+    machineDeployments:
+    - class: example-worker
+      metadata:
+        labels:
+          cluster.x-k8s.io/cluster-name: example
+          nodepool: nodepool-0
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: example-md-0
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: Metal3MachineTemplate
+          name: example-md-0
+      # This will create a health check for each deployment created with the "test-worker" MachineDeploymentClass
+      healthCheck:
+        checks:
+          unhealthyNodeConditions:
           - type: Ready
             status: Unknown
             timeoutSeconds: 300
           - type: Ready
             status: "False"
             timeoutSeconds: 300
-  workers:
-    machineDeployments:
-      - class: example-worker
-        metadata:
-          labels:
-            cluster.x-k8s.io/cluster-name: example
-            nodepool: nodepool-0
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: example-md-0
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: Metal3MachineTemplate
-            name: example-md-0
-        # This will create a health check for each deployment created with the "test-worker" MachineDeploymentClass
-        healthCheck:
-          checks:
-            unhealthyNodeConditions:
-              - type: Ready
-                status: Unknown
-                timeoutSeconds: 300
-              - type: Ready
-                status: "False"
-                timeoutSeconds: 300
   infrastructure:
     templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
