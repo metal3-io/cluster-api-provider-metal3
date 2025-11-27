@@ -53,7 +53,7 @@ func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	Logf("Pre-rotation: tls-secret-version=%q, deployment.revision=%q", preTLSVersion, preRevision)
 
 	By("Fetch logs from target cluster after pivot")
-	err := FetchClusterLogs(input.ClusterProxy, filepath.Join(clusterLogCollectionBasePath, "before-cert-rotation"))
+	err := FetchClusterLogs(input.ClusterProxy, filepath.Join(workloadClusterLogCollectionBasePath, "before-cert-rotation"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
@@ -103,7 +103,7 @@ func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	Expect(postRevision).To(Equal(preRevision+1), "deployment revision should increase after cert rotation. before=%s after=%s", preRevision, postRevision)
 
 	By("Fetch logs from target cluster after pivot")
-	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(clusterLogCollectionBasePath, "after-cert-rotation"))
+	err = FetchClusterLogs(input.ClusterProxy, filepath.Join(workloadClusterLogCollectionBasePath, "after-cert-rotation"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
