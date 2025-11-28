@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2/klogr"
 )
 
 var _ = Describe("Metal3Cluster controller", func() {
@@ -73,7 +74,8 @@ var _ = Describe("Metal3Cluster controller", func() {
 			m.EXPECT().
 				Create(context.TODO()).Return(returnedError)
 
-			res, err := reconcileNormal(context.TODO(), m)
+			testLog := klogr.New()
+			res, err := reconcileNormal(context.TODO(), m, testLog)
 
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
@@ -139,7 +141,8 @@ var _ = Describe("Metal3Cluster controller", func() {
 				returnedError,
 			)
 
-			res, err := reconcileDelete(context.TODO(), m)
+			testLog := klogr.New()
+			res, err := reconcileDelete(context.TODO(), m, testLog)
 
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())

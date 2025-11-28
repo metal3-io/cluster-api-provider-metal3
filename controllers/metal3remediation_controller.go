@@ -38,7 +38,8 @@ import (
 )
 
 const (
-	defaultTimeout = 5 * time.Second
+	defaultTimeout            = 5 * time.Second
+	remediationControllerName = "Metal3Remediation-controller"
 )
 
 // Metal3RemediationReconciler reconciles a Metal3Remediation object.
@@ -59,7 +60,12 @@ type Metal3RemediationReconciler struct {
 
 // Reconcile handles Metal3Remediation events.
 func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	remediationLog := r.Log.WithValues("metal3remediation", req.NamespacedName)
+	remediationLog := r.Log.WithName(remediationControllerName).WithValues(
+		"metal3remediation", req.NamespacedName,
+	)
+	defer func() {
+		logReconcileOutcome(remediationLog, remediationControllerName, rerr)
+	}()
 
 	// Fetch the Metal3Remediation instance.
 	metal3Remediation := &infrav1.Metal3Remediation{}
@@ -67,14 +73,12 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		remediationLog.Error(err, "unable to get metal3Remediation")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "unable to get metal3Remediation")
 	}
 
 	helper, err := v1beta1patch.NewHelper(metal3Remediation, r.Client)
 	if err != nil {
-		remediationLog.Error(err, "failed to init patch helper")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
 	}
 
 	defer func() {
@@ -125,23 +129,25 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Handle both deleted and non-deleted remediations
-	return r.reconcileNormal(ctx, remediationMgr)
+	logLogicGate(remediationLog, "Starting remediation reconciliation")
+	return r.reconcileNormal(ctx, remediationMgr, remediationLog)
 }
 
 func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 	remediationMgr baremetal.RemediationManagerInterface,
+	remediationLog logr.Logger,
 ) (ctrl.Result, error) {
 	// If host is gone, exit early
 	host, _, err := remediationMgr.GetUnhealthyHost(ctx)
 	if err != nil {
-		r.Log.Error(err, "unable to find a host for unhealthy machine")
+		remediationLog.Error(err, "unable to find a host for unhealthy machine")
 		return ctrl.Result{}, errors.Wrapf(err, "unable to find a host for unhealthy machine")
 	}
 
 	// If user has set bmh.Spec.Online to false
 	// do not try to remediate the host
 	if !remediationMgr.OnlineStatus(host) {
-		r.Log.Info("Unable to remediate, Host is powered off (spec.Online is false)")
+		remediationLog.Info("Unable to remediate, Host is powered off (spec.Online is false)")
 		remediationMgr.SetRemediationPhase(infrav1.PhaseFailed)
 		return ctrl.Result{}, nil
 	}
@@ -149,13 +155,14 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 	remediationType := remediationMgr.GetRemediationType()
 
 	if remediationType != infrav1.RebootRemediationStrategy {
-		r.Log.Info("unsupported remediation strategy")
+		remediationLog.Info("unsupported remediation strategy")
 		return ctrl.Result{}, nil
 	}
 
 	if remediationType == infrav1.RebootRemediationStrategy {
 		// If no phase set, default to running and set time and retry count
 		if remediationMgr.GetRemediationPhase() == "" {
+			logLogicGate(remediationLog, "Initializing remediation state machine")
 			remediationMgr.SetRemediationPhase(infrav1.PhaseRunning)
 			now := metav1.Now()
 			remediationMgr.SetLastRemediationTime(&now)
@@ -165,7 +172,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 		// try to get node
 		clusterClient, err := remediationMgr.GetClusterClient(ctx)
 		if err != nil {
-			r.Log.Error(err, "error getting cluster client")
+			remediationLog.Error(err, "error getting cluster client")
 			return ctrl.Result{}, errors.Wrap(err, "error getting cluster client")
 		}
 
@@ -174,10 +181,10 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 		node, err := remediationMgr.GetNode(ctx, clusterClient)
 		if err != nil {
 			if apierrors.IsForbidden(err) {
-				r.Log.Info("Node access is forbidden, will skip node deletion")
+				remediationLog.Info("Node access is forbidden, will skip node deletion")
 				isNodeForbidden = true
 			} else if !apierrors.IsNotFound(err) {
-				r.Log.Error(err, "error getting node for remediation")
+				remediationLog.Error(err, "error getting node for remediation")
 				return ctrl.Result{}, errors.Wrap(err, "error getting node for remediation")
 			}
 		}
@@ -192,13 +199,13 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			// Node is deleted: remove power off annotation
 			ok, err := remediationMgr.IsPowerOffRequested(ctx)
 			if err != nil {
-				r.Log.Error(err, "error getting poweroff annotation status")
+				remediationLog.Error(err, "error getting poweroff annotation status")
 				return ctrl.Result{}, errors.Wrap(err, "error getting poweroff annotation status")
 			} else if ok {
-				r.Log.Info("Powering on the host")
+				remediationLog.Info("Powering on the host")
 				err = remediationMgr.RemovePowerOffAnnotation(ctx)
 				if err != nil {
-					r.Log.Error(err, "error removing poweroff annotation")
+					remediationLog.Error(err, "error removing poweroff annotation")
 					return ctrl.Result{}, errors.Wrap(err, "error removing poweroff annotation")
 				}
 			}
@@ -206,7 +213,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			// Wait until powered on
 			var on bool
 			if on, err = remediationMgr.IsPoweredOn(ctx); err != nil {
-				r.Log.Error(err, "error getting power status")
+				remediationLog.Error(err, "error getting power status")
 				return ctrl.Result{}, errors.Wrap(err, "error getting power status")
 			} else if !on {
 				// wait a bit before checking again if we are powered on
@@ -224,14 +231,14 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 						}
 					} else {
 						// Node was recreated, restore annotations and labels
-						r.Log.Info("Restoring the node")
+						remediationLog.Info("Restoring the node")
 						if err = r.restoreNode(ctx, remediationMgr, clusterClient, node); err != nil {
 							return ctrl.Result{}, err
 						}
 					}
 
 					// clean up
-					r.Log.Info("Remediation done, cleaning up remediation CR")
+					remediationLog.Info("Remediation done, cleaning up remediation CR")
 					if !r.IsOutOfServiceTaintEnabled {
 						remediationMgr.RemoveNodeBackupAnnotations()
 					}
@@ -241,7 +248,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 					// we don't have a node, just remove finalizer
 					remediationMgr.UnsetFinalizer()
 
-					r.Log.Info("Skipping node restore, remediation done, CR should be deleted soon")
+					remediationLog.Info("Skipping node restore, remediation done, CR should be deleted soon")
 					return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 				}
 			}
@@ -250,13 +257,13 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			timedOut, _ := remediationMgr.TimeToRemediate(remediationMgr.GetTimeout().Duration)
 			if !timedOut {
 				// Not yet time to retry or stop remediation, requeue
-				r.Log.Info("Waiting for node to get healthy and CR being deleted")
+				remediationLog.Info("Waiting for node to get healthy and CR being deleted")
 				return ctrl.Result{RequeueAfter: defaultTimeout}, nil
 			}
 
 			// Try again if limit not reached
 			if remediationMgr.RetryLimitIsSet() && !remediationMgr.HasReachRetryLimit() {
-				r.Log.Info("Remediation timed out, will retry")
+				remediationLog.Info("Remediation timed out, will retry")
 				remediationMgr.SetRemediationPhase(infrav1.PhaseRunning)
 				now := metav1.Now()
 				remediationMgr.SetLastRemediationTime(&now)
@@ -264,14 +271,14 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 				return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 			}
 
-			r.Log.Info("Remediation timed out and retry limit reached")
+			remediationLog.Info("Remediation timed out and retry limit reached")
 
 			// When machine is still unhealthy after remediation, setting of OwnerRemediatedCondition
 			// moves control to CAPI machine controller. The owning controller will do
 			// preflight checks and handles the Machine deletion
 			err = remediationMgr.SetOwnerRemediatedConditionNew(ctx)
 			if err != nil {
-				r.Log.Error(err, "error setting cluster api conditions")
+				remediationLog.Error(err, "error setting cluster api conditions")
 				return ctrl.Result{}, errors.Wrapf(err, "error setting cluster api conditions")
 			}
 
@@ -279,7 +286,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			// This prevents BMH to be selected as a host.
 			err = remediationMgr.SetUnhealthyAnnotation(ctx)
 			if err != nil {
-				r.Log.Error(err, "error setting unhealthy annotation")
+				remediationLog.Error(err, "error setting unhealthy annotation")
 				return ctrl.Result{}, errors.Wrapf(err, "error setting unhealthy annotation")
 			}
 
@@ -296,7 +303,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			break
 
 		default:
-			r.Log.Error(nil, "unknown phase!", "phase", remediationMgr.GetRemediationPhase())
+			remediationLog.Error(nil, "unknown phase!", "phase", remediationMgr.GetRemediationPhase())
 		}
 	}
 	return ctrl.Result{}, nil

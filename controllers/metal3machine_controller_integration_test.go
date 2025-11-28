@@ -372,7 +372,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		),
 		//Given: Machine with cluster label. but no Cluster object.
 		//Expected: Error. Cluster not found
-		Entry("Should return an error when owner Cluster cannot be found",
+		Entry("Should record InvalidConfiguration when owner Cluster cannot be found",
 			TestCaseReconcile{
 				Objects: []client.Object{
 					metal3machineWithOwnerRefs(),
@@ -380,7 +380,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				},
 				ErrorExpected:       false,
 				ErrorReasonExpected: true,
-				ErrorReason:         "",
+				ErrorReason:         capierrors.InvalidConfigurationMachineError,
 				RequeueExpected:     false,
 			},
 		),

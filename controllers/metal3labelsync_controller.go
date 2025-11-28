@@ -76,7 +76,12 @@ type Metal3LabelSyncReconciler struct {
 
 // Reconcile handles label sync events.
 func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues("metal3-label-sync", req.NamespacedName)
+	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues(
+		"metal3-label-sync", req.NamespacedName,
+	)
+	defer func() {
+		logReconcileOutcome(controllerLog, labelSyncControllerName, rerr)
+	}()
 
 	// We need to get the NodeRef from the CAPI Machine object:
 	// BareMetalHost.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef
@@ -84,9 +89,10 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	host := &bmov1alpha1.BareMetalHost{}
 	if err := r.Client.Get(ctx, req.NamespacedName, host); err != nil {
 		if apierrors.IsNotFound(err) {
+			logLogicGate(controllerLog, "BareMetalHost not found, skipping label sync")
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed to fetch BareMetalHost")
 	}
 	if host.Annotations != nil {
 		if _, ok := host.Annotations[bmov1alpha1.PausedAnnotation]; ok {
@@ -102,7 +108,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	defer func() {
 		err = helper.Patch(ctx, host)
 		if err != nil {
-			controllerLog.Info("Failed to Patch BareMetalHost")
+			controllerLog.Error(err, "Failed to patch BareMetalHost")
 			rerr = err
 		}
 	}()
@@ -130,7 +136,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 				"host", host.Name)
 			return ctrl.Result{RequeueAfter: requeueAfter}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed to fetch associated Metal3Machine")
 	}
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Metal3Machine %v", capm3MachineKey))
 
@@ -157,7 +163,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 	err = r.Client.Get(ctx, clusterKey, cluster)
 	if err != nil {
-		controllerLog.Info("Error fetching cluster, will retry")
+		controllerLog.Error(err, "Error fetching cluster, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Cluster %v/%v", cluster.Name, cluster.Namespace))
@@ -169,7 +175,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		Name:      cluster.Spec.InfrastructureRef.Name,
 	}
 	if err = r.Client.Get(ctx, metal3ClusterName, metal3Cluster); err != nil {
-		controllerLog.Info("Error fetching Metal3Cluster, will retry")
+		controllerLog.Error(err, "Error fetching Metal3Cluster, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info(fmt.Sprintf("Found Metal3Cluster %v/%v", metal3Cluster.Name, metal3Cluster.Namespace))
@@ -192,11 +198,11 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	prefixSet, err := parsePrefixAnnotation(prefixStr)
 	if err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed to parse prefix annotation")
 	}
 	err = r.reconcileBMHLabels(ctx, host, capiMachine, cluster, prefixSet)
 	if err != nil {
-		controllerLog.Info(fmt.Sprintf("Error reconciling BMH labels to Node, will retry: %v", err))
+		controllerLog.Error(err, "Error reconciling BMH labels to Node, will retry")
 		return ctrl.Result{RequeueAfter: requeueAfter}, err
 	}
 	controllerLog.Info("Finished synchronizing labels between BaremetalHost and Node")
@@ -281,7 +287,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 		)
 		return nil
 	}
-	log := r.Log.WithValues("Metal3ClusterToBareMetalHosts", c.Name, "Namespace", c.Namespace)
+	log := r.Log.WithValues("metal3-cluster", types.NamespacedName{Name: c.Name, Namespace: c.Namespace})
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:

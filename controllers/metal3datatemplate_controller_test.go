@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -238,7 +239,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(false, false, errors.New(""))
 			}
 
-			res, err := r.reconcileNormal(context.TODO(), m)
+			res, err := r.reconcileNormal(context.TODO(), m, klogr.New())
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -293,7 +294,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(false, false, errors.New(""))
 			}
 
-			res, err := r.reconcileDelete(context.TODO(), m)
+			res, err := r.reconcileDelete(context.TODO(), m, klogr.New())
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -401,19 +402,21 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	)
 
 	It("Test checkReconcileError", func() {
-		result, err := checkReconcileError(nil, "")
+		logger := klogr.New()
+		result, err := checkReconcileError(logger, nil, "")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		result, err = checkReconcileError(errors.New("def"), "abc")
+		result, err = checkReconcileError(logger, errors.New("def"), "abc")
 		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		result, err = checkReconcileError(baremetal.WithTransientError(errors.New("Failed"), 0*time.Second), "abc")
+		result, err = checkReconcileError(logger, baremetal.WithTransientError(errors.New("Failed"), 0*time.Second), "abc")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 
 		result, err = checkReconcileError(
+			logger,
 			baremetal.WithTransientError(errors.New("Failed"), requeueAfter), "abc",
 		)
 		Expect(err).NotTo(HaveOccurred())
