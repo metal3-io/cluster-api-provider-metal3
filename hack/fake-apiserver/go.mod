@@ -9,8 +9,8 @@ require (
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	k8s.io/client-go v0.34.2
-	sigs.k8s.io/cluster-api v1.12.0-beta.1
-	sigs.k8s.io/cluster-api/test v1.12.0-beta.1
+	sigs.k8s.io/cluster-api v1.12.0-rc.0
+	sigs.k8s.io/cluster-api/test v1.12.0-rc.0
 	sigs.k8s.io/controller-runtime v0.22.4
 )
 
@@ -63,7 +63,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.22.0 // indirect
-	github.com/prometheus/client_model v0.6.1 // indirect
+	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/spf13/cobra v1.10.1 // indirect
