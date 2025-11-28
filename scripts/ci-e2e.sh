@@ -95,7 +95,7 @@ fi
 
 # Run make devenv to boot the source cluster
 pushd "${M3_DEV_ENV_PATH}" || exit 1
-make
+make nodep
 popd || exit 1
 
 # Binaries checked below should have been installed by metal3-dev-env make.
