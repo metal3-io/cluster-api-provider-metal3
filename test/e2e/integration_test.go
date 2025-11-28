@@ -23,7 +23,7 @@ var _ = Describe("When testing integration", Label("integration"), func() {
 	It("CI Test Provision", func() {
 		numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 		numberOfControlplane = int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
-		k8sVersion := e2eConfig.MustGetVariable("KUBERNETES_VERSION")
+		k8sVersion := e2eConfig.MustGetVariable("K8S_VERSION")
 		By("Apply BMH for workload cluster")
 		ApplyBmh(ctx, e2eConfig, bootstrapClusterProxy, namespace, specName)
 
