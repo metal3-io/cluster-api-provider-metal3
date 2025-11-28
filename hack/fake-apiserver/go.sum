@@ -141,8 +141,8 @@ github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRI
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_golang v1.22.0 h1:rb93p9lokFEsctTys46VnV1kLCDpVZ0a/Y92Vm0Zc6Q=
 github.com/prometheus/client_golang v1.22.0/go.mod h1:R7ljNsLXhuQXYZYtw6GAE9AZg8Y7vEW5scdCXrWRXC0=
-github.com/prometheus/client_model v0.6.1 h1:ZKSh/rekM+n3CeS952MLRAdFwIKqeY8b62p8ais2e9E=
-github.com/prometheus/client_model v0.6.1/go.mod h1:OrxVMOVHjw3lKMa8+x6HeMGkHMQyHDk9E3jmP2AmGiY=
+github.com/prometheus/client_model v0.6.2 h1:oBsgwpGs7iVziMvrGhE53c/GrLUsZdHnqNwqPLxwZyk=
+github.com/prometheus/client_model v0.6.2/go.mod h1:y3m2F6Gdpfy6Ut/GBsUqTWZqCUvMVzSfMLjcu6wAwpE=
 github.com/prometheus/common v0.62.0 h1:xasJaQlnWAeyHdUBeGjXmutelfJHWMRr+Fg4QszZ2Io=
 github.com/prometheus/common v0.62.0/go.mod h1:vyBcEuLSvWos9B1+CyL7JZ2up+uFzXhkqml0W5zIY1I=
 github.com/prometheus/procfs v0.15.1 h1:YagwOFzUgYfKKHX6Dr+sHT7km/hxC76UB0learggepc=
@@ -317,10 +317,10 @@ k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d h1:wAhiDyZ4Tdtt7e46e9M5ZSAJ/MnPG
 k8s.io/utils v0.0.0-20250820121507-0af2bda4dd1d/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 h1:jpcvIRr3GLoUoEKRkHKSmGjxb6lWwrBlJsXc+eUYQHM=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
-sigs.k8s.io/cluster-api v1.12.0-beta.1 h1:Fh8B8XLZomEmDBOlCqe+TobaFh7swEuD1Zi3YSnl/1Q=
-sigs.k8s.io/cluster-api v1.12.0-beta.1/go.mod h1:FXLozVhI0rSPTiyPFk3O92p3xxiZXhUXrb8uzU4igaw=
-sigs.k8s.io/cluster-api/test v1.12.0-beta.1 h1:7PdYCQ7pOcKg3p5aCmRtg1LJS72B6uKrAmlJjM8iPxE=
-sigs.k8s.io/cluster-api/test v1.12.0-beta.1/go.mod h1:/i5TuxkQch01S4PFvWO+h50kXAdvtddvhGQ9SLSj/oA=
+sigs.k8s.io/cluster-api v1.12.0-rc.0 h1:7tWLgsGF/5zd0tdQloxdpBG1eEkYfgIFWFdYZaLVLF0=
+sigs.k8s.io/cluster-api v1.12.0-rc.0/go.mod h1:+S6WJdi8UPdqv5q9nka5al3ed/Qa0zAcSBgzTaa9VKA=
+sigs.k8s.io/cluster-api/test v1.12.0-rc.0 h1:xQuRM5nVY2dL8USqXRDnt4kT1MChK93BvpbQwonnNhc=
+sigs.k8s.io/cluster-api/test v1.12.0-rc.0/go.mod h1:eS05aBCEZeKzcW7MGnT9U+zap4NCpkxHBWb10DshWp0=
 sigs.k8s.io/controller-runtime v0.22.4 h1:GEjV7KV3TY8e+tJ2LCTxUTanW4z/FmNB7l327UfMq9A=
 sigs.k8s.io/controller-runtime v0.22.4/go.mod h1:+QX1XUpTXN4mLoblf4tqr5CQcyHPAki2HLXqQMY6vh8=
 sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 h1:gBQPwqORJ8d8/YNZWEjoZs7npUVDpVXUUOFfW6CgAqE=
