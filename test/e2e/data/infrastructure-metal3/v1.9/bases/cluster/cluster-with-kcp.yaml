@@ -8,9 +8,9 @@ metadata:
 spec:
   clusterNetwork:
     pods:
-      cidrBlocks: ["${POD_CIDR}"]
+      cidrBlocks: [ "${POD_CIDR}" ]
     services:
-      cidrBlocks: ["${SERVICE_CIDR}"]
+      cidrBlocks: [ "${SERVICE_CIDR}" ]
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane

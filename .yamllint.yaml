@@ -1,0 +1,17 @@
+yaml-files:
+- '*.yaml'
+- '*.yml'
+- '.yamllint'
+
+ignore: |
+  examples/clusterctl-templates/
+
+rules:
+  trailing-spaces: enable
+  key-duplicates: enable
+  indentation:
+    spaces: 2
+    indent-sequences: false # Enforce k8s-style indentation
+    check-multi-line-strings: false
+  truthy:
+    allowed-values: [ 'true', 'false', 'yes', 'no', 'on' ]

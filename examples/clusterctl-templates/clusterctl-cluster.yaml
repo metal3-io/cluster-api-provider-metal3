@@ -65,6 +65,7 @@ spec:
         kubeletExtraArgs:
         - name: node-labels
           value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+# yamllint disable-line rule:syntax
 ${CTLPLANE_KUBEADM_EXTRA_CONFIG}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -152,6 +153,7 @@ spec:
           kubeletExtraArgs:
           - name: node-labels
             value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
+# yamllint disable-line rule:syntax
 ${WORKERS_KUBEADM_EXTRA_CONFIG}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

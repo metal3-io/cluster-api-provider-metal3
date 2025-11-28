@@ -132,21 +132,20 @@ spec:
           value: '5m'
         name: '{{ ds.meta_data.name }}'
     preKubeadmCommands:
-      - rm /etc/cni/net.d/*
-      - systemctl restart NetworkManager.service
-      - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
-      - nmcli connection up ironicendpoint
-      - nmcli connection load /etc/NetworkManager/system-connections/enp1s0.nmconnection
-      - nmcli connection up enp1s0
-      - systemctl enable --now keepalived
-      - sleep 60
-      - systemctl enable --now crio kubelet
+    - rm /etc/cni/net.d/*
+    - systemctl restart NetworkManager.service
+    - nmcli connection load /etc/NetworkManager/system-connections/ironicendpoint.nmconnection
+    - nmcli connection up ironicendpoint
+    - nmcli connection load /etc/NetworkManager/system-connections/enp1s0.nmconnection
+    - nmcli connection up enp1s0
+    - systemctl enable --now keepalived
+    - sleep 60
+    - systemctl enable --now crio kubelet
     postKubeadmCommands:
-      - mkdir -p /home/${IMAGE_USERNAME}/.kube
-      - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube
-      - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
-      - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
-
+    - mkdir -p /home/${IMAGE_USERNAME}/.kube
+    - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube
+    - cp /etc/kubernetes/admin.conf /home/${IMAGE_USERNAME}/.kube/config
+    - chown ${IMAGE_USERNAME}:${IMAGE_USERNAME} /home/${IMAGE_USERNAME}/.kube/config
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
@@ -206,7 +205,7 @@ spec:
           [ipv6]
           addr-gen-mode=eui64
           method=ignore
-      - path : /etc/containers/registries.conf
+      - path: /etc/containers/registries.conf
         owner: root:root
         permissions: '0644'
         content: |

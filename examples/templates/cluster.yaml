@@ -6,84 +6,84 @@ spec:
   clusterName: ${CLUSTER_NAME}
   metaData:
     strings:
-      - key: abc
-        value: def
+    - key: abc
+      value: def
     indexes:
-      - key: index_0_1
-        offset: 0
-        step: 1
-      - key: index_3
-        offset: 3
-      - key: index_5_2
-        offset: 5
-        step: 2
+    - key: index_0_1
+      offset: 0
+      step: 1
+    - key: index_3
+      offset: 3
+    - key: index_5_2
+      offset: 5
+      step: 2
     objectNames:
-      - key: machine_name
-        object: machine
-      - key: metal3machine_name
-        object: metal3machine
-      - key: bmh_name
-        object: baremetalhost
+    - key: machine_name
+      object: machine
+    - key: metal3machine_name
+      object: metal3machine
+    - key: bmh_name
+      object: baremetalhost
     ipAddressesFromIPPool:
-      - key: ip_1
-        name: pool1
-      - key: ip_2
-        name: pool2
-      - key: ip6_1
-        name: pool6-1
-      - key: ip6_2
-        name: pool6-2
+    - key: ip_1
+      name: pool1
+    - key: ip_2
+      name: pool2
+    - key: ip6_1
+      name: pool6-1
+    - key: ip6_2
+      name: pool6-2
     prefixesFromIPPool:
-      - key: prefix_1
-        name: pool1
-      - key: prefix_2
-        name: pool2
-      - key: prefix6_1
-        name: pool6-1
-      - key: prefix6_2
-        name: pool6-2
+    - key: prefix_1
+      name: pool1
+    - key: prefix_2
+      name: pool2
+    - key: prefix6_1
+      name: pool6-1
+    - key: prefix6_2
+      name: pool6-2
     gatewaysFromIPPool:
-      - key: gateway_1
-        name: pool1
-      - key: gateway_2
-        name: pool2
-      - key: gateway6_1
-        name: pool6-1
-      - key: gateway6_2
-        name: pool6-2
+    - key: gateway_1
+      name: pool1
+    - key: gateway_2
+      name: pool2
+    - key: gateway6_1
+      name: pool6-1
+    - key: gateway6_2
+      name: pool6-2
     fromHostInterfaces:
-      - key: mac
-        interface: eth0
+    - key: mac
+      interface: eth0
   networkData:
     links:
       ethernets:
-        - type: phy
-          id: enp1s0
-          macAddress:
-            fromHostInterface: eth0
-        - type: phy
-          id: enp2s0
-          macAddress:
-            fromHostInterface: eth1
+      - type: phy
+        id: enp1s0
+        macAddress:
+          fromHostInterface: eth0
+      - type: phy
+        id: enp2s0
+        macAddress:
+          fromHostInterface: eth1
     networks:
       ipv4DHCP:
-        - id: provisioning
-          link: enp1s0
+      - id: provisioning
+        link: enp1s0
       ipv4:
-        - id: baremetal
-          link: enp2s0
-          ipAddressFromIPPool: pool1
-          routes:
-            - network: 0.0.0.0
-              prefix: 0
-              gateway:
-                fromIPPool: pool1
-              services:
-                dns:
-                  - 8.8.4.4
+      - id: baremetal
+        link: enp2s0
+        ipAddressFromIPPool: pool1
+        routes:
+        - network: 0.0.0.0
+          prefix: 0
+          gateway:
+            fromIPPool: pool1
+          services:
+            dns:
+            - 8.8.4.4
     services:
       dns:
-        - 8.8.8.8
+      - 8.8.8.8
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3DataTemplate
@@ -93,84 +93,84 @@ spec:
   clusterName: ${CLUSTER_NAME}
   metaData:
     strings:
-      - key: abc
-        value: def
+    - key: abc
+      value: def
     indexes:
-      - key: index_0_1
-        offset: 0
-        step: 1
-      - key: index_3
-        offset: 3
-      - key: index_5_2
-        offset: 5
-        step: 2
+    - key: index_0_1
+      offset: 0
+      step: 1
+    - key: index_3
+      offset: 3
+    - key: index_5_2
+      offset: 5
+      step: 2
     objectNames:
-      - key: machine_name
-        object: machine
-      - key: metal3machine_name
-        object: metal3machine
-      - key: bmh_name
-        object: baremetalhost
+    - key: machine_name
+      object: machine
+    - key: metal3machine_name
+      object: metal3machine
+    - key: bmh_name
+      object: baremetalhost
     ipAddressesFromIPPool:
-      - key: ip_1
-        name: pool1
-      - key: ip_2
-        name: pool2
-      - key: ip6_1
-        name: pool6-1
-      - key: ip6_2
-        name: pool6-2
+    - key: ip_1
+      name: pool1
+    - key: ip_2
+      name: pool2
+    - key: ip6_1
+      name: pool6-1
+    - key: ip6_2
+      name: pool6-2
     prefixesFromIPPool:
-      - key: prefix_1
-        name: pool1
-      - key: prefix_2
-        name: pool2
-      - key: prefix6_1
-        name: pool6-1
-      - key: prefix6_2
-        name: pool6-2
+    - key: prefix_1
+      name: pool1
+    - key: prefix_2
+      name: pool2
+    - key: prefix6_1
+      name: pool6-1
+    - key: prefix6_2
+      name: pool6-2
     gatewaysFromIPPool:
-      - key: gateway_1
-        name: pool1
-      - key: gateway_2
-        name: pool2
-      - key: gateway6_1
-        name: pool6-1
-      - key: gateway6_2
-        name: pool6-2
+    - key: gateway_1
+      name: pool1
+    - key: gateway_2
+      name: pool2
+    - key: gateway6_1
+      name: pool6-1
+    - key: gateway6_2
+      name: pool6-2
     fromHostInterfaces:
-      - key: mac
-        interface: eth0
+    - key: mac
+      interface: eth0
   networkData:
     links:
       ethernets:
-        - type: phy
-          id: enp1s0
-          macAddress:
-            fromHostInterface: eth0
-        - type: phy
-          id: enp2s0
-          macAddress:
-            fromHostInterface: eth1
+      - type: phy
+        id: enp1s0
+        macAddress:
+          fromHostInterface: eth0
+      - type: phy
+        id: enp2s0
+        macAddress:
+          fromHostInterface: eth1
     networks:
       ipv4DHCP:
-        - id: provisioning
-          link: enp1s0
+      - id: provisioning
+        link: enp1s0
       ipv4:
-        - id: baremetal
-          link: enp2s0
-          ipAddressFromIPPool: pool1
-          routes:
-            - network: 0.0.0.0
-              prefix: 0
-              gateway:
-                fromIPPool: pool1
-              services:
-                dns:
-                  - 8.8.4.4
+      - id: baremetal
+        link: enp2s0
+        ipAddressFromIPPool: pool1
+        routes:
+        - network: 0.0.0.0
+          prefix: 0
+          gateway:
+            fromIPPool: pool1
+          services:
+            dns:
+            - 8.8.4.4
     services:
       dns:
-        - 8.8.8.8
+      - 8.8.8.8
 ---
 apiVersion: ipam.metal3.io/v1alpha1
 kind: IPPool
@@ -179,10 +179,10 @@ metadata:
 spec:
   clusterName: ${CLUSTER_NAME}
   pools:
-    - start: 192.168.0.10
-      end: 192.168.0.250
-      prefix: 24
-      gateway: 192.168.0.1
+  - start: 192.168.0.10
+    end: 192.168.0.250
+    prefix: 24
+    gateway: 192.168.0.1
   namePrefix: pool1
 ---
 apiVersion: ipam.metal3.io/v1alpha1
@@ -192,7 +192,7 @@ metadata:
 spec:
   clusterName: ${CLUSTER_NAME}
   pools:
-    - subnet: 192.168.1.0/24
+  - subnet: 192.168.1.0/24
   prefix: 25
   gateway: 192.168.1.1
   namePrefix: pool2
@@ -204,10 +204,10 @@ metadata:
 spec:
   clusterName: ${CLUSTER_NAME}
   pools:
-    - start: 2001::10
-      end: 2001::ff00
-      prefix: 96
-      gateway: 2001::1
+  - start: 2001::10
+    end: 2001::ff00
+    prefix: 96
+    gateway: 2001::1
   namePrefix: pool6-1
 ---
 apiVersion: ipam.metal3.io/v1alpha1
@@ -217,7 +217,7 @@ metadata:
 spec:
   clusterName: ${CLUSTER_NAME}
   pools:
-    - subnet: 2001:ABC::0/96
+  - subnet: 2001:ABC::0/96
   prefix: 96
   gateway: 2001:ABC::1
   namePrefix: pool6-2

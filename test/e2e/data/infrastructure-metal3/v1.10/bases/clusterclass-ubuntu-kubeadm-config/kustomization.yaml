@@ -1,5 +1,4 @@
-
 resources:
 - ../clusterclass-cluster
 patchesStrategicMerge:
-  - clusterclass-ubuntu-kubeadm-config.yaml
+- clusterclass-ubuntu-kubeadm-config.yaml

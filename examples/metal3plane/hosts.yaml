@@ -26,7 +26,7 @@ status:
     credentials:
       name: demo-externally-provisioned-secret
       namespace: default
-    credentialsVersion: "879" 
+    credentialsVersion: "879"
   hardware:
     cpu:
       arch: x86_64
@@ -572,7 +572,7 @@ status:
       checksum: http://172.22.0.1/images/centos-updated.qcow2.sha256sum
       url: http://172.22.0.1/images/centos-updated.qcow2
     rootDeviceHints:
-      deviceName: /dev/sda 
+      deviceName: /dev/sda
     state: ready
 ---
 apiVersion: metal3.io/v1alpha1

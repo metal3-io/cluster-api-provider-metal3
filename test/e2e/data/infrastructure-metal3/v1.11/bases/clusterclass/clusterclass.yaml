@@ -144,21 +144,21 @@ spec:
         name: ${CLUSTER_NAME}-controlplane
   workers:
     machineDeployments:
-      - class: worker
-        metadata:
-          labels:
-            cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
-            nodepool: nodepool-0
-        bootstrap:
-          templateRef:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
-            kind: KubeadmConfigTemplate
-            name: ${CLUSTER_NAME}-workers
-        infrastructure:
-          templateRef:
-            apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
-            kind: Metal3MachineTemplate
-            name: ${CLUSTER_NAME}-workers
+    - class: worker
+      metadata:
+        labels:
+          cluster.x-k8s.io/cluster-name: ${CLUSTER_NAME}
+          nodepool: nodepool-0
+      bootstrap:
+        templateRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
+          kind: KubeadmConfigTemplate
+          name: ${CLUSTER_NAME}-workers
+      infrastructure:
+        templateRef:
+          apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+          kind: Metal3MachineTemplate
+          name: ${CLUSTER_NAME}-workers
   infrastructure:
     templateRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

@@ -183,42 +183,42 @@ spec:
       - name: node-labels
         value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
   preKubeadmCommands:
-    - netplan apply
-    - systemctl enable --now crio kubelet
-    - if (curl -sk --max-time 10 https://192.168.111.249:6443/healthz); then
-      echo "keepalived already running";else systemctl start keepalived; fi
-    - systemctl link /lib/systemd/system/monitor.keepalived.service
-    - systemctl enable monitor.keepalived.service
-    - systemctl start monitor.keepalived.service
+  - netplan apply
+  - systemctl enable --now crio kubelet
+  - if (curl -sk --max-time 10 https://192.168.111.249:6443/healthz); then
+    echo "keepalived already running";else systemctl start keepalived; fi
+  - systemctl link /lib/systemd/system/monitor.keepalived.service
+  - systemctl enable monitor.keepalived.service
+  - systemctl start monitor.keepalived.service
   postKubeadmCommands:
-    - mkdir -p /home/metal3/.kube
-    - chown metal3:metal3 /home/metal3/.kube
-    - cp /etc/kubernetes/admin.conf /home/metal3/.kube/config
-    - systemctl enable --now keepalived
-    - chown metal3:metal3 /home/metal3/.kube/config
+  - mkdir -p /home/metal3/.kube
+  - chown metal3:metal3 /home/metal3/.kube
+  - cp /etc/kubernetes/admin.conf /home/metal3/.kube/config
+  - systemctl enable --now keepalived
+  - chown metal3:metal3 /home/metal3/.kube/config
   files:
-    - path: /etc/keepalived/keepalived.conf
-      content: |
-        ! Configuration File for keepalived
-        global_defs {
-            notification_email {
-            sysadmin@example.com
-            support@example.com
-            }
-            notification_email_from lb@example.com
-            smtp_server localhost
-            smtp_connect_timeout 30
+  - path: /etc/keepalived/keepalived.conf
+    content: |
+      ! Configuration File for keepalived
+      global_defs {
+          notification_email {
+          sysadmin@example.com
+          support@example.com
         }
-        vrrp_instance VI_2 {
-            state MASTER
-            interface enp2s0
-            virtual_router_id 2
-            priority 101
-            advert_int 1
-            virtual_ipaddress {
-                192.168.111.249
-            }
+          notification_email_from lb@example.com
+          smtp_server localhost
+          smtp_connect_timeout 30
         }
+      vrrp_instance VI_2 {
+        state MASTER
+        interface enp2s0
+        virtual_router_id 2
+        priority 101
+        advert_int 1
+        virtual_ipaddress {
+          192.168.111.249
+        }
+      }
 ```
 
 ## Machine
@@ -389,7 +389,7 @@ spec:
         matchExpressions:
         - key: key3
           operator: in
-          values: [‘a’, ‘b’, ‘c’]
+          values: [ ‘a’, ‘b’, ‘c’ ]
 ```
 
 Example 3: Only consider `BareMetalHost` with `key1` set to `value1` AND `key2`
@@ -406,7 +406,7 @@ spec:
         matchExpressions:
         - key: key3
           operator: in
-          values: [‘a’, ‘b’, ‘c’]
+          values: [ ‘a’, ‘b’, ‘c’ ]
 ```
 
 ### Metal3Machine example
@@ -663,8 +663,8 @@ spec:
           string: "XX:XX:XX:XX:XX:XX"
         bondMode: "802.3ad"
         bondLinks:
-          - enp1s0
-          - enp2s0
+        - enp1s0
+        - enp2s0
       vlans:
       - id: "vlan1"
         mtu: 1500

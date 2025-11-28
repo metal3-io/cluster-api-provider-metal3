@@ -4,4 +4,3 @@ metadata:
   name: capm3-system
   labels:
     pod-security.kubernetes.io/enforce: restricted
-
