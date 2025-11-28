@@ -142,7 +142,7 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 	bootstrapClusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
 	By("Fetch logs from target cluster")
-	err := FetchClusterLogs(targetClusterProxy, clusterLogCollectionBasePath)
+	err := FetchClusterLogs(targetClusterProxy, filepath.Join(artifactFolder, workloadClusterLogCollectionBasePath, targetClusterProxy.GetName(), "final-logs"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}

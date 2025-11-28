@@ -108,7 +108,6 @@ func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Clie
 // FetchManifests fetches relevant Metal3, CAPI, and Kubernetes core resources
 // and dumps them to a file.
 func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) error {
-	outputPath = filepath.Join(outputPath, clusterProxy.GetName())
 	ctx := context.Background()
 	restConfig := clusterProxy.GetRESTConfig()
 	dynamicClient, err := dynamic.NewForConfig(restConfig)
@@ -159,6 +158,7 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 		"m3data",
 		"m3dataclaim",
 		"m3datatemplate",
+		"ironic",
 	}
 	client := clusterProxy.GetClient()
 
@@ -194,9 +194,8 @@ func FetchManifests(clusterProxy framework.ClusterProxy, outputPath string) erro
 // to files.
 func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) error {
 	ctx := context.Background()
-	baseDir := filepath.Join(outputPath, clusterProxy.GetName())
 	// Ensure the base directory exists
-	if err := os.MkdirAll(baseDir, 0o750); err != nil {
+	if err := os.MkdirAll(outputPath, 0o750); err != nil {
 		return fmt.Errorf("couldn't create directory: %w", err)
 	}
 
@@ -206,7 +205,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 	// Print the Pods' information to file
 	// This does the same thing as:
 	// kubectl --kubeconfig="${KUBECONFIG_WORKLOAD}" get pods -A
-	outputFile := filepath.Join(baseDir, "pods.log")
+	outputFile := filepath.Join(outputPath, "pods.log")
 	file, err := os.Create(outputFile)
 	if err != nil {
 		return fmt.Errorf("failed to create output file: %w", err)
@@ -270,7 +269,7 @@ func FetchClusterLogs(clusterProxy framework.ClusterProxy, outputPath string) er
 			}
 
 			machineName := pod.Spec.NodeName
-			podDir := filepath.Join(baseDir, "machines", machineName, namespace.Name, pod.Name)
+			podDir := filepath.Join(outputPath, "machines", machineName, namespace.Name, pod.Name)
 			if err = os.MkdirAll(podDir, 0o750); err != nil {
 				return fmt.Errorf("couldn't create directory: %w", err)
 			}
