@@ -20,7 +20,11 @@ if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
 else
     export CAPM3RELEASE="v1.12.99"
     export IPAMRELEASE="v1.12.99"
-    export CAPI_RELEASE_PREFIX="v1.11."
+    # Commenting this out as CAPI release prefix and exporting CAPIRELEASE
+    # during pre-release phase of CAPI.
+    # We will change when minor is released.
+    # export CAPI_RELEASE_PREFIX="v1.12."
+    export CAPIRELEASE="v1.12.0-rc.0"
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
@@ -64,6 +68,8 @@ if [[ "${CAPI_NIGHTLY_BUILD:-false}" == "true" ]]; then
   echo 'export CAPI_NIGHTLY_BUILD="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 fi
 
+mkdir -p "${CAPI_CONFIG_FOLDER}"
+
 case "${GINKGO_FOCUS:-}" in
   clusterctl-upgrade|k8s-upgrade|basic|integration|remediation|k8s-conformance|capi-md-tests)
     # if running basic, integration, k8s upgrade, clusterctl-upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
@@ -71,7 +77,6 @@ case "${GINKGO_FOCUS:-}" in
   ;;
 
   features)
-    mkdir -p "${CAPI_CONFIG_FOLDER}"
     echo "ENABLE_BMH_NAME_BASED_PREALLOCATION: true" >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
@@ -82,11 +87,12 @@ case "${GINKGO_FOCUS:-}" in
     echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     sed -i "s/^export NUM_NODES=.*/export NUM_NODES=${NUM_NODES:-50}/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    mkdir -p "${CAPI_CONFIG_FOLDER}"
     echo 'CLUSTER_TOPOLOGY: true' >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export BOOTSTRAP_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 esac
+
+echo 'EXP_MACHINE_TAINT_PROPAGATION: true' >> "${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
 
 if [[ ${GINKGO_FOCUS:-} != "scalability" ]]; then
   # Don't run scalability tests if not asked for.
@@ -258,5 +264,6 @@ if [[ -n "${CLUSTER_TOPOLOGY:-}" ]]; then
   export CLUSTER_TOPOLOGY=true
   make e2e-clusterclass-tests
 else
+  export EXP_MACHINE_TAINT_PROPAGATION=true
   make e2e-tests
 fi

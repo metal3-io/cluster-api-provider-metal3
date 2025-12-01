@@ -18,7 +18,8 @@ providers:
   type: CoreProvider
   versions:
   - name: "v1.12.99"
-    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
+    # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.0/core-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -66,7 +67,8 @@ providers:
   type: BootstrapProvider
   versions:
   - name: "v1.12.99"
-    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
+    # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.0/bootstrap-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -114,7 +116,8 @@ providers:
   type: ControlPlaneProvider
   versions:
   - name: "v1.12.99"
-    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
+    # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.0/control-plane-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -241,6 +244,10 @@ providers:
       targetName: "cluster-template-ubuntu-md-remediation.yaml"
     - sourcePath: "../_out/main/cluster-template-opensuse-leap.yaml"
       targetName: "cluster-template-opensuse-leap.yaml"
+    - sourcePath: "../_out/main/cluster-template-ubuntu-md-taints.yaml"
+      targetName: "cluster-template-ubuntu-md-taints.yaml"
+    - sourcePath: "../_out/main/cluster-template-centos-md-taints.yaml"
+      targetName: "cluster-template-centos-md-taints.yaml"
 
 variables:
   CNI: "/tmp/cni.yaml"
@@ -313,6 +320,7 @@ variables:
   BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
   FKAS_RELEASE_LATEST: "data/fkas"
   REPO_NAME: "${REPO_NAME:cluster-api-provider-metal3}"
+  EXP_MACHINE_TAINT_PROPAGATION: "true"
 
 intervals:
   default/wait-controllers: [ "10m", "10s" ]

@@ -200,6 +200,8 @@ cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-upgrade-workload > $(E2E_OUT_DIR)/main/cluster-template-upgrade-workload.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-centos-md-remediation.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-remediation.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-taints > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-taints.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-md-taints > $(E2E_OUT_DIR)/main/cluster-template-centos-md-taints.yaml
 	touch $(E2E_OUT_DIR)/main/clusterclass.yaml
 
 .PHONY: clusterclass-templates-main
