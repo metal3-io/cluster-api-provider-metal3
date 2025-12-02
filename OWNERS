@@ -8,7 +8,6 @@ reviewers:
 - cluster-api-provider-metal3-reviewers
 
 emeritus_approvers:
-- fmuyassarov
 - furkatgofurov7
 - maelk
 - mboukhalfa
