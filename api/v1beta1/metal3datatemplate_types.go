@@ -141,6 +141,17 @@ type FromPool struct {
 	Kind string `json:"kind"`
 }
 
+// FromPoolAnnotation contains the information to fetch pool reference details from an annotation.
+type FromPoolAnnotation struct {
+	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
+	// Object is the type of the object from which we retrieve the annotation
+	Object string `json:"object"`
+
+	// Annotation is the key of the annotation that contains the pool name.
+	// The annotation value should be a string containing the pool name.
+	Annotation string `json:"annotation"`
+}
+
 // MetaData represents a keyand value of the metadata.
 type MetaData struct {
 	// Strings is the list of metadata items to be rendered from strings
@@ -363,6 +374,12 @@ type NetworkGatewayv4 struct {
 
 	// FromPoolRef is a reference to a IP pool to fetch the gateway from
 	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
+
+	// FromPoolAnnotation allows specifying the pool name via an annotation on
+	// a Machine, Metal3Machine, or BareMetalHost object.
+	// When set, FromIPPool and FromPoolRef are ignored.
+	// +optional
+	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
 }
 
 // NetworkGatewayv6 represents a gateway, given as a string or as a reference to
@@ -379,6 +396,12 @@ type NetworkGatewayv6 struct {
 
 	// FromPoolRef is a reference to a IP pool to fetch the gateway from
 	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
+
+	// FromPoolAnnotation allows specifying the pool name via an annotation on
+	// a Machine, Metal3Machine, or BareMetalHost object.
+	// When set, FromIPPool and FromPoolRef are ignored.
+	// +optional
+	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object.
@@ -432,6 +455,12 @@ type NetworkDataIPv4 struct {
 	// FromPoolRef is a reference to a IP pool to allocate an address from.
 	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
 
+	// FromPoolAnnotation allows specifying the pool reference via an annotation on
+	// a Machine, Metal3Machine, or BareMetalHost object.
+	// When set, IPAddressFromIPPool and FromPoolRef are ignored.
+	// +optional
+	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
+
 	// Routes contains a list of IPv4 routes
 	// +optional
 	Routes []NetworkDataRoutev4 `json:"routes,omitempty"`
@@ -451,6 +480,12 @@ type NetworkDataIPv6 struct {
 
 	// FromPoolRef is a reference to a IP pool to allocate an address from.
 	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
+
+	// FromPoolAnnotation allows specifying the pool reference via an annotation on
+	// a Machine, Metal3Machine, or BareMetalHost object.
+	// When set, IPAddressFromIPPool and FromPoolRef are ignored.
+	// +optional
+	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
 
 	// Routes contains a list of IPv6 routes
 	// +optional
