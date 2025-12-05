@@ -62,16 +62,22 @@ type Metal3DataReconciler struct {
 
 // Reconcile handles Metal3Data events.
 func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	metadataLog := r.Log.WithName(dataControllerName).WithValues("metal3-data", req.NamespacedName)
+	metadataLog := r.Log.WithName(dataControllerName).WithValues(
+		"metal3-data", req.NamespacedName,
+	)
+	defer func() {
+		logReconcileOutcome(metadataLog, dataControllerName, rerr)
+	}()
 
 	// Fetch the Metal3Data instance.
 	metal3Data := &infrav1.Metal3Data{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3Data); err != nil {
 		if apierrors.IsNotFound(err) {
+			logLogicGate(metadataLog, "Metal3Data resource not found, skipping")
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed to fetch Metal3Data")
 	}
 	helper, err := v1beta1patch.NewHelper(metal3Data, r.Client)
 	if err != nil {
@@ -86,11 +92,11 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 				metadataLog.Info("Metal3Data no longer exists, skipping patch")
 				return
 			}
-			metadataLog.Info("Failed to check if Metal3Data exists, attempting patch")
+			metadataLog.Error(err, "Failed to verify Metal3Data existence prior to patching")
 		}
 		err = helper.Patch(ctx, metal3Data)
 		if err != nil {
-			metadataLog.Info("failed to Patch Metal3Data")
+			metadataLog.Error(err, "Failed to patch Metal3Data")
 			rerr = err
 		}
 	}()
@@ -126,12 +132,14 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle deletion of Metal3Data
 	if !metal3Data.ObjectMeta.DeletionTimestamp.IsZero() {
+		logLogicGate(metadataLog, "Metal3Data marked for deletion")
 		// Check if the Metal3DataClaim is gone. We cannot clean up until it is.
 		err := r.Client.Get(ctx, types.NamespacedName{Name: metal3Data.Spec.Claim.Name, Namespace: metal3Data.Spec.Claim.Namespace}, &infrav1.Metal3DataClaim{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				return r.reconcileDelete(ctx, metadataMgr)
+				return r.reconcileDelete(ctx, metadataMgr, metadataLog)
 			}
+			metadataLog.Error(err, "Failed to check Metal3DataClaim during delete")
 			return ctrl.Result{}, err
 		}
 		// Requeue until Metal3DataClaim is gone.
@@ -140,31 +148,38 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, metadataMgr)
+	logLogicGate(metadataLog, "Metal3Data active, entering normal reconciliation")
+	return r.reconcileNormal(ctx, metadataMgr, metadataLog)
 }
 
 func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 	metadataMgr baremetal.DataManagerInterface,
+	metadataLog logr.Logger,
 ) (ctrl.Result, error) {
 	// If the Metal3Data doesn't have finalizer, add it.
+	logLogicGate(metadataLog, "Ensuring Metal3Data finalizer is present")
 	metadataMgr.SetFinalizer()
 
 	err := metadataMgr.Reconcile(ctx)
 	if err != nil {
-		return checkReconcileError(err, "Failed to create secrets")
+		return checkReconcileError(metadataLog, err, "Failed to reconcile Metal3Data secrets")
 	}
+	logLogicGate(metadataLog, "Metal3Data reconcile completed")
 	return ctrl.Result{}, nil
 }
 
 func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 	metadataMgr baremetal.DataManagerInterface,
+	metadataLog logr.Logger,
 ) (ctrl.Result, error) {
+	logLogicGate(metadataLog, "Releasing IP address leases before delete")
 	err := metadataMgr.ReleaseLeases(ctx)
 	if err != nil {
-		return checkReconcileError(err, "Failed to release IP address leases")
+		return checkReconcileError(metadataLog, err, "Failed to release IP address leases")
 	}
 
 	metadataMgr.UnsetFinalizer()
+	logLogicGate(metadataLog, "Removed Metal3Data finalizer after cleanup")
 
 	return ctrl.Result{}, nil
 }

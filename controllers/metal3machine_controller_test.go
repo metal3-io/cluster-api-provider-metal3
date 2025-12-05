@@ -31,6 +31,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2/klogr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -209,7 +210,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("ReconcileNormal tests",
 			func(tc reconcileNormalTestCase) {
 				m := setReconcileNormalExpectations(gomockCtrl, tc)
-				res, err := bmReconcile.reconcileNormal(context.TODO(), m)
+				res, err := bmReconcile.reconcileNormal(context.TODO(), m, klogr.New())
 
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())
@@ -299,7 +300,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Deletion tests",
 			func(tc reconcileDeleteTestCase) {
 				m := setReconcileDeleteExpectations(gomockCtrl, tc)
-				res, err := bmReconcile.reconcileDelete(context.TODO(), m)
+				res, err := bmReconcile.reconcileDelete(context.TODO(), m, klogr.New())
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())
 				} else {

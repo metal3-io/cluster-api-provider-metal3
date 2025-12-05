@@ -71,16 +71,22 @@ type Metal3DataTemplateReconciler struct {
 
 // Reconcile handles Metal3DataTemplate events.
 func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	log := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
+	log := r.Log.WithName(dataTemplateControllerName).WithValues(
+		"metal3-datatemplate", req.NamespacedName,
+	)
+	defer func() {
+		logReconcileOutcome(log, dataTemplateControllerName, rerr)
+	}()
 
 	// Fetch the Metal3DataTemplate instance.
 	metal3DataTemplate := &infrav1.Metal3DataTemplate{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3DataTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
+			logLogicGate(log, "Metal3DataTemplate resource not found, skipping")
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrap(err, "Failed to fetch Metal3DataTemplate")
 	}
 	helper, err := v1beta1patch.NewHelper(metal3DataTemplate, r.Client)
 	if err != nil {
@@ -90,7 +96,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	defer func() {
 		err = helper.Patch(ctx, metal3DataTemplate)
 		if err != nil {
-			log.Info("failed to Patch Metal3DataTemplate")
+			log.Error(err, "Failed to patch Metal3DataTemplate")
 			rerr = err
 		}
 	}()
@@ -105,7 +111,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	err = r.Client.Get(ctx, key, cluster)
 	if metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
-			log.Info("Error fetching cluster. It might not exist yet, Requeuing")
+			log.Error(err, "Error fetching cluster. It might not exist yet, skipping reconciliation")
 			return ctrl.Result{}, nil
 		}
 	}
@@ -119,7 +125,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	if metal3DataTemplate.Spec.ClusterName != "" && cluster.Name != "" {
 		log = log.WithValues("cluster", cluster.Name)
 		if err := dataTemplateMgr.SetClusterOwnerRef(cluster); err != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, errors.Wrap(err, "Failed to set cluster owner reference")
 		}
 		// Return early if the Metal3DataTemplate or Cluster is paused.
 		if annotations.IsPaused(cluster, metal3DataTemplate) {
@@ -130,42 +136,51 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Handle deletion of Metal3DataTemplate
 	if !metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, dataTemplateMgr)
+		logLogicGate(log, "Metal3DataTemplate marked for deletion")
+		return r.reconcileDelete(ctx, dataTemplateMgr, log)
 	}
 
 	// Handle non-deleted Metal3DataTemplate
-	return r.reconcileNormal(ctx, dataTemplateMgr)
+	logLogicGate(log, "Metal3DataTemplate active, entering normal reconciliation")
+	return r.reconcileNormal(ctx, dataTemplateMgr, log)
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 	dataTemplateMgr baremetal.DataTemplateManagerInterface,
+	logger logr.Logger,
 ) (ctrl.Result, error) {
 	// If the Metal3DataTemplate doesn't have finalizer, add it.
+	logLogicGate(logger, "Ensuring Metal3DataTemplate finalizer is present")
 	dataTemplateMgr.SetFinalizer()
 
 	_, _, err := dataTemplateMgr.UpdateDatas(ctx)
 	if err != nil {
-		return checkReconcileError(err, "Failed to recreate the status")
+		return checkReconcileError(logger, err, "Failed to update Metal3Data objects from template")
 	}
+	logLogicGate(logger, "Successfully reconciled Metal3DataTemplate status")
 	return ctrl.Result{}, nil
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 	dataTemplateMgr baremetal.DataTemplateManagerInterface,
+	logger logr.Logger,
 ) (ctrl.Result, error) {
 	hasData, hasClaims, err := dataTemplateMgr.UpdateDatas(ctx)
 	if err != nil {
-		return checkReconcileError(err, "Failed to recreate the status")
+		return checkReconcileError(logger, err, "Failed to refresh Metal3DataTemplate status during delete")
 	}
 
 	if hasClaims {
+		logLogicGate(logger, "Metal3DataClaims still exist, requeueing delete")
 		return ctrl.Result{}, nil
 	}
 	if hasData {
+		logLogicGate(logger, "Metal3Data instances still exist, requeueing delete")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	dataTemplateMgr.UnsetFinalizer()
+	logLogicGate(logger, "Removed Metal3DataTemplate finalizer")
 
 	return ctrl.Result{}, nil
 }
@@ -209,10 +224,11 @@ func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(_ con
 // checkReconcileError checks if the error is a transient or terminal error.
 // If it is transient, it returns a Result with Requeue set to true.
 // Non-reconcile errors are returned as-is.
-func checkReconcileError(err error, errMessage string) (ctrl.Result, error) {
+func checkReconcileError(logger logr.Logger, err error, errMessage string) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
+	logger.Error(err, errMessage)
 	var reconcileError baremetal.ReconcileError
 	if errors.As(err, &reconcileError) {
 		if reconcileError.IsTransient() {
