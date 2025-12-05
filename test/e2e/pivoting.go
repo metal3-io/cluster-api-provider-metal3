@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -26,17 +25,18 @@ import (
 )
 
 const (
-	bmoPath                      = "BMOPATH"
-	ironicTLSSetup               = "IRONIC_TLS_SETUP"
-	ironicBasicAuth              = "IRONIC_BASIC_AUTH"
-	ironicKeepalived             = "IRONIC_KEEPALIVED"
-	ironicMariadb                = "IRONIC_USE_MARIADB"
-	Kind                         = "kind"
-	NamePrefix                   = "NAMEPREFIX"
-	restartContainerCertUpdate   = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
-	ironicNamespace              = "IRONIC_NAMESPACE"
-	clusterLogCollectionBasePath = "/tmp/target_cluster_logs"
-	Metal3ipamProviderName       = "metal3"
+	bmoPath                               = "BMOPATH"
+	ironicTLSSetup                        = "IRONIC_TLS_SETUP"
+	ironicBasicAuth                       = "IRONIC_BASIC_AUTH"
+	ironicKeepalived                      = "IRONIC_KEEPALIVED"
+	ironicMariadb                         = "IRONIC_USE_MARIADB"
+	Kind                                  = "kind"
+	NamePrefix                            = "NAMEPREFIX"
+	restartContainerCertUpdate            = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
+	ironicNamespace                       = "IRONIC_NAMESPACE"
+	workloadClusterLogCollectionBasePath  = "workload_cluster_logs"
+	bootstrapClusterLogCollectionBasePath = "bootstrap_cluster_logs"
+	Metal3ipamProviderName                = "metal3"
 )
 
 type PivotingInput struct {
@@ -64,7 +64,13 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
 	By("Fetch logs from target cluster before pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "beforePivot"))
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, workloadClusterLogCollectionBasePath, input.TargetCluster.GetName(), "beforePivot"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
+	By("Fetch logs from bootstrap cluster before pivot")
+	err = FetchClusterLogs(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, bootstrapClusterLogCollectionBasePath, "beforePivot"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
@@ -83,16 +89,19 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	}
 
 	By("Fetch container logs")
-	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
 	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
-	if bootstrapCluster == Kind {
+	if input.BootstrapClusterProxy.GetName() == Kind {
 		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
 	}
 
 	By("Fetch manifest for bootstrap cluster before pivot")
-	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
+	err = FetchManifests(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, bootstrapClusterLogCollectionBasePath, "beforePivot", "manifests"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
+	}
+	err = FetchManifests(input.TargetCluster, filepath.Join(input.ArtifactFolder, workloadClusterLogCollectionBasePath, input.TargetCluster.GetName(), "beforePivot", "manifests"))
+	if err != nil {
+		Logf("Error fetching manifests for Target cluster before pivot: %v", err)
 	}
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kconfigPathWorkload := input.TargetCluster.GetKubeconfigPath()
@@ -109,7 +118,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Remove Ironic containers from the source cluster")
 	ironicDeploymentType := IronicDeploymentTypeBMO
-	if bootstrapCluster == Kind {
+	if input.BootstrapClusterProxy.GetName() == Kind {
 		ironicDeploymentType = IronicDeploymentTypeLocal
 	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
 		ironicDeploymentType = IronicDeploymentTypeIrSO
@@ -368,18 +377,25 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
 	By("Fetch logs from target cluster after pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "afterPivot"))
+	err := FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, workloadClusterLogCollectionBasePath, input.TargetCluster.GetName(), "afterPivot"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+	By("Fetch logs from bootstrap cluster after pivot")
+	err = FetchClusterLogs(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, bootstrapClusterLogCollectionBasePath, "afterPivot"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
 
 	By("Fetch manifest for workload cluster after pivot")
-	workloadClusterProxy := framework.NewClusterProxy("workload-cluster-after-pivot", os.Getenv("KUBECONFIG"), runtime.NewScheme())
-	err = FetchManifests(workloadClusterProxy, "/tmp/manifests/")
+	err = FetchManifests(input.TargetCluster, filepath.Join(input.ArtifactFolder, workloadClusterLogCollectionBasePath, input.TargetCluster.GetName(), "afterPivot", "manifests"))
 	if err != nil {
 		Logf("Error fetching manifests for workload cluster after pivot: %v", err)
 	}
-	os.Unsetenv("KUBECONFIG_WORKLOAD")
+	err = FetchManifests(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, bootstrapClusterLogCollectionBasePath, "afterPivot", "manifests"))
+	if err != nil {
+		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
+	}
 
 	By("Remove Ironic deployment from target cluster")
 	ironicDeploymentType := IronicDeploymentTypeBMO
@@ -497,7 +513,11 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	By("Fetch manifest for bootstrap cluster after re-pivot")
-	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
+	err = FetchManifests(input.TargetCluster, filepath.Join(input.ArtifactFolder, workloadClusterLogCollectionBasePath, input.TargetCluster.GetName(), "afterRePivot", "manifests"))
+	if err != nil {
+		Logf("Error fetching manifests for workload cluster after pivot: %v", err)
+	}
+	err = FetchManifests(input.BootstrapClusterProxy, filepath.Join(input.ArtifactFolder, bootstrapClusterLogCollectionBasePath, "afterRePivot", "manifests"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
 	}
