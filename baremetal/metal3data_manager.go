@@ -859,9 +859,11 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 		for _, ipClaimWithLabels := range ipClaimsList {
 			// remove finalizers from Metal3IPClaim first before proceeding to deletion in case
 			// EnableBMHNameBasedPreallocation is set to True.
-			finalizerErr = m.removeFinalizers(ctx, &ipClaimWithLabels)
-			if finalizerErr != nil {
-				return finalizerErr
+			if controllerutil.RemoveFinalizer(&ipClaimWithLabels, infrav1.DataFinalizer) {
+				finalizerErr = m.client.Update(ctx, &ipClaimWithLabels)
+				if finalizerErr != nil {
+					return finalizerErr
+				}
 			}
 			err = deleteObject(ctx, m.client, &ipClaimWithLabels)
 			if err != nil {
@@ -879,9 +881,11 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 	}
 
 	// remove finalizers from Metal3IPClaim before proceeding to Metal3IPClaim deletion.
-	finalizerErr = m.removeFinalizers(ctx, ipClaim)
-	if finalizerErr != nil {
-		return finalizerErr
+	if controllerutil.RemoveFinalizer(ipClaim, infrav1.DataFinalizer) {
+		finalizerErr = m.client.Update(ctx, ipClaim)
+		if finalizerErr != nil {
+			return finalizerErr
+		}
 	}
 
 	// delete Metal3IPClaim object.
@@ -1652,15 +1656,4 @@ func (m *DataManager) fetchIPClaimsWithLabels(ctx context.Context, pool string) 
 		return nil, err
 	}
 	return allIPClaims.Items, nil
-}
-
-// removeFinalizers removes finalizers from Metal3IPClaim.
-func (m *DataManager) removeFinalizers(ctx context.Context, claim *ipamv1.IPClaim) error {
-	if controllerutil.RemoveFinalizer(claim, infrav1.DataFinalizer) {
-		var err = updateObject(ctx, m.client, claim)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
