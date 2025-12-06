@@ -15,7 +15,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	framework "sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -39,6 +38,7 @@ var (
 	managementClusterNamespace string
 )
 
+// Ironic 32.0 -> latest image tag.
 var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
 		k8sVersion = "v1.34.1"
@@ -54,16 +54,12 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 	ironicFromRelease := "32.0"
 	bmoToRelease := "latest"
 	ironicToRelease := "latest"
-	// This will upgrade from v1.11.0 to latest patch release of v1.11.x
-	capiStableRelease := "1.11.0"
+	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
 	capm3StableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixCAPM3, minorVersion)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion)
 	ipamStableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixIPAM, minorVersion)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for IPAM minor release : %s", minorVersion)
-
-	// Get latest patch release for 1.11.x
-	capiStablePatchRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable patch version for CAPI minor release : %s", minorVersion)
 
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
@@ -87,16 +83,6 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 				os.Setenv("CAPM3_VERSION", capm3Contract)
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
 			},
-			Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
-				{ // Upgrade to latest 1.11.x
-					WithBinary:              fmt.Sprintf(clusterctlDownloadURL, capiStablePatchRelease),
-					CoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStablePatchRelease),
-					BootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStablePatchRelease)},
-					ControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStablePatchRelease)},
-					InfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
-					IPAMProviders:           []string{fmt.Sprintf(providerMetal3Prefix, ipamStableRelease)},
-				},
-			},
 			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
 				preUpgrade(clusterProxy, bmoToRelease, ironicToRelease)
@@ -110,6 +96,7 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 	})
 })
 
+// Ironic 31.0 -> latest image tag.
 var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
 		k8sVersion = "v1.34.1"
@@ -125,17 +112,12 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", 
 	ironicFromRelease := "31.0"
 	bmoToRelease := "latest"
 	ironicToRelease := "latest"
-	capiStableRelease110, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion110)
+	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion110)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion110)
 	capm3StableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixCAPM3, minorVersion110)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion110)
 	ipamStableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixIPAM, minorVersion110)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for IPAM minor release : %s", minorVersion110)
-
-	// Get latest patch release for 1.11.x
-	minorVersion111 := "1.11"
-	capiStableRelease111, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion111)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable patch version for CAPI minor release : %s", minorVersion111)
 
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
@@ -144,30 +126,20 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", 
 			BootstrapClusterProxy:           bootstrapClusterProxy,
 			ArtifactFolder:                  artifactFolder,
 			SkipCleanup:                     skipCleanup,
-			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease110),
-			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease110)},
-			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease110)},
+			InitWithCoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease),
+			InitWithBootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
+			InitWithControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease)},
 			InitWithInfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
 			InitWithIPAMProviders:           []string{fmt.Sprintf(providerMetal3Prefix, ipamStableRelease)},
 			InitWithKubernetesVersion:       k8sVersion,
 			WorkloadKubernetesVersion:       k8sVersion,
-			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease110),
+			InitWithBinary:                  fmt.Sprintf(clusterctlDownloadURL, capiStableRelease),
 			PreInit: func(clusterProxy framework.ClusterProxy) {
 				preInitFunc(clusterProxy, bmoFromRelease, ironicFromRelease)
 				// Override capi/capm3 versions exported in preInit
 				os.Setenv("CAPI_VERSION", capiContract)
 				os.Setenv("CAPM3_VERSION", capm3Contract)
 				os.Setenv("KUBECONFIG_BOOTSTRAP", bootstrapClusterProxy.GetKubeconfigPath())
-			},
-			Upgrades: []capi_e2e.ClusterctlUpgradeSpecInputUpgrade{
-				{ // Upgrade to latest 1.11.x
-					WithBinary:              fmt.Sprintf(clusterctlDownloadURL, capiStableRelease111),
-					CoreProvider:            fmt.Sprintf(providerCAPIPrefix, capiStableRelease111),
-					BootstrapProviders:      []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease111)},
-					ControlPlaneProviders:   []string{fmt.Sprintf(providerKubeadmPrefix, capiStableRelease111)},
-					InfrastructureProviders: []string{fmt.Sprintf(providerMetal3Prefix, capm3StableRelease)},
-					IPAMProviders:           []string{fmt.Sprintf(providerMetal3Prefix, ipamStableRelease)},
-				},
 			},
 			PostNamespaceCreated: postClusterctlUpgradeNamespaceCreated,
 			PreUpgrade: func(clusterProxy framework.ClusterProxy) {
@@ -298,7 +270,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	}
 
 	By("Fetch manifest for bootstrap cluster")
-	err := FetchManifests(clusterProxy, "/tmp/manifests/")
+	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, clusterProxy.GetName(), "preInit-manifest"))
 	if err != nil {
 		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}
@@ -386,6 +358,11 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 // preUpgrade hook should be called from ClusterctlUpgradeSpec before upgrading the management cluster
 // it upgrades Ironic and BMO before upgrading the providers.
 func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string, ironicUpgradeToRelease string) {
+	err := FetchManifests(clusterProxy, filepath.Join(artifactFolder, clusterProxy.GetName(), "preUpgrade-manifest"))
+	if err != nil {
+		Logf("Error fetching manifests for bootstrap cluster: %v", err)
+	}
+
 	ironicTag, err := GetLatestPatchRelease(ironicGoproxy, ironicUpgradeToRelease)
 	Expect(err).ToNot(HaveOccurred(), "Failed to fetch ironic version for release %s", ironicUpgradeToRelease)
 	Logf("Ironic Tag %s\n", ironicTag)
@@ -431,22 +408,6 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 	Expect(err).NotTo(HaveOccurred())
 }
 
-// postUpgrade hook is for installing the new Metal3 IPAM provider
-// when upgrading from CAPM3 bundled IPAM.
-func postUpgrade(managementClusterProxy framework.ClusterProxy, _ string, _ string) {
-	By("Installing Metal3 IPAM provider")
-	ipamDeployLogFolder := filepath.Join(clusterLogCollectionBasePath, managementClusterProxy.GetName(), "ipam-deploy-logs")
-	ipamVersions := e2eConfig.GetProviderLatestVersionsByContract(capm3Contract, e2eConfig.IPAMProviders()...)
-	Expect(ipamVersions).To(HaveLen(1), "Failed to get the latest version for the IPAM provider")
-	input := clusterctl.InitInput{
-		ClusterctlConfigPath: clusterctlConfigPath,
-		KubeconfigPath:       managementClusterProxy.GetKubeconfigPath(),
-		LogFolder:            ipamDeployLogFolder,
-		IPAMProviders:        []string{ipamVersions[0]},
-	}
-	clusterctl.Init(ctx, input)
-}
-
 // preCleanupManagementCluster hook should be called from ClusterctlUpgradeSpec before cleaning the target management cluster
 // it moves back Ironic to the bootstrap cluster.
 func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRelease string) {
@@ -454,6 +415,11 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 	err := FetchClusterLogs(clusterProxy, clusterLogCollectionBasePath)
 	if err != nil {
 		Logf("Error: %v", err)
+	}
+
+	err = FetchManifests(clusterProxy, filepath.Join(artifactFolder, clusterProxy.GetName(), "preCleanup-manifest"))
+	if err != nil {
+		Logf("Error fetching manifests for bootstrap cluster: %v", err)
 	}
 	os.Unsetenv("KUBECONFIG_WORKLOAD")
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")

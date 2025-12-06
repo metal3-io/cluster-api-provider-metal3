@@ -62,6 +62,10 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	m.EXPECT().IsProvisioned().Return(tc.Provisioned)
 	if tc.Provisioned {
 		m.EXPECT().MachineHasNodeRef().Return(tc.Provisioned)
+		m.EXPECT().SetV1beta2Condition(
+			infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,
+			metav1.ConditionTrue,
+			infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason, "")
 		m.EXPECT().Update(context.TODO()).Return(nil)
 		m.EXPECT().IsBootstrapReady().MaxTimes(0)
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
