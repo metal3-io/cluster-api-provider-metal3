@@ -15,7 +15,7 @@ spec:
   topology:
     classRef:
       name: metal3
-    version: ${KUBERNETES_VERSION}
+    version: ${K8S_VERSION}
     controlPlane:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:

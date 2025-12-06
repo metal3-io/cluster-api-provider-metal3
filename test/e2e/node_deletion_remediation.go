@@ -117,7 +117,7 @@ func nodeRemediation(ctx context.Context, inputGetter func() NodeRemediation) {
 	By("Waiting for VM power off")
 	waitForVmsState([]string{vmName}, shutoff, input.SpecName, input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")...)
 
-	k8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_VERSION")
+	k8sVersion := input.E2EConfig.MustGetVariable("K8S_VERSION")
 	if isOutOfServiceTaintSupported(k8sVersion) {
 		Byf("Waiting for Out of service taint on node to be added (kubernetes version %s)", k8sVersion)
 		interval := input.E2EConfig.GetIntervals(input.SpecName, "wait-vm-state")
