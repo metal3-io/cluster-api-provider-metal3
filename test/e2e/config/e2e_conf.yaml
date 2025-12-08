@@ -19,7 +19,7 @@ providers:
   versions:
   - name: "v1.12.99"
     # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.0/core-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/core-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -68,7 +68,7 @@ providers:
   versions:
   - name: "v1.12.99"
     # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.0/bootstrap-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/bootstrap-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -117,7 +117,7 @@ providers:
   versions:
   - name: "v1.12.99"
     # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.0/control-plane-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/control-plane-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
