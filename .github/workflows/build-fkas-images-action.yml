@@ -48,6 +48,7 @@ jobs:
       image-name: "metal3-fkas"
       pushImage: true
       artifact-name: prepared-fkas
+      sign-image: true
     secrets:
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
