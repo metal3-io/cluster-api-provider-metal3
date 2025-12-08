@@ -96,8 +96,6 @@ critical to maintain the indentation. The allowed keys are :
 
 Here is an example for Ubuntu:
 
-<!-- markdownlint-disable MD013 -->
-
 ```bash
 CTLPLANE_KUBEADM_EXTRA_CONFIG="
     preKubeadmCommands:
@@ -171,8 +169,6 @@ CTLPLANE_KUBEADM_EXTRA_CONFIG="
 "
 ```
 
-<!-- markdownlint-enable MD013 -->
-
 #### WORKERS_KUBEADM_EXTRA_CONFIG
 
 This contains the extra configuration to pass in KubeadmConfig for workers. It
@@ -186,8 +182,6 @@ is critical to maintain the indentation. The allowed keys are :
 - format
 
 Here is an example for Ubuntu:
-
-<!-- markdownlint-disable MD013 -->
 
 ```bash
 WORKERS_KUBEADM_EXTRA_CONFIG="
@@ -221,8 +215,6 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
                 version: 2
 "
 ```
-
-<!-- markdownlint-enable MD013 -->
 
 ## Pivoting or updating Ironic
 

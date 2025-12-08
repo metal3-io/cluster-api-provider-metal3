@@ -140,15 +140,11 @@ in the bootstrap cluster either before pivoting or after re-pivoting.
 - Upgrade Ironic
 - Upgrade CAPI/CAPM3
 
-<!-- markdownlint-disable MD013 -->
-
 | tests          | CAPM3 from             | CAPM3 to  | CAPI from             | CAPI to         |
 | ---------------| ---------------------- | --------- | --------------------- |---------------- |
 | v1.10=>current | v1.10 latest patch     | main      | v1.10 latest patch    | latest release  |
 | v1.9=>current  | v1.9 latest patch      | main      | v1.9 latest patch     | latest release  |
 | v1.8=>current  | v1.8 latest patch      | main      | v1.8 latest patch     | latest release  |
-
-<!-- markdownlint-disable MD013 -->
 
 ### K8s upgrade tests
 
@@ -189,7 +185,8 @@ for more information on which tests are required for each Kubernetes release.
 
 ### CAPI MachineDeployment tests
 
-Includes the following MachineDeployment tests adopted from the Cluster API's e2e tests:
+Includes the following MachineDeployment tests adopted from the Cluster API's
+e2e tests:
 
 - [MachineDeployment rolling upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_rollout.go)
 - [MachineDeployment scale](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_scale.go)
@@ -227,13 +224,9 @@ to the latest.
 Current e2e tests use the following Kubernetes versions for source and target
 clusters:
 
-<!-- markdownlint-disable MD013 -->
-
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | -------------------- | -------------------- |
 | integration         | v1.34.0           | v1.34.0              | x                    |
 | remediation         | v1.34.0           | v1.34.0              | x                    |
 | pivot based feature | v1.34.0           | v1.34.0              | v1.34.0              |
 | upgrade             | v1.34.0           | v1.34.0              | v1.34.0              |
-
-<!-- markdownlint-enable MD013 -->

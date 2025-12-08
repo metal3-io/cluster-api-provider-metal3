@@ -284,8 +284,6 @@ spec:
 
 BareMetalHost, after reconciliation
 
-<!-- markdownlint-disable MD013 -->
-
 ```yaml
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
@@ -331,8 +329,6 @@ status:
       namespace: metal3
     credentialsVersion: "1435"
 ```
-
-<!-- markdownlint-enable MD013 -->
 
 ### KubeadmConfig
 
