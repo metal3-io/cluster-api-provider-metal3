@@ -74,3 +74,6 @@ go.work.sum
 
 # e2e result junit xml files
 junit.e2e_suite.*.xml
+
+# ai stuff
+.claude
