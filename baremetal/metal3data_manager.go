@@ -1065,18 +1065,25 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 
 	// Bond links
 	for _, link := range networkLinks.Bonds {
-		macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
-		if err != nil {
-			return nil, err
-		}
 		entry := map[string]any{
 			"type":                  "bond",
 			"id":                    link.Id,
 			"mtu":                   link.MTU,
-			"ethernet_mac_address":  macAddress,
 			"bond_mode":             link.BondMode,
 			"bond_xmit_hash_policy": link.BondXmitHashPolicy,
 			"bond_links":            link.BondLinks,
+		}
+		// Name is optional - if provided, cloud-init will use it for interface renaming
+		if link.Name != "" {
+			entry["name"] = link.Name
+		}
+		// MAC address is optional - if provided, include it for interface matching
+		if link.MACAddress != nil {
+			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
+			if err != nil {
+				return nil, err
+			}
+			entry["ethernet_mac_address"] = macAddress
 		}
 
 		illegalParameters := []string{}
@@ -1100,32 +1107,48 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 
 	// Ethernet links
 	for _, link := range networkLinks.Ethernets {
-		macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
-		if err != nil {
-			return nil, err
+		entry := map[string]any{
+			"type": link.Type,
+			"id":   link.Id,
+			"mtu":  link.MTU,
 		}
-		data = append(data, map[string]any{
-			"type":                 link.Type,
-			"id":                   link.Id,
-			"mtu":                  link.MTU,
-			"ethernet_mac_address": macAddress,
-		})
+		// Name is optional - if provided, cloud-init will use it for interface renaming
+		if link.Name != "" {
+			entry["name"] = link.Name
+		}
+		// MAC address is optional - if provided, include it for interface matching/renaming
+		if link.MACAddress != nil {
+			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
+			if err != nil {
+				return nil, err
+			}
+			entry["ethernet_mac_address"] = macAddress
+		}
+		data = append(data, entry)
 	}
 
 	// Vlan links
 	for _, link := range networkLinks.Vlans {
-		macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
-		if err != nil {
-			return nil, err
+		entry := map[string]any{
+			"type":      "vlan",
+			"id":        link.Id,
+			"mtu":       link.MTU,
+			"vlan_id":   link.VlanID,
+			"vlan_link": link.VlanLink,
 		}
-		data = append(data, map[string]any{
-			"type":             "vlan",
-			"id":               link.Id,
-			"mtu":              link.MTU,
-			"vlan_mac_address": macAddress,
-			"vlan_id":          link.VlanID,
-			"vlan_link":        link.VlanLink,
-		})
+		// Name is optional - if provided, cloud-init will use it for interface renaming
+		if link.Name != "" {
+			entry["name"] = link.Name
+		}
+		// MAC address is optional for VLANs
+		if link.MACAddress != nil {
+			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
+			if err != nil {
+				return nil, err
+			}
+			entry["vlan_mac_address"] = macAddress
+		}
+		data = append(data, entry)
 	}
 
 	return data, nil
@@ -1406,7 +1429,14 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
 	m3m *infrav1.Metal3Machine, machine *clusterv1.Machine, bmh *bmov1alpha1.BareMetalHost) (
 	string, error,
 ) {
-	var macaddress, err = "", errors.New("no MAC address given")
+	if mac == nil {
+		return "", errors.New("no MAC address given")
+	}
+
+	var (
+		macaddress string
+		err        error
+	)
 
 	if mac.String != nil {
 		// if a string was given
