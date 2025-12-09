@@ -177,8 +177,8 @@ github.com/metal3-io/baremetal-operator/apis v0.11.2 h1:7kPX0qp5m9sXqCnHYXKy/Yg0
 github.com/metal3-io/baremetal-operator/apis v0.11.2/go.mod h1:T0v/wKeJeUfVFeTq1sihv76IZEE2Bn+hqKkh5kGMxA4=
 github.com/metal3-io/ip-address-manager/api v1.11.2 h1:6UWnox+uzjrWgt86lFrAa80EV2dFEVnhQkcrRfyrxQw=
 github.com/metal3-io/ip-address-manager/api v1.11.2/go.mod h1:I93BnwcKAbzuP3oLz/hmNu6tfFcGIPkK+dSirOU3VDY=
-github.com/metal3-io/ironic-standalone-operator/api v0.5.2 h1:VTOEcdpLzXe7ujbYa+COBGTAO01W2YNPwG4BeyXBTQ4=
-github.com/metal3-io/ironic-standalone-operator/api v0.5.2/go.mod h1:lVmnxKXu5Q7s5ijscVHDmeV2fr1QVEIQukfZvcK1Tog=
+github.com/metal3-io/ironic-standalone-operator/api v0.5.3 h1:xzDb0WO85kvw1Q8Vuckbd2SWcov9zqPWaWEiqULIxhc=
+github.com/metal3-io/ironic-standalone-operator/api v0.5.3/go.mod h1:xwyS/vpdzmFWWC1A5h3b1hzAP67DZtqGE214ajJfTq8=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
 github.com/mitchellh/copystructure v1.2.0/go.mod h1:qLl+cE2AmVv+CoeAwDPye/v+N2HKCj9FbZEVFJRxO9s=
 github.com/mitchellh/reflectwalk v1.0.2 h1:G2LzWKi524PWgd3mLHV8Y5k7s6XUvT0Gef6zxSIeXaQ=
@@ -417,8 +417,8 @@ k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff h1:/usPimJzUKKu+m+TE36gUy
 k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff/go.mod h1:5jIi+8yX4RIb8wk3XwBo5Pq2ccx4FP10ohkbSKCZoK8=
 k8s.io/kubectl v0.30.14 h1:aP/pg1tG67vHIWVdngUREzJGfq96uQs4cilCBuGhhxo=
 k8s.io/kubectl v0.30.14/go.mod h1:QOq/rQBXvCzppBIuc1ikKPDuz2wY+PyZTvASfHFmHTg=
-k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 h1:M3sRQVHv7vB20Xc2ybTt7ODCeFj6JSWYFzOFnYeS6Ro=
-k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
+k8s.io/utils v0.0.0-20241210054802-24370beab758 h1:sdbE21q2nlQtFh65saZY+rRM6x6aJJI8IUa1AmH/qa0=
+k8s.io/utils v0.0.0-20241210054802-24370beab758/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 h1:jpcvIRr3GLoUoEKRkHKSmGjxb6lWwrBlJsXc+eUYQHM=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
 sigs.k8s.io/cluster-api v1.11.3 h1:apxfugbP1X8AG7THCM74CTarCOW4H2oOc6hlbm1hY80=
