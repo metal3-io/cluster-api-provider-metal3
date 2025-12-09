@@ -147,14 +147,10 @@ is defined above.
 - The EOL date of each API Version is determined from the last release available
   once a new API version is published.
 
-<!-- markdownlint-disable MD013 -->
-
 | API Version  | Supported Until                                                              |
 | ------------ | ---------------------------------------------------------------------------- |
 | **v1beta1**  | TBD (current latest)                                                         |
 | **v1alpha5** | EOL since 2022-09-30 ([apiVersion removal](#removal-of-v1alpha5-apiversion)) |
-
-<!-- markdownlint-enable MD013 -->
 
 - For the current stable API version (v1beta1) we support the two most recent
   minor releases; older minor releases are immediately unsupported when a new
@@ -166,8 +162,6 @@ is defined above.
   emergency patch release. For example, if v1.7 and v1.6 are currently
   supported, we will also maintain test coverage for v1.5 for one additional
   release cycle. When v1.7 is released, tests for v1.4 will be removed.
-
-<!-- markdownlint-disable MD013 -->
 
 | Minor Release | API Version  | Supported Until                              |
 | ------------- | ------------ | -------------------------------------------- |
@@ -183,8 +177,6 @@ is defined above.
 | v1.1.x        | **v1beta1**  | EOL since 2023-05-17                         |
 | v0.5.x        | **v1alpha4** | EOL since 2022-09-30 - API version EOL       |
 | v0.4.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL       |
-
-<!-- markdownlint-enable MD013 -->
 
 (\*) Previous support policy applies, older minor releases were immediately
 unsupported when a new major/minor release was available
