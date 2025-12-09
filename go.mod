@@ -9,7 +9,7 @@ require (
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.12.0-beta.0
 	github.com/onsi/ginkgo/v2 v2.27.3
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.38.3
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.10
 	gopkg.in/yaml.v2 v2.4.0
