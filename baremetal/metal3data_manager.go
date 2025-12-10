@@ -1424,7 +1424,10 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
 		return "", errors.New("no MAC address given")
 	}
 
-	var macaddress, err = "", errors.New("no MAC address given")
+	var (
+		macaddress string
+		err        error
+	)
 
 	if mac.String != nil {
 		// if a string was given
