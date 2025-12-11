@@ -259,8 +259,8 @@ github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/metal3-io/baremetal-operator/apis v0.12.0-beta.0 h1:D8v7iGjA7lRW0G/gpGHIPxU8V2afg9MEuJxosFRDevI=
 github.com/metal3-io/baremetal-operator/apis v0.12.0-beta.0/go.mod h1:nBkbnd7cI5EO3yBV625B+u5rXbfnvG9ebNcnsfTqWXc=
-github.com/metal3-io/ip-address-manager/api v1.12.0-beta.0 h1:h7LgVkGWQcKUyyBR221KTkUB30DLrDExF8gbHsVaalk=
-github.com/metal3-io/ip-address-manager/api v1.12.0-beta.0/go.mod h1:d1bhwNqPEyiidzGPOgC5CoyNqMb5rfy0kJfVnOez220=
+github.com/metal3-io/ip-address-manager/api v1.12.0-rc.0 h1:7nOf9bxUrIGLiuVk7v8hC6BspF3IIA3TFFYW/rggKsA=
+github.com/metal3-io/ip-address-manager/api v1.12.0-rc.0/go.mod h1:o0C+n3DRFYEsNP2/cwyNKHYKZ9Dfii5IN9K/TFF7dfE=
 github.com/metal3-io/ironic-standalone-operator/api v0.6.0 h1:u2BDGpGdJqzzZAr4pL4LywKcxfjHXPQNxuJ47ej/6Cc=
 github.com/metal3-io/ironic-standalone-operator/api v0.6.0/go.mod h1:V2uX3UR0gK0J8IvF8msNRcdWKviZRrvDCCFMF0uVPQY=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
