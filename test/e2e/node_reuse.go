@@ -10,11 +10,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -427,17 +424,6 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	By("NODE REUSE TESTS PASSED!")
 }
 
-func getControlplaneNodes(ctx context.Context, clientSet *kubernetes.Clientset) *corev1.NodeList {
-	controlplaneNodesRequirement, err := labels.NewRequirement("node-role.kubernetes.io/control-plane", selection.Exists, []string{})
-	Expect(err).ToNot(HaveOccurred(), "Failed to set up worker Node requirements")
-	controlplaneNodesSelector := labels.NewSelector().Add(*controlplaneNodesRequirement)
-	controlplaneListOptions := metav1.ListOptions{LabelSelector: controlplaneNodesSelector.String()}
-	controlplaneNodes, err := clientSet.CoreV1().Nodes().List(ctx, controlplaneListOptions)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get controlplane nodes")
-	Logf("controlplaneNodes found %v", len(controlplaneNodes.Items))
-	return controlplaneNodes
-}
-
 func getProvisionedBmhNamesUuids(ctx context.Context, namespace string, managementClusterClient client.Client) []string {
 	bmhs := bmov1alpha1.BareMetalHostList{}
 	var nameUUIDList []string
@@ -475,64 +461,4 @@ func pointMDtoM3mt(ctx context.Context, namespace string, clusterName string, m3
 	// verify that MachineDeployment is pointing to exact m3mt where nodeReuse is set to 'True'
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: mdName}, &md)).To(Succeed())
 	Expect(md.Spec.Template.Spec.InfrastructureRef.Name).To(BeEquivalentTo(clusterName + "-workers"))
-}
-
-func untaintNodes(ctx context.Context, targetClusterClient client.Client, nodes *corev1.NodeList, taints []corev1.Taint) (count int) {
-	count = 0
-	for i := range nodes.Items {
-		Logf("Untainting node %v ...", nodes.Items[i].Name)
-		newNode, changed := removeTaint(&nodes.Items[i], taints)
-		if changed {
-			patchHelper, err := v1beta1patch.NewHelper(&nodes.Items[i], targetClusterClient)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(patchHelper.Patch(ctx, newNode)).To(Succeed(), "Failed to patch node")
-			count++
-		}
-	}
-	return
-}
-
-func removeTaint(node *corev1.Node, taints []corev1.Taint) (*corev1.Node, bool) {
-	newNode := node.DeepCopy()
-	nodeTaints := newNode.Spec.Taints
-	if len(nodeTaints) == 0 {
-		return newNode, false
-	}
-
-	if !taintExists(nodeTaints, taints) {
-		return newNode, false
-	}
-
-	newTaints, _ := deleteTaint(nodeTaints, taints)
-	newNode.Spec.Taints = newTaints
-	return newNode, true
-}
-
-func taintExists(taints []corev1.Taint, taintsToFind []corev1.Taint) bool {
-	for _, taint := range taints {
-		for i := range taintsToFind {
-			if taint.MatchTaint(&taintsToFind[i]) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func deleteTaint(taints []corev1.Taint, taintsToDelete []corev1.Taint) ([]corev1.Taint, bool) {
-	newTaints := []corev1.Taint{}
-	deleted := false
-	for i := range taints {
-		currentTaintDeleted := false
-		for _, taintToDelete := range taintsToDelete {
-			if taintToDelete.MatchTaint(&taints[i]) {
-				deleted = true
-				currentTaintDeleted = true
-			}
-		}
-		if !currentTaintDeleted {
-			newTaints = append(newTaints, taints[i])
-		}
-	}
-	return newTaints, deleted
 }

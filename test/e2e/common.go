@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/kubernetes"
@@ -1226,4 +1227,186 @@ func IsMetal3DataCountEqualToMachineCount(ctx context.Context, c client.Client, 
 	}
 
 	return len(m3DataList.Items) == len(machineList.Items)
+}
+
+// getControlplaneNodes returns a list of control plane nodes in the cluster.
+func getControlplaneNodes(ctx context.Context, clientSet *kubernetes.Clientset) *corev1.NodeList {
+	controlplaneNodesRequirement, err := labels.NewRequirement("node-role.kubernetes.io/control-plane", selection.Exists, []string{})
+	Expect(err).ToNot(HaveOccurred(), "Failed to set up worker Node requirements")
+	controlplaneNodesSelector := labels.NewSelector().Add(*controlplaneNodesRequirement)
+	controlplaneListOptions := metav1.ListOptions{LabelSelector: controlplaneNodesSelector.String()}
+	controlplaneNodes, err := clientSet.CoreV1().Nodes().List(ctx, controlplaneListOptions)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get controlplane nodes")
+	Logf("controlplaneNodes found %v", len(controlplaneNodes.Items))
+	return controlplaneNodes
+}
+
+// untaintNodes removes the specified taints from the given nodes.
+// Returns the count of nodes that were successfully untainted.
+func untaintNodes(ctx context.Context, targetClusterClient client.Client, nodes *corev1.NodeList, taints []corev1.Taint) (count int) {
+	count = 0
+	for i := range nodes.Items {
+		Logf("Untainting node %v ...", nodes.Items[i].Name)
+		newNode, changed := removeTaint(&nodes.Items[i], taints)
+		if changed {
+			patchHelper, err := v1beta1patch.NewHelper(&nodes.Items[i], targetClusterClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(patchHelper.Patch(ctx, newNode)).To(Succeed(), "Failed to patch node")
+			count++
+		}
+	}
+	return
+}
+
+// removeTaint removes the specified taints from a node and returns the modified node.
+// Returns true if any taint was removed.
+func removeTaint(node *corev1.Node, taints []corev1.Taint) (*corev1.Node, bool) {
+	newNode := node.DeepCopy()
+	nodeTaints := newNode.Spec.Taints
+	if len(nodeTaints) == 0 {
+		return newNode, false
+	}
+
+	if !taintExists(nodeTaints, taints) {
+		return newNode, false
+	}
+
+	newTaints, _ := deleteTaint(nodeTaints, taints)
+	newNode.Spec.Taints = newTaints
+	return newNode, true
+}
+
+// taintExists checks if any of the specified taints exist in the node's taints.
+func taintExists(taints []corev1.Taint, taintsToFind []corev1.Taint) bool {
+	for _, taint := range taints {
+		for i := range taintsToFind {
+			if taint.MatchTaint(&taintsToFind[i]) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// deleteTaint removes the specified taints from the node's taints and returns the result.
+// Returns true if any taint was deleted.
+func deleteTaint(taints []corev1.Taint, taintsToDelete []corev1.Taint) ([]corev1.Taint, bool) {
+	newTaints := []corev1.Taint{}
+	deleted := false
+	for i := range taints {
+		currentTaintDeleted := false
+		for _, taintToDelete := range taintsToDelete {
+			if taintToDelete.MatchTaint(&taints[i]) {
+				deleted = true
+				currentTaintDeleted = true
+			}
+		}
+		if !currentTaintDeleted {
+			newTaints = append(newTaints, taints[i])
+		}
+	}
+	return newTaints, deleted
+}
+
+type UpgradeControlPlaneInput struct {
+	E2EConfig             *clusterctl.E2EConfig
+	BootstrapClusterProxy framework.ClusterProxy
+	TargetCluster         framework.ClusterProxy
+	SpecName              string
+	ClusterName           string
+	Namespace             string
+	K8sToVersion          string
+	K8sFromVersion        string
+}
+
+func UpgradeControlPlane(ctx context.Context, inputGetter func() UpgradeControlPlaneInput) {
+	input := inputGetter()
+	e2eConfig := input.E2EConfig
+	clusterClient := input.BootstrapClusterProxy.GetClient()
+	targetClusterClient := input.TargetCluster.GetClient()
+	clientSet := input.TargetCluster.GetClientSet()
+	k8sToVersion := input.K8sToVersion
+	k8sFromVersion := input.K8sFromVersion
+	specName := input.SpecName
+	namespace := input.Namespace
+	clusterName := input.ClusterName
+	numberOfControlplane := int(*e2eConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
+	var (
+		controlplaneTaints = []corev1.Taint{{Key: "node-role.kubernetes.io/control-plane", Effect: corev1.TaintEffectNoSchedule},
+			{Key: "node-role.kubernetes.io/master", Effect: corev1.TaintEffectNoSchedule}}
+	)
+	// Upgrade process starts here
+	// Download node image
+	By("Download image")
+	imageURL, imageChecksum := EnsureImage(k8sToVersion)
+
+	By("Create new KCP Metal3MachineTemplate with upgraded image to boot")
+	m3MachineTemplateName := clusterName + "-controlplane"
+	newM3MachineTemplateName := clusterName + k8sToVersion + "-new-controlplane"
+	CreateNewM3MachineTemplate(ctx, namespace, newM3MachineTemplateName, m3MachineTemplateName, clusterClient, imageURL, imageChecksum)
+
+	Byf("Update KCP to upgrade k8s version and binaries from %s to %s", k8sFromVersion, k8sToVersion)
+	kcpObj := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+		Lister:      clusterClient,
+		ClusterName: clusterName,
+		Namespace:   namespace,
+	})
+	helper, err := v1beta1patch.NewHelper(kcpObj, clusterClient)
+	Expect(err).NotTo(HaveOccurred())
+	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = newM3MachineTemplateName
+	kcpObj.Spec.Version = k8sToVersion
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
+	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
+
+	Byf("Wait until %d BMH(s) are in deprovisioning state", 1)
+	WaitForNumBmhInState(ctx, bmov1alpha1.StateDeprovisioning, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  1,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-deprovisioning"),
+	})
+
+	Byf("Wait until %d Control Plane machine(s) become running and updated with the new %s k8s version", numberOfControlplane, k8sToVersion)
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		upgraded := machine.Spec.Version == k8sToVersion
+		return (running && upgraded)
+	}
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfControlplane,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
+
+	By("Untaint Control Plane nodes")
+	controlplaneNodes := getControlplaneNodes(ctx, clientSet)
+	untaintNodes(ctx, targetClusterClient, controlplaneNodes, controlplaneTaints)
+
+	By("Update maxSurge field in KubeadmControlPlane back to default value(1)")
+	kcpObj = framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
+		Lister:      clusterClient,
+		ClusterName: clusterName,
+		Namespace:   namespace,
+	})
+	helper, err = v1beta1patch.NewHelper(kcpObj, clusterClient)
+	Expect(err).NotTo(HaveOccurred())
+	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 1
+	for range 3 {
+		err = helper.Patch(ctx, kcpObj)
+		if err == nil {
+			break
+		}
+		Logf("Failed to patch KCP maxSurge, retrying: %v", err)
+		time.Sleep(30 * time.Second)
+	}
+
+	// Verify that all control plane nodes are using the k8s version
+	Byf("Verify all %d control plane machines become running and updated with new %s k8s version", numberOfControlplane, k8sToVersion)
+	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+		Client:    clusterClient,
+		Options:   []client.ListOption{client.InNamespace(namespace)},
+		Replicas:  numberOfControlplane,
+		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
+	})
 }
