@@ -71,8 +71,8 @@ fi
 mkdir -p "${CAPI_CONFIG_FOLDER}"
 
 case "${GINKGO_FOCUS:-}" in
-  clusterctl-upgrade|k8s-upgrade|basic|integration|remediation|k8s-conformance|capi-md-tests)
-    # if running basic, integration, k8s upgrade, clusterctl-upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
+  clusterctl-upgrade|k8s-upgrade|k8s-upgrade-n3|basic|integration|remediation|k8s-conformance|capi-md-tests)
+    # if running basic, integration, k8s upgrade, k8s n+3 upgrade, clusterctl-upgrade, remediation, k8s conformance or capi-md tests, skip apply bmhs in dev-env
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 

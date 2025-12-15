@@ -81,6 +81,17 @@ case "${GINKGO_FOCUS:-}" in
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
   ;;
 
+  # k8s N+3 upgrade vars and config
+  k8s-upgrade-n3)
+    export NUM_NODES="4"
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
+    export KUBERNETES_N0_VERSION=${KUBERNETES_N0_VERSION:-"v1.31.13"}
+    export KUBERNETES_N1_VERSION=${KUBERNETES_N1_VERSION:-"v1.32.9"}
+    export KUBERNETES_N2_VERSION=${KUBERNETES_N2_VERSION:-"v1.33.5"}
+    export KUBERNETES_N3_VERSION=${KUBERNETES_N3_VERSION:-"v1.34.1"}
+  ;;
+
   # Scalability test environment vars and config
   scalability)
     export NUM_NODES=${NUM_NODES:-"10"}
