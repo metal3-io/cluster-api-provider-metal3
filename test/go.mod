@@ -17,7 +17,7 @@ require (
 	golang.org/x/crypto v0.45.0
 	golang.org/x/mod v0.31.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.19.2
+	helm.sh/helm/v3 v3.19.4
 	k8s.io/api v0.34.2
 	k8s.io/apiextensions-apiserver v0.34.2
 	k8s.io/apimachinery v0.34.2
@@ -60,7 +60,7 @@ require (
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
-	github.com/cyphar/filepath-securejoin v0.6.0 // indirect
+	github.com/cyphar/filepath-securejoin v0.6.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-connections v0.6.0 // indirect
