@@ -6,9 +6,9 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.10.5
+	github.com/metal3-io/baremetal-operator/apis v0.10.6
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.10.4
+	github.com/metal3-io/ip-address-manager/api v1.10.5
 	github.com/metal3-io/ironic-standalone-operator/api v0.0.0-20250402103806-d91a8f698be5
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
@@ -22,7 +22,7 @@ require (
 	k8s.io/client-go v0.32.10
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubectl v0.30.14
-	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/cluster-api v1.10.9
 	sigs.k8s.io/cluster-api/test v1.10.9
 	sigs.k8s.io/controller-runtime v0.20.4

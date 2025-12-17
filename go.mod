@@ -5,9 +5,9 @@ go 1.23.7
 require (
 	github.com/go-logr/logr v1.4.3
 	github.com/golang/mock v1.6.0
-	github.com/metal3-io/baremetal-operator/apis v0.10.5
+	github.com/metal3-io/baremetal-operator/apis v0.10.6
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.10.4
+	github.com/metal3-io/ip-address-manager/api v1.10.5
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
 	github.com/pkg/errors v0.9.1
@@ -19,7 +19,7 @@ require (
 	k8s.io/client-go v0.32.10
 	k8s.io/component-base v0.32.10
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738
+	k8s.io/utils v0.0.0-20241210054802-24370beab758
 	sigs.k8s.io/cluster-api v1.10.9
 	sigs.k8s.io/controller-runtime v0.20.4
 	sigs.k8s.io/yaml v1.4.0

@@ -177,12 +177,12 @@ github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D
 github.com/mattn/go-runewidth v0.0.9/go.mod h1:H031xJmbD/WCDINGzjvQ9THkh0rPKHF+m2gUSrubnMI=
 github.com/mattn/go-runewidth v0.0.14 h1:+xnbZSEeDbOIg5/mE6JF0w6n9duR1l3/WmbinWVwUuU=
 github.com/mattn/go-runewidth v0.0.14/go.mod h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=
-github.com/metal3-io/baremetal-operator/apis v0.10.5 h1:XEilA4PHdUhfZorV1tckuwlKdGXO9HwjDnJOU/1Avao=
-github.com/metal3-io/baremetal-operator/apis v0.10.5/go.mod h1:8So7kek+BAsxNd/xV0ZDH0qDF/ROVXMrwjRhafxpiqI=
+github.com/metal3-io/baremetal-operator/apis v0.10.6 h1:TF4aLjTYKbrQ4esIZtrtOVbegMaaaJz/h7VgXYS8UeA=
+github.com/metal3-io/baremetal-operator/apis v0.10.6/go.mod h1:Vi3dteLJbpTulnA1/0rb+4XGYVRHuZUpeKgt4G/8mIM=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.10.3 h1:HmJYQWy5OYR2iwFUPCK1OP5KuX2/NUPmpuXoMuFIJJ8=
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.10.3/go.mod h1:f1a/eqi7MA+mf1xFshToVfn02jcPDMw3aYQinLTlMVQ=
-github.com/metal3-io/ip-address-manager/api v1.10.4 h1:t/c/vLtJT3k5kCGYlH6D5tCBruSXs2T5qcAzi0E/rT8=
-github.com/metal3-io/ip-address-manager/api v1.10.4/go.mod h1:k1O3LHaTZ6WAXjgciku+Ro3PDWaN/z5P01n7bWlqotA=
+github.com/metal3-io/ip-address-manager/api v1.10.5 h1:o/r1IXBGDuX1WUl/aAHmjIDMplno/lptbouK8iydtJk=
+github.com/metal3-io/ip-address-manager/api v1.10.5/go.mod h1:FanIRp2RS9pcz8d/rZBHX07CZpwMWhuScT1IHgXHBlw=
 github.com/metal3-io/ironic-standalone-operator/api v0.0.0-20250402103806-d91a8f698be5 h1:NeCn+cnTNE2moBj+xK9J5zi9OGPVDakh4Dl8VinrYkw=
 github.com/metal3-io/ironic-standalone-operator/api v0.0.0-20250402103806-d91a8f698be5/go.mod h1:OeNr5HCWyFYZPlgsLqsi5/Yc/lnX8frETljrpvMJi6c=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
@@ -425,8 +425,8 @@ k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 h1:hcha5B1kVACrLujCKLbr8X
 k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7/go.mod h1:GewRfANuJ70iYzvn+i4lezLDAFzvjxZYK1gn1lWcfas=
 k8s.io/kubectl v0.30.14 h1:aP/pg1tG67vHIWVdngUREzJGfq96uQs4cilCBuGhhxo=
 k8s.io/kubectl v0.30.14/go.mod h1:QOq/rQBXvCzppBIuc1ikKPDuz2wY+PyZTvASfHFmHTg=
-k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 h1:M3sRQVHv7vB20Xc2ybTt7ODCeFj6JSWYFzOFnYeS6Ro=
-k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
+k8s.io/utils v0.0.0-20241210054802-24370beab758 h1:sdbE21q2nlQtFh65saZY+rRM6x6aJJI8IUa1AmH/qa0=
+k8s.io/utils v0.0.0-20241210054802-24370beab758/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.0 h1:CPT0ExVicCzcpeN4baWEV2ko2Z/AsiZgEdwgcfwLgMo=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.0/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
 sigs.k8s.io/cluster-api v1.10.9 h1:6vjjs4a8kF5oP+t6JqHGDIjyP36ZLgqAU+8EVGjmPyE=
