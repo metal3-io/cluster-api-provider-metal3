@@ -1500,7 +1500,7 @@ func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 func (m *DataManager) fetchIPClaimsWithLabels(ctx context.Context, pool string) ([]ipamv1.IPClaim, error) {
 	allIPClaims := ipamv1.IPClaimList{}
 	opts := []client.ListOption{
-		&client.ListOptions{Namespace: m.Data.Namespace, Limit: DefaultListLimit},
+		&client.ListOptions{Namespace: m.Data.Namespace},
 		client.MatchingLabels{
 			DataLabelName: m.Data.Name,
 			PoolLabelName: pool,
