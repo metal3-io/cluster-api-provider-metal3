@@ -531,23 +531,30 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		//	Change bmh's online status to on/off  based on AutomatedCleaningMode and Capm3FastTrack values
-		//	AutomatedCleaningMode |	Capm3FastTrack|   BMH
-		//		disabled				false 			turn off
-		//		disabled				true 			turn off
-		//		metadata				false 			turn off
-		//		metadata				true 			turn on
+		//	|Capm3FastTrack |AutomatedCleaningMode | DisablePowerOff | BMH |
+		//		false			disabled				true			turn on
+		//		true			disabled				true			turn on
+		//		false			enabled					true			turn on
+		//		true			enabled					true			turn on
+		//		false			disabled				false			turn off
+		//		true			disabled				false			turn off
+		//		false			metadata				false			turn off
+		//		true			metadata				false			turn on
 
 		onlineStatus := host.Spec.Online
 
-		if host.Spec.AutomatedCleaningMode == "disabled" {
-			host.Spec.Online = false
-		} else if Capm3FastTrack == "true" {
+		switch {
+		case host.Spec.DisablePowerOff:
 			host.Spec.Online = true
-		} else if Capm3FastTrack == "false" {
+		case Capm3FastTrack == "true" &&
+			host.Spec.AutomatedCleaningMode != "disabled":
+			host.Spec.Online = true
+		default:
 			host.Spec.Online = false
 		}
-		m.Log.Info("Set host Online field by AutomatedCleaningMode",
-			LogFieldHost, host.Name,
+		m.Log.Info("Set host Online field based on DisablePowerOff, AutomatedCleaningMode, and Capm3FastTrack",
+			"log file", LogFieldHost,
+			"host", host.Name,
 			"automatedCleaningMode", host.Spec.AutomatedCleaningMode,
 			"hostSpecOnline", host.Spec.Online)
 
