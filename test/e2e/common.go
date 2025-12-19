@@ -204,7 +204,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 	imageNamePrefix := ""
 	switch osType {
 	case osTypeCentos:
-		imageNamePrefix = "CENTOS_9_NODE_IMAGE_K8S"
+		imageNamePrefix = "CENTOS_10_NODE_IMAGE_K8S"
 	case osTypeUbuntu:
 		imageNamePrefix = "UBUNTU_24.04_NODE_IMAGE_K8S"
 	case osTypeLeap:
