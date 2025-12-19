@@ -2928,6 +2928,240 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectError: true,
 		}),
+		// Test for nil MAC address - should succeed without MAC in output
+		// This allows using existing kernel interface names directly without MAC-based matching
+		Entry("Ethernet, nil MAC address - use kernel name directly", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Ethernets: []infrav1.NetworkDataLinkEthernet{
+					{
+						Type:       "phy",
+						Id:         "eth0", // use existing kernel interface name
+						MTU:        1500,
+						MACAddress: nil, // no MAC - cloud-init will use name directly
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type": "phy",
+					"id":   "eth0",
+					"mtu":  1500,
+					// no ethernet_mac_address field, no name field
+				},
+			},
+		}),
+		Entry("Bond, nil MAC address - use kernel name directly", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bonds: []infrav1.NetworkDataLinkBond{
+					{
+						BondMode:   "802.3ad",
+						Id:         "bond0", // use existing kernel interface name
+						MTU:        1500,
+						MACAddress: nil, // no MAC - cloud-init will use name directly
+						BondLinks:  []string{"eth0"},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":                  "bond",
+					"id":                    "bond0",
+					"mtu":                   1500,
+					"bond_mode":             "802.3ad",
+					"bond_xmit_hash_policy": "",
+					"bond_links":            []string{"eth0"},
+					// no ethernet_mac_address field, no name field
+				},
+			},
+		}),
+		Entry("Vlan, nil MAC address - use kernel name directly", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Vlans: []infrav1.NetworkDataLinkVlan{
+					{
+						VlanID:     100,
+						Id:         "vlan100", // use existing kernel interface name
+						MTU:        1500,
+						MACAddress: nil, // no MAC
+						VlanLink:   "eth0",
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":      "vlan",
+					"id":        "vlan100",
+					"mtu":       1500,
+					"vlan_id":   100,
+					"vlan_link": "eth0",
+					// no vlan_mac_address field, no name field
+				},
+			},
+		}),
+		// Tests for interface renaming - verifies 'name' field is set when Name is explicitly specified
+		// This enables cloud-init to rename interfaces based on MAC address matching
+		Entry("Ethernet interface rename - name field explicitly set", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Ethernets: []infrav1.NetworkDataLinkEthernet{
+					{
+						Type: "phy",
+						Id:   "eth0",
+						Name: "enp1s0", // desired interface name for cloud-init rename
+						MTU:  1500,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("AA:BB:CC:DD:EE:FF"),
+						},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":                 "phy",
+					"id":                   "eth0",
+					"name":                 "enp1s0", // name field set from explicit Name
+					"mtu":                  1500,
+					"ethernet_mac_address": "AA:BB:CC:DD:EE:FF",
+				},
+			},
+		}),
+		Entry("Bond interface rename - name field explicitly set", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bonds: []infrav1.NetworkDataLinkBond{
+					{
+						BondMode:           "active-backup",
+						BondXmitHashPolicy: "layer2",
+						Id:                 "bond0",
+						Name:               "bond-mgmt", // custom bond name for cloud-init rename
+						MTU:                9000,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("11:22:33:44:55:66"),
+						},
+						BondLinks: []string{"eth0", "eth1"},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":                  "bond",
+					"id":                    "bond0",
+					"name":                  "bond-mgmt", // name field set from explicit Name
+					"mtu":                   9000,
+					"ethernet_mac_address":  "11:22:33:44:55:66",
+					"bond_mode":             "active-backup",
+					"bond_xmit_hash_policy": "layer2",
+					"bond_links":            []string{"eth0", "eth1"},
+				},
+			},
+		}),
+		Entry("Vlan interface rename - name field explicitly set", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Vlans: []infrav1.NetworkDataLinkVlan{
+					{
+						VlanID:   100,
+						Id:       "vlan100",
+						Name:     "vlan-storage", // custom vlan name for cloud-init rename
+						MTU:      9000,
+						VlanLink: "bond0",
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("AA:BB:CC:DD:EE:00"),
+						},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":             "vlan",
+					"id":               "vlan100",
+					"name":             "vlan-storage", // name field set from explicit Name
+					"mtu":              9000,
+					"vlan_mac_address": "AA:BB:CC:DD:EE:00",
+					"vlan_id":          100,
+					"vlan_link":        "bond0",
+				},
+			},
+		}),
+		Entry("Multiple interfaces with custom names", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Ethernets: []infrav1.NetworkDataLinkEthernet{
+					{
+						Type: "phy",
+						Id:   "eth0",
+						Name: "mgmt0", // custom name different from id
+						MTU:  1500,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("AA:BB:CC:DD:EE:01"),
+						},
+					},
+					{
+						Type: "phy",
+						Id:   "eth1",
+						Name: "storage0", // custom name different from id
+						MTU:  9000,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("AA:BB:CC:DD:EE:02"),
+						},
+					},
+				},
+				Bonds: []infrav1.NetworkDataLinkBond{
+					{
+						BondMode: "802.3ad",
+						Id:       "bond0",
+						Name:     "bond-data", // custom name different from id
+						MTU:      9000,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("AA:BB:CC:DD:EE:03"),
+						},
+						BondLinks: []string{"mgmt0", "storage0"},
+					},
+				},
+				Vlans: []infrav1.NetworkDataLinkVlan{
+					{
+						VlanID:   200,
+						Id:       "vlan200",
+						Name:     "tenant-net", // custom name different from id
+						MTU:      1500,
+						VlanLink: "bond-data",
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("AA:BB:CC:DD:EE:04"),
+						},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":                  "bond",
+					"id":                    "bond0",
+					"name":                  "bond-data",
+					"mtu":                   9000,
+					"ethernet_mac_address":  "AA:BB:CC:DD:EE:03",
+					"bond_mode":             "802.3ad",
+					"bond_xmit_hash_policy": "",
+					"bond_links":            []string{"mgmt0", "storage0"},
+				},
+				map[string]any{
+					"type":                 "phy",
+					"id":                   "eth0",
+					"name":                 "mgmt0",
+					"mtu":                  1500,
+					"ethernet_mac_address": "AA:BB:CC:DD:EE:01",
+				},
+				map[string]any{
+					"type":                 "phy",
+					"id":                   "eth1",
+					"name":                 "storage0",
+					"mtu":                  9000,
+					"ethernet_mac_address": "AA:BB:CC:DD:EE:02",
+				},
+				map[string]any{
+					"type":             "vlan",
+					"id":               "vlan200",
+					"name":             "tenant-net",
+					"mtu":              1500,
+					"vlan_mac_address": "AA:BB:CC:DD:EE:04",
+					"vlan_id":          200,
+					"vlan_link":        "bond-data",
+				},
+			},
+		}),
 	)
 
 	type testCaseRenderNetworkNetworks struct {
