@@ -17,9 +17,9 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: "v1.12.99"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/core-components.yaml"
+    value: https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/core-components.yaml
     type: "url"
     contract: v1beta2
     replacements:
@@ -66,9 +66,9 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: "v1.12.99"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/bootstrap-components.yaml"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -115,7 +115,7 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: "v1.12.99"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
     # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/control-plane-components.yaml"
     type: "url"
@@ -164,8 +164,8 @@ providers:
 - name: metal3
   type: IPAMProvider
   versions:
-  - name: "v1.12.99"
-    value: "https://github.com/metal3-io/ip-address-manager/releases/download/v1.12.0-rc.0/ipam-components.yaml"
+  - name: "{go://github.com/metal3-io/ip-address-manager@v1.12}"
+    value: "https://github.com/metal3-io/ip-address-manager/releases/download/{go://github.com/metal3-io/ip-address-manager@v1.12}/ipam-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:

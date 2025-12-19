@@ -117,10 +117,10 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/maruel/natural v1.1.1 h1:Hja7XhhmvEFhcByqDoHz9QZbkWey+COd9xWfCfn1ioo=
 github.com/maruel/natural v1.1.1/go.mod h1:v+Rfd79xlw1AgVBjbO0BEQmptqb5HvL/k9GRHB7ZKEg=
-github.com/metal3-io/baremetal-operator/apis v0.12.0-rc.0 h1:odK1t3tJrF45X00px3neZxW3WspF9/XKIoexCDirKxk=
-github.com/metal3-io/baremetal-operator/apis v0.12.0-rc.0/go.mod h1:xfEEC1yLdYQshioMOivWoIcovd0XRnBhO1kVjowXSpw=
-github.com/metal3-io/ip-address-manager/api v1.12.0-rc.0 h1:7nOf9bxUrIGLiuVk7v8hC6BspF3IIA3TFFYW/rggKsA=
-github.com/metal3-io/ip-address-manager/api v1.12.0-rc.0/go.mod h1:o0C+n3DRFYEsNP2/cwyNKHYKZ9Dfii5IN9K/TFF7dfE=
+github.com/metal3-io/baremetal-operator/apis v0.12.0 h1:tLe+VocO7nwGLiIK7vcnFE5f3jcM4AhJ5mCLDVrEAtU=
+github.com/metal3-io/baremetal-operator/apis v0.12.0/go.mod h1:7MJs5wimmBRFZ9drrrt51blP7LaBewTZ9rzzc4nyi8E=
+github.com/metal3-io/ip-address-manager/api v1.12.0 h1:VHDUHvnaoYFRJ6601ax/ObUEGCyPRBNkiWioGacalHU=
+github.com/metal3-io/ip-address-manager/api v1.12.0/go.mod h1:fkcCgObstEXiiF3t8z04SQ6F5OIDWoXcLuJ6bW1igJc=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
 github.com/mfridman/tparse v0.18.0/go.mod h1:gEvqZTuCgEhPbYk/2lS3Kcxg1GmTxxU7kTC8DvP0i/A=
 github.com/mitchellh/copystructure v1.2.0 h1:vpKXTN4ewci03Vljg/q9QvCGUDttBOGBIa15WveJJGw=
@@ -321,8 +321,8 @@ k8s.io/utils v0.0.0-20250604170112-4c0f3b243397 h1:hwvWFiBzdWw1FhfY1FooPn3kzWuJ8
 k8s.io/utils v0.0.0-20250604170112-4c0f3b243397/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 h1:jpcvIRr3GLoUoEKRkHKSmGjxb6lWwrBlJsXc+eUYQHM=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
-sigs.k8s.io/cluster-api v1.12.0 h1:iFOz8b0LdrMJS5Df1Eb7wyvTkWqlTUM2LHFEHCeI6vA=
-sigs.k8s.io/cluster-api v1.12.0/go.mod h1:+S6WJdi8UPdqv5q9nka5al3ed/Qa0zAcSBgzTaa9VKA=
+sigs.k8s.io/cluster-api v1.12.1 h1:s3DivSZjXdu2HPyOtV/n6XwSZBaIycZdKNs4y8X+3lY=
+sigs.k8s.io/cluster-api v1.12.1/go.mod h1:+S6WJdi8UPdqv5q9nka5al3ed/Qa0zAcSBgzTaa9VKA=
 sigs.k8s.io/controller-runtime v0.22.4 h1:GEjV7KV3TY8e+tJ2LCTxUTanW4z/FmNB7l327UfMq9A=
 sigs.k8s.io/controller-runtime v0.22.4/go.mod h1:+QX1XUpTXN4mLoblf4tqr5CQcyHPAki2HLXqQMY6vh8=
 sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 h1:gBQPwqORJ8d8/YNZWEjoZs7npUVDpVXUUOFfW6CgAqE=
