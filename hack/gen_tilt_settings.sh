@@ -42,7 +42,7 @@ get_latest_release() {
 }
 
 CAPIRELEASEPATH="${CAPIRELEASEPATH:-https://api.github.com/repos/${CAPI_BASE_URL:-kubernetes-sigs/cluster-api}/releases}"
-export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.3.")}"
+export CAPIRELEASE="${CAPIRELEASE:-$(get_latest_release "${CAPIRELEASEPATH}" "v1.12.")}"
 
 # ClusterClass enable flag
 if [ -n "${CLUSTER_TOPOLOGY:-}" ]; then
