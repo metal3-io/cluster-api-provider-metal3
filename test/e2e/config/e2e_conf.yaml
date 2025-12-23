@@ -17,9 +17,17 @@ providers:
 - name: cluster-api
   type: CoreProvider
   versions:
-  - name: "v1.12.99"
-    # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/core-components.yaml"
+  - name: "v1.13.99"
+    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/core-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.13/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/core-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -66,9 +74,17 @@ providers:
 - name: kubeadm
   type: BootstrapProvider
   versions:
-  - name: "v1.12.99"
-    # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/bootstrap-components.yaml"
+  - name: "v1.13.99"
+    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/bootstrap-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.13/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/bootstrap-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -115,9 +131,17 @@ providers:
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
-  - name: "v1.12.99"
-    # Switch back to nightly builds once 1.12 stable is out. ("https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.12.0-rc.1/control-plane-components.yaml"
+  - name: "v1.13.99"
+    value: "https://storage.googleapis.com/k8s-staging-cluster-api/components/nightly_main_${DATE}/control-plane-components.yaml"
+    type: "url"
+    contract: v1beta2
+    replacements:
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
+    files:
+    - sourcePath: "../data/shared/capi/v1.13/metadata.yaml"
+  - name: "{go://sigs.k8s.io/cluster-api@v1.12}"
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.12}/control-plane-components.yaml"
     type: "url"
     contract: v1beta2
     replacements:
@@ -164,8 +188,8 @@ providers:
 - name: metal3
   type: IPAMProvider
   versions:
-  - name: "v1.12.99"
-    value: "https://github.com/metal3-io/ip-address-manager/releases/download/v1.12.0-rc.0/ipam-components.yaml"
+  - name: "{go://github.com/metal3-io/ip-address-manager@v1.12}"
+    value: "https://github.com/metal3-io/ip-address-manager/releases/download/{go://github.com/metal3-io/ip-address-manager@v1.12}/ipam-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -220,6 +244,17 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/v1.9/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
+  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.12}"
+    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.12}/infrastructure-components.yaml"
+    type: "url"
+    contract: v1beta1
+    files:
+    - sourcePath: "../data/shared/infrastructure-metal3/v1.12/metadata.yaml"
+      targetName: "metadata.yaml"
+    - sourcePath: "../_out/v1.12/cluster-template-ubuntu.yaml"
+      targetName: "cluster-template-ubuntu.yaml"
+    - sourcePath: "../_out/v1.12/cluster-template-upgrade-workload.yaml"
+      targetName: "cluster-template-upgrade-workload.yaml"
   - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.11}"
     value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.11}/infrastructure-components.yaml"
     type: "url"
@@ -231,7 +266,7 @@ providers:
       targetName: "cluster-template-ubuntu.yaml"
     - sourcePath: "../_out/v1.11/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
-  - name: v1.12.99
+  - name: v1.13.99
     value: "${PWD}/config/default"
     files:
     - sourcePath: "../data/shared/infrastructure-metal3/main/metadata.yaml"
@@ -321,6 +356,7 @@ variables:
   IRONIC_RELEASE_29.0: "data/ironic-deployment/overlays/release-29.0"
   IRONIC_RELEASE_31.0: "data/ironic-deployment/overlays/release-31.0"
   IRONIC_RELEASE_32.0: "data/ironic-deployment/overlays/release-32.0"
+  IRONIC_RELEASE_33.0: "data/ironic-deployment/overlays/release-32.0"
   IRONIC_RELEASE_PR_TEST: "data/ironic-deployment/overlays/pr-test"
   IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
   BMO_RELEASE_0.9: "data/bmo-deployment/overlays/release-0.9"

@@ -1,0 +1,7 @@
+resources:
+- ../bases/ippool
+- ../bases/centos-kubeadm-config
+
+- mhc.yaml
+patchesStrategicMerge:
+- md.yaml
