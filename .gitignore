@@ -29,6 +29,7 @@ minikube.kubeconfig
 
 # ssh keys
 .ssh*
+test/extension/config/default/id_rsa
 
 # Example and binary output directory
 out

@@ -61,6 +61,7 @@ Below are the tests that you can use with `GINKGO_FOCUS` and `GINKGO_SKIP`
 - integration
 - basic
 - capi-md-tests
+- in-place-upgrade
 
 You can combine both `GINKGO_FOCUS` and `GINKGO_SKIP` to run multiple tests
 according to your requirements. For example following will run ip-reuse and
@@ -118,7 +119,7 @@ In short it is to make the test bit more efficient.
 
 ## Included tests
 
-The e2e tests currently include six different sets:
+The e2e tests currently include seven different sets:
 
 1. Pivoting based feature tests
 1. Remediation based feature tests
@@ -126,6 +127,7 @@ The e2e tests currently include six different sets:
 1. K8s upgrade tests
 1. K8s conformance tests
 1. CAPI MachineDeployment tests
+1. In place upgrade test
 
 ### Pivoting based feature tests
 
@@ -248,6 +250,35 @@ e2e tests:
 
 - [MachineDeployment rolling upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/kcp_md_rollout.go)
 - [MachineDeployment scale](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_scale.go)
+
+### In place upgrade test
+
+The in-place upgrade test upgrades Kubernetes on existing cluster nodes
+(control plane) without reprovisioning or restarting machines. This approach
+upgrades the Kubernetes components directly on running nodes via SSH, avoiding
+the time and resource overhead of machine replacement.
+
+The test leverages CAPI's Runtime SDK and the experimental
+`EXP_IN_PLACE_UPDATES` feature gate to intercept machine update operations.
+A runtime extension server implements the necessary hooks
+(`DoCanUpdateMachine`, `DoCanUpdateMachineSet`, `DoUpdateMachine`) to perform
+the actual upgrade via SSH.
+See [test/extension/handlers/inplaceupdate/handlers.go](../test/extension/handlers/inplaceupdate/handlers.go)
+for the detailed implementation.
+
+**Test flow:**
+
+1. Test starts 5 bmh, 3 CP nodes and 0 worker node
+1. Get uids of machines before upgrade
+1. Upgrades Kubernetes
+1. Waits for control plane nodes to upgrade
+1. Check uids of upgraded CP machines with before upgrade uids to check
+   in-place upgrade
+1. Scales CP machines from 3→5 to validate new node uses the new image.
+1. Verifies all machines are running with the new version
+
+**Note:** Currently, the SSH-based upgrade implementation is only available
+for CentOS. The test runs exclusively with the CentOS flavor.
 
 ## Guidelines to follow when adding new E2E tests
 
