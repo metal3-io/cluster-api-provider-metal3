@@ -1,0 +1,3 @@
+resources:
+- crs.yaml
+- cluster-with-topology-in-place.yaml
