@@ -70,6 +70,11 @@ const (
 	// Out-of-service Taint test actions.
 	oostAdded   = "added"
 	oostRemoved = "removed"
+	// Log collection paths.
+	beforePivotLogCollectionPath  = "before-pivot"
+	afterPivotLogCollectionPath   = "after-pivot"
+	afterRePivotLogCollectionPath = "after-re-pivot"
+	beforeDeleteLogCollectionPath = "before-delete"
 )
 
 func Byf(format string, a ...any) {
@@ -142,11 +147,16 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 
 	bootstrapClusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
-	By("Fetch logs from target cluster")
-	err := FetchClusterLogs(targetClusterProxy, clusterLogCollectionBasePath)
-	if err != nil {
-		Logf("Error: %v", err)
-	}
+	By("Fetch manifest before deleting clusters")
+	FetchManifestsAndLogs(func() FetchManifestsAndLogsInput {
+		return FetchManifestsAndLogsInput{
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			WorkloadClusterProxy:  targetClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			LogCollectionPath:     beforeDeleteLogCollectionPath,
+		}
+	})
+
 	// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
 	// Dump all Cluster API related resources to artifacts before deleting them.
