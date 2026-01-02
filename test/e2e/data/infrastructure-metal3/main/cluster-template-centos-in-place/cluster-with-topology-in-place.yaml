@@ -1,0 +1,166 @@
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata:
+  labels:
+    cni: ${CLUSTER_NAME}-crs-0
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: [ "${POD_CIDR}" ]
+    services:
+      cidrBlocks: [ "${SERVICE_CIDR}" ]
+  topology:
+    classRef:
+      name: runtimesdk
+    version: ${KUBERNETES_VERSION}
+    controlPlane:
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    workers:
+      machineDeployments:
+      - class: worker
+        name: ${CLUSTER_NAME}-machine
+        replicas: ${WORKER_MACHINE_COUNT}
+    variables:
+    - name: kubeadmControlPlaneMaxSurge
+      value: "0"
+    - name: image
+      value:
+        checksum: ${IMAGE_RAW_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: raw
+        url: ${IMAGE_RAW_URL}
+    - name: controlPlaneEndpoint
+      value:
+        host: ${CLUSTER_APIENDPOINT_HOST}
+        port: ${CLUSTER_APIENDPOINT_PORT}
+    - name: controlPlaneDataTemplate
+      value: ${CLUSTER_NAME}-controlplane-template
+    - name: workerDataTemplate
+      value: ${CLUSTER_NAME}-workers-template
+---
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
+metadata:
+  name: ${CLUSTER_NAME}-baremetalv4-pool
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  gateway: 192.168.111.1
+  namePrefix: ${CLUSTER_NAME}-bmv4
+  pools:
+  - end: 192.168.111.240
+    start: 192.168.111.201
+  prefix: 24
+---
+apiVersion: ipam.metal3.io/v1alpha1
+kind: IPPool
+metadata:
+  name: ${CLUSTER_NAME}-provisioning-pool
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  namePrefix: ${CLUSTER_NAME}-prov
+  pools:
+  - end: 172.22.0.240
+    start: 172.22.0.201
+  prefix: 24
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3DataTemplate
+metadata:
+  name: ${CLUSTER_NAME}-controlplane-template
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  metaData:
+    ipAddressesFromIPPool:
+    - key: provisioningIP
+      name: ${CLUSTER_NAME}-provisioning-pool
+      apiGroup: ""
+      kind: ""
+    objectNames:
+    - key: name
+      object: machine
+    - key: local-hostname
+      object: machine
+    - key: local_hostname
+      object: machine
+    prefixesFromIPPool:
+    - key: provisioningCIDR
+      name: ${CLUSTER_NAME}-provisioning-pool
+      apiGroup: ""
+      kind: ""
+  networkData:
+    links:
+      ethernets:
+      - id: enp1s0
+        macAddress:
+          fromHostInterface: enp1s0
+        type: phy
+      - id: enp2s0
+        macAddress:
+          fromHostInterface: enp2s0
+        type: phy
+    networks:
+      ipv4:
+      - id: baremetalv4
+        ipAddressFromIPPool: ${CLUSTER_NAME}-baremetalv4-pool
+        link: enp2s0
+        routes:
+        - gateway:
+            fromIPPool: ${CLUSTER_NAME}-baremetalv4-pool
+          network: 0.0.0.0
+          prefix: 0
+    services:
+      dns:
+      - 8.8.8.8
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3DataTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers-template
+  namespace: ${NAMESPACE}
+spec:
+  clusterName: ${CLUSTER_NAME}
+  metaData:
+    ipAddressesFromIPPool:
+    - key: provisioningIP
+      name: ${CLUSTER_NAME}-provisioning-pool
+      apiGroup: ""
+      kind: ""
+    objectNames:
+    - key: name
+      object: machine
+    - key: local_hostname
+      object: machine
+    prefixesFromIPPool:
+    - key: provisioningCIDR
+      name: ${CLUSTER_NAME}-provisioning-pool
+      apiGroup: ""
+      kind: ""
+  networkData:
+    links:
+      ethernets:
+      - id: enp1s0
+        macAddress:
+          fromHostInterface: enp1s0
+        type: phy
+      - id: enp2s0
+        macAddress:
+          fromHostInterface: enp2s0
+        type: phy
+    networks:
+      ipv4:
+      - id: baremetalv4
+        ipAddressFromIPPool: ${CLUSTER_NAME}-baremetalv4-pool
+        link: enp2s0
+        routes:
+        - gateway:
+            fromIPPool: ${CLUSTER_NAME}-baremetalv4-pool
+          network: 0.0.0.0
+          prefix: 0
+    services:
+      dns:
+      - 8.8.8.8

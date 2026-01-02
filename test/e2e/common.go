@@ -1101,6 +1101,7 @@ type CreateTargetClusterInput struct {
 	ClusterctlLogFolder   string
 	ClusterctlConfigPath  string
 	OSType                string
+	Flavor                string
 	Namespace             string
 }
 
@@ -1120,7 +1121,7 @@ func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClu
 			ClusterctlConfigPath:     input.ClusterctlConfigPath,
 			KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-			Flavor:                   input.OSType,
+			Flavor:                   input.OSType + input.Flavor,
 			Namespace:                input.Namespace,
 			ClusterName:              input.ClusterName,
 			KubernetesVersion:        input.K8sVersion,

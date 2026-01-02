@@ -1,0 +1,30 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+      - name: manager
+        volumeMounts:
+        - name: ssh-key
+          mountPath: /root/.ssh
+          readOnly: true
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+      volumes:
+      - name: ssh-key
+        secret:
+          secretName: ssh-key
+          defaultMode: 0440  # 0440 = read-only for owner and group
+          items:
+          - key: id_rsa
+            path: id_rsa
+            mode: 0440

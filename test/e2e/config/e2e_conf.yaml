@@ -207,6 +207,10 @@ providers:
       targetName: "cluster-template-ubuntu-md-taints.yaml"
     - sourcePath: "../_out/main/cluster-template-centos-md-taints.yaml"
       targetName: "cluster-template-centos-md-taints.yaml"
+    - sourcePath: "../_out/main/cluster-template-centos-in-place.yaml"
+      targetName: "cluster-template-centos-in-place.yaml"
+    - sourcePath: "../_out/main/clusterclass-runtimesdk.yaml"
+      targetName: "clusterclass-runtimesdk.yaml"
 
 variables:
   CNI: "/tmp/cni.yaml"
@@ -238,6 +242,7 @@ variables:
   DOCKER_HUB_PROXY: "${DOCKER_HUB_PROXY:-docker.io}"
   IRONIC_IMAGE_TAG: "${IRONIC_IMAGE_TAG:-main}"
   UPGRADED_BMO_IMAGE_TAG: "${UPGRADED_BMO_IMAGE_TAG:-main}"
+  IN_PLACE_UPGRADE_EXTENSION_CONFIG_PATH: "../extension/handlers/inplaceupdate/extensionconfig.yaml"
 
   PROVIDER_ID_FORMAT: "metal3://{{ ds.meta_data.providerid }}"
   CNI_PROVIDER: "${CNI_PROVIDER:-calico}"
