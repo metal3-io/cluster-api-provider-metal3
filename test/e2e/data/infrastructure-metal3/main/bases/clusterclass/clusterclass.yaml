@@ -15,6 +15,17 @@ spec:
             type: string
           port:
             type: integer
+  - name: kubeadmControlPlaneMaxSurge
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "0"
+        description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines."
+        x-kubernetes-validations:
+        - rule: "self == \"\" || self != \"\""
+          messageExpression: "'just a test expression, got %s'.format([self])"
   - name: image
     required: false
     schema:
@@ -132,6 +143,22 @@ spec:
         path: /spec/template/spec/dataTemplate/name
         valueFrom:
           variable: controlPlaneDataTemplate
+  - name: kubeadmControlPlaneMaxSurge
+    description: "Sets the maxSurge value used for rolloutStrategy in the KubeadmControlPlane."
+    enabledIf: '{{ ne .kubeadmControlPlaneMaxSurge "" }}'
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta2
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/rollout/strategy
+        valueFrom:
+          template: |
+            rollingUpdate:
+              maxSurge: {{ .kubeadmControlPlaneMaxSurge }}"
   controlPlane:
     templateRef:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta2

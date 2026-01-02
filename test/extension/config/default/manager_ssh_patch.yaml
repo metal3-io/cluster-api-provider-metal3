@@ -1,0 +1,29 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: controller-manager
+  namespace: system
+spec:
+  template:
+    spec:
+      containers:
+      - name: manager
+        volumeMounts:
+        - name: ssh-key
+          mountPath: /root/.ssh
+          readOnly: true
+        securityContext:
+          # Need to run as root to access SSH keys mounted from secrets
+          # SSH keys are mounted with root ownership by Kubernetes
+          runAsUser: 0
+          runAsGroup: 0
+      volumes:
+      - name: ssh-key
+        secret:
+          secretName: ssh-key
+          defaultMode: 0400  # 0400 = read-only for owner
+          items:
+          - key: id_rsa
+            path: id_rsa
+            mode: 0400

@@ -132,6 +132,12 @@ case "${GINKGO_FOCUS:-}" in
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"5"}
   ;;
 
+  in-place-upgrade)
+    export NUM_NODES="5"
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
+  ;;
+
   *)
     # unknown GINKGO_FOCUS, let's print out the crucial env and continue
     echo "WARNING: unrecognized GINKGO_FOCUS='${GINKGO_FOCUS:-}'"
