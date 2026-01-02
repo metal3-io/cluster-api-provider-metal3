@@ -477,6 +477,7 @@ func CreateNewM3MachineTemplate(ctx context.Context, namespace string, newM3Mach
 	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = &imageFormat
 	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = &checksumType
 	newM3MachineTemplate.ObjectMeta.Name = newM3MachineTemplateName
+	newM3MachineTemplate.Spec.Template.Spec.DataTemplate.Namespace = newM3MachineTemplate.ObjectMeta.Namespace
 
 	Expect(clusterClient.Create(ctx, newM3MachineTemplate)).To(Succeed(), "Failed to create new Metal3MachineTemplate")
 }
