@@ -3,11 +3,11 @@
 [![CLOMonitor](https://img.shields.io/endpoint?url=https://clomonitor.io/api/projects/cncf/metal3-io/badge)](https://clomonitor.io/projects/cncf/metal3-io)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9970/badge)](https://www.bestpractices.dev/projects/9970)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/metal3-io/cluster-api-provider-metal3/badge)](https://securityscorecards.dev/viewer/?uri=github.com/metal3-io/cluster-api-provider-metal3)
-[![Ubuntu E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-main&subject=Ubuntu%20E2E%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-main/)
-[![CentOS E2E Integration main build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-main&subject=Centos%20E2E%20integration%20main)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-main/)
-[![CentOS E2E feature main pivot build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-main-pivoting/&subject=CentOS%20E2E%20feature%20main%20pivot)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-main-pivoting/)
-[![CentOS E2E feature main remediation build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-main-remediation/&subject=CentOS%20E2E%20feature%20main%20remediation)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-main-remediation/)
-[![CentOS E2E feature main other features build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-main-features/&subject=CentOS%20E2E%20feature%20main%20other%20features)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-main-features/)
+[![Ubuntu E2E Integration release-1.12 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-ubuntu-e2e-integration-test-release-1-12&subject=Ubuntu%20E2E%20integration%201.12)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-ubuntu-e2e-integration-test-release-1-12/)
+[![CentOS E2E Integration release-1.12 build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-integration-test-release-1-12&subject=Centos%20E2E%20integration%201.12)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-integration-test-release-1-12/)
+[![CentOS E2E feature release-1.12 pivot build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-12-pivoting/&subject=CentOS%20E2E%20feature%201.12%20pivot)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-12-pivoting/)
+[![CentOS E2E feature release-1.12 remediation build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-12-remediation/&subject=CentOS%20E2E%20feature%201.12%20remediation)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-12-remediation/)
+[![CentOS E2E feature release-1.12 other features build status](https://jenkins.nordix.org/buildStatus/icon?job=metal3-periodic-centos-e2e-feature-test-release-1-12-features/&subject=CentOS%20E2E%20feature%201.12%20other%20features)](https://jenkins.nordix.org/view/Metal3%20Periodic/job/metal3-periodic-centos-e2e-feature-test-release-1-12-features/)
 
 Kubernetes-native declarative infrastructure for Metal3.
 
@@ -35,6 +35,7 @@ Metal3.
 | v1beta1       | v1beta1             | v1.9.X        |  v1.9.X        |
 | v1beta1       | v1beta1             | v1.10.X       |  v1.10.X       |
 | v1beta1       | v1beta1             | v1.11.X       |  v1.11.X       |
+| v1beta1       | v1beta2             | v1.12.X       |  v1.12.X       |
 
 ## Deploying the metal3 provider
 
@@ -53,9 +54,9 @@ need to be manually installed. Example flow of installing Metal3 provider:
    level of the logging verbose with a positive integer number, ie. -v5.
 
    ```shell
-   clusterctl init --core cluster-api:v1.11.0 \
-       --bootstrap kubeadm:v1.11.0 \
-       --control-plane kubeadm:v1.11.0 -v5
+   clusterctl init --core cluster-api:v1.12.0 \
+       --bootstrap kubeadm:v1.12.0 \
+       --control-plane kubeadm:v1.12.0 -v5
    ```
 
 1. Install Metal3 provider. This will install the latest version of Cluster API
@@ -69,14 +70,14 @@ need to be manually installed. Example flow of installing Metal3 provider:
    provider name as follows:
 
    ```shell
-   clusterctl init --infrastructure metal3:v1.11.0
+   clusterctl init --infrastructure metal3:v1.12.0
    ```
 
 1. Deploy Baremetal Operator manifests and CRDs. You need to install
    cert-manager for Baremetal Operator, but since step 1 already does it, we can
    skip it and only install the operator. Depending on whether you want TLS, or
    basic-auth enabled, kustomize paths may differ. Check operator
-   [dev-setup doc](https://github.com/metal3-io/baremetal-operator/blob/main/docs/dev-setup.md)
+   [dev-setup doc](https://github.com/metal3-io/baremetal-operator/blob/release-0.12/docs/dev-setup.md)
    for more info.
 
    ```shell
@@ -88,10 +89,10 @@ need to be manually installed. Example flow of installing Metal3 provider:
 
 1. Install Ironic. There are a couple of ways to do it.
    - Run within a Kubernetes cluster as a pod, refer to the
-     [deploy.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/deploy.sh)
+     [deploy.sh](https://github.com/metal3-io/baremetal-operator/blob/release-0.12/tools/deploy.sh)
      script.
    - Outside of a Kubernetes cluster as a container. Please refer to the
-     [run_local_ironic.sh](https://github.com/metal3-io/baremetal-operator/blob/main/tools/run_local_ironic.sh)
+     [run_local_ironic.sh](https://github.com/metal3-io/baremetal-operator/blob/release-0.12/tools/run_local_ironic.sh)
      script.
 
 Please refer to the [getting-started](docs/getting-started.md) for more info.
@@ -142,125 +143,45 @@ To trigger e2e test on a PR, use the following phrases:
 
 ### Integration tests
 
-- **/test metal3-ubuntu-e2e-integration-test-main** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test-centos-e2e-integration-test-main** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch main on CentOS
+Release-1.12 branch:
 
-Release-1.11 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-11** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.11 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-11** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.11 on CentOS
-
-Release-1.10 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-10** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.10 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-10** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.10 on CentOS
-
-Release-1.9 branch:
-
-- **/test metal3-ubuntu-e2e-integration-test-release-1-9** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.9 on Ubuntu
-- **/test metal3-centos-e2e-integration-test-release-1-9** runs integration e2e
-  tests with CAPM3 API version v1beta1 and branch release-1.9 on CentOS
+- **/test metal3-ubuntu-e2e-integration-test-release-1-12** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.12 on Ubuntu
+- **/test metal3-centos-e2e-integration-test-release-1-12** runs integration e2e
+  tests with CAPM3 API version v1beta1 and branch release-1.12 on CentOS
 
 ## Basic tests
 
 Unlike integration tests, basic tests focus on the target cluster creation
 without involving pivoting from the bootstrap cluster. To run basic tests use:
 
-- **/test metal3-ubuntu-e2e-basic-test-main** runs basic e2e tests with main
- branch on Ubuntu
-- **/test metal3-centos-e2e-basic-test-release-1-11** runs basic e2e tests on
- release-1.11 branch with centos
-- **/test metal3-centos-e2e-basic-test-release-1-10** runs basic e2e tests on
- release-1.10 branch with centos
-- **/test metal3-centos-e2e-basic-test-release-1-9** runs basic e2e tests on
- release-1.9 branch with centos
+- **/test metal3-centos-e2e-basic-test-release-1-12** runs basic e2e tests on
+ release-1.12 branch with centos
+- **/test metal3-ubuntu-e2e-basic-test-release-1-12** runs basic e2e tests on
+ release-1.12 branch with Ubuntu
 
 ### Feature tests
 
-On main branch:
+release-1.12 branch:
 
-- **/test metal3-ubuntu-e2e-feature-test-main-pivoting** runs e2e pivot based
-feature tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-main-remediation** runs e2e remediation
- based feature tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-main-features** runs e2e non pivot
- based feature tests with CAPM3 API version v1beta1 and branch main on Ubuntu
-- **/test metal3-centos-e2e-feature-test-main-pivoting** runs e2e pivot based
- feature tests with CAPM3 API version v1beta1 and branch main on CentOS
-- **/test metal3-centos-e2e-feature-test-main-remediation** runs e2e remediation
- based feature tests with CAPM3 API version v1beta1 and branch main on CentOS
-- **/test metal3-centos-e2e-feature-test-main-features** runs e2e non pivot based
- feature tests with CAPM3 API version v1beta1 and branch main on CentOS
-
-Release-1.11 branch:
-
-- **/test metal3-ubuntu-e2e-feature-test-release-1-11-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.11
+- **/test metal3-ubuntu-e2e-feature-test-release-1-12-pivoting** runs e2e pivot
+ based feature tests with CAPM3 API version v1beta1 and branch release-1.12
  on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-11-remediation** runs e2e
+- **/test metal3-ubuntu-e2e-feature-test-release-1-12-remediation** runs e2e
  remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.11 on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-11-features** runs e2e non
+ release-1.12 on Ubuntu
+- **/test metal3-ubuntu-e2e-feature-test-release-1-12-features** runs e2e non
  pivot based feature tests with CAPM3 API version v1beta1 and branch
- release-1.11 on Ubuntu
-- **/test metal3-centos-e2e-feature-test-release-1-11-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.11 on
+ release-1.12 on Ubuntu
+- **/test metal3-centos-e2e-feature-test-release-1-12-pivoting** runs e2e pivot
+ based feature tests with CAPM3 API version v1beta1 and branch release-1.12 on
  CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-11-remediation** runs e2e
+- **/test metal3-centos-e2e-feature-test-release-1-12-remediation** runs e2e
  remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.11 on CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-11-features** runs e2e non
+ release-1.12 on CentOS
+- **/test metal3-centos-e2e-feature-test-release-1-12-features** runs e2e non
  pivot based feature tests with CAPM3 API version v1beta1 and branch
- release-1.11 on CentOS
-
-Release-1.10 branch:
-
-- **/test metal3-ubuntu-e2e-feature-test-release-1-10-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.10
- on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-10-remediation** runs e2e
- remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.10 on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-10-features** runs e2e non
- pivot based feature tests with CAPM3 API version v1beta1 and branch release-1.10
-  on Ubuntu
-- **/test metal3-centos-e2e-feature-test-release-1-10-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.10 on
- CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-10-remediation** runs e2e
- remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.10 on CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-10-features** runs e2e non
- pivot based feature tests with CAPM3 API version v1beta1 and branch
- release-1.10 on CentOS
-
-Release-1.9 branch:
-
-- **/test metal3-ubuntu-e2e-feature-test-release-1-9-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.9
- on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-9-remediation** runs e2e
- remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.9 on Ubuntu
-- **/test metal3-ubuntu-e2e-feature-test-release-1-9-features** runs e2e non
- pivot based feature tests with CAPM3 API version v1beta1 and branch release-1.9
-  on Ubuntu
-- **/test metal3-centos-e2e-feature-test-release-1-9-pivoting** runs e2e pivot
- based feature tests with CAPM3 API version v1beta1 and branch release-1.9 on
- CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-9-remediation** runs e2e
- remediation based feature tests with CAPM3 API version v1beta1 and branch
- release-1.9 on CentOS
-- **/test metal3-centos-e2e-feature-test-release-1-9-features** runs e2e non
- pivot based feature tests with CAPM3 API version v1beta1 and branch
- release-1.9 on CentOS
+ release-1.12 on CentOS
 
 ### Upgrade tests
 
@@ -269,17 +190,8 @@ Release-1.9 branch:
 CAPM3 tests upgrade from all supported release to the current one.
 We run upgrade test on main branch from different releases:
 
-- **/test metal3-e2e-clusterctl-upgrade-test-main** runs e2e clusterctl
-  upgrade tests on main with Ubuntu
-
-- **/test metal3-e2e-clusterctl-upgrade-test-release-1-11** runs e2e clusterctl
-  upgrade tests on release-1.11 with Ubuntu
-
-- **/test metal3-e2e-clusterctl-upgrade-test-release-1-10** runs e2e clusterctl
-  upgrade tests on release-1.10 with Ubuntu
-
-- **/test metal3-e2e-clusterctl-upgrade-test-release-1-9** runs e2e clusterctl
-  upgrade tests on release-1.9 with Ubuntu
+- **/test metal3-e2e-clusterctl-upgrade-test-release-1-12** runs e2e clusterctl
+  upgrade tests on release-1.12 with Ubuntu
 
 #### K8s upgrade tests
 
@@ -287,9 +199,7 @@ CAPM3 tests upgrading kubernetes between last 3 releases.
 The trigger takes the format:
 `/test metal3-e2e-<from-minor-k8s-v>-<to-minor-k8s-v>-upgrade-test-<branch>`
 
-- **/test metal3-e2e-1-33-1-34-upgrade-test-main**
-- **/test metal3-e2e-1-32-1-33-upgrade-test-release-1-10**
-- **/test metal3-e2e-1-31-1-32-upgrade-test-release-1-9**
+- **/test metal3-e2e-1-33-1-34-upgrade-test-release-1-12**
 
 Note:
 
