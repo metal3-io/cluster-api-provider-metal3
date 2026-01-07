@@ -18,13 +18,12 @@ if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
     export IPAMRELEASE="v${CAPM3_RELEASE_PREFIX}.99"
     export CAPI_RELEASE_PREFIX="v${CAPM3_RELEASE_PREFIX}."
 else
-    export CAPM3RELEASE="v1.12.99"
-    export IPAMRELEASE="v1.12.99"
+    export CAPM3RELEASE="v1.13.99"
+    export IPAMRELEASE="v1.13.99"
     # Commenting this out as CAPI release prefix and exporting CAPIRELEASE
     # during pre-release phase of CAPI.
     # We will change when minor is released.
-    # export CAPI_RELEASE_PREFIX="v1.12."
-    export CAPIRELEASE="v1.12.0-rc.1"
+    export CAPI_RELEASE_PREFIX="v1.12."
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
@@ -64,7 +63,7 @@ export DATE
 # If CAPI_NIGHTLY_BUILD is true, it means that the tests are run against the
 # nightly build of CAPI components which are built from CAPI's main branch.
 if [[ "${CAPI_NIGHTLY_BUILD:-false}" == "true" ]]; then
-  export CAPIRELEASE="v1.12.99"
+  export CAPIRELEASE="v1.13.99"
   echo 'export CAPI_NIGHTLY_BUILD="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
 fi
 
@@ -170,17 +169,16 @@ kustomize_envsubst() {
 
 # Generate credentials
 BMO_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.9"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.10"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.11"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.12"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-latest"
 )
 IRONIC_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-27.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-29.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-31.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-32.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-33.0"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-latest"
 )
