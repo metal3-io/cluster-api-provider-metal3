@@ -114,7 +114,7 @@ func init() {
 	// metal3Ipam and capipam schemes
 	_ = ipamv1.AddToScheme(myscheme)
 	_ = capipamv1beta1.AddToScheme(myscheme)
-	_ = capipamv1.AddToScheme(scheme.Scheme)
+	_ = capipamv1.AddToScheme(myscheme)
 
 	// infra provider schemes
 	_ = infrav1.AddToScheme(myscheme)
