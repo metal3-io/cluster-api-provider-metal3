@@ -416,20 +416,14 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint codebase
-	$(GOLANGCI_LINT) run -v --fast-only $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
-	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --fast-only $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
-	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --fast-only $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
-	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v --fast-only $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
-
-lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --timeout=30m
-	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --timeout=30m
-	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --timeout=30m
-	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v --timeout=30m
 
 # Run manifest validation
 .PHONY: manifest-lint
