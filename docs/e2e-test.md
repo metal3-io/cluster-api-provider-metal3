@@ -159,22 +159,23 @@ For example:
 
 Main branch k8s-upgrade tests:
 
+- `v1.34` => `v1.35`
+
+Release 1.11 branch k8s-upgrade test:
+
+- `v1.34` => `v1.35`
+
+Release 1.11 branch k8s-upgrade test:
+
 - `v1.33` => `v1.34`
 
 Release 1.10 branch k8s-upgrade test:
 
 - `v1.32` => `v1.33`
 
-Release 1.9 branch k8s-upgrade test:
 
-- `v1.31` => `v1.32`
-
-Release 1.8 branch k8s-upgrade test:
-
-- `v1.29` => `v1.30`
-
-When Kubernetes 1.35 is released, k8s-upgrade `v1.33` => `v1.34` will be
-supported in v1.11.x (but not in v1.10.x)
+When Kubernetes 1.36 is released, k8s-upgrade `v1.35` => `v1.36` will be
+supported in only latest release branch.
 
 ### K8s N+3 upgrade tests
 
@@ -191,11 +192,11 @@ export GINKGO_FOCUS=k8s-upgrade-n3
 
 Main branch k8s-upgrade-n3 tests:
 
-- `v1.31` => `v1.32`
-
 - `v1.32` => `v1.33`
 
 - `v1.33` => `v1.34`
+
+- `v1.34` => `v1.35`
 
 When Kubernetes 1.35 is released, k8s-upgrade-n3 test will be updated accordingly.
 
@@ -207,7 +208,7 @@ planes:
 <!-- markdownlint-disable MD013 -->
 | KUBERNETES_N0_VERSION | KUBERNETES_N1_VERSION | KUBERNETES_N2_VERSION | KUBERNETES_N3_VERSION |
 | ********************* | ********************* | ********************* | ********************* |
-|       v1.31.13        |        v1.32.9        |       v1.33.5         |        v1.34.1        |
+|       v1.32.9         |        v1.33.5        |       v1.34.1         |        v1.35.0        |
 | ********************* | ********************* | ********************* | ********************* |
 <!-- markdownlint-enable MD013 -->
 
@@ -262,7 +263,7 @@ clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | -------------------- | -------------------- |
-| integration         | v1.34.0           | v1.34.0              | x                    |
-| remediation         | v1.34.0           | v1.34.0              | x                    |
-| pivot based feature | v1.34.0           | v1.34.0              | v1.34.0              |
-| upgrade             | v1.34.0           | v1.34.0              | v1.34.0              |
+| integration         | v1.35.0           | v1.35.0              | x                    |
+| remediation         | v1.35.0           | v1.35.0              | x                    |
+| pivot based feature | v1.35.0           | v1.35.0              | v1.35.0              |
+| upgrade             | v1.35.0           | v1.35.0              | v1.35.0              |
