@@ -143,9 +143,9 @@ in the bootstrap cluster either before pivoting or after re-pivoting.
 
 | tests          | CAPM3 from             | CAPM3 to  | CAPI from             | CAPI to         |
 | ---------------| ---------------------- | --------- | --------------------- |---------------- |
+| v1.12=>current | v1.12 latest patch     | main      | v1.12 latest patch    | latest release  |
+| v1.11=>current | v1.11 latest patch     | main      | v1.11 latest patch    | latest release  |
 | v1.10=>current | v1.10 latest patch     | main      | v1.10 latest patch    | latest release  |
-| v1.9=>current  | v1.9 latest patch      | main      | v1.9 latest patch     | latest release  |
-| v1.8=>current  | v1.8 latest patch      | main      | v1.8 latest patch     | latest release  |
 
 ### K8s upgrade tests
 
@@ -159,22 +159,22 @@ For example:
 
 Main branch k8s-upgrade tests:
 
+- `v1.34` => `v1.35`
+
+Release 1.12 branch k8s-upgrade test:
+
+- `v1.34` => `v1.35`
+
+Release 1.11 branch k8s-upgrade test:
+
 - `v1.33` => `v1.34`
 
 Release 1.10 branch k8s-upgrade test:
 
 - `v1.32` => `v1.33`
 
-Release 1.9 branch k8s-upgrade test:
-
-- `v1.31` => `v1.32`
-
-Release 1.8 branch k8s-upgrade test:
-
-- `v1.29` => `v1.30`
-
-When Kubernetes 1.35 is released, k8s-upgrade `v1.33` => `v1.34` will be
-supported in v1.11.x (but not in v1.10.x)
+When Kubernetes 1.36 is released, k8s-upgrade `v1.35` => `v1.36` will be
+supported in latest release branch and main branch.
 
 ### K8s N+3 upgrade tests
 
@@ -262,7 +262,7 @@ clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | -------------------- | -------------------- |
-| integration         | v1.34.0           | v1.34.0              | x                    |
-| remediation         | v1.34.0           | v1.34.0              | x                    |
-| pivot based feature | v1.34.0           | v1.34.0              | v1.34.0              |
-| upgrade             | v1.34.0           | v1.34.0              | v1.34.0              |
+| integration         | v1.35.0           | v1.35.0              | x                    |
+| remediation         | v1.35.0           | v1.35.0              | x                    |
+| pivot based feature | v1.35.0           | v1.35.0              | v1.35.0              |
+| upgrade             | v1.35.0           | v1.35.0              | v1.35.0              |
