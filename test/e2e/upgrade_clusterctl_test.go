@@ -38,10 +38,10 @@ var (
 	managementClusterNamespace string
 )
 
-// Ironic 32.0 -> latest image tag.
-var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", Label("clusterctl-upgrade"), func() {
+// Ironic 33.0 -> latest image tag.
+var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
-		k8sVersion = "v1.34.1"
+		k8sVersion = "v1.35.0"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
@@ -49,9 +49,9 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
 	})
 
-	minorVersion := "1.11"
-	bmoFromRelease := "0.11"
-	ironicFromRelease := "32.0"
+	minorVersion := "1.12"
+	bmoFromRelease := "0.12"
+	ironicFromRelease := "33.0"
 	bmoToRelease := "latest"
 	ironicToRelease := "latest"
 	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
@@ -96,8 +96,8 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 	})
 })
 
-// Ironic 31.0 -> latest image tag.
-var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", Label("clusterctl-upgrade"), func() {
+// Ironic 32.0 -> latest image tag.
+var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
 		k8sVersion = "v1.34.1"
 		validateGlobals(specName)
@@ -107,17 +107,17 @@ var _ = Describe("When testing cluster upgrade from releases (v1.10=>current)", 
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
 	})
 
-	minorVersion110 := "1.10"
-	bmoFromRelease := "0.10"
-	ironicFromRelease := "31.0"
+	minorVersion := "1.11"
+	bmoFromRelease := "0.11"
+	ironicFromRelease := "32.0"
 	bmoToRelease := "latest"
 	ironicToRelease := "latest"
-	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion110)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion110)
-	capm3StableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixCAPM3, minorVersion110)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion110)
-	ipamStableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixIPAM, minorVersion110)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for IPAM minor release : %s", minorVersion110)
+	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	capm3StableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixCAPM3, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPM3 minor release : %s", minorVersion)
+	ipamStableRelease, err := GetStableReleaseOfMinor(ctx, releaseMarkerPrefixIPAM, minorVersion)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for IPAM minor release : %s", minorVersion)
 
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
