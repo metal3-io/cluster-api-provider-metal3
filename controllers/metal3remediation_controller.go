@@ -19,12 +19,13 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -95,7 +96,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, metal3Remediation.ObjectMeta)
 	if err != nil {
 		remediationLog.Error(err, "metal3Remediation's owner Machine could not be retrieved")
-		return ctrl.Result{}, errors.Wrapf(err, "metal3Remediation's owner Machine could not be retrieved")
+		return ctrl.Result{}, fmt.Errorf("metal3Remediation's owner Machine could not be retrieved: %w", err)
 	}
 	if capiMachine == nil {
 		remediationLog.Info("metal3Remediation's owner Machine not set")
@@ -112,7 +113,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	err = r.Get(ctx, key, &metal3Machine)
 	if err != nil {
 		remediationLog.Error(err, "metal3machine not found")
-		return ctrl.Result{}, errors.Wrapf(err, "metal3machine not found")
+		return ctrl.Result{}, fmt.Errorf("metal3machine not found: %w", err)
 	}
 
 	remediationLog = remediationLog.WithValues("metal3machine", metal3Machine.Name)
@@ -121,7 +122,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	remediationMgr, err := r.ManagerFactory.NewRemediationManager(metal3Remediation, &metal3Machine, capiMachine, remediationLog)
 	if err != nil {
 		remediationLog.Error(err, "failed to create helper for managing the metal3remediation")
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the metal3remediation")
+		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the metal3remediation: %w", err)
 	}
 
 	// Handle both deleted and non-deleted remediations
@@ -135,7 +136,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 	host, _, err := remediationMgr.GetUnhealthyHost(ctx)
 	if err != nil {
 		r.Log.Error(err, "unable to find a host for unhealthy machine")
-		return ctrl.Result{}, errors.Wrapf(err, "unable to find a host for unhealthy machine")
+		return ctrl.Result{}, fmt.Errorf("unable to find a host for unhealthy machine: %w", err)
 	}
 
 	// If user has set bmh.Spec.Online to false
@@ -166,7 +167,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 		clusterClient, err := remediationMgr.GetClusterClient(ctx)
 		if err != nil {
 			r.Log.Error(err, "error getting cluster client")
-			return ctrl.Result{}, errors.Wrap(err, "error getting cluster client")
+			return ctrl.Result{}, fmt.Errorf("error getting cluster client: %w", err)
 		}
 
 		// handle old clusters which were not setup with RBAC for accessing nodes
@@ -178,7 +179,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 				isNodeForbidden = true
 			} else if !apierrors.IsNotFound(err) {
 				r.Log.Error(err, "error getting node for remediation")
-				return ctrl.Result{}, errors.Wrap(err, "error getting node for remediation")
+				return ctrl.Result{}, fmt.Errorf("error getting node for remediation: %w", err)
 			}
 		}
 
@@ -193,13 +194,13 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			ok, err := remediationMgr.IsPowerOffRequested(ctx)
 			if err != nil {
 				r.Log.Error(err, "error getting poweroff annotation status")
-				return ctrl.Result{}, errors.Wrap(err, "error getting poweroff annotation status")
+				return ctrl.Result{}, fmt.Errorf("error getting poweroff annotation status: %w", err)
 			} else if ok {
 				r.Log.Info("Powering on the host")
 				err = remediationMgr.RemovePowerOffAnnotation(ctx)
 				if err != nil {
 					r.Log.Error(err, "error removing poweroff annotation")
-					return ctrl.Result{}, errors.Wrap(err, "error removing poweroff annotation")
+					return ctrl.Result{}, fmt.Errorf("error removing poweroff annotation: %w", err)
 				}
 			}
 
@@ -207,7 +208,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			var on bool
 			if on, err = remediationMgr.IsPoweredOn(ctx); err != nil {
 				r.Log.Error(err, "error getting power status")
-				return ctrl.Result{}, errors.Wrap(err, "error getting power status")
+				return ctrl.Result{}, fmt.Errorf("error getting power status: %w", err)
 			} else if !on {
 				// wait a bit before checking again if we are powered on
 				return ctrl.Result{RequeueAfter: defaultTimeout}, nil
@@ -219,7 +220,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 					if r.IsOutOfServiceTaintEnabled {
 						if remediationMgr.HasOutOfServiceTaint(node) {
 							if err = remediationMgr.RemoveOutOfServiceTaint(ctx, clusterClient, node); err != nil {
-								return ctrl.Result{}, errors.Wrapf(err, "error removing out-of-service taint from node %s", node.Name)
+								return ctrl.Result{}, fmt.Errorf("error removing out-of-service taint from node %s: %w", node.Name, err)
 							}
 						}
 					} else {
@@ -272,7 +273,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			err = remediationMgr.SetOwnerRemediatedConditionNew(ctx)
 			if err != nil {
 				r.Log.Error(err, "error setting cluster api conditions")
-				return ctrl.Result{}, errors.Wrapf(err, "error setting cluster api conditions")
+				return ctrl.Result{}, fmt.Errorf("error setting cluster api conditions: %w", err)
 			}
 
 			// Remediation failed, so set unhealthy annotation on BMH
@@ -280,7 +281,7 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			err = remediationMgr.SetUnhealthyAnnotation(ctx)
 			if err != nil {
 				r.Log.Error(err, "error setting unhealthy annotation")
-				return ctrl.Result{}, errors.Wrapf(err, "error setting unhealthy annotation")
+				return ctrl.Result{}, fmt.Errorf("error setting unhealthy annotation: %w", err)
 			}
 
 			remediationMgr.SetRemediationPhase(infrav1.PhaseDeleting)
@@ -317,13 +318,13 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 	// power off if needed
 	if ok, err := remediationMgr.IsPowerOffRequested(ctx); err != nil {
 		r.Log.Error(err, "error getting poweroff annotation status")
-		return ctrl.Result{}, errors.Wrap(err, "error getting poweroff annotation status")
+		return ctrl.Result{}, fmt.Errorf("error getting poweroff annotation status: %w", err)
 	} else if !ok {
 		r.Log.Info("Powering off the host")
 		err = remediationMgr.SetPowerOffAnnotation(ctx)
 		if err != nil {
 			r.Log.Error(err, "error setting poweroff annotation")
-			return ctrl.Result{}, errors.Wrap(err, "error setting poweroff annotation")
+			return ctrl.Result{}, fmt.Errorf("error setting poweroff annotation: %w", err)
 		}
 
 		// done for now, wait a bit before checking if we are powered off already
@@ -333,7 +334,7 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 	// wait until powered off
 	if on, err := remediationMgr.IsPoweredOn(ctx); err != nil {
 		r.Log.Error(err, "error getting power status")
-		return ctrl.Result{}, errors.Wrap(err, "error getting power status")
+		return ctrl.Result{}, fmt.Errorf("error getting power status: %w", err)
 	} else if on {
 		// wait a bit before checking again if we are powered off already
 		return ctrl.Result{RequeueAfter: defaultTimeout}, nil
@@ -371,7 +372,7 @@ func (r *Metal3RemediationReconciler) remediateRebootStrategy(ctx context.Contex
 			err := remediationMgr.DeleteNode(ctx, clusterClient, node)
 			if err != nil {
 				r.Log.Error(err, "error deleting node")
-				return ctrl.Result{}, errors.Wrap(err, "error deleting node")
+				return ctrl.Result{}, fmt.Errorf("error deleting node: %w", err)
 			}
 			// wait until node is gone
 			return ctrl.Result{RequeueAfter: defaultTimeout}, nil

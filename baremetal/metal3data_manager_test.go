@@ -4751,7 +4751,7 @@ var _ = Describe("poolRefs map", func() {
 
 			err := refs.addFromAnnotation(annotation, nil, nil, bmh)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Unknown object type"))
+			Expect(err.Error()).To(ContainSubstring("unknown object type"))
 		})
 
 		It("returns error when object is nil but referenced", func() {

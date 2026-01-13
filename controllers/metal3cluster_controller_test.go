@@ -16,12 +16,12 @@ package controllers
 
 import (
 	"context"
+	"errors"
 
 	"github.com/golang/mock/gomock"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 )
 
 var _ = Describe("Metal3Cluster controller", func() {
@@ -59,11 +59,11 @@ var _ = Describe("Metal3Cluster controller", func() {
 			m.EXPECT().SetFinalizer()
 
 			if tc.CreateError {
-				returnedError = errors.New("Error")
+				returnedError = errors.New("error")
 				m.EXPECT().UpdateClusterStatus().MaxTimes(0)
 			} else {
 				if tc.UpdateError {
-					returnedError = errors.New("Error")
+					returnedError = errors.New("error")
 				} else {
 					returnedError = nil
 				}
@@ -121,7 +121,7 @@ var _ = Describe("Metal3Cluster controller", func() {
 				// we do not remove the finalizers
 				if tc.DeleteError {
 					m.EXPECT().UnsetFinalizer().MaxTimes(0)
-					returnedError = errors.New("Error")
+					returnedError = errors.New("error")
 				} else {
 					m.EXPECT().UnsetFinalizer()
 					returnedError = nil
@@ -130,7 +130,7 @@ var _ = Describe("Metal3Cluster controller", func() {
 			}
 
 			if tc.DescendantsError {
-				returnedError = errors.New("Error")
+				returnedError = errors.New("error")
 			} else {
 				returnedError = nil
 			}

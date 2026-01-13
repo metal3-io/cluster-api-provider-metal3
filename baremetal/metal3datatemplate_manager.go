@@ -18,11 +18,12 @@ package baremetal
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"strconv"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,7 +88,7 @@ func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1.Cluster) err
 	// Verify that the owner reference is there, if not add it and update object,
 	// if error requeue.
 	if cluster == nil {
-		return errors.New("Missing cluster")
+		return errors.New("missing cluster")
 	}
 	_, err := findOwnerRefFromList(m.DataTemplate.OwnerReferences,
 		cluster.TypeMeta, cluster.ObjectMeta)
@@ -200,7 +201,7 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 ) (map[int]string, error) {
 	helper, err := v1beta1patch.NewHelper(dataClaim, m.client)
 	if err != nil {
-		return indexes, errors.Wrap(err, "failed to init patch helper")
+		return indexes, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	// Always patch dataClaim exiting this function so we can persist any changes.
 	defer func() {
@@ -257,7 +258,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		}
 	}
 	if m3mName == "" {
-		return indexes, errors.New("Metal3Machine not found in owner references")
+		return indexes, errors.New("metal3Machine not found in owner references")
 	}
 
 	// Get a new index for this machine
@@ -392,7 +393,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		err := m.retrieveData(ctx, dataName, tmpM3Data)
 		m3DataFound, persistentErrMsg = m.handleRetrieveDataError(err, "template name and claim index", dataClaim.Name, dataName)
 	} else {
-		persistentErrMsg = "Index of the claim was not found"
+		persistentErrMsg = "index of the claim was not found"
 		m.Log.Error(errors.New(persistentErrMsg), dataClaim.Name, "Metal3DataTemplate", m.DataTemplate.Name)
 	}
 
@@ -413,7 +414,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		controllerutil.RemoveFinalizer(tmpM3Data, infrav1.DataClaimFinalizer)
 		err := updateObject(ctx, m.client, tmpM3Data)
 		if err != nil && !apierrors.IsNotFound(err) {
-			m.Log.Error(errors.New("Unable to remove finalizer from Metal3Data"), tmpM3Data.Name)
+			m.Log.Error(errors.New("unable to remove finalizer from Metal3Data"), tmpM3Data.Name)
 			return indexes, err
 		}
 		// Delete the Metal3Data
@@ -425,7 +426,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		}
 		m.Log.Info("Deleted Metal3Data", "Metal3Data", tmpM3Data.Name)
 	} else {
-		errMsg := "Failed to retrieve Metal3Data object because it was not found or for other unknown reason."
+		errMsg := "failed to retrieve Metal3Data object because it was not found or for other unknown reason"
 		persistentErrMsg += errMsg
 		dataClaim.Status.ErrorMessage = ptr.To(persistentErrMsg)
 		m.Log.Error(errors.New(errMsg), "error added to Metal3DataClaim status", "Metal3DataClaim", dataClaim.Name, "Metal3DataTemplate", m.DataTemplate.Name, "Metal3Data", dataName)

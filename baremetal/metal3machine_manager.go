@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -32,7 +33,6 @@ import (
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -234,7 +234,7 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
-		errMessage := "Failed to get a BaremetalHost for the Metal3Machine, requeuing"
+		errMessage := "failed to get a BaremetalHost for the Metal3Machine, requeuing"
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
@@ -264,7 +264,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
-		errMessage := "Failed to get a BaremetalHost for the Metal3Machine, requeuing"
+		errMessage := fmt.Sprintf("Failed to get the BaremetalHost associated with Metal3Machine %s, requeuing", m.Metal3Machine.Name)
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
@@ -291,11 +291,11 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		m.SetError("Failed to marshal the BareMetalHost status",
 			capierrors.UpdateMachineError,
 		)
-		return errors.Wrap(err, "failed to marshall status annotation")
+		return fmt.Errorf("failed to marshal status annotation: %w", err)
 	}
 	obj := map[string]any{}
 	if err = json.Unmarshal(newAnnotation, &obj); err != nil {
-		return errors.Wrap(err, "failed to unmarshall status annotation")
+		return fmt.Errorf("failed to unmarshal status annotation: %w", err)
 	}
 	delete(obj, "hardware")
 	newAnnotation, err = json.Marshal(obj)
@@ -303,7 +303,7 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		m.SetError("Failed to marshal the BareMetalHost status",
 			capierrors.UpdateMachineError,
 		)
-		return errors.Wrap(err, "failed to marshall status annotation")
+		return fmt.Errorf("failed to marshal status annotation: %w", err)
 	}
 	host.Annotations[bmov1alpha1.StatusAnnotation] = string(newAnnotation)
 	return helper.Patch(ctx, host)
@@ -336,7 +336,7 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 			return err
 		}
 		if host == nil {
-			errMessage := "No available host found. Requeuing."
+			errMessage := "no available host found. Requeuing"
 			m.Log.Info(errMessage)
 			return WithTransientError(errors.New(errMessage), requeueAfter)
 		}
@@ -522,9 +522,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				return err
 			}
 
-			errMessage := "Deprovisioning BareMetalHost, requeuing"
-			m.Log.Info(errMessage)
-			return WithTransientError(errors.New(errMessage), 0*time.Second)
+			msg := "deprovisioning BareMetalHost, requeuing"
+			m.Log.Info(msg)
+			return WithTransientError(errors.New(msg), 0*time.Second)
 		}
 
 		var waiting bool
@@ -547,9 +547,9 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			waiting = true
 		}
 		if waiting {
-			errMessage := "Deprovisioning BareMetalHost, requeuing"
-			m.Log.Info(errMessage)
-			return WithTransientError(errors.New(errMessage), requeueAfter)
+			msg := "deprovisioning BareMetalHost, requeuing"
+			m.Log.Info(msg)
+			return WithTransientError(errors.New(msg), requeueAfter)
 		}
 
 		if m.Cluster != nil {
@@ -563,7 +563,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				m.Log.Info("Getting Metal3MachineTemplate")
 				m3mt := &infrav1.Metal3MachineTemplate{}
 				if m.Metal3Machine == nil {
-					return errors.New("Metal3Machine associated with Metal3MachineTemplate is not found")
+					return errors.New("metal3Machine associated with Metal3MachineTemplate is not found")
 				}
 				if m.hasTemplateAnnotation() {
 					m3mtKey := client.ObjectKey{
@@ -996,7 +996,7 @@ func (m *MachineManager) nodeReuseLabelExists(_ context.Context, host *bmov1alph
 // getBMCSecret will return the BMCSecret associated with BMH.
 func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmov1alpha1.BareMetalHost) (*corev1.Secret, error) {
 	if host == nil {
-		return nil, errors.New("Host is empty")
+		return nil, errors.New("host is empty")
 	} else if host.Spec.BMC.CredentialsName == "" {
 		return nil, nil //nolint:nilnil
 	}
@@ -1364,14 +1364,14 @@ func (m *MachineManager) getPossibleProviderIDs(ctx context.Context) (providerID
 	if err != nil {
 		errMessage := "unable to retrieve BMH name from Metal3Machine"
 		m.Log.Info(errMessage)
-		err = errors.Wrap(err, errMessage)
+		err = fmt.Errorf("%s: %w", errMessage, err)
 		return
 	}
 	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
 	if err != nil {
 		errMessage := "unable to retrieve BMH UID from Metal3Machine"
 		m.Log.Info(errMessage)
-		err = errors.Wrap(err, errMessage)
+		err = fmt.Errorf("%s: %w", errMessage, err)
 		return
 	}
 	providerIDLegacy = "metal3://" + bmhUID
@@ -1424,7 +1424,7 @@ func (m *MachineManager) NodeWithMatchingProviderIDExists(ctx context.Context, c
 func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientFactory ClientGetter) (success bool, err error) {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return false, errors.Wrap(err, "Error creating a remote client")
+		return false, fmt.Errorf("error creating a remote client: %w", err)
 	}
 	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
 	if err != nil {
@@ -1438,7 +1438,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 	if err != nil {
 		errMessage := fmt.Sprintf("error retrieving node with label %s, requeuing", nodeLabel)
 		m.Log.Info(errMessage)
-		return false, WithTransientError(errors.Wrap(err, errMessage), requeueAfter)
+		return false, WithTransientError(fmt.Errorf("%s: %w", errMessage, err), requeueAfter)
 	}
 	if countNodesWithLabel == 0 && m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		// The node could either be still running cloud-init or have been
@@ -1448,7 +1448,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		return false, WithTransientError(errors.New(errMessage), requeueAfter)
 	}
 	if countNodesWithLabel > 1 {
-		return false, errors.Wrap(err, fmt.Sprintf("Found multiple target nodes with the same label: (%s)", nodeLabel))
+		return false, fmt.Errorf("found multiple target nodes with the same label: (%s): %w", nodeLabel, err)
 	}
 
 	providerIDLegacy, providerIDNew, err := m.getPossibleProviderIDs(ctx)
@@ -1487,7 +1487,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		}
 
 		m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode, "providerIDLegacy", providerIDLegacy, "providerIDNew", providerIDNew)
-		return false, errors.Wrap(err, "node using unsupported providerID format")
+		return false, fmt.Errorf("node using unsupported providerID format: %w", err)
 	}
 
 	return false, nil
@@ -1683,14 +1683,14 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 			return err
 		}
 		if metal3DataClaim == nil {
-			return WithTransientError(errors.New("Metal3DataClaim is empty, requeuing"), requeueAfter)
+			return WithTransientError(errors.New("metal3DataClaim is empty, requeuing"), requeueAfter)
 		}
 
 		if metal3DataClaim.Status.RenderedData != nil &&
 			metal3DataClaim.Status.RenderedData.Name != "" {
 			m.Metal3Machine.Status.RenderedData = metal3DataClaim.Status.RenderedData
 		} else {
-			return WithTransientError(errors.New("Waiting for Metal3DataTemplate to be available"), requeueAfter)
+			return WithTransientError(errors.New("waiting for Metal3DataTemplate to be available"), requeueAfter)
 		}
 	}
 
@@ -1702,12 +1702,12 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 		return err
 	}
 	if metal3Data == nil {
-		return errors.New("Unexpected nil rendered data")
+		return errors.New("unexpected nil rendered data")
 	}
 
 	// If it is not ready yet, wait.
 	if !metal3Data.Status.Ready {
-		errMessage := "Waiting for Metal3Data to become ready"
+		errMessage := "waiting for Metal3Data to become ready"
 		m.Log.Info(errMessage)
 		m.SetConditionMetal3MachineToFalse(infrav1.Metal3DataReadyCondition, infrav1.WaitingForMetal3DataReason, clusterv1beta1.ConditionSeverityInfo, "")
 		m.SetV1beta2Condition(infrav1.Metal3DataReadyV1Beta2Condition, metav1.ConditionFalse, infrav1.WaitingForMetal3DataV1Beta2Reason, "")
@@ -1788,15 +1788,15 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 func (m *MachineManager) getControlPlaneName(_ context.Context) (string, error) {
 	m.Log.Info("Fetching ControlPlane name")
 	if m.Machine == nil {
-		return "", errors.New("Could not find corresponding machine object")
+		return "", errors.New("could not find corresponding machine object")
 	}
 	if m.Machine.ObjectMeta.OwnerReferences == nil {
-		return "", errors.New("Machine owner reference is not populated")
+		return "", errors.New("machine owner reference is not populated")
 	}
 	for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
 		aGV, err := schema.ParseGroupVersion(mOwnerRef.APIVersion)
 		if err != nil {
-			return "", errors.New("Failed to parse the group and version")
+			return "", errors.New("failed to parse the group and version")
 		}
 		if aGV.Group != controlplanev1.GroupVersion.Group {
 			continue
@@ -1806,7 +1806,7 @@ func (m *MachineManager) getControlPlaneName(_ context.Context) (string, error) 
 		m.Log.Info("Fetched ControlPlane name", "controlPlane", "cp-"+mOwnerRef.Name)
 		return "cp-" + mOwnerRef.Name, nil
 	}
-	return "", errors.New("ControlPlane name is not found")
+	return "", errors.New("controlPlane name is not found")
 }
 
 // getMachineDeploymentName retrieves the MachineDeployment object name corresponding to the MachineSet.
@@ -1821,7 +1821,7 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 		return "", err
 	}
 	if machineSet.ObjectMeta.OwnerReferences == nil {
-		return "", errors.New("Machineset owner reference is not populated")
+		return "", errors.New("machineset owner reference is not populated")
 	}
 	for _, msOwnerRef := range machineSet.ObjectMeta.OwnerReferences {
 		if msOwnerRef.Kind != "MachineDeployment" {
@@ -1829,7 +1829,7 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 		}
 		aGV, err := schema.ParseGroupVersion(msOwnerRef.APIVersion)
 		if err != nil {
-			return "", errors.New("Failed to parse the group and version")
+			return "", errors.New("failed to parse the group and version")
 		}
 		if aGV.Group != clusterv1.GroupVersion.Group {
 			continue
@@ -1839,7 +1839,7 @@ func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, 
 		m.Log.Info("Fetched MachineDeployment name", "machinedeployment", "md-"+msOwnerRef.Name)
 		return "md-" + msOwnerRef.Name, nil
 	}
-	return "", errors.New("MachineDeployment name is not found")
+	return "", errors.New("machineDeployment name is not found")
 }
 
 // getMachineSet retrieves the MachineSet object corresponding to the CAPI machine.
@@ -1848,13 +1848,13 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 	// Get list of MachineSets.
 	machineSets := &clusterv1.MachineSetList{}
 	if m.Machine == nil {
-		return nil, errors.New("Could not find corresponding machine object")
+		return nil, errors.New("could not find corresponding machine object")
 	}
 	if m.isControlPlane() {
-		return nil, errors.New("Machine is controlplane, MachineSet can not be associated with it")
+		return nil, errors.New("machine is controlplane, MachineSet can not be associated with it")
 	}
 	if m.Machine.ObjectMeta.OwnerReferences == nil {
-		return nil, errors.New("Machine owner reference is not populated")
+		return nil, errors.New("machine owner reference is not populated")
 	}
 	if err := m.client.List(ctx, machineSets, client.InNamespace(m.Machine.Namespace)); err != nil {
 		return nil, err
@@ -1870,7 +1870,7 @@ func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineS
 			}
 			gv, err := schema.ParseGroupVersion(mOwnerRef.APIVersion)
 			if err != nil {
-				return nil, errors.New("Failed to parse ownerRef Group of Machine")
+				return nil, errors.New("failed to parse ownerRef Group of Machine")
 			}
 			if gv.Group != clusterv1.GroupVersion.Group {
 				machineSetError += fmt.Sprintf("MachineSet %s has different API version %s than Machine %s with API version %s",
@@ -1914,7 +1914,7 @@ func (m *MachineManager) getBmhUIDFromM3Machine(ctx context.Context) (string, er
 		return "", errors.New(errMessage)
 	}
 	if host.UID == "" {
-		return "", errors.New("Missing BaremetalHost UID")
+		return "", errors.New("missing BaremetalHost UID")
 	}
 	return string(host.UID), nil
 }
@@ -1923,7 +1923,7 @@ func (m *MachineManager) getBmhUIDFromM3Machine(ctx context.Context) (string, er
 func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string, clientFactory ClientGetter) (*corev1.NodeList, int, error) {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return nil, 0, errors.Wrap(err, "Error creating a remote client")
+		return nil, 0, fmt.Errorf("error creating a remote client: %w", err)
 	}
 	nodesCount := 0
 	filter := metav1.ListOptions{
@@ -1945,13 +1945,13 @@ func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string
 func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, clientFactory ClientGetter) error {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return errors.Wrap(err, "Error creating a remote client")
+		return fmt.Errorf("error creating a remote client: %w", err)
 	}
 
 	metal3MachineHostnames := m.getMetal3MachineHostnames()
 
 	if len(metal3MachineHostnames) == 0 {
-		errMessage := "No machine hostname"
+		errMessage := "metal3Data Secret not ready"
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
@@ -2001,7 +2001,7 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 	err = m.setNodeProviderID(ctx, corev1Remote, node, *m.Metal3Machine.Spec.ProviderID)
 
 	if err != nil {
-		return errors.Wrap(err, "unable to update the target node with providerID")
+		return fmt.Errorf("unable to update the target node with providerID: %w", err)
 	}
 
 	m.Log.Info("node updated with provider id")
@@ -2011,7 +2011,7 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 func (m *MachineManager) getNodeByProviderID(ctx context.Context, providerIDLegacy, providerIDNew string, clientFactory ClientGetter) (corev1.Node, error) {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return corev1.Node{}, errors.Wrap(err, "Error creating a remote client")
+		return corev1.Node{}, fmt.Errorf("error creating a remote client: %w", err)
 	}
 
 	filter := metav1.ListOptions{}

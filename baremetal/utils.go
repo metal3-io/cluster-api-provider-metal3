@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -26,7 +27,6 @@ import (
 	// comment for go-lint.
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,6 +59,15 @@ func Contains(list []string, strToSearch string) bool {
 	return slices.Contains(list, strToSearch)
 }
 
+// RootCause unwraps an error chain to return the underlying root cause.
+// If the error does not wrap another error, it returns the original error.
+func RootCause(err error) error {
+	for errors.Unwrap(err) != nil {
+		err = errors.Unwrap(err)
+	}
+	return err
+}
+
 // NotFoundError represents that an object was not found.
 type NotFoundError struct {
 }
@@ -79,7 +88,7 @@ func patchIfFound(ctx context.Context, helper *v1beta1patch.Helper, host client.
 					notFound = false
 				}
 				if apierrors.IsConflict(kerr) {
-					return WithTransientError(errors.New("Updating object failed"), 0*time.Second)
+					return WithTransientError(errors.New("updating object failed"), 0*time.Second)
 				}
 			}
 		} else {
@@ -95,11 +104,11 @@ func patchIfFound(ctx context.Context, helper *v1beta1patch.Helper, host client.
 func updateObject(ctx context.Context, cl client.Client, obj client.Object) error {
 	copiedObj, ok := obj.DeepCopyObject().(client.Object)
 	if !ok {
-		return errors.New("Type assertion to client.Object failed")
+		return errors.New("type assertion to client.Object failed")
 	}
 	err := cl.Update(ctx, copiedObj)
 	if apierrors.IsConflict(err) {
-		return WithTransientError(errors.New("Update object conflicts"), requeueAfter)
+		return WithTransientError(errors.New("update object conflicts"), requeueAfter)
 	}
 	return err
 }
@@ -107,11 +116,11 @@ func updateObject(ctx context.Context, cl client.Client, obj client.Object) erro
 func createObject(ctx context.Context, cl client.Client, obj client.Object) error {
 	copiedObj, ok := obj.DeepCopyObject().(client.Object)
 	if !ok {
-		return errors.New("Type assertion to client.Object failed")
+		return errors.New("type assertion to client.Object failed")
 	}
 	err := cl.Create(ctx, copiedObj)
 	if apierrors.IsAlreadyExists(err) {
-		return WithTransientError(errors.New("Object already exists"), requeueAfter)
+		return WithTransientError(errors.New("object already exists"), requeueAfter)
 	}
 	return err
 }
@@ -119,7 +128,7 @@ func createObject(ctx context.Context, cl client.Client, obj client.Object) erro
 func deleteObject(ctx context.Context, cl client.Client, obj client.Object) error {
 	copiedObj, ok := obj.DeepCopyObject().(client.Object)
 	if !ok {
-		return errors.New("Type assertion to client.Object failed")
+		return errors.New("type assertion to client.Object failed")
 	}
 	err := cl.Delete(ctx, copiedObj)
 	if apierrors.IsNotFound(err) {
@@ -208,7 +217,7 @@ func fetchM3DataTemplate(ctx context.Context,
 		return nil, nil //nolint:nilnil
 	}
 	if templateRef.Name == "" {
-		return nil, errors.New("Metal3DataTemplate name not set")
+		return nil, errors.New("metal3DataTemplate name not set")
 	}
 
 	// Fetch the Metal3DataTemplate.
@@ -223,13 +232,13 @@ func fetchM3DataTemplate(ctx context.Context,
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err = errors.Wrap(err, "Failed to get Metal3DataTemplate")
+		err = fmt.Errorf("failed to get Metal3DataTemplate: %w", err)
 		return nil, err
 	}
 
 	// Verify that this Metal3DataTemplate belongs to the correct cluster.
 	if clusterName != metal3DataTemplate.Spec.ClusterName {
-		return nil, errors.New("Metal3DataTemplate associated with another cluster")
+		return nil, errors.New("metal3DataTemplate associated with another cluster")
 	}
 
 	return metal3DataTemplate, nil
@@ -251,7 +260,7 @@ func fetchM3DataClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err = errors.Wrap(err, "Failed to get Metal3DataClaim")
+		err = fmt.Errorf("failed to get Metal3DataClaim: %w", err)
 		return nil, err
 	}
 	return m3DataClaim, nil
@@ -273,7 +282,7 @@ func fetchM3Data(ctx context.Context, cl client.Client, mLog logr.Logger,
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err = errors.Wrap(err, "Failed to get Metal3Data")
+		err = fmt.Errorf("failed to get Metal3Data: %w", err)
 		return nil, err
 	}
 	return m3Data, nil
@@ -301,7 +310,7 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 			}
 			return nil, nil //nolint:nilnil
 		}
-		err = errors.Wrap(err, "Failed to get Metal3Machine")
+		err = fmt.Errorf("failed to get Metal3Machine: %w", err)
 		return nil, err
 	}
 

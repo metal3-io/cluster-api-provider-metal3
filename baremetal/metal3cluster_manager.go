@@ -18,11 +18,11 @@ package baremetal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -59,10 +59,10 @@ func NewClusterManager(client client.Client, cluster *clusterv1.Cluster,
 	metal3Cluster *infrav1.Metal3Cluster,
 	clusterLog logr.Logger) (ClusterManagerInterface, error) {
 	if metal3Cluster == nil {
-		return nil, errors.New("Metal3Cluster is required when creating a ClusterManager")
+		return nil, errors.New("metal3Cluster is required when creating a ClusterManager")
 	}
 	if cluster == nil {
-		return nil, errors.New("Cluster is required when creating a ClusterManager")
+		return nil, errors.New("cluster is required when creating a ClusterManager")
 	}
 
 	return &ClusterManager{
@@ -106,7 +106,7 @@ func (s *ClusterManager) ControlPlaneEndpoint() ([]infrav1.APIEndpoint, error) {
 	var err error
 
 	if endPoint.Host == "" || endPoint.Port == 0 {
-		err = errors.New("Invalid field ControlPlaneEndpoint")
+		err = errors.New("invalid field ControlPlaneEndpoint")
 		s.Log.Error(err, "Host IP or PORT not set")
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func (s *ClusterManager) listDescendants(ctx context.Context) (clusterv1.Machine
 
 	if err := s.client.List(ctx, &machines, listOptions...); err != nil {
 		errMsg := fmt.Sprintf("failed to list metal3machines for cluster %s/%s", cluster.Namespace, cluster.Name)
-		return machines, errors.Wrapf(err, "%s", errMsg)
+		return machines, fmt.Errorf("%s: %w", errMsg, err)
 	}
 
 	return machines, nil

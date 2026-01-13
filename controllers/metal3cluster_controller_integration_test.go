@@ -23,7 +23,6 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -72,7 +71,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 			if tc.ErrorExpected {
 				Expect(err).To(HaveOccurred())
 				if tc.ErrorType != nil {
-					Expect(reflect.TypeOf(tc.ErrorType)).To(Equal(reflect.TypeOf(errors.Cause(err))))
+					Expect(reflect.TypeOf(tc.ErrorType)).To(Equal(reflect.TypeOf(baremetal.RootCause(err))))
 				}
 
 			} else {

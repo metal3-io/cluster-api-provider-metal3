@@ -8,7 +8,6 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
-	github.com/pkg/errors v0.9.1
 	golang.org/x/oauth2 v0.34.0
 	k8s.io/code-generator v0.34.3
 	sigs.k8s.io/controller-tools v0.18.0
@@ -41,6 +40,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/onsi/gomega v1.37.0 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/spf13/cobra v1.9.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect

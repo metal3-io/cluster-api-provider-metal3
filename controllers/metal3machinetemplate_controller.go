@@ -15,11 +15,11 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -64,12 +64,12 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errors.Wrap(err, "unable to fetch Metal3MachineTemplate")
+		return ctrl.Result{}, fmt.Errorf("unable to fetch Metal3MachineTemplate: %w", err)
 	}
 
 	helper, err := v1beta1patch.NewHelper(metal3MachineTemplate, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 
 	// Always patch metal3MachineTemplate exiting this function so we can persist any metal3MachineTemplate changes.
@@ -85,13 +85,13 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 	m3machinelist := &infrav1.Metal3MachineList{}
 
 	if err = r.Client.List(ctx, m3machinelist); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "unable to fetch Metal3MachineList")
+		return ctrl.Result{}, fmt.Errorf("unable to fetch Metal3MachineList: %w", err)
 	}
 
 	// Create a helper for managing a Metal3MachineTemplate.
 	templateMgr, err := r.ManagerFactory.NewMachineTemplateManager(metal3MachineTemplate, m3machinelist, m3templateLog)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the templateMgr")
+		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the templateMgr: %w", err)
 	}
 
 	// Return early if the Metal3MachineTemplate is paused.
@@ -145,7 +145,7 @@ func (r *Metal3MachineTemplateReconciler) Metal3MachinesToMetal3MachineTemplate(
 			},
 		})
 	} else {
-		r.Log.Error(errors.Errorf("expected a Metal3Machine but got a %T", o),
+		r.Log.Error(fmt.Errorf("expected a Metal3Machine but got a %T", o),
 			"failed to get Metal3Machine for Metal3MachineTemplate",
 		)
 	}

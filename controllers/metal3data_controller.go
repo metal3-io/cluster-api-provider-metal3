@@ -18,12 +18,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
-	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -75,7 +75,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 	helper, err := v1beta1patch.NewHelper(metal3Data, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	// Always patch Metal3Data exiting this function so we can persist any changes.
 	defer func() {
@@ -121,7 +121,7 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Create a helper for managing the metadata object.
 	metadataMgr, err := r.ManagerFactory.NewDataManager(metal3Data, metadataLog)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the Metal3Data")
+		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the Metal3Data: %w", err)
 	}
 
 	// Handle deletion of Metal3Data

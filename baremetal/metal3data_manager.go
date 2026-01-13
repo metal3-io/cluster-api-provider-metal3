@@ -18,6 +18,7 @@ package baremetal
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"regexp"
@@ -28,7 +29,6 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,7 +116,7 @@ func (m *DataManager) Reconcile(ctx context.Context) error {
 		if errors.As(err, &reconcileError) && reconcileError.IsTransient() {
 			return err
 		}
-		m.setError(ctx, errors.Cause(err).Error())
+		m.setError(ctx, RootCause(err).Error())
 		return err
 	}
 
@@ -151,7 +151,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return err
 	}
 	if m3m == nil {
-		return errors.New("Metal3Machine associated with Metal3DataTemplate is not found")
+		return errors.New("metal3Machine associated with Metal3DataTemplate is not found")
 	}
 	m.Log.V(VerbosityLevelDebug).Info("Fetched Metal3Machine")
 
@@ -217,10 +217,10 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	capiMachine, err := util.GetOwnerMachine(ctx, m.client, m3m.ObjectMeta)
 
 	if err != nil {
-		return errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
+		return fmt.Errorf("metal3Machine's owner Machine could not be retrieved: %w", err)
 	}
 	if capiMachine == nil {
-		errMessage := "Waiting for Machine Controller to set OwnerRef on Metal3Machine"
+		errMessage := "waiting for Machine Controller to set OwnerRef on Metal3Machine"
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
@@ -232,7 +232,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 		return err
 	}
 	if bmh == nil {
-		errMessage := "Waiting for BareMetalHost to become available"
+		errMessage := "waiting for BareMetalHost to become available"
 		m.Log.Info(errMessage)
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
@@ -1045,7 +1045,7 @@ func renderNetworkServices(services infrav1.NetworkDataService, poolAddresses ma
 	if services.DNSFromIPPool != nil {
 		poolAddress, ok := poolAddresses[*services.DNSFromIPPool]
 		if !ok {
-			return nil, errors.New("Pool not found in cache")
+			return nil, errors.New("pool not found in cache")
 		}
 		for _, service := range poolAddress.dnsServers {
 			data = append(data, map[string]any{
@@ -1155,7 +1155,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 			poolAddress, ok = poolAddresses[network.IPAddressFromIPPool]
 		}
 		if !ok {
-			return nil, errors.New("Pool not found in cache")
+			return nil, errors.New("pool not found in cache")
 		}
 		ip := ipamv1.IPAddressv4Str(poolAddress.Address)
 		mask := translateMask(poolAddress.Prefix, true)
@@ -1190,7 +1190,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 			poolAddress, ok = poolAddresses[network.IPAddressFromIPPool]
 		}
 		if !ok {
-			return nil, errors.New("Pool not found in cache")
+			return nil, errors.New("pool not found in cache")
 		}
 		ip := ipamv1.IPAddressv6Str(poolAddress.Address)
 		mask := translateMask(poolAddress.Prefix, false)
@@ -1274,19 +1274,19 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 			}
 			poolAddress, ok := poolAddresses[poolName]
 			if !ok {
-				return []any{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv4Str(poolAddress.Gateway)
 		} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
 			poolAddress, ok := poolAddresses[route.Gateway.FromPoolRef.Name]
 			if !ok {
-				return []any{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv4Str(poolAddress.Gateway)
 		} else if route.Gateway.FromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Gateway.FromIPPool]
 			if !ok {
-				return []any{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv4Str(poolAddress.Gateway)
 		}
@@ -1300,7 +1300,7 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 		if route.Services.DNSFromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Services.DNSFromIPPool]
 			if !ok {
-				return []any{}, errors.New("Pool not found in cache")
+				return []any{}, errors.New("pool not found in cache")
 			}
 			for _, service := range poolAddress.dnsServers {
 				services = append(services, map[string]any{
@@ -1339,19 +1339,19 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 			}
 			poolAddress, ok := poolAddresses[poolName]
 			if !ok {
-				return []any{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv6Str(poolAddress.Gateway)
 		} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
 			poolAddress, ok := poolAddresses[route.Gateway.FromPoolRef.Name]
 			if !ok {
-				return []any{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv6Str(poolAddress.Gateway)
 		} else if route.Gateway.FromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Gateway.FromIPPool]
 			if !ok {
-				return []any{}, errors.New("Failed to fetch pool from cache")
+				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv6Str(poolAddress.Gateway)
 		}
@@ -1365,7 +1365,7 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 		if route.Services.DNSFromIPPool != nil {
 			poolAddress, ok := poolAddresses[*route.Services.DNSFromIPPool]
 			if !ok {
-				return []any{}, errors.New("Pool not found in cache")
+				return []any{}, errors.New("pool not found in cache")
 			}
 			for _, service := range poolAddress.dnsServers {
 				services = append(services, map[string]any{
@@ -1458,7 +1458,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 	for _, entry := range m3dt.Spec.MetaData.IPAddressesFromPool {
 		poolAddress, ok := poolAddresses[entry.Name]
 		if !ok {
-			return nil, errors.New("Pool not found in cache")
+			return nil, errors.New("pool not found in cache")
 		}
 		metadata[entry.Key] = string(poolAddress.Address)
 	}
@@ -1467,7 +1467,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 	for _, entry := range m3dt.Spec.MetaData.PrefixesFromPool {
 		poolAddress, ok := poolAddresses[entry.Name]
 		if !ok {
-			return nil, errors.New("Pool not found in cache")
+			return nil, errors.New("pool not found in cache")
 		}
 		metadata[entry.Key] = strconv.Itoa(poolAddress.Prefix)
 	}
@@ -1476,7 +1476,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 	for _, entry := range m3dt.Spec.MetaData.GatewaysFromPool {
 		poolAddress, ok := poolAddresses[entry.Name]
 		if !ok {
-			return nil, errors.New("Pool not found in cache")
+			return nil, errors.New("pool not found in cache")
 		}
 		metadata[entry.Key] = string(poolAddress.Gateway)
 	}
@@ -1504,7 +1504,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		case host:
 			metadata[entry.Key] = bmh.Name
 		default:
-			return nil, errors.New("Unknown object type")
+			return nil, errors.New("unknown object type")
 		}
 	}
 
@@ -1518,7 +1518,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		case host:
 			metadata[entry.Key] = bmh.Labels[entry.Label]
 		default:
-			return nil, errors.New("Unknown object type")
+			return nil, errors.New("unknown object type")
 		}
 	}
 
@@ -1574,7 +1574,7 @@ func getValueFromAnnotation(object string, annotation string,
 		}
 		return bmh.Annotations[annotation], nil
 	default:
-		return "", errors.New("Unknown object type")
+		return "", errors.New("unknown object type")
 	}
 }
 
@@ -1611,7 +1611,7 @@ func (m *DataManager) getM3Machine(ctx context.Context, m3dt *infrav1.Metal3Data
 		}
 	}
 	if metal3MachineName == "" {
-		return nil, errors.New("Metal3Machine not found in owner references")
+		return nil, errors.New("metal3Machine not found in owner references")
 	}
 
 	return getM3Machine(ctx, m.client,
@@ -1631,11 +1631,11 @@ func fetchM3IPClaim(ctx context.Context, cl client.Client, mLog logr.Logger,
 	}
 	if err := cl.Get(ctx, metal3ClaimName, metal3IPClaim); err != nil {
 		if apierrors.IsNotFound(err) {
-			errMessage := "Address claim not found"
+			errMessage := "address claim not found"
 			mLog.Info(errMessage)
 			return nil, WithTransientError(errors.New(errMessage), requeueAfter)
 		}
-		err = errors.Wrap(err, "Failed to get address claim")
+		err = fmt.Errorf("failed to get address claim: %w", err)
 		return nil, err
 	}
 	return metal3IPClaim, nil
