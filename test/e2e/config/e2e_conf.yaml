@@ -53,15 +53,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.11/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/core-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
 - name: kubeadm
   type: BootstrapProvider
   versions:
@@ -101,15 +92,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.11/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/bootstrap-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
 - name: kubeadm
   type: ControlPlaneProvider
   versions:
@@ -149,15 +131,6 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/capi/v1.11/metadata.yaml"
-  - name: "{go://sigs.k8s.io/cluster-api@v1.10}"
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/{go://sigs.k8s.io/cluster-api@v1.10}/control-plane-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/capi/v1.10/metadata.yaml"
 - name: metal3
   type: IPAMProvider
   versions:
@@ -181,31 +154,10 @@ providers:
     files:
     - sourcePath: "../data/shared/ipam-metal3/v1.11/metadata.yaml"
       targetName: "metadata.yaml"
-  - name: "{go://github.com/metal3-io/ip-address-manager@v1.10}"
-    value: "https://github.com/metal3-io/ip-address-manager/releases/download/{go://github.com/metal3-io/ip-address-manager@v1.10}/ipam-components.yaml"
-    type: "url"
-    contract: v1beta1
-    replacements:
-    - old: --metrics-addr=127.0.0.1:8080
-      new: --metrics-addr=:8080
-    files:
-    - sourcePath: "../data/shared/ipam-metal3/v1.10/metadata.yaml"
-      targetName: "metadata.yaml"
 
 - name: metal3
   type: InfrastructureProvider
   versions:
-  - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.10}"
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.10}/infrastructure-components.yaml"
-    type: "url"
-    contract: v1beta1
-    files:
-    - sourcePath: "../data/shared/infrastructure-metal3/v1.10/metadata.yaml"
-      targetName: "metadata.yaml"
-    - sourcePath: "../_out/v1.10/cluster-template-ubuntu.yaml"
-      targetName: "cluster-template-ubuntu.yaml"
-    - sourcePath: "../_out/v1.10/cluster-template-upgrade-workload.yaml"
-      targetName: "cluster-template-upgrade-workload.yaml"
   - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.12}"
     value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.12}/infrastructure-components.yaml"
     type: "url"
