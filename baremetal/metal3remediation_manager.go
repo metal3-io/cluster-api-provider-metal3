@@ -19,13 +19,13 @@ package baremetal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -157,7 +157,7 @@ func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
 		return err
 	}
 	if host == nil {
-		return errors.New("Unable to set a PowerOff Annotation, Host not found")
+		return errors.New("unable to set a PowerOff Annotation, Host not found")
 	}
 
 	r.Log.Info("Adding PowerOff annotation to host", "host", host.Name)
@@ -183,7 +183,7 @@ func (r *RemediationManager) RemovePowerOffAnnotation(ctx context.Context) error
 		return err
 	}
 	if host == nil {
-		return errors.New("Unable to remove PowerOff Annotation, Host not found")
+		return errors.New("unable to remove PowerOff Annotation, Host not found")
 	}
 
 	r.Log.Info("Removing PowerOff annotation from host", "host name", host.Name)
@@ -198,7 +198,7 @@ func (r *RemediationManager) IsPowerOffRequested(ctx context.Context) (bool, err
 		return false, err
 	}
 	if host == nil {
-		return false, errors.New("Unable to check PowerOff Annotation, Host not found")
+		return false, errors.New("unable to check PowerOff Annotation, Host not found")
 	}
 
 	if _, ok := host.Annotations[r.getPowerOffAnnotationKey()]; ok {
@@ -214,7 +214,7 @@ func (r *RemediationManager) IsPoweredOn(ctx context.Context) (bool, error) {
 		return false, err
 	}
 	if host == nil {
-		return false, errors.New("Unable to check power status, Host not found")
+		return false, errors.New("unable to check power status, Host not found")
 	}
 
 	return host.Status.PoweredOn, nil
@@ -227,7 +227,7 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 		return err
 	}
 	if host == nil {
-		return errors.New("Unable to set an Unhealthy Annotation, Host not found")
+		return errors.New("unable to set an Unhealthy Annotation, Host not found")
 	}
 
 	r.Log.Info("Adding Unhealthy annotation to host", "host", host.Name)
@@ -377,7 +377,7 @@ func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*clusterv1.Mac
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, r.Metal3Remediation.ObjectMeta)
 	if err != nil {
 		r.Log.Error(err, "metal3Remediation's owner Machine could not be retrieved")
-		return nil, errors.Wrapf(err, "metal3Remediation's owner Machine could not be retrieved")
+		return nil, fmt.Errorf("metal3Remediation's owner Machine could not be retrieved: %w", err)
 	}
 	return capiMachine, nil
 }
@@ -387,11 +387,11 @@ func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV
 	capiMachine, err := r.GetCapiMachine(ctx)
 	if err != nil {
 		r.Log.Error(err, "metal3Remediation's node could not be retrieved")
-		return nil, errors.Wrapf(err, "metal3Remediation's node could not be retrieved")
+		return nil, fmt.Errorf("metal3Remediation's node could not be retrieved: %w", err)
 	}
 	if !capiMachine.Status.NodeRef.IsDefined() {
 		r.Log.Error(nil, "metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
-		return nil, errors.Errorf("metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
+		return nil, errors.New("metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
 	}
 
 	node, err := clusterClient.Nodes().Get(ctx, capiMachine.Status.NodeRef.Name, metav1.GetOptions{})
@@ -399,7 +399,7 @@ func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV
 		return nil, nil //nolint:nilnil
 	} else if err != nil {
 		r.Log.Error(err, "Could not get cluster node")
-		return nil, errors.Wrapf(err, "Could not get cluster node")
+		return nil, fmt.Errorf("could not get cluster node: %w", err)
 	}
 	return node, nil
 }
@@ -409,7 +409,7 @@ func (r *RemediationManager) UpdateNode(ctx context.Context, clusterClient v1.Co
 	_, err := clusterClient.Nodes().Update(ctx, node, metav1.UpdateOptions{})
 	if err != nil {
 		r.Log.Error(err, "Could not update cluster node")
-		return errors.Wrapf(err, "Could not update cluster node")
+		return fmt.Errorf("could not update cluster node: %w", err)
 	}
 	return nil
 }
@@ -423,7 +423,7 @@ func (r *RemediationManager) DeleteNode(ctx context.Context, clusterClient v1.Co
 	err := clusterClient.Nodes().Delete(ctx, node.Name, metav1.DeleteOptions{})
 	if err != nil {
 		r.Log.Error(err, "Could not delete cluster node")
-		return errors.Wrapf(err, "Could not delete cluster node")
+		return fmt.Errorf("could not delete cluster node: %w", err)
 	}
 	return nil
 }
@@ -433,19 +433,19 @@ func (r *RemediationManager) GetClusterClient(ctx context.Context) (v1.CoreV1Int
 	capiMachine, err := r.GetCapiMachine(ctx)
 	if err != nil {
 		r.Log.Error(err, "metal3Remediation's node could not be retrieved")
-		return nil, errors.Wrapf(err, "metal3Remediation's node could not be retrieved")
+		return nil, fmt.Errorf("metal3Remediation's node could not be retrieved: %w", err)
 	}
 
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
 		r.Log.Error(err, "Machine is missing cluster label or cluster does not exist")
-		return nil, errors.Wrapf(err, "Machine is missing cluster label or cluster does not exist")
+		return nil, fmt.Errorf("machine is missing cluster label or cluster does not exist: %w", err)
 	}
 
 	clusterClient, err := r.CapiClientGetter(ctx, r.Client, cluster)
 	if err != nil {
 		r.Log.Error(err, "Could not get cluster client")
-		return nil, errors.Wrapf(err, "Could not get cluster client")
+		return nil, fmt.Errorf("could not get cluster client: %w", err)
 	}
 
 	return clusterClient, nil
@@ -510,7 +510,7 @@ func (r *RemediationManager) AddOutOfServiceTaint(ctx context.Context, clusterCl
 	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
 		msg := "failed to add out-of-service taint on node " + node.Name
 		r.Log.Error(err, msg)
-		return errors.Wrap(err, msg)
+		return fmt.Errorf("%s: %w", msg, err)
 	}
 	r.Log.Info("Out-of-service taint added", "node", node.Name)
 	return nil
@@ -539,7 +539,7 @@ func (r *RemediationManager) RemoveOutOfServiceTaint(ctx context.Context, cluste
 	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
 		msg := "failed to remove out-of-service taint on node " + node.Name
 		r.Log.Error(err, msg)
-		return errors.Wrap(err, msg)
+		return fmt.Errorf("%s: %w", msg, err)
 	}
 
 	r.Log.Info("Out-of-service taint removed", "node", node.Name)

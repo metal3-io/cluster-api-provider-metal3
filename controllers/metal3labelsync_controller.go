@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -27,7 +28,6 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,7 +97,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	helper, err := v1beta1patch.NewHelper(host, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	defer func() {
 		err = helper.Patch(ctx, host)
@@ -137,7 +137,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	// Fetch the Machine.
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
+		return ctrl.Result{}, fmt.Errorf("metal3Machine's owner Machine could not be retrieved: %w", err)
 	}
 	if capiMachine == nil {
 		controllerLog.Info("Could not find Machine object, will retry")
@@ -209,7 +209,7 @@ func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host
 	// Get the Node from the workload cluster
 	corev1Remote, err := r.CapiClientGetter(ctx, r.Client, cluster)
 	if err != nil {
-		return errors.Wrap(err, "error creating a remote client")
+		return fmt.Errorf("error creating a remote client: %w", err)
 	}
 	node, err := corev1Remote.Nodes().Get(ctx, machine.Status.NodeRef.Name, metav1.GetOptions{})
 	if err != nil {
@@ -219,7 +219,7 @@ func (r *Metal3LabelSyncReconciler) reconcileBMHLabels(ctx context.Context, host
 	synchronizeLabelSyncSetsOnNode(hostLabelSyncSet, nodeLabelSyncSet, node)
 	_, err = corev1Remote.Nodes().Update(ctx, node, metav1.UpdateOptions{})
 	if err != nil {
-		return errors.Wrap(err, "unable to update the target node")
+		return fmt.Errorf("unable to update the target node: %w", err)
 	}
 	return nil
 }
@@ -276,7 +276,7 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 	result := []ctrl.Request{}
 	c, ok := o.(*infrav1.Metal3Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o),
+		r.Log.Error(fmt.Errorf("expected a Metal3Cluster but got a %T", o),
 			"failed to get BareMetalHost for Metal3Cluster",
 		)
 		return nil
@@ -312,12 +312,12 @@ func (r *Metal3LabelSyncReconciler) Metal3ClusterToBareMetalHosts(ctx context.Co
 		}
 		annotations := capm3Machine.ObjectMeta.GetAnnotations()
 		if annotations == nil {
-			log.Error(errors.Errorf("no annotations found on Metal3Machine: %v", name), "failed to get annotations in Metal3Machine")
+			log.Error(fmt.Errorf("no annotations found on Metal3Machine: %v", name), "failed to get annotations in Metal3Machine")
 			continue
 		}
 		hostKey, ok := annotations[baremetal.HostAnnotation]
 		if !ok {
-			log.Error(errors.Errorf("no %v annotation on Metal3Machine: %v", baremetal.HostAnnotation, name), "failed to get BareMetalHost annotation in Metal3Machine")
+			log.Error(fmt.Errorf("no %v annotation on Metal3Machine: %v", baremetal.HostAnnotation, name), "failed to get BareMetalHost annotation in Metal3Machine")
 			continue
 		}
 		hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)

@@ -15,8 +15,8 @@ package remote
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
@@ -32,14 +32,14 @@ func NewClusterClient(ctx context.Context, c client.Client, cluster *clusterv1.C
 		Namespace: cluster.Namespace,
 	})
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve kubeconfig secret for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
+		return nil, fmt.Errorf("failed to retrieve kubeconfig secret for Cluster %q in namespace %q: %w",
+			cluster.Name, cluster.Namespace, err)
 	}
 
 	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to create client configuration for Cluster %q in namespace %q",
-			cluster.Name, cluster.Namespace)
+		return nil, fmt.Errorf("failed to create client configuration for Cluster %q in namespace %q: %w",
+			cluster.Name, cluster.Namespace, err)
 	}
 
 	return corev1.NewForConfig(restConfig)

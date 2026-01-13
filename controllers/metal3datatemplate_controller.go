@@ -18,11 +18,12 @@ package controllers
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -84,7 +85,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	helper, err := v1beta1patch.NewHelper(metal3DataTemplate, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	// Always patch the Metal3DataTemplate exiting this function so we can persist any changes.
 	defer func() {
@@ -113,7 +114,7 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Create a helper for managing the Metal3DataTemplate object.
 	dataTemplateMgr, err := r.ManagerFactory.NewDataTemplateManager(metal3DataTemplate, log)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the Metal3DataTemplate")
+		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the Metal3DataTemplate: %w", err)
 	}
 
 	if metal3DataTemplate.Spec.ClusterName != "" && cluster.Name != "" {
@@ -222,5 +223,5 @@ func checkReconcileError(err error, errMessage string) (ctrl.Result, error) {
 			return reconcile.Result{}, nil
 		}
 	}
-	return ctrl.Result{}, errors.Wrap(err, errMessage)
+	return ctrl.Result{}, fmt.Errorf("%s: %w", errMessage, err)
 }

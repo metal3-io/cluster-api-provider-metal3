@@ -18,13 +18,14 @@ package controllers
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -103,7 +104,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	patchHelper, err := v1beta1patch.NewHelper(metal3Cluster, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	// Always patch metal3Cluster when exiting this function so we can persist any metal3Cluster changes.
 	defer func() {
@@ -150,7 +151,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Create a helper for managing a Metal3 cluster.
 	clusterMgr, err := r.ManagerFactory.NewClusterManager(cluster, metal3Cluster, clusterLog)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the clusterMgr")
+		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the clusterMgr: %w", err)
 	}
 	if clusterMgr == nil {
 		return ctrl.Result{}, nil
@@ -239,7 +240,7 @@ func reconcileNormal(ctx context.Context, clusterMgr baremetal.ClusterManagerInt
 
 	// Set APIEndpoints so the Cluster API Cluster Controller can pull it
 	if err := clusterMgr.UpdateClusterStatus(); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the API endpoint")
+		return ctrl.Result{}, fmt.Errorf("failed to get ip for the API endpoint: %w", err)
 	}
 
 	return ctrl.Result{}, nil
@@ -259,7 +260,7 @@ func reconcileDelete(ctx context.Context,
 	}
 
 	if err := clusterMgr.Delete(); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete Metal3Cluster")
+		return ctrl.Result{}, fmt.Errorf("failed to delete Metal3Cluster: %w", err)
 	}
 
 	// Cluster is deleted so remove the finalizer.

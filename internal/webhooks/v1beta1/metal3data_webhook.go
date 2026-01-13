@@ -15,11 +15,11 @@ package webhooks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"

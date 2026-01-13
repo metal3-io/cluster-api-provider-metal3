@@ -19,7 +19,6 @@ import (
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
-	"github.com/pkg/errors"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -71,7 +70,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 	}
 
 	if err := m.client.List(ctx, m3ms, opts); err != nil {
-		return errors.Wrap(err, "failed to list metal3Machines")
+		return fmt.Errorf("failed to list metal3Machines: %w", err)
 	}
 
 	matchedM3Machines := []*infrav1.Metal3Machine{}
@@ -93,7 +92,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 				m3m.Spec.AutomatedCleaningMode = m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode
 
 				if err := m.client.Update(ctx, m3m); err != nil {
-					return errors.Wrapf(err, "failed to update metal3Machine: %s", m3m.Name)
+					return fmt.Errorf("failed to update metal3Machine: %s: %w", m3m.Name, err)
 				}
 
 				m.Log.Info("Synchronized automatedCleaningMode between ", "Metal3MachineTemplate", fmt.Sprintf("%v/%v", m.Metal3MachineTemplate.Namespace, m.Metal3MachineTemplate.Name), "Metal3Machine", fmt.Sprintf("%v/%v", m3m.Namespace, m3m.Name))

@@ -33,24 +33,24 @@ var _ = Describe("Reconcile Error testing", func() {
 
 	It("Returns correct values for Transient Error", func() {
 
-		err := WithTransientError(errors.New("Transient Error"), duration)
+		err := WithTransientError(errors.New("transient Error"), duration)
 		Expect(err.GetRequeueAfter()).To(Equal(duration))
 		Expect(err.IsTransient()).To(BeTrue())
 		Expect(err.IsTerminal()).To(BeFalse())
-		Expect(err.Error()).To(Equal(fmt.Sprintf("%s. Object will be requeued after %s", "Transient Error", duration)))
+		Expect(err.Error()).To(Equal(fmt.Sprintf("%s. Object will be requeued after %s", "transient Error", duration)))
 	})
 
 	It("Returns correct values for Terminal Error", func() {
-		err := WithTerminalError(errors.New("Terminal Error"))
+		err := WithTerminalError(errors.New("terminal Error"))
 		Expect(err.IsTransient()).To(BeFalse())
 		Expect(err.IsTerminal()).To(BeTrue())
-		Expect(err.Error()).To(Equal(fmt.Sprintf("reconcile error that cannot be recovered occurred: %s. Object will not be requeued", "Terminal Error")))
+		Expect(err.Error()).To(Equal(fmt.Sprintf("reconcile error that cannot be recovered occurred: %s. Object will not be requeued", "terminal Error")))
 	})
 
 	It("Returns correct values for Unknown ReconcileError type", func() {
-		err := ReconcileError{errors.New("Unknown Error"), "unknownErrorType", 0 * time.Second}
+		err := ReconcileError{errors.New("unknown Error"), "unknownErrorType", 0 * time.Second}
 		Expect(err.IsTerminal()).To(BeFalse())
 		Expect(err.IsTransient()).To(BeFalse())
-		Expect(err.Error()).To(Equal("reconcile error occurred with unknown recovery type. The actual error is: Unknown Error"))
+		Expect(err.Error()).To(Equal("reconcile error occurred with unknown recovery type. The actual error is: unknown Error"))
 	})
 })

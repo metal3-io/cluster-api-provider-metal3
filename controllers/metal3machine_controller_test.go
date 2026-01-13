@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
@@ -27,7 +28,6 @@ import (
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -94,7 +94,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	if !tc.Annotated {
 		// if associate fails, we do not go further
 		if tc.AssociateFails {
-			m.EXPECT().Associate(context.TODO()).Return(errors.New("Failed"))
+			m.EXPECT().Associate(context.TODO()).Return(errors.New("failed"))
 			m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition,
 				infrav1.AssociateBMHFailedReason, clusterv1beta1.ConditionSeverityError, gomock.Any())
 			m.EXPECT().SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition,
@@ -118,7 +118,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 				metav1.ConditionTrue, infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason,
 				"")
 		} else {
-			m.EXPECT().AssociateM3Metadata(context.TODO()).Return(errors.New("Failed"))
+			m.EXPECT().AssociateM3Metadata(context.TODO()).Return(errors.New("failed"))
 			m.EXPECT().SetConditionMetal3MachineToFalse(infrav1.KubernetesNodeReadyCondition,
 				infrav1.AssociateM3MetaDataFailedReason, clusterv1beta1.ConditionSeverityWarning, gomock.Any())
 			m.EXPECT().SetV1beta2Condition(infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,

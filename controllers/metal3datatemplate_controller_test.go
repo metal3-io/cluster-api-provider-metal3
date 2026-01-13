@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -27,7 +28,6 @@ import (
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -409,12 +409,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
 
-		result, err = checkReconcileError(baremetal.WithTransientError(errors.New("Failed"), 0*time.Second), "abc")
+		result, err = checkReconcileError(baremetal.WithTransientError(errors.New("failed"), 0*time.Second), "abc")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 
 		result, err = checkReconcileError(
-			baremetal.WithTransientError(errors.New("Failed"), requeueAfter), "abc",
+			baremetal.WithTransientError(errors.New("failed"), requeueAfter), "abc",
 		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}))

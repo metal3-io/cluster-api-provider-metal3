@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"maps"
@@ -26,7 +27,6 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	"golang.org/x/crypto/ssh"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -859,7 +859,7 @@ func GetLatestPatchRelease(goProxyPath string, minorReleaseVersion string) (stri
 	}
 	semVersion, err := semver.Parse(minorReleaseVersion)
 	if err != nil {
-		return "", errors.Wrapf(err, "parsing semver for %s", minorReleaseVersion)
+		return "", fmt.Errorf("parsing semver for %s: %w", minorReleaseVersion, err)
 	}
 	parsedTags, err := getVersions(goProxyPath)
 	if err != nil {
@@ -873,7 +873,7 @@ func GetLatestPatchRelease(goProxyPath string, minorReleaseVersion string) (stri
 		}
 	}
 	if picked.Major == 0 && picked.Minor == 0 && picked.Patch == 0 {
-		return "", errors.Errorf("no suitable release available for path %s and version %s", goProxyPath, minorReleaseVersion)
+		return "", fmt.Errorf("no suitable release available for path %s and version %s", goProxyPath, minorReleaseVersion)
 	}
 	return picked.String(), nil
 }
@@ -887,13 +887,13 @@ func getVersions(gomodulePath string) (semver.Versions, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("failed to get versions from url %s got %d %s", gomodulePath, resp.StatusCode, http.StatusText(resp.StatusCode))
+		return nil, fmt.Errorf("failed to get versions from url %s got %d %s", gomodulePath, resp.StatusCode, http.StatusText(resp.StatusCode))
 	}
 	defer resp.Body.Close()
 
 	rawResponse, err := io.ReadAll(resp.Body)
 	if err != nil {
-		retryError := errors.Wrap(err, "failed to get versions: error reading goproxy response body")
+		retryError := fmt.Errorf("failed to get versions: error reading goproxy response body: %w", err)
 		return nil, retryError
 	}
 	parsedVersions := semver.Versions{}
@@ -951,13 +951,13 @@ func (input *BuildAndApplyKustomizationInput) validate() error {
 		return nil
 	}
 	if input.WaitForDeployment && input.WaitIntervals == nil {
-		return errors.Errorf("WaitIntervals is expected if WaitForDeployment is set to true")
+		return errors.New("waitIntervals is expected if WaitForDeployment is set to true")
 	}
 	if input.WatchDeploymentLogs && input.LogPath == "" {
-		return errors.Errorf("LogPath is expected if WatchDeploymentLogs is set to true")
+		return errors.New("logPath is expected if WatchDeploymentLogs is set to true")
 	}
 	if input.DeploymentName == "" || input.DeploymentNamespace == "" {
-		return errors.Errorf("DeploymentName and DeploymentNamespace are expected if WaitForDeployment or WatchDeploymentLogs is true")
+		return errors.New("deploymentName and DeploymentNamespace are expected if WaitForDeployment or WatchDeploymentLogs is true")
 	}
 	return nil
 }

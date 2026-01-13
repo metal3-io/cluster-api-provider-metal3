@@ -18,12 +18,13 @@ package controllers
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -98,7 +99,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
 	patchHelper, err := v1beta1patch.NewHelper(capm3Machine, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init patch helper")
+		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	defer func() {
 		if err = patchMetal3Machine(ctx, patchHelper, capm3Machine); err != nil {
@@ -111,7 +112,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, capm3Machine.ObjectMeta)
 
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "Metal3Machine's owner Machine could not be retrieved")
+		return ctrl.Result{}, fmt.Errorf("metal3Machine's owner Machine could not be retrieved: %w", err)
 	}
 	if capiMachine == nil {
 		machineLog.Info("Waiting for Machine Controller to set OwnerRef on Metal3Machine")
@@ -179,7 +180,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Create a helper for managing the baremetal container hosting the machine.
 	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, metal3Cluster, capiMachine, capm3Machine, machineLog)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the machineMgr")
+		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the machineMgr: %w", err)
 	}
 
 	// Check pause annotation on associated bmh (if any)
@@ -496,7 +497,7 @@ func (r *Metal3MachineReconciler) ClusterToMetal3Machines(ctx context.Context, o
 	c, ok := o.(*clusterv1.Cluster)
 
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Cluster but got a %T", o),
+		r.Log.Error(fmt.Errorf("expected a Cluster but got a %T", o),
 			"failed to get Metal3Machine for Cluster",
 		)
 		return nil
@@ -530,7 +531,7 @@ func (r *Metal3MachineReconciler) Metal3ClusterToMetal3Machines(ctx context.Cont
 	result := []ctrl.Request{}
 	c, ok := o.(*infrav1.Metal3Cluster)
 	if !ok {
-		r.Log.Error(errors.Errorf("expected a Metal3Cluster but got a %T", o),
+		r.Log.Error(fmt.Errorf("expected a Metal3Cluster but got a %T", o),
 			"failed to get Metal3Machine for Metal3Cluster",
 		)
 		return nil
@@ -582,7 +583,7 @@ func (r *Metal3MachineReconciler) BareMetalHostToMetal3Machines(_ context.Contex
 			}
 		}
 	} else {
-		r.Log.Error(errors.Errorf("expected a BareMetalHost but got a %T", obj),
+		r.Log.Error(fmt.Errorf("expected a BareMetalHost but got a %T", obj),
 			"failed to get Metal3Machine for BareMetalHost",
 		)
 	}
@@ -597,7 +598,7 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(_ context.Cont
 		for _, ownerRef := range m3dc.OwnerReferences {
 			oGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 			if err != nil {
-				r.Log.Error(errors.Errorf("Failed to parse the group and version %v", ownerRef.APIVersion),
+				r.Log.Error(fmt.Errorf("failed to parse the group and version %v", ownerRef.APIVersion),
 					"failed to get Metal3Machine for BareMetalHost",
 				)
 				continue
@@ -615,7 +616,7 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(_ context.Cont
 			}
 		}
 	} else {
-		r.Log.Error(errors.Errorf("expected a Metal3DataClaim but got a %T", obj),
+		r.Log.Error(fmt.Errorf("expected a Metal3DataClaim but got a %T", obj),
 			"failed to get Metal3Machine for Metal3DataClaim",
 		)
 	}
@@ -633,7 +634,7 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(_ context.Context, 
 			}
 			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
 			if err != nil {
-				r.Log.Error(errors.Errorf("Failed to parse the group and version %v", ownerRef.APIVersion),
+				r.Log.Error(fmt.Errorf("failed to parse the group and version %v", ownerRef.APIVersion),
 					"failed to get Metal3Machine for BareMetalHost",
 				)
 				continue
@@ -649,7 +650,7 @@ func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(_ context.Context, 
 			})
 		}
 	} else {
-		r.Log.Error(errors.Errorf("expected a Metal3Data but got a %T", obj),
+		r.Log.Error(fmt.Errorf("expected a Metal3Data but got a %T", obj),
 			"failed to get Metal3Machine for Metal3Data",
 		)
 	}
@@ -678,5 +679,5 @@ func checkMachineError(machineMgr baremetal.MachineManagerInterface, err error,
 			return reconcile.Result{}, nil
 		}
 	}
-	return ctrl.Result{}, errors.Wrap(err, errMessage)
+	return ctrl.Result{}, fmt.Errorf("%s: %w", errMessage, err)
 }

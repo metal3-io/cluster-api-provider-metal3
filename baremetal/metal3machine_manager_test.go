@@ -19,6 +19,7 @@ package baremetal
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -28,7 +29,6 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -2869,7 +2869,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			if tc.ExpectRequeue {
 				var reconcileError ReconcileError
 				ok := errors.As(err, &reconcileError)
-				log.Println(errors.Cause(err))
+				log.Println(RootCause(err))
 				Expect(ok).To(BeTrue())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
