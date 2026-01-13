@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/metal3-io/ip-address-manager/api v1.12.0
-	github.com/onsi/gomega v1.38.3
+	github.com/onsi/gomega v1.39.0
 	github.com/pkg/errors v0.9.1
 	k8s.io/api v0.34.3
 	k8s.io/apiextensions-apiserver v0.34.3
