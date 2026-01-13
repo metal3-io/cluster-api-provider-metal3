@@ -1,0 +1,5 @@
+# Hide generated CRD yamls by default in the Github diff UX
+**/config/crd/bases/*.yaml linguist-generated=true
+
+# Hide generated Go files (deepcopy, mocks)
+**/zz_generated*.go linguist-generated=true
