@@ -216,6 +216,84 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
 "
 ```
 
+## Pod Placement Configuration
+
+By default, CAPM3 controller pods are configured with tolerations and node affinity
+to prefer running on control-plane or infrastructure nodes rather than regular
+workload nodes. This ensures that CAPM3 infrastructure components do not compete
+with user workloads for resources.
+
+### Default Configuration
+
+The default deployment includes:
+
+- **Tolerations**: Allow pods to run on control-plane nodes (which typically have
+  taints)
+  - `node-role.kubernetes.io/master:NoSchedule`
+  - `node-role.kubernetes.io/control-plane:NoSchedule`
+
+- **Node Affinity**: Require pods to run on control-plane or infrastructure nodes
+  - **Required**: Pods will only schedule on nodes with one of these labels:
+    - `node-role.kubernetes.io/control-plane`
+    - `node-role.kubernetes.io/master` (for older clusters)
+    - `node-role.kubernetes.io/infra` (for dedicated infra nodes)
+  - **Preferred**: Among eligible nodes, prefers control-plane nodes first, then
+    infra nodes
+
+This ensures CAPM3 pods do not run on regular worker nodes and only schedule on
+control-plane or infrastructure nodes. The tolerations ensure pods can run on
+tainted control-plane nodes.
+
+### Customizing Pod Placement
+
+The default configuration requires pods to run on control-plane or infra nodes.
+If you need to customize this behavior (e.g., to allow pods on worker nodes for
+development environments), you can modify the deployment or use the example
+patches as a reference:
+
+```bash
+kubectl patch deployment capm3-controller-manager -n capm3-system \
+  --patch-file examples/provider-components/manager_node_affinity_patch.yaml
+```
+
+Or use it with kustomize by adding it as a patch in your kustomization.yaml:
+
+```yaml
+patches:
+- path: examples/provider-components/manager_node_affinity_patch.yaml
+```
+
+This patch adds a `requiredDuringSchedulingIgnoredDuringExecution` node affinity
+that ensures pods will only schedule on nodes with:
+- `node-role.kubernetes.io/control-plane` label, OR
+- `node-role.kubernetes.io/master` label, OR
+- `node-role.kubernetes.io/infra` label
+
+### Using Dedicated Infrastructure Nodes
+
+If your cluster has dedicated infrastructure nodes (labeled with
+`node-role.kubernetes.io/infra`), CAPM3 pods will prefer these nodes. To ensure
+infra nodes are not used for regular workloads, you should:
+
+1. Label your infrastructure nodes:
+   ```bash
+   kubectl label node <node-name> node-role.kubernetes.io/infra=""
+   ```
+
+2. Taint the infrastructure nodes to prevent regular workloads:
+   ```bash
+   kubectl taint nodes <node-name> node-role.kubernetes.io/infra:NoSchedule
+   ```
+
+3. Apply the tolerations patch (already included in default deployment) to allow
+   CAPM3 pods to run on these tainted nodes.
+
+### Custom Configuration
+
+You can customize pod placement by creating your own patch file. See
+`examples/provider-components/manager_tolerations_patch.yaml` and
+`examples/provider-components/manager_node_affinity_patch.yaml` for examples.
+
 ## Pivoting or updating Ironic
 
 Before running the `move` command of Clusterctl, elements such as Ironic if

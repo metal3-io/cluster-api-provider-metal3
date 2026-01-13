@@ -1,4 +1,15 @@
 ---
+# This patch adds tolerations to allow CAPM3 controller pods to run on
+# control-plane nodes (which typically have taints).
+#
+# Note: The default deployment already includes tolerations for control-plane nodes.
+# This patch is provided for reference or if you need to add additional tolerations.
+#
+# For node affinity configuration to prefer/require control-plane or infra nodes,
+# see manager_node_affinity_patch.yaml
+#
+# To use this patch, apply it after deploying CAPM3:
+# kubectl patch deployment capm3-controller-manager -n capm3-system --patch-file examples/provider-components/manager_tolerations_patch.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
