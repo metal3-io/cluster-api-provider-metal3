@@ -206,9 +206,8 @@ planes:
 
 <!-- markdownlint-disable MD013 -->
 | KUBERNETES_N0_VERSION | KUBERNETES_N1_VERSION | KUBERNETES_N2_VERSION | KUBERNETES_N3_VERSION |
-| ********************* | ********************* | ********************* | ********************* |
-|       v1.31.13        |        v1.32.9        |       v1.33.5         |        v1.34.1        |
-| ********************* | ********************* | ********************* | ********************* |
+| --------------------- | --------------------- | --------------------- | --------------------- |
+|       v1.32.9         |        v1.33.5        |       v1.34.1         |        v1.35.0        |
 <!-- markdownlint-enable MD013 -->
 
 ### K8s conformance tests
@@ -261,8 +260,8 @@ Current e2e tests use the following Kubernetes versions for source and target
 clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
-| ------------------- | ----------------- | -------------------- | -------------------- |
-| integration         | v1.35.0           | v1.35.0              | x                    |
-| remediation         | v1.35.0           | v1.35.0              | x                    |
-| pivot based feature | v1.35.0           | v1.35.0              | v1.35.0              |
-| upgrade             | v1.35.0           | v1.35.0              | v1.35.0              |
+| ------------------- | ----------------- | --------------------| -------------------- |
+| integration         | v1.35.0           | v1.35.0             | x                    |
+| remediation         | v1.35.0           | v1.35.0             | x                    |
+| pivot based feature | v1.35.0           | v1.35.0             | v1.35.0              |
+| upgrade             | v1.35.0           | v1.35.0             | v1.35.0              |
