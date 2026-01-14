@@ -285,8 +285,8 @@ infra nodes are not used for regular workloads, you should:
    kubectl taint nodes <node-name> node-role.kubernetes.io/infra:NoSchedule
    ```
 
-3. Apply the tolerations patch (already included in default deployment) to allow
-   CAPM3 pods to run on these tainted nodes.
+3. No additional tolerations patch is required; it is already included in the
+   default CAPM3 deployment and allows CAPM3 pods to run on these tainted nodes.
 
 ### Custom Configuration
 

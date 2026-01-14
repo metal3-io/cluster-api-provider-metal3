@@ -1,8 +1,8 @@
 ---
-# This patch adds node affinity to ensure CAPM3 controller pods prefer
-# control-plane or infra nodes over regular worker nodes.
-# This is useful when you want to ensure CAPM3 pods run on dedicated
-# infrastructure nodes rather than worker nodes.
+# This patch adds node affinity to require CAPM3 controller pods to run only on
+# control-plane, master, or infra nodes instead of regular worker nodes.
+# Within those eligible nodes, it prefers control-plane/master nodes over infra
+# nodes so CAPM3 pods run on dedicated infrastructure-focused nodes.
 #
 # To use this patch, apply it after deploying CAPM3:
 # kubectl patch deployment capm3-controller-manager -n capm3-system --patch-file examples/provider-components/manager_node_affinity_patch.yaml
