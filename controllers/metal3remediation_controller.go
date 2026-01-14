@@ -80,7 +80,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	defer func() {
 		// Always attempt to Patch the Remediation object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
-		patchOpts := []v1beta1patch.Option{}
+		patchOpts := make([]v1beta1patch.Option, 0, 1)
 		patchOpts = append(patchOpts, v1beta1patch.WithStatusObservedGeneration{})
 
 		patchErr := helper.Patch(ctx, metal3Remediation, patchOpts...)

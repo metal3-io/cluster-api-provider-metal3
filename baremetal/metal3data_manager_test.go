@@ -636,7 +636,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test getAddressesFromPool",
 		func(tc testCaseGetAddressesFromPool) {
-			objects := []client.Object{}
+			objects := make([]client.Object, 0, len(tc.m3IPClaims)+len(tc.ipClaims))
 			for _, claimName := range tc.m3IPClaims {
 				claim := &ipamv1.IPClaim{
 					ObjectMeta: testObjectMeta(metal3DataName+"-"+claimName, namespaceName, ""),
@@ -1387,7 +1387,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test releaseAddressesFromPool",
 		func(tc testCaseReleaseAddressesFromPool) {
-			objects := []client.Object{}
+			objects := make([]client.Object, 0, len(tc.m3IPClaims)+len(tc.ipClaims))
 			for _, poolName := range tc.m3IPClaims {
 				objects = append(objects, &ipamv1.IPClaim{
 					ObjectMeta: testObjectMeta(metal3DataName+"-"+poolName, namespaceName, ""),
@@ -1987,7 +1987,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 	DescribeTable("Test releaseAddressFromM3Pool with multiple namespaces",
 		func(tc testCaseMultiReleaseAddressFromM3Pool) {
-			objects := []client.Object{}
+			objects := make([]client.Object, 0, len(tc.ipClaims))
 			for i := range tc.ipClaims {
 				// To make the test entries a bit smaller, we add the
 				// .spec.pool here based on the labels.

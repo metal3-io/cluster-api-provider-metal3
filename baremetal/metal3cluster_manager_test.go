@@ -389,10 +389,8 @@ func descendantsSetup(tc descendantsTestCase) *ClusterManager {
 	bmCluster := newMetal3Cluster(metal3ClusterName, tc.OwnerRef,
 		nil, nil,
 	)
-	objects := []client.Object{
-		cluster,
-		bmCluster,
-	}
+	objects := make([]client.Object, 0, 2+len(tc.Machines))
+	objects = append(objects, cluster, bmCluster)
 	for _, machine := range tc.Machines {
 		objects = append(objects, machine)
 	}

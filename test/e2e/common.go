@@ -225,7 +225,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		Logf("Local image %v is not found \nDownloading..", rawImagePath)
 		err = DownloadFile(imagePath, fmt.Sprintf("%s/%s", imageLocation, imageName))
 		Expect(err).ToNot(HaveOccurred())
-		cmd := exec.Command("qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
+		cmd := exec.CommandContext(context.Background(), "qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
 		err = cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
 		var sha256sum []byte
@@ -246,7 +246,7 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 func DownloadFile(filePath string, url string) error {
 	// TODO: Lets change the wget to use go's native http client when network
 	// more resilient
-	cmd := exec.Command("wget", "-O", filePath, url)
+	cmd := exec.CommandContext(context.Background(), "wget", "-O", filePath, url)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("wget failed: %w, output: %s", err, string(output))

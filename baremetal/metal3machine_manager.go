@@ -2054,7 +2054,7 @@ func (m *MachineManager) getNodeByProviderID(ctx context.Context, providerIDLega
 }
 
 func getNodeNames(nodes []corev1.Node) string {
-	names := []string{}
+	names := make([]string, 0, len(nodes))
 
 	for _, node := range nodes {
 		names = append(names, node.GetName())

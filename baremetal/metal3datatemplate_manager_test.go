@@ -138,7 +138,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test getIndexes",
 		func(tc testGetIndexes) {
-			objects := []client.Object{}
+			objects := make([]client.Object, 0, len(tc.indexes))
 			for _, address := range tc.indexes {
 				objects = append(objects, address)
 			}
@@ -242,7 +242,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test UpdateDatas",
 		func(tc testCaseUpdateDatas) {
-			objects := []client.Object{}
+			objects := make([]client.Object, 0, len(tc.datas)+len(tc.dataClaims))
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
@@ -498,7 +498,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test CreateAddresses",
 		func(tc testCaseCreateAddresses) {
-			objects := []client.Object{}
+			objects := make([]client.Object, 0, len(tc.datas))
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
@@ -646,7 +646,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 
 	DescribeTable("Test DeleteAddresses",
 		func(tc testCaseDeleteDatas) {
-			objects := []client.Object{}
+			objects := make([]client.Object, 0, len(tc.datas))
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}

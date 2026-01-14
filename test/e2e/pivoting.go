@@ -102,7 +102,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	// target log collection. There is possibility to handle the kubeconfig in better way.
 	// KubeconfigPathTemp will be used by project-infra target log collection only incase of failed e2e test
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
-	cmd := exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
+	cmd := exec.CommandContext(ctx, "cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
 	Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
@@ -399,7 +399,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		bmoPath := input.E2EConfig.MustGetVariable("BMOPATH")
 		ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 		//#nosec G204:gosec
-		cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
+		cmd := exec.CommandContext(ctx, "sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 		var stdoutStderr []byte
 		stdoutStderr, err = cmd.CombinedOutput()
 		Logf("Output: %s", stdoutStderr)
@@ -521,7 +521,7 @@ func fetchContainerLogs(containerNames *[]string, folder string, containerComman
 		By(fmt.Sprintf("Create log directory for container %s at %s", name, logDir))
 		createDirIfNotExist(logDir)
 		By("Fetch logs for container " + name)
-		cmd := exec.Command("sudo", containerCommand, "logs", name) // #nosec G204:gosec
+		cmd := exec.CommandContext(context.Background(), "sudo", containerCommand, "logs", name) // #nosec G204:gosec
 		out, err := cmd.Output()
 		if err != nil {
 			writeErr := os.WriteFile(filepath.Join(logDir, "stderr.log"), []byte(err.Error()), 0400)
