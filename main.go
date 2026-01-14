@@ -434,7 +434,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		},
 	}
 
-	crdMigratorSkipPhases := []crdmigrator.Phase{}
+	crdMigratorSkipPhases := make([]crdmigrator.Phase, 0, len(skipCRDMigrationPhases))
 	for _, p := range skipCRDMigrationPhases {
 		crdMigratorSkipPhases = append(crdMigratorSkipPhases, crdmigrator.Phase(p))
 	}

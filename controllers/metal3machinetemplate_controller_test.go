@@ -265,7 +265,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 			m = baremetal_mocks.NewMockTemplateManagerInterface(mockController)
 			mf = baremetal_mocks.NewMockManagerFactoryInterface(mockController)
 			fakeClientBuilder = fake.NewClientBuilder()
-			objects = []client.Object{}
+			objects = make([]client.Object, 0, 1)
 			objects = append(objects, tc.common.m3mTemplate)
 			fakeClient = fakeClientBuilder.WithScheme(setupScheme()).WithObjects(objects...).Build()
 
