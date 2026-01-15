@@ -97,7 +97,7 @@ func (webhook *Metal3Cluster) ValidateDelete(_ context.Context, _ runtime.Object
 	return nil, nil
 }
 
-func (webhook *Metal3Cluster) validate(oldM3C, newM3C *infrav1.Metal3Cluster) error {
+func (webhook *Metal3Cluster) validate(_ *infrav1.Metal3Cluster, newM3C *infrav1.Metal3Cluster) error {
 	var allErrs field.ErrorList
 	if newM3C.Spec.ControlPlaneEndpoint.Host == "" {
 		allErrs = append(
@@ -120,36 +120,6 @@ func (webhook *Metal3Cluster) validate(oldM3C, newM3C *infrav1.Metal3Cluster) er
 					"cloudProviderEnabled conflicts the value of noCloudProvider",
 				),
 			)
-		}
-	}
-
-	if oldM3C != nil {
-		// Validate cloudProviderEnabled
-		if newM3C.Spec.CloudProviderEnabled != nil && oldM3C.Spec.NoCloudProvider != nil {
-			if *newM3C.Spec.CloudProviderEnabled == *oldM3C.Spec.NoCloudProvider {
-				allErrs = append(
-					allErrs,
-					field.Invalid(
-						field.NewPath("spec", "cloudProviderEnabled"),
-						newM3C.Spec.CloudProviderEnabled,
-						"ValidateUpdate failed, cloudProviderEnabled conflicts the value of noCloudProvider",
-					),
-				)
-			}
-		}
-
-		// Validate noCloudProvider
-		if newM3C.Spec.NoCloudProvider != nil && oldM3C.Spec.CloudProviderEnabled != nil {
-			if *newM3C.Spec.NoCloudProvider == *oldM3C.Spec.CloudProviderEnabled {
-				allErrs = append(
-					allErrs,
-					field.Invalid(
-						field.NewPath("spec", "noCloudProvider"),
-						newM3C.Spec.NoCloudProvider,
-						"ValidateUpdate failed, noCloudProvider conflicts the value of cloudProviderEnabled",
-					),
-				)
-			}
 		}
 	}
 
