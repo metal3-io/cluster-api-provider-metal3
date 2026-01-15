@@ -240,6 +240,14 @@ type NetworkDataLinkEthernet struct {
 	// Id is the ID of the interface (used for naming)
 	Id string `json:"id"` //nolint:stylecheck,revive
 
+	// Name is the interface name to be used by cloud-init. When combined with
+	// MACAddress, cloud-init will rename the interface matching the MAC to this name.
+	// When MACAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
+	// +optional
+	Name string `json:"name,omitempty"`
+
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	// MTU is the MTU of the interface
@@ -265,6 +273,14 @@ type NetworkDataLinkBond struct {
 
 	// Id is the ID of the interface (used for naming)
 	Id string `json:"id"` //nolint:stylecheck,revive
+
+	// Name is the interface name to be used by cloud-init. When combined with
+	// MACAddress, cloud-init will rename the interface matching the MAC to this name.
+	// When MACAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
+	// +optional
+	Name string `json:"name,omitempty"`
 
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
@@ -295,6 +311,14 @@ type NetworkDataLinkVlan struct {
 
 	// Id is the ID of the interface (used for naming)
 	Id string `json:"id"` //nolint:stylecheck,revive
+
+	// Name is the interface name to be used by cloud-init. When combined with
+	// MACAddress, cloud-init will rename the interface matching the MAC to this name.
+	// When MACAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
+	// +optional
+	Name string `json:"name,omitempty"`
 
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000

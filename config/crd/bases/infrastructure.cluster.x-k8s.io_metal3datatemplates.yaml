@@ -429,6 +429,14 @@ spec:
                               description: MTU is the MTU of the interface
                               maximum: 9000
                               type: integer
+                            name:
+                              description: |-
+                                Name is the interface name to be used by cloud-init. When combined with
+                                MACAddress, cloud-init will rename the interface matching the MAC to this name.
+                                When MACAddress is omitted, cloud-init will use this name directly.
+                              maxLength: 15
+                              pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
+                              type: string
                             parameters:
                               additionalProperties:
                                 x-kubernetes-preserve-unknown-fields: true
@@ -492,6 +500,14 @@ spec:
                               description: MTU is the MTU of the interface
                               maximum: 9000
                               type: integer
+                            name:
+                              description: |-
+                                Name is the interface name to be used by cloud-init. When combined with
+                                MACAddress, cloud-init will rename the interface matching the MAC to this name.
+                                When MACAddress is omitted, cloud-init will use this name directly.
+                              maxLength: 15
+                              pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
+                              type: string
                             type:
                               description: |-
                                 Type is the type of the ethernet link. It can be one of:
@@ -564,6 +580,14 @@ spec:
                               description: MTU is the MTU of the interface
                               maximum: 9000
                               type: integer
+                            name:
+                              description: |-
+                                Name is the interface name to be used by cloud-init. When combined with
+                                MACAddress, cloud-init will rename the interface matching the MAC to this name.
+                                When MACAddress is omitted, cloud-init will use this name directly.
+                              maxLength: 15
+                              pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
+                              type: string
                             vlanID:
                               description: VlanID is the Vlan ID
                               maximum: 4096
