@@ -131,8 +131,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0=
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
-github.com/metal3-io/baremetal-operator/apis v0.11.3 h1:+O8Vu/JOzJ6eKfuTQUhXOxmmrzxRLSd7nYON4ubnJQ4=
-github.com/metal3-io/baremetal-operator/apis v0.11.3/go.mod h1:wOZiBksaA0isveF6A9c7IJnoT6dpmRlhXmSJ8m6PiZI=
+github.com/metal3-io/baremetal-operator/apis v0.11.4 h1:3Tqujfdi0J+W6c3Iu1kjxC9fb4nCRtqyFKEw7cQA4Z0=
+github.com/metal3-io/baremetal-operator/apis v0.11.4/go.mod h1:wOZiBksaA0isveF6A9c7IJnoT6dpmRlhXmSJ8m6PiZI=
 github.com/metal3-io/cluster-api-provider-metal3 v1.11.3 h1:tl2PIRSPIkD4bE1b7wd+lzKFgKok8H6z1GG9utj1es8=
 github.com/metal3-io/cluster-api-provider-metal3 v1.11.3/go.mod h1:oZUG5TRzqlDZ/zS4PLBvkNHg6lJmxBt/HWiNCU5nOqc=
 github.com/metal3-io/cluster-api-provider-metal3/api v1.11.3 h1:83k+GdJqV8lBVdArHWYwuhWHMEl+fvIal+QXlke0XbM=
