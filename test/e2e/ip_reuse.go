@@ -59,12 +59,13 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	Expect(helper.Patch(ctx, kcpObj)).To(Succeed())
 
 	Byf("Wait until %d Control Plane machines become running and updated with the new %s k8s version", numberOfControlplane, toK8sVersion)
-	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+	runningAndUpgradedKCPMachines := func(machine clusterv1.Machine) bool {
 		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
 		upgraded := machine.Spec.Version == toK8sVersion
-		return (running && upgraded)
+		_, isControlPlane := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
+		return running && upgraded && isControlPlane
 	}
-	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+	WaitForNumMachines(ctx, runningAndUpgradedKCPMachines, WaitForNumInput{
 		Client:    managementClusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  int(numberOfControlplane),

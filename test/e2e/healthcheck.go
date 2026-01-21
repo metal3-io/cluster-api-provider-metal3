@@ -33,7 +33,7 @@ type HealthCheckInput struct {
 	SpecName              string
 }
 
-func healthcheck(ctx context.Context, inputGetter func() HealthCheckInput) {
+func HealthCheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	input := inputGetter()
 	bootstrapClusterClient := input.BootstrapClusterProxy.GetClient()
 	namespace := input.Namespace
