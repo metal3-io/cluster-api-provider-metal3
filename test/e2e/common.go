@@ -1372,12 +1372,13 @@ func UpgradeControlPlane(ctx context.Context, inputGetter func() UpgradeControlP
 	})
 
 	Byf("Wait until %d Control Plane machine(s) become running and updated with the new %s k8s version", numberOfControlplane, k8sToVersion)
-	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+	runningAndUpgradedKCPMachines := func(machine clusterv1.Machine) bool {
 		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
 		upgraded := machine.Spec.Version == k8sToVersion
-		return (running && upgraded)
+		_, isControlPlane := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
+		return running && upgraded && isControlPlane
 	}
-	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+	WaitForNumMachines(ctx, runningAndUpgradedKCPMachines, WaitForNumInput{
 		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(namespace)},
 		Replicas:  numberOfControlplane,
@@ -1408,7 +1409,7 @@ func UpgradeControlPlane(ctx context.Context, inputGetter func() UpgradeControlP
 
 	// Verify that all control plane nodes are using the k8s version
 	Byf("Verify all %d control plane machines become running and updated with new %s k8s version", numberOfControlplane, k8sToVersion)
-	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+	WaitForNumMachines(ctx, runningAndUpgradedKCPMachines, WaitForNumInput{
 		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(namespace)},
 		Replicas:  numberOfControlplane,

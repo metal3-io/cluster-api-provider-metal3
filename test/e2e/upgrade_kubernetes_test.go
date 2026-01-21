@@ -144,12 +144,13 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	})
 
 	Byf("Wait until three Control Plane machines become running and updated with the new %s k8s version", upgradedK8sVersion)
-	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+	runningAndUpgradedKCPMachines := func(machine clusterv1.Machine) bool {
 		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
 		upgraded := machine.Spec.Version == upgradedK8sVersion
-		return (running && upgraded)
+		_, isControlPlane := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
+		return running && upgraded && isControlPlane
 	}
-	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
+	WaitForNumMachines(ctx, runningAndUpgradedKCPMachines, WaitForNumInput{
 		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(namespace)},
 		Replicas:  numberOfControlplane,
@@ -224,16 +225,27 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-provisioned"),
 	})
 
-	Byf("Wait until the worker machine becomes running")
-	WaitForNumMachinesInState(ctx, clusterv1.MachinePhaseRunning, WaitForNumInput{
+	Byf("Wait until worker machine becomes running and updated with new %s k8s version", upgradedK8sVersion)
+	runningAndUpgradedWorkerMachines := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		upgraded := machine.Spec.Version == upgradedK8sVersion
+		_, isControlPlane := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]
+		return running && upgraded && !isControlPlane
+	}
+	WaitForNumMachines(ctx, runningAndUpgradedWorkerMachines, WaitForNumInput{
 		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(namespace)},
-		Replicas:  numberOfAllBmh,
+		Replicas:  numberOfWorkers,
 		Intervals: e2eConfig.GetIntervals(specName, "wait-machine-running"),
 	})
 
 	// Verify that all nodes is using the k8s version
 	Byf("Verify all machines become running and updated with new %s k8s version", upgradedK8sVersion)
+	runningAndUpgraded := func(machine clusterv1.Machine) bool {
+		running := machine.Status.GetTypedPhase() == clusterv1.MachinePhaseRunning
+		upgraded := machine.Spec.Version == upgradedK8sVersion
+		return running && upgraded
+	}
 	WaitForNumMachines(ctx, runningAndUpgraded, WaitForNumInput{
 		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(namespace)},
