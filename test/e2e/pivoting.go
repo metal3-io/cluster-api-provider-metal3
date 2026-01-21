@@ -16,7 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -26,17 +25,18 @@ import (
 )
 
 const (
-	bmoPath                      = "BMOPATH"
-	ironicTLSSetup               = "IRONIC_TLS_SETUP"
-	ironicBasicAuth              = "IRONIC_BASIC_AUTH"
-	ironicKeepalived             = "IRONIC_KEEPALIVED"
-	ironicMariadb                = "IRONIC_USE_MARIADB"
-	Kind                         = "kind"
-	NamePrefix                   = "NAMEPREFIX"
-	restartContainerCertUpdate   = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
-	ironicNamespace              = "IRONIC_NAMESPACE"
-	clusterLogCollectionBasePath = "/tmp/target_cluster_logs"
-	Metal3ipamProviderName       = "metal3"
+	bmoPath                               = "BMOPATH"
+	ironicTLSSetup                        = "IRONIC_TLS_SETUP"
+	ironicBasicAuth                       = "IRONIC_BASIC_AUTH"
+	ironicKeepalived                      = "IRONIC_KEEPALIVED"
+	ironicMariadb                         = "IRONIC_USE_MARIADB"
+	Kind                                  = "kind"
+	NamePrefix                            = "NAMEPREFIX"
+	restartContainerCertUpdate            = "RESTART_CONTAINER_CERTIFICATE_UPDATED"
+	ironicNamespace                       = "IRONIC_NAMESPACE"
+	workloadClusterLogCollectionBasePath  = "workload-cluster-logs"
+	bootstrapClusterLogCollectionBasePath = "bootstrap-cluster-logs"
+	Metal3ipamProviderName                = "metal3"
 )
 
 type PivotingInput struct {
@@ -63,11 +63,14 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	ListMachines(ctx, input.BootstrapClusterProxy.GetClient(), client.InNamespace(input.Namespace))
 	ListNodes(ctx, input.TargetCluster.GetClient())
 
-	By("Fetch logs from target cluster before pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "beforePivot"))
-	if err != nil {
-		Logf("Error: %v", err)
-	}
+	FetchManifestsAndLogs(func() FetchManifestsAndLogsInput {
+		return FetchManifestsAndLogsInput{
+			BootstrapClusterProxy: input.BootstrapClusterProxy,
+			WorkloadClusterProxy:  input.TargetCluster,
+			ArtifactFolder:        input.ArtifactFolder,
+			LogCollectionPath:     beforePivotLogCollectionPath,
+		}
+	})
 
 	ironicContainers := []string{
 		"ironic",
@@ -83,17 +86,11 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	}
 
 	By("Fetch container logs")
-	bootstrapCluster := os.Getenv("BOOTSTRAP_CLUSTER")
 	fetchContainerLogs(&generalContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
-	if bootstrapCluster == Kind {
+	if input.BootstrapClusterProxy.GetName() == Kind {
 		fetchContainerLogs(&ironicContainers, input.ArtifactFolder, input.E2EConfig.MustGetVariable("CONTAINER_RUNTIME"))
 	}
 
-	By("Fetch manifest for bootstrap cluster before pivot")
-	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
-	if err != nil {
-		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
-	}
 	By("Fetch target cluster kubeconfig for target cluster log collection")
 	kconfigPathWorkload := input.TargetCluster.GetKubeconfigPath()
 	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
@@ -109,7 +106,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Remove Ironic containers from the source cluster")
 	ironicDeploymentType := IronicDeploymentTypeBMO
-	if bootstrapCluster == Kind {
+	if input.BootstrapClusterProxy.GetName() == Kind {
 		ironicDeploymentType = IronicDeploymentTypeLocal
 	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
 		ironicDeploymentType = IronicDeploymentTypeIrSO
@@ -130,7 +127,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			Name: input.E2EConfig.MustGetVariable(ironicNamespace),
 		},
 	}
-	_, err = targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespaceObj, metav1.CreateOptions{})
+	_, err := targetClusterClientSet.CoreV1().Namespaces().Create(ctx, ironicNamespaceObj, metav1.CreateOptions{})
 	Expect(err).ToNot(HaveOccurred(), "Unable to create the Ironic namespace")
 
 	By("Initialize Provider component in target cluster")
@@ -367,19 +364,14 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	numberOfControlplane := int(*input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
 
-	By("Fetch logs from target cluster after pivot")
-	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "afterPivot"))
-	if err != nil {
-		Logf("Error: %v", err)
-	}
-
-	By("Fetch manifest for workload cluster after pivot")
-	workloadClusterProxy := framework.NewClusterProxy("workload-cluster-after-pivot", os.Getenv("KUBECONFIG"), runtime.NewScheme())
-	err = FetchManifests(workloadClusterProxy, "/tmp/manifests/")
-	if err != nil {
-		Logf("Error fetching manifests for workload cluster after pivot: %v", err)
-	}
-	os.Unsetenv("KUBECONFIG_WORKLOAD")
+	FetchManifestsAndLogs(func() FetchManifestsAndLogsInput {
+		return FetchManifestsAndLogsInput{
+			BootstrapClusterProxy: input.BootstrapClusterProxy,
+			WorkloadClusterProxy:  input.TargetCluster,
+			ArtifactFolder:        input.ArtifactFolder,
+			LogCollectionPath:     afterPivotLogCollectionPath,
+		}
+	})
 
 	By("Remove Ironic deployment from target cluster")
 	ironicDeploymentType := IronicDeploymentTypeBMO
@@ -401,14 +393,14 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		//#nosec G204:gosec
 		cmd := exec.CommandContext(ctx, "sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 		var stdoutStderr []byte
-		stdoutStderr, err = cmd.CombinedOutput()
+		stdoutStderr, err := cmd.CombinedOutput()
 		Logf("Output: %s", stdoutStderr)
 		Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")
 	} else {
 		By("Install Ironic in the bootstrap cluster")
 		ironicKustomization := input.E2EConfig.MustGetVariable("IRONIC_RELEASE_PR_TEST")
 		ironicDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "ironic-deploy-logs", input.TargetCluster.GetName())
-		err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+		err := BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 			Kustomization:       ironicKustomization,
 			ClusterProxy:        input.BootstrapClusterProxy,
 			WaitForDeployment:   true,
@@ -425,7 +417,7 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	bmoKustomization := input.E2EConfig.MustGetVariable("BMO_RELEASE_PR_TEST")
 	bmoDeployLogFolder := filepath.Join(os.TempDir(), "source_cluster_logs", "bmo-deploy-logs", input.TargetCluster.GetName())
 	By(fmt.Sprintf("Installing BMO from kustomization %s on the source cluster", bmoKustomization))
-	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+	err := BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
 		Kustomization:       bmoKustomization,
 		ClusterProxy:        input.BootstrapClusterProxy,
 		WaitForDeployment:   true,
@@ -496,11 +488,15 @@ func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
 	})
 
-	By("Fetch manifest for bootstrap cluster after re-pivot")
-	err = FetchManifests(input.BootstrapClusterProxy, "/tmp/manifests/")
-	if err != nil {
-		Logf("Error fetching manifests for bootstrap cluster before pivot: %v", err)
-	}
+	FetchManifestsAndLogs(func() FetchManifestsAndLogsInput {
+		return FetchManifestsAndLogsInput{
+			BootstrapClusterProxy: input.BootstrapClusterProxy,
+			WorkloadClusterProxy:  input.TargetCluster,
+			ArtifactFolder:        input.ArtifactFolder,
+			LogCollectionPath:     afterRePivotLogCollectionPath,
+		}
+	})
+
 	os.Unsetenv("KUBECONFIG_BOOTSTRAP")
 
 	By("RE-PIVOTING TEST PASSED!")
