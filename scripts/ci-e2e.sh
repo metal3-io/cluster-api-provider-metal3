@@ -52,8 +52,13 @@ export KUBERNETES_VERSION=${KUBERNETES_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 export SKIP_NODE_IMAGE_PREPULL="true"
-export USE_IRSO="${USE_IRSO:-false}"
+export IPA_BASEURI=https://artifactory.nordix.org/artifactory/openstack-remote-cache/ironic-python-agent/dib
 EOF
+
+# Set USE_IRSO only when IMAGE_OS is not ubuntu
+if [[ "${IMAGE_OS}" != "ubuntu" ]]; then
+  echo 'export USE_IRSO="true"' >> "${M3_DEV_ENV_PATH}/config_${USER}.sh"
+fi
 
 # Always set DATE variable for nightly builds because it is needed to form
 # the URL for CAPI nightly build components in e2e_conf.yaml even if not used.
@@ -151,20 +156,16 @@ update_kustomize_image() {
   (cd "${kustomize_dir}" && kustomize edit set image "${image_name}=${full_image}")
 }
 
-kustomize_envsubst() {
-  local kustomize_dir="$1"
-  local file="${kustomize_dir}/kustomization.yaml"
+yaml_envsubst() {
+  local dir="$1"
 
-  if [[ ! -f "${file}" ]]; then
-    echo "Error: ${file} does not exist."
-    return 1
-  fi
-
-  local tmp_file
-  tmp_file=$(mktemp)
-
-  envsubst < "${file}" > "${tmp_file}" && mv "${tmp_file}" "${file}"
-  echo "envsubst applied to ${file}"
+  for file in "${dir}"/*.yaml; do
+    if [[ -f "${file}" ]]; then
+      local tmp_file
+      tmp_file=$(mktemp)
+      envsubst < "${file}" > "${tmp_file}" && mv "${tmp_file}" "${file}"
+    fi
+  done
 }
 
 # Generate credentials
@@ -173,37 +174,44 @@ BMO_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.11"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.12"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/pr-test"
-  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-latest"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-main"
 )
-IRONIC_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-31.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-32.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-33.0"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/pr-test"
-  "${REPO_ROOT}/test/e2e/data/ironic-deployment/overlays/release-latest"
+IRSO_IRONIC_OVERLAYS=(
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-31.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-32.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-33.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/main"
 )
 
 # Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
 case "${REPO_NAME:-}" in
   baremetal-operator)
     # shellcheck disable=SC2034
-    BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
+    export BARE_METAL_OPERATOR_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
     ;;
 
   ironic-image)
     # shellcheck disable=SC2034
-    IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
+    export IRONIC_IMAGE="${REGISTRY}/localimages/tested_repo:latest"
     ;;
 esac
 
+export IRONIC_IMAGE="${IRONIC_IMAGE:-quay.io/metal3-io/ironic:main}"
 update_kustomize_image quay.io/metal3-io/baremetal-operator BARE_METAL_OPERATOR_IMAGE "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
-update_kustomize_image quay.io/metal3-io/ironic IRONIC_IMAGE "${REPO_ROOT}"/test/e2e/data/ironic-deployment/overlays/pr-test
 
 # Apply envsubst to kustomization.yaml files in BMO and Ironic overlays
-kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
-kustomize_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-deployment/overlays/pr-test
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/base/
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/operator
 
-# Create usernames and passwords and other files related to ironi basic auth if they
+for overlay in "${IRSO_IRONIC_OVERLAYS[@]}"; do
+  yaml_envsubst "${overlay}"
+done
+
+# Create usernames and passwords and other files related to ironic basic auth if they
 # are missing
 if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
   IRONIC_AUTH_DIR="${IRONIC_AUTH_DIR:-${IRONIC_DATA_DIR}/auth}"
@@ -226,13 +234,19 @@ if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
       IRONIC_PASSWORD="$(cat "${IRONIC_AUTH_DIR}/ironic-password")"
     fi
   fi
-  IRONIC_INSPECTOR_USERNAME="${IRONIC_INSPECTOR_USERNAME:-${IRONIC_USERNAME}}"
-  IRONIC_INSPECTOR_PASSWORD="${IRONIC_INSPECTOR_PASSWORD:-${IRONIC_PASSWORD}}"
 
   export IRONIC_USERNAME
   export IRONIC_PASSWORD
-  export IRONIC_INSPECTOR_USERNAME
-  export IRONIC_INSPECTOR_PASSWORD
+fi
+
+if [[ "${IRONIC_BASIC_AUTH}" == "true" ]]; then
+  echo "${IRONIC_USERNAME}" > "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/ironic-username
+  echo "${IRONIC_PASSWORD}" > "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/ironic-password
+fi
+
+if [[ "${IRONIC_TLS_SETUP}" == "true" ]]; then
+cp "${IRONIC_KEY_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
+cp "${IRONIC_CERT_FILE}" "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
 fi
 
 for overlay in "${BMO_OVERLAYS[@]}"; do
@@ -242,19 +256,6 @@ for overlay in "${BMO_OVERLAYS[@]}"; do
     echo "${IRONIC_INSPECTOR_USERNAME}" > "${overlay}/ironic-inspector-username"
     echo "${IRONIC_INSPECTOR_PASSWORD}" > "${overlay}/ironic-inspector-password"
   fi
-done
-
-for overlay in "${IRONIC_OVERLAYS[@]}"; do
-  echo "IRONIC_HTPASSWD=$(htpasswd -n -b -B "${IRONIC_USERNAME}" "${IRONIC_PASSWORD}")" > \
-    "${overlay}/ironic-htpasswd"
-  envsubst < "${REPO_ROOT}/test/e2e/data/ironic-deployment/components/basic-auth/ironic-auth-config-tpl" > \
-  "${overlay}/ironic-auth-config"
-  IRONIC_INSPECTOR_AUTH_CONFIG_TPL="/tmp/ironic-inspector-auth-config-tpl"
-  curl -o "${IRONIC_INSPECTOR_AUTH_CONFIG_TPL}" https://raw.githubusercontent.com/metal3-io/baremetal-operator/release-0.5/ironic-deployment/components/basic-auth/ironic-inspector-auth-config-tpl
-  envsubst < "${IRONIC_INSPECTOR_AUTH_CONFIG_TPL}" > \
-    "${overlay}/ironic-inspector-auth-config"
-  echo "INSPECTOR_HTPASSWD=$(htpasswd -n -b -B "${IRONIC_INSPECTOR_USERNAME}" \
-    "${IRONIC_INSPECTOR_PASSWORD}")" > "${overlay}/ironic-inspector-htpasswd"
 done
 
 # run e2e tests

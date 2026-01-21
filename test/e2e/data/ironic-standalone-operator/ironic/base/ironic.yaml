@@ -1,0 +1,25 @@
+---
+apiVersion: ironic.metal3.io/v1alpha1
+kind: Ironic
+metadata:
+  name: ironic
+  namespace: ${IRONIC_NAMESPACE}
+spec:
+  apiCredentialsName: ironic-auth
+  images:
+    deployRamdiskBranch: "${IPA_BRANCH}"
+  version: "${IRSO_IRONIC_VERSION}"
+  networking:
+    dhcp:
+      rangeBegin: "${CLUSTER_DHCP_RANGE_START}"
+      rangeEnd: "${CLUSTER_DHCP_RANGE_END}"
+      networkCIDR: "${BARE_METAL_PROVISIONER_NETWORK}"
+    interface: "${BARE_METAL_PROVISIONER_INTERFACE}"
+    ipAddress: "${CLUSTER_BARE_METAL_PROVISIONER_IP}"
+    ipAddressManager: keepalived
+  deployRamdisk:
+    sshKey: "${SSH_PUB_KEY_CONTENT}"
+    extraKernelParams: "console=ttyS0"
+  tls:
+    certificateName: ironic-cert
+---

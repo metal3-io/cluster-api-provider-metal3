@@ -232,7 +232,7 @@ variables:
   IRONIC_BASIC_AUTH: "true"
   IRONIC_KEEPALIVED: "true"
   IRONIC_USE_MARIADB: "false"
-  USE_IRSO: "false"
+  USE_IRSO: "true"
   RESTART_CONTAINER_CERTIFICATE_UPDATED: "true"
   CONTAINER_REGISTRY: "${CONTAINER_REGISTRY:-quay.io}"
   DOCKER_HUB_PROXY: "${DOCKER_HUB_PROXY:-docker.io}"
@@ -265,16 +265,17 @@ variables:
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: 0
-  IRONIC_RELEASE_31.0: "data/ironic-deployment/overlays/release-31.0"
-  IRONIC_RELEASE_32.0: "data/ironic-deployment/overlays/release-32.0"
-  IRONIC_RELEASE_33.0: "data/ironic-deployment/overlays/release-33.0"
-  IRONIC_RELEASE_PR_TEST: "data/ironic-deployment/overlays/pr-test"
-  IRONIC_RELEASE_LATEST: "data/ironic-deployment/overlays/release-latest"
+  IRSO_OPERATOR: "data/ironic-standalone-operator/operator"
+  IRSO_IRONIC_31.0: "data/ironic-standalone-operator/ironic/overlays/release-31.0"
+  IRSO_IRONIC_32.0: "data/ironic-standalone-operator/ironic/overlays/release-32.0"
+  IRSO_IRONIC_33.0: "data/ironic-standalone-operator/ironic/overlays/release-33.0"
+  IRSO_IRONIC_PR_TEST: "data/ironic-standalone-operator/ironic/overlays/pr-test"
+  IRSO_IRONIC_MAIN: "data/ironic-standalone-operator/ironic/overlays/main"
   BMO_RELEASE_0.10: "data/bmo-deployment/overlays/release-0.10"
   BMO_RELEASE_0.11: "data/bmo-deployment/overlays/release-0.11"
   BMO_RELEASE_0.12: "data/bmo-deployment/overlays/release-0.12"
   BMO_RELEASE_PR_TEST: "data/bmo-deployment/overlays/pr-test"
-  BMO_RELEASE_LATEST: "data/bmo-deployment/overlays/release-latest"
+  BMO_RELEASE_MAIN: "data/bmo-deployment/overlays/release-main"
   FKAS_RELEASE_LATEST: "data/fkas"
   REPO_NAME: "${REPO_NAME:cluster-api-provider-metal3}"
   EXP_MACHINE_TAINT_PROPAGATION: "true"
@@ -314,3 +315,4 @@ intervals:
   default/wait-command: [ "2m", "10s" ]
   default/wait-delete-remediation-template: [ "5m", "10s" ]
   default/wait-resource-stabilize: [ "15m", "15s" ]
+  default/wait-delete-ironic: [ "3m" , "5s" ]

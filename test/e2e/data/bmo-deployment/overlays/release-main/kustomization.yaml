@@ -19,7 +19,7 @@ patches:
     name: controller-manager
 images:
 - name: quay.io/metal3-io/baremetal-operator
-  newTag: latest
+  newTag: main
 # We cannot use suffix hashes since the kustomizations we build on
 # cannot be aware of what suffixes we add.
 generatorOptions:

@@ -169,3 +169,7 @@ export PROVIDER_ID_FORMAT="metal3://{{ ds.meta_data.providerid }}"
 
 # Enable the ClusterResourceSet feature flag
 export EXP_CLUSTER_RESOURCE_SET="true"
+
+# IRSO version
+export IRSOBRANCH="release-0.7"
+export IRSOCOMMIT="v0.7.0"
