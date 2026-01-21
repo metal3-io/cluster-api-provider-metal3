@@ -17,15 +17,15 @@ const (
 )
 
 type InspectionInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	Namespace             string
-	SpecName              string
+	E2EConfig            *clusterctl.E2EConfig
+	ClusterctlConfigPath string
+	ClusterProxy         framework.ClusterProxy
+	Namespace            string
+	SpecName             string
 }
 
 // Inspection test request inspection on all the available BMH using annotation.
-func inspection(ctx context.Context, inputGetter func() InspectionInput) {
+func Inspection(ctx context.Context, inputGetter func() InspectionInput) {
 	Logf("Starting inspection tests")
 	input := inputGetter()
 	var (
@@ -33,7 +33,7 @@ func inspection(ctx context.Context, inputGetter func() InspectionInput) {
 		numberOfAvailableBMHs = 2 * numberOfWorkers
 	)
 
-	bootstrapClient := input.BootstrapClusterProxy.GetClient()
+	bootstrapClient := input.ClusterProxy.GetClient()
 
 	Logf("Request inspection for all Available BMHs via API")
 	availableBMHList := bmov1alpha1.BareMetalHostList{}

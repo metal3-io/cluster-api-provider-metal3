@@ -19,16 +19,16 @@ import (
 )
 
 type CertRotationInput struct {
-	E2EConfig         *clusterctl.E2EConfig
-	ManagementCluster framework.ClusterProxy
-	SpecName          string
+	E2EConfig    *clusterctl.E2EConfig
+	ClusterProxy framework.ClusterProxy
+	SpecName     string
 }
 
-func certRotation(ctx context.Context, inputGetter func() CertRotationInput) {
+func CertRotation(ctx context.Context, inputGetter func() CertRotationInput) {
 	Logf("Start the certificate rotation test")
 	input := inputGetter()
-	clientSet := input.ManagementCluster.GetClientSet()
-	clusterClient := input.ManagementCluster.GetClient()
+	clientSet := input.ClusterProxy.GetClientSet()
+	clusterClient := input.ClusterProxy.GetClient()
 	mariadbEnabled := GetBoolVariable(input.E2EConfig, ironicMariadb)
 	By("Check if Ironic pod is running")
 	ironicNamespace := input.E2EConfig.MustGetVariable("NAMEPREFIX") + "-system"
