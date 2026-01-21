@@ -20,7 +20,7 @@ import (
 
 const minK8sVersionOutOfServiceTaint = "1.28"
 
-type NodeRemediation struct {
+type NodeRemediationInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
 	TargetCluster         framework.ClusterProxy
@@ -63,7 +63,7 @@ type NodeRemediation struct {
  * resiliency of the cluster by allowing workloads to be seamlessly migrated from unhealthy nodes to healthy node
  */
 
-func nodeRemediation(ctx context.Context, inputGetter func() NodeRemediation) {
+func NodeRemediation(ctx context.Context, inputGetter func() NodeRemediationInput) {
 	Logf("Starting node remediation tests")
 	input := inputGetter()
 	bootstrapClient := input.BootstrapClusterProxy.GetClient()

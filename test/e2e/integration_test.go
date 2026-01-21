@@ -44,7 +44,7 @@ var _ = Describe("When testing integration", Label("integration"), func() {
 			}
 		})
 		By("Pivot objects to target cluster")
-		pivoting(ctx, func() PivotingInput {
+		Pivoting(ctx, func() PivotingInput {
 			return PivotingInput{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
@@ -66,7 +66,7 @@ var _ = Describe("When testing integration", Label("integration"), func() {
 			ClusterctlConfigPath: clusterctlConfigPath,
 		})
 		By("Repivot objects to the source cluster")
-		rePivoting(ctx, func() RePivotingInput {
+		RePivoting(ctx, func() RePivotingInput {
 			return RePivotingInput{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,

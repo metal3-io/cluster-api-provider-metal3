@@ -53,7 +53,7 @@ type PivotingInput struct {
 }
 
 // Pivoting implements a test that verifies successful moving of management resources (CRs, BMO, Ironic) to a target cluster after initializing it with Provider components.
-func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
+func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Logf("Starting pivoting tests")
 	input := inputGetter()
 	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
@@ -346,7 +346,7 @@ type RePivotingInput struct {
 	ClusterctlConfigPath  string
 }
 
-func rePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
+func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	Logf("Start the re-pivoting test")
 	input := inputGetter()
 	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))

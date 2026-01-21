@@ -25,7 +25,7 @@ type HelmOpts struct {
 	Driver         string
 }
 
-func generateTemplateFromHelmChart(ctx context.Context, opts HelmOpts, manifestOverwriteValues map[string]interface{}, e2econfig *clusterctl.E2EConfig) (string, error) {
+func GenerateTemplateFromHelmChart(ctx context.Context, opts HelmOpts, manifestOverwriteValues map[string]interface{}, e2econfig *clusterctl.E2EConfig) (string, error) {
 	actionConfig, err := initActionConfig(opts)
 	if err != nil {
 		return "", fmt.Errorf("failed to init action config: %w", err)
