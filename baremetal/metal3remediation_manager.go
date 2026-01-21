@@ -118,11 +118,15 @@ func NewRemediationManager(client client.Client, capiClientGetter ClientGetter,
 
 // SetFinalizer sets finalizer. Return if it was set.
 func (r *RemediationManager) SetFinalizer() {
+	r.Log.V(VerbosityLevelTrace).Info("Adding finalizer to Metal3Remediation",
+		LogFieldMetal3Remediation, r.Metal3Remediation.Name)
 	controllerutil.AddFinalizer(r.Metal3Remediation, infrav1.RemediationFinalizer)
 }
 
 // UnsetFinalizer unsets finalizer.
 func (r *RemediationManager) UnsetFinalizer() {
+	r.Log.V(VerbosityLevelTrace).Info("Removing finalizer from Metal3Remediation",
+		LogFieldMetal3Remediation, r.Metal3Remediation.Name)
 	controllerutil.RemoveFinalizer(r.Metal3Remediation, infrav1.RemediationFinalizer)
 }
 
@@ -134,24 +138,33 @@ func (r *RemediationManager) HasFinalizer() bool {
 // TimeToRemediate checks if it is time to execute a next remediation step
 // and returns seconds to next remediation time.
 func (r *RemediationManager) TimeToRemediate(timeout time.Duration) (bool, time.Duration) {
+	r.Log.V(VerbosityLevelTrace).Info("Checking if time to remediate",
+		LogFieldMetal3Remediation, r.Metal3Remediation.Name,
+		LogFieldTimeout, timeout.String())
 	now := time.Now()
 
 	// status is not updated yet
 	if r.Metal3Remediation.Status.LastRemediated == nil {
+		r.Log.V(VerbosityLevelDebug).Info("No last remediation time set")
 		return false, timeout
 	}
 
 	if r.Metal3Remediation.Status.LastRemediated.Add(timeout).Before(now) {
+		r.Log.V(VerbosityLevelDebug).Info("Time to remediate - timeout expired")
 		return true, time.Duration(0)
 	}
 
 	lastRemediated := now.Sub(r.Metal3Remediation.Status.LastRemediated.Time)
 	nextRemediation := timeout - lastRemediated + time.Second
+	r.Log.V(VerbosityLevelDebug).Info("Not yet time to remediate",
+		"nextRemediationIn", nextRemediation.String())
 	return false, nextRemediation
 }
 
 // SetPowerOffAnnotation sets poweroff annotation on unhealthy host.
 func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
+	r.Log.V(VerbosityLevelTrace).Info("Setting PowerOff annotation",
+		LogFieldMetal3Remediation, r.Metal3Remediation.Name)
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return err
@@ -160,7 +173,9 @@ func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
 		return errors.New("unable to set a PowerOff Annotation, Host not found")
 	}
 
-	r.Log.Info("Adding PowerOff annotation to host", "host", host.Name)
+	r.Log.Info("Adding PowerOff annotation to BareMetalHost",
+		LogFieldHost, host.Name,
+		LogFieldNamespace, host.Namespace)
 	rebootMode := bmov1alpha1.RebootAnnotationArguments{}
 	rebootMode.Mode = bmov1alpha1.RebootModeHard
 	marshalledMode, err := json.Marshal(rebootMode)
@@ -178,6 +193,8 @@ func (r *RemediationManager) SetPowerOffAnnotation(ctx context.Context) error {
 
 // RemovePowerOffAnnotation removes poweroff annotation from unhealthy host.
 func (r *RemediationManager) RemovePowerOffAnnotation(ctx context.Context) error {
+	r.Log.V(VerbosityLevelTrace).Info("Removing PowerOff annotation",
+		LogFieldMetal3Remediation, r.Metal3Remediation.Name)
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return err
@@ -186,13 +203,16 @@ func (r *RemediationManager) RemovePowerOffAnnotation(ctx context.Context) error
 		return errors.New("unable to remove PowerOff Annotation, Host not found")
 	}
 
-	r.Log.Info("Removing PowerOff annotation from host", "host name", host.Name)
+	r.Log.Info("Removing PowerOff annotation from BareMetalHost",
+		LogFieldHost, host.Name,
+		LogFieldNamespace, host.Namespace)
 	delete(host.Annotations, r.getPowerOffAnnotationKey())
 	return helper.Patch(ctx, host)
 }
 
 // IsPowerOffRequested returns true if poweroff annotation is set.
 func (r *RemediationManager) IsPowerOffRequested(ctx context.Context) (bool, error) {
+	r.Log.V(VerbosityLevelTrace).Info("Checking if PowerOff is requested")
 	host, _, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return false, err
@@ -202,13 +222,16 @@ func (r *RemediationManager) IsPowerOffRequested(ctx context.Context) (bool, err
 	}
 
 	if _, ok := host.Annotations[r.getPowerOffAnnotationKey()]; ok {
+		r.Log.V(VerbosityLevelDebug).Info("PowerOff annotation is set", LogFieldHost, host.Name)
 		return true, nil
 	}
+	r.Log.V(VerbosityLevelDebug).Info("PowerOff annotation is not set", LogFieldHost, host.Name)
 	return false, nil
 }
 
 // IsPoweredOn returns true if the host is powered on.
 func (r *RemediationManager) IsPoweredOn(ctx context.Context) (bool, error) {
+	r.Log.V(VerbosityLevelTrace).Info("Checking if host is powered on")
 	host, _, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return false, err
@@ -217,11 +240,15 @@ func (r *RemediationManager) IsPoweredOn(ctx context.Context) (bool, error) {
 		return false, errors.New("unable to check power status, Host not found")
 	}
 
+	r.Log.V(VerbosityLevelDebug).Info("Host power status",
+		LogFieldHost, host.Name,
+		LogFieldPoweredOn, host.Status.PoweredOn)
 	return host.Status.PoweredOn, nil
 }
 
 // SetUnhealthyAnnotation sets capm3.UnhealthyAnnotation on unhealthy host.
 func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
+	r.Log.V(VerbosityLevelTrace).Info("Setting Unhealthy annotation")
 	host, helper, err := r.GetUnhealthyHost(ctx)
 	if err != nil {
 		return err
@@ -230,7 +257,9 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 		return errors.New("unable to set an Unhealthy Annotation, Host not found")
 	}
 
-	r.Log.Info("Adding Unhealthy annotation to host", "host", host.Name)
+	r.Log.Info("Adding Unhealthy annotation to BareMetalHost",
+		LogFieldHost, host.Name,
+		LogFieldNamespace, host.Namespace)
 	if host.Annotations == nil {
 		host.Annotations = make(map[string]string, 1)
 	}
@@ -241,10 +270,14 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 // GetUnhealthyHost gets the associated host for unhealthy machine. Returns nil if not found. Assumes the
 // host is in the same namespace as the unhealthy machine.
 func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
+	r.Log.V(VerbosityLevelTrace).Info("Getting unhealthy BareMetalHost")
 	host, err := getUnhealthyHost(ctx, r.Metal3Machine, r.Client, r.Log)
 	if err != nil || host == nil {
 		return host, nil, err
 	}
+	r.Log.V(VerbosityLevelDebug).Info("Found unhealthy BareMetalHost",
+		LogFieldHost, host.Name,
+		LogFieldState, host.Status.Provisioning.State)
 	helper, err := v1beta1patch.NewHelper(host, r.Client)
 	return host, helper, err
 }
@@ -275,7 +308,9 @@ func getUnhealthyHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl 
 	}
 	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
-		rLog.Info("Annotated host not found", "host", hostKey)
+		rLog.Info("Annotated BareMetalHost not found",
+			LogFieldHost, hostName,
+			LogFieldNamespace, hostNamespace)
 		return nil, err
 	} else if err != nil {
 		return nil, err
@@ -314,7 +349,10 @@ func (r *RemediationManager) HasReachRetryLimit() bool {
 
 // SetRemediationPhase setting the state of the remediation.
 func (r *RemediationManager) SetRemediationPhase(phase string) {
-	r.Log.Info("Switching remediation phase", "remediationPhase", phase)
+	r.Log.Info("Switching remediation phase",
+		LogFieldRemediation, r.Metal3Remediation.Name,
+		LogFieldNamespace, r.Metal3Remediation.Namespace,
+		LogFieldPhase, phase)
 	r.Metal3Remediation.Status.Phase = phase
 }
 
@@ -330,7 +368,10 @@ func (r *RemediationManager) GetLastRemediatedTime() *metav1.Time {
 
 // SetLastRemediationTime setting last remediation timestamp on Status.
 func (r *RemediationManager) SetLastRemediationTime(remediationTime *metav1.Time) {
-	r.Log.Info("Last remediation time", "remediationTime", remediationTime)
+	r.Log.V(VerbosityLevelDebug).Info("Setting last remediation time",
+		LogFieldRemediation, r.Metal3Remediation.Name,
+		LogFieldNamespace, r.Metal3Remediation.Namespace,
+		"remediationTime", remediationTime)
 	r.Metal3Remediation.Status.LastRemediated = remediationTime
 }
 
@@ -349,13 +390,19 @@ func (r *RemediationManager) IncreaseRetryCount() {
 func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context) error {
 	capiMachine, err := r.GetCapiMachine(ctx)
 	if err != nil {
-		r.Log.Info("Unable to fetch CAPI Machine")
+		r.Log.Info("Unable to fetch CAPI Machine",
+			LogFieldRemediation, r.Metal3Remediation.Name,
+			LogFieldNamespace, r.Metal3Remediation.Namespace,
+			LogFieldError, err.Error())
 		return err
 	}
 
 	machineHelper, err := v1beta1patch.NewHelper(capiMachine, r.Client)
 	if err != nil {
-		r.Log.Info("Unable to create patch helper for Machine")
+		r.Log.Info("Unable to create patch helper for Machine",
+			LogFieldMachine, capiMachine.Name,
+			LogFieldNamespace, capiMachine.Namespace,
+			LogFieldError, err.Error())
 		return err
 	}
 
@@ -366,7 +413,10 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		"")
 	err = machineHelper.Patch(ctx, capiMachine)
 	if err != nil {
-		r.Log.Info("Unable to patch Machine", "machine", capiMachine)
+		r.Log.Info("Unable to patch Machine",
+			LogFieldMachine, capiMachine.Name,
+			LogFieldNamespace, capiMachine.Namespace,
+			LogFieldError, err.Error())
 		return err
 	}
 	return nil
@@ -376,7 +426,6 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*clusterv1.Machine, error) {
 	capiMachine, err := util.GetOwnerMachine(ctx, r.Client, r.Metal3Remediation.ObjectMeta)
 	if err != nil {
-		r.Log.Error(err, "metal3Remediation's owner Machine could not be retrieved")
 		return nil, fmt.Errorf("metal3Remediation's owner Machine could not be retrieved: %w", err)
 	}
 	return capiMachine, nil
@@ -386,11 +435,9 @@ func (r *RemediationManager) GetCapiMachine(ctx context.Context) (*clusterv1.Mac
 func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV1Interface) (*corev1.Node, error) {
 	capiMachine, err := r.GetCapiMachine(ctx)
 	if err != nil {
-		r.Log.Error(err, "metal3Remediation's node could not be retrieved")
 		return nil, fmt.Errorf("metal3Remediation's node could not be retrieved: %w", err)
 	}
 	if !capiMachine.Status.NodeRef.IsDefined() {
-		r.Log.Error(nil, "metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
 		return nil, errors.New("metal3Remediation's node could not be retrieved, machine's nodeRef is nil")
 	}
 
@@ -398,7 +445,6 @@ func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV
 	if apierrors.IsNotFound(err) {
 		return nil, nil //nolint:nilnil
 	} else if err != nil {
-		r.Log.Error(err, "Could not get cluster node")
 		return nil, fmt.Errorf("could not get cluster node: %w", err)
 	}
 	return node, nil
@@ -408,8 +454,7 @@ func (r *RemediationManager) GetNode(ctx context.Context, clusterClient v1.CoreV
 func (r *RemediationManager) UpdateNode(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error {
 	_, err := clusterClient.Nodes().Update(ctx, node, metav1.UpdateOptions{})
 	if err != nil {
-		r.Log.Error(err, "Could not update cluster node")
-		return fmt.Errorf("could not update cluster node: %w", err)
+		return fmt.Errorf("could not update cluster node %s: %w", node.Name, err)
 	}
 	return nil
 }
@@ -422,8 +467,7 @@ func (r *RemediationManager) DeleteNode(ctx context.Context, clusterClient v1.Co
 
 	err := clusterClient.Nodes().Delete(ctx, node.Name, metav1.DeleteOptions{})
 	if err != nil {
-		r.Log.Error(err, "Could not delete cluster node")
-		return fmt.Errorf("could not delete cluster node: %w", err)
+		return fmt.Errorf("could not delete cluster node %s: %w", node.Name, err)
 	}
 	return nil
 }
@@ -432,19 +476,16 @@ func (r *RemediationManager) DeleteNode(ctx context.Context, clusterClient v1.Co
 func (r *RemediationManager) GetClusterClient(ctx context.Context) (v1.CoreV1Interface, error) {
 	capiMachine, err := r.GetCapiMachine(ctx)
 	if err != nil {
-		r.Log.Error(err, "metal3Remediation's node could not be retrieved")
 		return nil, fmt.Errorf("metal3Remediation's node could not be retrieved: %w", err)
 	}
 
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
 	if err != nil {
-		r.Log.Error(err, "Machine is missing cluster label or cluster does not exist")
 		return nil, fmt.Errorf("machine is missing cluster label or cluster does not exist: %w", err)
 	}
 
 	clusterClient, err := r.CapiClientGetter(ctx, r.Client, cluster)
 	if err != nil {
-		r.Log.Error(err, "Could not get cluster client")
 		return nil, fmt.Errorf("could not get cluster client: %w", err)
 	}
 
@@ -508,72 +549,67 @@ func (r *RemediationManager) AddOutOfServiceTaint(ctx context.Context, clusterCl
 	taint.TimeAdded = &now
 	node.Spec.Taints = append(node.Spec.Taints, *taint)
 	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
-		msg := "failed to add out-of-service taint on node " + node.Name
-		r.Log.Error(err, msg)
-		return fmt.Errorf("%s: %w", msg, err)
+		return fmt.Errorf("failed to add out-of-service taint on node %s: %w", node.Name, err)
 	}
-	r.Log.Info("Out-of-service taint added", "node", node.Name)
+	r.Log.Info("Added out-of-service taint", LogFieldNode, node.Name)
 	return nil
 }
 
 func (r *RemediationManager) RemoveOutOfServiceTaint(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) error {
 	newTaints := []corev1.Taint{}
 
-	var isPopOutOfServiceTaint bool
+	var hasTaint bool
 	for _, taint := range node.Spec.Taints {
 		if taint.MatchTaint(outOfServiceTaint) {
-			isPopOutOfServiceTaint = true
+			hasTaint = true
 			continue
 		}
 		newTaints = append(newTaints, taint)
 	}
 
-	if isPopOutOfServiceTaint {
-		r.Log.Info("Removing out-of-service taint from node taints", "node", node.Name)
-		node.Spec.Taints = newTaints
-	} else {
-		r.Log.Info("Out-of-service taint not found. Nothing to do", "node name", node.Name)
+	if !hasTaint {
 		return nil
 	}
 
+	node.Spec.Taints = newTaints
 	if err := r.UpdateNode(ctx, clusterClient, node); err != nil {
-		msg := "failed to remove out-of-service taint on node " + node.Name
-		r.Log.Error(err, msg)
-		return fmt.Errorf("%s: %w", msg, err)
+		return fmt.Errorf("failed to remove out-of-service taint on node %s: %w", node.Name, err)
 	}
 
-	r.Log.Info("Out-of-service taint removed", "node", node.Name)
+	r.Log.Info("Removed out-of-service taint", LogFieldNode, node.Name)
 	return nil
 }
 
 func (r *RemediationManager) IsNodeDrained(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) bool {
 	pods, err := clusterClient.Pods("").List(ctx, metav1.ListOptions{})
 	if err != nil {
-		r.Log.Error(err, "failed to get pod list in the cluster")
+		r.Log.Error(err, "Failed to list pods in cluster")
 		return false
 	}
 
 	for _, pod := range pods.Items {
-		if pod.Spec.NodeName == node.Name {
-			if pod.ObjectMeta.DeletionTimestamp != nil {
-				r.Log.Info("Waiting for terminating pod", "node", node.Name, "pod name", pod.Name, "phase", pod.Status.Phase)
-				return false
-			}
+		if pod.Spec.NodeName == node.Name && pod.ObjectMeta.DeletionTimestamp != nil {
+			r.Log.Info("Waiting for terminating pod",
+				LogFieldNode, node.Name,
+				LogFieldPod, pod.Name)
+			return false
 		}
 	}
 
 	volumeAttachments := &storagev1.VolumeAttachmentList{}
 	if err := r.Client.List(ctx, volumeAttachments); err != nil {
-		r.Log.Error(err, "failed to get volumeAttachments list")
+		r.Log.Error(err, "Failed to list volumeAttachments")
 		return false
 	}
+
 	for _, va := range volumeAttachments.Items {
 		if va.Spec.NodeName == node.Name {
-			r.Log.Info("Waiting for deleting volumeAttachement", "node", node.Name, "name", va.Name)
+			r.Log.Info("Waiting for volumeAttachment deletion",
+				LogFieldNode, node.Name,
+				LogFieldVolumeAttachment, va.Name)
 			return false
 		}
 	}
 
-	r.Log.Info("Node is drained", "node", node.Name)
 	return true
 }

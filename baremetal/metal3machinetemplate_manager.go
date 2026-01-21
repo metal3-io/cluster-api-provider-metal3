@@ -60,7 +60,9 @@ func NewMachineTemplateManager(client client.Client,
 // UpdateAutomatedCleaningMode synchronizes automatedCleaningMode field value between metal3MachineTemplate
 // and all the metal3Machines cloned from this metal3MachineTemplate.
 func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context) error {
-	m.Log.Info("Fetching metal3Machine objects")
+	m.Log.V(VerbosityLevelTrace).Info("UpdateAutomatedCleaningMode: starting",
+		LogFieldMetal3MachineTemplate, m.Metal3MachineTemplate.Name,
+		LogFieldNamespace, m.Metal3MachineTemplate.Namespace)
 
 	// get list of metal3Machine objects
 	m3ms := &infrav1.Metal3MachineList{}
@@ -69,9 +71,12 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 		Namespace: m.Metal3MachineTemplate.Namespace,
 	}
 
+	m.Log.V(VerbosityLevelTrace).Info("Listing Metal3Machine objects")
 	if err := m.client.List(ctx, m3ms, opts); err != nil {
 		return fmt.Errorf("failed to list metal3Machines: %w", err)
 	}
+	m.Log.V(VerbosityLevelDebug).Info("Listed Metal3Machine objects",
+		"totalCount", len(m3ms.Items))
 
 	matchedM3Machines := []*infrav1.Metal3Machine{}
 
@@ -84,20 +89,33 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 		}
 	}
 
+	m.Log.V(VerbosityLevelDebug).Info("Found matching Metal3Machine objects",
+		"matchedCount", len(matchedM3Machines))
+
 	if len(matchedM3Machines) > 0 {
 		for _, m3m := range matchedM3Machines {
 			// don't synchronize AutomatedCleaningMode between metal3MachineTemplate
 			// and metal3Machine if unset in metal3MachineTemplate.
 			if m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode != nil {
+				m.Log.V(VerbosityLevelTrace).Info("Updating automatedCleaningMode",
+					LogFieldMetal3Machine, m3m.Name)
+
 				m3m.Spec.AutomatedCleaningMode = m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode
 
 				if err := m.client.Update(ctx, m3m); err != nil {
 					return fmt.Errorf("failed to update metal3Machine: %s: %w", m3m.Name, err)
 				}
 
-				m.Log.Info("Synchronized automatedCleaningMode between ", "Metal3MachineTemplate", fmt.Sprintf("%v/%v", m.Metal3MachineTemplate.Namespace, m.Metal3MachineTemplate.Name), "Metal3Machine", fmt.Sprintf("%v/%v", m3m.Namespace, m3m.Name))
+				m.Log.V(VerbosityLevelDebug).Info("Synchronized automatedCleaningMode",
+					LogFieldMetal3MachineTemplate, fmt.Sprintf("%v/%v", m.Metal3MachineTemplate.Namespace, m.Metal3MachineTemplate.Name),
+					LogFieldMetal3Machine, fmt.Sprintf("%v/%v", m3m.Namespace, m3m.Name))
+			} else {
+				m.Log.V(VerbosityLevelTrace).Info("Skipping sync - automatedCleaningMode not set in template",
+					LogFieldMetal3Machine, m3m.Name)
 			}
 		}
 	}
+
+	m.Log.V(VerbosityLevelTrace).Info("UpdateAutomatedCleaningMode: completed")
 	return nil
 }

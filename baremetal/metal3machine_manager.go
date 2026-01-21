@@ -166,6 +166,7 @@ func NewMachineSetManager(client client.Client,
 func (m *MachineManager) SetFinalizer() {
 	// If the Metal3Machine doesn't have finalizer, add it.
 	if !controllerutil.ContainsFinalizer(m.Metal3Machine, infrav1.MachineFinalizer) {
+		m.Log.V(VerbosityLevelTrace).Info("Adding finalizer to Metal3Machine")
 		controllerutil.AddFinalizer(m.Metal3Machine, infrav1.MachineFinalizer)
 	}
 }
@@ -173,27 +174,39 @@ func (m *MachineManager) SetFinalizer() {
 // UnsetFinalizer unsets finalizer.
 func (m *MachineManager) UnsetFinalizer() {
 	// Cluster is deleted so remove the finalizer.
+	m.Log.V(VerbosityLevelTrace).Info("Removing finalizer from Metal3Machine")
 	controllerutil.RemoveFinalizer(m.Metal3Machine, infrav1.MachineFinalizer)
 }
 
 // IsProvisioned checks if the metal3machine is provisioned.
 func (m *MachineManager) IsProvisioned() bool {
 	if m.Metal3Machine.Spec.ProviderID != nil && m.Metal3Machine.Status.Ready {
+		m.Log.V(VerbosityLevelTrace).Info("Metal3Machine is provisioned",
+			LogFieldMetal3Machine, m.Metal3Machine.Name,
+			LogFieldProviderID, *m.Metal3Machine.Spec.ProviderID)
 		return true
 	}
+	m.Log.V(VerbosityLevelTrace).Info("Metal3Machine is not provisioned",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	return false
 }
 
 // IsBaremetalHostProvisioned returns true if the provisioning state of the underlying baremetalhost is `Provisioned`.
 func (m *MachineManager) IsBaremetalHostProvisioned(ctx context.Context) bool {
-	m.Log.Info("checking if baremetalhost is provisioned")
+	m.Log.V(VerbosityLevelDebug).Info("Checking if BareMetalHost is provisioned",
+		LogFieldMetal3Machine, m.Metal3Machine.Name,
+		LogFieldNamespace, m.Metal3Machine.Namespace)
 	host, _, err := m.getHost(ctx)
 	if err != nil {
-		m.Log.Info("failed to get host", "err", err)
+		m.Log.V(VerbosityLevelDebug).Info("Failed to get BareMetalHost",
+			LogFieldMetal3Machine, m.Metal3Machine.Name,
+			LogFieldError, err.Error())
 		return false
 	}
 	if host == nil {
-		m.Log.Info("getHost returned nil")
+		m.Log.V(VerbosityLevelDebug).Info("BareMetalHost not found for Metal3Machine",
+			LogFieldMetal3Machine, m.Metal3Machine.Name,
+			LogFieldNamespace, m.Metal3Machine.Namespace)
 		return false
 	}
 	return host.Status.Provisioning.State == bmov1alpha1.StateProvisioned
@@ -208,7 +221,6 @@ func (m *MachineManager) IsBootstrapReady() bool {
 		}
 		return bootstrapReadyCondition.Status == corev1.ConditionTrue
 	}
-
 	return m.Machine.Spec.Bootstrap.DataSecretName != nil
 }
 
@@ -231,12 +243,15 @@ func (m *MachineManager) role() string {
 
 // RemovePauseAnnotation checks and/or Removes the pause annotations on associated bmh.
 func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
+	m.Log.V(VerbosityLevelTrace).Info("Checking for pause annotation removal")
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
-		errMessage := "failed to get a BaremetalHost for the Metal3Machine, requeuing"
-		m.Log.Info(errMessage)
-		return WithTransientError(errors.New(errMessage), requeueAfter)
+		m.Log.Info("Failed to get BareMetalHost for Metal3Machine, requeuing",
+			LogFieldMetal3Machine, m.Metal3Machine.Name,
+			LogFieldNamespace, m.Metal3Machine.Namespace,
+			LogFieldError, err.Error())
+		return WithTransientError(errors.New("failed to get a BareMetalHost for the Metal3Machine, requeuing"), requeueAfter)
 	}
 
 	if host == nil {
@@ -251,7 +266,10 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
 				delete(host.Annotations, bmov1alpha1.PausedAnnotation)
 			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
-				m.Log.Info("BMH is paused by user. Not removing Pause Annotation")
+				m.Log.Info("BareMetalHost is paused by user, not removing pause annotation",
+					LogFieldHost, host.Name,
+					LogFieldNamespace, host.Namespace,
+					LogFieldCluster, m.Cluster.Name)
 				return nil
 			}
 		}
@@ -261,12 +279,15 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 
 // SetPauseAnnotation sets the pause annotations on associated bmh.
 func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
+	m.Log.V(VerbosityLevelTrace).Info("Setting pause annotation on BareMetalHost")
 	// look for associated BMH
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
-		errMessage := fmt.Sprintf("Failed to get the BaremetalHost associated with Metal3Machine %s, requeuing", m.Metal3Machine.Name)
-		m.Log.Info(errMessage)
-		return WithTransientError(errors.New(errMessage), requeueAfter)
+		m.Log.Info("Failed to get BareMetalHost for Metal3Machine, requeuing",
+			LogFieldMetal3Machine, m.Metal3Machine.Name,
+			LogFieldNamespace, m.Metal3Machine.Namespace,
+			LogFieldError, err.Error())
+		return WithTransientError(fmt.Errorf("failed to get the BareMetalHost associated with Metal3Machine %s, requeuing", m.Metal3Machine.Name), requeueAfter)
 	}
 	if host == nil {
 		return nil
@@ -276,13 +297,17 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
-			m.Log.Info("BaremetalHost is already paused")
+			m.Log.Info("BareMetalHost is already paused",
+				LogFieldHost, host.Name,
+				LogFieldNamespace, host.Namespace)
 			return nil
 		}
 	} else {
 		host.Annotations = make(map[string]string)
 	}
-	m.Log.Info("Adding PausedAnnotation in BareMetalHost")
+	m.Log.Info("Adding pause annotation to BareMetalHost",
+		LogFieldHost, host.Name,
+		LogFieldNamespace, host.Namespace)
 	host.Annotations[bmov1alpha1.PausedAnnotation] = PausedAnnotationKey
 
 	// Setting annotation with BMH status
@@ -315,7 +340,10 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 	// could be selected for multiple M3Ms. Therefore we use a mutex lock here.
 	associateBMHMutex.Lock()
 	defer associateBMHMutex.Unlock()
-	m.Log.Info("Associating machine", "machine", m.Machine.Name)
+	m.Log.Info("Associating Metal3Machine with BareMetalHost",
+		LogFieldMachine, m.Machine.Name,
+		LogFieldMetal3Machine, m.Metal3Machine.Name,
+		LogFieldNamespace, m.Metal3Machine.Namespace)
 
 	// load and validate the config
 	if m.Metal3Machine == nil {
@@ -336,13 +364,20 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 			return err
 		}
 		if host == nil {
-			errMessage := "no available host found. Requeuing"
-			m.Log.Info(errMessage)
-			return WithTransientError(errors.New(errMessage), requeueAfter)
+			m.Log.Info("No available BareMetalHost found for Metal3Machine, requeuing",
+				LogFieldMetal3Machine, m.Metal3Machine.Name,
+				LogFieldNamespace, m.Metal3Machine.Namespace)
+			return WithTransientError(errors.New("no available host found. Requeuing"), requeueAfter)
 		}
-		m.Log.Info("Associating machine with host", "host", host.Name)
+		m.Log.Info("Associating Metal3Machine with selected BareMetalHost",
+			LogFieldMetal3Machine, m.Metal3Machine.Name,
+			LogFieldHost, host.Name,
+			LogFieldNamespace, host.Namespace)
 	} else {
-		m.Log.Info("Machine already associated with host", "host", host.Name)
+		m.Log.V(VerbosityLevelDebug).Info("Metal3Machine already associated with BareMetalHost",
+			LogFieldMetal3Machine, m.Metal3Machine.Name,
+			LogFieldHost, host.Name,
+			LogFieldNamespace, host.Namespace)
 	}
 
 	// A machine bootstrap not ready case is caught in the controller
@@ -419,7 +454,7 @@ func (m *MachineManager) getUserDataSecretName(_ context.Context) {
 
 // Delete deletes a metal3 machine and is invoked by the Machine Controller.
 func (m *MachineManager) Delete(ctx context.Context) error {
-	m.Log.Info("Deleting metal3 machine", "metal3machine", m.Metal3Machine.Name)
+	m.Log.Info("Deleting metal3 machine", LogFieldMetal3Machine, m.Metal3Machine.Name)
 
 	if Capm3FastTrack == "" {
 		Capm3FastTrack = "false"
@@ -430,7 +465,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		return err
 	}
 	if host == nil {
-		m.Log.Info("host not found for metal3machine", "metal3machine", m.Metal3Machine.Name)
+		m.Log.Info("host not found for metal3machine", LogFieldMetal3Machine, m.Metal3Machine.Name)
 		return nil
 	}
 
@@ -438,7 +473,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		// don't remove the ConsumerRef if it references some other  metal3 machine
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("host already associated with another metal3 machine",
-				"host", host.Name)
+				LogFieldHost, host.Name)
 			// Remove the ownerreference to this machine, even if the consumer ref
 			// references another machine.
 			host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
@@ -451,7 +486,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		// Remove clusterLabel from BMC secret.
 		tmpBMCSecret, errBMC := m.getBMCSecret(ctx, host)
 		if errBMC != nil && apierrors.IsNotFound(errBMC) {
-			m.Log.Info("BMC credential not found for BareMetalhost", "host", host.Name)
+			m.Log.Info("BMC credential not found for BareMetalhost", LogFieldHost, host.Name)
 		} else if errBMC == nil && tmpBMCSecret != nil {
 			m.Log.Info("Deleting cluster label from BMC credential", "bmccredential", host.Spec.BMC.CredentialsName)
 			if tmpBMCSecret.Labels != nil && tmpBMCSecret.Labels[clusterv1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
@@ -507,7 +542,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			host.Spec.Online = false
 		}
 		m.Log.Info("Set host Online field by AutomatedCleaningMode",
-			"host", host.Name,
+			LogFieldHost, host.Name,
 			"automatedCleaningMode", host.Spec.AutomatedCleaningMode,
 			"hostSpecOnline", host.Spec.Online)
 
@@ -590,25 +625,25 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 						// Check if machine is ControlPlane
 						if m.isControlPlane() {
 							// Fetch ControlPlane name for controlplane machine
-							m.Log.Info("Fetch ControlPlane name while deprovisioning host", "host", host.Name)
+							m.Log.Info("Fetch ControlPlane name while deprovisioning host", LogFieldHost, host.Name)
 							var cpName string
 							cpName, err = m.getControlPlaneName(ctx)
 							if err != nil {
 								return err
 							}
 							// Set nodeReuseLabelName on the host to ControlPlane name
-							m.Log.Info("Setting nodeReuseLabelName in host to fetched ControlPlane", "host", host.Name, "controlPlane", cpName)
+							m.Log.Info("Setting nodeReuseLabelName in host to fetched ControlPlane", LogFieldHost, host.Name, LogFieldControlPlane, cpName)
 							host.Labels[nodeReuseLabelName] = cpName
 						} else {
 							// Fetch MachineDeployment name for worker machine
-							m.Log.Info("Fetch MachineDeployment name while deprovisioning host", "host", host.Name)
+							m.Log.Info("Fetch MachineDeployment name while deprovisioning host", LogFieldHost, host.Name)
 							var mdName string
 							mdName, err = m.getMachineDeploymentName(ctx)
 							if err != nil {
 								return err
 							}
 							// Set nodeReuseLabelName on the host to MachineDeployment name
-							m.Log.Info("Setting nodeReuseLabelName in host to fetched MachineDeployment", "host", host.Name, "machinedeployment", mdName)
+							m.Log.Info("Setting nodeReuseLabelName in host to fetched MachineDeployment", LogFieldHost, host.Name, LogFieldMachineDeployment, mdName)
 							host.Labels[nodeReuseLabelName] = mdName
 						}
 					}
@@ -660,7 +695,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 
 // Update updates a machine and is invoked by the Machine Controller.
 func (m *MachineManager) Update(ctx context.Context) error {
-	m.Log.Info("Updating machine")
+	m.Log.V(VerbosityLevelTrace).Info("Updating Metal3Machine",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 
 	host, helper, err := m.getHost(ctx)
 	if err != nil {
@@ -670,6 +706,9 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		errMessage := "BareMetalHost not found for machine " + m.Machine.Name
 		return WithTransientError(errors.New(errMessage), requeueAfter)
 	}
+	m.Log.V(VerbosityLevelDebug).Info("Found BareMetalHost for update",
+		LogFieldMetal3Machine, m.Metal3Machine.Name,
+		LogFieldHost, host.Name)
 
 	if err = m.WaitForM3Metadata(ctx); err != nil {
 		return err
@@ -701,22 +740,27 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 
-	m.Log.Info("Finished updating machine")
+	m.Log.V(VerbosityLevelDebug).Info("Finished updating Metal3Machine",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	return nil
 }
 
 // exists tests for the existence of a baremetalHost.
 func (m *MachineManager) exists(ctx context.Context) (bool, error) {
-	m.Log.Info("Checking if host exists.")
+	m.Log.V(VerbosityLevelTrace).Info("Checking if BareMetalHost exists for Metal3Machine",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	host, _, err := m.getHost(ctx)
 	if err != nil {
 		return false, err
 	}
 	if host == nil {
-		m.Log.Info("Host does not exist.")
+		m.Log.V(VerbosityLevelDebug).Info("BareMetalHost does not exist",
+			LogFieldMetal3Machine, m.Metal3Machine.Name)
 		return false, nil
 	}
-	m.Log.Info("Host exists.")
+	m.Log.V(VerbosityLevelDebug).Info("BareMetalHost exists",
+		LogFieldMetal3Machine, m.Metal3Machine.Name,
+		LogFieldHost, host.Name)
 	return true, nil
 }
 
@@ -724,10 +768,15 @@ func (m *MachineManager) exists(ctx context.Context) (bool, error) {
 // that contains a reference to the host. Returns nil if not found. Assumes the
 // host is in the same namespace as the machine.
 func (m *MachineManager) getHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
+	m.Log.V(VerbosityLevelTrace).Info("Getting BareMetalHost for Metal3Machine",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil || host == nil {
 		return host, nil, err
 	}
+	m.Log.V(VerbosityLevelTrace).Info("Found BareMetalHost",
+		LogFieldMetal3Machine, m.Metal3Machine.Name,
+		LogFieldHost, host.Name)
 	helper, err := v1beta1patch.NewHelper(host, m.client)
 	return host, helper, err
 }
@@ -756,7 +805,7 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 	}
 	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
-		mLog.Info("Annotated host not found", "host", hostKey)
+		mLog.Info("Annotated host not found", LogFieldHost, hostKey)
 		return nil, nil //nolint:nilnil
 	} else if err != nil {
 		return nil, err
@@ -768,6 +817,8 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 // associated with the metal3 machine. It searches all hosts in case one already has an
 // association with this metal3 machine.
 func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
+	m.Log.V(VerbosityLevelTrace).Info("Choosing BareMetalHost for Metal3Machine",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	labelSelector, err := hostLabelSelectorForMachine(m.Metal3Machine, m.Log)
 	if err != nil {
 		return nil, nil, err
@@ -781,6 +832,9 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 	if err != nil {
 		return nil, nil, err
 	}
+	m.Log.V(VerbosityLevelDebug).Info("Found candidate BareMetalHosts",
+		LogFieldMetal3Machine, m.Metal3Machine.Name,
+		LogFieldCount, len(hosts.Items))
 
 	availableHosts := []*bmov1alpha1.BareMetalHost{}
 	availableHostsWithNodeReuse := []*bmov1alpha1.BareMetalHost{}
@@ -788,7 +842,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 	for i, host := range hosts.Items {
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			var helper *v1beta1patch.Helper
-			m.Log.Info("Found host with existing ConsumerRef", "host", host.Name)
+			m.Log.Info("Found host with existing ConsumerRef", LogFieldHost, host.Name)
 			helper, err = v1beta1patch.NewHelper(&hosts.Items[i], m.client)
 			return &hosts.Items[i], helper, err
 		}
@@ -816,7 +870,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 		}
 
 		if m.nodeReuseLabelExists(ctx, &host) && m.nodeReuseLabelMatches(ctx, &host) {
-			m.Log.Info("Found host with nodeReuseLabelName and it matches, adding it to availableHostsWithNodeReuse list", "host", host.Name)
+			m.Log.Info("Found host with nodeReuseLabelName and it matches, adding it to availableHostsWithNodeReuse list", LogFieldHost, host.Name)
 			availableHostsWithNodeReuse = append(availableHostsWithNodeReuse, &hosts.Items[i])
 		} else if !m.nodeReuseLabelExists(ctx, &host) {
 			switch host.Status.Provisioning.State {
@@ -829,7 +883,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			default:
 				continue
 			}
-			m.Log.Info("Host matched hostSelector for Metal3Machine, adding it to availableHosts list", "host", host.Name)
+			m.Log.Info("Host matched hostSelector for Metal3Machine, adding it to availableHosts list", LogFieldHost, host.Name)
 			availableHosts = append(availableHosts, &hosts.Items[i])
 		}
 	}
@@ -858,7 +912,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 
 			// If host is found in `Ready` state, pick it
 			if len(hostsInAvailableStateWithNodeReuse) != 0 {
-				m.Log.Info("Found host(s) with nodeReuseLabelName in Ready/Available state, choosing the host", "availabeHostCount", len(hostsInAvailableStateWithNodeReuse), "host", host.Name)
+				m.Log.Info("Found host(s) with nodeReuseLabelName in Ready/Available state, choosing the host", "availabeHostCount", len(hostsInAvailableStateWithNodeReuse), LogFieldHost, host.Name)
 				chosenHost, err = m.pickHost(hostsInAvailableStateWithNodeReuse)
 				if err != nil {
 					m.Log.Error(err, "Failed to choose host, not choosing host")
@@ -961,7 +1015,7 @@ func (m *MachineManager) nodeReuseLabelMatches(ctx context.Context, host *bmov1a
 		if host.Labels[nodeReuseLabelName] != cp {
 			return false
 		}
-		m.Log.Info("nodeReuseLabelName on the host matches ControlPlane name", "host", host.Name, "controlPlane", cp)
+		m.Log.Info("nodeReuseLabelName on the host matches ControlPlane name", LogFieldHost, host.Name, LogFieldControlPlane, cp)
 		return true
 	}
 	md, err := m.getMachineDeploymentName(ctx)
@@ -974,7 +1028,7 @@ func (m *MachineManager) nodeReuseLabelMatches(ctx context.Context, host *bmov1a
 	if host.Labels[nodeReuseLabelName] != md {
 		return false
 	}
-	m.Log.Info("nodeReuseLabelName on the host matches MachineDeployment", "host", host.Name, "machinedeployment", md)
+	m.Log.Info("nodeReuseLabelName on the host matches MachineDeployment", LogFieldHost, host.Name, LogFieldMachineDeployment, md)
 	return true
 }
 
@@ -988,7 +1042,7 @@ func (m *MachineManager) nodeReuseLabelExists(_ context.Context, host *bmov1alph
 	}
 	_, ok := host.Labels[nodeReuseLabelName]
 	if ok {
-		m.Log.Info("nodeReuseLabelName exists on the host", "host", host.Name)
+		m.Log.Info("nodeReuseLabelName exists on the host", LogFieldHost, host.Name)
 	}
 	return ok
 }
@@ -1004,7 +1058,7 @@ func (m *MachineManager) getBMCSecret(ctx context.Context, host *bmov1alpha1.Bar
 	key := host.CredentialsKey()
 	err := m.client.Get(ctx, key, &tmpBMCSecret)
 	if err != nil {
-		m.Log.Error(err, "Cannot retrieve BMC credential for BareMetalhost", "host", host.Name)
+		m.Log.Error(err, "Cannot retrieve BMC credential for BareMetalhost", LogFieldHost, host.Name)
 		return nil, err
 	}
 	return &tmpBMCSecret, nil
@@ -1144,7 +1198,7 @@ func (m *MachineManager) ensureAnnotation(_ context.Context, host *bmov1alpha1.B
 		if existing == hostKey {
 			return nil
 		}
-		m.Log.Info("Warning: found stray annotation for host on machine. Overwriting.", "host", existing)
+		m.Log.Info("Warning: found stray annotation for host on machine. Overwriting.", LogFieldHost, existing)
 	}
 	annotations[HostAnnotation] = hostKey
 	m.Metal3Machine.ObjectMeta.SetAnnotations(annotations)
@@ -1205,11 +1259,9 @@ func (m *MachineManager) CloudProviderEnabled() bool {
 	if m.Metal3Cluster.Spec.NoCloudProvider != nil && !*m.Metal3Cluster.Spec.NoCloudProvider {
 		return true
 	}
-
 	if m.Metal3Cluster.Spec.CloudProviderEnabled != nil && *m.Metal3Cluster.Spec.CloudProviderEnabled {
 		return true
 	}
-
 	return false
 }
 
@@ -1382,6 +1434,7 @@ func (m *MachineManager) getPossibleProviderIDs(ctx context.Context) (providerID
 
 // SetProviderIDFromCloudProviderNode finds a Node by ProviderID and copies that ProviderID to the Metal3Machine.
 func (m *MachineManager) SetProviderIDFromCloudProviderNode(ctx context.Context, clientFactory ClientGetter) error {
+	m.Log.V(VerbosityLevelTrace).Info("Setting ProviderID from cloud provider node")
 	providerIDLegacy, providerIDNew, err := m.getPossibleProviderIDs(ctx)
 	if err != nil {
 		return WithTransientError(err, requeueAfter)
@@ -1400,7 +1453,9 @@ func (m *MachineManager) SetProviderIDFromCloudProviderNode(ctx context.Context,
 }
 
 func (m *MachineManager) NodeWithMatchingProviderIDExists(ctx context.Context, clientFactory ClientGetter) bool {
+	m.Log.V(VerbosityLevelTrace).Info("Checking if Node with matching ProviderID exists")
 	if !m.Metal3MachineHasProviderID() {
+		m.Log.V(VerbosityLevelDebug).Info("Metal3Machine does not have ProviderID")
 		return false
 	}
 
@@ -1416,12 +1471,13 @@ func (m *MachineManager) NodeWithMatchingProviderIDExists(ctx context.Context, c
 		return false
 	}
 
-	m.Log.Info("matching node found", "node", node.GetName(), "providerID", node.Spec.ProviderID)
+	m.Log.Info("matching node found", LogFieldNode, node.GetName(), LogFieldProviderID, node.Spec.ProviderID)
 	return true
 }
 
 // SetProviderIDFromNodeLabel finds a Node by label and sets ProviderID on it.
 func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientFactory ClientGetter) (success bool, err error) {
+	m.Log.V(VerbosityLevelTrace).Info("Setting ProviderID from Node label")
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return false, fmt.Errorf("error creating a remote client: %w", err)
@@ -1602,6 +1658,8 @@ func findOwnerRefFromList(refList []metav1.OwnerReference, objType metav1.TypeMe
 // AssociateM3Metadata associates metal3Data object to metal3Machine, if it
 // does not find Metal3DataClaim it creates one with ownerReference.
 func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
+	m.Log.V(VerbosityLevelTrace).Info("Associating M3Metadata with Metal3Machine",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	// If the secrets were provided by the user, use them.
 	if m.Metal3Machine.Spec.MetaData != nil {
 		m.Metal3Machine.Status.MetaData = m.Metal3Machine.Spec.MetaData
@@ -1747,6 +1805,8 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 
 // DissociateM3Metadata removes machine from OwnerReferences of meta3DataTemplate, on failure requeue.
 func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
+	m.Log.V(VerbosityLevelTrace).Info("Dissociating M3Metadata from Metal3Machine",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	if m.Metal3Machine.Status.MetaData != nil && m.Metal3Machine.Spec.MetaData == nil {
 		m.Metal3Machine.Status.MetaData = nil
 	}
@@ -1766,21 +1826,21 @@ func (m *MachineManager) DissociateM3Metadata(ctx context.Context) error {
 		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
 			return err
 		}
-		m.Log.Error(errors.New("related claim can't be retrieved because of unknown error"), "unknown error", "Metal3Machine", m.Metal3Machine.Name)
+		m.Log.Error(errors.New("related claim can't be retrieved because of unknown error"), "unknown error", LogFieldMetal3Machine, m.Metal3Machine.Name)
 		return nil
 	}
 	if metal3DataClaim == nil {
-		m.Log.Info("Related Metal3DataClaim is nil!", "Metal3Machine", m.Metal3Machine.Name)
+		m.Log.Info("Related Metal3DataClaim is nil!", LogFieldMetal3Machine, m.Metal3Machine.Name)
 		return nil
 	}
 
 	controllerutil.RemoveFinalizer(metal3DataClaim, infrav1.MachineFinalizer)
 	err = updateObject(ctx, m.client, metal3DataClaim)
 	if err != nil && !apierrors.IsNotFound(err) {
-		m.Log.Info("Unable to remove finalizers from Metal3DataClaim", "Metal3DataClaim", metal3DataClaim.Name)
+		m.Log.Info("Unable to remove finalizers from Metal3DataClaim", LogFieldMetal3DataClaim, metal3DataClaim.Name)
 		return err
 	}
-	m.Log.Info("Finalizers successfully removed. Initiate deletion of related claim.", "Metal3DataClaim", metal3DataClaim.Name)
+	m.Log.Info("Finalizers successfully removed. Initiate deletion of related claim.", LogFieldMetal3DataClaim, metal3DataClaim.Name)
 	return deleteObject(ctx, m.client, metal3DataClaim)
 }
 
@@ -1899,19 +1959,17 @@ func (m *MachineManager) getBmhNameFromM3Machine() (string, error) {
 	valueParts := strings.Split(annotationValue, "/")
 	//nolint:mnd
 	if (len(valueParts) < 2) || (valueParts[0] != m.Metal3Machine.GetNamespace()) {
-		errMessage := fmt.Sprintf("unable to retrieve bmh name from metal3machine: %s , using annotation: %s", m.Metal3Machine.GetName(), annotationValue)
-		return "", errors.New(errMessage)
+		return "", fmt.Errorf("unable to retrieve bmh name from metal3machine %s using annotation: %s",
+			m.Metal3Machine.GetName(), annotationValue)
 	}
-	bmhName := valueParts[1]
-	return bmhName, nil
+	return valueParts[1], nil
 }
 
 // getBmhUIDFromM3Machine retrieves bmhUID from m3m.
 func (m *MachineManager) getBmhUIDFromM3Machine(ctx context.Context) (string, error) {
 	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil || host == nil {
-		errMessage := "Failed to get a BaremetalHost for the metal3machine: " + m.Metal3Machine.GetName()
-		return "", errors.New(errMessage)
+		return "", fmt.Errorf("failed to get BaremetalHost for metal3machine %s", m.Metal3Machine.GetName())
 	}
 	if host.UID == "" {
 		return "", errors.New("missing BaremetalHost UID")
@@ -1925,24 +1983,26 @@ func (m *MachineManager) getNodesWithLabel(ctx context.Context, nodeLabel string
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating a remote client: %w", err)
 	}
-	nodesCount := 0
 	filter := metav1.ListOptions{
 		LabelSelector: nodeLabel,
 	}
 
 	nodes, err := corev1Remote.Nodes().List(ctx, filter)
 	if err != nil {
-		m.Log.Error(err, "error while retrieving nodes with label", "nodelabel", nodeLabel)
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("error retrieving nodes with label %s: %w", nodeLabel, err)
 	}
+
+	nodesCount := 0
 	if nodes != nil {
 		nodesCount = len(nodes.Items)
 	}
-	return nodes, nodesCount, err
+	return nodes, nodesCount, nil
 }
 
 // SetNodeProviderIDByHostname finds a Node whose hostname matches at least one of the Metal3Machine's hostnames and sets a ProviderID on it.
 func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, clientFactory ClientGetter) error {
+	m.Log.V(VerbosityLevelTrace).Info("Setting Node ProviderID by hostname",
+		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return fmt.Errorf("error creating a remote client: %w", err)
@@ -1996,7 +2056,7 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 
 	node := matchingNodes[0]
 
-	m.Log.Info("found a node, setting provider id on it", "node", node.Name)
+	m.Log.Info("found a node, setting provider id on it", LogFieldNode, node.Name)
 
 	err = m.setNodeProviderID(ctx, corev1Remote, node, *m.Metal3Machine.Spec.ProviderID)
 
@@ -2027,13 +2087,13 @@ func (m *MachineManager) getNodeByProviderID(ctx context.Context, providerIDLega
 	for _, node := range nodes.Items {
 		providerIDOnNode := node.Spec.ProviderID
 		if providerIDOnNode == "" {
-			m.Log.Info("no providerID value found on node", "node", node.GetName())
+			m.Log.Info("no providerID value found on node", LogFieldNode, node.GetName())
 		} else if providerIDOnNode == providerIDNew {
 			matchingNodeProviderID = providerIDNew
 		} else if providerIDOnNode == providerIDLegacy {
 			matchingNodeProviderID = providerIDLegacy
 		} else {
-			m.Log.Info("The node does not match expected providerID. Considering other nodes ", "node", node.GetName(), "providerID", providerIDOnNode)
+			m.Log.Info("The node does not match expected providerID. Considering other nodes ", LogFieldNode, node.GetName(), LogFieldProviderID, providerIDOnNode)
 		}
 		if providerIDOnNode != "" && node.GetName() != "" {
 			validNodes[providerIDOnNode] = append(validNodes[providerIDOnNode], node)

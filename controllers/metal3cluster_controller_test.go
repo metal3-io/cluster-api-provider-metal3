@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	. "github.com/onsi/ginkgo/v2"
@@ -73,7 +74,7 @@ var _ = Describe("Metal3Cluster controller", func() {
 			m.EXPECT().
 				Create(context.TODO()).Return(returnedError)
 
-			res, err := reconcileNormal(context.TODO(), m)
+			res, err := reconcileClusterNormal(context.TODO(), m, logr.Discard())
 
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())
@@ -139,7 +140,7 @@ var _ = Describe("Metal3Cluster controller", func() {
 				returnedError,
 			)
 
-			res, err := reconcileDelete(context.TODO(), m)
+			res, err := reconcileClusterDelete(context.TODO(), m, logr.Discard())
 
 			if tc.ExpectError {
 				Expect(err).To(HaveOccurred())

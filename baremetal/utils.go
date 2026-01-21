@@ -43,9 +43,78 @@ const (
 	// metal3SecretType defines the type of secret created by metal3.
 	metal3SecretType corev1.SecretType = "infrastructure.cluster.x-k8s.io/secret"
 	// metal3MachineKind is the Kind of the Metal3Machine.
-	metal3MachineKind   = "Metal3Machine"
+	metal3MachineKind = "Metal3Machine"
+
+	// Logging verbosity levels follow the Kubernetes logging conventions:
+	// - Level 0 (Info): Always logged - errors, warnings, important state changes
+	// - Level 1-3: Progressively more detailed operational information
+	// - Level 4 (Debug): Detailed debugging information for developers
+	// - Level 5 (Trace): Very verbose tracing information
+	//
+	// Use VerbosityLevelDebug for internal state checks, fetched objects, and
+	// intermediate processing steps that are useful for debugging but too
+	// verbose for normal operation.
+	//
+	// Use VerbosityLevelTrace for very detailed flow tracing, such as entering/
+	// exiting functions or processing individual list items.
 	VerbosityLevelDebug = 4
 	VerbosityLevelTrace = 5
+
+	// Standard log field keys for consistent structured logging.
+	// Use these constants when adding context to log statements to ensure
+	// consistency across the codebase.
+	LogFieldController            = "controller"
+	LogFieldName                  = "name"
+	LogFieldMachine               = "machine"
+	LogFieldMetal3Machine         = "metal3Machine"
+	LogFieldHost                  = "host"
+	LogFieldHostNamespace         = "hostNamespace"
+	LogFieldCluster               = "cluster"
+	LogFieldMetal3Cluster         = "metal3Cluster"
+	LogFieldMetal3Remediation     = "metal3Remediation"
+	LogFieldNamespace             = "namespace"
+	LogFieldNode                  = "node"
+	LogFieldRemediation           = "remediation"
+	LogFieldProviderID            = "providerID"
+	LogFieldBMH                   = "bareMetalHost"
+	LogFieldError                 = "error"
+	LogFieldState                 = "state"
+	LogFieldPhase                 = "phase"
+	LogFieldDataTemplate          = "dataTemplate"
+	LogFieldData                  = "data"
+	LogFieldDataClaim             = "dataClaim"
+	LogFieldStep                  = "step"
+	LogFieldResult                = "result"
+	LogFieldCount                 = "count"
+	LogFieldDuration              = "duration"
+	LogFieldSecretName            = "secret"
+	LogFieldAnnotation            = "annotation"
+	LogFieldLabel                 = "label"
+	LogFieldCondition             = "condition"
+	LogFieldOwner                 = "owner"
+	LogFieldImage                 = "image"
+	LogFieldOnline                = "online"
+	LogFieldPoweredOn             = "poweredOn"
+	LogFieldRetryCount            = "retryCount"
+	LogFieldTimeout               = "timeout"
+	LogFieldFailureDomain         = "failureDomain"
+	LogFieldMachineSet            = "machineSet"
+	LogFieldMachineDeployment     = "machineDeployment"
+	LogFieldControlPlane          = "controlPlane"
+	LogFieldPod                   = "pod"
+	LogFieldVolumeAttachment      = "volumeAttachment"
+	LogFieldMetal3Data            = "metal3Data"
+	LogFieldMetal3DataTemplate    = "metal3DataTemplate"
+	LogFieldMetal3DataClaim       = "metal3DataClaim"
+	LogFieldMetal3MachineTemplate = "metal3MachineTemplate"
+	LogFieldIPClaim               = "ipClaim"
+	LogFieldIPAddress             = "ipAddress"
+	LogFieldPoolRef               = "poolRef"
+	LogFieldPool                  = "pool"
+	LogFieldIndex                 = "index"
+	LogFieldReason                = "reason"
+	LogFieldMessage               = "message"
+	LogFieldAPIEndpoint           = "apiEndpoint"
 )
 
 var (

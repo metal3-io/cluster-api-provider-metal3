@@ -72,23 +72,36 @@ type Metal3DataTemplateReconciler struct {
 
 // Reconcile handles Metal3DataTemplate events.
 func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	log := r.Log.WithName(dataTemplateControllerName).WithValues("metal3-datatemplate", req.NamespacedName)
+	log := r.Log.WithName(dataTemplateControllerName).WithValues(
+		baremetal.LogFieldDataTemplate, req.NamespacedName,
+	)
+	log.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting Metal3DataTemplate reconciliation")
 
 	// Fetch the Metal3DataTemplate instance.
+	log.V(baremetal.VerbosityLevelTrace).Info("Fetching Metal3DataTemplate")
 	metal3DataTemplate := &infrav1.Metal3DataTemplate{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3DataTemplate); err != nil {
 		if apierrors.IsNotFound(err) {
+			log.V(baremetal.VerbosityLevelDebug).Info("Metal3DataTemplate not found, may have been deleted")
 			return ctrl.Result{}, nil
 		}
+		log.V(baremetal.VerbosityLevelDebug).Info("Failed to fetch Metal3DataTemplate",
+			baremetal.LogFieldError, err.Error())
 		return ctrl.Result{}, err
 	}
+	log.V(baremetal.VerbosityLevelDebug).Info("Metal3DataTemplate fetched successfully",
+		"generation", metal3DataTemplate.Generation,
+		"clusterName", metal3DataTemplate.Spec.ClusterName)
+
+	log.V(baremetal.VerbosityLevelTrace).Info("Creating patch helper")
 	helper, err := v1beta1patch.NewHelper(metal3DataTemplate, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	// Always patch the Metal3DataTemplate exiting this function so we can persist any changes.
 	defer func() {
+		log.V(baremetal.VerbosityLevelTrace).Info("Patching Metal3DataTemplate on exit")
 		err = helper.Patch(ctx, metal3DataTemplate)
 		if err != nil {
 			log.Info("failed to Patch Metal3DataTemplate")
@@ -103,27 +116,37 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	// Fetch the Cluster. Ignore an error if the deletion timestamp is set
+	log.V(baremetal.VerbosityLevelTrace).Info("Fetching Cluster",
+		baremetal.LogFieldCluster, metal3DataTemplate.Spec.ClusterName)
 	err = r.Client.Get(ctx, key, cluster)
 	if metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
+			log.V(baremetal.VerbosityLevelDebug).Info("Error fetching cluster, may not exist yet")
 			log.Info("Error fetching cluster. It might not exist yet, Requeuing")
 			return ctrl.Result{}, nil
 		}
 	}
 
 	// Create a helper for managing the Metal3DataTemplate object.
+	log.V(baremetal.VerbosityLevelTrace).Info("Creating DataTemplateManager")
 	dataTemplateMgr, err := r.ManagerFactory.NewDataTemplateManager(metal3DataTemplate, log)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the Metal3DataTemplate: %w", err)
 	}
+	log.V(baremetal.VerbosityLevelDebug).Info("DataTemplateManager created successfully")
 
 	if metal3DataTemplate.Spec.ClusterName != "" && cluster.Name != "" {
-		log = log.WithValues("cluster", cluster.Name)
+		log = log.WithValues(baremetal.LogFieldCluster, cluster.Name)
+		log.V(baremetal.VerbosityLevelTrace).Info("Setting cluster owner reference")
 		if err := dataTemplateMgr.SetClusterOwnerRef(cluster); err != nil {
+			log.V(baremetal.VerbosityLevelDebug).Info("Failed to set cluster owner reference",
+				baremetal.LogFieldError, err.Error())
 			return ctrl.Result{}, err
 		}
 		// Return early if the Metal3DataTemplate or Cluster is paused.
+		log.V(baremetal.VerbosityLevelTrace).Info("Checking pause status")
 		if annotations.IsPaused(cluster, metal3DataTemplate) {
+			log.V(baremetal.VerbosityLevelDebug).Info("Reconciliation paused")
 			log.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
@@ -131,43 +154,68 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Handle deletion of Metal3DataTemplate
 	if !metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, dataTemplateMgr)
+		log.V(baremetal.VerbosityLevelTrace).Info("Metal3DataTemplate has deletion timestamp, proceeding with deletion")
+		return r.reconcileDelete(ctx, dataTemplateMgr, log)
 	}
 
 	// Handle non-deleted Metal3DataTemplate
-	return r.reconcileNormal(ctx, dataTemplateMgr)
+	log.V(baremetal.VerbosityLevelTrace).Info("Proceeding with normal reconciliation")
+	return r.reconcileNormal(ctx, dataTemplateMgr, log)
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
-	dataTemplateMgr baremetal.DataTemplateManagerInterface,
+	dataTemplateMgr baremetal.DataTemplateManagerInterface, log logr.Logger,
 ) (ctrl.Result, error) {
-	// If the Metal3DataTemplate doesn't have finalizer, add it.
-	dataTemplateMgr.SetFinalizer()
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: starting")
 
+	// If the Metal3DataTemplate doesn't have finalizer, add it.
+	log.V(baremetal.VerbosityLevelTrace).Info("Setting finalizer on Metal3DataTemplate")
+	dataTemplateMgr.SetFinalizer()
+	log.V(baremetal.VerbosityLevelDebug).Info("Finalizer set")
+
+	log.V(baremetal.VerbosityLevelTrace).Info("Updating datas")
 	_, _, err := dataTemplateMgr.UpdateDatas(ctx)
 	if err != nil {
+		log.V(baremetal.VerbosityLevelDebug).Info("Failed to update datas",
+			baremetal.LogFieldError, err.Error())
 		return checkReconcileError(err, "Failed to recreate the status")
 	}
+	log.V(baremetal.VerbosityLevelDebug).Info("Datas updated successfully")
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: completed successfully")
 	return ctrl.Result{}, nil
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
-	dataTemplateMgr baremetal.DataTemplateManagerInterface,
+	dataTemplateMgr baremetal.DataTemplateManagerInterface, log logr.Logger,
 ) (ctrl.Result, error) {
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileDelete: starting")
+
+	log.V(baremetal.VerbosityLevelTrace).Info("Updating datas to check for remaining references")
 	hasData, hasClaims, err := dataTemplateMgr.UpdateDatas(ctx)
+	log.V(baremetal.VerbosityLevelDebug).Info("Datas check result",
+		"hasData", hasData,
+		"hasClaims", hasClaims)
+
 	if err != nil {
+		log.V(baremetal.VerbosityLevelDebug).Info("Failed to update datas",
+			baremetal.LogFieldError, err.Error())
 		return checkReconcileError(err, "Failed to recreate the status")
 	}
 
 	if hasClaims {
+		log.V(baremetal.VerbosityLevelDebug).Info("Still has claims, waiting")
 		return ctrl.Result{}, nil
 	}
 	if hasData {
+		log.V(baremetal.VerbosityLevelDebug).Info("Still has data, requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
+	log.V(baremetal.VerbosityLevelTrace).Info("Removing finalizer from Metal3DataTemplate")
 	dataTemplateMgr.UnsetFinalizer()
+	log.V(baremetal.VerbosityLevelDebug).Info("Finalizer removed")
 
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileDelete: completed successfully")
 	return ctrl.Result{}, nil
 }
 

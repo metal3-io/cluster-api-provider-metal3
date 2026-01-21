@@ -284,7 +284,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 				WatchFilterValue: "",
 			}
 
-			result, err := testReconciler.reconcileNormal(context.TODO(), m)
+			result, err := testReconciler.reconcileNormal(context.TODO(), m, logr.Discard())
 			Expect(result).To(Equal(tc.common.expectedResult))
 			evaluateTestError(tc.common.expectedError, err)
 			mockController.Finish()

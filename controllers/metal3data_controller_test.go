@@ -303,7 +303,7 @@ var _ = Describe("Metal3Data manager", func() {
 					m.EXPECT().Reconcile(context.TODO()).Return(nil)
 				}
 
-				res, err := dataReconcile.reconcileNormal(context.TODO(), m)
+				res, err := dataReconcile.reconcileNormal(context.TODO(), m, logr.Discard())
 				gomockCtrl.Finish()
 
 				if tc.ExpectError {
@@ -364,7 +364,7 @@ var _ = Describe("Metal3Data manager", func() {
 				m.EXPECT().UnsetFinalizer()
 			}
 
-			res, err := dataReconcile.reconcileDelete(context.TODO(), m)
+			res, err := dataReconcile.reconcileDelete(context.TODO(), m, logr.Discard())
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
