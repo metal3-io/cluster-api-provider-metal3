@@ -266,6 +266,9 @@ func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 				// Removing BMH Paused Annotation Since Owner Cluster is not paused.
 				m.Log.Info("Removing Pause Annotation.")
 				delete(host.Annotations, bmov1alpha1.PausedAnnotation)
+				// Also remove status and block-move annotations (cleanup from pivot)
+				delete(host.Annotations, bmov1alpha1.StatusAnnotation)
+				delete(host.Annotations, "clusterctl.cluster.x-k8s.io/block-move")
 			} else if m.Cluster.Name == host.Labels[clusterv1.ClusterNameLabel] && annotations[bmov1alpha1.PausedAnnotation] != PausedAnnotationKey {
 				m.Log.Info("BareMetalHost is paused by user, not removing pause annotation",
 					LogFieldHost, host.Name,
@@ -308,9 +311,31 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	} else {
 		host.Annotations = make(map[string]string)
 	}
+
+	// Set block-move annotation to prevent clusterctl from moving BMH
+	// before pause and status annotations are fully applied
+	if _, hasBlockMove := host.Annotations["clusterctl.cluster.x-k8s.io/block-move"]; !hasBlockMove {
+		m.Log.Info("Setting block-move annotation on BareMetalHost")
+		host.Annotations["clusterctl.cluster.x-k8s.io/block-move"] = ""
+		if errPatch := helper.Patch(ctx, host); errPatch != nil {
+			return fmt.Errorf("failed to set block-move annotation: %w", errPatch)
+		}
+		// Refresh host object after patch
+		host, helper, err = m.getHost(ctx)
+		if err != nil {
+			return err
+		}
+		if host == nil {
+			return nil
+		}
+	}
+
+	// Set pause and status annotations
 	m.Log.Info("Adding pause annotation to BareMetalHost",
 		LogFieldHost, host.Name,
 		LogFieldNamespace, host.Namespace)
+
+	// Set pause annotation
 	host.Annotations[bmov1alpha1.PausedAnnotation] = PausedAnnotationKey
 
 	// Setting annotation with BMH status
@@ -334,7 +359,36 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		return fmt.Errorf("failed to marshal status annotation: %w", err)
 	}
 	host.Annotations[bmov1alpha1.StatusAnnotation] = string(newAnnotation)
-	return helper.Patch(ctx, host)
+
+	if errPatch := helper.Patch(ctx, host); errPatch != nil {
+		return fmt.Errorf("failed to set pause annotations: %w", errPatch)
+	}
+
+	// Verify annotations are present, then remove block-move to allow clusterctl to proceed
+	host, helper, err = m.getHost(ctx)
+	if err != nil {
+		return err
+	}
+	if host == nil {
+		return nil
+	}
+
+	// Verify both annotations are present
+	if _, ok := host.Annotations[bmov1alpha1.PausedAnnotation]; !ok {
+		return errors.New("pause annotation not present after patch")
+	}
+	if _, ok := host.Annotations[bmov1alpha1.StatusAnnotation]; !ok {
+		return errors.New("status annotation not present after patch")
+	}
+
+	// Remove block-move annotation to signal clusterctl that BMH is ready to move
+	if _, hasBlockMove := host.Annotations["clusterctl.cluster.x-k8s.io/block-move"]; hasBlockMove {
+		m.Log.Info("Removing block-move annotation from BareMetalHost")
+		delete(host.Annotations, "clusterctl.cluster.x-k8s.io/block-move")
+		return helper.Patch(ctx, host)
+	}
+
+	return nil
 }
 
 // Associate associates a machine and is invoked by the Machine Controller.

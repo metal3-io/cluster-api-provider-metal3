@@ -202,6 +202,29 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		Logf("Error: %v", err)
 	}
 
+	By("Setting block-move annotation on BMH to prevent premature pivot")
+	// Set block-move annotation on all BMH objects with consumers to ensure
+	// clusterctl waits for pause annotations to be set during move operation.
+	bmhList := &bmov1alpha1.BareMetalHostList{}
+	Err := input.BootstrapClusterProxy.GetClient().List(ctx, bmhList, client.InNamespace(input.Namespace))
+	Expect(Err).NotTo(HaveOccurred(), "Failed to list BareMetalHosts")
+
+	for i := range bmhList.Items {
+		bmh := &bmhList.Items[i]
+		// Only set block-move on BMH with consumers (associated with machines)
+		if bmh.Spec.ConsumerRef != nil {
+			if bmh.Annotations == nil {
+				bmh.Annotations = make(map[string]string)
+			}
+			if _, hasBlockMove := bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"]; !hasBlockMove {
+				Logf("Setting block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
+				bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"] = ""
+				Err := input.BootstrapClusterProxy.GetClient().Update(ctx, bmh)
+				Expect(Err).NotTo(HaveOccurred(), "Failed to set block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
+			}
+		}
+	}
+
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
