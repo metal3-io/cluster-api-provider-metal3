@@ -360,6 +360,11 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	}
 	host.Annotations[bmov1alpha1.StatusAnnotation] = string(newAnnotation)
 
+	// Log status annotation being set for debugging
+	m.Log.Info("Setting status annotation on BareMetalHost",
+		"provisioningState", host.Status.Provisioning.State,
+		"statusAnnotation", string(newAnnotation))
+
 	if errPatch := helper.Patch(ctx, host); errPatch != nil {
 		return fmt.Errorf("failed to set pause annotations: %w", errPatch)
 	}
@@ -377,9 +382,14 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	if _, ok := host.Annotations[bmov1alpha1.PausedAnnotation]; !ok {
 		return errors.New("pause annotation not present after patch")
 	}
-	if _, ok := host.Annotations[bmov1alpha1.StatusAnnotation]; !ok {
+	statusAnnotation, ok := host.Annotations[bmov1alpha1.StatusAnnotation]
+	if !ok {
 		return errors.New("status annotation not present after patch")
 	}
+
+	m.Log.Info("Verified pause and status annotations are present",
+		"pauseAnnotation", "present",
+		"statusAnnotation", statusAnnotation)
 
 	// Remove block-move annotation to signal clusterctl that BMH is ready to move
 	if _, hasBlockMove := host.Annotations["clusterctl.cluster.x-k8s.io/block-move"]; hasBlockMove {
