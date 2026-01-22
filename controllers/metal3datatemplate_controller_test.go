@@ -238,7 +238,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(false, false, errors.New(""))
 			}
 
-			res, err := r.reconcileNormal(context.TODO(), m)
+			res, err := r.reconcileNormal(context.TODO(), m, logr.Discard())
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -293,7 +293,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(false, false, errors.New(""))
 			}
 
-			res, err := r.reconcileDelete(context.TODO(), m)
+			res, err := r.reconcileDelete(context.TODO(), m, logr.Discard())
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {

@@ -213,7 +213,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("ReconcileNormal tests",
 			func(tc reconcileNormalTestCase) {
 				m := setReconcileNormalExpectations(gomockCtrl, tc)
-				res, err := bmReconcile.reconcileNormal(context.TODO(), m)
+				res, err := bmReconcile.reconcileNormal(context.TODO(), m, logr.Discard())
 
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())
@@ -303,7 +303,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("Deletion tests",
 			func(tc reconcileDeleteTestCase) {
 				m := setReconcileDeleteExpectations(gomockCtrl, tc)
-				res, err := bmReconcile.reconcileDelete(context.TODO(), m)
+				res, err := bmReconcile.reconcileDelete(context.TODO(), m, logr.Discard())
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())
 				} else {

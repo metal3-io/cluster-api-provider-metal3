@@ -18,6 +18,7 @@ GitHub pull requests. Those guidelines are the same as the
       - [Support and guarantees](#support-and-guarantees)
       - [Removal of v1alpha5 apiVersion](#removal-of-v1alpha5-apiversion)
    - [Contributing a Patch](#contributing-a-patch)
+      - [Logging Guidelines](#logging-guidelines)
    - [Backporting a Patch](#backporting-a-patch)
    - [Breaking Changes](#breaking-changes)
       - [Merge Approval](#merge-approval)
@@ -220,6 +221,45 @@ explained in the official
 Expect reviewers to request that you avoid common
 [go style mistakes](https://github.com/golang/go/wiki/CodeReviewComments) in
 your PRs.
+
+### Logging Guidelines
+
+This project uses structured logging with defined verbosity levels. When adding
+or modifying log statements, follow these conventions:
+
+#### Verbosity Levels
+
+| Level | Constant | Usage |
+|-------|----------|-------|
+| Error | `.Error()` | Actual errors requiring attention |
+| Info | `.Info()` | Important operational events, major state changes |
+| Debug | `.V(4)` / `VerbosityLevelDebug` | Internal state, fetched objects, intermediate results |
+| Trace | `.V(5)` / `VerbosityLevelTrace` | Function entry/exit, detailed flow tracing |
+
+#### Structured Logging Fields
+
+Use the predefined `LogField*` constants from `baremetal/utils.go` for
+consistent field names:
+
+```go
+log.V(baremetal.VerbosityLevelDebug).Info("Processing machine",
+    baremetal.LogFieldMachine, machine.Name,
+    baremetal.LogFieldNamespace, machine.Namespace)
+```
+
+Common fields include: `LogFieldMachine`, `LogFieldMetal3Machine`,
+`LogFieldCluster`, `LogFieldBMH`, `LogFieldError`, `LogFieldPhase`, etc.
+
+#### Best Practices
+
+- **Trace level**: Use for entering/exiting functions and processing individual
+  items
+- **Debug level**: Use for state checks, configuration values, and successful
+  operations
+- **Info level**: Use sparingly for user-facing operational events
+- **Error level**: Always include the error and relevant context
+- **Context**: Populate logger with NamespacedName at the start of Reconcile
+  functions
 
 ## Backporting a Patch
 

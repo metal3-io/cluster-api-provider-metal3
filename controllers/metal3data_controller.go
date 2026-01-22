@@ -62,23 +62,36 @@ type Metal3DataReconciler struct {
 
 // Reconcile handles Metal3Data events.
 func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
-	metadataLog := r.Log.WithName(dataControllerName).WithValues("metal3-data", req.NamespacedName)
+	metadataLog := r.Log.WithName(dataControllerName).WithValues(
+		baremetal.LogFieldData, req.NamespacedName,
+	)
+	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting Metal3Data reconciliation")
 
 	// Fetch the Metal3Data instance.
+	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Fetching Metal3Data")
 	metal3Data := &infrav1.Metal3Data{}
 
 	if err := r.Client.Get(ctx, req.NamespacedName, metal3Data); err != nil {
 		if apierrors.IsNotFound(err) {
+			metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3Data not found, may have been deleted")
 			return ctrl.Result{}, nil
 		}
+		metadataLog.V(baremetal.VerbosityLevelDebug).Info("Failed to fetch Metal3Data",
+			baremetal.LogFieldError, err.Error())
 		return ctrl.Result{}, err
 	}
+	metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3Data fetched successfully",
+		"generation", metal3Data.Generation,
+		"ready", metal3Data.Status.Ready)
+
+	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Creating patch helper")
 	helper, err := v1beta1patch.NewHelper(metal3Data, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
 	// Always patch Metal3Data exiting this function so we can persist any changes.
 	defer func() {
+		metadataLog.V(baremetal.VerbosityLevelTrace).Info("Patching Metal3Data on exit")
 		// Check if the object still exists before attempting to patch
 		var currentObj infrav1.Metal3Data
 		if err = r.Client.Get(ctx, req.NamespacedName, &currentObj); err != nil {
@@ -96,76 +109,108 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}()
 
 	// Fetch the Cluster.
+	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Fetching Cluster from metadata")
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, metal3Data.ObjectMeta)
 	if metal3Data.ObjectMeta.DeletionTimestamp.IsZero() {
 		if err != nil {
+			metadataLog.V(baremetal.VerbosityLevelDebug).Info("Cluster label missing or cluster not found")
 			metadataLog.Info("Metal3Data is missing cluster label or cluster does not exist")
 			return ctrl.Result{}, nil
 		}
 		if cluster == nil {
+			metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3Data not yet associated with cluster")
 			metadataLog.Info("This metadata is not yet associated with a cluster using the label : <name of cluster>", "label", clusterv1.ClusterNameLabel)
 			return ctrl.Result{}, nil
 		}
 	}
 
 	if cluster != nil {
-		metadataLog = metadataLog.WithValues("cluster", cluster.Name)
+		metadataLog = metadataLog.WithValues(baremetal.LogFieldCluster, cluster.Name)
+		metadataLog.V(baremetal.VerbosityLevelDebug).Info("Cluster found")
 
 		// Return early if the Metadata or Cluster is paused.
+		metadataLog.V(baremetal.VerbosityLevelTrace).Info("Checking pause status")
 		if annotations.IsPaused(cluster, metal3Data) {
+			metadataLog.V(baremetal.VerbosityLevelDebug).Info("Reconciliation paused")
 			metadataLog.Info("reconciliation is paused for this object")
 			return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 		}
 	}
 
 	// Create a helper for managing the metadata object.
+	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Creating DataManager")
 	metadataMgr, err := r.ManagerFactory.NewDataManager(metal3Data, metadataLog)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create helper for managing the Metal3Data: %w", err)
 	}
+	metadataLog.V(baremetal.VerbosityLevelDebug).Info("DataManager created successfully")
 
 	// Handle deletion of Metal3Data
 	if !metal3Data.ObjectMeta.DeletionTimestamp.IsZero() {
+		metadataLog.V(baremetal.VerbosityLevelTrace).Info("Metal3Data has deletion timestamp, checking Metal3DataClaim")
+
 		// Check if the Metal3DataClaim is gone. We cannot clean up until it is.
 		err := r.Client.Get(ctx, types.NamespacedName{Name: metal3Data.Spec.Claim.Name, Namespace: metal3Data.Spec.Claim.Namespace}, &infrav1.Metal3DataClaim{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
-				return r.reconcileDelete(ctx, metadataMgr)
+				metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3DataClaim is gone, proceeding with deletion")
+				return r.reconcileDelete(ctx, metadataMgr, metadataLog)
 			}
 			return ctrl.Result{}, err
 		}
 		// Requeue until Metal3DataClaim is gone.
+		metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3DataClaim still exists, requeuing",
+			baremetal.LogFieldDataClaim, metal3Data.Spec.Claim.Name)
 		metadataLog.Info("Metal3Data is being deleted, but the Metal3DataClaim still exists, requeuing")
 		return ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}, nil
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, metadataMgr)
+	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Proceeding with normal reconciliation")
+	return r.reconcileNormal(ctx, metadataMgr, metadataLog)
 }
 
 func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
-	metadataMgr baremetal.DataManagerInterface,
+	metadataMgr baremetal.DataManagerInterface, log logr.Logger,
 ) (ctrl.Result, error) {
-	// If the Metal3Data doesn't have finalizer, add it.
-	metadataMgr.SetFinalizer()
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: starting")
 
+	// If the Metal3Data doesn't have finalizer, add it.
+	log.V(baremetal.VerbosityLevelTrace).Info("Setting finalizer on Metal3Data")
+	metadataMgr.SetFinalizer()
+	log.V(baremetal.VerbosityLevelDebug).Info("Finalizer set")
+
+	log.V(baremetal.VerbosityLevelTrace).Info("Calling metadataMgr.Reconcile to create secrets")
 	err := metadataMgr.Reconcile(ctx)
 	if err != nil {
+		log.V(baremetal.VerbosityLevelDebug).Info("Failed to create secrets",
+			baremetal.LogFieldError, err.Error())
 		return checkReconcileError(err, "Failed to create secrets")
 	}
+	log.V(baremetal.VerbosityLevelDebug).Info("Secrets created/verified successfully")
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: completed successfully")
 	return ctrl.Result{}, nil
 }
 
 func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
-	metadataMgr baremetal.DataManagerInterface,
+	metadataMgr baremetal.DataManagerInterface, log logr.Logger,
 ) (ctrl.Result, error) {
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileDelete: starting")
+
+	log.V(baremetal.VerbosityLevelTrace).Info("Releasing IP address leases")
 	err := metadataMgr.ReleaseLeases(ctx)
 	if err != nil {
+		log.V(baremetal.VerbosityLevelDebug).Info("Failed to release IP address leases",
+			baremetal.LogFieldError, err.Error())
 		return checkReconcileError(err, "Failed to release IP address leases")
 	}
+	log.V(baremetal.VerbosityLevelDebug).Info("IP address leases released")
 
+	log.V(baremetal.VerbosityLevelTrace).Info("Removing finalizer from Metal3Data")
 	metadataMgr.UnsetFinalizer()
+	log.V(baremetal.VerbosityLevelDebug).Info("Finalizer removed")
 
+	log.V(baremetal.VerbosityLevelTrace).Info("reconcileDelete: completed successfully")
 	return ctrl.Result{}, nil
 }
 

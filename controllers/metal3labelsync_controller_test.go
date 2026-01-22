@@ -548,7 +548,7 @@ var _ = Describe("Metal3LabelSync controller", func() {
 					WatchFilterValue: "",
 				}
 				err := r.reconcileBMHLabels(context.TODO(),
-					tc.Host, tc.Machine, tc.Cluster, tc.PrefixSet)
+					tc.Host, tc.Machine, tc.Cluster, tc.PrefixSet, logr.Discard())
 
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())

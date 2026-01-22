@@ -359,7 +359,7 @@ var _ = Describe("Metal3Remediation controller", func() {
 			IsOutOfServiceTaintEnabled: tc.IsOutOfServiceTaintSupported,
 		}
 		m := setReconcileNormalRemediationExpectations(goMockCtrl, tc)
-		res, err := testReconciler.reconcileNormal(context.TODO(), m)
+		res, err := testReconciler.reconcileNormal(context.TODO(), m, logr.Discard())
 
 		if tc.ExpectError {
 			Expect(err).To(HaveOccurred())

@@ -87,6 +87,7 @@ func NewDataManager(client client.Client,
 func (m *DataManager) SetFinalizer() {
 	// If the Metal3Data doesn't have finalizer, add it.
 	if !controllerutil.ContainsFinalizer(m.Data, infrav1.DataFinalizer) {
+		m.Log.V(VerbosityLevelTrace).Info("Adding finalizer to Metal3Data")
 		controllerutil.AddFinalizer(m.Data, infrav1.DataFinalizer)
 	}
 }
@@ -94,6 +95,7 @@ func (m *DataManager) SetFinalizer() {
 // UnsetFinalizer unsets finalizer.
 func (m *DataManager) UnsetFinalizer() {
 	// Remove the finalizer.
+	m.Log.V(VerbosityLevelTrace).Info("Removing finalizer from Metal3Data")
 	controllerutil.RemoveFinalizer(m.Data, infrav1.DataFinalizer)
 }
 
@@ -109,22 +111,29 @@ func (m *DataManager) setError(_ context.Context, msg string) {
 
 // Reconcile handles Metal3Data events.
 func (m *DataManager) Reconcile(ctx context.Context) error {
+	m.Log.V(VerbosityLevelTrace).Info("Starting Metal3Data reconciliation")
 	m.clearError(ctx)
 
 	if err := m.createSecrets(ctx); err != nil {
 		var reconcileError ReconcileError
 		if errors.As(err, &reconcileError) && reconcileError.IsTransient() {
+			m.Log.V(VerbosityLevelDebug).Info("Transient error during secret creation, will retry",
+				LogFieldError, err.Error())
 			return err
 		}
+		m.Log.V(VerbosityLevelDebug).Info("Error during secret creation",
+			LogFieldError, RootCause(err).Error())
 		m.setError(ctx, RootCause(err).Error())
 		return err
 	}
 
+	m.Log.V(VerbosityLevelTrace).Info("Metal3Data reconciliation completed")
 	return nil
 }
 
 // CreateSecrets creates the secret if they do not exist.
 func (m *DataManager) createSecrets(ctx context.Context) error {
+	m.Log.V(VerbosityLevelTrace).Info("Creating secrets for Metal3Data")
 	var metaDataErr, networkDataErr error
 
 	if m.Data.Spec.Template.Name == "" {
@@ -168,7 +177,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 
 		// Try to fetch the secret. If it exists, we do not modify it, to be able
 		// to reprovision a node in the exact same state.
-		m.Log.Info("Checking if secret exists", "secret", m.Data.Spec.MetaData.Name)
+		m.Log.Info("Checking if secret exists", LogFieldSecretName, m.Data.Spec.MetaData.Name)
 		_, metaDataErr = checkSecretExists(ctx, m.client, m.Data.Spec.MetaData.Name,
 			m.Data.Namespace,
 		)
@@ -177,7 +186,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return metaDataErr
 		}
 		if apierrors.IsNotFound(metaDataErr) {
-			m.Log.Info("MetaData secret creation needed", "secret", m.Data.Spec.MetaData.Name)
+			m.Log.Info("MetaData secret creation needed", LogFieldSecretName, m.Data.Spec.MetaData.Name)
 		}
 	}
 
@@ -194,7 +203,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 
 		// Try to fetch the secret. If it exists, we do not modify it, to be able
 		// to reprovision a node in the exact same state.
-		m.Log.Info("Checking if secret exists", "secret", m.Data.Spec.NetworkData.Name)
+		m.Log.Info("Checking if secret exists", LogFieldSecretName, m.Data.Spec.NetworkData.Name)
 		_, networkDataErr = checkSecretExists(ctx, m.client, m.Data.Spec.NetworkData.Name,
 			m.Data.Namespace,
 		)
@@ -202,7 +211,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 			return networkDataErr
 		}
 		if apierrors.IsNotFound(networkDataErr) {
-			m.Log.Info("NetworkData secret creation needed", "secret", m.Data.Spec.NetworkData.Name)
+			m.Log.Info("NetworkData secret creation needed", LogFieldSecretName, m.Data.Spec.NetworkData.Name)
 		}
 	}
 
@@ -293,7 +302,10 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 
 // ReleaseLeases releases addresses from pool.
 func (m *DataManager) ReleaseLeases(ctx context.Context) error {
+	m.Log.V(VerbosityLevelTrace).Info("Releasing IP leases for Metal3Data",
+		LogFieldMetal3Data, m.Data.Name)
 	if m.Data.Spec.Template.Name == "" {
+		m.Log.V(VerbosityLevelDebug).Info("No template specified, skipping lease release")
 		return nil
 	}
 	if m.Data.Spec.Template.Namespace == "" {
@@ -307,9 +319,11 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 		return err
 	}
 	if m3dt == nil {
+		m.Log.V(VerbosityLevelDebug).Info("Metal3DataTemplate not found, skipping lease release")
 		return nil
 	}
-	m.Log.V(VerbosityLevelDebug).Info("Fetched Metal3DataTemplate")
+	m.Log.V(VerbosityLevelDebug).Info("Fetched Metal3DataTemplate for lease release",
+		LogFieldMetal3DataTemplate, m3dt.Name)
 
 	return m.releaseAddressesFromPool(ctx, *m3dt)
 }
@@ -338,6 +352,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	machine *clusterv1.Machine,
 	bmh *bmov1alpha1.BareMetalHost,
 ) (map[string]addressFromPool, error) {
+	m.Log.V(VerbosityLevelTrace).Info("Getting addresses from IP pools")
 	var err error
 	addresses := map[string]addressFromPool{}
 
@@ -377,7 +392,7 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 				continue
 			}
 		}
-		m.Log.Info("Allocating address from IPPool", "pool name", pool)
+		m.Log.Info("Allocating address from IPPool", LogFieldPool, pool)
 		var itemRequeue bool
 		if rc.m3Claim != nil {
 			addresses[pool], itemRequeue, err = m.addressFromM3Claim(ctx, ref, rc.m3Claim)
@@ -409,7 +424,7 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context, m3dt infrav1
 		return err
 	}
 	for pool, ref := range poolRefs {
-		m.Log.Info("Releasing address from IPPool", "pool name", pool)
+		m.Log.Info("Releasing address from IPPool", LogFieldPool, pool)
 		var err error
 		if isMetal3IPPoolRef(ref) {
 			err = m.releaseAddressFromM3Pool(ctx, ref)
@@ -690,7 +705,7 @@ func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocatio
 // ensureM3IPClaim ensures that a claim for a referenced pool exists.
 // It returns the claim and whether to fetch the claim again when fetching IP addresses.
 func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
-	m.Log.Info("Ensuring Metal3IPClaim for Metal3Data", "Metal3Data", m.Data.Name)
+	m.Log.Info("Ensuring Metal3IPClaim for Metal3Data", LogFieldMetal3Data, m.Data.Name)
 	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
@@ -710,7 +725,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if m3dt == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
 	}
-	m.Log.Info("Fetched Metal3DataTemplate", "Metal3DataTemplate", m3dt.Name)
+	m.Log.Info("Fetched Metal3DataTemplate", LogFieldMetal3DataTemplate, m3dt.Name)
 
 	// Fetch the Metal3Machine, to get the related info
 	m3m, err := m.getM3Machine(ctx, m3dt)
@@ -720,7 +735,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if m3m == nil {
 		return reconciledClaim{m3Claim: ipClaim}, nil
 	}
-	m.Log.V(VerbosityLevelDebug).Info("Fetched Metal3Machine", "Metal3Machine", m3m.Name)
+	m.Log.V(VerbosityLevelDebug).Info("Fetched Metal3Machine", LogFieldMetal3Machine, m3m.Name)
 
 	// Fetch the BMH associated with the M3M
 	bmh, err := getHost(ctx, m3m, m.client, m.Log)
@@ -730,7 +745,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 	if bmh == nil {
 		return reconciledClaim{m3Claim: ipClaim}, WithTransientError(errors.New("no associated BMH yet"), requeueAfter)
 	}
-	m.Log.V(VerbosityLevelDebug).Info("Fetched BMH", "BMH", bmh.Name)
+	m.Log.V(VerbosityLevelDebug).Info("Fetched BMH", LogFieldBMH, bmh.Name)
 
 	ipClaim, err = fetchM3IPClaim(ctx, m.client, m.Log, bmh.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err == nil {
@@ -787,22 +802,22 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 	if !ipClaim.DeletionTimestamp.IsZero() {
 		if !matchingOwnerRef {
 			// It is not our IPClaim so we should not use it. Attempt to remove finalizer if it is still there.
-			m.Log.Info("Found old IPClaim with deletion timestamp. Attempting to clean up and requeue.", "IPClaim", ipClaim)
+			m.Log.Info("Found old IPClaim with deletion timestamp. Attempting to clean up and requeue.", LogFieldIPClaim, ipClaim.Name)
 			if controllerutil.ContainsFinalizer(ipClaim, infrav1.DataFinalizer) {
 				controllerutil.RemoveFinalizer(ipClaim, infrav1.DataFinalizer)
 				err := updateObject(ctx, m.client, ipClaim)
 				if err != nil {
-					m.Log.Info("Failed to remove finalizer from old IPClaim", "IPClaim", ipClaim, "error", err)
+					m.Log.Info("Failed to remove finalizer from old IPClaim", LogFieldIPClaim, ipClaim.Name, LogFieldError, err)
 				}
 			}
 			return addressFromPool{}, true, nil
 		}
-		m.Log.Info("IPClaim has deletion timestamp but is still in use!", "IPClaim", ipClaim)
+		m.Log.Info("IPClaim has deletion timestamp but is still in use!", LogFieldIPClaim, ipClaim.Name)
 	} else if !matchingOwnerRef {
 		// It is not our IPClaim, but it does not appear to be deleting either.
 		// This could happen due to misconfiguration (nameclash) or because the IPClaim
 		// just didn't get the deletionTimestamp before the new Metal3Data was created (race condition).
-		m.Log.Info("Found IPClaim with same name but different UID. Requeing and hoping it will go away.", "IPClaim", ipClaim)
+		m.Log.Info("Found IPClaim with same name but different UID. Requeing and hoping it will go away.", LogFieldIPClaim, ipClaim.Name)
 		return addressFromPool{}, true, nil
 	}
 
@@ -827,10 +842,10 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 
 	if err := m.client.Get(ctx, addressNamespacedName, ipAddress); err != nil {
 		if apierrors.IsNotFound(err) {
-			m.Log.Info("IPAddress not found, requeuing", "IPAddress", ipClaim.Status.Address.Name)
+			m.Log.Info("IPAddress not found, requeuing", LogFieldIPAddress, ipClaim.Status.Address.Name)
 			return addressFromPool{}, true, nil
 		}
-		m.Log.Error(err, "Unable to get IPAddress.", "IPAddress", ipClaim.Status.Address.Name)
+		m.Log.Error(err, "Unable to get IPAddress.", LogFieldIPAddress, ipClaim.Status.Address.Name)
 		return addressFromPool{}, false, err
 	}
 
@@ -849,11 +864,13 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 
 // releaseAddressFromM3Pool deletes the Metal3IPClaim for a referenced pool.
 func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef corev1.TypedLocalObjectReference) error {
+	m.Log.V(VerbosityLevelTrace).Info("Releasing address from Metal3IPPool",
+		LogFieldPool, poolRef.Name)
 	var ipClaim *ipamv1.IPClaim
 	var err, finalizerErr error
 	ipClaimsList, err := m.fetchIPClaimsWithLabels(ctx, poolRef.Name)
 	if err != nil {
-		m.Log.Error(err, "Failed to fetch IPClaims with labels", "poolRef", poolRef, "Metal3Data", m.Data.Name)
+		m.Log.Error(err, "Failed to fetch IPClaims with labels", LogFieldPoolRef, poolRef.Name, LogFieldMetal3Data, m.Data.Name)
 	}
 	if len(ipClaimsList) > 0 {
 		for _, ipClaimWithLabels := range ipClaimsList {
@@ -894,6 +911,9 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 
 // ensureIPClaim creates a CAPI IPAddressClaim for a pool if it does not exist yet.
 func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
+	m.Log.V(VerbosityLevelTrace).Info("Ensuring IPAddressClaim exists",
+		LogFieldMetal3Data, m.Data.Name,
+		LogFieldPool, poolRef.Name)
 	claim := &capipamv1.IPAddressClaim{}
 	nn := types.NamespacedName{
 		Namespace: m.Data.Namespace,
@@ -905,9 +925,14 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 		}
 	}
 	if claim.Name != "" {
+		m.Log.V(VerbosityLevelDebug).Info("Found existing IPAddressClaim",
+			LogFieldIPClaim, claim.Name)
 		return reconciledClaim{claim: claim}, nil
 	}
 
+	m.Log.V(VerbosityLevelDebug).Info("Creating new IPAddressClaim",
+		LogFieldMetal3Data, m.Data.Name,
+		LogFieldPool, poolRef.Name)
 	// No claim exists, we create a new one
 	claim = &capipamv1.IPAddressClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -942,12 +967,13 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 
 // addressFromClaim retrieves the IPAddress for a CAPI IPAddressClaim.
 func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalObjectReference, claim *capipamv1.IPAddressClaim) (addressFromPool, bool, error) {
+	m.Log.V(VerbosityLevelTrace).Info("Getting address from IPAddressClaim")
 	if claim == nil {
 		return addressFromPool{}, true, errors.New("no claim provided")
 	}
 	if !claim.DeletionTimestamp.IsZero() {
 		// This IPClaim is about to be deleted so we cannot use it. Requeue.
-		m.Log.Info("Found IPClaim with deletion timestamp, requeuing.", "IPClaim", claim)
+		m.Log.Info("Found IPClaim with deletion timestamp, requeuing.", LogFieldIPClaim, claim.Name)
 		return addressFromPool{}, true, nil
 	}
 
