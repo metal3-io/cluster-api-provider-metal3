@@ -11,7 +11,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3cluster
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3cluster
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3cluster.infrastructure.cluster.x-k8s.io
@@ -19,7 +19,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -33,7 +33,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3clustertemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3clustertemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3clustertemplate.infrastructure.cluster.x-k8s.io
@@ -41,7 +41,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -55,7 +55,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3data
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3data
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3data.infrastructure.cluster.x-k8s.io
@@ -63,7 +63,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -77,7 +77,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3dataclaim
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3dataclaim
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3dataclaim.infrastructure.cluster.x-k8s.io
@@ -85,7 +85,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -99,7 +99,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3datatemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3datatemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3datatemplate.infrastructure.cluster.x-k8s.io
@@ -107,7 +107,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -121,7 +121,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machine
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3machine
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3machine.infrastructure.cluster.x-k8s.io
@@ -129,7 +129,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -143,7 +143,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machinetemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3machinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3machinetemplate.infrastructure.cluster.x-k8s.io
@@ -151,7 +151,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -165,7 +165,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediation
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3remediation
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3remediation.infrastructure.cluster.x-k8s.io
@@ -173,7 +173,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -187,7 +187,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediationtemplate
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3remediationtemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: default.metal3remediationtemplate.infrastructure.cluster.x-k8s.io
@@ -195,7 +195,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -215,7 +215,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3cluster
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3cluster
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3cluster.infrastructure.cluster.x-k8s.io
@@ -223,7 +223,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -237,7 +237,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3clustertemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3clustertemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3clustertemplate.infrastructure.cluster.x-k8s.io
@@ -245,7 +245,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -259,7 +259,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3data
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3data
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3data.infrastructure.cluster.x-k8s.io
@@ -267,7 +267,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -281,7 +281,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3dataclaim
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3dataclaim
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3dataclaim.infrastructure.cluster.x-k8s.io
@@ -289,7 +289,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -303,7 +303,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3datatemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3datatemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3datatemplate.infrastructure.cluster.x-k8s.io
@@ -311,7 +311,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -325,7 +325,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machine
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3machine
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3machine.infrastructure.cluster.x-k8s.io
@@ -333,7 +333,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -347,7 +347,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3machinetemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3machinetemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3machinetemplate.infrastructure.cluster.x-k8s.io
@@ -355,7 +355,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -369,7 +369,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediation
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3remediation
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3remediation.infrastructure.cluster.x-k8s.io
@@ -377,7 +377,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE
@@ -391,7 +391,7 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-infrastructure-cluster-x-k8s-io-v1beta1-metal3remediationtemplate
+      path: /validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3remediationtemplate
   failurePolicy: Fail
   matchPolicy: Equivalent
   name: validation.metal3remediationtemplate.infrastructure.cluster.x-k8s.io
@@ -399,7 +399,7 @@ webhooks:
   - apiGroups:
     - infrastructure.cluster.x-k8s.io
     apiVersions:
-    - v1beta1
+    - v1beta2
     operations:
     - CREATE
     - UPDATE

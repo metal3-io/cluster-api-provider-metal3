@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -86,7 +86,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	Expect(controlplaneM3Machines).To(HaveLen(numberOfControlplane))
 	Expect(workerM3Machines).To(HaveLen(numberOfWorkers))
 
-	getBmhFromM3Machine := func(m3Machine infrav1.Metal3Machine) (result bmov1alpha1.BareMetalHost) {
+	getBmhFromM3Machine := func(m3Machine infrav1beta1.Metal3Machine) (result bmov1alpha1.BareMetalHost) {
 		Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: Metal3MachineToBmhName(m3Machine)}, &result)).To(Succeed())
 		return result
 	}
@@ -253,7 +253,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	ListNodes(ctx, targetClient)
 
 	By("Creating a new Metal3DataTemplate")
-	m3dataTemplate := infrav1.Metal3DataTemplate{}
+	m3dataTemplate := infrav1beta1.Metal3DataTemplate{}
 	m3dataTemplateName := input.ClusterName + "-workers-template"
 	newM3dataTemplateName := "test-new-m3dt"
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: m3dataTemplateName}, &m3dataTemplate)).To(Succeed())
@@ -272,7 +272,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Creating a new Metal3MachineTemplate")
-	m3machineTemplate := infrav1.Metal3MachineTemplate{}
+	m3machineTemplate := infrav1beta1.Metal3MachineTemplate{}
 	m3machineTemplateName := input.ClusterName + "-workers"
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: m3machineTemplateName}, &m3machineTemplate)).To(Succeed())
 	newM3MachineTemplateName := "test-new-m3mt"
@@ -295,7 +295,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	deployment.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{
 		Kind:     "Metal3MachineTemplate",
-		APIGroup: infrav1.GroupVersion.Group,
+		APIGroup: infrav1beta1.GroupVersion.Group,
 		Name:     newM3MachineTemplateName,
 	}
 	deployment.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable = &intstr.IntOrString{IntVal: 1}
@@ -311,7 +311,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 	By("Waiting for single new worker to become provisioned")
 	Eventually(func(g Gomega) {
-		datas := infrav1.Metal3DataList{}
+		datas := infrav1beta1.Metal3DataList{}
 		g.Expect(bootstrapClient.List(ctx, &datas, client.InNamespace(input.Namespace))).To(Succeed())
 		g.Expect(datas.Items).NotTo(BeEmpty())
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-deployment")...).Should(Succeed())
@@ -342,7 +342,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 
 type bmhToMachine struct {
 	baremetalhost *bmov1alpha1.BareMetalHost
-	metal3machine *infrav1.Metal3Machine
+	metal3machine *infrav1beta1.Metal3Machine
 }
 type bmhToMachineSlice []bmhToMachine
 

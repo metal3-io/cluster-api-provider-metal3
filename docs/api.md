@@ -613,23 +613,23 @@ spec:
     ipAddressesFromIPPool:
     - key: ip
       name: pool-1
-      # apiGroup: ipam.metal3.io
-      # kind: IPPool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
     prefixesFromIPPool:
     - key: ip
       name: pool-1
-      # apiGroup: ipam.metal3.io
-      # kind: IPPool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
     gatewaysFromIPPool:
     - key: gateway
       name: pool-1
-      # apiGroup: ipam.metal3.io
-      # kind: IPPool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
     dnsServersFromIPPool:
     - key: dns
       name: pool-1
-      # apiGroup: ipam.metal3.io
-      # kind: IPPool
+      apiGroup: ipam.metal3.io
+      kind: IPPool
     fromHostInterfaces:
     - key: mac
       interface: "eth0"
