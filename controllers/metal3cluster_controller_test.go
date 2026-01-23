@@ -19,10 +19,10 @@ import (
 	"errors"
 
 	"github.com/go-logr/logr"
-	"github.com/golang/mock/gomock"
 	baremetal_mocks "github.com/metal3-io/cluster-api-provider-metal3/baremetal/mocks"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("Metal3Cluster controller", func() {
