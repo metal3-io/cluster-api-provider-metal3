@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +40,7 @@ import (
 )
 
 const (
+	metal3RemediationControllerName  = "Metal3Remediation-controller"
 	defaultTimeout                   = 5 * time.Second
 	defaultRemediationTimeoutSeconds = 600
 )
@@ -60,10 +62,21 @@ type Metal3RemediationReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch;update;patch;delete
 
 // Reconcile handles Metal3Remediation events.
-func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rres ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	remediationLog := r.Log.WithValues(
 		baremetal.LogFieldMetal3Remediation, req.NamespacedName,
 	)
+
+	// Track metrics for this reconciliation
+	defer func() {
+		hasError := rerr != nil || rres.Requeue || rres.RequeueAfter > 0
+		metrics.RecordMetal3RemediationReconcile(req.Namespace, reconcileStart, hasError)
+		if rerr != nil {
+			metrics.RecordReconcileError(metal3RemediationControllerName, req.Namespace, false)
+		}
+	}()
+
 	remediationLog.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting Metal3Remediation reconciliation")
 
 	// Fetch the Metal3Remediation instance.
