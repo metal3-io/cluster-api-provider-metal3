@@ -16,10 +16,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -54,9 +56,18 @@ type Metal3MachineTemplateReconciler struct {
 
 // Reconcile handles Metal3MachineTemplate events.
 func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	m3templateLog := r.Log.WithName(templateControllerName).WithValues(
 		baremetal.LogFieldMetal3MachineTemplate, req.NamespacedName,
 	)
+
+	// Track metrics for this reconciliation
+	defer func() {
+		metrics.RecordMetal3MachineTemplateReconcile(req.Namespace, reconcileStart, rerr)
+		if rerr != nil {
+			metrics.RecordReconcileError(templateControllerName, req.Namespace, false)
+		}
+	}()
 
 	m3templateLog.V(baremetal.VerbosityLevelTrace).Info("starting reconciliation",
 		baremetal.LogFieldController, templateControllerName,

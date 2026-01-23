@@ -20,11 +20,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -85,9 +87,21 @@ type Metal3MachineReconciler struct {
 
 // Reconcile handles Metal3Machine events.
 func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	machineLog := r.Log.WithName(machineControllerName).WithValues(
 		baremetal.LogFieldMetal3Machine, req.NamespacedName,
 	)
+
+	// Track metrics for this reconciliation - will be recorded in defer
+	var clusterName string
+	defer func() {
+		metrics.RecordMetal3MachineReconcile(req.Namespace, clusterName, reconcileStart, rerr)
+		if rerr != nil {
+			var reconcileErr baremetal.ReconcileError
+			isTransient := errors.As(rerr, &reconcileErr) && reconcileErr.IsTransient()
+			metrics.RecordReconcileError(machineControllerName, req.Namespace, isTransient)
+		}
+	}()
 
 	machineLog.V(baremetal.VerbosityLevelTrace).Info("Starting Metal3Machine reconciliation")
 
@@ -162,6 +176,9 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	machineLog = machineLog.WithValues(baremetal.LogFieldCluster, cluster.Name)
 	machineLog.V(baremetal.VerbosityLevelDebug).Info("Found cluster",
 		"clusterPhase", cluster.Status.Phase)
+
+	// Capture cluster name for metrics deferred recording
+	clusterName = cluster.Name
 
 	// Make sure infrastructure is ready
 	infrastructureReadyCondition := deprecatedv1beta1conditions.Get(cluster, clusterv1.InfrastructureReadyV1Beta1Condition)
@@ -278,7 +295,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle non-deleted machines
 	machineLog.V(baremetal.VerbosityLevelTrace).Info("Running normal reconciliation")
-	return r.reconcileNormal(ctx, machineMgr, machineLog)
+	return r.reconcileNormal(ctx, machineMgr, machineLog, req.Namespace, clusterName, capm3Machine.ObjectMeta.CreationTimestamp.Time)
 }
 
 func patchMetal3Machine(ctx context.Context, patchHelper *v1beta1patch.Helper, metal3Machine *infrav1.Metal3Machine, options ...v1beta1patch.Option) error {
@@ -334,8 +351,19 @@ func patchMetal3Machine(ctx context.Context, patchHelper *v1beta1patch.Helper, m
 
 func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr baremetal.MachineManagerInterface, log logr.Logger,
+	namespace, clusterName string, creationTime time.Time,
 ) (ctrl.Result, error) {
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: starting")
+
+	// Track if machine was already ready at start of reconcile for metrics
+	wasReadyBeforeReconcile := machineMgr.IsProvisioned()
+
+	// Helper to record provisioning duration when machine becomes ready for the first time
+	recordProvisioningIfNewlyReady := func() {
+		if !wasReadyBeforeReconcile {
+			metrics.RecordMetal3MachineProvisioning(namespace, clusterName, creationTime)
+		}
+	}
 
 	// If the Metal3Machine doesn't have finalizer, add it.
 	machineMgr.SetFinalizer()
@@ -390,16 +418,19 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if !hasAnnotation {
 		log.V(baremetal.VerbosityLevelTrace).Info("No BMH annotation, attempting to associate")
 		// Associate the baremetalhost hosting the machine
+		associationStart := time.Now()
 		err := machineMgr.Associate(ctx)
 		if err != nil {
 			log.V(baremetal.VerbosityLevelDebug).Info("Association failed",
 				baremetal.LogFieldError, err.Error())
 			machineMgr.SetConditionMetal3MachineToFalse(infrav1.AssociateBMHCondition, infrav1.AssociateBMHFailedReason, clusterv1beta1.ConditionSeverityError, err.Error())
 			machineMgr.SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition, metav1.ConditionFalse, infrav1.AssociateBareMetalHostFailedV1Beta2Reason, err.Error())
+			metrics.RecordBMHAssociation(namespace, clusterName, associationStart, err)
 			return checkMachineError(machineMgr, err,
 				"failed to associate the Metal3Machine to a BareMetalHost", errType)
 		}
 
+		metrics.RecordBMHAssociation(namespace, clusterName, associationStart, nil)
 		log.V(baremetal.VerbosityLevelTrace).Info("Association initiated successfully")
 		return ctrl.Result{}, nil
 	}
@@ -443,6 +474,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		log.V(baremetal.VerbosityLevelDebug).Info("Node with matching ProviderID found, waiting for NodeRef")
 		// Nothing to be done but wait for Machine.Spec.NodeRef
 		machineMgr.SetReadyTrue()
+		recordProvisioningIfNewlyReady()
 		return ctrl.Result{}, nil
 	}
 
@@ -478,6 +510,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if success {
 		log.V(baremetal.VerbosityLevelTrace).Info("ProviderID set from node label, marking ready")
 		machineMgr.SetReadyTrue()
+		recordProvisioningIfNewlyReady()
 		return ctrl.Result{}, nil
 	}
 
@@ -495,6 +528,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 				"Failed to set default ProviderID the Metal3Machine", errType)
 		}
 		machineMgr.SetReadyTrue()
+		recordProvisioningIfNewlyReady()
 
 		errType = capierrors.UpdateMachineError
 		log.V(baremetal.VerbosityLevelTrace).Info("Updating machine after setting default ProviderID")

@@ -26,6 +26,7 @@ import (
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,9 +75,21 @@ type Metal3ClusterReconciler struct {
 // Reconcile reads that state of the cluster for a Metal3Cluster object and makes changes based on the state read
 // and what is in the Metal3Cluster.Spec.
 func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	clusterLog := log.Log.WithName(clusterControllerName).WithValues(
 		baremetal.LogFieldMetal3Cluster, req.NamespacedName,
 	)
+
+	// Track metrics for this reconciliation
+	defer func() {
+		metrics.RecordMetal3ClusterReconcile(req.Namespace, req.Name, reconcileStart, rerr)
+		if rerr != nil {
+			var reconcileErr baremetal.ReconcileError
+			isTransient := errors.As(rerr, &reconcileErr) && reconcileErr.IsTransient()
+			metrics.RecordReconcileError(clusterControllerName, req.Namespace, isTransient)
+		}
+	}()
+
 	clusterLog.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting Metal3Cluster reconciliation")
 
 	// Fetch the Metal3Cluster instance
