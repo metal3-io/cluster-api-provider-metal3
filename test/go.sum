@@ -261,8 +261,8 @@ github.com/metal3-io/baremetal-operator/apis v0.12.1 h1:QT9HGLJeNIsT5fTkfjKzlG8U
 github.com/metal3-io/baremetal-operator/apis v0.12.1/go.mod h1:7MJs5wimmBRFZ9drrrt51blP7LaBewTZ9rzzc4nyi8E=
 github.com/metal3-io/ip-address-manager/api v1.12.0 h1:VHDUHvnaoYFRJ6601ax/ObUEGCyPRBNkiWioGacalHU=
 github.com/metal3-io/ip-address-manager/api v1.12.0/go.mod h1:fkcCgObstEXiiF3t8z04SQ6F5OIDWoXcLuJ6bW1igJc=
-github.com/metal3-io/ironic-standalone-operator/api v0.7.0 h1:WfismIQl4tBia3eFKV4ErFm7cNHex5/34b0nR2WCrmM=
-github.com/metal3-io/ironic-standalone-operator/api v0.7.0/go.mod h1:Sz6AJvYQwlykXpbTZZiR8oUH/rapJt/OzjS47qF0EfQ=
+github.com/metal3-io/ironic-standalone-operator/api v0.7.1 h1:tt8l1HWkNVWk7S/FeUi39xBzc4uXxGLyyO8zS1s2ZGM=
+github.com/metal3-io/ironic-standalone-operator/api v0.7.1/go.mod h1:xkVdOrE1YnK0O0w/Ezw8VZ/TK4XOz2xTAc17mh2dlt4=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
 github.com/mfridman/tparse v0.18.0/go.mod h1:gEvqZTuCgEhPbYk/2lS3Kcxg1GmTxxU7kTC8DvP0i/A=
 github.com/miekg/dns v1.1.57 h1:Jzi7ApEIzwEPLHWRcafCN9LZSBbqQpxjt/wpgvg7wcM=
