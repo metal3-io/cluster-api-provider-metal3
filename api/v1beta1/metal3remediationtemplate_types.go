@@ -41,7 +41,7 @@ type Metal3RemediationTemplateStatus struct {
 // +kubebuilder:resource:path=metal3remediationtemplates,scope=Namespaced,categories=cluster-api,shortName=m3rt;m3remediationtemplate;m3remediationtemplates;metal3rt;metal3remediationtemplate
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 
 // Metal3RemediationTemplate is the Schema for the metal3remediationtemplates API.
 type Metal3RemediationTemplate struct {

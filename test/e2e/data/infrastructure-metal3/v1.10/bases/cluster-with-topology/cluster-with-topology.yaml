@@ -71,6 +71,8 @@ spec:
     ipAddressesFromIPPool:
     - key: provisioningIP
       name: ${CLUSTER_NAME}-provisioning-pool
+      apiGroup: ""
+      kind: ""
     objectNames:
     - key: name
       object: machine
@@ -81,6 +83,8 @@ spec:
     prefixesFromIPPool:
     - key: provisioningCIDR
       name: ${CLUSTER_NAME}-provisioning-pool
+      apiGroup: ""
+      kind: ""
   networkData:
     links:
       ethernets:

@@ -33,12 +33,12 @@ import (
 	time "time"
 
 	v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	v1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	v1beta2 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	gomock "go.uber.org/mock/gomock"
 	v1 "k8s.io/api/core/v1"
 	v10 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v11 "k8s.io/client-go/kubernetes/typed/core/v1"
-	v1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta20 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
@@ -95,10 +95,10 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) DeleteNode(ctx, clusterCl
 }
 
 // GetCapiMachine mocks base method.
-func (m *MockRemediationManagerInterface) GetCapiMachine(ctx context.Context) (*v1beta2.Machine, error) {
+func (m *MockRemediationManagerInterface) GetCapiMachine(ctx context.Context) (*v1beta20.Machine, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCapiMachine", ctx)
-	ret0, _ := ret[0].(*v1beta2.Machine)
+	ret0, _ := ret[0].(*v1beta20.Machine)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -183,10 +183,10 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) GetRemediationPhase() *go
 }
 
 // GetRemediationType mocks base method.
-func (m *MockRemediationManagerInterface) GetRemediationType() v1beta1.RemediationType {
+func (m *MockRemediationManagerInterface) GetRemediationType() v1beta2.RemediationType {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRemediationType")
-	ret0, _ := ret[0].(v1beta1.RemediationType)
+	ret0, _ := ret[0].(v1beta2.RemediationType)
 	return ret0
 }
 

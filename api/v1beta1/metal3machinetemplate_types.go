@@ -35,7 +35,7 @@ type Metal3MachineTemplateSpec struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3MachineTemplate"
 // +kubebuilder:resource:path=metal3machinetemplates,scope=Namespaced,categories=cluster-api,shortName=m3mt;m3machinetemplate;m3machinetemplates;metal3mt;metal3machinetemplate
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 
 // Metal3MachineTemplate is the Schema for the metal3machinetemplates API.
 type Metal3MachineTemplate struct {

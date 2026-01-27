@@ -23,7 +23,7 @@ import (
 
 	"github.com/blang/semver"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	irsov1alpha1 "github.com/metal3-io/ironic-standalone-operator/api/v1alpha1"
 	. "github.com/onsi/ginkgo/v2"
@@ -179,9 +179,9 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 		By("Checking leftover Metal3Datas, Metal3DataTemplates and Metal3DataClaims")
 		Eventually(func(g Gomega) {
 			opts := &client.ListOptions{}
-			datas := infrav1.Metal3DataList{}
-			dataTemplates := infrav1.Metal3DataTemplateList{}
-			dataClaims := infrav1.Metal3DataClaimList{}
+			datas := infrav1beta1.Metal3DataList{}
+			dataTemplates := infrav1beta1.Metal3DataTemplateList{}
+			dataClaims := infrav1beta1.Metal3DataClaimList{}
 			g.Expect(clusterClient.List(ctx, &datas, opts)).To(Succeed())
 			g.Expect(clusterClient.List(ctx, &dataTemplates, opts)).To(Succeed())
 			g.Expect(clusterClient.List(ctx, &dataClaims, opts)).To(Succeed())
@@ -404,7 +404,7 @@ func ListBareMetalHosts(ctx context.Context, c client.Client, opts ...client.Lis
 // ListMetal3Machines logs the names, ready status and provider ID of all Metal3Machines in the namespace.
 // Similar to kubectl get metal3machines.
 func ListMetal3Machines(ctx context.Context, c client.Client, opts ...client.ListOption) {
-	metal3Machines := infrav1.Metal3MachineList{}
+	metal3Machines := infrav1beta1.Metal3MachineList{}
 	Expect(c.List(ctx, &metal3Machines, opts...)).To(Succeed())
 
 	rows := make([][]string, len(metal3Machines.Items)+1)
@@ -466,7 +466,7 @@ func CreateNewM3MachineTemplate(ctx context.Context, namespace string, newM3Mach
 	checksumType := "sha256"
 	imageFormat := "raw"
 
-	m3MachineTemplate := infrav1.Metal3MachineTemplate{}
+	m3MachineTemplate := infrav1beta1.Metal3MachineTemplate{}
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3MachineTemplate)).To(Succeed())
 
 	newM3MachineTemplate := m3MachineTemplate.DeepCopy()
@@ -503,7 +503,7 @@ func WaitForNumBmhInState(ctx context.Context, state bmov1alpha1.ProvisioningSta
 func WaitForNumMetal3MachinesReady(ctx context.Context, input WaitForNumInput) {
 	Logf("Waiting for %d Metal3Machines to be ready", input.Replicas)
 	Eventually(func(g Gomega) {
-		m3mList := infrav1.Metal3MachineList{}
+		m3mList := infrav1beta1.Metal3MachineList{}
 		g.Expect(input.Client.List(ctx, &m3mList, input.Options...)).To(Succeed())
 		numReady := 0
 		for _, m3m := range m3mList.Items {
@@ -543,9 +543,9 @@ func GetMachine(ctx context.Context, c client.Client, name client.ObjectKey) (re
 	return
 }
 
-func GetMetal3Machines(ctx context.Context, c client.Client, _, namespace string) ([]infrav1.Metal3Machine, []infrav1.Metal3Machine) {
-	var controlplane, workers []infrav1.Metal3Machine
-	allMachines := &infrav1.Metal3MachineList{}
+func GetMetal3Machines(ctx context.Context, c client.Client, _, namespace string) ([]infrav1beta1.Metal3Machine, []infrav1beta1.Metal3Machine) {
+	var controlplane, workers []infrav1beta1.Metal3Machine
+	allMachines := &infrav1beta1.Metal3MachineList{}
 	Expect(c.List(ctx, allMachines, client.InNamespace(namespace))).To(Succeed())
 
 	for _, machine := range allMachines.Items {
@@ -580,7 +580,7 @@ func GetIPPools(ctx context.Context, c client.Client, _, namespace string) ([]ip
 // key and an IPAddress as a value.
 func GenerateIPPoolPreallocations(ctx context.Context, ippool ipamv1.IPPool, poolName string, c client.Client) (map[string]ipamv1.IPAddressStr, error) {
 	allocations := ippool.Status.Allocations
-	m3DataList, m3MachineList := infrav1.Metal3DataList{}, infrav1.Metal3MachineList{}
+	m3DataList, m3MachineList := infrav1beta1.Metal3DataList{}, infrav1beta1.Metal3MachineList{}
 	Expect(c.List(ctx, &m3DataList, &client.ListOptions{})).To(Succeed())
 	Expect(c.List(ctx, &m3MachineList, &client.ListOptions{})).To(Succeed())
 	newAllocations := make(map[string]ipamv1.IPAddressStr)
@@ -596,7 +596,7 @@ func GenerateIPPoolPreallocations(ctx context.Context, ippool ipamv1.IPPool, poo
 
 // Metal3DataToMachineName finds the relevant owner reference in Metal3Data
 // and returns the name of corresponding Metal3Machine.
-func Metal3DataToMachineName(m3data infrav1.Metal3Data) (string, error) {
+func Metal3DataToMachineName(m3data infrav1beta1.Metal3Data) (string, error) {
 	ownerReferences := m3data.GetOwnerReferences()
 	for _, reference := range ownerReferences {
 		if reference.Kind == "Metal3Machine" {
@@ -607,7 +607,7 @@ func Metal3DataToMachineName(m3data infrav1.Metal3Data) (string, error) {
 }
 
 // FilterMetal3DatasByName returns a filtered list of m3data objects with specific name.
-func FilterMetal3DatasByName(m3datas []infrav1.Metal3Data, name string) (result []infrav1.Metal3Data) {
+func FilterMetal3DatasByName(m3datas []infrav1beta1.Metal3Data, name string) (result []infrav1beta1.Metal3Data) {
 	Logf("m3datas: %v", m3datas)
 	Logf("looking for name: %s", name)
 	for _, m3data := range m3datas {
@@ -620,7 +620,7 @@ func FilterMetal3DatasByName(m3datas []infrav1.Metal3Data, name string) (result 
 }
 
 // FilterMetal3MachinesByName returns a filtered list of m3machine objects with specific name.
-func FilterMetal3MachinesByName(m3ms []infrav1.Metal3Machine, name string) (result []infrav1.Metal3Machine) {
+func FilterMetal3MachinesByName(m3ms []infrav1beta1.Metal3Machine, name string) (result []infrav1beta1.Metal3Machine) {
 	for _, m3m := range m3ms {
 		if m3m.ObjectMeta.Name == name {
 			result = append(result, m3m)
@@ -631,7 +631,7 @@ func FilterMetal3MachinesByName(m3ms []infrav1.Metal3Machine, name string) (resu
 
 // Metal3MachineToMachineName finds the relevant owner reference in Metal3Machine
 // and returns the name of corresponding Machine.
-func Metal3MachineToMachineName(m3machine infrav1.Metal3Machine) (string, error) {
+func Metal3MachineToMachineName(m3machine infrav1beta1.Metal3Machine) (string, error) {
 	ownerReferences := m3machine.GetOwnerReferences()
 	for _, reference := range ownerReferences {
 		if reference.Kind == "Machine" {
@@ -641,7 +641,7 @@ func Metal3MachineToMachineName(m3machine infrav1.Metal3Machine) (string, error)
 	return "", errors.New("metal3machine missing a \"Machine\" kind owner reference")
 }
 
-func Metal3MachineToBmhName(m3machine infrav1.Metal3Machine) string {
+func Metal3MachineToBmhName(m3machine infrav1beta1.Metal3Machine) string {
 	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
 }
 
@@ -655,7 +655,7 @@ func BmhNameToVMName(hostname string) string {
 }
 
 func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
-	allMetal3Machines := &infrav1.Metal3MachineList{}
+	allMetal3Machines := &infrav1beta1.Metal3MachineList{}
 	Expect(cli.List(ctx, allMetal3Machines, client.InNamespace(m.Namespace))).To(Succeed())
 	for _, machine := range allMetal3Machines.Items {
 		name, err := Metal3MachineToMachineName(machine)
@@ -669,7 +669,7 @@ func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machin
 }
 
 func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
-	allMetal3Machines := &infrav1.Metal3MachineList{}
+	allMetal3Machines := &infrav1beta1.Metal3MachineList{}
 	Expect(cli.List(ctx, allMetal3Machines, client.InNamespace(m.Namespace))).To(Succeed())
 	for _, machine := range allMetal3Machines.Items {
 		name, err := Metal3MachineToMachineName(machine)
@@ -684,7 +684,7 @@ func MachineToVMNamev1beta1(ctx context.Context, cli client.Client, m *clusterv1
 
 // MachineToIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
 func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
-	m3Machine := &infrav1.Metal3Machine{}
+	m3Machine := &infrav1beta1.Metal3Machine{}
 	namespace := m.GetObjectMeta().GetNamespace()
 	err := cli.Get(ctx, types.NamespacedName{
 		Namespace: namespace,
@@ -694,8 +694,8 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 	if err != nil {
 		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", namespace, m.Spec.InfrastructureRef.Name, err)
 	}
-	m3DataList := &infrav1.Metal3DataList{}
-	m3Data := &infrav1.Metal3Data{}
+	m3DataList := &infrav1beta1.Metal3DataList{}
+	m3Data := &infrav1beta1.Metal3Data{}
 	err = cli.List(ctx, m3DataList)
 	if err != nil {
 		return "", fmt.Errorf("coudln't list Metal3Data objects: %w", err)
@@ -734,7 +734,7 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 // MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
 // This is a duplicate of MachineToIPAddress, but for v1beta1 API. Remove this function when we switch to CAPI v1beta2 API only.
 func MachineToIPAddress1beta1(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
-	m3Machine := &infrav1.Metal3Machine{}
+	m3Machine := &infrav1beta1.Metal3Machine{}
 	err := cli.Get(ctx, types.NamespacedName{
 		Namespace: m.Namespace,
 		Name:      m.Spec.InfrastructureRef.Name},
@@ -743,8 +743,8 @@ func MachineToIPAddress1beta1(ctx context.Context, cli client.Client, m *cluster
 	if err != nil {
 		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Namespace, m.Spec.InfrastructureRef.Name, err)
 	}
-	m3DataList := &infrav1.Metal3DataList{}
-	m3Data := &infrav1.Metal3Data{}
+	m3DataList := &infrav1beta1.Metal3DataList{}
+	m3Data := &infrav1beta1.Metal3Data{}
 	err = cli.List(ctx, m3DataList)
 	if err != nil {
 		return "", fmt.Errorf("coudln't list Metal3Data objects: %w", err)
@@ -1220,7 +1220,7 @@ func getResourceVersions(ctx context.Context, c client.Client, namespace string,
 }
 
 func IsMetal3DataCountEqualToMachineCount(ctx context.Context, c client.Client, namespace string) bool {
-	m3DataList := &infrav1.Metal3DataList{}
+	m3DataList := &infrav1beta1.Metal3DataList{}
 	machineList := &clusterv1.MachineList{}
 
 	err1 := c.List(ctx, m3DataList, client.InNamespace(namespace))

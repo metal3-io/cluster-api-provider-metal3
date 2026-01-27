@@ -24,7 +24,7 @@ type Metal3ClusterTemplateSpec struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=metal3clustertemplates,scope=Namespaced,categories=cluster-api,shortName=m3ct
-// +kubebuilder:storageversion
+// +kubebuilder:deprecatedversion
 
 // Metal3ClusterTemplate is the Schema for the metal3clustertemplates API.
 type Metal3ClusterTemplate struct {

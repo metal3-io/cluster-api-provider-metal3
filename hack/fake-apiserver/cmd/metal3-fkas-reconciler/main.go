@@ -10,7 +10,7 @@ import (
 	"os"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
@@ -52,7 +52,7 @@ func main() {
 		setupLog.Error(err, "Error adding BareMetalHost to scheme")
 	}
 
-	if err = infrav1.AddToScheme(scheme); err != nil {
+	if err = infrav1beta1.AddToScheme(scheme); err != nil {
 		setupLog.Error(err, "Error adding Metal3Machine to scheme")
 	}
 
@@ -86,7 +86,7 @@ func main() {
 			if bmh.Spec.ConsumerRef == nil {
 				return reconcile.Result{}, err
 			}
-			m3m := &infrav1.Metal3Machine{}
+			m3m := &infrav1beta1.Metal3Machine{}
 			m3mKey := client.ObjectKey{
 				Namespace: bmh.Spec.ConsumerRef.Namespace,
 				Name:      bmh.Spec.ConsumerRef.Name,

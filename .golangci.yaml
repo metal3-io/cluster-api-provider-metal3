@@ -129,6 +129,8 @@ linters:
         alias: v1beta1patch
       # CAPM3
       - pkg: github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1
+        alias: infrav1beta1
+      - pkg: github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2
         alias: infrav1
       # BMO
       - pkg: github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1
