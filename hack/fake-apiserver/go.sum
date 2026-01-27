@@ -114,10 +114,10 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/metal3-io/baremetal-operator/apis v0.12.1 h1:QT9HGLJeNIsT5fTkfjKzlG8Ul3oQkCrzKrnBismDyb4=
 github.com/metal3-io/baremetal-operator/apis v0.12.1/go.mod h1:7MJs5wimmBRFZ9drrrt51blP7LaBewTZ9rzzc4nyi8E=
-github.com/metal3-io/cluster-api-provider-metal3/api v1.12.0 h1:SY/yyFkDy+02AnbfJTylWbby/ZAVznXUWQlnzvkcTOM=
-github.com/metal3-io/cluster-api-provider-metal3/api v1.12.0/go.mod h1:f3iI1yhBaNIixWWnXTupWuPlVUSEG3/v+wIBw4Gj11Q=
-github.com/metal3-io/ip-address-manager/api v1.12.0 h1:VHDUHvnaoYFRJ6601ax/ObUEGCyPRBNkiWioGacalHU=
-github.com/metal3-io/ip-address-manager/api v1.12.0/go.mod h1:fkcCgObstEXiiF3t8z04SQ6F5OIDWoXcLuJ6bW1igJc=
+github.com/metal3-io/cluster-api-provider-metal3/api v1.12.1 h1:+ATCaCU78dJBJ655ldLepxARYK0vv6b/hNn7t8WKkWQ=
+github.com/metal3-io/cluster-api-provider-metal3/api v1.12.1/go.mod h1:RjRA6BQF2NeZFVq3XXdldAgzVcPvdKYSbZCN9cGuk8Y=
+github.com/metal3-io/ip-address-manager/api v1.12.1 h1:qJ/cZkTyJ3iXpq+y5Kafn5HcfM4cV7a5MIhXMWhwqsc=
+github.com/metal3-io/ip-address-manager/api v1.12.1/go.mod h1:/egNMDLWVZDxeya5nzATvQrArjS/R7lwHVJhqqt0ayg=
 github.com/moby/spdystream v0.5.0 h1:7r0J1Si3QO/kjRitvSLVVFUjxMEb/YLj6S9FF62JBCU=
 github.com/moby/spdystream v0.5.0/go.mod h1:xBAYlnt/ay+11ShkdFKNAG7LsyK/tmNBVvVOwrfMgdI=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
@@ -130,8 +130,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f h1:y5//uYreIhSUg3J1GEMiLbxo1LJaP8RfCpH6pymGZus=
 github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f/go.mod h1:ZdcZmHo+o7JKHSa8/e818NopupXU1YMK5fe1lsApnBw=
-github.com/onsi/ginkgo/v2 v2.27.3 h1:ICsZJ8JoYafeXFFlFAG75a7CxMsJHwgKwtO+82SE9L8=
-github.com/onsi/ginkgo/v2 v2.27.3/go.mod h1:ArE1D/XhNXBXCBkKOLkbsb2c81dQHCRcF5zwn/ykDRo=
+github.com/onsi/ginkgo/v2 v2.27.5 h1:ZeVgZMx2PDMdJm/+w5fE/OyG6ILo1Y3e+QX4zSR0zTE=
+github.com/onsi/ginkgo/v2 v2.27.5/go.mod h1:ArE1D/XhNXBXCBkKOLkbsb2c81dQHCRcF5zwn/ykDRo=
 github.com/onsi/gomega v1.38.3 h1:eTX+W6dobAYfFeGC2PV6RwXRu/MyT+cQguijutvkpSM=
 github.com/onsi/gomega v1.38.3/go.mod h1:ZCU1pkQcXDO5Sl9/VVEGlDyp+zm0m1cmeG5TOzLgdh4=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
