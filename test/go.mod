@@ -10,7 +10,7 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.12.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.12.0
-	github.com/metal3-io/ironic-standalone-operator/api v0.7.0
+	github.com/metal3-io/ironic-standalone-operator/api v0.7.1
 	github.com/onsi/ginkgo/v2 v2.27.5
 	github.com/onsi/gomega v1.39.0
 	golang.org/x/crypto v0.47.0
