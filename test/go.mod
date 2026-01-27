@@ -17,7 +17,7 @@ require (
 	golang.org/x/crypto v0.45.0
 	golang.org/x/mod v0.31.0
 	gopkg.in/yaml.v3 v3.0.1
-	helm.sh/helm/v3 v3.19.4
+	helm.sh/helm/v3 v3.19.5
 	k8s.io/api v0.34.3
 	k8s.io/apiextensions-apiserver v0.34.3
 	k8s.io/apimachinery v0.34.3
