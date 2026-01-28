@@ -84,15 +84,15 @@ spec:
           - weight: 100
             preference:
               matchExpressions:
-              - key: node-role.kubernetes.io/control-plane
-                operator: Exists
-          - weight: 100
-            preference:
-              matchExpressions:
-              - key: node-role.kubernetes.io/master
+              - key: node-role.kubernetes.io/infra
                 operator: Exists
           - weight: 50
             preference:
               matchExpressions:
-              - key: node-role.kubernetes.io/infra
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/master
                 operator: Exists
