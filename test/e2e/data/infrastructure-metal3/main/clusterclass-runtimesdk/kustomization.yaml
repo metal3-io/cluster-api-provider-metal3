@@ -1,0 +1,5 @@
+resources:
+- clusterclass-runtimesdk.yaml
+- kubeadm-controlplane-template.yaml
+- kubeadm-config-template.yaml
+- metal3-templates.yaml

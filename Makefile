@@ -82,6 +82,7 @@ IMAGE_NAME ?= cluster-api-provider-metal3
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 BMO_IMAGE_NAME ?= baremetal-operator
 BMO_CONTROLLER_IMG ?= $(REGISTRY)/$(BMO_IMAGE_NAME)
+TEST_EXTENSION_IMG ?= $(REGISTRY)/test-extension:$(TAG)
 TAG ?= v1beta1
 BMO_TAG ?= capm3-$(TAG)
 ARCH ?= $(shell go env GOARCH)
@@ -202,6 +203,8 @@ cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-remediation.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-taints > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-taints.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-md-taints > $(E2E_OUT_DIR)/main/cluster-template-centos-md-taints.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-in-place > $(E2E_OUT_DIR)/main/cluster-template-centos-in-place.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/clusterclass-runtimesdk > $(E2E_OUT_DIR)/main/clusterclass-runtimesdk.yaml
 	touch $(E2E_OUT_DIR)/main/clusterclass.yaml
 
 .PHONY: clusterclass-templates-main
@@ -536,6 +539,13 @@ generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
 		output:webhook:dir=$(WEBHOOK_ROOT) \
 		webhook
 
+.PHONY: generate-manifests-test-extension
+generate-manifests-test-extension: $(CONTROLLER_GEN) ## Generate manifests e.g. RBAC for test-extension provider
+	$(CONTROLLER_GEN) \
+		paths=./test/extension/... \
+		output:rbac:dir=./test/extension/config/rbac \
+		rbac:roleName=manager-role
+
 .PHONY: generate-examples
 generate-examples: $(KUSTOMIZE) clean-examples ## Generate examples configurations to run a cluster.
 	./examples/generate.sh
@@ -582,6 +592,14 @@ docker-build-fkas:
 	$(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:latest" . || true
 	rm -rf /tmp/fake-apiserver
 
+.PHONY: docker-build-test-extension
+docker-build-test-extension: ## Build the docker image for test extension
+	$(CONTAINER_RUNTIME) build --network=host --pull \
+	--build-arg TARGETOS=linux \
+	--build-arg TARGETARCH=$(ARCH) \
+	-f test/extension/Dockerfile \
+	-t $(TEST_EXTENSION_IMG) .
+
 ## --------------------------------------
 ## Docker — All ARCH
 ## --------------------------------------
@@ -612,6 +630,11 @@ docker-push-manifest: ## Push the fat manifest docker image.
 set-manifest-image:
 	$(info Updating kustomize image patch file for manager resource)
 	sed -i'' -e 's@image: .*@image: \"'"${MANIFEST_IMG}:$(MANIFEST_TAG)"'\"@' ./config/default/capm3/manager_image_patch.yaml
+
+.PHONY: set-manifest-image-test-extension
+set-manifest-image-test-extension:
+	$(info Updating kustomize image patch file for test extension)
+	sed -i'' -e 's@image: .*@image: \"'"${TEST_EXTENSION_MANIFEST_IMG}"'\"@' ./test/extension/config/default/manager_image_patch.yaml
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:
@@ -682,6 +705,7 @@ endif
 PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+" | sort -V | grep -B1 $(RELEASE_TAG) | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | head -n 1 2>/dev/null)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := releasenotes
+TEST_EXTENSION_MANIFESTS_DIR := out/runtime-extension-test-extension
 
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
@@ -695,6 +719,12 @@ release-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the manifests to publis
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 	cp examples/clusterctl-templates/clusterctl-cluster.yaml $(RELEASE_DIR)/cluster-template.yaml
 	cp examples/clusterctl-templates/example_variables.rc $(RELEASE_DIR)/example_variables.rc
+
+.PHONY: test-extension-manifests
+test-extension-manifests: $(KUSTOMIZE) $(RELEASE_DIR) ## Builds the runtime extension manifests for development
+	mkdir -p $(TEST_EXTENSION_MANIFESTS_DIR)
+	$(KUSTOMIZE) build test/extension/config/default > $(TEST_EXTENSION_MANIFESTS_DIR)/components.yaml
+	cp metadata.yaml $(TEST_EXTENSION_MANIFESTS_DIR)/metadata.yaml
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
