@@ -55,8 +55,8 @@ export SKIP_NODE_IMAGE_PREPULL="true"
 export IPA_BASEURI=https://artifactory.nordix.org/artifactory/openstack-remote-cache/ironic-python-agent/dib
 EOF
 
-# Set USE_IRSO only when IMAGE_OS is not ubuntu
-if [[ "${IMAGE_OS}" != "ubuntu" ]]; then
+# Set USE_IRSO only when IMAGE_OS is not ubuntu and not running scalability tests
+if [[ "${IMAGE_OS}" != "ubuntu" && "${GINKGO_FOCUS:-}" != "scalability" ]]; then
   echo 'export USE_IRSO="true"' >> "${M3_DEV_ENV_PATH}/config_${USER}.sh"
 fi
 
@@ -87,10 +87,10 @@ case "${GINKGO_FOCUS:-}" in
 
   scalability)
     # if running a scalability tests, configure dev-env with fakeIPA
-    export NUM_NODES="${NUM_NODES:-50}"
     echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    sed -i "s/^export NUM_NODES=.*/export NUM_NODES=${NUM_NODES:-50}/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    echo 'export USE_IRSO="false"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    sed -i "s/^export NUM_NODES=.*/export NUM_NODES=30/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'CLUSTER_TOPOLOGY: true' >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export BOOTSTRAP_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
