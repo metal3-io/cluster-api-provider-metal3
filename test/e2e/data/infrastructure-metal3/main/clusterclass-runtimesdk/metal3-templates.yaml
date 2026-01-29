@@ -1,0 +1,44 @@
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3ClusterTemplate
+metadata:
+  name: ${CLUSTER_NAME}
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      controlPlaneEndpoint:
+        host: ${CLUSTER_APIENDPOINT_HOST}
+        port: ${CLUSTER_APIENDPOINT_PORT}
+      cloudProviderEnabled: false
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3MachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-controlplane
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      dataTemplate:
+        name: ${CLUSTER_NAME}-controlplane-template
+      image:
+        checksum: ${IMAGE_RAW_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: raw
+        url: ${IMAGE_RAW_URL}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+kind: Metal3MachineTemplate
+metadata:
+  name: ${CLUSTER_NAME}-workers
+  namespace: ${NAMESPACE}
+spec:
+  template:
+    spec:
+      dataTemplate:
+        name: ${CLUSTER_NAME}-workers-template
+      image:
+        checksum: ${IMAGE_RAW_CHECKSUM}
+        checksumType: ${IMAGE_CHECKSUM_TYPE}
+        format: raw
+        url: ${IMAGE_RAW_URL}

@@ -91,8 +91,16 @@ case "${GINKGO_FOCUS:-}" in
     echo 'export NODES_PLATFORM="fake"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
     sed -i "s/^export NUM_NODES=.*/export NUM_NODES=${NUM_NODES:-50}/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
-    echo 'CLUSTER_TOPOLOGY: true' >"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
+    echo 'CLUSTER_TOPOLOGY: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export BOOTSTRAP_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+  ;;
+
+  in-place-upgrade)
+    # Enable Cluster Topology and in-place updates features
+    echo 'CLUSTER_TOPOLOGY: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
+    echo 'EXP_RUNTIME_SDK: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
+    echo 'EXP_IN_PLACE_UPDATES: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
+    echo 'export SKIP_APPLY_BMH="true"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
   ;;
 esac
 
@@ -119,6 +127,16 @@ source "${REPO_ROOT}/hack/ensure-go.sh"
 source "${REPO_ROOT}/hack/ensure-kind.sh"
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
+
+# If running in-place-upgrade tests, ensure extension namespace and ssh key secret exist
+if [[ "${GINKGO_FOCUS:-}" == "in-place-upgrade" ]]; then
+  EXT_NS="test-extension-system"
+  kubectl get ns "${EXT_NS}" >/dev/null 2>&1 || kubectl create ns "${EXT_NS}"
+  # Recreate the secret to ensure freshest key is used
+  kubectl -n "${EXT_NS}" delete secret ssh-key >/dev/null 2>&1 || true
+  kubectl -n "${EXT_NS}" create secret generic ssh-key \
+    --from-file=id_rsa="${HOME}/.ssh/id_rsa"
+fi
 # Ensure kustomize
 make kustomize
 
