@@ -101,7 +101,11 @@ type MetaDataHostInterface struct {
 	Key string `json:"key"`
 	// Interface is the name of the interface in the BareMetalHost Status Hardware
 	// Details list of interfaces from which to fetch the MAC address.
-	Interface string `json:"interface"`
+	// +optional
+	Interface string `json:"interface,omitempty"`
+	// FromBootMAC will fetch the MAC address from the BareMetalHost Spec BootMACAddress field.
+	// +optional
+	FromBootMAC bool `json:"fromBootMAC,omitempty"` //nolint:tagliatelle // MAC is abbreviation and needs to be capitalized
 }
 
 // MetaDataIPAddress contains the info to render th ip address. It is IP-version

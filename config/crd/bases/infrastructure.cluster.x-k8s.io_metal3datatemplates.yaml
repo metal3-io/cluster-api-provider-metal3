@@ -132,6 +132,10 @@ spec:
                       description: MetaDataHostInterface contains the information
                         to render the object name.
                       properties:
+                        fromBootMAC:
+                          description: FromBootMAC will fetch the MAC address from
+                            the BareMetalHost Spec BootMACAddress field.
+                          type: boolean
                         interface:
                           description: |-
                             Interface is the name of the interface in the BareMetalHost Status Hardware
@@ -142,7 +146,6 @@ spec:
                             map for cloud-init
                           type: string
                       required:
-                      - interface
                       - key
                       type: object
                     type: array
@@ -1431,6 +1434,10 @@ spec:
                       description: MetaDataHostInterface contains the information
                         to render the object name.
                       properties:
+                        fromBootMAC:
+                          description: FromBootMAC will fetch the MAC address from
+                            the BareMetalHost Spec BootMACAddress field.
+                          type: boolean
                         interface:
                           description: |-
                             Interface is the name of the interface in the BareMetalHost Status Hardware
@@ -1441,7 +1448,6 @@ spec:
                             map for cloud-init
                           type: string
                       required:
-                      - interface
                       - key
                       type: object
                     type: array
