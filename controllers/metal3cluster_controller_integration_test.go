@@ -23,12 +23,11 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -43,7 +42,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 		RequeueExpected     bool
 		ErrorReasonExpected bool
 		ErrorReason         capierrors.ClusterStatusError
-		ConditionsExpected  clusterv1beta1.Conditions
+		ConditionsExpected  []metav1.Condition
 	}
 
 	DescribeTable("Reconcile tests metal3Cluster",
@@ -84,11 +83,13 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				Expect(res.Requeue).To(BeFalse())
 			}
 			if tc.ErrorReasonExpected {
-				Expect(testclstr.Status.FailureReason).NotTo(BeNil())
-				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.FailureReason))
+				Expect(testclstr.Status.Deprecated).NotTo(BeNil())
+				Expect(testclstr.Status.Deprecated.V1Beta1).NotTo(BeNil())
+				Expect(testclstr.Status.Deprecated.V1Beta1.FailureReason).NotTo(BeNil())
+				Expect(tc.ErrorReason).To(Equal(*testclstr.Status.Deprecated.V1Beta1.FailureReason))
 			}
 			for _, condExp := range tc.ConditionsExpected {
-				condGot := v1beta1conditions.Get(testclstr, condExp.Type)
+				condGot := conditions.Get(testclstr, condExp.Type)
 				Expect(condGot).NotTo(BeNil())
 				Expect(condGot.Status).To(Equal(condExp.Status))
 				if condExp.Reason != "" {
@@ -152,14 +153,14 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				},
 				ErrorExpected:   false,
 				RequeueExpected: false,
-				ConditionsExpected: clusterv1beta1.Conditions{
-					clusterv1beta1.Condition{
-						Type:   infrav1.BaremetalInfrastructureReadyCondition,
-						Status: corev1.ConditionTrue,
+				ConditionsExpected: []metav1.Condition{
+					{
+						Type:   infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
+						Status: metav1.ConditionTrue,
 					},
-					clusterv1beta1.Condition{
-						Type:   clusterv1beta1.ReadyCondition,
-						Status: corev1.ConditionTrue,
+					{
+						Type:   clusterv1.ReadyCondition,
+						Status: metav1.ConditionTrue,
 					},
 				},
 			},

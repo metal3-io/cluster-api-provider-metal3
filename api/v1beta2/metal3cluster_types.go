@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -32,18 +32,18 @@ const (
 
 // Metal3Cluster Conditions and Reasons.
 const (
-	Metal3ClusterReadyV1Beta2Condition     = clusterv1beta1.ReadyV1Beta2Condition
-	Metal3ClusterReadyV1Beta2Reason        = clusterv1beta1.ReadyV1Beta2Reason
-	Metal3ClusterNotReadyV1Beta2Reason     = clusterv1beta1.NotReadyV1Beta2Reason
-	Metal3ClusterReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
+	Metal3ClusterReadyV1Beta2Condition     = clusterv1.ReadyCondition
+	Metal3ClusterReadyV1Beta2Reason        = clusterv1.ReadyReason
+	Metal3ClusterNotReadyV1Beta2Reason     = clusterv1.NotReadyReason
+	Metal3ClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
 )
 
 const (
 	BaremetalInfrastructureReadyV1Beta2Condition = "BaremetalInfrastructureReady"
-	BaremetalInfrastructureReadyV1Beta2Reason    = clusterv1beta1.ReadyV1Beta2Reason
+	BaremetalInfrastructureReadyV1Beta2Reason    = clusterv1.ReadyReason
 	ControlPlaneEndpointFailedV1Beta2Reason      = "ControlPlaneEndpointFailed"
 	FailedToGetOwnerClusterReasonV1Beta2Reason   = "FailedToGetOwnerCluster"
-	Metal3ClusterDeletingV1Beta2Reason           = clusterv1beta1.DeletingReason
+	Metal3ClusterDeletingV1Beta2Reason           = clusterv1.DeletingReason
 )
 
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.
@@ -70,11 +70,8 @@ type Metal3ClusterSpec struct {
 
 	// FailureDomains specifies a list of failure zones that can be used
 	// +optional
-	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 }
-
-// FailureDomains is a slice of FailureDomainSpecs.
-type FailureDomains clusterv1beta1.FailureDomains
 
 // IsValid returns an error if the object is not valid, otherwise nil. The
 // string representation of the error is suitable for human consumption.
@@ -100,6 +97,52 @@ type Metal3ClusterStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
+	// Ready denotes that the Metal3 cluster (infrastructure) is ready. In
+	// Baremetal case, it does not mean anything for now as no infrastructure
+	// steps need to be performed. Required by Cluster API. Set to True by the
+	// metal3Cluster controller after creation.
+	// +optional
+	Ready bool `json:"ready"`
+
+	// conditions defines current service state of the Metal3Cluster.
+	// Known condition types are Ready, and Paused, BareMetalInfraStructureReady.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *Metal3ClusterDeprecatedStatus `json:"deprecated,omitempty"`
+
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
+	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
+}
+
+// Metal3ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type Metal3ClusterDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	// +optional
+	V1Beta1 *Metal3ClusterV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// Metal3ClusterV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type Metal3ClusterV1Beta1DeprecatedStatus struct {
+	// conditions defines current service state of the Metal3Cluster.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
 	// FailureReason indicates that there is a fatal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
@@ -110,34 +153,6 @@ type Metal3ClusterStatus struct {
 	// state, and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
-
-	// Ready denotes that the Metal3 cluster (infrastructure) is ready. In
-	// Baremetal case, it does not mean anything for now as no infrastructure
-	// steps need to be performed. Required by Cluster API. Set to True by the
-	// metal3Cluster controller after creation.
-	// +optional
-	Ready bool `json:"ready"`
-	// Conditions defines current service state of the Metal3Cluster.
-	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
-	// v1beta2 groups all the fields that will be added or modified in Metal3Cluster's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *Metal3ClusterV1Beta2Status `json:"v1beta2,omitempty"`
-	// FailureDomains specifies a list of failure zones that can be used
-	// +optional
-	FailureDomains FailureDomains `json:"failureDomains,omitempty"`
-}
-
-// Metal3ClusterV1Beta2Status groups all the fields that will be added or modified in Metal3ClusterStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type Metal3ClusterV1Beta2Status struct {
-	// conditions represents the observations of a Metal3Cluster's current state.
-	// Known condition types are Ready, and Paused, BareMetalInfraStructureReady.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -147,7 +162,7 @@ type Metal3ClusterV1Beta2Status struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3Cluster"
 // +kubebuilder:printcolumn:name="Ready",type="string",JSONPath=".status.ready",description="metal3Cluster is Ready"
-// +kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.failureReason",description="Most recent error"
+// +kubebuilder:printcolumn:name="Error",type="string",JSONPath=".status.deprecated.v1beta1.failureReason",description="Most recent error"
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this BMCluster belongs"
 // +kubebuilder:printcolumn:name="Endpoint",type="string",JSONPath=".spec.controlPlaneEndpoint",description="Control plane endpoint"
 
@@ -173,29 +188,32 @@ type Metal3ClusterList struct {
 }
 
 // GetConditions returns the list of conditions for an Metal3Cluster API object.
-func (c *Metal3Cluster) GetConditions() clusterv1beta1.Conditions {
+func (c *Metal3Cluster) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
 }
 
 // SetConditions will set the given conditions on an Metal3Cluster object.
-func (c *Metal3Cluster) SetConditions(conditions clusterv1beta1.Conditions) {
+func (c *Metal3Cluster) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 
 // GetV1Beta2Conditions returns the set of conditions for this object.
-func (c *Metal3Cluster) GetV1Beta2Conditions() []metav1.Condition {
-	if c.Status.V1Beta2 == nil {
+func (c *Metal3Cluster) GetV1Beta1Conditions() clusterv1.Conditions {
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
-	return c.Status.V1Beta2.Conditions
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
 // SetV1Beta2Conditions sets conditions for an API object.
-func (c *Metal3Cluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil {
-		c.Status.V1Beta2 = &Metal3ClusterV1Beta2Status{}
+func (c *Metal3Cluster) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &Metal3ClusterDeprecatedStatus{}
 	}
-	c.Status.V1Beta2.Conditions = conditions
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &Metal3ClusterV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }
 
 func init() {

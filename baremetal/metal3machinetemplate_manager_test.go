@@ -44,7 +44,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				tc.M3MachineTemplate,
 				tc.M3MachineList,
 			}
-			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupSchemeMm()).WithRuntimeObjects(objects...).Build()
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(setupScheme()).WithRuntimeObjects(objects...).Build()
 			templateMgr, err := NewMachineTemplateManager(fakeClient, tc.M3MachineTemplate,
 				tc.M3MachineList, logr.Discard(),
 			)

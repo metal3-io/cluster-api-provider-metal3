@@ -35,7 +35,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -69,7 +68,6 @@ func init() {
 
 	// Register required object kinds with global scheme.
 	_ = apiextensionsv1.AddToScheme(scheme.Scheme)
-	_ = clusterv1beta1.AddToScheme(scheme.Scheme)
 	_ = clusterv1.AddToScheme(scheme.Scheme)
 	_ = infrav1.AddToScheme(scheme.Scheme)
 	_ = ipamv1.AddToScheme(scheme.Scheme)
@@ -79,9 +77,6 @@ func init() {
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := clusterv1beta1.AddToScheme(s); err != nil {
-		panic(err)
-	}
 	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}
@@ -433,13 +428,11 @@ func evaluateTestError(expected *string, actual error) {
 
 func Metal3ClusterStatusWithPausedConditionFalse() *infrav1.Metal3ClusterStatus {
 	return &infrav1.Metal3ClusterStatus{
-		V1Beta2: &infrav1.Metal3ClusterV1Beta2Status{
-			Conditions: []metav1.Condition{
-				{
-					Type:   clusterv1beta1.PausedV1Beta2Condition,
-					Status: metav1.ConditionFalse,
-					Reason: clusterv1beta1.NotPausedV1Beta2Reason,
-				},
+		Conditions: []metav1.Condition{
+			{
+				Type:   clusterv1.PausedCondition,
+				Status: metav1.ConditionFalse,
+				Reason: clusterv1.NotPausedReason,
 			},
 		},
 	}
