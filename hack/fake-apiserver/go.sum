@@ -114,10 +114,10 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/metal3-io/baremetal-operator/apis v0.11.4 h1:3Tqujfdi0J+W6c3Iu1kjxC9fb4nCRtqyFKEw7cQA4Z0=
 github.com/metal3-io/baremetal-operator/apis v0.11.4/go.mod h1:wOZiBksaA0isveF6A9c7IJnoT6dpmRlhXmSJ8m6PiZI=
-github.com/metal3-io/cluster-api-provider-metal3/api v1.11.3 h1:83k+GdJqV8lBVdArHWYwuhWHMEl+fvIal+QXlke0XbM=
-github.com/metal3-io/cluster-api-provider-metal3/api v1.11.3/go.mod h1:Um4gKWYqbviNOYUaYXkY5AZiasbop9kyLs9Uogaidf4=
-github.com/metal3-io/ip-address-manager/api v1.11.3 h1:/30xVknkeL8DAmqpYQS2ScmbAWnP7A0m8XS+BMrsaQQ=
-github.com/metal3-io/ip-address-manager/api v1.11.3/go.mod h1:PjJjJUUZHOul0MN454IDwlSCuFNJ36TJHePtk5+qzBM=
+github.com/metal3-io/cluster-api-provider-metal3/api v1.11.4 h1:91asg7KCxUMTPFd6tCr2+6PXfZQqjI8k43O0y5xg4eY=
+github.com/metal3-io/cluster-api-provider-metal3/api v1.11.4/go.mod h1:P6SL1g+zOSor1p3jdVTdzGWVMy6FAYzVwLm6d6lcfvc=
+github.com/metal3-io/ip-address-manager/api v1.11.4 h1:IuK5ZKLhyPN6ZlvgD9O8pyrhZpybyKVb6CB9AGtyFF0=
+github.com/metal3-io/ip-address-manager/api v1.11.4/go.mod h1:PjJjJUUZHOul0MN454IDwlSCuFNJ36TJHePtk5+qzBM=
 github.com/moby/spdystream v0.5.0 h1:7r0J1Si3QO/kjRitvSLVVFUjxMEb/YLj6S9FF62JBCU=
 github.com/moby/spdystream v0.5.0/go.mod h1:xBAYlnt/ay+11ShkdFKNAG7LsyK/tmNBVvVOwrfMgdI=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
