@@ -339,6 +339,7 @@ intervals:
   #  Giving a bit more time during scale tests.
   scale/wait-cluster: [ "20m", "10s" ]
   scale/wait-control-plane: [ "40m", "10s" ]
+  scale/wait-delete-cluster: [ "90m", "10s" ]
   default/wait-worker-nodes: [ "60m", "10s" ]
   default/wait-delete-cluster: [ "40m", "10s" ]
   default/wait-machine-upgrade: [ "50m", "10s" ]
