@@ -285,8 +285,9 @@ intervals:
   default/wait-cluster: [ "20m", "30s" ] # The second time to check the availibility of the cluster should happen late, so kcp object has time to be created
   default/wait-control-plane: [ "30m", "10s" ]
   #  Giving a bit more time during scale tests.
-  scale/wait-cluster: [ "20m", "10s" ]
-  scale/wait-control-plane: [ "40m", "10s" ]
+  scale/wait-cluster: [ "60m", "10s" ]
+  scale/wait-control-plane: [ "50m", "10s" ]
+  scale/wait-delete-cluster: [ "90m", "10s" ]
   default/wait-worker-nodes: [ "60m", "10s" ]
   default/wait-delete-cluster: [ "40m", "10s" ]
   default/wait-machine-upgrade: [ "50m", "10s" ]
@@ -315,4 +316,4 @@ intervals:
   default/wait-command: [ "2m", "10s" ]
   default/wait-delete-remediation-template: [ "5m", "10s" ]
   default/wait-resource-stabilize: [ "15m", "15s" ]
-  default/wait-delete-ironic: [ "3m" , "5s" ]
+  default/wait-delete-ironic: [ "3m", "5s" ]

@@ -62,7 +62,7 @@ var _ = Describe("When testing scalability with fakeIPA and FKAS", Label("scalab
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "clusters", bootstrapClusterProxy.GetName())
 		createFKASResources()
-		imageURL, imageChecksum := EnsureImage("v1.30.14")
+		imageURL, imageChecksum := EnsureImage("v1.34.1")
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
 		os.Setenv("IMAGE_RAW_URL", imageURL)
 	})

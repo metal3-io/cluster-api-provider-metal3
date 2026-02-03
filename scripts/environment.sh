@@ -94,7 +94,7 @@ case "${GINKGO_FOCUS:-}" in
 
   # Scalability test environment vars and config
   scalability)
-    export NUM_NODES=${NUM_NODES:-"10"}
+    export NUM_NODES="30"
     export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
