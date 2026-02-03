@@ -109,24 +109,6 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 
-	By("Remove Ironic containers from the source cluster")
-	ironicDeploymentType := IronicDeploymentTypeIrSO
-	if bootstrapCluster == Kind {
-		ironicDeploymentType = IronicDeploymentTypeLocal
-	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
-		ironicDeploymentType = IronicDeploymentTypeIrSO
-	}
-
-	removeIronic(ctx, func() RemoveIronicInput {
-		return RemoveIronicInput{
-			ClusterProxy:      input.BootstrapClusterProxy,
-			DeploymentType:    ironicDeploymentType,
-			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
-			E2EConfig:         input.E2EConfig,
-			IsDevEnvUninstall: true,
-		}
-	})
-
 	By("Initialize Provider component in target cluster")
 	clusterctl.Init(ctx, clusterctl.InitInput{
 		KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
@@ -146,6 +128,47 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 
 	By("Add Labels to hardwareData CRDs")
 	labelHDCRDs(ctx, input.BootstrapClusterProxy)
+
+	By("Setting block-move annotation on BMH to prevent premature pivot")
+	// Set block-move annotation on all BMH objects with consumers to ensure
+	// clusterctl waits for pause annotations to be set during move operation.
+	bmhList := &bmov1alpha1.BareMetalHostList{}
+	Err := input.BootstrapClusterProxy.GetClient().List(ctx, bmhList, client.InNamespace(input.Namespace))
+	Expect(Err).NotTo(HaveOccurred(), "Failed to list BareMetalHosts")
+
+	for i := range bmhList.Items {
+		bmh := &bmhList.Items[i]
+		// Only set block-move on BMH with consumers (associated with machines)
+		if bmh.Spec.ConsumerRef != nil {
+			if bmh.Annotations == nil {
+				bmh.Annotations = make(map[string]string)
+			}
+			if _, hasBlockMove := bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"]; !hasBlockMove {
+				Logf("Setting block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
+				bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"] = ""
+				Err := input.BootstrapClusterProxy.GetClient().Update(ctx, bmh)
+				Expect(Err).NotTo(HaveOccurred(), "Failed to set block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
+			}
+		}
+	}
+
+	By("Remove Ironic containers from the source cluster")
+	ironicDeploymentType := IronicDeploymentTypeIrSO
+	if bootstrapCluster == Kind {
+		ironicDeploymentType = IronicDeploymentTypeLocal
+	} else if GetBoolVariable(input.E2EConfig, "USE_IRSO") {
+		ironicDeploymentType = IronicDeploymentTypeIrSO
+	}
+
+	removeIronic(ctx, func() RemoveIronicInput {
+		return RemoveIronicInput{
+			ClusterProxy:      input.BootstrapClusterProxy,
+			DeploymentType:    ironicDeploymentType,
+			Namespace:         input.E2EConfig.MustGetVariable(ironicNamespace),
+			E2EConfig:         input.E2EConfig,
+			IsDevEnvUninstall: true,
+		}
+	})
 
 	By("Pivoting: Install IRSO in the target cluster")
 	irsoDeployLogFolder := filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "ironic-deploy-logs-pivoting")
@@ -200,29 +223,6 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	err = FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"))
 	if err != nil {
 		Logf("Error: %v", err)
-	}
-
-	By("Setting block-move annotation on BMH to prevent premature pivot")
-	// Set block-move annotation on all BMH objects with consumers to ensure
-	// clusterctl waits for pause annotations to be set during move operation.
-	bmhList := &bmov1alpha1.BareMetalHostList{}
-	Err := input.BootstrapClusterProxy.GetClient().List(ctx, bmhList, client.InNamespace(input.Namespace))
-	Expect(Err).NotTo(HaveOccurred(), "Failed to list BareMetalHosts")
-
-	for i := range bmhList.Items {
-		bmh := &bmhList.Items[i]
-		// Only set block-move on BMH with consumers (associated with machines)
-		if bmh.Spec.ConsumerRef != nil {
-			if bmh.Annotations == nil {
-				bmh.Annotations = make(map[string]string)
-			}
-			if _, hasBlockMove := bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"]; !hasBlockMove {
-				Logf("Setting block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
-				bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"] = ""
-				Err := input.BootstrapClusterProxy.GetClient().Update(ctx, bmh)
-				Expect(Err).NotTo(HaveOccurred(), "Failed to set block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
-			}
-		}
 	}
 
 	By("Moving the cluster to self hosted")
