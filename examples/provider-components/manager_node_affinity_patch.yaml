@@ -1,0 +1,41 @@
+---
+# This patch adds node affinity to require CAPM3 controller pods to run only on
+# control-plane or infra nodes instead of regular worker nodes.
+# Within those eligible nodes, it prefers dedicated infra nodes first, then
+# control-plane nodes.
+#
+# To use this patch, apply it after deploying CAPM3:
+# kubectl patch deployment capm3-controller-manager -n capm3-system --patch-file examples/provider-components/manager_node_affinity_patch.yaml
+#
+# Or use it with kustomize by adding it as a patch in your kustomization.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capm3-controller-manager
+  namespace: capm3-system
+spec:
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          # Require pods to run on control-plane or infra nodes
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+            - matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: Exists
+          # Prefer dedicated infra nodes first, then control-plane nodes
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/infra
+                operator: Exists
+          - weight: 50
+            preference:
+              matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
