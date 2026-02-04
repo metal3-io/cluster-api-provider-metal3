@@ -216,6 +216,49 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
 "
 ```
 
+## Pod Placement Configuration
+
+By default, CAPM3 controller pods are configured with **tolerations** so they
+can run on control-plane nodes (which are typically tainted), but there is **no
+default node affinity**. This means pods may still be scheduled on regular
+worker nodes unless additional scheduling constraints are applied by the admin.
+
+### Default Configuration
+
+The default deployment includes:
+
+- **Tolerations**: Allow pods to run on control-plane nodes (which typically
+   have taints)
+   - `node-role.kubernetes.io/master:NoSchedule`
+   - `node-role.kubernetes.io/control-plane:NoSchedule`
+
+- **Node Affinity**: Not set by default. Pods can run on any schedulable node
+   (control-plane or worker), depending on the cluster’s taints and labels.
+
+### Customizing Pod Placement
+
+If you want to ensure that CAPM3 pods do **not** run alongside regular
+workloads, you can:
+
+- Add node affinity and/or additional tolerations via your preferred deployment
+   mechanism (CAPI Operator, `clusterctl`, or kustomize), and
+- Use dedicated infrastructure nodes if your environment provides them.
+
+For more details on how to customize provider manifests, see the upstream
+Cluster API documentation:
+
+- **CAPI Operator provider configuration**:
+   [Provider spec configuration docs](https://cluster-api-operator.sigs.k8s.io/topics/configuration/provider-spec-configuration#provider-spec)
+- **`clusterctl` config overrides**:
+   [`clusterctl` configuration overrides](https://cluster-api.sigs.k8s.io/clusterctl/configuration#overrides-layer)
+- **`clusterctl generate provider`**:
+   [`clusterctl generate provider` command reference](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-provider)
+
+For kustomize-based workflows, you can use the CAPM3 example patches in
+[`examples/provider-components/`](https://github.com/metal3-io/cluster-api-provider-metal3/tree/main/examples/provider-components)
+as a starting point. The `manager_node_affinity_patch.yaml` example shows how
+to require control-plane or infra nodes and prefer infra nodes when available.
+
 ## Pivoting or updating Ironic
 
 Before running the `move` command of Clusterctl, elements such as Ironic if
