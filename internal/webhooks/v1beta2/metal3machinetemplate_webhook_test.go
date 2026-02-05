@@ -23,19 +23,6 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestMetal3MachineTemplateDefault(_ *testing.T) {
-	// No-op because we do not default anything in M3M yet
-	c := &infrav1.Metal3MachineTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "fooboo",
-		},
-		Spec: infrav1.Metal3MachineTemplateSpec{},
-	}
-	webhook := &Metal3MachineTemplate{}
-
-	_ = webhook.Default(ctx, c)
-}
-
 func TestMetal3MachineTemplateValidation(t *testing.T) {
 	valid := &infrav1.Metal3MachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{

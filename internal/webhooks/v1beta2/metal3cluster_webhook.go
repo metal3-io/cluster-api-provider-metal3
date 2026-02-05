@@ -30,8 +30,8 @@ import (
 func (webhook *Metal3Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.Metal3Cluster{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
+		WithDefaulter(webhook).
 		Complete()
 }
 

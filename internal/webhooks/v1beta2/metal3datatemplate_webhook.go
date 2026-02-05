@@ -32,23 +32,16 @@ import (
 func (webhook *Metal3DataTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.Metal3DataTemplate{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3datatemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates,versions=v1beta2,name=validation.metal3datatemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1,sideEffects=None
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3datatemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates,versions=v1beta2,name=default.metal3datatemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3datatemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3datatemplates,versions=v1beta2,name=validation.metal3datatemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// Metal3DataTemplate implements a validation and defaulting webhook for Metal3DataTemplate.
+// Metal3DataTemplate implements a validation webhook for Metal3DataTemplate.
 type Metal3DataTemplate struct{}
 
-var _ webhook.CustomDefaulter = &Metal3DataTemplate{}
 var _ webhook.CustomValidator = &Metal3DataTemplate{}
-
-func (webhook *Metal3DataTemplate) Default(_ context.Context, _ runtime.Object) error {
-	return nil
-}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *Metal3DataTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
