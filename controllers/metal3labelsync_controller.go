@@ -28,6 +28,7 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,10 +77,16 @@ type Metal3LabelSyncReconciler struct {
 
 // Reconcile handles label sync events.
 func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	controllerLog := r.Log.WithName(labelSyncControllerName).WithValues(
 		baremetal.LogFieldBMH, req.NamespacedName,
 	)
 	controllerLog.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting label sync reconciliation")
+
+	// Record metrics at the end of reconciliation
+	defer func() {
+		metrics.RecordMetal3LabelSyncReconcile(req.Namespace, reconcileStart, rerr)
+	}()
 
 	// We need to get the NodeRef from the CAPI Machine object:
 	// BareMetalHost.ConsumerRef --> Metal3Machine.OwnerRef --> Machine.NodeRef

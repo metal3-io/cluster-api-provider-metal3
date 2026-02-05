@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -56,9 +57,12 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 ) *baremetal_mocks.MockMachineManagerInterface {
 	m := baremetal_mocks.NewMockMachineManagerInterface(ctrl)
 
+	// First call to IsProvisioned to check if machine was already ready (for metrics)
+	m.EXPECT().IsProvisioned().Return(tc.Provisioned)
+
 	m.EXPECT().SetFinalizer()
 
-	// provisioned, we should only call Update, nothing else
+	// Second call to IsProvisioned to check provisioning state
 	m.EXPECT().IsProvisioned().Return(tc.Provisioned)
 	if tc.Provisioned {
 		m.EXPECT().MachineHasNodeRef().Return(tc.Provisioned)
@@ -213,7 +217,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		DescribeTable("ReconcileNormal tests",
 			func(tc reconcileNormalTestCase) {
 				m := setReconcileNormalExpectations(gomockCtrl, tc)
-				res, err := bmReconcile.reconcileNormal(context.TODO(), m, logr.Discard())
+				res, err := bmReconcile.reconcileNormal(context.TODO(), m, logr.Discard(), "test-ns", "test-cluster", time.Now())
 
 				if tc.ExpectError {
 					Expect(err).To(HaveOccurred())
