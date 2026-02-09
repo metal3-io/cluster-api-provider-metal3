@@ -1,6 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  annotations:
+    prometheus.io/path: /metrics
+    prometheus.io/port: "${CAPM3_DIAGNOSTICS_ADDRESS:=:8443}"
+    prometheus.io/scrape: "true"
   name: controller-manager
   namespace: system
   labels:
