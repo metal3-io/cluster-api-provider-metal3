@@ -28,7 +28,7 @@ require (
 	sigs.k8s.io/cluster-api v1.12.2
 	sigs.k8s.io/cluster-api/test v1.12.2
 	sigs.k8s.io/controller-runtime v0.22.5
-	sigs.k8s.io/kustomize/api v0.21.0
+	sigs.k8s.io/kustomize/api v0.21.1
 	sigs.k8s.io/kustomize/kyaml v0.21.1
 )
 
@@ -184,7 +184,7 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/grpc v1.72.3 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect
-	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
+	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gotest.tools/v3 v3.5.0 // indirect
 	k8s.io/apiserver v0.34.3 // indirect
