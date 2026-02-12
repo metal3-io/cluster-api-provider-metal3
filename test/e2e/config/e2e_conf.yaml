@@ -213,11 +213,10 @@ variables:
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.35.0}"
   KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
-  # KUBERNETES_PATCH_FROM_VERSION and KUBERNETES_PATCH_TO_VERSION are used to
-  # test upgrade scenarios where we only want to upgrade the patch version of
-  # kubernetes.
-  KUBERNETES_PATCH_FROM_VERSION: "v1.33.4"
-  KUBERNETES_PATCH_TO_VERSION: "v1.33.5"
+  KUBERNETES_VERSION_FROM: "${KUBERNETES_VERSION_FROM:-v1.34.1}"
+  # KUBERNETES_VERSION_PATCH_TO is used to test patch upgrade scenarios where we
+  # only want to upgrade the patch version of kubernetes.
+  KUBERNETES_VERSION_PATCH_TO: "v1.33.5"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   NUM_NODES: 4

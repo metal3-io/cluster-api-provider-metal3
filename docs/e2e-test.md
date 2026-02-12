@@ -93,6 +93,23 @@ make clean -C /opt/metal3-dev-env/metal3-dev-env/
 sudo rm -rf /opt/metal3-dev-env/
 ```
 
+## Environment Variables
+
+The e2e tests use the following Kubernetes version variables:
+
+| Variable | Purpose | Example | Used In |
+|----------|---------|---------|---------|
+| `KUBERNETES_VERSION` | Latest/target Kubernetes version | v1.35.0 | All tests |
+| `KUBERNETES_VERSION_FROM` | Starting version for minor upgrades | v1.34.1 | k8s-upgrade, ip-reuse, scalability |
+| `KUBERNETES_VERSION_PATCH_TO` | Target version for patch upgrades | v1.33.5 | node-reuse (patch upgrade tests) |
+| `KUBERNETES_N0_VERSION` | Starting version for N+3 upgrade | v1.32.9 | k8s-upgrade-n3 |
+| `KUBERNETES_N1_VERSION` | N+1 version for N+3 upgrade | v1.33.5 | k8s-upgrade-n3 |
+| `KUBERNETES_N2_VERSION` | N+2 version for N+3 upgrade | v1.34.1 | k8s-upgrade-n3 |
+| `KUBERNETES_N3_VERSION` | N+3 target version for N+3 upgrade | v1.35.0 | k8s-upgrade-n3 |
+
+**Note:** For patch upgrade tests (node-reuse), the test upgrades from
+v1.33.4 to the version specified in `KUBERNETES_VERSION_PATCH_TO` (v1.33.5).
+
 ## Included tests
 
 The e2e tests currently include six different sets:
@@ -178,8 +195,8 @@ supported in latest release branch and main branch.
 
 ### K8s N+3 upgrade tests
 
-Kubernetes N+3(v1.34) version upgrade in target control plane nodes.
-We start the test with version N(v1.31) and gradually upgrade the
+Kubernetes N+3(v1.35) version upgrade in target control plane nodes.
+We start the test with version N(v1.32) and gradually upgrade the
 target cluster control plane one by one for main branch. We are
 excluding the worker node upgrade and keep it to initial N version.
 When a new Kubernetes minor release is available, we will try to support
@@ -191,13 +208,13 @@ export GINKGO_FOCUS=k8s-upgrade-n3
 
 Main branch k8s-upgrade-n3 tests:
 
-- `v1.31` => `v1.32`
-
 - `v1.32` => `v1.33`
 
 - `v1.33` => `v1.34`
 
-When Kubernetes 1.35 is released, k8s-upgrade-n3 test will be updated accordingly.
+- `v1.34` => `v1.35`
+
+When Kubernetes 1.36 is released, k8s-upgrade-n3 test will be updated accordingly.
 
 ### Test matrix for n+3 k8s upgrade version
 
