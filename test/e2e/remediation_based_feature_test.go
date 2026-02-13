@@ -82,8 +82,8 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 		})
 		// Run Metal3Remediation test first, doesn't work after remediation...
 		By("Running node remediation tests")
-		nodeRemediation(ctx, func() NodeRemediation {
-			return NodeRemediation{
+		NodeRemediation(ctx, func() NodeRemediationInput {
+			return NodeRemediationInput{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				TargetCluster:         targetCluster,
@@ -94,7 +94,7 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 		})
 
 		By("Running healthcheck tests")
-		healthcheck(ctx, func() HealthCheckInput {
+		HealthCheck(ctx, func() HealthCheckInput {
 			return HealthCheckInput{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,
@@ -105,7 +105,7 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 		})
 
 		By("Running annotated powercycle remediation tests")
-		remediation(ctx, func() RemediationInput {
+		Remediation(ctx, func() RemediationInput {
 			return RemediationInput{
 				E2EConfig:             e2eConfig,
 				BootstrapClusterProxy: bootstrapClusterProxy,

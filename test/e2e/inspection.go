@@ -17,15 +17,15 @@ const (
 )
 
 type InspectionInput struct {
-	E2EConfig             *clusterctl.E2EConfig
-	ClusterctlConfigPath  string
-	BootstrapClusterProxy framework.ClusterProxy
-	Namespace             string
-	SpecName              string
+	E2EConfig            *clusterctl.E2EConfig
+	ClusterctlConfigPath string
+	ClusterProxy         framework.ClusterProxy
+	Namespace            string
+	SpecName             string
 }
 
 // Inspection test request inspection on all the available BMH using annotation.
-func inspection(ctx context.Context, inputGetter func() InspectionInput) {
+func Inspection(ctx context.Context, inputGetter func() InspectionInput) {
 	Logf("Starting inspection tests")
 	input := inputGetter()
 	var (
@@ -33,27 +33,27 @@ func inspection(ctx context.Context, inputGetter func() InspectionInput) {
 		numberOfAvailableBMHs = 2 * numberOfWorkers
 	)
 
-	bootstrapClient := input.BootstrapClusterProxy.GetClient()
+	clusterClient := input.ClusterProxy.GetClient()
 
 	Logf("Request inspection for all Available BMHs via API")
 	availableBMHList := bmov1alpha1.BareMetalHostList{}
-	Expect(bootstrapClient.List(ctx, &availableBMHList, client.InNamespace(input.Namespace))).To(Succeed())
+	Expect(clusterClient.List(ctx, &availableBMHList, client.InNamespace(input.Namespace))).To(Succeed())
 	Logf("Request inspection for all Available BMHs via API")
 	for _, bmh := range availableBMHList.Items {
 		if bmh.Status.Provisioning.State == bmov1alpha1.StateAvailable {
-			AnnotateBmh(ctx, bootstrapClient, bmh, inspectAnnotation, ptr.To(""))
+			AnnotateBmh(ctx, clusterClient, bmh, inspectAnnotation, ptr.To(""))
 		}
 	}
 
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateInspecting, WaitForNumInput{
-		Client:    bootstrapClient,
+		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAvailableBMHs,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-inspecting"),
 	})
 
 	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
-		Client:    bootstrapClient,
+		Client:    clusterClient,
 		Options:   []client.ListOption{client.InNamespace(input.Namespace)},
 		Replicas:  numberOfAvailableBMHs,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available"),
