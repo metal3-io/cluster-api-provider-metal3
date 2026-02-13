@@ -19,7 +19,7 @@ package v1beta2
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -37,17 +37,17 @@ const (
 const (
 	// Metal3MachineReadyV1Beta2Condition is true if the Metal3Machine's deletionTimestamp is not set, Metal3Machine's
 	// BareMetalHostProvisioned is true.
-	Metal3MachineReadyV1Beta2Condition = clusterv1beta1.ReadyV1Beta2Condition
+	Metal3MachineReadyV1Beta2Condition = clusterv1.ReadyCondition
 
 	// Metal3MachineReadyV1Beta2Reason surfaces when the Metal3Machine readiness criteria is met.
-	Metal3MachineReadyV1Beta2Reason = clusterv1beta1.ReadyV1Beta2Reason
+	Metal3MachineReadyV1Beta2Reason = clusterv1.ReadyReason
 
 	// Metal3MachineNotReadyV1Beta2Reason surfaces when the Metal3Machine readiness criteria is not met.
-	Metal3MachineNotReadyV1Beta2Reason = clusterv1beta1.NotReadyV1Beta2Reason
+	Metal3MachineNotReadyV1Beta2Reason = clusterv1.NotReadyReason
 
 	// Metal3MachineReadyUnknownV1Beta2Reason surfaces when at least one Metal3Machine readiness criteria is unknown
 	// and no Metal3Machine readiness criteria is not met.
-	Metal3MachineReadyUnknownV1Beta2Reason = clusterv1beta1.ReadyUnknownV1Beta2Reason
+	Metal3MachineReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
 )
 
 // Metal3Machine condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -63,10 +63,10 @@ const (
 
 	// WaitingForClusterInfrastructureReadyV1Beta2Reason used when waiting for cluster
 	// infrastructure to be ready before proceeding.
-	WaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1beta1.WaitingForClusterInfrastructureReadyV1Beta2Reason
+	WaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyReason
 
 	// WaitingForBootstrapDataV1Beta2Reason used when waiting for bootstrap to be ready before proceeding.
-	WaitingForBootstrapDataV1Beta2Reason = clusterv1beta1.WaitingForBootstrapDataV1Beta2Reason
+	WaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataReason
 
 	// WaitingForMetal3MachineOwnerRefV1Beta2Reason is used when Metal3Machine is waiting for OwnerReference to be
 	// set before proceeding.
@@ -101,11 +101,15 @@ const (
 	// to be ready before proceeding.
 	Metal3DataSecretsReadyV1Beta2Reason = "Metal3DataSecretsReady"
 
+	// SecretsSetExternallyV1Beta2Reason used when metal3data secrets are ready
+	// to be ready before proceeding.
+	SecretsSetExternallyV1Beta2Reason = "SecretsSetExternally"
+
 	// DisassociateM3MetaDataFailedReason is used when failed to remove OwnerReference of Meta3DataTemplate.
 	DisassociateM3MetaDataFailedV1Beta2Reason = "DisassociateM3MetaDataFailed"
 
 	// DeletingV1Beta2Reason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
-	Metal3MachineDeletingV1Beta2Reason = clusterv1beta1.DeletingV1Beta2Reason
+	Metal3MachineDeletingV1Beta2Reason = clusterv1.DeletingReason
 
 	// Metal3MachineDeletingFailedV1Beta2Reason (Severity=Warning) documents a condition not in Status=True because the underlying object
 	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
@@ -172,48 +176,10 @@ type Metal3MachineStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// FailureReason will be set in the event that there is a terminal problem
-	// reconciling the metal3machine and will contain a succinct value suitable
-	// for machine interpretation.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the metal3machine's spec or the configuration of
-	// the controller, and that manual intervention is required. Examples
-	// of terminal errors would be invalid combinations of settings in the
-	// spec, values that are unsupported by the controller, or the
-	// responsible controller itself being critically misconfigured.
-	//
-	// Any transient errors that occur during the reconciliation of
-	// metal3machines can be added as events to the metal3machine object
-	// and/or logged in the controller's output.
-	// +optional
-	FailureReason *capierrors.MachineStatusError `json:"failureReason,omitempty"`
-
-	// FailureMessage will be set in the event that there is a terminal problem
-	// reconciling the metal3machine and will contain a more verbose string suitable
-	// for logging and human consumption.
-	//
-	// This field should not be set for transitive errors that a controller
-	// faces that are expected to be fixed automatically over
-	// time (like service outages), but instead indicate that something is
-	// fundamentally wrong with the metal3machine's spec or the configuration of
-	// the controller, and that manual intervention is required. Examples
-	// of terminal errors would be invalid combinations of settings in the
-	// spec, values that are unsupported by the controller, or the
-	// responsible controller itself being critically misconfigured.
-	//
-	// Any transient errors that occur during the reconciliation of
-	// metal3machines can be added as events to the metal3machine object
-	// and/or logged in the controller's output.
-	// +optional
-	FailureMessage *string `json:"failureMessage,omitempty"`
-
 	// Addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
 	// +optional
-	Addresses clusterv1beta1.MachineAddresses `json:"addresses,omitempty"`
+	Addresses clusterv1.MachineAddresses `json:"addresses,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
@@ -247,25 +213,84 @@ type Metal3MachineStatus struct {
 	// network data used to deploy the BareMetalHost.
 	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
-	// Conditions defines current service state of the Metal3Machine.
-	// +optional
-	Conditions clusterv1beta1.Conditions `json:"conditions,omitempty"`
 
-	// v1beta2 groups all the fields that will be added or modified in Metal3Machine's status with the V1Beta2 version.
-	// +optional
-	V1Beta2 *Metal3MachineV1Beta2Status `json:"v1beta2,omitempty"`
-}
-
-// Metal3MachineV1Beta2Status groups all the fields that will be added or modified in Metal3MachineStatus with the V1Beta2 version.
-// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
-type Metal3MachineV1Beta2Status struct {
 	// conditions represents the observations of a Metal3Machine's current state.
-	// Known condition types are Ready, AssociateBareMetalHost, KubernetesNodeReady, Metal3DataReady and Paused.
+	// Known condition types are Ready, AssociateBareMetalHost, AssociateMetal3MachineMetaData, Metal3DataReady and Paused.
 	// +optional
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=32
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
+	// +optional
+	Deprecated *Metal3MachineDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// Metal3MachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type Metal3MachineDeprecatedStatus struct {
+	// v1beta1 groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	V1Beta1 *Metal3MachineV1Beta1DeprecatedStatus `json:"v1beta1,omitempty"`
+}
+
+// Metal3MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
+// See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
+type Metal3MachineV1Beta1DeprecatedStatus struct {
+	// Conditions defines current service state of the Metal3Machine.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// FailureReason will be set in the event that there is a terminal problem
+	// reconciling the metal3machine and will contain a succinct value suitable
+	// for machine interpretation.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the metal3machine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the controller, or the
+	// responsible controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconciliation of
+	// metal3machines can be added as events to the metal3machine object
+	// and/or logged in the controller's output.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	FailureReason *capierrors.MachineStatusError `json:"failureReason,omitempty"`
+
+	// FailureMessage will be set in the event that there is a terminal problem
+	// reconciling the metal3machine and will contain a more verbose string suitable
+	// for logging and human consumption.
+	//
+	// This field should not be set for transitive errors that a controller
+	// faces that are expected to be fixed automatically over
+	// time (like service outages), but instead indicate that something is
+	// fundamentally wrong with the metal3machine's spec or the configuration of
+	// the controller, and that manual intervention is required. Examples
+	// of terminal errors would be invalid combinations of settings in the
+	// spec, values that are unsupported by the controller, or the
+	// responsible controller itself being critically misconfigured.
+	//
+	// Any transient errors that occur during the reconciliation of
+	// metal3machines can be added as events to the metal3machine object
+	// and/or logged in the controller's output.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
+	//
+	// +optional
+	FailureMessage *string `json:"failureMessage,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -302,12 +327,12 @@ type Metal3MachineList struct {
 }
 
 // GetConditions returns the list of conditions for an Metal3Machine API object.
-func (c *Metal3Machine) GetConditions() clusterv1beta1.Conditions {
+func (c *Metal3Machine) GetConditions() []metav1.Condition {
 	return c.Status.Conditions
 }
 
 // SetConditions will set the given conditions on an Metal3Machine object.
-func (c *Metal3Machine) SetConditions(conditions clusterv1beta1.Conditions) {
+func (c *Metal3Machine) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 
@@ -315,18 +340,21 @@ func init() {
 	objectTypes = append(objectTypes, &Metal3Machine{}, &Metal3MachineList{})
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
-func (c *Metal3Machine) GetV1Beta2Conditions() []metav1.Condition {
-	if c.Status.V1Beta2 == nil {
+// GetV1Beta1Conditions returns the set of conditions for this object.
+func (c *Metal3Machine) GetV1Beta1Conditions() clusterv1.Conditions {
+	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
 	}
-	return c.Status.V1Beta2.Conditions
+	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
-func (c *Metal3Machine) SetV1Beta2Conditions(conditions []metav1.Condition) {
-	if c.Status.V1Beta2 == nil {
-		c.Status.V1Beta2 = &Metal3MachineV1Beta2Status{}
+// SetV1Beta1Conditions sets the conditions on this object.
+func (c *Metal3Machine) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
+	if c.Status.Deprecated == nil {
+		c.Status.Deprecated = &Metal3MachineDeprecatedStatus{}
 	}
-	c.Status.V1Beta2.Conditions = conditions
+	if c.Status.Deprecated.V1Beta1 == nil {
+		c.Status.Deprecated.V1Beta1 = &Metal3MachineV1Beta1DeprecatedStatus{}
+	}
+	c.Status.Deprecated.V1Beta1.Conditions = conditions
 }

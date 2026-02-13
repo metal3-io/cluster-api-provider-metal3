@@ -33,9 +33,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -120,7 +120,7 @@ const (
 var (
 	// ErrNoCluster is returned when the cluster
 	// label could not be found on the object passed in.
-	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1beta1.ClusterNameLabel)
+	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1.ClusterNameLabel)
 )
 
 // Contains returns true if a list contains a string.
@@ -146,7 +146,7 @@ func (e *NotFoundError) Error() string {
 	return "Object not found"
 }
 
-func patchIfFound(ctx context.Context, helper *v1beta1patch.Helper, host client.Object) error {
+func patchIfFound(ctx context.Context, helper *patch.Helper, host client.Object) error {
 	err := helper.Patch(ctx, host)
 	if err != nil {
 		notFound := true
@@ -219,7 +219,7 @@ func createSecret(ctx context.Context, cl client.Client, name string,
 			Name:      name,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1beta1.ClusterNameLabel: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 			OwnerReferences: ownerRefs,
 		},

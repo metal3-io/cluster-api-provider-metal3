@@ -32,7 +32,7 @@ import (
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -80,7 +80,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		"retryCount", metal3Remediation.Status.RetryCount)
 
 	remediationLog.V(baremetal.VerbosityLevelTrace).Info("Creating patch helper")
-	helper, err := v1beta1patch.NewHelper(metal3Remediation, r.Client)
+	helper, err := patch.NewHelper(metal3Remediation, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
@@ -89,8 +89,8 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		// Always attempt to Patch the Remediation object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		remediationLog.V(baremetal.VerbosityLevelTrace).Info("Patching Metal3Remediation on exit")
-		patchOpts := make([]v1beta1patch.Option, 0, 1)
-		patchOpts = append(patchOpts, v1beta1patch.WithStatusObservedGeneration{})
+		patchOpts := make([]patch.Option, 0, 1)
+		patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 
 		patchErr := helper.Patch(ctx, metal3Remediation, patchOpts...)
 		if patchErr != nil {

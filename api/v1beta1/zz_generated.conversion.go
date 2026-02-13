@@ -32,7 +32,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	selection "k8s.io/apimachinery/pkg/selection"
 	corev1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
-	errors "sigs.k8s.io/cluster-api/errors"
+	corev1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 func init() {
@@ -222,26 +222,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Metal3ClusterSpec)(nil), (*v1beta2.Metal3ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(a.(*Metal3ClusterSpec), b.(*v1beta2.Metal3ClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3ClusterSpec)(nil), (*Metal3ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(a.(*v1beta2.Metal3ClusterSpec), b.(*Metal3ClusterSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Metal3ClusterStatus)(nil), (*v1beta2.Metal3ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Metal3ClusterStatus_To_v1beta2_Metal3ClusterStatus(a.(*Metal3ClusterStatus), b.(*v1beta2.Metal3ClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3ClusterStatus)(nil), (*Metal3ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Metal3ClusterStatus_To_v1beta1_Metal3ClusterStatus(a.(*v1beta2.Metal3ClusterStatus), b.(*Metal3ClusterStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Metal3ClusterTemplate)(nil), (*v1beta2.Metal3ClusterTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Metal3ClusterTemplate_To_v1beta2_Metal3ClusterTemplate(a.(*Metal3ClusterTemplate), b.(*v1beta2.Metal3ClusterTemplate), scope)
 	}); err != nil {
@@ -267,11 +247,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3ClusterTemplateResource)(nil), (*Metal3ClusterTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(a.(*v1beta2.Metal3ClusterTemplateResource), b.(*Metal3ClusterTemplateResource), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Metal3ClusterTemplateSpec)(nil), (*v1beta2.Metal3ClusterTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Metal3ClusterTemplateSpec_To_v1beta2_Metal3ClusterTemplateSpec(a.(*Metal3ClusterTemplateSpec), b.(*v1beta2.Metal3ClusterTemplateSpec), scope)
 	}); err != nil {
@@ -279,16 +254,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3ClusterTemplateSpec)(nil), (*Metal3ClusterTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_Metal3ClusterTemplateSpec_To_v1beta1_Metal3ClusterTemplateSpec(a.(*v1beta2.Metal3ClusterTemplateSpec), b.(*Metal3ClusterTemplateSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Metal3ClusterV1Beta2Status)(nil), (*v1beta2.Metal3ClusterV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Metal3ClusterV1Beta2Status_To_v1beta2_Metal3ClusterV1Beta2Status(a.(*Metal3ClusterV1Beta2Status), b.(*v1beta2.Metal3ClusterV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3ClusterV1Beta2Status)(nil), (*Metal3ClusterV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Metal3ClusterV1Beta2Status_To_v1beta1_Metal3ClusterV1Beta2Status(a.(*v1beta2.Metal3ClusterV1Beta2Status), b.(*Metal3ClusterV1Beta2Status), scope)
 	}); err != nil {
 		return err
 	}
@@ -442,16 +407,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*Metal3MachineStatus)(nil), (*v1beta2.Metal3MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(a.(*Metal3MachineStatus), b.(*v1beta2.Metal3MachineStatus), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3MachineStatus)(nil), (*Metal3MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(a.(*v1beta2.Metal3MachineStatus), b.(*Metal3MachineStatus), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*Metal3MachineTemplate)(nil), (*v1beta2.Metal3MachineTemplate)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Metal3MachineTemplate_To_v1beta2_Metal3MachineTemplate(a.(*Metal3MachineTemplate), b.(*v1beta2.Metal3MachineTemplate), scope)
 	}); err != nil {
@@ -489,16 +444,6 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3MachineTemplateSpec)(nil), (*Metal3MachineTemplateSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_Metal3MachineTemplateSpec_To_v1beta1_Metal3MachineTemplateSpec(a.(*v1beta2.Metal3MachineTemplateSpec), b.(*Metal3MachineTemplateSpec), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*Metal3MachineV1Beta2Status)(nil), (*v1beta2.Metal3MachineV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_Metal3MachineV1Beta2Status_To_v1beta2_Metal3MachineV1Beta2Status(a.(*Metal3MachineV1Beta2Status), b.(*v1beta2.Metal3MachineV1Beta2Status), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*v1beta2.Metal3MachineV1Beta2Status)(nil), (*Metal3MachineV1Beta2Status)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta2_Metal3MachineV1Beta2Status_To_v1beta1_Metal3MachineV1Beta2Status(a.(*v1beta2.Metal3MachineV1Beta2Status), b.(*Metal3MachineV1Beta2Status), scope)
 	}); err != nil {
 		return err
 	}
@@ -789,6 +734,51 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.RemediationStrategy)(nil), (*RemediationStrategy)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(a.(*v1beta2.RemediationStrategy), b.(*RemediationStrategy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1.Condition)(nil), (*corev1beta1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_Condition_To_v1beta1_Condition(a.(*v1.Condition), b.(*corev1beta1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*corev1beta1.Condition)(nil), (*v1.Condition)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Condition_To_v1_Condition(a.(*corev1beta1.Condition), b.(*v1.Condition), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*Metal3ClusterSpec)(nil), (*v1beta2.Metal3ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(a.(*Metal3ClusterSpec), b.(*v1beta2.Metal3ClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*Metal3ClusterStatus)(nil), (*v1beta2.Metal3ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Metal3ClusterStatus_To_v1beta2_Metal3ClusterStatus(a.(*Metal3ClusterStatus), b.(*v1beta2.Metal3ClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*Metal3MachineStatus)(nil), (*v1beta2.Metal3MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(a.(*Metal3MachineStatus), b.(*v1beta2.Metal3MachineStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Metal3ClusterSpec)(nil), (*Metal3ClusterSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(a.(*v1beta2.Metal3ClusterSpec), b.(*Metal3ClusterSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Metal3ClusterStatus)(nil), (*Metal3ClusterStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Metal3ClusterStatus_To_v1beta1_Metal3ClusterStatus(a.(*v1beta2.Metal3ClusterStatus), b.(*Metal3ClusterStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Metal3ClusterTemplateResource)(nil), (*Metal3ClusterTemplateResource)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(a.(*v1beta2.Metal3ClusterTemplateResource), b.(*Metal3ClusterTemplateResource), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.Metal3MachineStatus)(nil), (*Metal3MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(a.(*v1beta2.Metal3MachineStatus), b.(*Metal3MachineStatus), scope)
 	}); err != nil {
 		return err
 	}
@@ -1221,7 +1211,17 @@ func Convert_v1beta2_Metal3Cluster_To_v1beta1_Metal3Cluster(in *v1beta2.Metal3Cl
 
 func autoConvert_v1beta1_Metal3ClusterList_To_v1beta2_Metal3ClusterList(in *Metal3ClusterList, out *v1beta2.Metal3ClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.Metal3Cluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.Metal3Cluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Metal3Cluster_To_v1beta2_Metal3Cluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1232,7 +1232,17 @@ func Convert_v1beta1_Metal3ClusterList_To_v1beta2_Metal3ClusterList(in *Metal3Cl
 
 func autoConvert_v1beta2_Metal3ClusterList_To_v1beta1_Metal3ClusterList(in *v1beta2.Metal3ClusterList, out *Metal3ClusterList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Metal3Cluster)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Metal3Cluster, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Metal3Cluster_To_v1beta1_Metal3Cluster(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1247,13 +1257,8 @@ func autoConvert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(in *Meta
 	}
 	out.NoCloudProvider = (*bool)(unsafe.Pointer(in.NoCloudProvider))
 	out.CloudProviderEnabled = (*bool)(unsafe.Pointer(in.CloudProviderEnabled))
-	out.FailureDomains = *(*v1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types (github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1.FailureDomains vs []sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain)
 	return nil
-}
-
-// Convert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec is an autogenerated conversion function.
-func Convert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(in *Metal3ClusterSpec, out *v1beta2.Metal3ClusterSpec, s conversion.Scope) error {
-	return autoConvert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(in, out, s)
 }
 
 func autoConvert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in *v1beta2.Metal3ClusterSpec, out *Metal3ClusterSpec, s conversion.Scope) error {
@@ -1262,45 +1267,48 @@ func autoConvert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in *v1be
 	}
 	out.NoCloudProvider = (*bool)(unsafe.Pointer(in.NoCloudProvider))
 	out.CloudProviderEnabled = (*bool)(unsafe.Pointer(in.CloudProviderEnabled))
-	out.FailureDomains = *(*FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain vs github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1.FailureDomains)
 	return nil
-}
-
-// Convert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec is an autogenerated conversion function.
-func Convert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in *v1beta2.Metal3ClusterSpec, out *Metal3ClusterSpec, s conversion.Scope) error {
-	return autoConvert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in, out, s)
 }
 
 func autoConvert_v1beta1_Metal3ClusterStatus_To_v1beta2_Metal3ClusterStatus(in *Metal3ClusterStatus, out *v1beta2.Metal3ClusterStatus, s conversion.Scope) error {
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
-	out.FailureReason = (*errors.ClusterStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
 	out.Ready = in.Ready
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.Metal3ClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
-	out.FailureDomains = *(*v1beta2.FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types (github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1.FailureDomains vs []sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain)
 	return nil
-}
-
-// Convert_v1beta1_Metal3ClusterStatus_To_v1beta2_Metal3ClusterStatus is an autogenerated conversion function.
-func Convert_v1beta1_Metal3ClusterStatus_To_v1beta2_Metal3ClusterStatus(in *Metal3ClusterStatus, out *v1beta2.Metal3ClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_Metal3ClusterStatus_To_v1beta2_Metal3ClusterStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_Metal3ClusterStatus_To_v1beta1_Metal3ClusterStatus(in *v1beta2.Metal3ClusterStatus, out *Metal3ClusterStatus, s conversion.Scope) error {
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
-	out.FailureReason = (*errors.ClusterStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Ready = in.Ready
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*Metal3ClusterV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
-	out.FailureDomains = *(*FailureDomains)(unsafe.Pointer(&in.FailureDomains))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureDomains requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain vs github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1.FailureDomains)
 	return nil
-}
-
-// Convert_v1beta2_Metal3ClusterStatus_To_v1beta1_Metal3ClusterStatus is an autogenerated conversion function.
-func Convert_v1beta2_Metal3ClusterStatus_To_v1beta1_Metal3ClusterStatus(in *v1beta2.Metal3ClusterStatus, out *Metal3ClusterStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_Metal3ClusterStatus_To_v1beta1_Metal3ClusterStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_Metal3ClusterTemplate_To_v1beta2_Metal3ClusterTemplate(in *Metal3ClusterTemplate, out *v1beta2.Metal3ClusterTemplate, s conversion.Scope) error {
@@ -1331,7 +1339,17 @@ func Convert_v1beta2_Metal3ClusterTemplate_To_v1beta1_Metal3ClusterTemplate(in *
 
 func autoConvert_v1beta1_Metal3ClusterTemplateList_To_v1beta2_Metal3ClusterTemplateList(in *Metal3ClusterTemplateList, out *v1beta2.Metal3ClusterTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.Metal3ClusterTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.Metal3ClusterTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Metal3ClusterTemplate_To_v1beta2_Metal3ClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1342,7 +1360,17 @@ func Convert_v1beta1_Metal3ClusterTemplateList_To_v1beta2_Metal3ClusterTemplateL
 
 func autoConvert_v1beta2_Metal3ClusterTemplateList_To_v1beta1_Metal3ClusterTemplateList(in *v1beta2.Metal3ClusterTemplateList, out *Metal3ClusterTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Metal3ClusterTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Metal3ClusterTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Metal3ClusterTemplate_To_v1beta1_Metal3ClusterTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1370,11 +1398,6 @@ func autoConvert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterT
 	return nil
 }
 
-// Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource is an autogenerated conversion function.
-func Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in *v1beta2.Metal3ClusterTemplateResource, out *Metal3ClusterTemplateResource, s conversion.Scope) error {
-	return autoConvert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in, out, s)
-}
-
 func autoConvert_v1beta1_Metal3ClusterTemplateSpec_To_v1beta2_Metal3ClusterTemplateSpec(in *Metal3ClusterTemplateSpec, out *v1beta2.Metal3ClusterTemplateSpec, s conversion.Scope) error {
 	if err := Convert_v1beta1_Metal3ClusterTemplateResource_To_v1beta2_Metal3ClusterTemplateResource(&in.Template, &out.Template, s); err != nil {
 		return err
@@ -1397,26 +1420,6 @@ func autoConvert_v1beta2_Metal3ClusterTemplateSpec_To_v1beta1_Metal3ClusterTempl
 // Convert_v1beta2_Metal3ClusterTemplateSpec_To_v1beta1_Metal3ClusterTemplateSpec is an autogenerated conversion function.
 func Convert_v1beta2_Metal3ClusterTemplateSpec_To_v1beta1_Metal3ClusterTemplateSpec(in *v1beta2.Metal3ClusterTemplateSpec, out *Metal3ClusterTemplateSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_Metal3ClusterTemplateSpec_To_v1beta1_Metal3ClusterTemplateSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_Metal3ClusterV1Beta2Status_To_v1beta2_Metal3ClusterV1Beta2Status(in *Metal3ClusterV1Beta2Status, out *v1beta2.Metal3ClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_Metal3ClusterV1Beta2Status_To_v1beta2_Metal3ClusterV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_Metal3ClusterV1Beta2Status_To_v1beta2_Metal3ClusterV1Beta2Status(in *Metal3ClusterV1Beta2Status, out *v1beta2.Metal3ClusterV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_Metal3ClusterV1Beta2Status_To_v1beta2_Metal3ClusterV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_Metal3ClusterV1Beta2Status_To_v1beta1_Metal3ClusterV1Beta2Status(in *v1beta2.Metal3ClusterV1Beta2Status, out *Metal3ClusterV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_Metal3ClusterV1Beta2Status_To_v1beta1_Metal3ClusterV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_Metal3ClusterV1Beta2Status_To_v1beta1_Metal3ClusterV1Beta2Status(in *v1beta2.Metal3ClusterV1Beta2Status, out *Metal3ClusterV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_Metal3ClusterV1Beta2Status_To_v1beta1_Metal3ClusterV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_Metal3Data_To_v1beta2_Metal3Data(in *Metal3Data, out *v1beta2.Metal3Data, s conversion.Scope) error {
@@ -1757,7 +1760,17 @@ func Convert_v1beta2_Metal3Machine_To_v1beta1_Metal3Machine(in *v1beta2.Metal3Ma
 
 func autoConvert_v1beta1_Metal3MachineList_To_v1beta2_Metal3MachineList(in *Metal3MachineList, out *v1beta2.Metal3MachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.Metal3Machine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.Metal3Machine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Metal3Machine_To_v1beta2_Metal3Machine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1768,7 +1781,17 @@ func Convert_v1beta1_Metal3MachineList_To_v1beta2_Metal3MachineList(in *Metal3Ma
 
 func autoConvert_v1beta2_Metal3MachineList_To_v1beta1_Metal3MachineList(in *v1beta2.Metal3MachineList, out *Metal3MachineList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Metal3Machine)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Metal3Machine, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Metal3Machine_To_v1beta1_Metal3Machine(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -1825,29 +1848,32 @@ func Convert_v1beta2_Metal3MachineSpec_To_v1beta1_Metal3MachineSpec(in *v1beta2.
 
 func autoConvert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(in *Metal3MachineStatus, out *v1beta2.Metal3MachineStatus, s conversion.Scope) error {
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
-	out.Addresses = *(*corev1beta1.MachineAddresses)(unsafe.Pointer(&in.Addresses))
+	// WARNING: in.FailureReason requires manual conversion: does not exist in peer-type
+	// WARNING: in.FailureMessage requires manual conversion: does not exist in peer-type
+	out.Addresses = *(*corev1beta2.MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
 	out.Ready = in.Ready
 	out.UserData = (*corev1.SecretReference)(unsafe.Pointer(in.UserData))
 	out.RenderedData = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderedData))
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*v1beta2.Metal3MachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make([]v1.Condition, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Condition_To_v1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus is an autogenerated conversion function.
-func Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(in *Metal3MachineStatus, out *v1beta2.Metal3MachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(in, out, s)
 }
 
 func autoConvert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in *v1beta2.Metal3MachineStatus, out *Metal3MachineStatus, s conversion.Scope) error {
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
-	out.FailureReason = (*errors.MachineStatusError)(unsafe.Pointer(in.FailureReason))
-	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Addresses = *(*corev1beta1.MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
 	out.Ready = in.Ready
@@ -1855,14 +1881,19 @@ func autoConvert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in *
 	out.RenderedData = (*corev1.ObjectReference)(unsafe.Pointer(in.RenderedData))
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
-	out.Conditions = *(*corev1beta1.Conditions)(unsafe.Pointer(&in.Conditions))
-	out.V1Beta2 = (*Metal3MachineV1Beta2Status)(unsafe.Pointer(in.V1Beta2))
+	if in.Conditions != nil {
+		in, out := &in.Conditions, &out.Conditions
+		*out = make(corev1beta1.Conditions, len(*in))
+		for i := range *in {
+			if err := Convert_v1_Condition_To_v1beta1_Condition(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Conditions = nil
+	}
+	// WARNING: in.Deprecated requires manual conversion: does not exist in peer-type
 	return nil
-}
-
-// Convert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus is an autogenerated conversion function.
-func Convert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in *v1beta2.Metal3MachineStatus, out *Metal3MachineStatus, s conversion.Scope) error {
-	return autoConvert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in, out, s)
 }
 
 func autoConvert_v1beta1_Metal3MachineTemplate_To_v1beta2_Metal3MachineTemplate(in *Metal3MachineTemplate, out *v1beta2.Metal3MachineTemplate, s conversion.Scope) error {
@@ -1961,26 +1992,6 @@ func autoConvert_v1beta2_Metal3MachineTemplateSpec_To_v1beta1_Metal3MachineTempl
 // Convert_v1beta2_Metal3MachineTemplateSpec_To_v1beta1_Metal3MachineTemplateSpec is an autogenerated conversion function.
 func Convert_v1beta2_Metal3MachineTemplateSpec_To_v1beta1_Metal3MachineTemplateSpec(in *v1beta2.Metal3MachineTemplateSpec, out *Metal3MachineTemplateSpec, s conversion.Scope) error {
 	return autoConvert_v1beta2_Metal3MachineTemplateSpec_To_v1beta1_Metal3MachineTemplateSpec(in, out, s)
-}
-
-func autoConvert_v1beta1_Metal3MachineV1Beta2Status_To_v1beta2_Metal3MachineV1Beta2Status(in *Metal3MachineV1Beta2Status, out *v1beta2.Metal3MachineV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta1_Metal3MachineV1Beta2Status_To_v1beta2_Metal3MachineV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta1_Metal3MachineV1Beta2Status_To_v1beta2_Metal3MachineV1Beta2Status(in *Metal3MachineV1Beta2Status, out *v1beta2.Metal3MachineV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta1_Metal3MachineV1Beta2Status_To_v1beta2_Metal3MachineV1Beta2Status(in, out, s)
-}
-
-func autoConvert_v1beta2_Metal3MachineV1Beta2Status_To_v1beta1_Metal3MachineV1Beta2Status(in *v1beta2.Metal3MachineV1Beta2Status, out *Metal3MachineV1Beta2Status, s conversion.Scope) error {
-	out.Conditions = *(*[]v1.Condition)(unsafe.Pointer(&in.Conditions))
-	return nil
-}
-
-// Convert_v1beta2_Metal3MachineV1Beta2Status_To_v1beta1_Metal3MachineV1Beta2Status is an autogenerated conversion function.
-func Convert_v1beta2_Metal3MachineV1Beta2Status_To_v1beta1_Metal3MachineV1Beta2Status(in *v1beta2.Metal3MachineV1Beta2Status, out *Metal3MachineV1Beta2Status, s conversion.Scope) error {
-	return autoConvert_v1beta2_Metal3MachineV1Beta2Status_To_v1beta1_Metal3MachineV1Beta2Status(in, out, s)
 }
 
 func autoConvert_v1beta1_Metal3Remediation_To_v1beta2_Metal3Remediation(in *Metal3Remediation, out *v1beta2.Metal3Remediation, s conversion.Scope) error {

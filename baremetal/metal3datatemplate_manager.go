@@ -31,7 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -207,7 +207,7 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 ) (map[int]string, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Updating data for claim",
 		LogFieldMetal3DataClaim, dataClaim.Name)
-	helper, err := v1beta1patch.NewHelper(dataClaim, m.client)
+	helper, err := patch.NewHelper(dataClaim, m.client)
 	if err != nil {
 		return indexes, fmt.Errorf("failed to init patch helper: %w", err)
 	}

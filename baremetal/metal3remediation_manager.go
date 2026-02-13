@@ -35,7 +35,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -57,7 +57,7 @@ type RemediationManagerInterface interface {
 	IsPowerOffRequested(ctx context.Context) (bool, error)
 	IsPoweredOn(ctx context.Context) (bool, error)
 	SetUnhealthyAnnotation(ctx context.Context) error
-	GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error)
+	GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error)
 	OnlineStatus(host *bmov1alpha1.BareMetalHost) bool
 	GetRemediationType() infrav1.RemediationType
 	RetryLimitIsSet() bool
@@ -269,7 +269,7 @@ func (r *RemediationManager) SetUnhealthyAnnotation(ctx context.Context) error {
 
 // GetUnhealthyHost gets the associated host for unhealthy machine. Returns nil if not found. Assumes the
 // host is in the same namespace as the unhealthy machine.
-func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *v1beta1patch.Helper, error) {
+func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, error) {
 	r.Log.V(VerbosityLevelTrace).Info("Getting unhealthy BareMetalHost")
 	host, err := getUnhealthyHost(ctx, r.Metal3Machine, r.Client, r.Log)
 	if err != nil || host == nil {
@@ -278,7 +278,7 @@ func (r *RemediationManager) GetUnhealthyHost(ctx context.Context) (*bmov1alpha1
 	r.Log.V(VerbosityLevelDebug).Info("Found unhealthy BareMetalHost",
 		LogFieldHost, host.Name,
 		LogFieldState, host.Status.Provisioning.State)
-	helper, err := v1beta1patch.NewHelper(host, r.Client)
+	helper, err := patch.NewHelper(host, r.Client)
 	return host, helper, err
 }
 
@@ -397,7 +397,7 @@ func (r *RemediationManager) SetOwnerRemediatedConditionNew(ctx context.Context)
 		return err
 	}
 
-	machineHelper, err := v1beta1patch.NewHelper(capiMachine, r.Client)
+	machineHelper, err := patch.NewHelper(capiMachine, r.Client)
 	if err != nil {
 		r.Log.Info("Unable to create patch helper for Machine",
 			LogFieldMachine, capiMachine.Name,

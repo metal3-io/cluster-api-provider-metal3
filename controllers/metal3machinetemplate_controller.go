@@ -25,7 +25,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -79,7 +79,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 		baremetal.LogFieldName, metal3MachineTemplate.Name,
 	)
 
-	helper, err := v1beta1patch.NewHelper(metal3MachineTemplate, r.Client)
+	helper, err := patch.NewHelper(metal3MachineTemplate, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}

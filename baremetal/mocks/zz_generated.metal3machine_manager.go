@@ -31,10 +31,11 @@ import (
 	context "context"
 	reflect "reflect"
 
+	v1beta2 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	baremetal "github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	gomock "go.uber.org/mock/gomock"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	v1beta20 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	errors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -130,6 +131,20 @@ func (m *MockMachineManagerInterface) DissociateM3Metadata(arg0 context.Context)
 func (mr *MockMachineManagerInterfaceMockRecorder) DissociateM3Metadata(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DissociateM3Metadata", reflect.TypeOf((*MockMachineManagerInterface)(nil).DissociateM3Metadata), arg0)
+}
+
+// GetMetal3Machine mocks base method.
+func (m *MockMachineManagerInterface) GetMetal3Machine() *v1beta2.Metal3Machine {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMetal3Machine")
+	ret0, _ := ret[0].(*v1beta2.Metal3Machine)
+	return ret0
+}
+
+// GetMetal3Machine indicates an expected call of GetMetal3Machine.
+func (mr *MockMachineManagerInterfaceMockRecorder) GetMetal3Machine() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetal3Machine", reflect.TypeOf((*MockMachineManagerInterface)(nil).GetMetal3Machine))
 }
 
 // GetProviderIDAndBMHID mocks base method.
@@ -260,7 +275,7 @@ func (mr *MockMachineManagerInterfaceMockRecorder) RemovePauseAnnotation(arg0 an
 }
 
 // SetConditionMetal3MachineToFalse mocks base method.
-func (m *MockMachineManagerInterface) SetConditionMetal3MachineToFalse(arg0 v1beta1.ConditionType, arg1 string, arg2 v1beta1.ConditionSeverity, arg3 string, arg4 ...any) {
+func (m *MockMachineManagerInterface) SetConditionMetal3MachineToFalse(arg0 v1beta20.ConditionType, arg1 string, arg2 v1beta20.ConditionSeverity, arg3 string, arg4 ...any) {
 	m.ctrl.T.Helper()
 	varargs := []any{arg0, arg1, arg2, arg3}
 	for _, a := range arg4 {
@@ -277,7 +292,7 @@ func (mr *MockMachineManagerInterfaceMockRecorder) SetConditionMetal3MachineToFa
 }
 
 // SetConditionMetal3MachineToTrue mocks base method.
-func (m *MockMachineManagerInterface) SetConditionMetal3MachineToTrue(arg0 v1beta1.ConditionType) {
+func (m *MockMachineManagerInterface) SetConditionMetal3MachineToTrue(arg0 v1beta20.ConditionType) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SetConditionMetal3MachineToTrue", arg0)
 }
@@ -324,6 +339,18 @@ func (m *MockMachineManagerInterface) SetFinalizer() {
 func (mr *MockMachineManagerInterfaceMockRecorder) SetFinalizer() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetFinalizer", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetFinalizer))
+}
+
+// SetMetal3DataReadyConditionTrue mocks base method.
+func (m *MockMachineManagerInterface) SetMetal3DataReadyConditionTrue(reason string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetMetal3DataReadyConditionTrue", reason)
+}
+
+// SetMetal3DataReadyConditionTrue indicates an expected call of SetMetal3DataReadyConditionTrue.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetMetal3DataReadyConditionTrue(reason any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMetal3DataReadyConditionTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetMetal3DataReadyConditionTrue), reason)
 }
 
 // SetNodeProviderIDByHostname mocks base method.

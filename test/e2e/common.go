@@ -48,7 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	testexec "sigs.k8s.io/cluster-api/test/framework/exec"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/krusty"
@@ -293,7 +293,7 @@ func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alp
 	bmhKey := client.ObjectKey{Name: host.Name, Namespace: host.Namespace}
 	err := clusterClient.Get(ctx, bmhKey, bmh)
 	Expect(err).ToNot(HaveOccurred(), "Failed to get BareMetalHost %s", host.Name)
-	helper, err := v1beta1patch.NewHelper(bmh, clusterClient)
+	helper, err := patch.NewHelper(bmh, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 
 	if value == nil {
@@ -311,7 +311,7 @@ func AnnotateBmh(ctx context.Context, clusterClient client.Client, host bmov1alp
 
 // DeleteNodeReuseLabelFromHost deletes nodeReuseLabelName from the host if it exists.
 func DeleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, host bmov1alpha1.BareMetalHost, nodeReuseLabelName string) {
-	helper, err := v1beta1patch.NewHelper(&host, client)
+	helper, err := patch.NewHelper(&host, client)
 	Expect(err).NotTo(HaveOccurred())
 	labels := host.GetLabels()
 	if labels != nil {
@@ -340,7 +340,7 @@ func ScaleMachineDeployment(ctx context.Context, clusterClient client.Client, cl
 func ScaleKubeadmControlPlane(ctx context.Context, c client.Client, name client.ObjectKey, newReplicaCount int32) {
 	ctrlplane := controlplanev1.KubeadmControlPlane{}
 	Expect(c.Get(ctx, name, &ctrlplane)).To(Succeed())
-	helper, err := v1beta1patch.NewHelper(&ctrlplane, c)
+	helper, err := patch.NewHelper(&ctrlplane, c)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create new patch helper")
 
 	ctrlplane.Spec.Replicas = ptr.To(newReplicaCount)
@@ -1254,7 +1254,7 @@ func untaintNodes(ctx context.Context, targetClusterClient client.Client, nodes 
 		Logf("Untainting node %v ...", nodes.Items[i].Name)
 		newNode, changed := removeTaint(&nodes.Items[i], taints)
 		if changed {
-			patchHelper, err := v1beta1patch.NewHelper(&nodes.Items[i], targetClusterClient)
+			patchHelper, err := patch.NewHelper(&nodes.Items[i], targetClusterClient)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(patchHelper.Patch(ctx, newNode)).To(Succeed(), "Failed to patch node")
 			count++
@@ -1356,7 +1356,7 @@ func UpgradeControlPlane(ctx context.Context, inputGetter func() UpgradeControlP
 		ClusterName: clusterName,
 		Namespace:   namespace,
 	})
-	helper, err := v1beta1patch.NewHelper(kcpObj, clusterClient)
+	helper, err := patch.NewHelper(kcpObj, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = k8sToVersion
@@ -1394,7 +1394,7 @@ func UpgradeControlPlane(ctx context.Context, inputGetter func() UpgradeControlP
 		ClusterName: clusterName,
 		Namespace:   namespace,
 	})
-	helper, err = v1beta1patch.NewHelper(kcpObj, clusterClient)
+	helper, err = patch.NewHelper(kcpObj, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 1
 	for range 3 {

@@ -24,12 +24,11 @@ import (
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
@@ -148,8 +147,8 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 			LogFieldError, err.Error())
 		s.Metal3Cluster.Status.Ready = false
 		s.setError("Invalid ControlPlaneEndpoint values", capierrors.InvalidConfigurationClusterError)
-		v1beta1conditions.MarkFalse(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.ControlPlaneEndpointFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
-		v1beta2conditions.Set(s.Metal3Cluster, metav1.Condition{
+		deprecatedv1beta1conditions.MarkFalse(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.ControlPlaneEndpointFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(s.Metal3Cluster, metav1.Condition{
 			Type:   infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.ControlPlaneEndpointFailedReason,
@@ -160,8 +159,8 @@ func (s *ClusterManager) UpdateClusterStatus() error {
 	// Mark the metal3Cluster ready.
 	s.Log.V(VerbosityLevelDebug).Info("Metal3Cluster is ready")
 	s.Metal3Cluster.Status.Ready = true
-	v1beta1conditions.MarkTrue(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition)
-	v1beta2conditions.Set(s.Metal3Cluster, metav1.Condition{
+	deprecatedv1beta1conditions.MarkTrue(s.Metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition)
+	conditions.Set(s.Metal3Cluster, metav1.Condition{
 		Type:   infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
 		Status: metav1.ConditionTrue,
 		Reason: infrav1.BaremetalInfrastructureReadyV1Beta2Reason,
@@ -178,8 +177,14 @@ func (s *ClusterManager) setError(message string, reason capierrors.ClusterStatu
 	s.Log.V(VerbosityLevelDebug).Info("Setting error on Metal3Cluster status",
 		LogFieldError, message,
 		"reason", reason)
-	s.Metal3Cluster.Status.FailureMessage = &message
-	s.Metal3Cluster.Status.FailureReason = &reason
+	if s.Metal3Cluster.Status.Deprecated == nil {
+		s.Metal3Cluster.Status.Deprecated = &infrav1.Metal3ClusterDeprecatedStatus{}
+	}
+	if s.Metal3Cluster.Status.Deprecated.V1Beta1 == nil {
+		s.Metal3Cluster.Status.Deprecated.V1Beta1 = &infrav1.Metal3ClusterV1Beta1DeprecatedStatus{}
+	}
+	s.Metal3Cluster.Status.Deprecated.V1Beta1.FailureMessage = &message
+	s.Metal3Cluster.Status.Deprecated.V1Beta1.FailureReason = &reason
 }
 
 // CountDescendants will return the number of descendants objects of the

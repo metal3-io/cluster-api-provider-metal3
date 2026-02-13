@@ -10,7 +10,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -50,7 +50,7 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 		ClusterName: input.ClusterName,
 		Namespace:   input.Namespace,
 	})
-	helper, err := v1beta1patch.NewHelper(kcpObj, managementClusterClient)
+	helper, err := patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = KCPNewM3MachineTemplateName
 	kcpObj.Spec.Version = toK8sVersion
@@ -94,14 +94,14 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 
 	By("Patch baremetal IPPool with new Preallocations field and values")
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: baremetalv4PoolName}, &baremetalv4Pool[0])).To(Succeed())
-	bmv4helper, err := v1beta1patch.NewHelper(&baremetalv4Pool[0], managementClusterClient)
+	bmv4helper, err := patch.NewHelper(&baremetalv4Pool[0], managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	baremetalv4Pool[0].Spec.PreAllocations = bmv4PoolPreallocations
 	Expect(bmv4helper.Patch(ctx, &baremetalv4Pool[0])).To(Succeed())
 
 	By("Patch provisioning IPPool with new Preallocations field and values")
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: provisioningPoolName}, &provisioningPool[0])).To(Succeed())
-	provhelper, err := v1beta1patch.NewHelper(&provisioningPool[0], managementClusterClient)
+	provhelper, err := patch.NewHelper(&provisioningPool[0], managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	provisioningPool[0].Spec.PreAllocations = provPoolPreallocations
 	Expect(provhelper.Patch(ctx, &provisioningPool[0])).To(Succeed())
@@ -122,7 +122,7 @@ func IPReuse(ctx context.Context, inputGetter func() IPReuseInput) {
 	CreateNewM3MachineTemplate(ctx, input.Namespace, newM3MachineTemplateName, m3MachineTemplateName, managementClusterClient, imageURL, imageChecksum)
 
 	Byf("Update MachineDeployment maxUnavailable to number of workers and k8s version from %s to %s", fromK8sVersion, toK8sVersion)
-	helper, err = v1beta1patch.NewHelper(md, managementClusterClient)
+	helper, err = patch.NewHelper(md, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	md.Spec.Template.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	md.Spec.Template.Spec.Version = toK8sVersion

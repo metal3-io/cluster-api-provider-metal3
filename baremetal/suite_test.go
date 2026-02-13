@@ -37,7 +37,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -136,9 +135,6 @@ var bmcOwnerRef = &metav1.OwnerReference{
 
 func setupScheme() *runtime.Scheme {
 	s := runtime.NewScheme()
-	if err := clusterv1beta1.AddToScheme(s); err != nil {
-		panic(err)
-	}
 	if err := clusterv1.AddToScheme(s); err != nil {
 		panic(err)
 	}

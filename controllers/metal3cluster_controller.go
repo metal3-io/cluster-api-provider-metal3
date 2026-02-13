@@ -30,16 +30,15 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
-	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
-	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/paused"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
+	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/paused"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -119,7 +118,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	clusterLog.V(baremetal.VerbosityLevelTrace).Info("Creating patch helper")
-	patchHelper, err := v1beta1patch.NewHelper(metal3Cluster, r.Client)
+	patchHelper, err := patch.NewHelper(metal3Cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to init patch helper: %w", err)
 	}
@@ -147,10 +146,16 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		clusterLog.V(baremetal.VerbosityLevelDebug).Info("Failed to get owner Cluster",
 			baremetal.LogFieldError, err.Error())
 		invalidConfigError := capierrors.InvalidConfigurationClusterError
-		metal3Cluster.Status.FailureReason = &invalidConfigError
-		metal3Cluster.Status.FailureMessage = ptr.To("Unable to get owner cluster")
-		v1beta1conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
-		v1beta2conditions.Set(metal3Cluster, metav1.Condition{
+		if metal3Cluster.Status.Deprecated == nil {
+			metal3Cluster.Status.Deprecated = &infrav1.Metal3ClusterDeprecatedStatus{}
+		}
+		if metal3Cluster.Status.Deprecated.V1Beta1 == nil {
+			metal3Cluster.Status.Deprecated.V1Beta1 = &infrav1.Metal3ClusterV1Beta1DeprecatedStatus{}
+		}
+		metal3Cluster.Status.Deprecated.V1Beta1.FailureReason = &invalidConfigError
+		metal3Cluster.Status.Deprecated.V1Beta1.FailureMessage = ptr.To("Unable to get owner cluster")
+		deprecatedv1beta1conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(metal3Cluster, metav1.Condition{
 			Type:   infrav1.Metal3ClusterReadyV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.FailedToGetOwnerClusterReasonV1Beta2Reason,
@@ -194,7 +199,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Handle deleted clusters
 	if !metal3Cluster.DeletionTimestamp.IsZero() {
 		clusterLog.V(baremetal.VerbosityLevelTrace).Info("Metal3Cluster has deletion timestamp, proceeding with deletion")
-		v1beta2conditions.Set(metal3Cluster, metav1.Condition{
+		conditions.Set(metal3Cluster, metav1.Condition{
 			Type:   infrav1.Metal3ClusterReadyV1Beta2Condition,
 			Status: metav1.ConditionFalse,
 			Reason: infrav1.Metal3ClusterDeletingV1Beta2Reason,
@@ -224,23 +229,23 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	return res, err
 }
 
-func patchMetal3Cluster(ctx context.Context, patchHelper *v1beta1patch.Helper, metal3Cluster *infrav1.Metal3Cluster, options ...v1beta1patch.Option) error {
+func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cluster *infrav1.Metal3Cluster, options ...patch.Option) error {
 	// Always update the readyCondition by summarizing the state of other conditions.
-	v1beta1conditions.SetSummary(metal3Cluster,
-		v1beta1conditions.WithConditions(
+	deprecatedv1beta1conditions.SetSummary(metal3Cluster,
+		deprecatedv1beta1conditions.WithConditions(
 			infrav1.BaremetalInfrastructureReadyCondition,
 		),
 	)
 
-	if err := v1beta2conditions.SetSummaryCondition(metal3Cluster, metal3Cluster, infrav1.Metal3ClusterReadyV1Beta2Condition,
-		v1beta2conditions.ForConditionTypes{
+	if err := conditions.SetSummaryCondition(metal3Cluster, metal3Cluster, infrav1.Metal3ClusterReadyV1Beta2Condition,
+		conditions.ForConditionTypes{
 			infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
-		v1beta2conditions.CustomMergeStrategy{
-			MergeStrategy: v1beta2conditions.DefaultMergeStrategy(
+		conditions.CustomMergeStrategy{
+			MergeStrategy: conditions.DefaultMergeStrategy(
 				// Use custom reasons.
-				v1beta2conditions.ComputeReasonFunc(v1beta2conditions.GetDefaultComputeMergeReasonFunc(
+				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
 					infrav1.Metal3ClusterNotReadyV1Beta2Reason,
 					infrav1.Metal3ClusterReadyUnknownV1Beta2Reason,
 					infrav1.Metal3ClusterReadyV1Beta2Reason,
@@ -253,16 +258,16 @@ func patchMetal3Cluster(ctx context.Context, patchHelper *v1beta1patch.Helper, m
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
-			clusterv1beta1.ReadyCondition,
-			infrav1.BaremetalInfrastructureReadyCondition,
-		}},
-		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
 			infrav1.Metal3ClusterReadyV1Beta2Condition,
 			infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
 		}},
-		v1beta1patch.WithStatusObservedGeneration{},
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			infrav1.BaremetalInfrastructureReadyCondition,
+		}},
+		patch.WithStatusObservedGeneration{},
 	)
 	return patchHelper.Patch(ctx, metal3Cluster, options...)
 }
