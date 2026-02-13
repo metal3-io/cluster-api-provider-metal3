@@ -29,23 +29,16 @@ import (
 func (webhook *Metal3Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.Metal3Machine{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3machine,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,versions=v1beta2,name=validation.metal3machine.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3machine,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3machines,versions=v1beta2,name=default.metal3machine.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// Metal3Machine implements a validation and defaulting webhook for Metal3Machine.
+// Metal3Machine implements a validation webhook for Metal3Machine.
 type Metal3Machine struct{}
 
-var _ webhook.CustomDefaulter = &Metal3Machine{}
 var _ webhook.CustomValidator = &Metal3Machine{}
-
-func (webhook *Metal3Machine) Default(_ context.Context, _ runtime.Object) error {
-	return nil
-}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *Metal3Machine) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {

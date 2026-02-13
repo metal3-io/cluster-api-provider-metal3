@@ -53,8 +53,8 @@ var metal3remediationtemplatelog = logf.Log.WithName("metal3remediationtemplate-
 func (webhook *Metal3RemediationTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.Metal3RemediationTemplate{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
+		WithDefaulter(webhook).
 		Complete()
 }
 

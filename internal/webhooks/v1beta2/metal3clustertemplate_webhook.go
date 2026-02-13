@@ -30,23 +30,16 @@ import (
 func (webhook *Metal3ClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.Metal3ClusterTemplate{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3clustertemplate,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clustertemplates,versions=v1beta2,name=validation.metal3clustertemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3clustertemplate,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3clustertemplates,versions=v1beta2,name=default.metal3clustertemplate.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// Metal3ClusterTemplate implements a validation and defaulting webhook for Metal3ClusterTemplate.
+// Metal3ClusterTemplate implements a validation webhook for Metal3ClusterTemplate.
 type Metal3ClusterTemplate struct{}
 
-var _ webhook.CustomDefaulter = &Metal3ClusterTemplate{}
-var _ webhook.CustomDefaulter = &Metal3ClusterTemplate{}
-
-func (webhook *Metal3ClusterTemplate) Default(_ context.Context, _ runtime.Object) error {
-	return nil
-}
+var _ webhook.CustomValidator = &Metal3ClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *Metal3ClusterTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {

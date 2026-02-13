@@ -30,23 +30,16 @@ import (
 func (webhook *Metal3DataClaim) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.Metal3DataClaim{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3dataclaim,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,versions=v1beta2,name=validation.metal3dataclaim.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3dataclaim,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3dataclaims,versions=v1beta2,name=default.metal3dataclaim.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// Metal3DataClaim implements a validation and defaulting webhook for Metal3DataClaim.
+// Metal3DataClaim implements a validation webhook for Metal3DataClaim.
 type Metal3DataClaim struct{}
 
-var _ webhook.CustomDefaulter = &Metal3DataClaim{}
 var _ webhook.CustomValidator = &Metal3DataClaim{}
-
-func (webhook *Metal3DataClaim) Default(_ context.Context, _ runtime.Object) error {
-	return nil
-}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *Metal3DataClaim) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {

@@ -21,21 +21,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMetal3ClusterTemplateDefault(t *testing.T) {
-	g := NewWithT(t)
-	webhook := &Metal3ClusterTemplate{}
-
-	c := &infrav1.Metal3ClusterTemplate{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-		},
-		Spec: infrav1.Metal3ClusterTemplateSpec{},
-	}
-
-	g.Expect(webhook.Default(ctx, c)).To(Succeed())
-	g.Expect(c.Spec).To(Equal(infrav1.Metal3ClusterTemplateSpec{}))
-}
-
 func TestMetal3ClusterTemplateValidation(t *testing.T) {
 	tests := []struct {
 		name      string

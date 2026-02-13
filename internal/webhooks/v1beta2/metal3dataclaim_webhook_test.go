@@ -23,22 +23,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMetal3DataClaimDefault(t *testing.T) {
-	g := NewWithT(t)
-	webhook := &Metal3DataClaim{}
-
-	c := &infrav1.Metal3DataClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "fooboo",
-		},
-	}
-
-	_ = webhook.Default(ctx, c)
-
-	g.Expect(c.Spec).To(Equal(infrav1.Metal3DataClaimSpec{}))
-	g.Expect(c.Status).To(Equal(infrav1.Metal3DataClaimStatus{}))
-}
-
 func TestMetal3DataClaimValidation(t *testing.T) {
 	valid := &infrav1.Metal3DataClaim{
 		ObjectMeta: metav1.ObjectMeta{

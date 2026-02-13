@@ -32,24 +32,16 @@ import (
 func (webhook *Metal3Remediation) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&infrav1.Metal3Remediation{}).
-		WithDefaulter(webhook, admission.DefaulterRemoveUnknownOrOmitableFields).
 		WithValidator(webhook).
 		Complete()
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta2-metal3remediation,mutating=false,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3remediations,versions=v1beta2,name=validation.metal3remediation.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-infrastructure-cluster-x-k8s-io-v1beta2-metal3remediation,mutating=true,failurePolicy=fail,groups=infrastructure.cluster.x-k8s.io,resources=metal3remediations,versions=v1beta2,name=default.metal3remediation.infrastructure.cluster.x-k8s.io,matchPolicy=Equivalent,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// Metal3Remediation implements a validation and defaulting webhook for Metal3Remediation.
+// Metal3Remediation implements a validation webhook for Metal3Remediation.
 type Metal3Remediation struct{}
 
-var _ webhook.CustomDefaulter = &Metal3Remediation{}
 var _ webhook.CustomValidator = &Metal3Remediation{}
-
-// Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *Metal3Remediation) Default(_ context.Context, _ runtime.Object) error {
-	return nil
-}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *Metal3Remediation) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
