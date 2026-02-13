@@ -1,4 +1,9 @@
 ---
+# This patch adds tolerations to allow CAPM3 controller pods to run on
+# control-plane nodes (which typically have taints).
+#
+# Note: The default deployment already includes tolerations for control-plane nodes.
+# This patch is provided for reference or if you need to add additional tolerations.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

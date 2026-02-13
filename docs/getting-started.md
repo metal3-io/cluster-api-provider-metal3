@@ -216,6 +216,47 @@ WORKERS_KUBEADM_EXTRA_CONFIG="
 "
 ```
 
+## Pod Placement Configuration
+
+By default, CAPM3 controller pods are configured with tolerations and node affinity
+to prefer running on control-plane or infrastructure nodes rather than regular
+workload nodes. This ensures that CAPM3 infrastructure components do not compete
+with user workloads for resources.
+
+### Default Configuration
+
+The default deployment includes:
+
+- **Tolerations**: Allow pods to run on control-plane nodes (which typically have
+   taints)
+   - `node-role.kubernetes.io/master:NoSchedule`
+   - `node-role.kubernetes.io/control-plane:NoSchedule`
+
+- **Node Affinity**: Require pods to run on control-plane or infrastructure nodes
+   - **Required**: Pods will only schedule on nodes with one of these labels:
+      - `node-role.kubernetes.io/control-plane`
+      - `node-role.kubernetes.io/infra` (for dedicated infra nodes)
+   - **Preferred**: Among eligible nodes, prefers dedicated infra nodes first,
+     then control-plane nodes
+
+This ensures CAPM3 pods do not run on regular worker nodes and only schedule on
+control-plane or infrastructure nodes. The tolerations ensure pods can run on
+tainted control-plane nodes.
+
+### Customizing Pod Placement
+
+The default configuration requires pods to run on control-plane or infra nodes.
+If you need to customize this behavior (for example when using different
+deployment methods), please refer to the upstream Cluster API documentation:
+
+- **CAPI Operator provider configuration**:  [Provider spec configuration docs](https://cluster-api-operator.sigs.k8s.io/topics/configuration/provider-spec-configuration#provider-spec)
+- **`clusterctl` config overrides**: [configuration](https://cluster-api.sigs.k8s.io/clusterctl/configuration#overrides-layer)
+- **`clusterctl generate provider`**: [command reference](https://cluster-api.sigs.k8s.io/clusterctl/commands/generate-provider)
+
+For kustomize-based workflows, you can use the CAPM3 example patches in
+[`examples/provider-components/`](https://github.com/metal3-io/cluster-api-provider-metal3/tree/main/examples/provider-components)
+as a starting point.
+
 ## Pivoting or updating Ironic
 
 Before running the `move` command of Clusterctl, elements such as Ironic if
