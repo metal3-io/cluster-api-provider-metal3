@@ -109,6 +109,49 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	Logf("%s\n", stdoutStderr)
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig")
 
+	By("Initialize Provider component in target cluster")
+	clusterctl.Init(ctx, clusterctl.InitInput{
+		KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath:    input.E2EConfig.MustGetVariable("CONFIG_FILE_PATH"),
+		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
+		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
+		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
+		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
+		IPAMProviders:           []string{Metal3ipamProviderName + ":" + os.Getenv("IPAMRELEASE")},
+		LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting"),
+	})
+
+	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting", "clusterctl-init.log"))
+
+	By("Add labels to BMO CRDs")
+	labelBMOCRDs(ctx, input.BootstrapClusterProxy)
+
+	By("Add Labels to hardwareData CRDs")
+	labelHDCRDs(ctx, input.BootstrapClusterProxy)
+
+	By("Setting block-move annotation on BMH to prevent premature pivot")
+	// Set block-move annotation on all BMH objects with consumers to ensure
+	// clusterctl waits for pause annotations to be set during move operation.
+	bmhList := &bmov1alpha1.BareMetalHostList{}
+	Err := input.BootstrapClusterProxy.GetClient().List(ctx, bmhList, client.InNamespace(input.Namespace))
+	Expect(Err).NotTo(HaveOccurred(), "Failed to list BareMetalHosts")
+
+	for i := range bmhList.Items {
+		bmh := &bmhList.Items[i]
+		// Only set block-move on BMH with consumers (associated with machines)
+		if bmh.Spec.ConsumerRef != nil {
+			if bmh.Annotations == nil {
+				bmh.Annotations = make(map[string]string)
+			}
+			if _, hasBlockMove := bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"]; !hasBlockMove {
+				Logf("Setting block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
+				bmh.Annotations["clusterctl.cluster.x-k8s.io/block-move"] = ""
+				Err := input.BootstrapClusterProxy.GetClient().Update(ctx, bmh)
+				Expect(Err).NotTo(HaveOccurred(), "Failed to set block-move on BMH %s/%s", bmh.Namespace, bmh.Name)
+			}
+		}
+	}
+
 	By("Remove Ironic containers from the source cluster")
 	ironicDeploymentType := IronicDeploymentTypeIrSO
 	if bootstrapCluster == Kind {
@@ -126,25 +169,6 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			IsDevEnvUninstall: true,
 		}
 	})
-
-	By("Initialize Provider component in target cluster")
-	clusterctl.Init(ctx, clusterctl.InitInput{
-		KubeconfigPath:          input.TargetCluster.GetKubeconfigPath(),
-		ClusterctlConfigPath:    input.E2EConfig.MustGetVariable("CONFIG_FILE_PATH"),
-		CoreProvider:            config.ClusterAPIProviderName + ":" + os.Getenv("CAPIRELEASE"),
-		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + os.Getenv("CAPIRELEASE")},
-		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + os.Getenv("CAPIRELEASE")},
-		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
-		IPAMProviders:           []string{Metal3ipamProviderName + ":" + os.Getenv("IPAMRELEASE")},
-		LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting"),
-	})
-
-	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivoting", "clusterctl-init.log"))
-
-	By("Add labels to BMO CRDs")
-	labelBMOCRDs(ctx, input.BootstrapClusterProxy)
-	By("Add Labels to hardwareData CRDs")
-	labelHDCRDs(ctx, input.BootstrapClusterProxy)
 
 	By("Pivoting: Install IRSO in the target cluster")
 	irsoDeployLogFolder := filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "ironic-deploy-logs-pivoting")
@@ -186,6 +210,21 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		return input.TargetCluster.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 	}, "5s", "100ms").Should(Succeed(), "Failed to assert target API server stability")
 
+	Logf("Dump the target cluster resources before pivoting")
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
+
+	By("Fetch logs from target cluster before pivoting")
+	err = FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-before-pivot", "resources"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
 	By("Moving the cluster to self hosted")
 	clusterctl.Move(ctx, clusterctl.MoveInput{
 		LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap"),
@@ -196,6 +235,21 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	})
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-bootstrap", "logs", input.Namespace, "clusterctl-move.log"))
 
+	By("Fetch logs from target cluster after pivoting")
+	err = FetchClusterLogs(input.TargetCluster, filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-after-pivot", "resources"))
+	if err != nil {
+		Logf("Error: %v", err)
+	}
+
+	Logf("Dump the target cluster resources after pivoting")
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:               input.TargetCluster.GetClient(),
+		Namespace:            input.Namespace,
+		LogPath:              filepath.Join(input.ArtifactFolder, "clusters", "target-cluster-after-pivot", "resources"),
+		KubeConfigPath:       input.TargetCluster.GetKubeconfigPath(),
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
+	})
+
 	By("Remove BMO deployment from the source cluster")
 	RemoveDeployment(ctx, func() RemoveDeploymentInput {
 		return RemoveDeploymentInput{
@@ -204,6 +258,7 @@ func pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 			Name:         input.E2EConfig.MustGetVariable(NamePrefix) + "-controller-manager",
 		}
 	})
+
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.TargetCluster.GetClient(),
 		Namespace: input.Namespace,
@@ -317,19 +372,40 @@ func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentIn
 }
 
 func labelBMOCRDs(ctx context.Context, clusterProxy framework.ClusterProxy) {
+	bmhs, err := GetAllBmhs(ctx, clusterProxy.GetClient(), "metal3")
+	Expect(err).ToNot(HaveOccurred(), "Cannot fetch BMHs")
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterctlv1.ClusterctlMoveLabel] = ""
-	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
+	labels[clusterv1.ProviderNameLabel] = "metal3" //nolint:goconst
 	crdName := "baremetalhosts.metal3.io"
-	err := LabelCRD(ctx, clusterProxy.GetClient(), crdName, labels)
+	err = LabelCRD(ctx, clusterProxy.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label BMH CRDs")
+	for _, bmh := range bmhs {
+		patch := client.MergeFrom(bmh.DeepCopy())
+		// Merge new labels with existing labels
+		if bmh.ObjectMeta.Labels == nil {
+			bmh.ObjectMeta.Labels = map[string]string{}
+		}
+
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlLabel] = ""
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlMoveLabel] = ""
+		bmh.ObjectMeta.Labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
+		bmh.ObjectMeta.Labels[clusterv1.ProviderNameLabel] = "metal3"
+
+		err = clusterProxy.GetClient().Patch(ctx, &bmh, patch)
+		if err != nil {
+			Logf("Cannot label BMH %s: %v", bmh.Name, err)
+		}
+		Logf("Labeled BMH %s with clusterctl move labels", bmh.Name)
+	}
+	Expect(err).ToNot(HaveOccurred(), "Cannot label BMHs")
 }
 
 func labelHDCRDs(ctx context.Context, clusterProxy framework.ClusterProxy) {
 	labels := map[string]string{}
 	labels[clusterctlv1.ClusterctlLabel] = ""
-	labels[clusterctlv1.ClusterctlMoveLabel] = ""
+	labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
+	labels[clusterv1.ProviderNameLabel] = "metal3"
 	crdName := "hardwaredata.metal3.io"
 	err := LabelCRD(ctx, clusterProxy.GetClient(), crdName, labels)
 	Expect(err).ToNot(HaveOccurred(), "Cannot label HD CRDs")
