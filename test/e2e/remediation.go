@@ -17,7 +17,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -290,7 +290,7 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	deployment := clusterv1.MachineDeployment{}
 	Expect(bootstrapClient.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, &deployment)).To(Succeed())
 
-	helper, err := v1beta1patch.NewHelper(&deployment, bootstrapClient)
+	helper, err := patch.NewHelper(&deployment, bootstrapClient)
 	Expect(err).NotTo(HaveOccurred())
 
 	deployment.Spec.Template.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{

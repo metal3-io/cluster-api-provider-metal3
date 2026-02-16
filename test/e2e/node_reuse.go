@@ -16,7 +16,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -113,7 +113,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		ClusterName: input.ClusterName,
 		Namespace:   input.Namespace,
 	})
-	helper, err := v1beta1patch.NewHelper(kcpObj, managementClusterClient)
+	helper, err := patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = toK8sVersion
@@ -227,7 +227,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		ClusterName: input.ClusterName,
 		Namespace:   input.Namespace,
 	})
-	helper, err = v1beta1patch.NewHelper(kcpObj, managementClusterClient)
+	helper, err = patch.NewHelper(kcpObj, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 1
 	for range 3 {
@@ -332,7 +332,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", fromK8sVersion, toK8sVersion)
 	// Note: We have only 4 nodes (3 control-plane and 1 worker) so we
 	// must allow maxUnavailable 1 here or it will get stuck.
-	helper, err = v1beta1patch.NewHelper(machineDeploy, managementClusterClient)
+	helper, err = patch.NewHelper(machineDeploy, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1
@@ -440,7 +440,7 @@ func getProvisionedBmhNamesUuids(ctx context.Context, namespace string, manageme
 func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3MachineTemplateName string, managementClusterClient client.Client) {
 	m3machineTemplate := infrav1beta1.Metal3MachineTemplate{}
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
-	helper, err := v1beta1patch.NewHelper(&m3machineTemplate, managementClusterClient)
+	helper, err := patch.NewHelper(&m3machineTemplate, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	m3machineTemplate.Spec.NodeReuse = nodeReuse
 	Expect(helper.Patch(ctx, &m3machineTemplate)).To(Succeed())
@@ -453,7 +453,7 @@ func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3Ma
 func pointMDtoM3mt(ctx context.Context, namespace string, clusterName string, m3mtname, mdName string, managementClusterClient client.Client) {
 	md := clusterv1.MachineDeployment{}
 	Expect(managementClusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: mdName}, &md)).To(Succeed())
-	helper, err := v1beta1patch.NewHelper(&md, managementClusterClient)
+	helper, err := patch.NewHelper(&md, managementClusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	md.Spec.Template.Spec.InfrastructureRef.Name = m3mtname
 	Expect(helper.Patch(ctx, &md)).To(Succeed())

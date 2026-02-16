@@ -14,7 +14,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -128,7 +128,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 		ClusterName: clusterName,
 		Namespace:   namespace,
 	})
-	helper, err := v1beta1patch.NewHelper(kcpObj, clusterClient)
+	helper, err := patch.NewHelper(kcpObj, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.MachineTemplate.Spec.InfrastructureRef.Name = newM3MachineTemplateName
 	kcpObj.Spec.Version = upgradedK8sVersion
@@ -166,7 +166,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 		ClusterName: clusterName,
 		Namespace:   namespace,
 	})
-	helper, err = v1beta1patch.NewHelper(kcpObj, clusterClient)
+	helper, err = patch.NewHelper(kcpObj, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	kcpObj.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 1
 	for range 3 {
@@ -192,7 +192,7 @@ func upgradeKubernetes(ctx context.Context, inputGetter func() upgradeKubernetes
 	CreateNewM3MachineTemplate(ctx, namespace, newM3MachineTemplateName, m3MachineTemplateName, clusterClient, imageURL, imageChecksum)
 
 	Byf("Update MD to upgrade k8s version and binaries from %s to %s", kubernetesVersion, upgradedK8sVersion)
-	helper, err = v1beta1patch.NewHelper(machineDeploy, clusterClient)
+	helper, err = patch.NewHelper(machineDeploy, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
 	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxSurge.IntVal = 0
 	machineDeploy.Spec.Rollout.Strategy.RollingUpdate.MaxUnavailable.IntVal = 1

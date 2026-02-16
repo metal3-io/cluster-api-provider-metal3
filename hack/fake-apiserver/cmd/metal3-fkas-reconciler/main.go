@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap/zapcore"
 	"k8s.io/apimachinery/pkg/runtime"
 	rest "k8s.io/client-go/rest"
-	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -56,7 +56,7 @@ func main() {
 		setupLog.Error(err, "Error adding Metal3Machine to scheme")
 	}
 
-	if err = clusterv1beta1.AddToScheme(scheme); err != nil {
+	if err = clusterv1.AddToScheme(scheme); err != nil {
 		setupLog.Error(err, "Error adding Machine to scheme")
 	}
 
@@ -103,7 +103,7 @@ func main() {
 
 			machineName := m3m.ObjectMeta.OwnerReferences[0].Name
 			namespace := m3m.Namespace
-			machine := &clusterv1beta1.Machine{}
+			machine := &clusterv1.Machine{}
 			machineKey := client.ObjectKey{
 				Namespace: namespace,
 				Name:      machineName,

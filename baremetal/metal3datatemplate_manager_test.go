@@ -142,7 +142,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.indexes {
 				objects = append(objects, address)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
@@ -249,7 +249,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, claim := range tc.dataClaims {
 				objects = append(objects, claim)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).WithStatusSubresource(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).WithStatusSubresource(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template, logr.Discard())
 			Expect(err).NotTo(HaveOccurred())
 
@@ -502,7 +502,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)
@@ -650,7 +650,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			for _, address := range tc.datas {
 				objects = append(objects, address)
 			}
-			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(objects...).Build()
+			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 			templateMgr, err := NewDataTemplateManager(fakeClient, tc.template,
 				logr.Discard(),
 			)

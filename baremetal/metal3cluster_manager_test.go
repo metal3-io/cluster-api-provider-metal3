@@ -147,10 +147,12 @@ var _ = Describe("Metal3Cluster manager", func() {
 			clusterMgr := newBMClusterSetup(tc)
 			clusterMgr.setError("abc", capierrors.InvalidConfigurationClusterError)
 
-			Expect(*tc.BMCluster.Status.FailureReason).To(Equal(
+			Expect(tc.BMCluster.Status.Deprecated).ToNot(BeNil())
+			Expect(tc.BMCluster.Status.Deprecated.V1Beta1).ToNot(BeNil())
+			Expect(*tc.BMCluster.Status.Deprecated.V1Beta1.FailureReason).To(Equal(
 				capierrors.InvalidConfigurationClusterError,
 			))
-			Expect(*tc.BMCluster.Status.FailureMessage).To(Equal("abc"))
+			Expect(*tc.BMCluster.Status.Deprecated.V1Beta1.FailureMessage).To(Equal("abc"))
 		},
 		Entry("No pre-existing errors", testCaseBMClusterManager{
 			Cluster: newCluster(clusterName),
@@ -162,7 +164,11 @@ var _ = Describe("Metal3Cluster manager", func() {
 			Cluster: newCluster(clusterName),
 			BMCluster: newMetal3Cluster(metal3ClusterName,
 				bmcOwnerRef, nil, &infrav1.Metal3ClusterStatus{
-					FailureMessage: ptr.To("cba"),
+					Deprecated: &infrav1.Metal3ClusterDeprecatedStatus{
+						V1Beta1: &infrav1.Metal3ClusterV1Beta1DeprecatedStatus{
+							FailureMessage: ptr.To("cba"),
+						},
+					},
 				},
 			),
 		}),
