@@ -115,8 +115,8 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/maruel/natural v1.1.1 h1:Hja7XhhmvEFhcByqDoHz9QZbkWey+COd9xWfCfn1ioo=
 github.com/maruel/natural v1.1.1/go.mod h1:v+Rfd79xlw1AgVBjbO0BEQmptqb5HvL/k9GRHB7ZKEg=
-github.com/metal3-io/baremetal-operator/apis v0.12.1 h1:QT9HGLJeNIsT5fTkfjKzlG8Ul3oQkCrzKrnBismDyb4=
-github.com/metal3-io/baremetal-operator/apis v0.12.1/go.mod h1:7MJs5wimmBRFZ9drrrt51blP7LaBewTZ9rzzc4nyi8E=
+github.com/metal3-io/baremetal-operator/apis v0.12.2 h1:oQy8vMubmP0VmT3QbOWWhDavgHOoFSYuKnhTveCDCao=
+github.com/metal3-io/baremetal-operator/apis v0.12.2/go.mod h1:eCsvjrY4IDvu6gpQiRxeeTDkWo3GsYfwNO+q6/dfz0g=
 github.com/metal3-io/ip-address-manager/api v1.12.0 h1:VHDUHvnaoYFRJ6601ax/ObUEGCyPRBNkiWioGacalHU=
 github.com/metal3-io/ip-address-manager/api v1.12.0/go.mod h1:fkcCgObstEXiiF3t8z04SQ6F5OIDWoXcLuJ6bW1igJc=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
