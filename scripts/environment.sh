@@ -51,8 +51,14 @@ else
   export BOOTSTRAP_CLUSTER="minikube"
 fi
 
-export FROM_K8S_VERSION=${FROM_K8S_VERSION:-"v1.34.1"}
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.35.0"}
+export KUBERNETES_VERSION_FROM=${KUBERNETES_VERSION_FROM:-"v1.34.1"}
+
+# Backward compatibility: Support old variable name (remove after one release)
+if [ -n "${FROM_K8S_VERSION:-}" ]; then
+  echo "WARNING: FROM_K8S_VERSION is deprecated. Please use KUBERNETES_VERSION_FROM instead."
+  export KUBERNETES_VERSION_FROM="${FROM_K8S_VERSION}"
+fi
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta2"}
@@ -98,7 +104,7 @@ case "${GINKGO_FOCUS:-}" in
     export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
-    export KUBERNETES_VERSION_UPGRADE_FROM=${FROM_K8S_VERSION}
+    # Note: Uses KUBERNETES_VERSION_FROM directly now (no duplication needed)
   ;;
 
   # CAPI md-tests environment vars and config
