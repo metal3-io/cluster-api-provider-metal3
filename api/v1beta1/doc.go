@@ -21,4 +21,6 @@ limitations under the License.
 // +k8s:conversion-gen=github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2
 // +kubebuilder:object:generate=true
 // +groupName=infrastructure.cluster.x-k8s.io
+//
+// Deprecated: This package is deprecated and is going to be removed when support for v1beta1 will be dropped.
 package v1beta1
