@@ -1503,9 +1503,20 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 
 	// Mac addresses
 	for _, entry := range m3dt.Spec.MetaData.FromHostInterfaces {
-		value, err := getBMHMacByName(entry.Interface, bmh)
-		if err != nil {
-			return nil, err
+		var (
+			value string
+			err   error
+		)
+		if entry.FromBootMAC {
+			if bmh.Spec.BootMACAddress == "" {
+				return nil, errors.New("BootMACAddress is empty")
+			}
+			value = bmh.Spec.BootMACAddress
+		} else {
+			value, err = getBMHMacByName(entry.Interface, bmh)
+			if err != nil {
+				return nil, err
+			}
 		}
 		metadata[entry.Key] = value
 	}
