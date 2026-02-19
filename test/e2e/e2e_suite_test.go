@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/cli"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -34,12 +35,16 @@ import (
 
 const (
 	KubernetesVersion = "KUBERNETES_VERSION"
+	metal3Namespace   = "metal3"
 )
 
 // Test suite flags.
 var (
 	// configPath is the path to the e2e config file.
 	configPath string
+
+	// bmcConfigPath is the path to the file whose content is the list of bmcs used in the test.
+	bmcConfigPath string
 
 	// useExistingCluster instructs the test to use the current cluster instead of creating a new one (default discovery rules apply).
 	useExistingCluster bool
@@ -70,6 +75,9 @@ var (
 	// bootstrapClusterProxy allows to interact with the bootstrap cluster to be used for the e2e tests.
 	bootstrapClusterProxy framework.ClusterProxy
 
+	// namespace where bmo and Ironic are installed.
+	bmoIronicNamespace string
+
 	osType string
 
 	kubeconfigPath string
@@ -78,10 +86,12 @@ var (
 	numberOfControlplane int
 	numberOfWorkers      int
 	numberOfAllBmh       int
+	err                  error
 )
 
 func init() {
 	flag.StringVar(&configPath, "e2e.config", "", "path to the e2e config file")
+	flag.StringVar(&bmcConfigPath, "e2e.bmcsConfig", "", "path to the bmcs config file")
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&upgradeTest, "e2e.trigger-upgrade-test", false, "if true, the e2e upgrade test will be triggered and other tests will be skipped")
@@ -116,11 +126,113 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfAllBmh = numberOfControlplane + numberOfWorkers
 
-	By(fmt.Sprintf("Creating a clusterctl local repository into %q", artifactFolder))
-	clusterctlConfigPath = CreateClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
-
 	By("Setting up the bootstrap cluster")
 	bootstrapClusterProvider, bootstrapClusterProxy = SetupBootstrapCluster(e2eConfig, scheme, useExistingCluster)
+	bmoIronicNamespace = e2eConfig.MustGetVariable(ironicNamespace)
+
+	// Install cert-manager
+	By("Installing cert-manager")
+	err = checkCertManagerAPI(bootstrapClusterProxy)
+	if err != nil {
+		cmVersion := e2eConfig.MustGetVariable("CERT_MANAGER_VERSION")
+		err = installCertManager(ctx, bootstrapClusterProxy, cmVersion)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Waiting for cert-manager webhook")
+		Eventually(func() error {
+			return checkCertManagerWebhook(ctx, bootstrapClusterProxy)
+		}, e2eConfig.GetIntervals("default", "wait-available")...).Should(Succeed())
+		err = checkCertManagerAPI(bootstrapClusterProxy)
+		Expect(err).NotTo(HaveOccurred())
+	}
+	// install ironic
+	By("Install Ironic in the source cluster as deployments")
+	ironicDeployLogFolder := filepath.Join(os.TempDir(), "bootstrap_cluster_logs", "ironic-deploy-logs", bootstrapClusterProxy.GetName())
+	ironicKustomization := e2eConfig.MustGetVariable("IRONIC_RELEASE_LATEST")
+	namePrefix := e2eConfig.MustGetVariable("NAMEPREFIX")
+	ironicDeployName := namePrefix + ironicSuffix
+	By(fmt.Sprintf("Installing Ironic from kustomization %s on the bootstrap cluster", ironicKustomization))
+	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+		Kustomization:       ironicKustomization,
+		ClusterProxy:        bootstrapClusterProxy,
+		WaitForDeployment:   true,
+		WatchDeploymentLogs: true,
+		LogPath:             ironicDeployLogFolder,
+		DeploymentName:      ironicDeployName,
+		DeploymentNamespace: bmoIronicNamespace,
+		WaitIntervals:       e2eConfig.GetIntervals("default", "wait-deployment"),
+	})
+	Expect(err).NotTo(HaveOccurred())
+	// install bmo
+	By("Install BMO in the target cluster")
+	bmoDeployLogFolder := filepath.Join(os.TempDir(), "bootstrap_cluster_logs", "bmo-deploy-logs", bootstrapClusterProxy.GetName())
+	bmoKustomization := e2eConfig.MustGetVariable("BMO_RELEASE_LATEST")
+	By(fmt.Sprintf("Installing BMO from kustomization %s on the bootstrap cluster", bmoKustomization))
+	err = BuildAndApplyKustomization(ctx, &BuildAndApplyKustomizationInput{
+		Kustomization:       bmoKustomization,
+		ClusterProxy:        bootstrapClusterProxy,
+		WaitForDeployment:   true,
+		WatchDeploymentLogs: true,
+		LogPath:             bmoDeployLogFolder,
+		DeploymentName:      "baremetal-operator-controller-manager",
+		DeploymentNamespace: bmoIronicNamespace,
+		WaitIntervals:       e2eConfig.GetIntervals("default", "wait-deployment"),
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	// Create metal3 namespace
+	framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
+		Creator:   bootstrapClusterProxy.GetClient(),
+		ClientSet: bootstrapClusterProxy.GetClientSet(),
+		Name:      metal3Namespace,
+		LogFolder: artifactFolder,
+	})
+
+	// Instantiate the BMH objects
+	bmcs, err := LoadBMCConfig(bmcConfigPath)
+	Expect(err).NotTo(HaveOccurred())
+	By("Creating BMH objects")
+	bmhs := make([]*bmov1alpha1.BareMetalHost, 0, len(*bmcs))
+	for _, bmc := range *bmcs {
+		By("creating a secret with BMH credentials")
+		bmcCredentialsData := map[string]string{
+			"username": bmc.User,
+			"password": bmc.Password,
+		}
+		secretName := bmc.HostName + "-bmc-secret"
+		CreateSecret(ctx, bootstrapClusterProxy.GetClient(), metal3Namespace, secretName, bmcCredentialsData)
+
+		By("creating a BMH")
+		bmh := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      bmc.HostName,
+				Namespace: metal3Namespace,
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				Online: true,
+				BMC: bmov1alpha1.BMCDetails{
+					Address:         bmc.Address,
+					CredentialsName: secretName,
+				},
+				BootMode:       bmov1alpha1.Legacy,
+				BootMACAddress: bmc.BootMacAddress,
+			},
+		}
+		err = bootstrapClusterProxy.GetClient().Create(ctx, &bmh)
+		Expect(err).NotTo(HaveOccurred())
+		bmhs = append(bmhs, &bmh)
+	}
+
+	By("waiting for the BMHs to become available")
+	for _, bmh := range bmhs {
+		WaitForBmhInProvisioningState(ctx, WaitForBmhInProvisioningStateInput{
+			Client: bootstrapClusterProxy.GetClient(),
+			Bmh:    *bmh,
+			State:  bmov1alpha1.StateAvailable,
+		}, e2eConfig.GetIntervals(specName, "wait-available")...)
+	}
+	By(fmt.Sprintf("Creating a clusterctl local repository into %q", artifactFolder))
+	clusterctlConfigPath = CreateClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
 
 	By("Initializing the bootstrap cluster")
 	InitBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
@@ -206,6 +318,7 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	default:
 		Expect(cniProvider).To(Or(Equal("calico"), Equal("cilium")), "Invalid CNI type %q, only 'cilium' and 'calico' are supported", cniProvider)
 	}
+
 	Expect(cniPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", capi_e2e.CNIPath)
 	createRepositoryInput.RegisterClusterResourceSetConfigMapTransformation(cniPath, capi_e2e.CNIResources)
 

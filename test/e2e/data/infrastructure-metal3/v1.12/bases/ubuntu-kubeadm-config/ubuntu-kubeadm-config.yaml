@@ -41,40 +41,37 @@ spec:
         WantedBy=multi-user.target
       owner: root:root
       path: /lib/systemd/system/monitor.keepalived.service
-    - content: |
-        ! Configuration File for keepalived
-        global_defs {
-            notification_email {
-            sysadmin@example.com
-            support@example.com
-            }
-            notification_email_from lb@example.com
-            smtp_server localhost
-            smtp_connect_timeout 30
-        }
-        vrrp_instance VI_2 {
-            state MASTER
-            interface enp2s0
-            virtual_router_id 2
-            priority 101
-            advert_int 1
-            virtual_ipaddress {
-                ${CLUSTER_APIENDPOINT_HOST}
-            }
-        }
-      path: /etc/keepalived/keepalived.conf
-    - content: |
-        network:
-          version: 2
-          renderer: networkd
-          bridges:
-            ${CLUSTER_PROVISIONING_INTERFACE}:
-              interfaces: [enp1s0]
-              addresses:
-              - {{ ds.meta_data.provisioningIP }}/{{ ds.meta_data.provisioningCIDR }}
-      owner: root:root
-      path: /etc/netplan/52-ironicendpoint.yaml
-      permissions: "0644"
+    - path: /etc/kubernetes/manifests/kube-vip.yaml
+      content: |
+        apiVersion: v1
+        kind: Pod
+        metadata:
+          name: kube-vip
+          namespace: kube-system
+        spec:
+          containers:
+            - name: kube-vip
+              image: ghcr.io/kube-vip/kube-vip:v0.6.0
+              args: ['manager']
+              env:
+                - name: vip_arp
+                  value: 'true'
+                - name: port
+                  value: '6443'
+                - name: vip_interface
+                  value: 'enp1s0'
+                - name: vip_cidr
+                  value: '32'
+                - name: cp_enable
+                  value: 'true'
+                - name: cp_namespace
+                  value: 'kube-system'
+                - name: vip_address
+                  value: '192.168.111.249'
+              securityContext:
+                capabilities:
+                  add: ['NET_ADMIN', 'NET_RAW']
+          hostNetwork: true
     - content: |
         [registries.search]
         registries = ['docker.io']
