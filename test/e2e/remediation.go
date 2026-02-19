@@ -70,9 +70,9 @@ type RemediationInput struct {
  * 		Logf("REMEDIATION TESTS PASSED!")
  * 	}
  *
- * The remediation test ensures that the CAPM3 can effectively remediate worker nodes by performing necessary actions and annotations. It helps ensure the stability and resiliency of the cluster by allowing the cluster to recover from failure scenarios and successfully restore nodes to the desired state.
+ * The Remediation test ensures that the CAPM3 can effectively remediate worker nodes by performing necessary actions and annotations. It helps ensure the stability and resiliency of the cluster by allowing the cluster to recover from failure scenarios and successfully restore nodes to the desired state.
  */
-func remediation(ctx context.Context, inputGetter func() RemediationInput) {
+func Remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	Logf("Starting remediation tests")
 	input := inputGetter()
 	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
@@ -150,13 +150,13 @@ func remediation(ctx context.Context, inputGetter func() RemediationInput) {
 	ListNodes(ctx, targetClient)
 
 	// Calling an inspection tests here for now until we have a parallelism enabled in e2e framework.
-	inspection(ctx, func() InspectionInput {
+	Inspection(ctx, func() InspectionInput {
 		return InspectionInput{
-			E2EConfig:             input.E2EConfig,
-			BootstrapClusterProxy: input.BootstrapClusterProxy,
-			SpecName:              input.SpecName,
-			Namespace:             input.Namespace,
-			ClusterctlConfigPath:  input.ClusterctlConfigPath,
+			E2EConfig:            input.E2EConfig,
+			ClusterProxy:         input.BootstrapClusterProxy,
+			SpecName:             input.SpecName,
+			Namespace:            input.Namespace,
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
 		}
 	})
 

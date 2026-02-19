@@ -105,7 +105,7 @@ var _ = Describe("Testing features in target cluster", Label("pivoting", "featur
 				}
 			})
 			managementCluster := targetCluster
-			pivoting(ctx, func() PivotingInput {
+			Pivoting(ctx, func() PivotingInput {
 				return PivotingInput{
 					E2EConfig:             e2eConfig,
 					BootstrapClusterProxy: bootstrapClusterProxy,
@@ -126,14 +126,14 @@ var _ = Describe("Testing features in target cluster", Label("pivoting", "featur
 				}
 			})
 
-			nodeReuse(ctx, func() NodeReuseInput {
+			NodeReuse(ctx, func() NodeReuseInput {
 				return NodeReuseInput{
-					E2EConfig:         e2eConfig,
-					ManagementCluster: managementCluster,
-					TargetCluster:     targetCluster,
-					SpecName:          specName,
-					ClusterName:       clusterName,
-					Namespace:         namespace,
+					E2EConfig:      e2eConfig,
+					ClusterProxy:   managementCluster,
+					SpecName:       specName,
+					ClusterName:    clusterName,
+					Namespace:      namespace,
+					ArtifactFolder: artifactFolder,
 				}
 			})
 		})
@@ -159,7 +159,7 @@ var _ = Describe("Testing features in target cluster", Label("pivoting", "featur
 				ClusterctlConfigPath: clusterctlConfigPath,
 			})
 
-			rePivoting(ctx, func() RePivotingInput {
+			RePivoting(ctx, func() RePivotingInput {
 				return RePivotingInput{
 					E2EConfig:             e2eConfig,
 					BootstrapClusterProxy: bootstrapClusterProxy,
