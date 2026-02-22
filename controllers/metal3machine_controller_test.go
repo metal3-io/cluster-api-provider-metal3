@@ -44,6 +44,8 @@ type reconcileNormalTestCase struct {
 	BootstrapNotReady               bool
 	Annotated                       bool
 	AssociateFails                  bool
+	AssociateReason                 string
+	AnnotatedAfterAssociate         bool
 	GetProviderIDFails              bool
 	SetNodeProviderIDFails          bool
 	CloudProviderEnabled            bool
@@ -94,7 +96,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 	if !tc.Annotated {
 		// if associate fails, we do not go further
 		if tc.AssociateFails {
-			m.EXPECT().Associate(context.TODO()).Return(errors.New("failed"))
+			m.EXPECT().Associate(context.TODO()).Return("", errors.New("failed"))
 			m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition,
 				infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, gomock.Any())
 			m.EXPECT().SetCondition(infrav1.AssociateBareMetalHostCondition,
@@ -103,11 +105,25 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			m.EXPECT().Update(context.TODO()).MaxTimes(0)
 			return m
 		}
-		m.EXPECT().Associate(context.TODO()).Return(nil)
+		// Use the specified associate reason or default to success
+		associateReason := tc.AssociateReason
+		if associateReason == "" {
+			associateReason = infrav1.AssociateBareMetalHostSuccessReason
+		}
+		m.EXPECT().Associate(context.TODO()).Return(associateReason, nil)
+		// After association, HasAnnotation is checked again
+		m.EXPECT().HasAnnotation().Return(tc.AnnotatedAfterAssociate)
+		if tc.AnnotatedAfterAssociate {
+			m.EXPECT().SetV1Beta1ConditionToTrue(infrav1.AssociateBMHV1Beta1Condition)
+			m.EXPECT().SetCondition(infrav1.AssociateBareMetalHostCondition,
+				metav1.ConditionTrue, associateReason, "")
+		}
+		return m
 	}
 
 	if tc.Annotated {
 		m.EXPECT().Update(context.TODO()).Return(nil).MaxTimes(10)
+		m.EXPECT().GetMetal3Machine().Return(&infrav1.Metal3Machine{}).Times(2)
 		m.EXPECT().SetV1Beta1ConditionToTrue(infrav1.AssociateBMHV1Beta1Condition)
 		m.EXPECT().SetCondition(infrav1.AssociateBareMetalHostCondition,
 			metav1.ConditionTrue, infrav1.AssociateBareMetalHostSuccessReason,
@@ -241,10 +257,33 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequeue:     false,
 				BootstrapNotReady: true,
 			}),
-			Entry("Not Annotated", reconcileNormalTestCase{
-				ExpectError:   false,
-				ExpectRequeue: false,
-				Annotated:     false,
+			Entry("Not Annotated, Associate with regular success, annotation set", reconcileNormalTestCase{
+				ExpectError:             false,
+				ExpectRequeue:           false,
+				Annotated:               false,
+				AssociateReason:         infrav1.AssociateBareMetalHostSuccessReason,
+				AnnotatedAfterAssociate: true,
+			}),
+			Entry("Not Annotated, Associate with regular success, annotation not set", reconcileNormalTestCase{
+				ExpectError:             false,
+				ExpectRequeue:           false,
+				Annotated:               false,
+				AssociateReason:         infrav1.AssociateBareMetalHostSuccessReason,
+				AnnotatedAfterAssociate: false,
+			}),
+			Entry("Not Annotated, Associate via node reuse, annotation set", reconcileNormalTestCase{
+				ExpectError:             false,
+				ExpectRequeue:           false,
+				Annotated:               false,
+				AssociateReason:         infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason,
+				AnnotatedAfterAssociate: true,
+			}),
+			Entry("Not Annotated, Associate via node reuse, annotation not set", reconcileNormalTestCase{
+				ExpectError:             false,
+				ExpectRequeue:           false,
+				Annotated:               false,
+				AssociateReason:         infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason,
+				AnnotatedAfterAssociate: false,
 			}),
 			Entry("Not Annotated, Associate fails", reconcileNormalTestCase{
 				ExpectError:    true,

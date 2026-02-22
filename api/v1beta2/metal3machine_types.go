@@ -61,6 +61,9 @@ const (
 	// AssociateBareMetalHostSuccessReason surfaces when the Metal3Machine is successfully associated with a BareMetalHost.
 	AssociateBareMetalHostSuccessReason = "AssociateBareMetalHostSuccess"
 
+	// AssociateBareMetalHostViaNodeReuseSuccessReason surfaces when the Metal3Machine is successfully associated with a BareMetalHost via node reuse.
+	AssociateBareMetalHostViaNodeReuseSuccessReason = "AssociateBareMetalHostViaNodeReuseSuccess"
+
 	// WaitingForClusterInfrastructureReadyReason used when waiting for cluster
 	// infrastructure to be ready before proceeding.
 	WaitingForClusterInfrastructureReadyReason = clusterv1.WaitingForClusterInfrastructureReadyReason
