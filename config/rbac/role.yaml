@@ -92,7 +92,6 @@ rules:
 - apiGroups:
   - cluster.x-k8s.io
   resources:
-  - kubeadmcontrolplanes
   - machinedeployments
   - machines
   - machines/status
@@ -103,6 +102,14 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - controlplane.cluster.x-k8s.io
+  resources:
+  - kubeadmcontrolplanes
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - infrastructure.cluster.x-k8s.io
