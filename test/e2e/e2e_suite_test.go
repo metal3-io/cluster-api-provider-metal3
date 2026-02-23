@@ -352,7 +352,7 @@ func updateCilium(config *clusterctl.E2EConfig, cniPath string) {
 		},
 	}
 
-	manifest, err := generateTemplateFromHelmChart(ctx, opts, manifestOverwriteValues, e2eConfig)
+	manifest, err := GenerateTemplateFromHelmChart(ctx, opts, manifestOverwriteValues, e2eConfig)
 	Expect(err).ToNot(HaveOccurred(), "failed to generate template: %v", err)
 
 	// Replace ${BIN_PATH} with /opt/cni/bin. This is done to prevent
