@@ -451,11 +451,6 @@ func (in *Metal3ClusterList) DeepCopyObject() runtime.Object {
 func (in *Metal3ClusterSpec) DeepCopyInto(out *Metal3ClusterSpec) {
 	*out = *in
 	out.ControlPlaneEndpoint = in.ControlPlaneEndpoint
-	if in.NoCloudProvider != nil {
-		in, out := &in.NoCloudProvider, &out.NoCloudProvider
-		*out = new(bool)
-		**out = **in
-	}
 	if in.CloudProviderEnabled != nil {
 		in, out := &in.CloudProviderEnabled, &out.CloudProviderEnabled
 		*out = new(bool)

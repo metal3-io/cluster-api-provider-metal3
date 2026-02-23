@@ -54,15 +54,8 @@ func (webhook *Metal3Cluster) Default(_ context.Context, obj runtime.Object) err
 		m3c.Spec.ControlPlaneEndpoint.Port = 6443
 	}
 
-	if m3c.Spec.CloudProviderEnabled != nil && m3c.Spec.NoCloudProvider == nil {
-		m3c.Spec.NoCloudProvider = ptr.To(!*m3c.Spec.CloudProviderEnabled)
-	}
-	if m3c.Spec.CloudProviderEnabled == nil && m3c.Spec.NoCloudProvider != nil {
-		m3c.Spec.CloudProviderEnabled = ptr.To(!*m3c.Spec.NoCloudProvider)
-	}
-	if m3c.Spec.CloudProviderEnabled == nil && m3c.Spec.NoCloudProvider == nil {
-		m3c.Spec.CloudProviderEnabled = ptr.To(true)
-		m3c.Spec.NoCloudProvider = ptr.To(false)
+	if m3c.Spec.CloudProviderEnabled == nil {
+		m3c.Spec.CloudProviderEnabled = ptr.To(false)
 	}
 	return nil
 }
@@ -108,19 +101,6 @@ func (webhook *Metal3Cluster) validate(_ *infrav1.Metal3Cluster, newM3C *infrav1
 				"is required",
 			),
 		)
-	}
-
-	if newM3C.Spec.CloudProviderEnabled != nil && newM3C.Spec.NoCloudProvider != nil {
-		if *newM3C.Spec.CloudProviderEnabled == *newM3C.Spec.NoCloudProvider {
-			allErrs = append(
-				allErrs,
-				field.Invalid(
-					field.NewPath("spec", "cloudProviderEnabled"),
-					newM3C.Spec.CloudProviderEnabled,
-					"cloudProviderEnabled conflicts the value of noCloudProvider",
-				),
-			)
-		}
 	}
 
 	if len(allErrs) == 0 {

@@ -95,28 +95,6 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		"generation", metal3Cluster.Generation,
 		"resourceVersion", metal3Cluster.ResourceVersion)
 
-	// This is checking if default values are changed or not if the default
-	// value of CloudProviderEnabled or NoCloudProvider is changed then update
-	// the other value too to avoid conflicts.
-	// TODO: Remove this code after v1.10 when NoCloudProvider is completely
-	// removed. Ref: https://github.com/metal3-io/cluster-api-provider-metal3/issues/2255
-	clusterLog.V(baremetal.VerbosityLevelTrace).Info("Checking CloudProviderEnabled/NoCloudProvider deprecation handling")
-	if metal3Cluster.Spec.CloudProviderEnabled != nil {
-		clusterLog.V(baremetal.VerbosityLevelDebug).Info("CloudProviderEnabled is set",
-			"cloudProviderEnabled", *metal3Cluster.Spec.CloudProviderEnabled)
-		if !*metal3Cluster.Spec.CloudProviderEnabled {
-			metal3Cluster.Spec.NoCloudProvider = ptr.To(true)
-			clusterLog.V(baremetal.VerbosityLevelDebug).Info("Setting NoCloudProvider=true for compatibility")
-		}
-	} else if metal3Cluster.Spec.NoCloudProvider != nil {
-		clusterLog.V(baremetal.VerbosityLevelDebug).Info("NoCloudProvider is set (deprecated)",
-			"noCloudProvider", *metal3Cluster.Spec.NoCloudProvider)
-		if *metal3Cluster.Spec.NoCloudProvider {
-			metal3Cluster.Spec.CloudProviderEnabled = ptr.To(false)
-			clusterLog.V(baremetal.VerbosityLevelDebug).Info("Setting CloudProviderEnabled=false for compatibility")
-		}
-	}
-
 	clusterLog.V(baremetal.VerbosityLevelTrace).Info("Creating patch helper")
 	patchHelper, err := patch.NewHelper(metal3Cluster, r.Client)
 	if err != nil {

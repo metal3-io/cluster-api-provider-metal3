@@ -198,6 +198,10 @@ func Convert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in *infrav1.
 	if err := autoConvert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in, out, s); err != nil {
 		return err
 	}
+	if in.CloudProviderEnabled != nil {
+		out.CloudProviderEnabled = ptr.To(*in.CloudProviderEnabled)
+		out.NoCloudProvider = ptr.To(!*in.CloudProviderEnabled)
+	}
 	// Move FailureDomains
 	if in.FailureDomains != nil {
 		out.FailureDomains = FailureDomains{}
@@ -214,6 +218,9 @@ func Convert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in *infrav1.
 func Convert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(in *Metal3ClusterSpec, out *infrav1.Metal3ClusterSpec, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(in, out, s); err != nil {
 		return err
+	}
+	if in.CloudProviderEnabled != nil {
+		out.CloudProviderEnabled = ptr.To(*in.CloudProviderEnabled)
 	}
 	// Move FailureDomains
 	if in.FailureDomains != nil {

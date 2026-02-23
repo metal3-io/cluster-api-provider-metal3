@@ -51,20 +51,9 @@ type Metal3ClusterSpec struct {
 	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
-	// Determines if the cluster is not to be deployed with an external cloud provider.
-	// If set to true, CAPM3 will use node labels to set providerID on the kubernetes nodes.
-	// If set to false, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
-	// TODO: Remove this field in release 1.11. Ref: https://github.com/metal3-io/cluster-api-provider-metal3/issues/2255
-	//
-	// Deprecated: This field is deprecated, use cloudProviderEnabled instead
-	//
-	// +optional
-	NoCloudProvider *bool `json:"noCloudProvider,omitempty"`
 	// Determines if the cluster is to be deployed with an external cloud provider.
 	// If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
 	// If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
-	// TODO: Change the default value to false in release 1.12. Ref: https://github.com/metal3-io/cluster-api-provider-metal3/issues/2255
-	// Default value is true, it is set in the webhook.
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
 

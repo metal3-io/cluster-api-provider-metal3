@@ -1255,7 +1255,6 @@ func autoConvert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(in *Meta
 	if err := Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.NoCloudProvider = (*bool)(unsafe.Pointer(in.NoCloudProvider))
 	out.CloudProviderEnabled = (*bool)(unsafe.Pointer(in.CloudProviderEnabled))
 	// WARNING: in.FailureDomains requires manual conversion: inconvertible types (github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1.FailureDomains vs []sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain)
 	return nil
@@ -1265,7 +1264,6 @@ func autoConvert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in *v1be
 	if err := Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(&in.ControlPlaneEndpoint, &out.ControlPlaneEndpoint, s); err != nil {
 		return err
 	}
-	out.NoCloudProvider = (*bool)(unsafe.Pointer(in.NoCloudProvider))
 	out.CloudProviderEnabled = (*bool)(unsafe.Pointer(in.CloudProviderEnabled))
 	// WARNING: in.FailureDomains requires manual conversion: inconvertible types ([]sigs.k8s.io/cluster-api/api/core/v1beta2.FailureDomain vs github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1.FailureDomains)
 	return nil
