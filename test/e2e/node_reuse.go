@@ -36,8 +36,10 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	input := inputGetter()
 	clusterClient := input.ClusterProxy.GetClient()
 	clientSet := input.ClusterProxy.GetClientSet()
-	fromK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_PATCH_FROM_VERSION")
-	toK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_PATCH_TO_VERSION")
+	toK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_VERSION_PATCH_TO")
+	// For patch upgrade test, use v1.33.4 as FROM and v1.33.5 as TO
+	// (hardcoded until we have proper version derivation)
+	fromK8sVersion := "v1.33.4"
 	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
 	numberOfAllBmh := numberOfWorkers + numberOfControlplane
