@@ -98,11 +98,13 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: namespaceName,
 		},
 		Spec: infrav1.Metal3MachineSpec{
-			ProviderID:            ptr.To("abcdef"),
+			ProviderID:            "abcdef",
 			AutomatedCleaningMode: ptr.To("metadata"),
 		},
 		Status: infrav1.Metal3MachineStatus{
-			Ready: true,
+			Initialization: infrav1.Metal3MachineInitializationStatus{
+				Provisioned: ptr.To(true),
+			},
 		},
 	}
 
@@ -112,10 +114,12 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: namespaceName,
 		},
 		Spec: infrav1.Metal3MachineSpec{
-			ProviderID: ptr.To("abcdefg"),
+			ProviderID: "abcdefg",
 		},
 		Status: infrav1.Metal3MachineStatus{
-			Ready: true,
+			Initialization: infrav1.Metal3MachineInitializationStatus{
+				Provisioned: ptr.To(true),
+			},
 		},
 	}
 

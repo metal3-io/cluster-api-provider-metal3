@@ -185,10 +185,10 @@ func (m *MachineManager) UnsetFinalizer() {
 
 // IsProvisioned checks if the metal3machine is provisioned.
 func (m *MachineManager) IsProvisioned() bool {
-	if m.Metal3Machine.Spec.ProviderID != nil && m.Metal3Machine.Status.Ready {
+	if m.Metal3Machine.Spec.ProviderID != "" && m.Metal3Machine.Status.Initialization.Provisioned != nil && *m.Metal3Machine.Status.Initialization.Provisioned {
 		m.Log.V(VerbosityLevelTrace).Info("Metal3Machine is provisioned",
 			LogFieldMetal3Machine, m.Metal3Machine.Name,
-			LogFieldProviderID, *m.Metal3Machine.Spec.ProviderID)
+			LogFieldProviderID, m.Metal3Machine.Spec.ProviderID)
 		return true
 	}
 	m.Log.V(VerbosityLevelTrace).Info("Metal3Machine is not provisioned",
@@ -1335,10 +1335,10 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 // GetProviderIDAndBMHID returns providerID and bmhID.
 func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 	providerID := m.Metal3Machine.Spec.ProviderID
-	if providerID == nil {
+	if providerID == "" {
 		return "", nil
 	}
-	bmhID := *providerID
+	bmhID := providerID
 	if strings.Contains(bmhID, ProviderIDPrefix) {
 		bmhID = strings.TrimPrefix(bmhID, ProviderIDPrefix)
 	}
@@ -1346,11 +1346,11 @@ func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
 	// instead contains / to separate the names. In that case we return nil for
 	// the bmh ID to force the controller to fetch it differently.
 	if strings.Contains(bmhID, "/") {
-		m.Log.Info("ProviderID is in new format, it does not contain the BMH ID", "providerID", *providerID)
-		return *providerID, nil
+		m.Log.Info("ProviderID is in new format, it does not contain the BMH ID", "providerID", providerID)
+		return providerID, nil
 	}
-	m.Log.V(VerbosityLevelDebug).Info("ProviderID contains the BMH ID", "providerID", *providerID)
-	return *providerID, ptr.To(bmhID)
+	m.Log.V(VerbosityLevelDebug).Info("ProviderID contains the BMH ID", "providerID", providerID)
+	return providerID, ptr.To(bmhID)
 }
 
 // ClientGetter prototype.
@@ -1397,7 +1397,7 @@ func (m *MachineManager) getMetal3MachineHostnames() []string {
 // SetProviderID sets the metal3 provider ID on the Metal3Machine.
 func (m *MachineManager) SetProviderID(providerID string) {
 	m.Log.Info("ProviderID set on the Metal3Machine", "providerID", providerID)
-	m.Metal3Machine.Spec.ProviderID = &providerID
+	m.Metal3Machine.Spec.ProviderID = providerID
 }
 
 // SetDefaultProviderID sets the ProviderID on this Metal3Machine using the new format.
@@ -1558,11 +1558,11 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 }
 
 func (m *MachineManager) Metal3MachineHasProviderID() bool {
-	return m.Metal3Machine.Spec.ProviderID != nil
+	return m.Metal3Machine.Spec.ProviderID != ""
 }
 
 func (m *MachineManager) SetReadyTrue() {
-	m.Metal3Machine.Status.Ready = true
+	m.Metal3Machine.Status.Initialization.Provisioned = ptr.To(true)
 }
 
 // SetMetal3DataReadyConditionTrue marks Metal3Data Ready conditions to True
@@ -2077,7 +2077,7 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 
 	m.Log.Info("found a node, setting provider id on it", LogFieldNode, node.Name)
 
-	err = m.setNodeProviderID(ctx, corev1Remote, node, *m.Metal3Machine.Spec.ProviderID)
+	err = m.setNodeProviderID(ctx, corev1Remote, node, m.Metal3Machine.Spec.ProviderID)
 
 	if err != nil {
 		return fmt.Errorf("unable to update the target node with providerID: %w", err)

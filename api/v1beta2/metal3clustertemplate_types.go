@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // Metal3ClusterTemplateSpec defines the desired state of Metal3ClusterTemplate.
@@ -52,5 +53,9 @@ func init() {
 
 // Metal3ClusterTemplateResource describes the data for creating a Metal3Cluster from a template.
 type Metal3ClusterTemplateResource struct {
-	Spec Metal3ClusterSpec `json:"spec"`
+	// Standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
+	Spec       Metal3ClusterSpec    `json:"spec"`
 }

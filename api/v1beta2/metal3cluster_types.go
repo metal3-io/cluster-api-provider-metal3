@@ -48,7 +48,7 @@ const (
 
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.
 type Metal3ClusterSpec struct {
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
 	// Determines if the cluster is to be deployed with an external cloud provider.
@@ -57,8 +57,12 @@ type Metal3ClusterSpec struct {
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
 
-	// FailureDomains specifies a list of failure zones that can be used
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
 	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 }
 
@@ -86,12 +90,10 @@ type Metal3ClusterStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// Ready denotes that the Metal3 cluster (infrastructure) is ready. In
-	// Baremetal case, it does not mean anything for now as no infrastructure
-	// steps need to be performed. Required by Cluster API. Set to True by the
-	// metal3Cluster controller after creation.
+	// initialization provides observations of the Metal3Cluster initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization Metal3ClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// conditions defines current service state of the Metal3Cluster.
 	// Known condition types are Ready, and Paused, BareMetalInfraStructureReady.
@@ -112,6 +114,15 @@ type Metal3ClusterStatus struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
+}
+
+// Metal3ClusterInitializationStatus provides observations of the Metal3Cluster initialization process.
+// +kubebuilder:validation:MinProperties=1
+type Metal3ClusterInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // Metal3ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.

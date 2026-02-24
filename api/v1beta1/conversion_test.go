@@ -60,7 +60,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3MachineTemplate{},
 		Spoke:       &Metal3MachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3MachineTemplateFuzzFuncs},
 	}))
 	t.Run("for Metal3DataTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -168,14 +168,21 @@ func spokeMetal3MachineStatus(in *Metal3MachineStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+	in.Phase = "" // Phase is deprecated and it was never used in v1beta1, so we don't want to populate it during conversion.
 }
 
 func Metal3ClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMetal3FailureDomain,
-		hubMetal3ClusterSpec,
 		spokeMetal3ClusterSpec,
+		hubMetal3ClusterTemplateResource,
 	}
+}
+
+func hubMetal3ClusterTemplateResource(in *infrav1.Metal3ClusterTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
 
 func hubMetal3ClusterSpec(in *infrav1.Metal3ClusterSpec, c randfill.Continue) {
@@ -225,4 +232,17 @@ func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 		spokeMetal3DataSpec,
 		spokeMetal3DataTemplateSpec,
 	}
+}
+
+func Metal3MachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		spokeMetal3MachineSpec,
+		hubMetal3MachineTemplateResource,
+	}
+}
+
+func hubMetal3MachineTemplateResource(in *infrav1.Metal3MachineTemplateResource, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	in.ObjectMeta = clusterv1.ObjectMeta{} // Field does not exist in v1beta1.
 }
