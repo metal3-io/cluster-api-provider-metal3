@@ -60,7 +60,7 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3MachineTemplate{},
 		Spoke:       &Metal3MachineTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3MachineTemplateFuzzFuncs},
 	}))
 	t.Run("for Metal3DataTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -168,12 +168,12 @@ func spokeMetal3MachineStatus(in *Metal3MachineStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+	in.Phase = "" // Phase is deprecated and it was never used in v1beta1, so we don't want to populate it during conversion.
 }
 
 func Metal3ClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMetal3FailureDomain,
-		hubMetal3ClusterSpec,
 		spokeMetal3ClusterSpec,
 	}
 }
@@ -224,5 +224,11 @@ func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 	return []interface{}{
 		spokeMetal3DataSpec,
 		spokeMetal3DataTemplateSpec,
+	}
+}
+
+func Metal3MachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
+	return []any{
+		spokeMetal3MachineSpec,
 	}
 }

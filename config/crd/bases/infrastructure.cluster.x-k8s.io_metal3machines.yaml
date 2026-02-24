@@ -571,17 +571,13 @@ spec:
       jsonPath: .spec.providerID
       name: ProviderID
       type: string
-    - description: metal3machine is Ready
-      jsonPath: .status.ready
-      name: Ready
+    - description: Metal3Machine is provisioned
+      jsonPath: .status.initialization.provisioned
+      name: Provisioned
       type: string
     - description: Cluster to which this M3Machine belongs
       jsonPath: .metadata.labels.cluster\.x-k8s\.io/cluster-name
       name: Cluster
-      type: string
-    - description: metal3machine current phase
-      jsonPath: .status.phase
-      name: Phase
       type: string
     name: v1beta2
     schema:
@@ -780,10 +776,13 @@ spec:
                 x-kubernetes-map-type: atomic
               providerID:
                 description: |-
-                  providerID will be the Metal3 machine in providerID format
-                  (metal3://<namespace>/<bmh-name>/<m3m-name>).
+                  providerID must match the provider ID as seen on the node object corresponding to this machine.
+                  For Kubernetes Nodes running on the Metal3 provider, this value is set by the corresponding CPI component
+                  and it has the format metal3://<namespace>/<bmh-name>/<m3m-name>.
                   The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
                   and removed in CAPM3 v1.14.
+                maxLength: 512
+                minLength: 1
                 type: string
               userData:
                 description: |-
@@ -806,9 +805,7 @@ spec:
             description: status defines the observed state of Metal3Machine.
             properties:
               addresses:
-                description: |-
-                  addresses is a list of addresses assigned to the machine.
-                  This field is copied from the infrastructure provider reference.
+                description: addresses contains the associated addresses for the machine.
                 items:
                   description: MachineAddress contains information for the node's
                     address.
@@ -832,9 +829,7 @@ spec:
                   - address
                   - type
                   type: object
-                maxItems: 128
                 type: array
-                x-kubernetes-list-type: atomic
               conditions:
                 description: |-
                   conditions represents the observations of a Metal3Machine's current state.
@@ -1008,6 +1003,18 @@ spec:
                         type: string
                     type: object
                 type: object
+              initialization:
+                description: |-
+                  initialization provides observations of the Metal3Machine initialization process.
+                  NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
+                minProperties: 1
+                properties:
+                  provisioned:
+                    description: |-
+                      provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+                      NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+                    type: boolean
+                type: object
               lastUpdated:
                 description: lastUpdated identifies when this status was last observed.
                 format: date-time
@@ -1042,17 +1049,6 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-              phase:
-                description: |-
-                  phase represents the current phase of machine actuation.
-                  E.g. Pending, Running, Terminating, Failed etc.
-                type: string
-              ready:
-                description: |-
-                  ready is the state of the metal3.
-                  mhrivnak: " it would be good to document what this means, how to interpret
-                  it, under what circumstances the value changes, etc."
-                type: boolean
               renderedData:
                 description: |-
                   renderedData is a reference to a rendered Metal3Data object containing

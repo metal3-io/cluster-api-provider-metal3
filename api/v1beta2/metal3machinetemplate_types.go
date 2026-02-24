@@ -18,6 +18,7 @@ package v1beta2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
 // Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate.
@@ -43,10 +44,8 @@ type Metal3MachineTemplateSpec struct {
 type Metal3MachineTemplate struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
-	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// spec defines the desired state of Metal3MachineTemplate.
-	// +optional
 	Spec Metal3MachineTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -55,7 +54,6 @@ type Metal3MachineTemplate struct {
 // Metal3MachineTemplateList contains a list of Metal3MachineTemplate.
 type Metal3MachineTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
-	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []Metal3MachineTemplate `json:"items"`
 }
@@ -66,6 +64,10 @@ func init() {
 
 // Metal3MachineTemplateResource describes the data needed to create a Metal3Machine from a template.
 type Metal3MachineTemplateResource struct {
+	// metadata is the standard object's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+	// +optional
+	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 	// spec is the specification of the desired behavior of the machine.
 	Spec Metal3MachineSpec `json:"spec"`
 }
