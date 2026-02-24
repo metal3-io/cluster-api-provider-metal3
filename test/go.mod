@@ -14,7 +14,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	golang.org/x/crypto v0.47.0
-	golang.org/x/mod v0.32.0
+	golang.org/x/mod v0.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.19.4
 	k8s.io/api v0.34.4
