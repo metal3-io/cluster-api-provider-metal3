@@ -404,11 +404,6 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 		}
 	}
 
-	err = m.setBMCSecretLabel(ctx, host)
-	if err != nil {
-		return err
-	}
-
 	err = helper.Patch(ctx, host)
 	if err != nil {
 		var aggr kerrors.Aggregate
@@ -417,6 +412,11 @@ func (m *MachineManager) Associate(ctx context.Context) error {
 				return WithTransientError(nil, requeueAfter)
 			}
 		}
+		return err
+	}
+
+	err = m.setBMCSecretLabel(ctx, host)
+	if err != nil {
 		return err
 	}
 
