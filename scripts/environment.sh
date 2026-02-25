@@ -54,12 +54,6 @@ fi
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.35.0"}
 export KUBERNETES_VERSION_FROM=${KUBERNETES_VERSION_FROM:-"v1.34.1"}
 
-# Backward compatibility: Support old variable name (remove after one release)
-if [ -n "${FROM_K8S_VERSION:-}" ]; then
-  echo "WARNING: FROM_K8S_VERSION is deprecated. Please use KUBERNETES_VERSION_FROM instead."
-  export KUBERNETES_VERSION_FROM="${FROM_K8S_VERSION}"
-fi
-
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta2"}
 export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
