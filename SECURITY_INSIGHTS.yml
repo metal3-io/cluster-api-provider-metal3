@@ -1,0 +1,126 @@
+header:
+  schema-version: 2.2.0
+  last-updated: '2026-02-24'
+  last-reviewed: '2026-02-24'
+  url: https://raw.githubusercontent.com/metal3-io/cluster-api-provider-metal3/main/SECURITY_INSIGHTS.yml
+  project-si-source: https://raw.githubusercontent.com/metal3-io/community/main/SECURITY_INSIGHTS.yml
+repository:
+  url: https://github.com/metal3-io/cluster-api-provider-metal3
+  status: active
+  accepts-change-request: true
+  accepts-automated-change-request: true
+  core-team:
+  - name: adilGhaffarDev
+    primary: true
+  - name: fmuyassarov
+    primary: false
+  - name: kashifest
+    primary: false
+  - name: lentzi90
+    primary: false
+  - name: smoshiur1237
+    primary: false
+  - name: Sunnatillo
+    primary: false
+  - name: tuminoid
+    primary: false
+  documentation:
+    contributing-guide: https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/CONTRIBUTING.md
+    security-policy: https://github.com/metal3-io/.github/blob/main/SECURITY.md
+    governance: https://github.com/metal3-io/community/blob/main/GOVERNANCE.md
+  license:
+    url: https://github.com/metal3-io/cluster-api-provider-metal3/blob/main/LICENSE
+    expression: Apache-2.0
+  release:
+    automated-pipeline: true
+    distribution-points:
+    - uri: https://github.com/metal3-io/cluster-api-provider-metal3/releases
+      comment: GitHub Releases with signed container image references.
+    - uri: https://quay.io/repository/metal3-io/cluster-api-provider-metal3
+      comment: Container images with SBOM and cosign signatures.
+  security:
+    assessments:
+      self:
+        name: Metal3 Security Self-Assessment
+        date: '2024-11-19'
+        evidence: https://github.com/metal3-io/metal3-docs/blob/main/security/self-assessment.md
+        comment: Project-wide self-assessment covering all Metal3 components.
+    tools:
+    - name: golangci-lint
+      type: SAST
+      rulesets: [default]
+      comment: Go static analysis. Runs in GitHub Actions and Prow presubmit.
+      integration:
+        adhoc: false
+        ci: true
+        release: false
+      results: {}
+    - name: Dependabot
+      type: SCA
+      rulesets: [default]
+      comment: |
+        Monitors github-actions and gomod dependencies for known
+        vulnerabilities and outdated versions.
+      integration:
+        adhoc: false
+        ci: true
+        release: false
+      results: {}
+    - name: OSV-Scanner
+      type: SCA
+      rulesets: [default]
+      comment: |
+        Runs via Jenkins (osv_scanner_metal3) on main, last 2 release
+        branches, and latest tags. Also runs locally via
+        hack/verify-release.sh during the release process.
+      integration:
+        adhoc: true
+        ci: false
+        release: true
+      results:
+        adhoc:
+          name: OSV-Scanner periodic scan
+          location: https://jenkins.nordix.org/view/Metal3%20Periodic/
+          predicate-uri: https://github.com/google/osv-scanner
+          comment: Periodic Jenkins job scanning for known vulnerabilities.
+    - name: ShellCheck
+      type: SAST
+      rulesets: [default]
+      comment: Shell script linter. Runs in Prow presubmit.
+      integration:
+        adhoc: false
+        ci: true
+        release: false
+      results: {}
+    - name: cosign
+      type: other
+      rulesets: [default]
+      comment: |
+        Container images are signed with cosign via the reusable
+        container-image-build workflow in project-infra.
+      integration:
+        adhoc: false
+        ci: false
+        release: true
+      results:
+        release:
+          name: Container image cosign signature
+          location: https://quay.io/repository/metal3-io/cluster-api-provider-metal3
+          predicate-uri: https://github.com/sigstore/cosign
+          comment: Signatures attached to container images in quay.io.
+    - name: kubernetes-sigs/bom
+      type: SCA
+      rulesets: [default]
+      comment: |
+        SBOM generation for container images via the reusable
+        container-image-build workflow in project-infra.
+      integration:
+        adhoc: false
+        ci: false
+        release: true
+      results:
+        release:
+          name: Container image SBOM
+          location: https://quay.io/repository/metal3-io/cluster-api-provider-metal3
+          predicate-uri: https://spdx.dev/Document
+          comment: SPDX SBOMs attached to container images in quay.io.
