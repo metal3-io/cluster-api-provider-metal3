@@ -252,9 +252,12 @@ cluster upgrade:
   upgrade using clusterctl for example, or before nodes upgrades. This is to
   ensure that the cluster is in a stable condition while upgrading Ironic.
 
-**Important Note:** Currently, when target cluster is up and node appears, CAPM3
-will fetch the node and set the providerID value to BMH UUID, meaning that it is
-not advisable to directly map the K.Node <---> BMH after pivoting. However, if
-needed, we can still find the providerID value in Metal3Machine Spec. which
-enables us to do the mapping with an intermediary step, i.e K.Node <-->
-M3Machine <--> BMH.
+**Important Note:** When the workload-cluster node appears, CAPM3 locates it
+using the `metal3.io/uuid` node label and sets `spec.providerID` on both the
+`Node` and the `Metal3Machine`. The default ProviderID format is
+`metal3://<namespace>/<bmh-name>/<m3m-name>` (not the BMH UUID). It is
+therefore not advisable to directly map `K.Node <---> BMH` after pivoting.
+However, since the ProviderID is also stored in `Metal3Machine.spec.providerID`,
+the mapping can be done with an intermediary step: `K.Node <--> M3Machine <--> BMH`.
+See [ProviderID Workflow](https://book.metal3.io/capm3/providerid-workflow.html)
+for the full details.

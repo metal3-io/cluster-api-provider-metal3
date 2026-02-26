@@ -12,23 +12,24 @@ The following controllers need to be deployed :
 
 ## Requirements
 
-The cluster should either :
+The cluster should either:
 
-* be deployed with an external cloud provider, that would be deployed as part of
-  the userData and would set the providerIDs based on the BareMetalHost UID.
-* Be deployed with the ProviderID set to be the BareMetalHostUUID
-* be deployed with each node with the label "metal3.io/uuid" set to the
-  BareMetalHost UID that is provided by Ironic to cloud-init through the
-  metadata `ds.meta_data.uuid`. This can be achieved by setting the following in
-  the KubeadmConfig :
+* be deployed with an external cloud provider that sets `spec.providerID` on
+  nodes using the BareMetalHost UID, or
+* be deployed with each node carrying the label `metal3.io/uuid` set to the
+  BareMetalHost UID, passed through Ironic cloud-init metadata as
+  `ds.meta_data.uuid`.
 
-```yaml
-nodeRegistration:
-  name: '{{ ds.meta_data.name }}'
-  kubeletExtraArgs:
-  - name: node-labels
-    value: 'metal3.io/uuid={{ ds.meta_data.uuid }}'
-```
+In both cases CAPM3 sets `spec.providerID` on the `Metal3Machine` using the
+format `metal3://<namespace>/<bmh-name>/<m3m-name>`. The legacy format
+`metal3://<bmh-uuid>` will be deprecated in CAPM3 v1.13 and removed in
+CAPM3 v1.14.
+
+See
+[ProviderID Workflow](https://book.metal3.io/capm3/providerid-workflow.html)
+for the full explanation of how CAPM3 assigns and propagates the ProviderID,
+including the required kubeadm configuration snippet and the complete
+reconciler decision tree.
 
 ## Deploying the CRs
 
@@ -63,13 +64,14 @@ An outline of the workflow is below.
 1. The CAPM3 controller will then set the BareMetalHost spec accordingly to the
    Metal3Machine specs.
 1. The BareMetal Operator will then start the deployment.
-1. After deployment, the BaremetalHost will be in provisioned state. However,
-   initialization is not complete. If deploying without cloud provider, CAPM3
-   can wait until the target cluster is up and the node appears, then fetch
-   the node by matching the label `metal3.io/uuid=<bmh-uuid>` and set the
-   providerID to `metal3://<bmh-uuid>`. The Metal3Machine ready status will
-   be set to true and the providerID will be set to `metal3://<bmh-uuid>` on the
-   Metal3Machine.
+1. After deployment, the BareMetalHost will be in provisioned state. However,
+   initialization is not complete. If deploying without a cloud provider, CAPM3
+   waits until the workload-cluster node appears, then locates it by matching
+   the label `metal3.io/uuid=<BMH-UID>` and sets `spec.providerID` to
+   `metal3://<namespace>/<bmh-name>/<m3m-name>` on both the `Metal3Machine`
+   and the node. The `Metal3Machine` ready status is then set to true. See
+   [ProviderID Workflow](https://book.metal3.io/capm3/providerid-workflow.html)
+   for details of all paths, including the hostname-based fallback.
 1. CAPI will access the target cluster and compare the providerID on the node to
    the providerID of the Machine, copied from the metal3machine. If matching,
    the control plane initialized status will be set to true and the machine
