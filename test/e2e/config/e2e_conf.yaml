@@ -214,9 +214,11 @@ variables:
   KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.35.0}"
   KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
   KUBERNETES_VERSION_FROM: "${KUBERNETES_VERSION_FROM:-v1.34.1}"
-  # KUBERNETES_VERSION_PATCH_TO is used to test patch upgrade scenarios where we
-  # only want to upgrade the patch version of kubernetes.
-  KUBERNETES_VERSION_PATCH_TO: "v1.33.5"
+  # KUBERNETES_VERSION_PATCH_TO is used only in node reuse test, we do this
+  # upgrade to make rollout happen, we are not testing k8s upgrade here, so
+  # what version of k8s we are using for this upgrade is not important, as long
+  # as it is a patch upgrade and it triggers the rollout.
+  KUBERNETES_VERSION_PATCH_TO: "v1.34.2"
   CONTROL_PLANE_MACHINE_COUNT: 3
   WORKER_MACHINE_COUNT: 1
   NUM_NODES: 4

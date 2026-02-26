@@ -101,14 +101,20 @@ The e2e tests use the following Kubernetes version variables:
 |----------|---------|---------|---------|
 | `KUBERNETES_VERSION` | Latest/target Kubernetes version | v1.35.0 | All tests |
 | `KUBERNETES_VERSION_FROM` | Starting version for minor upgrades | v1.34.1 | k8s-upgrade, ip-reuse, scalability |
-| `KUBERNETES_VERSION_PATCH_TO` | Target version for patch upgrades | v1.33.5 | node-reuse (patch upgrade tests) |
+| `KUBERNETES_VERSION_PATCH_TO` | Target version for patch upgrades | v1.34.2 | node-reuse (patch upgrade tests) |
 | `KUBERNETES_N0_VERSION` | Starting version for N+3 upgrade | v1.32.9 | k8s-upgrade-n3 |
 | `KUBERNETES_N1_VERSION` | N+1 version for N+3 upgrade | v1.33.5 | k8s-upgrade-n3 |
 | `KUBERNETES_N2_VERSION` | N+2 version for N+3 upgrade | v1.34.1 | k8s-upgrade-n3 |
 | `KUBERNETES_N3_VERSION` | N+3 target version for N+3 upgrade | v1.35.0 | k8s-upgrade-n3 |
 
-**Note:** For patch upgrade tests (node-reuse), the test upgrades from
-v1.33.4 to the version specified in `KUBERNETES_VERSION_PATCH_TO` (v1.33.5).
+**Note:** KUBERNETES_VERSION_PATCH_TO is
+used only in node reuse test, we do this upgrade to make rollout happen to test
+node-reuse feature, we are not testing k8s upgrade here, so what version of k8s
+we are using for this upgrade is not important, as long as it is a patch
+upgrade and it triggers the rollout. Why we are doing patch upgrade and not
+minor please check this PR:
+<https://github.com/metal3-io/cluster-api-provider-metal3/pull/2212>,
+In short it is to make the test bit more efficient.
 
 ## Included tests
 
