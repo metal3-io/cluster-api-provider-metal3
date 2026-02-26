@@ -135,7 +135,7 @@ providers:
   type: IPAMProvider
   versions:
   - name: "{go://github.com/metal3-io/ip-address-manager@v1.12}"
-    value: "https://github.com/metal3-io/ip-address-manager/releases/download/{go://github.com/metal3-io/ip-address-manager@v1.12}/ipam-components.yaml"
+    value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/release-1.12/"
     type: "url"
     contract: v1beta1
     replacements:
@@ -145,7 +145,7 @@ providers:
     - sourcePath: "../data/shared/ipam-metal3/v1.12/metadata.yaml"
       targetName: "metadata.yaml"
   - name: "{go://github.com/metal3-io/ip-address-manager@v1.11}"
-    value: "https://github.com/metal3-io/ip-address-manager/releases/download/{go://github.com/metal3-io/ip-address-manager@v1.11}/ipam-components.yaml"
+    value: "${PWD}/test/e2e/data/ipamprovider-metal3/overlays/release-1.11/"
     type: "url"
     contract: v1beta1
     replacements:
@@ -159,7 +159,7 @@ providers:
   type: InfrastructureProvider
   versions:
   - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.12}"
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.12}/infrastructure-components.yaml"
+    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.12/"
     type: "url"
     contract: v1beta1
     files:
@@ -170,7 +170,7 @@ providers:
     - sourcePath: "../_out/v1.12/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
   - name: "{go://github.com/metal3-io/cluster-api-provider-metal3@v1.11}"
-    value: "https://github.com/metal3-io/cluster-api-provider-metal3/releases/download/{go://github.com/metal3-io/cluster-api-provider-metal3@v1.11}/infrastructure-components.yaml"
+    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/release-1.11/"
     type: "url"
     contract: v1beta1
     files:
@@ -181,7 +181,7 @@ providers:
     - sourcePath: "../_out/v1.11/cluster-template-upgrade-workload.yaml"
       targetName: "cluster-template-upgrade-workload.yaml"
   - name: v1.13.99
-    value: "${PWD}/config/default"
+    value: "${PWD}/test/e2e/data/infrastructure-metal3/overlays/main/"
     files:
     - sourcePath: "../data/shared/infrastructure-metal3/main/metadata.yaml"
       targetName: "metadata.yaml"

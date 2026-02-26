@@ -17,6 +17,14 @@ patches:
   target:
     kind: Deployment
     name: controller-manager
+- patch: |
+    # Extend default with TLS 1.3 hardening.
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: "--tls-min-version=VersionTLS13"
+  target:
+    kind: Deployment
+    name: controller-manager
 images:
 - name: quay.io/metal3-io/baremetal-operator
   newTag: main
