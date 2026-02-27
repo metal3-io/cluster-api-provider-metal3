@@ -101,6 +101,24 @@ func (webhook *Metal3DataTemplate) ValidateDelete(_ context.Context, _ runtime.O
 func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTemplate) error {
 	var allErrs field.ErrorList
 
+	if newM3dt.Spec.MetaData != nil {
+		for i, hostInterface := range newM3dt.Spec.MetaData.FromHostInterfaces {
+			if !hostInterface.FromBootMAC && hostInterface.Interface == "" {
+				allErrs = append(allErrs, field.Required(
+					field.NewPath("spec", "metaData", "fromHostInterfaces", strconv.Itoa(i), "interface"),
+					"interface must be specified when fromBootMAC is false",
+				))
+			}
+			if hostInterface.FromBootMAC && hostInterface.Interface != "" {
+				allErrs = append(allErrs, field.Invalid(
+					field.NewPath("spec", "metaData", "fromHostInterfaces", strconv.Itoa(i), "interface"),
+					hostInterface.Interface,
+					"interface must be empty when fromBootMAC is true",
+				))
+			}
+		}
+	}
+
 	if newM3dt.Spec.NetworkData != nil {
 		for i, network := range newM3dt.Spec.NetworkData.Networks.IPv4 {
 			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == nil {

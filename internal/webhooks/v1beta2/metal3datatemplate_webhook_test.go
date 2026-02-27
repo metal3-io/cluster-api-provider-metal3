@@ -133,6 +133,106 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:      "should succeed when fromBootMAC is true and interface is empty",
+			expectErr: false,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key:         "boot-mac",
+								FromBootMAC: true,
+								Interface:   "",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should succeed when fromBootMAC is false and interface is provided",
+			expectErr: false,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key:         "eth0-mac",
+								FromBootMAC: false,
+								Interface:   "eth0",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should fail when fromBootMAC is false and interface is empty",
+			expectErr: true,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key:         "eth0-mac",
+								FromBootMAC: false,
+								Interface:   "",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should fail when fromBootMAC is not set and interface is empty",
+			expectErr: true,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key: "eth0-mac",
+								// FromBootMAC defaults to false
+								// Interface is empty
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "should fail when fromBootMAC is true and interface is provided",
+			expectErr: true,
+			c: &infrav1.Metal3DataTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+				},
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key:         "boot-mac",
+								FromBootMAC: true,
+								Interface:   "eth0",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {
