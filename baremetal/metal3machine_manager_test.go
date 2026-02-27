@@ -727,7 +727,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				result, _, err := machineMgr.chooseHost(context.TODO())
+				result, _, _, err := machineMgr.chooseHost(context.TODO())
 
 				if tc.ExpectedHostName == "" {
 					Expect(result).To(BeNil())
@@ -2873,7 +2873,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = machineMgr.Associate(context.TODO())
+			_, err = machineMgr.Associate(context.TODO())
 			if tc.ExpectRequeue {
 				var reconcileError ReconcileError
 				ok := errors.As(err, &reconcileError)

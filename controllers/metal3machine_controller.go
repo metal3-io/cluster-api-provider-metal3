@@ -73,7 +73,7 @@ type Metal3MachineReconciler struct {
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets,verbs=get;list;watch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=events,verbs=get;list;watch;create;update;patch
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
@@ -405,7 +405,8 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if !hasAnnotation {
 		log.V(baremetal.VerbosityLevelTrace).Info("No BMH annotation, attempting to associate")
 		// Associate the baremetalhost hosting the machine
-		err := machineMgr.Associate(ctx)
+		var err error
+		chosenHostReason, err := machineMgr.Associate(ctx)
 		if err != nil {
 			log.V(baremetal.VerbosityLevelDebug).Info("Association failed",
 				baremetal.LogFieldError, err.Error())
@@ -415,14 +416,25 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 				"failed to associate the Metal3Machine to a BareMetalHost", errType)
 		}
 
+		// Check again if the annotation is set, if not return error as association failed
+		if machineMgr.HasAnnotation() {
+			machineMgr.SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
+			machineMgr.SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition, metav1.ConditionTrue, chosenHostReason, "")
+		}
+
 		log.V(baremetal.VerbosityLevelTrace).Info("Association initiated successfully")
 		return ctrl.Result{}, nil
 	}
 
 	log.V(baremetal.VerbosityLevelTrace).Info("BMH already associated, updating conditions")
 	// Update Condition to reflect that we have an associated BMH
-	machineMgr.SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
-	machineMgr.SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateBareMetalHostSuccessV1Beta2Reason, "")
+	if !deprecatedv1beta1conditions.IsTrue(machineMgr.GetMetal3Machine(), infrav1.AssociateBMHCondition) {
+		machineMgr.SetConditionMetal3MachineToTrue(infrav1.AssociateBMHCondition)
+	}
+	existingCondition := conditions.Get(machineMgr.GetMetal3Machine(), infrav1.AssociateBareMetalHostV1Beta2Condition)
+	if existingCondition == nil || existingCondition.Status != metav1.ConditionTrue {
+		machineMgr.SetV1beta2Condition(infrav1.AssociateBareMetalHostV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateBareMetalHostSuccessV1Beta2Reason, "")
+	}
 
 	// Make sure that the metadata is ready if any
 	log.V(baremetal.VerbosityLevelTrace).Info("Associating Metal3 metadata")

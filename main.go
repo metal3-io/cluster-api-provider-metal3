@@ -52,6 +52,7 @@ import (
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
+	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	capipamv1beta1 "sigs.k8s.io/cluster-api/api/ipam/v1beta1"
 	capipamv1 "sigs.k8s.io/cluster-api/api/ipam/v1beta2"
@@ -125,6 +126,7 @@ func init() {
 
 	// cluster-api schemes
 	_ = clusterv1.AddToScheme(myscheme)
+	_ = controlplanev1.AddToScheme(myscheme)
 
 	// BMO Operator schemes
 	_ = bmov1alpha1.AddToScheme(myscheme)
