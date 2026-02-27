@@ -1574,7 +1574,6 @@ func Convert_v1beta2_Metal3DataList_To_v1beta1_Metal3DataList(in *v1beta2.Metal3
 
 func autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *v1beta2.Metal3DataSpec, s conversion.Scope) error {
 	out.Index = in.Index
-	out.TemplateReference = in.TemplateReference
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
 	out.Claim = in.Claim
@@ -1589,7 +1588,6 @@ func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec
 
 func autoConvert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec(in *v1beta2.Metal3DataSpec, out *Metal3DataSpec, s conversion.Scope) error {
 	out.Index = in.Index
-	out.TemplateReference = in.TemplateReference
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
 	out.Claim = in.Claim
@@ -1680,7 +1678,6 @@ func Convert_v1beta2_Metal3DataTemplateList_To_v1beta1_Metal3DataTemplateList(in
 
 func autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *v1beta2.Metal3DataTemplateSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.TemplateReference = in.TemplateReference
 	out.MetaData = (*v1beta2.MetaData)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*v1beta2.NetworkData)(unsafe.Pointer(in.NetworkData))
 	return nil
@@ -1693,7 +1690,6 @@ func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in
 
 func autoConvert_v1beta2_Metal3DataTemplateSpec_To_v1beta1_Metal3DataTemplateSpec(in *v1beta2.Metal3DataTemplateSpec, out *Metal3DataTemplateSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.TemplateReference = in.TemplateReference
 	out.MetaData = (*MetaData)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*NetworkData)(unsafe.Pointer(in.NetworkData))
 	return nil

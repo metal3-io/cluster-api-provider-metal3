@@ -65,13 +65,13 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3DataTemplate{},
 		Spoke:       &Metal3DataTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3DataTemplateFuzzFuncs},
 	}))
 	t.Run("for Metal3Data", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3Data{},
 		Spoke:       &Metal3Data{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3DataTemplateFuzzFuncs},
 	}))
 	t.Run("for Metal3DataClaim", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -148,7 +148,6 @@ func hubMetal3MachineStatus(in *infrav1.Metal3MachineStatus, c randfill.Continue
 	}
 }
 
-
 func spokeMetal3MachineSpec(in *Metal3MachineSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -171,5 +170,26 @@ func spokeMetal3MachineStatus(in *Metal3MachineStatus, c randfill.Continue) {
 func Metal3ClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMetal3FailureDomain,
+	}
+}
+
+func spokeMetal3DataTemplateSpec(in *Metal3DataTemplateSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Clean TemplateReference
+	in.TemplateReference = ""
+}
+
+func spokeMetal3DataSpec(in *Metal3DataSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Clean TemplateReference
+	in.TemplateReference = ""
+}
+
+func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeMetal3DataSpec,
+		spokeMetal3DataTemplateSpec,
 	}
 }
