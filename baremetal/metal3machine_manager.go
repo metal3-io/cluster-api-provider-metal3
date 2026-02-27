@@ -1267,9 +1267,6 @@ func (m *MachineManager) SetConditionMetal3MachineToTrue(t clusterv1.ConditionTy
 }
 
 func (m *MachineManager) CloudProviderEnabled() bool {
-	if m.Metal3Cluster.Spec.NoCloudProvider != nil && !*m.Metal3Cluster.Spec.NoCloudProvider {
-		return true
-	}
 	if m.Metal3Cluster.Spec.CloudProviderEnabled != nil && *m.Metal3Cluster.Spec.CloudProviderEnabled {
 		return true
 	}

@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/randfill"
@@ -97,6 +98,8 @@ func Metal3ClusterFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMetal3ClusterStatus,
 		hubMetal3FailureDomain,
+		hubMetal3ClusterSpec,
+		spokeMetal3ClusterSpec,
 		spokeMetal3ClusterStatus,
 	}
 }
@@ -170,6 +173,36 @@ func spokeMetal3MachineStatus(in *Metal3MachineStatus, c randfill.Continue) {
 func Metal3ClusterTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMetal3FailureDomain,
+		hubMetal3ClusterSpec,
+		spokeMetal3ClusterSpec,
+	}
+}
+
+func hubMetal3ClusterSpec(in *infrav1.Metal3ClusterSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize: &false → nil (omitempty semantic)
+	if in.CloudProviderEnabled == nil {
+		in.CloudProviderEnabled = ptr.To(true)
+	}
+}
+
+func spokeMetal3ClusterSpec(in *Metal3ClusterSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize: &false → nil (omitempty semantic)
+	if in.CloudProviderEnabled == nil && in.NoCloudProvider == nil {
+		in.NoCloudProvider = ptr.To(true)
+		in.CloudProviderEnabled = ptr.To(false)
+	}
+	if in.CloudProviderEnabled == nil && in.NoCloudProvider != nil {
+		in.CloudProviderEnabled = ptr.To(!*in.NoCloudProvider)
+	}
+	if in.CloudProviderEnabled != nil && in.NoCloudProvider == nil {
+		in.NoCloudProvider = ptr.To(!*in.CloudProviderEnabled)
+	}
+	if in.CloudProviderEnabled != nil && in.NoCloudProvider != nil {
+		in.CloudProviderEnabled = ptr.To(!*in.NoCloudProvider)
 	}
 }
 

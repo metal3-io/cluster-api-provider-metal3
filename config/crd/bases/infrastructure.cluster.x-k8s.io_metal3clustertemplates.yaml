@@ -151,7 +151,6 @@ spec:
                           Determines if the cluster is to be deployed with an external cloud provider.
                           If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
                           If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
-                          Default value is true, it is set in the webhook.
                         type: boolean
                       controlPlaneEndpoint:
                         description: ControlPlaneEndpoint represents the endpoint
@@ -196,14 +195,6 @@ spec:
                           - name
                           type: object
                         type: array
-                      noCloudProvider:
-                        description: |-
-                          Determines if the cluster is not to be deployed with an external cloud provider.
-                          If set to true, CAPM3 will use node labels to set providerID on the kubernetes nodes.
-                          If set to false, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
-
-                          Deprecated: This field is deprecated, use cloudProviderEnabled instead
-                        type: boolean
                     type: object
                 required:
                 - spec

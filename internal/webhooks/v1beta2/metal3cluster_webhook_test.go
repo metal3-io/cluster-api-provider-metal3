@@ -81,14 +81,14 @@ func TestMetal3ClusterValidation(t *testing.T) {
 			oldCluster:        valid,
 		},
 		{
-			name:              "should succeed when cloudProviderEnabled and noCloudProvider are not set",
+			name:              "should succeed when cloudProviderEnabled is not set",
 			expectErrOnCreate: false,
 			expectErrOnUpdate: false,
 			newCluster:        valid,
 			oldCluster:        valid,
 		},
 		{
-			name:              "should succeed when cloudProviderEnabled is set and noCloudProvider not set",
+			name:              "should succeed when cloudProviderEnabled is set",
 			expectErrOnCreate: false,
 			expectErrOnUpdate: false,
 			newCluster: &infrav1.Metal3Cluster{
@@ -104,101 +104,6 @@ func TestMetal3ClusterValidation(t *testing.T) {
 				},
 			},
 			oldCluster: valid,
-		},
-		{
-			name:              "should succeed when noCloudProvider is set and cloudProviderEnabled not set",
-			expectErrOnCreate: false,
-			expectErrOnUpdate: false,
-			newCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					NoCloudProvider: ptr.To(true),
-				},
-			},
-			oldCluster: valid,
-		},
-		{
-			name:              "should fail when cloudProviderEnabled and noCloudProvider have conflicting values in new object",
-			expectErrOnCreate: true,
-			expectErrOnUpdate: true,
-			newCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					CloudProviderEnabled: ptr.To(true),
-					NoCloudProvider:      ptr.To(true),
-				},
-			},
-			oldCluster: valid,
-		},
-		{
-			name:              "should succeed when cloudProviderEnabled and noCloudProvider do not conflict",
-			expectErrOnCreate: false,
-			expectErrOnUpdate: false,
-			newCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					CloudProviderEnabled: ptr.To(true),
-				},
-			},
-			oldCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					NoCloudProvider: ptr.To(false),
-				},
-			},
-		},
-		{
-			name:              "should succeed when cloudProviderEnabled and noCloudProvider do not conflict on update",
-			expectErrOnCreate: false,
-			expectErrOnUpdate: false,
-			newCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					CloudProviderEnabled: ptr.To(false),
-				},
-			},
-			oldCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					NoCloudProvider: ptr.To(false),
-				},
-			},
 		},
 		{
 			name:              "should succeed when enabling cloudProvider from disabled state",
@@ -214,7 +119,6 @@ func TestMetal3ClusterValidation(t *testing.T) {
 						Port: 443,
 					},
 					CloudProviderEnabled: ptr.To(true),
-					NoCloudProvider:      ptr.To(false),
 				},
 			},
 			oldCluster: &infrav1.Metal3Cluster{
@@ -227,7 +131,6 @@ func TestMetal3ClusterValidation(t *testing.T) {
 						Port: 443,
 					},
 					CloudProviderEnabled: ptr.To(false),
-					NoCloudProvider:      ptr.To(true),
 				},
 			},
 		},
@@ -245,7 +148,6 @@ func TestMetal3ClusterValidation(t *testing.T) {
 						Port: 443,
 					},
 					CloudProviderEnabled: ptr.To(false),
-					NoCloudProvider:      ptr.To(true),
 				},
 			},
 			oldCluster: &infrav1.Metal3Cluster{
@@ -258,67 +160,6 @@ func TestMetal3ClusterValidation(t *testing.T) {
 						Port: 443,
 					},
 					CloudProviderEnabled: ptr.To(true),
-					NoCloudProvider:      ptr.To(false),
-				},
-			},
-		},
-		{
-			name:              "should succeed when updating with only cloudProviderEnabled changing from false to true",
-			expectErrOnCreate: false,
-			expectErrOnUpdate: false,
-			newCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					CloudProviderEnabled: ptr.To(true),
-				},
-			},
-			oldCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					CloudProviderEnabled: ptr.To(false),
-					NoCloudProvider:      ptr.To(true),
-				},
-			},
-		},
-		{
-			name:              "should succeed when updating with only noCloudProvider changing from true to false",
-			expectErrOnCreate: false,
-			expectErrOnUpdate: false,
-			newCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					NoCloudProvider: ptr.To(false),
-				},
-			},
-			oldCluster: &infrav1.Metal3Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "foo",
-				},
-				Spec: infrav1.Metal3ClusterSpec{
-					ControlPlaneEndpoint: infrav1.APIEndpoint{
-						Host: "abc.com",
-						Port: 443,
-					},
-					CloudProviderEnabled: ptr.To(false),
-					NoCloudProvider:      ptr.To(true),
 				},
 			},
 		},
