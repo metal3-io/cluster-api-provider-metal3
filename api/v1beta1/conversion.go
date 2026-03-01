@@ -18,11 +18,11 @@ package v1beta1
 
 import (
 	"maps"
+	"reflect"
 	"slices"
+	"sort"
 
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
-	"sort"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -30,6 +30,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *Metal3Cluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -37,7 +38,18 @@ func (src *Metal3Cluster) ConvertTo(dstRaw conversion.Hub) error {
 	if err := Convert_v1beta1_Metal3Cluster_To_v1beta2_Metal3Cluster(src, dst, nil); err != nil {
 		return err
 	}
+	restored := &infrav1.Metal3Cluster{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
 
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.Metal3ClusterInitializationStatus{}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.Metal3ClusterInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 	return nil
 }
 
@@ -47,12 +59,17 @@ func (dst *Metal3Cluster) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *Metal3ClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.Metal3ClusterTemplate)
 	if err := Convert_v1beta1_Metal3ClusterTemplate_To_v1beta2_Metal3ClusterTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	restored := &infrav1.Metal3ClusterTemplate{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
 
@@ -65,7 +82,7 @@ func (dst *Metal3ClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
@@ -74,6 +91,18 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	restored := &infrav1.Metal3Machine{}
+	ok, err := utilconversion.UnmarshalData(src, restored)
+	if err != nil {
+		return err
+	}
+
+	// Recover intent for bool values converted to *bool.
+	initialization := infrav1.Metal3MachineInitializationStatus{}
+	clusterv1.Convert_bool_To_Pointer_bool(src.Status.Ready, ok, restored.Status.Initialization.Provisioned, &initialization.Provisioned)
+	if !reflect.DeepEqual(initialization, infrav1.Metal3MachineInitializationStatus{}) {
+		dst.Status.Initialization = initialization
+	}
 	return nil
 }
 
@@ -83,7 +112,11 @@ func (dst *Metal3Machine) ConvertFrom(srcRaw conversion.Hub) error {
 		return err
 	}
 
-	return nil
+	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
+		dst.Spec.ProviderID = nil
+	}
+
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
@@ -99,6 +132,10 @@ func (dst *Metal3MachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.Metal3MachineTemplate)
 	if err := Convert_v1beta2_Metal3MachineTemplate_To_v1beta1_Metal3MachineTemplate(src, dst, nil); err != nil {
 		return err
+	}
+
+	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
+		dst.Spec.Template.Spec.ProviderID = nil
 	}
 
 	return nil
@@ -212,6 +249,7 @@ func Convert_v1beta2_Metal3ClusterSpec_To_v1beta1_Metal3ClusterSpec(in *infrav1.
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -240,6 +278,7 @@ func Convert_v1beta1_Metal3ClusterSpec_To_v1beta2_Metal3ClusterSpec(in *Metal3Cl
 			out.FailureDomains = append(out.FailureDomains, failureDomain)
 		}
 	}
+
 	return nil
 }
 
@@ -262,6 +301,9 @@ func Convert_v1beta2_Metal3ClusterStatus_To_v1beta1_Metal3ClusterStatus(in *infr
 		out.FailureReason = in.Deprecated.V1Beta1.FailureReason
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
 	}
+
+	// Move initialization to old field
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	// Move FailureDomains
 	if in.FailureDomains != nil {
@@ -333,6 +375,7 @@ func Convert_v1beta1_Metal3ClusterStatus_To_v1beta2_Metal3ClusterStatus(in *Meta
 		out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 		out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
 	}
+
 	return nil
 }
 
@@ -359,7 +402,10 @@ func Convert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in *infr
 		out.FailureMessage = in.Deprecated.V1Beta1.FailureMessage
 	}
 
-	out.Ready = in.Ready
+	out.Phase = "" // Phase is deprecated and it was never used in v1beta1, so we don't want to populate it during conversion.
+
+	// Move initialization to old field
+	out.Ready = ptr.Deref(in.Initialization.Provisioned, false)
 
 	// Move new conditions (v1beta2) to the v1beta2 field.
 	if in.Conditions == nil {
@@ -385,7 +431,7 @@ func Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(in *Meta
 	}
 
 	// Move legacy conditions (v1beta1), failureReason and failureMessage to the deprecated field.
-	if in.FailureReason == nil && in.FailureMessage == nil && in.Conditions == nil {
+	if in.FailureReason == nil && in.FailureMessage == nil && in.Conditions == nil && in.Phase == "" {
 		return nil
 	}
 
@@ -403,6 +449,38 @@ func Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(in *Meta
 	return nil
 }
 
+func Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in *infrav1.Metal3ClusterTemplateResource, out *Metal3ClusterTemplateResource, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in, out, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Convert_v1beta2_Metal3MachineTemplateResource_To_v1beta1_Metal3MachineTemplateResource(in *infrav1.Metal3MachineTemplateResource, out *Metal3MachineTemplateResource, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_Metal3MachineTemplateResource_To_v1beta1_Metal3MachineTemplateResource(in, out, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *infrav1.Metal3DataTemplateSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in, out, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func Convert_v1_Condition_To_v1beta1_Condition(_ *metav1.Condition, _ *clusterv1beta1.Condition, _ apimachineryconversion.Scope) error {
 	// NOTE: v1beta2 conditions should not be automatically converted into legacy (v1beta1) conditions.
 	return nil
@@ -413,10 +491,30 @@ func Convert_v1beta1_Condition_To_v1_Condition(_ *clusterv1beta1.Condition, _ *m
 	return nil
 }
 
-func Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in *infrav1.Metal3ClusterTemplateResource, out *Metal3ClusterTemplateResource, s apimachineryconversion.Scope) error {
-	if err := autoConvert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in, out, s); err != nil {
-		return err
-	}
+func Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(in *clusterv1beta1.ObjectMeta, out *clusterv1.ObjectMeta, s apimachineryconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta1_ObjectMeta_To_v1beta2_ObjectMeta(in, out, s)
+}
 
+func Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(in *clusterv1.ObjectMeta, out *clusterv1beta1.ObjectMeta, s apimachineryconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta2_ObjectMeta_To_v1beta1_ObjectMeta(in, out, s)
+}
+
+func Convert_v1beta1_MachineAddress_To_v1beta2_MachineAddress(in *clusterv1beta1.MachineAddress, out *clusterv1.MachineAddress, s apimachineryconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta1_MachineAddress_To_v1beta2_MachineAddress(in, out, s)
+}
+
+func Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(in *clusterv1.MachineAddress, out *clusterv1beta1.MachineAddress, s apimachineryconversion.Scope) error {
+	return clusterv1beta1.Convert_v1beta2_MachineAddress_To_v1beta1_MachineAddress(in, out, s)
+}
+
+func Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(in *infrav1.APIEndpoint, out *APIEndpoint, s apimachineryconversion.Scope) error {
+	out.Host = in.Host
+	out.Port = int(in.Port)
+	return nil
+}
+
+func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *infrav1.APIEndpoint, s apimachineryconversion.Scope) error {
+	out.Host = in.Host
+	out.Port = int32(in.Port)
 	return nil
 }

@@ -58,13 +58,13 @@ var testImageDiskFormat = ptr.To("raw")
 
 func m3mSpec() *infrav1.Metal3MachineSpec {
 	return &infrav1.Metal3MachineSpec{
-		ProviderID: &ProviderID,
+		ProviderID: ProviderID,
 	}
 }
 
 func m3mSpecAll() *infrav1.Metal3MachineSpec {
 	return &infrav1.Metal3MachineSpec{
-		ProviderID: &ProviderID,
+		ProviderID: ProviderID,
 		UserData: &corev1.SecretReference{
 			Name:      metal3machineName + "-user-data",
 			Namespace: namespaceName,
@@ -359,15 +359,17 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			machineMgr.SetProviderID("correct")
 
-			Expect(*bmMachine.Spec.ProviderID).To(Equal("correct"))
+			Expect(bmMachine.Spec.ProviderID).To(Equal("correct"))
 		},
 		Entry("no ProviderID", infrav1.Metal3Machine{}),
 		Entry("existing ProviderID", infrav1.Metal3Machine{
 			Spec: infrav1.Metal3MachineSpec{
-				ProviderID: ptr.To("wrong"),
+				ProviderID: "wrong",
 			},
 			Status: infrav1.Metal3MachineStatus{
-				Ready: true,
+				Initialization: infrav1.Metal3MachineInitializationStatus{
+					Provisioned: ptr.To(true),
+				},
 			},
 		}),
 	)
@@ -391,10 +393,12 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("provisioned", testCaseProvisioned{
 			M3Machine: infrav1.Metal3Machine{
 				Spec: infrav1.Metal3MachineSpec{
-					ProviderID: ptr.To("abc"),
+					ProviderID: "abc",
 				},
 				Status: infrav1.Metal3MachineStatus{
-					Ready: true,
+					Initialization: infrav1.Metal3MachineInitializationStatus{
+						Provisioned: ptr.To(true),
+					},
 					Conditions: []metav1.Condition{
 						{
 							Type:   infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,
@@ -409,7 +413,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("missing ready", testCaseProvisioned{
 			M3Machine: infrav1.Metal3Machine{
 				Spec: infrav1.Metal3MachineSpec{
-					ProviderID: ptr.To("abc"),
+					ProviderID: "abc",
 				},
 			},
 			ExpectTrue: false,
@@ -417,7 +421,9 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("missing providerID", testCaseProvisioned{
 			M3Machine: infrav1.Metal3Machine{
 				Status: infrav1.Metal3MachineStatus{
-					Ready: true,
+					Initialization: infrav1.Metal3MachineInitializationStatus{
+						Provisioned: ptr.To(true),
+					},
 				},
 			},
 			ExpectTrue: false,
@@ -2393,7 +2399,9 @@ var _ = Describe("Metal3Machine manager", func() {
 								Type:    "InternalIP",
 							},
 						},
-						Ready: true,
+						Initialization: infrav1.Metal3MachineInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 					},
 				},
 				ExpectedMachine: clusterv1.Machine{
@@ -2457,7 +2465,9 @@ var _ = Describe("Metal3Machine manager", func() {
 								Type:    "InternalIP",
 							},
 						},
-						Ready: true,
+						Initialization: infrav1.Metal3MachineInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 					},
 				},
 				ExpectedMachine: clusterv1.Machine{
@@ -2496,7 +2506,9 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 						Status: infrav1.Metal3MachineStatus{
 							Addresses: []clusterv1.MachineAddress{},
-							Ready:     true,
+							Initialization: infrav1.Metal3MachineInitializationStatus{
+								Provisioned: ptr.To(true),
+							},
 						},
 					},
 					ExpectedMachine: clusterv1.Machine{
@@ -2604,7 +2616,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type testCaseGetProviderIDAndBMHID struct {
-		providerID    *string
+		providerID    string
 		expectedBMHID string
 	}
 
@@ -2621,8 +2633,8 @@ var _ = Describe("Metal3Machine manager", func() {
 
 			providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
 
-			if tc.providerID != nil {
-				Expect(providerID).To(Equal(*tc.providerID))
+			if tc.providerID != "" {
+				Expect(providerID).To(Equal(tc.providerID))
 				Expect(bmhID).NotTo(BeNil())
 				Expect(*bmhID).To(Equal(tc.expectedBMHID))
 			} else {
@@ -2632,7 +2644,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		},
 		Entry("Empty providerID", testCaseGetProviderIDAndBMHID{}),
 		Entry("Provider ID set", testCaseGetProviderIDAndBMHID{
-			providerID:    ptr.To(ProviderID),
+			providerID:    ProviderID,
 			expectedBMHID: string(Bmhuid),
 		}),
 	)

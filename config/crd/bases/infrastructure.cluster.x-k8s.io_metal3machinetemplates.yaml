@@ -309,6 +309,31 @@ spec:
                 description: Metal3MachineTemplateResource describes the data needed
                   to create a Metal3Machine from a template.
                 properties:
+                  metadata:
+                    description: |-
+                      Standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    minProperties: 1
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          labels is a map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
+                        type: object
+                    type: object
                   spec:
                     description: Spec is the specification of the desired behavior
                       of the machine.
@@ -483,8 +508,11 @@ spec:
                         x-kubernetes-map-type: atomic
                       providerID:
                         description: |-
-                          ProviderID will be the Metal3 machine in ProviderID format
-                          (metal3://<bmh-uuid>)
+                          providerID must match the provider ID as seen on the node object corresponding to this machine.
+                          For Kubernetes Nodes running on the Metal3 provider, this value is set by the corresponding CPI component
+                          and it has the format metal3://<bmh-uuid>.
+                        maxLength: 512
+                        minLength: 1
                         type: string
                       userData:
                         description: |-

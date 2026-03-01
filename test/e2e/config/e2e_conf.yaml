@@ -182,6 +182,7 @@ providers:
       targetName: "cluster-template-upgrade-workload.yaml"
   - name: v1.13.99
     value: "${PWD}/config/default"
+    contract: v1beta2
     files:
     - sourcePath: "../data/shared/infrastructure-metal3/main/metadata.yaml"
       targetName: "metadata.yaml"

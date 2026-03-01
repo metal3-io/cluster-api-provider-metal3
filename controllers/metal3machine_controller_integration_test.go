@@ -285,18 +285,18 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Expect(baremetal.Contains(testBMmachine.Finalizers, infrav1.MachineFinalizer)).To(BeTrue())
 			}
 			if tc.CheckBMState {
-				Expect(testBMmachine.Status.Ready).To(BeTrue())
+				Expect(ptr.Deref(testBMmachine.Status.Initialization.Provisioned, false)).To(BeTrue())
 			}
 			if tc.CheckBMProviderID {
 				if tc.CheckBMProviderIDUnchanged {
 					Expect(testBMmachine.Spec.ProviderID).To(Equal(oldProviderID))
 				} else {
 					if tc.CheckBMProviderIDNew {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(ptr.To(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
-							testBMHost.ObjectMeta.Namespace, testBMHost.ObjectMeta.Name, testBMmachine.ObjectMeta.Name))))
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
+							testBMHost.ObjectMeta.Namespace, testBMHost.ObjectMeta.Name, testBMmachine.ObjectMeta.Name)))
 					} else {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(ptr.To(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-							string(testBMHost.ObjectMeta.UID)))))
+						Expect(testBMmachine.Spec.ProviderID).To(Equal(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
+							string(testBMHost.ObjectMeta.UID))))
 					}
 				}
 			}
@@ -526,10 +526,12 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1.Metal3MachineSpec{
-							ProviderID: &providerID,
+							ProviderID: providerID,
 						},
 						&infrav1.Metal3MachineStatus{
-							Ready: true,
+							Initialization: infrav1.Metal3MachineInitializationStatus{
+								Provisioned: ptr.To(true),
+							},
 						},
 						false,
 					),
@@ -677,7 +679,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 					newMetal3Machine(
 						metal3machineName, m3mMetaWithAnnotation(),
 						&infrav1.Metal3MachineSpec{
-							ProviderID: ptr.To(providerID),
+							ProviderID: providerID,
 							Image: infrav1.Image{
 								Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 								URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
@@ -770,13 +772,15 @@ var _ = Describe("Reconcile metal3machine", func() {
 			TestCaseReconcile{
 				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
-						ProviderID: ptr.To("abc"),
+						ProviderID: "abc",
 						Image: infrav1.Image{
 							Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 							URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 						},
 					}, &infrav1.Metal3MachineStatus{
-						Ready: true,
+						Initialization: infrav1.Metal3MachineInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 						// NOTE: Addresses will be populated from BMH
 					}, false),
 					machineWithDataSecret(),
@@ -819,13 +823,15 @@ var _ = Describe("Reconcile metal3machine", func() {
 			TestCaseReconcile{
 				Objects: []client.Object{
 					newMetal3Machine(metal3machineName, m3mMetaWithAnnotation(), &infrav1.Metal3MachineSpec{
-						ProviderID: ptr.To("abc"),
+						ProviderID: "abc",
 						Image: infrav1.Image{
 							Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
 							URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
 						},
 					}, &infrav1.Metal3MachineStatus{
-						Ready: true,
+						Initialization: infrav1.Metal3MachineInitializationStatus{
+							Provisioned: ptr.To(true),
+						},
 						// NOTE: Addresses will be populated from BMH
 					}, false),
 					machineWithDataSecret(),
