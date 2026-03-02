@@ -98,7 +98,7 @@ case "${GINKGO_FOCUS:-}" in
     export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
-    # Note: Uses KUBERNETES_VERSION_FROM directly now (no duplication needed)
+    export KUBERNETES_VERSION_UPGRADE_FROM="${KUBERNETES_VERSION_FROM}"
   ;;
 
   # CAPI md-tests environment vars and config
