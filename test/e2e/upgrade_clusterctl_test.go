@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -280,7 +281,7 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	os.Setenv("KUBECONFIG_WORKLOAD", kconfigPathWorkload)
 	Logf("Save kubeconfig in temp folder for project-infra target log collection")
 	kubeconfigPathTemp := "/tmp/kubeconfig-test1.yaml"
-	cmd := exec.Command("cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
+	cmd := exec.CommandContext(context.Background(), "cp", kconfigPathWorkload, kubeconfigPathTemp) // #nosec G204:gosec
 	stdoutStderr, er := cmd.CombinedOutput()
 	Expect(er).ToNot(HaveOccurred(), "Cannot fetch target cluster kubeconfig: %s", stdoutStderr)
 	// install certmanager
@@ -433,7 +434,7 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 			bmoPath := e2eConfig.MustGetVariable("BMOPATH")
 			ironicCommand := bmoPath + "/tools/run_local_ironic.sh"
 			//#nosec G204 -- We take the BMOPATH from a variable.
-			cmd := exec.Command("sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
+			cmd := exec.CommandContext(context.Background(), "sh", "-c", "export CONTAINER_RUNTIME=docker; "+ironicCommand)
 			stdoutStderr, err := cmd.CombinedOutput()
 			Logf("Output: %s", stdoutStderr)
 			Expect(err).ToNot(HaveOccurred(), "Cannot run local ironic")

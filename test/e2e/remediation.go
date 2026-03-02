@@ -390,13 +390,13 @@ func listVms(state vmState) []string {
 	var cmd *exec.Cmd // gosec Subprocess launched with variable
 	switch state {
 	case running:
-		cmd = exec.Command("sudo", "virsh", "list", "--name", "--state-running")
+		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-running")
 	case shutoff:
-		cmd = exec.Command("sudo", "virsh", "list", "--name", "--state-shutoff")
+		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-shutoff")
 	case paused:
-		cmd = exec.Command("sudo", "virsh", "list", "--name", "--state-paused")
+		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-paused")
 	case other:
-		cmd = exec.Command("sudo", "virsh", "list", "--name", "--state-other")
+		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-other")
 	}
 
 	result, err := cmd.Output()
