@@ -1,0 +1,12 @@
+# Custom golangci-lint configuration for kube-api-linter plugin
+# This file is used by `golangci-lint custom` to build a custom binary
+# that includes the kube-api-linter module.
+#
+# See: https://github.com/kubernetes-sigs/kube-api-linter
+version: v2.8.0
+name: golangci-lint-kube-api-linter
+destination: ./bin
+plugins:
+- module: 'sigs.k8s.io/kube-api-linter'
+  # Check latest module version at: https://pkg.go.dev/sigs.k8s.io/kube-api-linter?tab=versions
+  version: 'v0.0.0-20260206102632-39e3d06a2850'
