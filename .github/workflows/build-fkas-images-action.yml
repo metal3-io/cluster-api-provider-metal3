@@ -19,6 +19,8 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        persist-credentials: false
     - name: Calculate go version
       id: vars
       run: echo "go_version=$(make go-version)" >> "${GITHUB_OUTPUT}"
@@ -34,7 +36,7 @@ jobs:
         go mod edit -replace=github.com/metal3-io/cluster-api-provider-metal3=./capm3
         go mod tidy
     - name: Upload artifact of prepared fkas env
-      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+      uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
       with:
         name: prepared-fkas
         path: hack/fake-apiserver/**
@@ -43,7 +45,7 @@ jobs:
     name: Build Metal3-FKAS image
     if: github.repository == 'metal3-io/cluster-api-provider-metal3'
     needs: prepare
-    uses: metal3-io/project-infra/.github/workflows/container-image-build.yml@main
+    uses: metal3-io/project-infra/.github/workflows/container-image-build.yml@main # zizmor: ignore[unpinned-uses]
     with:
       image-name: "metal3-fkas"
       pushImage: true
