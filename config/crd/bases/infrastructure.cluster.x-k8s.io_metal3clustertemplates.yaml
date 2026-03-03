@@ -137,31 +137,31 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3ClusterTemplateSpec defines the desired state of Metal3ClusterTemplate.
+            description: spec defines the desired state of Metal3ClusterTemplate.
             properties:
               template:
-                description: Metal3ClusterTemplateResource describes the data for
-                  creating a Metal3Cluster from a template.
+                description: template describes the data for creating a Metal3Cluster
+                  from a template
                 properties:
                   spec:
-                    description: Metal3ClusterSpec defines the desired state of Metal3Cluster.
+                    description: spec defines the desired state of Metal3Cluster.
                     properties:
                       cloudProviderEnabled:
                         description: |-
-                          Determines if the cluster is to be deployed with an external cloud provider.
+                          cloudProviderEnabled determines if the cluster is to be deployed with an external cloud provider.
                           If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
                           If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
                         type: boolean
                       controlPlaneEndpoint:
-                        description: ControlPlaneEndpoint represents the endpoint
+                        description: controlPlaneEndpoint represents the endpoint
                           used to communicate with the control plane.
                         properties:
                           host:
-                            description: Host is the hostname on which the API server
+                            description: host is the hostname on which the API server
                               is serving.
                             type: string
                           port:
-                            description: Port is the port on which the API server
+                            description: port is the port on which the API server
                               is serving.
                             type: integer
                         required:
@@ -169,7 +169,7 @@ spec:
                         - port
                         type: object
                       failureDomains:
-                        description: FailureDomains specifies a list of failure zones
+                        description: failureDomains specifies a list of failure zones
                           that can be used
                         items:
                           description: |-

@@ -183,10 +183,10 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3DataClaimSpec defines the desired state of Metal3DataClaim.
+            description: spec defines the desired state of Metal3DataClaim.
             properties:
               template:
-                description: Template is the Metal3DataTemplate this was generated
+                description: template is the Metal3DataTemplate this was generated
                   for.
                 properties:
                   apiVersion:
@@ -233,13 +233,13 @@ spec:
             - template
             type: object
           status:
-            description: Metal3DataClaimStatus defines the observed state of Metal3DataClaim.
+            description: status defines the observed state of Metal3DataClaim.
             properties:
               errorMessage:
-                description: ErrorMessage contains the error message
+                description: errorMessage contains the error message
                 type: string
               renderedData:
-                description: RenderedData references the Metal3Data when ready
+                description: renderedData references the Metal3Data when ready
                 properties:
                   apiVersion:
                     description: API version of the referent.

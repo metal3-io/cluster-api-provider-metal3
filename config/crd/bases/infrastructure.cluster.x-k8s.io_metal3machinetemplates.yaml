@@ -299,24 +299,26 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate.
+            description: spec defines the desired state of Metal3MachineTemplate.
             properties:
               nodeReuse:
                 default: false
                 description: |-
+                  nodeReuse is a flag that can be set to True to enable node reuse during upgrade.
                   When set to True, CAPM3 Machine controller will
                   pick the same pool of BMHs' that were released during the upgrade operation.
                 type: boolean
               template:
-                description: Metal3MachineTemplateResource describes the data needed
-                  to create a Metal3Machine from a template.
+                description: template describes the data needed to create a Metal3Machine
+                  from a template
                 properties:
                   spec:
-                    description: Spec is the specification of the desired behavior
+                    description: spec is the specification of the desired behavior
                       of the machine.
                     properties:
                       automatedCleaningMode:
                         description: |-
+                          automatedCleaningMode determines the mode of automated cleaning.
                           When set to disabled, automated cleaning of host disks will be skipped
                           during provisioning and deprovisioning.
                         enum:
@@ -324,11 +326,11 @@ spec:
                         - disabled
                         type: string
                       customDeploy:
-                        description: A custom deploy procedure.
+                        description: customDeploy is a custom deploy procedure.
                         properties:
                           method:
                             description: |-
-                              Custom deploy method name.
+                              method is the name of the deploy method.
                               This name is specific to the deploy ramdisk used. If you don't have
                               a custom deploy ramdisk, you shouldn't use CustomDeploy.
                             type: string
@@ -337,7 +339,7 @@ spec:
                         type: object
                       dataTemplate:
                         description: |-
-                          MetadataTemplate is a reference to a Metal3DataTemplate object containing
+                          dataTemplate is a reference to a Metal3DataTemplate object containing
                           a template of metadata to be rendered. Metadata keys defined in the
                           metadataTemplate take precedence over keys defined in metadata field.
                         properties:
@@ -382,29 +384,32 @@ spec:
                         type: object
                         x-kubernetes-map-type: atomic
                       failureDomain:
-                        description: FailureDomain is the failure domain unique identifier
-                          this Machine should be attached to, as defined in Cluster
+                        description: failureDomain is the failure domain unique identifier
+                          this machine should be attached to, as defined in Cluster
                           API.
                         type: string
                       hostSelector:
                         description: |-
-                          HostSelector specifies matching criteria for labels on BareMetalHosts.
+                          hostSelector specifies matching criteria for labels on BareMetalHosts.
                           This is used to limit the set of BareMetalHost objects considered for
                           claiming for a metal3machine.
                         properties:
                           matchExpressions:
-                            description: Label match expressions that must be true
-                              on a chosen BareMetalHost
+                            description: matchExpressions specifies match expressions
+                              that must be true on a chosen BareMetalHost
                             items:
                               properties:
                                 key:
+                                  description: key is the label key that the selector
+                                    applies to.
                                   type: string
                                 operator:
-                                  description: |-
-                                    Operator represents a key/field's relationship to value(s).
-                                    See labels.Requirement and fields.Requirement for more details.
+                                  description: operator represents a key's relationship
+                                    to a set of values.
                                   type: string
                                 values:
+                                  description: values is an array of string of required
+                                    values.
                                   items:
                                     type: string
                                   type: array
@@ -417,28 +422,28 @@ spec:
                           matchLabels:
                             additionalProperties:
                               type: string
-                            description: Key/value pairs of labels that must exist
-                              on a chosen BareMetalHost
+                            description: matchLabels specifies key/value pairs of
+                              labels that must exist on a chosen BareMetalHost
                             type: object
                         type: object
                       image:
-                        description: Image is the image to be provisioned.
+                        description: image is the image to be provisioned.
                         properties:
                           checksum:
-                            description: Checksum is a md5sum, sha256sum or sha512sum
+                            description: checksum is a md5sum, sha256sum or sha512sum
                               value or a URL to retrieve one.
                             type: string
                           checksumType:
                             description: |-
-                              ChecksumType is the checksum algorithm for the image.
+                              checksumType is the checksum algorithm for the image.
                               e.g md5, sha256, sha512
                             enum:
                             - md5
                             - sha256
                             - sha512
                             type: string
-                          format:
-                            description: DiskFormat contains the image disk format.
+                          diskFormat:
+                            description: diskFormat contains the image disk format.
                             enum:
                             - raw
                             - qcow2
@@ -447,7 +452,7 @@ spec:
                             - live-iso
                             type: string
                           url:
-                            description: URL is a location of an image to deploy.
+                            description: url is a location of an image to deploy.
                             type: string
                         required:
                         - checksum
@@ -455,8 +460,8 @@ spec:
                         type: object
                       metaData:
                         description: |-
-                          MetaData is an object storing the reference to the secret containing the
-                          Metadata given by the user.
+                          metaData is an object storing the reference to the secret containing the
+                          metadata given by the user.
                         properties:
                           name:
                             description: name is unique within a namespace to reference
@@ -470,7 +475,7 @@ spec:
                         x-kubernetes-map-type: atomic
                       networkData:
                         description: |-
-                          NetworkData is an object storing the reference to the secret containing the
+                          networkData is an object storing the reference to the secret containing the
                           network data given by the user.
                         properties:
                           name:
@@ -485,14 +490,14 @@ spec:
                         x-kubernetes-map-type: atomic
                       providerID:
                         description: |-
-                          ProviderID will be the Metal3 machine in ProviderID format
+                          providerID will be the Metal3 machine in providerID format
                           (metal3://<namespace>/<bmh-name>/<m3m-name>).
                           The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
                           and removed in CAPM3 v1.14.
                         type: string
                       userData:
                         description: |-
-                          UserData references the Secret that holds user data needed by the bare metal
+                          userData references the Secret that holds user data needed by the bare metal
                           operator. The Namespace is optional; it will default to the metal3machine's
                           namespace if not specified.
                         properties:

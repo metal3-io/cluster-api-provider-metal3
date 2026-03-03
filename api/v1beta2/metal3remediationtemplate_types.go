@@ -22,18 +22,19 @@ import (
 
 // Metal3RemediationTemplateSpec defines the desired state of Metal3RemediationTemplate.
 type Metal3RemediationTemplateSpec struct {
+	// template describes the data needed to create a Metal3Remediation from a template
 	Template Metal3RemediationTemplateResource `json:"template"`
 }
 
 // Metal3RemediationTemplateResource describes the data needed to create a Metal3Remediation from a template.
 type Metal3RemediationTemplateResource struct {
-	// Spec is the specification of the desired behavior of the Metal3Remediation.
+	// spec is the specification of the desired behavior of the Metal3Remediation.
 	Spec Metal3RemediationSpec `json:"spec"`
 }
 
 // Metal3RemediationTemplateStatus defines the observed state of Metal3RemediationTemplate.
 type Metal3RemediationTemplateStatus struct {
-	// Metal3RemediationStatus defines the observed state of Metal3Remediation
+	// status defines the observed state of Metal3Remediation
 	Status Metal3RemediationStatus `json:"status"`
 }
 
@@ -46,11 +47,13 @@ type Metal3RemediationTemplateStatus struct {
 // Metal3RemediationTemplate is the Schema for the metal3remediationtemplates API.
 type Metal3RemediationTemplate struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
+	// spec defines the desired state of Metal3RemediationTemplate.
 	// +optional
 	Spec Metal3RemediationTemplateSpec `json:"spec,omitempty"`
+	// status defines the observed state of Metal3RemediationTemplate.
 	// +optional
 	Status Metal3RemediationTemplateStatus `json:"status,omitempty"`
 }

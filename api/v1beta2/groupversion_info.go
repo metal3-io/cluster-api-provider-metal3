@@ -29,23 +29,24 @@ import (
 )
 
 const (
-	// Version is the API version.
+	// version is the API version.
 	Version = "v1beta2"
 
-	// GroupName is the name of the API group.
+	// groupName is the name of the API group.
 	GroupName = "infrastructure.cluster.x-k8s.io"
 )
 
 var (
-	// GroupVersion is group version used to register these objects.
+	// groupVersion is group version used to register these objects.
 	GroupVersion = schema.GroupVersion{Group: GroupName, Version: Version}
 
 	// schemeBuilder is used to add go types to the GroupVersionKind scheme.
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 
-	// AddToScheme adds the types in this group-version to the given scheme.
+	// addToScheme adds the types in this group-version to the given scheme.
 	AddToScheme = schemeBuilder.AddToScheme
 
+	// objectTypes is a list of all the API types in this group-version.
 	objectTypes = []runtime.Object{}
 )
 

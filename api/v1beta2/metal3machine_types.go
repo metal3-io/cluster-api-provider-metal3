@@ -118,100 +118,100 @@ const (
 
 // Metal3MachineSpec defines the desired state of Metal3Machine.
 type Metal3MachineSpec struct {
-	// ProviderID will be the Metal3 machine in ProviderID format
+	// providerID will be the Metal3 machine in providerID format
 	// (metal3://<namespace>/<bmh-name>/<m3m-name>).
 	// The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
 	// and removed in CAPM3 v1.14.
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 
-	// Image is the image to be provisioned.
+	// image is the image to be provisioned.
 	// +optional
 	Image Image `json:"image,omitempty"`
 
-	// A custom deploy procedure.
+	// customDeploy is a custom deploy procedure.
 	// +optional
 	CustomDeploy *CustomDeploy `json:"customDeploy,omitempty"`
 
-	// UserData references the Secret that holds user data needed by the bare metal
+	// userData references the Secret that holds user data needed by the bare metal
 	// operator. The Namespace is optional; it will default to the metal3machine's
 	// namespace if not specified.
 	// +optional
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
 
-	// HostSelector specifies matching criteria for labels on BareMetalHosts.
+	// hostSelector specifies matching criteria for labels on BareMetalHosts.
 	// This is used to limit the set of BareMetalHost objects considered for
 	// claiming for a metal3machine.
 	// +optional
 	HostSelector HostSelector `json:"hostSelector,omitempty"`
 
-	// MetadataTemplate is a reference to a Metal3DataTemplate object containing
+	// dataTemplate is a reference to a Metal3DataTemplate object containing
 	// a template of metadata to be rendered. Metadata keys defined in the
 	// metadataTemplate take precedence over keys defined in metadata field.
 	// +optional
 	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
 
-	// MetaData is an object storing the reference to the secret containing the
-	// Metadata given by the user.
+	// metaData is an object storing the reference to the secret containing the
+	// metadata given by the user.
 	// +optional
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
-	// NetworkData is an object storing the reference to the secret containing the
+	// networkData is an object storing the reference to the secret containing the
 	// network data given by the user.
 	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 
+	// automatedCleaningMode determines the mode of automated cleaning.
 	// When set to disabled, automated cleaning of host disks will be skipped
 	// during provisioning and deprovisioning.
 	// +kubebuilder:validation:Enum:=metadata;disabled
 	// +optional
 	AutomatedCleaningMode *string `json:"automatedCleaningMode,omitempty"`
 
-	// FailureDomain is the failure domain unique identifier this Machine should be attached to, as defined in Cluster API.
+	// failureDomain is the failure domain unique identifier this machine should be attached to, as defined in Cluster API.
 	FailureDomain string `json:"failureDomain,omitempty"`
 }
 
 // Metal3MachineStatus defines the observed state of Metal3Machine.
 type Metal3MachineStatus struct {
-
-	// LastUpdated identifies when this status was last observed.
+	// lastUpdated identifies when this status was last observed.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// Addresses is a list of addresses assigned to the machine.
+	// addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
 	// +optional
 	Addresses clusterv1.MachineAddresses `json:"addresses,omitempty"`
 
-	// Phase represents the current phase of machine actuation.
+	// phase represents the current phase of machine actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
-	// Ready is the state of the metal3.
+	// ready is the state of the metal3.
 	// TODO : Document the variable :
 	// mhrivnak: " it would be good to document what this means, how to interpret
 	// it, under what circumstances the value changes, etc."
 	// +optional
 	Ready bool `json:"ready"`
 
-	// UserData references the Secret that holds user data needed by the bare metal
+	// userData references the Secret that holds user data needed by the bare metal
 	// operator. The Namespace is optional; it will default to the metal3machine's
 	// namespace if not specified.
 	// +optional
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
 
-	// RenderedData is a reference to a rendered Metal3Data object containing
+	// renderedData is a reference to a rendered Metal3Data object containing
 	// the references to metaData and networkData secrets.
 	// +optional
 	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
 
-	// MetaData is an object storing the reference to the secret containing the
-	// Metadata used to deploy the BareMetalHost.
+	// metaData is an object storing the reference to the secret containing the
+	// metadata used to deploy the BareMetalHost.
 	// +optional
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
-	// NetworkData is an object storing the reference to the secret containing the
+	// networkData is an object storing the reference to the secret containing the
 	// network data used to deploy the BareMetalHost.
 	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
@@ -243,14 +243,14 @@ type Metal3MachineDeprecatedStatus struct {
 // Metal3MachineV1Beta1DeprecatedStatus groups all the status fields that are deprecated and will be removed when support for v1beta1 will be dropped.
 // See https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more context.
 type Metal3MachineV1Beta1DeprecatedStatus struct {
-	// Conditions defines current service state of the Metal3Machine.
+	// conditions defines current service state of the Metal3Machine.
 	//
 	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped. Please see https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20240916-improve-status-in-CAPI-resources.md for more details.
 	//
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
-	// FailureReason will be set in the event that there is a terminal problem
+	// failureReason will be set in the event that there is a terminal problem
 	// reconciling the metal3machine and will contain a succinct value suitable
 	// for machine interpretation.
 	//
@@ -272,7 +272,7 @@ type Metal3MachineV1Beta1DeprecatedStatus struct {
 	// +optional
 	FailureReason *capierrors.MachineStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage will be set in the event that there is a terminal problem
+	// failureMessage will be set in the event that there is a terminal problem
 	// reconciling the metal3machine and will contain a more verbose string suitable
 	// for logging and human consumption.
 	//
@@ -309,11 +309,13 @@ type Metal3MachineV1Beta1DeprecatedStatus struct {
 // Metal3Machine is the Schema for the metal3machines API.
 type Metal3Machine struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
+	// spec defines the desired state of Metal3Machine.
 	// +optional
 	Spec Metal3MachineSpec `json:"spec,omitempty"`
+	// status defines the observed state of Metal3Machine.
 	// +optional
 	Status Metal3MachineStatus `json:"status,omitempty"`
 }

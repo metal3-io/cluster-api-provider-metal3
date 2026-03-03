@@ -227,11 +227,11 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3DataSpec defines the desired state of Metal3Data.
+            description: spec defines the desired state of Metal3Data.
             properties:
               claim:
-                description: DataClaim points to the Metal3DataClaim the Metal3Data
-                  was created for.
+                description: claim points to the Metal3DataClaim the Metal3Data was
+                  created for.
                 properties:
                   apiVersion:
                     description: API version of the referent.
@@ -274,11 +274,11 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               index:
-                description: Index stores the index value of this instance in the
+                description: index stores the index value of this instance in the
                   Metal3DataTemplate.
                 type: integer
               metaData:
-                description: MetaData points to the rendered MetaData secret.
+                description: metaData points to the rendered MetaData secret.
                 properties:
                   name:
                     description: name is unique within a namespace to reference a
@@ -291,7 +291,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               networkData:
-                description: NetworkData points to the rendered NetworkData secret.
+                description: networkData points to the rendered NetworkData secret.
                 properties:
                   name:
                     description: name is unique within a namespace to reference a
@@ -304,7 +304,7 @@ spec:
                 type: object
                 x-kubernetes-map-type: atomic
               template:
-                description: DataTemplate is the Metal3DataTemplate this was generated
+                description: template is the Metal3DataTemplate this was generated
                   from.
                 properties:
                   apiVersion:
@@ -352,13 +352,13 @@ spec:
             - template
             type: object
           status:
-            description: Metal3DataStatus defines the observed state of Metal3Data.
+            description: status defines the observed state of Metal3Data.
             properties:
               errorMessage:
-                description: ErrorMessage contains the error message
+                description: errorMessage contains the error message
                 type: string
               ready:
-                description: Ready is a flag set to True if the secrets were rendered
+                description: ready is a flag set to True if the secrets were rendered
                   properly
                 type: boolean
             type: object

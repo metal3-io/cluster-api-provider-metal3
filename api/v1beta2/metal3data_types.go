@@ -29,32 +29,32 @@ const (
 
 // Metal3DataSpec defines the desired state of Metal3Data.
 type Metal3DataSpec struct {
-	// Index stores the index value of this instance in the Metal3DataTemplate.
+	// index stores the index value of this instance in the Metal3DataTemplate.
 	// +optional
 	Index int `json:"index,omitempty"`
 
-	// MetaData points to the rendered MetaData secret.
+	// metaData points to the rendered MetaData secret.
 	// +optional
 	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
 
-	// NetworkData points to the rendered NetworkData secret.
+	// networkData points to the rendered NetworkData secret.
 	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 
-	// DataClaim points to the Metal3DataClaim the Metal3Data was created for.
+	// claim points to the Metal3DataClaim the Metal3Data was created for.
 	Claim corev1.ObjectReference `json:"claim"`
 
-	// DataTemplate is the Metal3DataTemplate this was generated from.
+	// template is the Metal3DataTemplate this was generated from.
 	Template corev1.ObjectReference `json:"template"`
 }
 
 // Metal3DataStatus defines the observed state of Metal3Data.
 type Metal3DataStatus struct {
-	// Ready is a flag set to True if the secrets were rendered properly
+	// ready is a flag set to True if the secrets were rendered properly
 	// +optional
 	Ready bool `json:"ready"`
 
-	// ErrorMessage contains the error message
+	// errorMessage contains the error message
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
@@ -68,11 +68,14 @@ type Metal3DataStatus struct {
 // Metal3Data is the Schema for the metal3datas API.
 type Metal3Data struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// spec defines the desired state of Metal3Data.
 	// +optional
 	Spec Metal3DataSpec `json:"spec,omitempty"`
+	// status defines the observed state of Metal3Data.
 	// +optional
 	Status Metal3DataStatus `json:"status,omitempty"`
 }

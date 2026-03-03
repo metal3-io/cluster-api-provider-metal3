@@ -22,8 +22,10 @@ import (
 
 // Metal3MachineTemplateSpec defines the desired state of Metal3MachineTemplate.
 type Metal3MachineTemplateSpec struct {
+	// template describes the data needed to create a Metal3Machine from a template
 	Template Metal3MachineTemplateResource `json:"template"`
 
+	// nodeReuse is a flag that can be set to True to enable node reuse during upgrade.
 	// When set to True, CAPM3 Machine controller will
 	// pick the same pool of BMHs' that were released during the upgrade operation.
 	// +kubebuilder:default=false
@@ -40,9 +42,10 @@ type Metal3MachineTemplateSpec struct {
 // Metal3MachineTemplate is the Schema for the metal3machinetemplates API.
 type Metal3MachineTemplate struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
+	// spec defines the desired state of Metal3MachineTemplate.
 	// +optional
 	Spec Metal3MachineTemplateSpec `json:"spec,omitempty"`
 }
@@ -63,6 +66,6 @@ func init() {
 
 // Metal3MachineTemplateResource describes the data needed to create a Metal3Machine from a template.
 type Metal3MachineTemplateResource struct {
-	// Spec is the specification of the desired behavior of the machine.
+	// spec is the specification of the desired behavior of the machine.
 	Spec Metal3MachineSpec `json:"spec"`
 }
