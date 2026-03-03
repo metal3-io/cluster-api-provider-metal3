@@ -53,6 +53,8 @@ endif
 CONTROLLER_GEN := $(TOOLS_BIN_DIR)/controller-gen
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN)
+GOLANGCI_LINT_KAL_BIN := golangci-lint-kube-api-linter
+GOLANGCI_LINT_KAL := $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_KAL_BIN)
 MOCKGEN := $(TOOLS_BIN_DIR)/mockgen
 CONVERSION_GEN := $(TOOLS_BIN_DIR)/conversion-gen
 KUBEBUILDER := $(TOOLS_BIN_DIR)/kubebuilder
@@ -375,6 +377,12 @@ $(GOLANGCI_LINT):
 .PHONY: $(GOLANGCI_LINT_BIN)
 $(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint.
 
+$(GOLANGCI_LINT_KAL):
+	cd $(TOOLS_DIR) && ${GOLANGCI_LINT} custom
+
+.PHONY: $(GOLANGCI_LINT_KAL_BIN)
+$(GOLANGCI_LINT_KAL_BIN): $(GOLANGCI_LINT_KAL) # Build golangci-lint-kal from custom configuration.
+
 $(MOCKGEN): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && $(GO) build -tags=tools -o $(BIN_DIR)/mockgen go.uber.org/mock/mockgen
 
@@ -415,11 +423,15 @@ $(ENVSUBST_BIN): $(ENVSUBST) ## Build envsubst from tools folder.
 ##@ linters:
 
 .PHONY: lint
-lint: $(GOLANGCI_LINT) ## Lint codebase
+lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Lint codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 	cd $(FAKE_APISERVER_DIR) && $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+	cd $(APIS_DIR) && $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yaml $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
+
+kube-api-lint: $(GOLANGCI_LINT) $(GOLANGCI_LINT_KAL) ## Run kube-api-linter on the codebase
+	cd $(APIS_DIR) && $(GOLANGCI_LINT_KAL) run -v --config $(ROOT_DIR)/.golangci-kal.yaml $(GOLANGCI_LINT_EXTRA_ARGS) --timeout=15m
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
