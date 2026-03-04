@@ -78,15 +78,20 @@ cluster on Baremetal. It currently has two specification fields :
 
 - **controlPlaneEndpoint**: contains the target cluster API server address and
   port
-- **noCloudProvider(Deprecated use CloudProviderEnabled)**: (true/false) Whether
-  the cluster will not be deployed with an external cloud provider. If set to
-  true, CAPM3 will patch the target cluster node objects to add a providerID.
-  This will allow the CAPI process to continue even if the cluster is deployed
-  without cloud provider.
+- **noCloudProvider(Deprecated, use CloudProviderEnabled)**: (true/false)
+  Whether the cluster will not be deployed with an external cloud provider. If
+  set to `true`, CAPM3 will patch the target cluster `Node` objects to set
+  `spec.providerID`, allowing the CAPI process to continue without a cloud
+  provider.
 - **CloudProviderEnabled**: (true/false) Whether the cluster will be deployed
-  with an external cloud provider. If set to false, CAPM3 will patch the target
-  cluster node objects to add a providerID. This will allow the CAPI process to
-  continue even if the cluster is deployed without cloud provider.
+  with an external cloud provider. If set to `false`, CAPM3 will patch the
+  target cluster `Node` objects to set `spec.providerID`, allowing the CAPI
+  process to continue without a cloud provider.
+
+See
+[ProviderID Workflow](https://book.metal3.io/capm3/providerid-workflow.html)
+for the complete description of how CAPM3 assigns and propagates the ProviderID
+in both cases.
 
 Example metal3cluster :
 
@@ -249,7 +254,10 @@ spec:
     name: controlplane-0
   deletion:
     nodeDrainTimeoutSeconds: 0
-  providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
+  # Set by CAPM3 — format is metal3://<namespace>/<bmh-name>/<m3m-name>
+  # The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
+  # and removed in CAPM3 v1.14.
+  providerID: metal3://metal3/node-0/controlplane-0
   version: v1.35.0
 ```
 

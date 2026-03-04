@@ -119,7 +119,9 @@ const (
 // Metal3MachineSpec defines the desired state of Metal3Machine.
 type Metal3MachineSpec struct {
 	// ProviderID will be the Metal3 machine in ProviderID format
-	// (metal3://<bmh-uuid>)
+	// (metal3://<namespace>/<bmh-name>/<m3m-name>).
+	// The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
+	// and removed in CAPM3 v1.14.
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
 

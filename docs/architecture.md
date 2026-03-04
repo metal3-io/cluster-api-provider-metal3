@@ -397,6 +397,15 @@ status:
 
 #### Flow of information
 
+> **Note:** The `metal3.io/uuid` label shown in the KubeadmConfig examples
+> above is required for CAPM3's label-based ProviderID assignment path. The
+> ProviderID values shown in the `Machine` and `Metal3Machine` YAML examples
+> use the legacy format (`metal3://<BMH-UID>`); the current default is
+> `metal3://<namespace>/<bmh-name>/<m3m-name>`. **The legacy format will be
+> deprecated in CAPM3 v1.13 and removed in CAPM3 v1.14.** See
+> [ProviderID Workflow](https://book.metal3.io/capm3/providerid-workflow.html)
+> for the full explanation.
+
 As was shown on the above CRs, some of the fields are introduced in one CR and
 they travel through multiple CRs to reach the BMH, which is the closest to the
 Bare Metal Server. There is also a movement of information from the
