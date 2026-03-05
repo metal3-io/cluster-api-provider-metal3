@@ -420,3 +420,17 @@ func Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTempl
 
 	return nil
 }
+
+// Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec handles the manual conversion
+// of Metal3DataSpec from v1beta1 to v1beta2. The TemplateReference field was removed in v1beta2.
+func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
+	// TemplateReference is dropped as it was removed in v1beta2
+	return autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s)
+}
+
+// Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec handles the manual conversion
+// of Metal3DataTemplateSpec from v1beta1 to v1beta2. The TemplateReference field was removed in v1beta2.
+func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *infrav1.Metal3DataTemplateSpec, s apimachineryconversion.Scope) error {
+	// TemplateReference is dropped as it was removed in v1beta2
+	return autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in, out, s)
+}
