@@ -477,6 +477,11 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 		paths=./... \
 		object:headerFile=../hack/boilerplate/boilerplate.generatego.txt
 
+	cd $(APIS_DIR) && $(CONVERSION_GEN) \
+		--output-file=zz_generated.conversion.go \
+		--go-header-file=../hack/boilerplate/boilerplate.generatego.txt \
+		./v1beta1
+
 	$(MOCKGEN) \
 	  -destination=./baremetal/mocks/zz_generated.metal3cluster_manager.go \
 	  -source=./baremetal/metal3cluster_manager.go \
@@ -528,11 +533,10 @@ generate-go: $(CONTROLLER_GEN) $(MOCKGEN) $(CONVERSION_GEN) $(KUBEBUILDER) $(KUS
 
 .PHONY: generate-go-conversions
 generate-go-conversions: $(CONTROLLER_GEN) $(CONVERSION_GEN) ## Runs Go related generate targets
-	$(MAKE) clean-generated-conversions SRC_DIRS="./api/v1beta1"
-	$(CONVERSION_GEN) \
+	cd $(APIS_DIR) && $(CONVERSION_GEN) \
 		--output-file=zz_generated.conversion.go \
-		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt \
-		./api/v1beta1
+		--go-header-file=../hack/boilerplate/boilerplate.generatego.txt \
+		./v1beta1
 
 .PHONY: generate-manifests
 generate-manifests: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc.
