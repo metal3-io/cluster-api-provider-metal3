@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"strconv"
 
 	"github.com/go-logr/logr"
@@ -108,14 +109,14 @@ func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1.Cluster) err
 }
 
 // RecreateStatus recreates the status if empty.
-func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int]string, error) {
+func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int32]string, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Fetching Metal3Data objects for indexing",
 		LogFieldMetal3DataTemplate, m.DataTemplate.Name)
 
 	// start from empty maps
-	m.DataTemplate.Status.Indexes = make(map[string]int)
+	m.DataTemplate.Status.Indexes = make(map[string]int32)
 
-	indexes := make(map[int]string)
+	indexes := make(map[int32]string)
 
 	// get list of Metal3Data objects
 	dataObjects := infrav1.Metal3DataList{}
@@ -203,8 +204,8 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 }
 
 func (m *DataTemplateManager) updateData(ctx context.Context,
-	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
-) (map[int]string, error) {
+	dataClaim *infrav1.Metal3DataClaim, indexes map[int32]string,
+) (map[int32]string, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Updating data for claim",
 		LogFieldMetal3DataClaim, dataClaim.Name)
 	helper, err := patch.NewHelper(dataClaim, m.client)
@@ -237,8 +238,8 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 }
 
 func (m *DataTemplateManager) createData(ctx context.Context,
-	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
-) (map[int]string, error) {
+	dataClaim *infrav1.Metal3DataClaim, indexes map[int32]string,
+) (map[int32]string, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Creating data for claim",
 		LogFieldMetal3DataClaim, dataClaim.Name)
 	if !controllerutil.ContainsFinalizer(dataClaim, infrav1.DataClaimFinalizer) {
@@ -247,7 +248,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	if dataClaimIndex, ok := m.DataTemplate.Status.Indexes[dataClaim.Name]; ok {
 		dataClaim.Status.RenderedData = &corev1.ObjectReference{
-			Name:      m.DataTemplate.Name + "-" + strconv.Itoa(dataClaimIndex),
+			Name:      m.DataTemplate.Name + "-" + strconv.Itoa(int(dataClaimIndex)),
 			Namespace: m.DataTemplate.Namespace,
 		}
 		return indexes, nil
@@ -273,20 +274,23 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	// Get a new index for this machine
 	m.Log.Info("Getting index", LogFieldMetal3DataClaim, dataClaim.Name)
-	claimIndex := len(indexes)
+	indexLen := len(indexes)
+	if indexLen > math.MaxInt32 {
+		return indexes, errors.New("indexes map size exceeds maximum int32 value")
+	}
+	claimIndexLength := int32(indexLen)
+	claimIndex := int32(indexLen)
 	// The length of the map might be smaller than the highest index stored,
 	// this means we have a gap to find
-	for index := range len(indexes) {
+	for index := range claimIndexLength {
 		if _, ok := indexes[index]; !ok {
-			if claimIndex == len(indexes) {
-				claimIndex = index
-				break
-			}
+			claimIndex = index
+			break
 		}
 	}
 
 	// Set the index and Metal3Data names
-	dataName := m.DataTemplate.Name + "-" + strconv.Itoa(claimIndex)
+	dataName := m.DataTemplate.Name + "-" + strconv.Itoa(int(claimIndex))
 
 	m.Log.Info("Index assigned", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldIndex, claimIndex)
 
@@ -387,8 +391,8 @@ func (m *DataTemplateManager) retrieveData(ctx context.Context, dataName string,
 
 // deleteMetal3DataAndClaim deletes the Metal3DataClaim and marks the Metal3Data for deletion.
 func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
-	dataClaim *infrav1.Metal3DataClaim, indexes map[int]string,
-) (map[int]string, error) {
+	dataClaim *infrav1.Metal3DataClaim, indexes map[int32]string,
+) (map[int32]string, error) {
 	m.Log.Info("Deleting Metal3DataClaim", LogFieldMetal3DataClaim, dataClaim.Name)
 	persistentErrMsg := ""
 	m3DataFound := false
@@ -399,7 +403,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 
 	if ok {
 		// Try to get the Metal3Data, if it succeeds, delete it
-		dataName = m.DataTemplate.Name + "-" + strconv.Itoa(dataClaimIndex)
+		dataName = m.DataTemplate.Name + "-" + strconv.Itoa(int(dataClaimIndex))
 		err := m.retrieveData(ctx, dataName, tmpM3Data)
 		m3DataFound, persistentErrMsg = m.handleRetrieveDataError(err, "template name and claim index", dataClaim.Name, dataName)
 	} else {

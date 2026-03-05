@@ -50,7 +50,7 @@ func (webhook *Metal3Data) ValidateCreate(_ context.Context, obj runtime.Object)
 	}
 
 	allErrs := field.ErrorList{}
-	if c.Name != c.Spec.Template.Name+"-"+strconv.Itoa(c.Spec.Index) {
+	if c.Name != c.Spec.Template.Name+"-"+strconv.Itoa(int(c.Spec.Index)) {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("name"),

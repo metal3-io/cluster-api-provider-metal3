@@ -1515,6 +1515,7 @@ spec:
                         offset:
                           description: offset is the offset to apply to the index
                             when rendering it
+                          format: int32
                           type: integer
                         prefix:
                           description: prefix is the prefix string
@@ -1522,6 +1523,7 @@ spec:
                         step:
                           default: 1
                           description: step is the multiplier of the index
+                          format: int32
                           type: integer
                         suffix:
                           description: suffix is the suffix string
@@ -1728,6 +1730,7 @@ spec:
                             mtu:
                               default: 1500
                               description: mtu is the MTU of the interface
+                              format: int32
                               maximum: 9000
                               type: integer
                             name:
@@ -1799,6 +1802,7 @@ spec:
                             mtu:
                               default: 1500
                               description: mtu is the MTU of the interface
+                              format: int32
                               maximum: 9000
                               type: integer
                             name:
@@ -1879,6 +1883,7 @@ spec:
                             mtu:
                               default: 1500
                               description: mtu is the MTU of the interface
+                              format: int32
                               maximum: 9000
                               type: integer
                             name:
@@ -1891,6 +1896,7 @@ spec:
                               type: string
                             vlanID:
                               description: vlanID is the Vlan ID
+                              format: int32
                               maximum: 4096
                               type: integer
                             vlanLink:
@@ -2044,6 +2050,7 @@ spec:
                                   prefix:
                                     description: prefix is the mask of the network
                                       as integer (max 32)
+                                    format: int32
                                     maximum: 32
                                     type: integer
                                   services:
@@ -2157,6 +2164,7 @@ spec:
                                   prefix:
                                     description: prefix is the mask of the network
                                       as integer (max 32)
+                                    format: int32
                                     maximum: 32
                                     type: integer
                                   services:
@@ -2320,6 +2328,7 @@ spec:
                                   prefix:
                                     description: prefix is the mask of the network
                                       as integer (max 128)
+                                    format: int32
                                     maximum: 128
                                     type: integer
                                   services:
@@ -2434,6 +2443,7 @@ spec:
                                   prefix:
                                     description: prefix is the mask of the network
                                       as integer (max 128)
+                                    format: int32
                                     maximum: 128
                                     type: integer
                                   services:
@@ -2547,6 +2557,7 @@ spec:
                                   prefix:
                                     description: prefix is the mask of the network
                                       as integer (max 128)
+                                    format: int32
                                     maximum: 128
                                     type: integer
                                   services:
@@ -2601,6 +2612,7 @@ spec:
             properties:
               indexes:
                 additionalProperties:
+                  format: int32
                   type: integer
                 description: indexes contains the map of Metal3Machine and index used
                 type: object

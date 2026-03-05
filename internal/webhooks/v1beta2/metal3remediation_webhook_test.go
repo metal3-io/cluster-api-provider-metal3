@@ -33,7 +33,7 @@ func TestMetal3RemediationValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		timeout   *metav1.Duration
-		limit     int
+		limit     int32
 		strategy  infrav1.RemediationType
 		expectErr bool
 	}{

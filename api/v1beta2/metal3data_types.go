@@ -31,7 +31,7 @@ const (
 type Metal3DataSpec struct {
 	// index stores the index value of this instance in the Metal3DataTemplate.
 	// +optional
-	Index int `json:"index,omitempty"`
+	Index int32 `json:"index,omitempty"`
 
 	// metaData points to the rendered MetaData secret.
 	// +optional

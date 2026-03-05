@@ -956,7 +956,7 @@ func (in *Metal3DataTemplateStatus) DeepCopyInto(out *Metal3DataTemplateStatus) 
 	}
 	if in.Indexes != nil {
 		in, out := &in.Indexes, &out.Indexes
-		*out = make(map[string]int, len(*in))
+		*out = make(map[string]int32, len(*in))
 		for key, val := range *in {
 			(*out)[key] = val
 		}
