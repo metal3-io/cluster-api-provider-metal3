@@ -38,7 +38,7 @@ type APIEndpoint struct {
 	Host string `json:"host"`
 
 	// port is the port on which the API server is serving.
-	Port int `json:"port"`
+	Port int32 `json:"port"`
 }
 
 // HostSelector specifies matching criteria for labels on BareMetalHosts.

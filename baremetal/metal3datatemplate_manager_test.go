@@ -132,8 +132,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		template        *infrav1.Metal3DataTemplate
 		indexes         []*infrav1.Metal3Data
 		expectError     bool
-		expectedMap     map[int]string
-		expectedIndexes map[string]int
+		expectedMap     map[int32]string
+		expectedIndexes map[string]int32
 	}
 
 	DescribeTable("Test getIndexes",
@@ -160,8 +160,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		},
 		Entry("No indexes", testGetIndexes{
 			template:        &infrav1.Metal3DataTemplate{},
-			expectedMap:     map[int]string{},
-			expectedIndexes: map[string]int{},
+			expectedMap:     map[int32]string{},
+			expectedIndexes: map[string]int32{},
 		}),
 		Entry("indexes", testGetIndexes{
 			template: &infrav1.Metal3DataTemplate{
@@ -216,10 +216,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			expectedMap: map[int]string{
+			expectedMap: map[int32]string{
 				0: metal3DataClaimName,
 			},
-			expectedIndexes: map[string]int{
+			expectedIndexes: map[string]int32{
 				metal3DataClaimName: 0,
 			},
 		}),
@@ -237,7 +237,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		expectRequeue     bool
 		expectError       bool
 		expectedNbIndexes int
-		expectedIndexes   map[string]int
+		expectedIndexes   map[string]int32
 	}
 
 	DescribeTable("Test UpdateDatas",
@@ -309,7 +309,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template: &infrav1.Metal3DataTemplate{
 				ObjectMeta: templateMeta,
 			},
-			expectedIndexes: map[string]int{},
+			expectedIndexes: map[string]int32{},
 		}),
 		Entry("Claim and IP exist", testCaseUpdateDatas{
 			template: &infrav1.Metal3DataTemplate{
@@ -476,7 +476,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			expectedIndexes: map[string]int{
+			expectedIndexes: map[string]int32{
 				"claim-without-status": 0,
 				"claim-with-status":    1,
 			},
@@ -488,12 +488,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		template        *infrav1.Metal3DataTemplate
 		dataClaim       *infrav1.Metal3DataClaim
 		datas           []*infrav1.Metal3Data
-		indexes         map[int]string
+		indexes         map[int32]string
 		expectRequeue   bool
 		expectError     bool
 		expectedDatas   []string
-		expectedMap     map[int]string
-		expectedIndexes map[string]int
+		expectedMap     map[int32]string
+		expectedIndexes map[string]int32
 	}
 
 	DescribeTable("Test CreateAddresses",
@@ -542,7 +542,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			template: &infrav1.Metal3DataTemplate{
 				ObjectMeta: templateMeta,
 				Status: infrav1.Metal3DataTemplateStatus{
-					Indexes: map[string]int{
+					Indexes: map[string]int32{
 						metal3DataClaimName: 0,
 					},
 				},
@@ -550,7 +550,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR(metal3DataClaimName, metal3machineName),
 			},
-			expectedIndexes: map[string]int{
+			expectedIndexes: map[string]int32{
 				metal3DataClaimName: 0,
 			},
 		}),
@@ -559,17 +559,17 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: templateMeta,
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 				Status: infrav1.Metal3DataTemplateStatus{
-					Indexes: map[string]int{},
+					Indexes: map[string]int32{},
 				},
 			},
-			indexes: map[int]string{},
+			indexes: map[int32]string{},
 			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR(metal3DataClaimName, metal3machineName),
 			},
-			expectedIndexes: map[string]int{
+			expectedIndexes: map[string]int32{
 				metal3DataClaimName: 0,
 			},
-			expectedMap: map[int]string{
+			expectedMap: map[int32]string{
 				0: metal3DataClaimName,
 			},
 			expectedDatas: []string{"abc-0"},
@@ -579,20 +579,20 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: templateMeta,
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 				Status: infrav1.Metal3DataTemplateStatus{
-					Indexes: map[string]int{
+					Indexes: map[string]int32{
 						"bcd": 0,
 					},
 				},
 			},
-			indexes: map[int]string{0: "bcd"},
+			indexes: map[int32]string{0: "bcd"},
 			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR(metal3DataClaimName, metal3machineName),
 			},
-			expectedIndexes: map[string]int{
+			expectedIndexes: map[string]int32{
 				metal3DataClaimName: 1,
 				"bcd":               0,
 			},
-			expectedMap: map[int]string{
+			expectedMap: map[int32]string{
 				0: "bcd",
 				1: metal3DataClaimName,
 			},
@@ -603,10 +603,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: templateMeta,
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 				Status: infrav1.Metal3DataTemplateStatus{
-					Indexes: map[string]int{},
+					Indexes: map[string]int32{},
 				},
 			},
-			indexes: map[int]string{},
+			indexes: map[int32]string{},
 			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMetaWithOR(metal3DataClaimName, metal3machineName),
 			},
@@ -627,8 +627,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			expectedIndexes: map[string]int{},
-			expectedMap:     map[int]string{},
+			expectedIndexes: map[string]int32{},
+			expectedMap:     map[int32]string{},
 			expectedDatas:   []string{"abc-0"},
 			expectRequeue:   true,
 		}),
@@ -638,9 +638,9 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		template        *infrav1.Metal3DataTemplate
 		dataClaim       *infrav1.Metal3DataClaim
 		datas           []*infrav1.Metal3Data
-		indexes         map[int]string
-		expectedMap     map[int]string
-		expectedIndexes map[string]int
+		indexes         map[int32]string
+		expectedMap     map[int32]string
+		expectedIndexes map[string]int32
 		expectError     bool
 	}
 
@@ -686,15 +686,15 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMeta("TestRef", "", ""),
 			},
-			expectedMap: map[int]string{0: "abcd"},
-			indexes: map[int]string{
+			expectedMap: map[int32]string{0: "abcd"},
+			indexes: map[int32]string{
 				0: "abcd",
 			},
 		}),
 		Entry("Deletion needed, not found", testCaseDeleteDatas{
 			template: &infrav1.Metal3DataTemplate{
 				Status: infrav1.Metal3DataTemplateStatus{
-					Indexes: map[string]int{
+					Indexes: map[string]int32{
 						"TestRef": 0,
 					},
 				},
@@ -702,18 +702,18 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			dataClaim: &infrav1.Metal3DataClaim{
 				ObjectMeta: testObjectMeta("TestRef", "", ""),
 			},
-			indexes: map[int]string{
+			indexes: map[int32]string{
 				0: "TestRef",
 			},
-			expectedIndexes: map[string]int{},
-			expectedMap:     map[int]string{},
+			expectedIndexes: map[string]int32{},
+			expectedMap:     map[int32]string{},
 		}),
 		Entry("Deletion needed", testCaseDeleteDatas{
 			template: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta("abc", "", ""),
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 				Status: infrav1.Metal3DataTemplateStatus{
-					Indexes: map[string]int{
+					Indexes: map[string]int32{
 						"TestRef": 0,
 					},
 				},
@@ -726,11 +726,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			indexes: map[int]string{
+			indexes: map[int32]string{
 				0: "TestRef",
 			},
-			expectedMap:     map[int]string{},
-			expectedIndexes: map[string]int{},
+			expectedMap:     map[int32]string{},
+			expectedIndexes: map[string]int32{},
 			datas: []*infrav1.Metal3Data{
 				{
 					ObjectMeta: metav1.ObjectMeta{
@@ -744,7 +744,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				ObjectMeta: testObjectMeta("abc", "", ""),
 				Spec:       infrav1.Metal3DataTemplateSpec{},
 				Status: infrav1.Metal3DataTemplateStatus{
-					Indexes: map[string]int{
+					Indexes: map[string]int32{
 						"TestRef": 0,
 					},
 				},
@@ -762,11 +762,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 			},
-			indexes: map[int]string{
+			indexes: map[int32]string{
 				0: "TestRef",
 			},
-			expectedMap:     map[int]string{},
-			expectedIndexes: map[string]int{},
+			expectedMap:     map[int32]string{},
+			expectedIndexes: map[string]int32{},
 			datas: []*infrav1.Metal3Data{
 				{
 					ObjectMeta: metav1.ObjectMeta{

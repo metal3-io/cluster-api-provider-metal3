@@ -44,7 +44,7 @@ var (
 	minTimeout = metav1.Duration{Duration: minDuration}
 	// Mininum remediation retry limit is 1.
 	// Controller will try to remediate unhealhy node at least once.
-	minRetryLimit = 1
+	minRetryLimit = int32(1)
 )
 
 // log is for logging in this package.

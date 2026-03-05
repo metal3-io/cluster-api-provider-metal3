@@ -158,6 +158,7 @@ spec:
                 properties:
                   retryLimit:
                     description: retryLimit sets maximum number of remediation retries.
+                    format: int32
                     type: integer
                   timeout:
                     description: timeout Sets the timeout between remediation retries.
@@ -183,6 +184,7 @@ spec:
                 description: |-
                   retryCount can be used as a counter during the remediation.
                   Field can hold number of reboots etc.
+                format: int32
                 type: integer
             type: object
         type: object

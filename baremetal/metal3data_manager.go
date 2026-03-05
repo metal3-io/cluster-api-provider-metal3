@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"regexp"
 	"strconv"
@@ -331,9 +332,29 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 // addressFromPool contains the elements coming from an IPPool.
 type addressFromPool struct {
 	Address    ipamv1.IPAddressStr
-	Prefix     int
+	Prefix     int32
 	Gateway    ipamv1.IPAddressStr
 	dnsServers []ipamv1.IPAddressStr
+}
+
+// newAddressFromIPAMv1 converts an ipamv1.IPAddress to addressFromPool,
+// handling the type conversion from ipamv1's int Prefix to int32.
+func newAddressFromIPAMv1(ipAddress *ipamv1.IPAddress) (addressFromPool, error) {
+	gateway := ipamv1.IPAddressStr("")
+	if ipAddress.Spec.Gateway != nil {
+		gateway = *ipAddress.Spec.Gateway
+	}
+
+	if ipAddress.Spec.Prefix < math.MinInt32 || ipAddress.Spec.Prefix > math.MaxInt32 {
+		return addressFromPool{}, fmt.Errorf("prefix out of range: %d", ipAddress.Spec.Prefix)
+	}
+	prefix := int32(ipAddress.Spec.Prefix) //nolint:gosec // Prefix is validated above,
+	return addressFromPool{
+		Address:    ipAddress.Spec.Address,
+		Prefix:     prefix,
+		Gateway:    gateway,
+		dnsServers: ipAddress.Spec.DNSServers,
+	}, nil
 }
 
 type reconciledClaim struct {
@@ -849,17 +870,13 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 		return addressFromPool{}, false, err
 	}
 
-	gateway := ipamv1.IPAddressStr("")
-	if ipAddress.Spec.Gateway != nil {
-		gateway = *ipAddress.Spec.Gateway
+	address, err := newAddressFromIPAMv1(ipAddress)
+	if err != nil {
+		m.Log.Error(err, "Failed to create address from IPAMv1", LogFieldIPAddress, ipClaim.Status.Address.Name)
+		return addressFromPool{}, false, err
 	}
 
-	return addressFromPool{
-		Address:    ipAddress.Spec.Address,
-		Prefix:     ipAddress.Spec.Prefix,
-		Gateway:    gateway,
-		dnsServers: ipAddress.Spec.DNSServers,
-	}, false, nil
+	return address, false, nil
 }
 
 // releaseAddressFromM3Pool deletes the Metal3IPClaim for a referenced pool.
@@ -996,7 +1013,7 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalO
 
 	a := addressFromPool{
 		Address:    ipamv1.IPAddressStr(address.Spec.Address),
-		Prefix:     int(*address.Spec.Prefix),
+		Prefix:     *address.Spec.Prefix,
 		Gateway:    ipamv1.IPAddressStr(address.Spec.Gateway),
 		dnsServers: []ipamv1.IPAddressStr{},
 	}
@@ -1435,18 +1452,18 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 }
 
 // translateMask transforms a mask given as integer into a dotted-notation string.
-func translateMask(maskInt int, ipv4 bool) any {
+func translateMask(maskInt int32, ipv4 bool) any {
 	IPv4MaskLen := 32
 	IPv6MaskLen := 128
 	if ipv4 {
 		// Get the mask by concatenating the IPv4 prefix of net package and the mask
 		address := net.IP(append([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255},
-			[]byte(net.CIDRMask(maskInt, IPv4MaskLen))...,
+			[]byte(net.CIDRMask(int(maskInt), IPv4MaskLen))...,
 		)).String()
 		return ipamv1.IPAddressv4Str(address)
 	}
 	// get the mask
-	address := net.IP(net.CIDRMask(maskInt, IPv6MaskLen)).String()
+	address := net.IP(net.CIDRMask(int(maskInt), IPv6MaskLen)).String()
 	return ipamv1.IPAddressv6Str(address)
 }
 
@@ -1525,7 +1542,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		if !ok {
 			return nil, errors.New("pool not found in cache")
 		}
-		metadata[entry.Key] = strconv.Itoa(poolAddress.Prefix)
+		metadata[entry.Key] = strconv.Itoa(int(poolAddress.Prefix))
 	}
 
 	// Gateways
@@ -1542,7 +1559,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		if entry.Step == 0 {
 			entry.Step = 1
 		}
-		metadata[entry.Key] = entry.Prefix + strconv.Itoa(entry.Offset+m3d.Spec.Index*entry.Step) + entry.Suffix
+		metadata[entry.Key] = entry.Prefix + strconv.Itoa(int(entry.Offset+m3d.Spec.Index*entry.Step)) + entry.Suffix
 	}
 
 	// Namespaces
