@@ -1526,7 +1526,8 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		)
 		if entry.FromBootMAC {
 			if bmh.Spec.BootMACAddress == "" {
-				return nil, errors.New("BootMACAddress is empty")
+				return nil, fmt.Errorf("metadata key %q: BareMetalHost %s/%s spec.bootMACAddress is empty",
+					entry.Key, bmh.Namespace, bmh.Name)
 			}
 			value = bmh.Spec.BootMACAddress
 		} else {

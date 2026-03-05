@@ -103,7 +103,7 @@ type MetaDataHostInterface struct {
 	// Details list of interfaces from which to fetch the MAC address.
 	// +optional
 	Interface string `json:"interface,omitempty"`
-	// FromBootMAC will fetch the MAC address from the BareMetalHost Spec BootMACAddress field.
+	// fromBootMAC will fetch the MAC address from the BareMetalHost Spec BootMACAddress field.
 	// +optional
 	FromBootMAC bool `json:"fromBootMAC,omitempty"` //nolint:tagliatelle // MAC is abbreviation and needs to be capitalized
 }
