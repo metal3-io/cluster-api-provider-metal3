@@ -1130,14 +1130,14 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		}
 
 		illegalParameters := []string{}
-		for opt, value := range link.Parameters {
-			target := "bond_" + opt
+		for _, param := range link.Parameters {
+			target := "bond_" + param.Name
 			_, ok := entry[target]
 			if ok {
-				illegalParameters = append(illegalParameters, opt)
+				illegalParameters = append(illegalParameters, param.Name)
 				continue // Do not overwrite structured parameters
 			}
-			entry[target] = value
+			entry[target] = param.Value
 		}
 
 		if 0 < len(illegalParameters) {

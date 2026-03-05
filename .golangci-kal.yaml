@@ -18,7 +18,6 @@ linters:
             - "optionalorrequired"
             - "nonpointerstructs"
             - "nophase"
-            - "nomaps"
             - "conditions"
             - "arrayofstruct"
             - "ssatags"

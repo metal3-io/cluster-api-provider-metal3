@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sort"
 	"strconv"
 
 	"github.com/go-logr/logr"
@@ -109,14 +110,14 @@ func (m *DataTemplateManager) SetClusterOwnerRef(cluster *clusterv1.Cluster) err
 }
 
 // RecreateStatus recreates the status if empty.
-func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int32]string, error) {
+func (m *DataTemplateManager) getIndexes(ctx context.Context) ([]infrav1.IndexEntry, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Fetching Metal3Data objects for indexing",
 		LogFieldMetal3DataTemplate, m.DataTemplate.Name)
 
-	// start from empty maps
-	m.DataTemplate.Status.Indexes = make(map[string]int32)
+	// start from empty list
+	m.DataTemplate.Status.Indexes = []infrav1.IndexEntry{}
 
-	indexes := make(map[int32]string)
+	indexes := []infrav1.IndexEntry{}
 
 	// get list of Metal3Data objects
 	dataObjects := infrav1.Metal3DataList{}
@@ -141,9 +142,22 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) (map[int32]string,
 		}
 
 		claimName := dataObject.Spec.Claim.Name
-		m.DataTemplate.Status.Indexes[claimName] = dataObject.Spec.Index
-		indexes[dataObject.Spec.Index] = claimName
+		m.DataTemplate.Status.Indexes = append(m.DataTemplate.Status.Indexes, infrav1.IndexEntry{
+			Name:  claimName,
+			Index: dataObject.Spec.Index,
+		})
+		indexes = append(indexes, infrav1.IndexEntry{
+			Name:  claimName,
+			Index: dataObject.Spec.Index,
+		})
 	}
+	// Ensure deterministic ordering of indexes by index
+	sort.Slice(m.DataTemplate.Status.Indexes, func(i, j int) bool {
+		return m.DataTemplate.Status.Indexes[i].Index < m.DataTemplate.Status.Indexes[j].Index
+	})
+	sort.Slice(indexes, func(i, j int) bool {
+		return indexes[i].Index < indexes[j].Index
+	})
 	m.updateStatusTimestamp()
 	return indexes, nil
 }
@@ -204,8 +218,8 @@ func (m *DataTemplateManager) UpdateDatas(ctx context.Context) (bool, bool, erro
 }
 
 func (m *DataTemplateManager) updateData(ctx context.Context,
-	dataClaim *infrav1.Metal3DataClaim, indexes map[int32]string,
-) (map[int32]string, error) {
+	dataClaim *infrav1.Metal3DataClaim, indexes []infrav1.IndexEntry,
+) ([]infrav1.IndexEntry, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Updating data for claim",
 		LogFieldMetal3DataClaim, dataClaim.Name)
 	helper, err := patch.NewHelper(dataClaim, m.client)
@@ -238,20 +252,22 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 }
 
 func (m *DataTemplateManager) createData(ctx context.Context,
-	dataClaim *infrav1.Metal3DataClaim, indexes map[int32]string,
-) (map[int32]string, error) {
+	dataClaim *infrav1.Metal3DataClaim, indexes []infrav1.IndexEntry,
+) ([]infrav1.IndexEntry, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Creating data for claim",
 		LogFieldMetal3DataClaim, dataClaim.Name)
 	if !controllerutil.ContainsFinalizer(dataClaim, infrav1.DataClaimFinalizer) {
 		controllerutil.AddFinalizer(dataClaim, infrav1.DataClaimFinalizer)
 	}
 
-	if dataClaimIndex, ok := m.DataTemplate.Status.Indexes[dataClaim.Name]; ok {
-		dataClaim.Status.RenderedData = &corev1.ObjectReference{
-			Name:      m.DataTemplate.Name + "-" + strconv.Itoa(int(dataClaimIndex)),
-			Namespace: m.DataTemplate.Namespace,
+	for _, indexEntry := range m.DataTemplate.Status.Indexes {
+		if indexEntry.Name == dataClaim.Name {
+			dataClaim.Status.RenderedData = &corev1.ObjectReference{
+				Name:      m.DataTemplate.Name + "-" + strconv.Itoa(int(indexEntry.Index)),
+				Namespace: m.DataTemplate.Namespace,
+			}
+			return indexes, nil
 		}
-		return indexes, nil
 	}
 
 	m3mUID := types.UID("")
@@ -283,7 +299,14 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	// The length of the map might be smaller than the highest index stored,
 	// this means we have a gap to find
 	for index := range claimIndexLength {
-		if _, ok := indexes[index]; !ok {
+		found := false
+		for _, indexEntry := range indexes {
+			if indexEntry.Index == index {
+				found = true
+				break
+			}
+		}
+		if !found {
 			claimIndex = index
 			break
 		}
@@ -352,13 +375,27 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		return indexes, err
 	}
 
-	m.DataTemplate.Status.Indexes[dataClaim.Name] = claimIndex
-	indexes[claimIndex] = dataClaim.Name
+	m.DataTemplate.Status.Indexes = append(m.DataTemplate.Status.Indexes, infrav1.IndexEntry{
+		Name:  dataClaim.Name,
+		Index: claimIndex,
+	})
+	indexes = append(indexes, infrav1.IndexEntry{
+		Name:  dataClaim.Name,
+		Index: claimIndex,
+	})
 
 	dataClaim.Status.RenderedData = &corev1.ObjectReference{
 		Name:      dataName,
 		Namespace: m.DataTemplate.Namespace,
 	}
+
+	// Sort indexes by Index field to ensure deterministic ordering
+	sort.Slice(m.DataTemplate.Status.Indexes, func(i, j int) bool {
+		return m.DataTemplate.Status.Indexes[i].Index < m.DataTemplate.Status.Indexes[j].Index
+	})
+	sort.Slice(indexes, func(i, j int) bool {
+		return indexes[i].Index < indexes[j].Index
+	})
 
 	return indexes, nil
 }
@@ -391,15 +428,23 @@ func (m *DataTemplateManager) retrieveData(ctx context.Context, dataName string,
 
 // deleteMetal3DataAndClaim deletes the Metal3DataClaim and marks the Metal3Data for deletion.
 func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
-	dataClaim *infrav1.Metal3DataClaim, indexes map[int32]string,
-) (map[int32]string, error) {
+	dataClaim *infrav1.Metal3DataClaim, indexes []infrav1.IndexEntry,
+) ([]infrav1.IndexEntry, error) {
 	m.Log.Info("Deleting Metal3DataClaim", LogFieldMetal3DataClaim, dataClaim.Name)
 	persistentErrMsg := ""
 	m3DataFound := false
 	tmpM3Data := &infrav1.Metal3Data{}
 	dataName := ""
 
-	dataClaimIndex, ok := m.DataTemplate.Status.Indexes[dataClaim.Name]
+	dataClaimIndex := int32(-1)
+	ok := false
+	for _, indexEntry := range m.DataTemplate.Status.Indexes {
+		if indexEntry.Name == dataClaim.Name {
+			dataClaimIndex = indexEntry.Index
+			ok = true
+			break
+		}
+	}
 
 	if ok {
 		// Try to get the Metal3Data, if it succeeds, delete it
@@ -450,8 +495,23 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 	controllerutil.RemoveFinalizer(dataClaim, infrav1.DataClaimFinalizer)
 
 	if ok {
-		delete(m.DataTemplate.Status.Indexes, dataClaim.Name)
-		delete(indexes, dataClaimIndex)
+		// Remove the index entry from the slice by filtering it out
+		filteredIndexes := []infrav1.IndexEntry{}
+		for _, indexEntry := range m.DataTemplate.Status.Indexes {
+			if indexEntry.Name != dataClaim.Name && indexEntry.Index != dataClaimIndex {
+				filteredIndexes = append(filteredIndexes, indexEntry)
+			}
+		}
+		m.DataTemplate.Status.Indexes = filteredIndexes
+
+		// Also filter the local indexes slice
+		filteredLocalIndexes := []infrav1.IndexEntry{}
+		for _, indexEntry := range indexes {
+			if indexEntry.Name != dataClaim.Name && indexEntry.Index != dataClaimIndex {
+				filteredLocalIndexes = append(filteredLocalIndexes, indexEntry)
+			}
+		}
+		indexes = filteredLocalIndexes
 	}
 
 	m.Log.Info("Deleted Metal3DataClaim", LogFieldMetal3DataClaim, dataClaim.Name)
