@@ -25,18 +25,19 @@ import (
 )
 
 const (
-	// UnhealthyAnnotation is the annotation that sets unhealthy status of BMH.
+	// unhealthyAnnotation is the annotation that sets unhealthy status of BMH.
 	UnhealthyAnnotation = "capi.metal3.io/unhealthy"
 
+	// liveISODiskFormat is the disk format for live-iso images.
 	LiveISODiskFormat = "live-iso"
 )
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
 type APIEndpoint struct {
-	// Host is the hostname on which the API server is serving.
+	// host is the hostname on which the API server is serving.
 	Host string `json:"host"`
 
-	// Port is the port on which the API server is serving.
+	// port is the port on which the API server is serving.
 	Port int `json:"port"`
 }
 
@@ -44,44 +45,49 @@ type APIEndpoint struct {
 // This is used to limit the set of BareMetalHost objects considered for
 // claiming for a Machine.
 type HostSelector struct {
-	// Key/value pairs of labels that must exist on a chosen BareMetalHost
+	// matchLabels specifies key/value pairs of labels that must exist on a chosen BareMetalHost
 	// +optional
 	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 
-	// Label match expressions that must be true on a chosen BareMetalHost
+	// matchExpressions specifies match expressions that must be true on a chosen BareMetalHost
 	// +optional
 	MatchExpressions []HostSelectorRequirement `json:"matchExpressions,omitempty"`
 }
 
 type HostSelectorRequirement struct {
-	Key      string             `json:"key"`
+	// key is the label key that the selector applies to.
+	Key string `json:"key"`
+
+	// operator represents a key's relationship to a set of values.
 	Operator selection.Operator `json:"operator"`
-	Values   []string           `json:"values"`
+
+	// values is an array of string of required values.
+	Values []string `json:"values"`
 }
 
 // Image holds the details of an image to use during provisioning.
 type Image struct {
-	// URL is a location of an image to deploy.
+	// url is a location of an image to deploy.
 	URL string `json:"url"`
 
-	// Checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
+	// checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
 	Checksum string `json:"checksum"`
 
-	// ChecksumType is the checksum algorithm for the image.
+	// checksumType is the checksum algorithm for the image.
 	// e.g md5, sha256, sha512
 	// +kubebuilder:validation:Enum=md5;sha256;sha512
 	// +optional
 	ChecksumType *string `json:"checksumType,omitempty"`
 
-	// DiskFormat contains the image disk format.
+	// diskFormat contains the image disk format.
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk;live-iso
 	// +optional
-	DiskFormat *string `json:"format,omitempty"`
+	DiskFormat *string `json:"diskFormat,omitempty"`
 }
 
 // Custom deploy is a description of a customized deploy process.
 type CustomDeploy struct {
-	// Custom deploy method name.
+	// method is the name of the deploy method.
 	// This name is specific to the deploy ramdisk used. If you don't have
 	// a custom deploy ramdisk, you shouldn't use CustomDeploy.
 	Method string `json:"method"`

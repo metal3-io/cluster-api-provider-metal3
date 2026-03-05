@@ -48,39 +48,39 @@ const (
 
 // Metal3RemediationSpec defines the desired state of Metal3Remediation.
 type Metal3RemediationSpec struct {
-	// Strategy field defines remediation strategy.
+	// strategy field defines remediation strategy.
 	// +optional
 	Strategy *RemediationStrategy `json:"strategy,omitempty"`
 }
 
 // RemediationStrategy describes how to remediate machines.
 type RemediationStrategy struct {
-	// Type of remediation.
+	// type of remediation.
 	// +optional
 	Type RemediationType `json:"type,omitempty"`
 
-	// Sets maximum number of remediation retries.
+	// retryLimit sets maximum number of remediation retries.
 	// +optional
 	RetryLimit int `json:"retryLimit,omitempty"`
 
-	// Sets the timeout between remediation retries.
+	// timeout Sets the timeout between remediation retries.
 	// +optional
 	Timeout *metav1.Duration `json:"timeout"`
 }
 
 // Metal3RemediationStatus defines the observed state of Metal3Remediation.
 type Metal3RemediationStatus struct {
-	// Phase represents the current phase of machine remediation.
+	// phase represents the current phase of machine remediation.
 	// E.g. Pending, Running, Done etc.
 	// +optional
 	Phase string `json:"phase,omitempty"`
 
-	// RetryCount can be used as a counter during the remediation.
+	// retryCount can be used as a counter during the remediation.
 	// Field can hold number of reboots etc.
 	// +optional
 	RetryCount int `json:"retryCount,omitempty"`
 
-	// LastRemediated identifies when the host was last remediated
+	// lastRemediated identifies when the host was last remediated
 	// +optional
 	LastRemediated *metav1.Time `json:"lastRemediated,omitempty"`
 }
@@ -101,11 +101,13 @@ type Metal3RemediationStatus struct {
 // Metal3Remediation is the Schema for the metal3remediations API.
 type Metal3Remediation struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
+	// spec defines the desired state of Metal3Remediation.
 	// +optional
 	Spec Metal3RemediationSpec `json:"spec,omitempty"`
+	// status defines the observed state of Metal3Remediation.
 	// +optional
 	Status Metal3RemediationStatus `json:"status,omitempty"`
 }

@@ -22,6 +22,7 @@ import (
 
 // Metal3ClusterTemplateSpec defines the desired state of Metal3ClusterTemplate.
 type Metal3ClusterTemplateSpec struct {
+	// template describes the data for creating a Metal3Cluster from a template
 	Template Metal3ClusterTemplateResource `json:"template"`
 }
 
@@ -31,9 +32,11 @@ type Metal3ClusterTemplateSpec struct {
 
 // Metal3ClusterTemplate is the Schema for the metal3clustertemplates API.
 type Metal3ClusterTemplate struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// spec defines the desired state of Metal3ClusterTemplate.
 	Spec Metal3ClusterTemplateSpec `json:"spec,omitempty"`
 }
 
@@ -43,7 +46,8 @@ type Metal3ClusterTemplate struct {
 type Metal3ClusterTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Metal3ClusterTemplate `json:"items"`
+	// item is a list of Metal3ClusterTemplate objects.
+	Items []Metal3ClusterTemplate `json:"items"`
 }
 
 func init() {
@@ -52,5 +56,6 @@ func init() {
 
 // Metal3ClusterTemplateResource describes the data for creating a Metal3Cluster from a template.
 type Metal3ClusterTemplateResource struct {
+	// spec defines the desired state of Metal3Cluster.
 	Spec Metal3ClusterSpec `json:"spec"`
 }

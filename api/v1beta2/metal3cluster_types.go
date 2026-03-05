@@ -48,16 +48,16 @@ const (
 
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.
 type Metal3ClusterSpec struct {
-	// ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.
+	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
 	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
-	// Determines if the cluster is to be deployed with an external cloud provider.
+	// cloudProviderEnabled determines if the cluster is to be deployed with an external cloud provider.
 	// If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
 	// If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
 
-	// FailureDomains specifies a list of failure zones that can be used
+	// failureDomains specifies a list of failure zones that can be used
 	// +optional
 	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 }
@@ -82,11 +82,11 @@ func (s *Metal3ClusterSpec) IsValid() error {
 
 // Metal3ClusterStatus defines the observed state of Metal3Cluster.
 type Metal3ClusterStatus struct {
-	// LastUpdated identifies when this status was last observed.
+	// lastUpdated identifies when this status was last observed.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// Ready denotes that the Metal3 cluster (infrastructure) is ready. In
+	// ready denotes that the Metal3 cluster (infrastructure) is ready. In
 	// Baremetal case, it does not mean anything for now as no infrastructure
 	// steps need to be performed. Required by Cluster API. Set to True by the
 	// metal3Cluster controller after creation.
@@ -132,13 +132,13 @@ type Metal3ClusterV1Beta1DeprecatedStatus struct {
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
-	// FailureReason indicates that there is a fatal problem reconciling the
+	// failureReason indicates that there is a fatal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
 	// +optional
 	FailureReason *capierrors.ClusterStatusError `json:"failureReason,omitempty"`
 
-	// FailureMessage indicates that there is a fatal problem reconciling the
+	// failureMessage indicates that there is a fatal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
@@ -158,10 +158,13 @@ type Metal3ClusterV1Beta1DeprecatedStatus struct {
 // Metal3Cluster is the Schema for the metal3clusters API.
 type Metal3Cluster struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+	// spec defines the desired state of Metal3Cluster.
 	// +optional
 	Spec Metal3ClusterSpec `json:"spec,omitempty"`
+	// status defines the observed state of Metal3Cluster.
 	// +optional
 	Status Metal3ClusterStatus `json:"status,omitempty"`
 }
@@ -173,7 +176,8 @@ type Metal3ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Metal3Cluster `json:"items"`
+	// items is a list of Metal3Cluster objects.
+	Items []Metal3Cluster `json:"items"`
 }
 
 // GetConditions returns the list of conditions for an Metal3Cluster API object.

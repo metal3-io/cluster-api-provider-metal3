@@ -22,24 +22,24 @@ import (
 )
 
 const (
-	// DataClaimFinalizer allows Metal3DataReconciler to clean up resources
+	// dataClaimFinalizer allows Metal3DataReconciler to clean up resources
 	// associated with Metal3DataClaim before removing it from the apiserver.
 	DataClaimFinalizer = "metal3dataclaim.infrastructure.cluster.x-k8s.io"
 )
 
 // Metal3DataClaimSpec defines the desired state of Metal3DataClaim.
 type Metal3DataClaimSpec struct {
-	// Template is the Metal3DataTemplate this was generated for.
+	// template is the Metal3DataTemplate this was generated for.
 	Template corev1.ObjectReference `json:"template"`
 }
 
 // Metal3DataClaimStatus defines the observed state of Metal3DataClaim.
 type Metal3DataClaimStatus struct {
-	// RenderedData references the Metal3Data when ready
+	// renderedData references the Metal3Data when ready
 	// +optional
 	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
 
-	// ErrorMessage contains the error message
+	// errorMessage contains the error message
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
@@ -53,11 +53,13 @@ type Metal3DataClaimStatus struct {
 // Metal3DataClaim is the Schema for the metal3datas API.
 type Metal3DataClaim struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
+	// spec defines the desired state of Metal3DataClaim.
 	// +optional
 	Spec Metal3DataClaimSpec `json:"spec,omitempty"`
+	// status defines the observed state of Metal3DataClaim.
 	// +optional
 	Status Metal3DataClaimStatus `json:"status,omitempty"`
 }

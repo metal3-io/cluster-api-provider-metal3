@@ -134,28 +134,29 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3RemediationTemplateSpec defines the desired state of
-              Metal3RemediationTemplate.
+            description: spec defines the desired state of Metal3RemediationTemplate.
             properties:
               template:
-                description: Metal3RemediationTemplateResource describes the data
-                  needed to create a Metal3Remediation from a template.
+                description: template describes the data needed to create a Metal3Remediation
+                  from a template
                 properties:
                   spec:
-                    description: Spec is the specification of the desired behavior
+                    description: spec is the specification of the desired behavior
                       of the Metal3Remediation.
                     properties:
                       strategy:
-                        description: Strategy field defines remediation strategy.
+                        description: strategy field defines remediation strategy.
                         properties:
                           retryLimit:
-                            description: Sets maximum number of remediation retries.
+                            description: retryLimit sets maximum number of remediation
+                              retries.
                             type: integer
                           timeout:
-                            description: Sets the timeout between remediation retries.
+                            description: timeout Sets the timeout between remediation
+                              retries.
                             type: string
                           type:
-                            description: Type of remediation.
+                            description: type of remediation.
                             type: string
                         type: object
                     type: object
@@ -166,26 +167,24 @@ spec:
             - template
             type: object
           status:
-            description: Metal3RemediationTemplateStatus defines the observed state
-              of Metal3RemediationTemplate.
+            description: status defines the observed state of Metal3RemediationTemplate.
             properties:
               status:
-                description: Metal3RemediationStatus defines the observed state of
-                  Metal3Remediation
+                description: status defines the observed state of Metal3Remediation
                 properties:
                   lastRemediated:
-                    description: LastRemediated identifies when the host was last
+                    description: lastRemediated identifies when the host was last
                       remediated
                     format: date-time
                     type: string
                   phase:
                     description: |-
-                      Phase represents the current phase of machine remediation.
+                      phase represents the current phase of machine remediation.
                       E.g. Pending, Running, Done etc.
                     type: string
                   retryCount:
                     description: |-
-                      RetryCount can be used as a counter during the remediation.
+                      retryCount can be used as a counter during the remediation.
                       Field can hold number of reboots etc.
                     type: integer
                 type: object

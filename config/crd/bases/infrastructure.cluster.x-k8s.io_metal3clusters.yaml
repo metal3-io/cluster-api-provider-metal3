@@ -335,30 +335,30 @@ spec:
           metadata:
             type: object
           spec:
-            description: Metal3ClusterSpec defines the desired state of Metal3Cluster.
+            description: spec defines the desired state of Metal3Cluster.
             properties:
               cloudProviderEnabled:
                 description: |-
-                  Determines if the cluster is to be deployed with an external cloud provider.
+                  cloudProviderEnabled determines if the cluster is to be deployed with an external cloud provider.
                   If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
                   If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
                 type: boolean
               controlPlaneEndpoint:
-                description: ControlPlaneEndpoint represents the endpoint used to
+                description: controlPlaneEndpoint represents the endpoint used to
                   communicate with the control plane.
                 properties:
                   host:
-                    description: Host is the hostname on which the API server is serving.
+                    description: host is the hostname on which the API server is serving.
                     type: string
                   port:
-                    description: Port is the port on which the API server is serving.
+                    description: port is the port on which the API server is serving.
                     type: integer
                 required:
                 - host
                 - port
                 type: object
               failureDomains:
-                description: FailureDomains specifies a list of failure zones that
+                description: failureDomains specifies a list of failure zones that
                   can be used
                 items:
                   description: |-
@@ -386,7 +386,7 @@ spec:
                 type: array
             type: object
           status:
-            description: Metal3ClusterStatus defines the observed state of Metal3Cluster.
+            description: status defines the observed state of Metal3Cluster.
             properties:
               conditions:
                 description: |-
@@ -517,12 +517,12 @@ spec:
                         type: array
                       failureMessage:
                         description: |-
-                          FailureMessage indicates that there is a fatal problem reconciling the
+                          failureMessage indicates that there is a fatal problem reconciling the
                           state, and will be set to a descriptive error message.
                         type: string
                       failureReason:
                         description: |-
-                          FailureReason indicates that there is a fatal problem reconciling the
+                          failureReason indicates that there is a fatal problem reconciling the
                           state, and will be set to a token value suitable for
                           programmatic interpretation.
                         type: string
@@ -561,12 +561,12 @@ spec:
                 - name
                 x-kubernetes-list-type: map
               lastUpdated:
-                description: LastUpdated identifies when this status was last observed.
+                description: lastUpdated identifies when this status was last observed.
                 format: date-time
                 type: string
               ready:
                 description: |-
-                  Ready denotes that the Metal3 cluster (infrastructure) is ready. In
+                  ready denotes that the Metal3 cluster (infrastructure) is ready. In
                   Baremetal case, it does not mean anything for now as no infrastructure
                   steps need to be performed. Required by Cluster API. Set to True by the
                   metal3Cluster controller after creation.
