@@ -1435,7 +1435,7 @@ spec:
                         to render the object name.
                       properties:
                         fromBootMAC:
-                          description: FromBootMAC will fetch the MAC address from
+                          description: fromBootMAC will fetch the MAC address from
                             the BareMetalHost Spec BootMACAddress field.
                           type: boolean
                         interface:

@@ -1038,6 +1038,7 @@ func Convert_v1beta2_MetaDataFromLabel_To_v1beta1_MetaDataFromLabel(in *v1beta2.
 func autoConvert_v1beta1_MetaDataHostInterface_To_v1beta2_MetaDataHostInterface(in *MetaDataHostInterface, out *v1beta2.MetaDataHostInterface, s conversion.Scope) error {
 	out.Key = in.Key
 	out.Interface = in.Interface
+	out.FromBootMAC = in.FromBootMAC
 	return nil
 }
 
@@ -1049,6 +1050,7 @@ func Convert_v1beta1_MetaDataHostInterface_To_v1beta2_MetaDataHostInterface(in *
 func autoConvert_v1beta2_MetaDataHostInterface_To_v1beta1_MetaDataHostInterface(in *v1beta2.MetaDataHostInterface, out *MetaDataHostInterface, s conversion.Scope) error {
 	out.Key = in.Key
 	out.Interface = in.Interface
+	out.FromBootMAC = in.FromBootMAC
 	return nil
 }
 
