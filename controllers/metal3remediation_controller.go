@@ -310,11 +310,11 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 
 			// Check timeout, either node wasn't recreated yet, or CR is not deleted because of still unhealthy node
 			log.V(baremetal.VerbosityLevelTrace).Info("Checking remediation timeout")
-			timeout := remediationMgr.GetTimeout().Duration
-			timedOut, _ := remediationMgr.TimeToRemediate(timeout)
+			timeoutSeconds := remediationMgr.GetTimeoutSeconds()
+			timedOut, _ := remediationMgr.TimeToRemediate(timeoutSeconds)
 			log.V(baremetal.VerbosityLevelDebug).Info("Timeout check result",
 				"timedOut", timedOut,
-				baremetal.LogFieldTimeout, timeout.String())
+				baremetal.LogFieldTimeout, timeoutSeconds)
 
 			if !timedOut {
 				// Not yet time to retry or stop remediation, requeue

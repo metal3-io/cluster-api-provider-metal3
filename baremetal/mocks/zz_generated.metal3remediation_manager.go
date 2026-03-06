@@ -196,18 +196,18 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) GetRemediationType() *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRemediationType", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetRemediationType))
 }
 
-// GetTimeout mocks base method.
-func (m *MockRemediationManagerInterface) GetTimeout() *v10.Duration {
+// GetTimeoutSeconds mocks base method.
+func (m *MockRemediationManagerInterface) GetTimeoutSeconds() *int32 {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTimeout")
-	ret0, _ := ret[0].(*v10.Duration)
+	ret := m.ctrl.Call(m, "GetTimeoutSeconds")
+	ret0, _ := ret[0].(*int32)
 	return ret0
 }
 
-// GetTimeout indicates an expected call of GetTimeout.
-func (mr *MockRemediationManagerInterfaceMockRecorder) GetTimeout() *gomock.Call {
+// GetTimeoutSeconds indicates an expected call of GetTimeoutSeconds.
+func (mr *MockRemediationManagerInterfaceMockRecorder) GetTimeoutSeconds() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTimeout", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetTimeout))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTimeoutSeconds", reflect.TypeOf((*MockRemediationManagerInterface)(nil).GetTimeoutSeconds))
 }
 
 // GetUnhealthyHost mocks base method.
@@ -485,18 +485,18 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) SetUnhealthyAnnotation(ct
 }
 
 // TimeToRemediate mocks base method.
-func (m *MockRemediationManagerInterface) TimeToRemediate(timeout time.Duration) (bool, time.Duration) {
+func (m *MockRemediationManagerInterface) TimeToRemediate(timeoutSeconds *int32) (bool, time.Duration) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TimeToRemediate", timeout)
+	ret := m.ctrl.Call(m, "TimeToRemediate", timeoutSeconds)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(time.Duration)
 	return ret0, ret1
 }
 
 // TimeToRemediate indicates an expected call of TimeToRemediate.
-func (mr *MockRemediationManagerInterfaceMockRecorder) TimeToRemediate(timeout any) *gomock.Call {
+func (mr *MockRemediationManagerInterfaceMockRecorder) TimeToRemediate(timeoutSeconds any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TimeToRemediate", reflect.TypeOf((*MockRemediationManagerInterface)(nil).TimeToRemediate), timeout)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TimeToRemediate", reflect.TypeOf((*MockRemediationManagerInterface)(nil).TimeToRemediate), timeoutSeconds)
 }
 
 // UnsetFinalizer mocks base method.
