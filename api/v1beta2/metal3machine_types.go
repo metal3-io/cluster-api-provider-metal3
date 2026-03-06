@@ -117,13 +117,17 @@ const (
 )
 
 // Metal3MachineSpec defines the desired state of Metal3Machine.
+// +kubebuilder:validation:MinProperties=1
 type Metal3MachineSpec struct {
-	// providerID will be the Metal3 machine in providerID format
-	// (metal3://<namespace>/<bmh-name>/<m3m-name>).
+	// providerID must match the provider ID as seen on the node object corresponding to this machine.
+	// For Kubernetes Nodes running on the Metal3 provider, this value is set by the corresponding CPI component
+	// and it has the format metal3://<namespace>/<bmh-name>/<m3m-name>.
 	// The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
 	// and removed in CAPM3 v1.14.
 	// +optional
-	ProviderID *string `json:"providerID,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ProviderID string `json:"providerID,omitempty"`
 
 	// image is the image to be provisioned.
 	// +optional
@@ -178,22 +182,14 @@ type Metal3MachineStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// addresses is a list of addresses assigned to the machine.
-	// This field is copied from the infrastructure provider reference.
+	// addresses contains the associated addresses for the machine.
 	// +optional
-	Addresses clusterv1.MachineAddresses `json:"addresses,omitempty"`
+	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
-	// phase represents the current phase of machine actuation.
-	// E.g. Pending, Running, Terminating, Failed etc.
+	// initialization provides observations of the Metal3Machine initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Machine provisioning.
 	// +optional
-	Phase string `json:"phase,omitempty"`
-
-	// ready is the state of the metal3.
-	// TODO : Document the variable :
-	// mhrivnak: " it would be good to document what this means, how to interpret
-	// it, under what circumstances the value changes, etc."
-	// +optional
-	Ready bool `json:"ready"`
+	Initialization Metal3MachineInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// userData references the Secret that holds user data needed by the bare metal
 	// operator. The Namespace is optional; it will default to the metal3machine's
@@ -227,6 +223,15 @@ type Metal3MachineStatus struct {
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
 	Deprecated *Metal3MachineDeprecatedStatus `json:"deprecated,omitempty"`
+}
+
+// Metal3MachineInitializationStatus provides observations of the Metal3Machine initialization process.
+// +kubebuilder:validation:MinProperties=1
+type Metal3MachineInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Machine's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Machine provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // Metal3MachineDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
@@ -312,9 +317,11 @@ type Metal3Machine struct {
 	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+
 	// spec defines the desired state of Metal3Machine.
-	// +optional
+	// +required
 	Spec Metal3MachineSpec `json:"spec,omitempty"`
+
 	// status defines the observed state of Metal3Machine.
 	// +optional
 	Status Metal3MachineStatus `json:"status,omitempty"`
@@ -325,9 +332,13 @@ type Metal3Machine struct {
 // Metal3MachineList contains a list of Metal3Machine.
 type Metal3MachineList struct {
 	metav1.TypeMeta `json:",inline"`
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Metal3Machine `json:"items"`
+
+	// items is the list of Metal3Machines.
+	Items []Metal3Machine `json:"items"`
 }
 
 // GetConditions returns the list of conditions for an Metal3Machine API object.

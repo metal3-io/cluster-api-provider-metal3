@@ -143,8 +143,34 @@ spec:
                 description: template describes the data for creating a Metal3Cluster
                   from a template
                 properties:
+                  metadata:
+                    description: |-
+                      metadata is the standard object's metadata.
+                      More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
+                    minProperties: 1
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          annotations is an unstructured key value map stored with a resource that may be
+                          set by external tools to store and retrieve arbitrary metadata. They are not
+                          queryable and should be preserved when modifying objects.
+                          More info: http://kubernetes.io/docs/user-guide/annotations
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          labels is a map of string keys and values that can be used to organize and categorize
+                          (scope and select) objects. May match selectors of replication controllers
+                          and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels
+                        type: object
+                    type: object
                   spec:
                     description: spec defines the desired state of Metal3Cluster.
+                    minProperties: 1
                     properties:
                       cloudProviderEnabled:
                         description: |-
@@ -155,22 +181,25 @@ spec:
                       controlPlaneEndpoint:
                         description: controlPlaneEndpoint represents the endpoint
                           used to communicate with the control plane.
+                        minProperties: 1
                         properties:
                           host:
                             description: host is the hostname on which the API server
                               is serving.
+                            maxLength: 512
+                            minLength: 1
                             type: string
                           port:
                             description: port is the port on which the API server
                               is serving.
+                            format: int32
+                            maximum: 65535
+                            minimum: 1
                             type: integer
-                        required:
-                        - host
-                        - port
                         type: object
                       failureDomains:
-                        description: failureDomains specifies a list of failure zones
-                          that can be used
+                        description: failureDomains is a list of failure domain objects
+                          synced from the infrastructure provider.
                         items:
                           description: |-
                             FailureDomain is the Schema for Cluster API failure domains.
@@ -194,7 +223,12 @@ spec:
                           required:
                           - name
                           type: object
+                        maxItems: 100
+                        minItems: 1
                         type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
                     type: object
                 required:
                 - spec

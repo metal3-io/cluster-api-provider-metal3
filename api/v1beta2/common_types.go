@@ -33,12 +33,19 @@ const (
 )
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
+// +kubebuilder:validation:MinProperties=1
 type APIEndpoint struct {
 	// host is the hostname on which the API server is serving.
-	Host string `json:"host"`
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Host string `json:"host,omitempty"`
 
 	// port is the port on which the API server is serving.
-	Port int `json:"port"`
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
 }
 
 // HostSelector specifies matching criteria for labels on BareMetalHosts.

@@ -200,7 +200,7 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	machineLog = machineLog.WithValues(baremetal.LogFieldMetal3Cluster, metal3Cluster.Name)
 	machineLog.V(baremetal.VerbosityLevelDebug).Info("Found Metal3Cluster",
-		"metal3ClusterReady", metal3Cluster.Status.Ready)
+		"metal3ClusterReady", ptr.Deref(metal3Cluster.Status.Initialization.Provisioned, false))
 
 	// Create a helper for managing the baremetal container hosting the machine.
 	machineMgr, err := r.ManagerFactory.NewMachineManager(cluster, metal3Cluster, capiMachine, capm3Machine, machineLog)

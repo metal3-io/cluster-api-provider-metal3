@@ -47,18 +47,24 @@ const (
 )
 
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.
+// +kubebuilder:validation:MinProperties=1
 type Metal3ClusterSpec struct {
 	// controlPlaneEndpoint represents the endpoint used to communicate with the control plane.
 	// +optional
-	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty"`
+	ControlPlaneEndpoint APIEndpoint `json:"controlPlaneEndpoint,omitempty,omitzero"`
+
 	// cloudProviderEnabled determines if the cluster is to be deployed with an external cloud provider.
 	// If set to false, CAPM3 will use node labels to set providerID on the kubernetes nodes.
 	// If set to true, providerID is set on nodes by other entities and CAPM3 uses the value of the providerID on the m3m resource.
 	// +optional
 	CloudProviderEnabled *bool `json:"cloudProviderEnabled,omitempty"`
 
-	// failureDomains specifies a list of failure zones that can be used
+	// failureDomains is a list of failure domain objects synced from the infrastructure provider.
 	// +optional
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=100
 	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
 }
 
@@ -86,12 +92,10 @@ type Metal3ClusterStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// ready denotes that the Metal3 cluster (infrastructure) is ready. In
-	// Baremetal case, it does not mean anything for now as no infrastructure
-	// steps need to be performed. Required by Cluster API. Set to True by the
-	// metal3Cluster controller after creation.
+	// initialization provides observations of the Metal3Cluster initialization process.
+	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
-	Ready bool `json:"ready"`
+	Initialization Metal3ClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
 
 	// conditions defines current service state of the Metal3Cluster.
 	// Known condition types are Ready, and Paused, BareMetalInfraStructureReady.
@@ -112,6 +116,15 @@ type Metal3ClusterStatus struct {
 	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=100
 	FailureDomains []clusterv1.FailureDomain `json:"failureDomains,omitempty"`
+}
+
+// Metal3ClusterInitializationStatus provides observations of the Metal3Cluster initialization process.
+// +kubebuilder:validation:MinProperties=1
+type Metal3ClusterInitializationStatus struct {
+	// provisioned is true when the infrastructure provider reports that the Cluster's infrastructure is fully provisioned.
+	// NOTE: this field is part of the Cluster API contract, and it is used to orchestrate initial Cluster provisioning.
+	// +optional
+	Provisioned *bool `json:"provisioned,omitempty"`
 }
 
 // Metal3ClusterDeprecatedStatus groups all the status fields that are deprecated and will be removed in a future version.
@@ -158,12 +171,15 @@ type Metal3ClusterV1Beta1DeprecatedStatus struct {
 // Metal3Cluster is the Schema for the metal3clusters API.
 type Metal3Cluster struct {
 	metav1.TypeMeta `json:",inline"`
+
 	// metadata is the standard object's metadata.
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
+
 	// spec defines the desired state of Metal3Cluster.
-	// +optional
+	// +required
 	Spec Metal3ClusterSpec `json:"spec,omitempty"`
+
 	// status defines the observed state of Metal3Cluster.
 	// +optional
 	Status Metal3ClusterStatus `json:"status,omitempty"`
@@ -174,8 +190,12 @@ type Metal3Cluster struct {
 // Metal3ClusterList contains a list of Metal3Cluster.
 type Metal3ClusterList struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// metadata is the standard list's metadata.
+	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#lists-and-simple-kinds
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
+
 	// items is a list of Metal3Cluster objects.
 	Items []Metal3Cluster `json:"items"`
 }
