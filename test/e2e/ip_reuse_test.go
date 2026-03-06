@@ -30,7 +30,7 @@ var _ = Describe("When testing ip reuse", Label("ip-reuse", "features"), func() 
 				BootstrapClusterProxy: bootstrapClusterProxy,
 				SpecName:              specName,
 				ClusterName:           clusterName,
-				K8sVersion:            e2eConfig.MustGetVariable("KUBERNETES_VERSION_FROM"),
+				K8sVersion:            e2eConfig.MustGetVariable("KUBERNETES_VERSION_UPGRADE_FROMADE_FROM"),
 				KCPMachineCount:       int64(numberOfControlplane),
 				WorkerMachineCount:    int64(numberOfWorkers),
 				ClusterctlLogFolder:   clusterctlLogFolder,

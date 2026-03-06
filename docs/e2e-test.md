@@ -100,7 +100,7 @@ The e2e tests use the following Kubernetes version variables:
 | Variable | Purpose | Example | Used In |
 |----------|---------|---------|---------|
 | `KUBERNETES_VERSION` | Latest/target Kubernetes version | v1.35.0 | All tests |
-| `KUBERNETES_VERSION_FROM` | Starting version for minor upgrades | v1.34.1 | k8s-upgrade, ip-reuse, scalability |
+| `KUBERNETES_VERSION_UPGRADE_FROM` | Starting version for minor upgrades | v1.34.1 | k8s-upgrade, ip-reuse, scalability |
 | `KUBERNETES_VERSION_PATCH_TO` | Target version for patch upgrades | v1.34.2 | node-reuse (patch upgrade tests) |
 | `KUBERNETES_N0_VERSION` | Starting version for N+3 upgrade | v1.32.9 | k8s-upgrade-n3 |
 | `KUBERNETES_N1_VERSION` | N+1 version for N+3 upgrade | v1.33.5 | k8s-upgrade-n3 |
