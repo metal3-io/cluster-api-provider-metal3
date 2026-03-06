@@ -19,7 +19,6 @@ linters:
             - "nonpointerstructs"
             - "nophase"
             - "nodurations"
-            - "nomaps"
             - "conditions"
             - "integers"
             - "arrayofstruct"

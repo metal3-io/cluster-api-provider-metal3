@@ -434,3 +434,87 @@ func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in
 	// TemplateReference is dropped as it was removed in v1beta2
 	return autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in, out, s)
 }
+
+// Convert_v1beta1_Metal3DataTemplateStatus_To_v1beta2_Metal3DataTemplateStatus handles conversion
+// of Metal3DataTemplateStatus from v1beta1 to v1beta2. The Indexes field is converted from a map to a list.
+func Convert_v1beta1_Metal3DataTemplateStatus_To_v1beta2_Metal3DataTemplateStatus(in *Metal3DataTemplateStatus, out *infrav1.Metal3DataTemplateStatus, s apimachineryconversion.Scope) error {
+	out.LastUpdated = in.LastUpdated
+
+	// Convert map to list
+	if in.Indexes != nil {
+		out.Indexes = make([]infrav1.IndexEntry, 0, len(in.Indexes))
+		for name, index := range in.Indexes {
+			out.Indexes = append(out.Indexes, infrav1.IndexEntry{
+				Name:  name,
+				Index: index,
+			})
+		}
+	}
+
+	// Ensure deterministic ordering of indexes by index
+	sort.Slice(out.Indexes, func(i, j int) bool {
+		return out.Indexes[i].Index < out.Indexes[j].Index
+	})
+
+	return nil
+}
+
+// Convert_v1beta2_Metal3DataTemplateStatus_To_v1beta1_Metal3DataTemplateStatus handles conversion
+// of Metal3DataTemplateStatus from v1beta2 to v1beta1. The Indexes field is converted from a list to a map.
+func Convert_v1beta2_Metal3DataTemplateStatus_To_v1beta1_Metal3DataTemplateStatus(in *infrav1.Metal3DataTemplateStatus, out *Metal3DataTemplateStatus, s apimachineryconversion.Scope) error {
+	out.LastUpdated = in.LastUpdated
+
+	// Convert list back to map
+	if in.Indexes != nil {
+		out.Indexes = make(map[string]int, len(in.Indexes))
+		for _, entry := range in.Indexes {
+			out.Indexes[entry.Name] = entry.Index
+		}
+	}
+
+	return nil
+}
+
+// Convert_v1beta1_NetworkDataLinkBond_To_v1beta2_NetworkDataLinkBond handles conversion
+// of NetworkDataLinkBond from v1beta1 to v1beta2. The Parameters field is converted from a map to a list.
+func Convert_v1beta1_NetworkDataLinkBond_To_v1beta2_NetworkDataLinkBond(in *NetworkDataLinkBond, out *infrav1.NetworkDataLinkBond, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_NetworkDataLinkBond_To_v1beta2_NetworkDataLinkBond(in, out, s); err != nil {
+		return err
+	}
+
+	// Convert map to list
+	if in.Parameters != nil {
+		out.Parameters = make([]infrav1.NetworkDataLinkBondParam, 0, len(in.Parameters))
+		for name, value := range in.Parameters {
+			out.Parameters = append(out.Parameters, infrav1.NetworkDataLinkBondParam{
+				Name:  name,
+				Value: value,
+			})
+		}
+	}
+
+	// Ensure deterministic ordering of parameters by name
+	sort.Slice(out.Parameters, func(i, j int) bool {
+		return out.Parameters[i].Name < out.Parameters[j].Name
+	})
+
+	return nil
+}
+
+// Convert_v1beta2_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond handles conversion
+// of NetworkDataLinkBond from v1beta2 to v1beta1. The Parameters field is converted from a list to a map.
+func Convert_v1beta2_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in *infrav1.NetworkDataLinkBond, out *NetworkDataLinkBond, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in, out, s); err != nil {
+		return err
+	}
+
+	// Convert list back to map
+	if in.Parameters != nil {
+		out.Parameters = make(NetworkDataLinkBondParams, len(in.Parameters))
+		for _, param := range in.Parameters {
+			out.Parameters[param.Name] = param.Value
+		}
+	}
+
+	return nil
+}
