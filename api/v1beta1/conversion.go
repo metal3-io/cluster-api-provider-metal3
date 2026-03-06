@@ -413,6 +413,18 @@ func Convert_v1beta1_Condition_To_v1_Condition(_ *clusterv1beta1.Condition, _ *m
 	return nil
 }
 
+// Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec is a manual conversion function.
+// TemplateReference is deprecated in v1beta1 and removed in v1beta2, so it is intentionally dropped.
+func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s)
+}
+
+// Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec is a manual conversion function.
+// TemplateReference is deprecated in v1beta1 and removed in v1beta2, so it is intentionally dropped.
+func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *infrav1.Metal3DataTemplateSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in, out, s)
+}
+
 func Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in *infrav1.Metal3ClusterTemplateResource, out *Metal3ClusterTemplateResource, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTemplateResource(in, out, s); err != nil {
 		return err
@@ -421,16 +433,3 @@ func Convert_v1beta2_Metal3ClusterTemplateResource_To_v1beta1_Metal3ClusterTempl
 	return nil
 }
 
-// Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec handles the manual conversion
-// of Metal3DataSpec from v1beta1 to v1beta2. The TemplateReference field was removed in v1beta2.
-func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
-	// TemplateReference is dropped as it was removed in v1beta2
-	return autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s)
-}
-
-// Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec handles the manual conversion
-// of Metal3DataTemplateSpec from v1beta1 to v1beta2. The TemplateReference field was removed in v1beta2.
-func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *infrav1.Metal3DataTemplateSpec, s apimachineryconversion.Scope) error {
-	// TemplateReference is dropped as it was removed in v1beta2
-	return autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in, out, s)
-}
