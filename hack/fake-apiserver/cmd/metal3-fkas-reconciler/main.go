@@ -144,7 +144,7 @@ func main() {
 			putReq.Header.Set("Content-Type", "application/json")
 			client := &http.Client{}
 			var resp *http.Response
-			resp, err = client.Do(putReq)
+			resp, err = client.Do(putReq) // #nosec G704
 			if err != nil {
 				setupLog.Error(err, "Error making PUT request")
 				return reconcile.Result{}, err

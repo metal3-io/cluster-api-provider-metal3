@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/test
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
