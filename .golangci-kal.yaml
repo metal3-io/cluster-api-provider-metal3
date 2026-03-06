@@ -21,7 +21,6 @@ linters:
             - "nodurations"
             - "nomaps"
             - "conditions"
-            - "integers"
             - "arrayofstruct"
             - "ssatags"
             - "defaults"

@@ -35,11 +35,11 @@ type MetaDataIndex struct {
 	Key string `json:"key"`
 	// offset is the offset to apply to the index when rendering it
 	// +optional
-	Offset int `json:"offset,omitempty"`
+	Offset int32 `json:"offset,omitempty"`
 	// step is the multiplier of the index
 	// +kubebuilder:default=1
 	// +optional
-	Step int `json:"step,omitempty"`
+	Step int32 `json:"step,omitempty"`
 	// prefix is the prefix string
 	// +optional
 	Prefix string `json:"prefix,omitempty"`
@@ -124,7 +124,7 @@ type MetaDataIPAddress struct {
 	// step is the step between the IP addresses rendered.
 	// +kubebuilder:default=1
 	// +optional
-	Step int `json:"step,omitempty"`
+	Step int32 `json:"step,omitempty"`
 }
 
 type FromPool struct {
@@ -252,7 +252,7 @@ type NetworkDataLinkEthernet struct {
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	// +optional
-	MTU int `json:"mtu,omitempty"`
+	MTU int32 `json:"mtu,omitempty"`
 
 	// macAddress is the MAC address of the interface, containing the object
 	// used to render it.
@@ -286,7 +286,7 @@ type NetworkDataLinkBond struct {
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	// +optional
-	MTU int `json:"mtu,omitempty"`
+	MTU int32 `json:"mtu,omitempty"`
 
 	// macAddress is the MAC address of the interface, containing the object
 	// used to render it.
@@ -307,7 +307,7 @@ type NetworkDataLinkBondParams map[string]apiextensionsv1.JSON
 type NetworkDataLinkVlan struct {
 	// vlanID is the Vlan ID
 	// +kubebuilder:validation:Maximum=4096
-	VlanID int `json:"vlanID"`
+	VlanID int32 `json:"vlanID"`
 
 	// id is the ID of the interface (used for naming)
 	Id string `json:"id"` //nolint:stylecheck,revive
@@ -324,7 +324,7 @@ type NetworkDataLinkVlan struct {
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
 	// +optional
-	MTU int `json:"mtu,omitempty"`
+	MTU int32 `json:"mtu,omitempty"`
 
 	// macAddress is the MAC address of the interface, containing the object
 	// used to render it.
@@ -432,7 +432,7 @@ type NetworkDataRoutev4 struct {
 	// prefix is the mask of the network as integer (max 32)
 	// +kubebuilder:validation:Maximum=32
 	// +optional
-	Prefix int `json:"prefix,omitempty"`
+	Prefix int32 `json:"prefix,omitempty"`
 
 	// gateway is the IPv4 address of the gateway
 	Gateway NetworkGatewayv4 `json:"gateway"`
@@ -450,7 +450,7 @@ type NetworkDataRoutev6 struct {
 	// prefix is the mask of the network as integer (max 128)
 	// +kubebuilder:validation:Maximum=128
 	// +optional
-	Prefix int `json:"prefix,omitempty"`
+	Prefix int32 `json:"prefix,omitempty"`
 
 	// gateway is the IPv6 address of the gateway
 	Gateway NetworkGatewayv6 `json:"gateway"`
@@ -598,7 +598,7 @@ type Metal3DataTemplateStatus struct {
 
 	// indexes contains the map of Metal3Machine and index used
 	// +optional
-	Indexes map[string]int `json:"indexes,omitempty"`
+	Indexes map[string]int32 `json:"indexes,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

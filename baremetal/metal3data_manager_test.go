@@ -2812,7 +2812,7 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]any{
 					"type":                 "phy",
 					"id":                   "eth0",
-					"mtu":                  1500,
+					"mtu":                  int32(1500),
 					"ethernet_mac_address": "12:34:56:78:9A:BC",
 				},
 			},
@@ -2855,7 +2855,7 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]any{
 					"type":                  "bond",
 					"id":                    "bond0",
-					"mtu":                   1500,
+					"mtu":                   int32(1500),
 					"ethernet_mac_address":  "12:34:56:78:9A:BC",
 					"bond_mode":             "802.3ad",
 					"bond_xmit_hash_policy": "layer3+4",
@@ -2900,11 +2900,11 @@ var _ = Describe("Metal3Data manager", func() {
 			expectedOutput: []any{
 				map[string]any{
 					"vlan_mac_address": "12:34:56:78:9A:BC",
-					"vlan_id":          2222,
+					"vlan_id":          int32(2222),
 					"vlan_link":        "eth0",
 					"type":             "vlan",
 					"id":               "bond0",
-					"mtu":              1500,
+					"mtu":              int32(1500),
 				},
 			},
 		}),
@@ -2945,7 +2945,7 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]any{
 					"type": "phy",
 					"id":   "eth0",
-					"mtu":  1500,
+					"mtu":  int32(1500),
 					// no ethernet_mac_address field, no name field
 				},
 			},
@@ -2966,7 +2966,7 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]any{
 					"type":                  "bond",
 					"id":                    "bond0",
-					"mtu":                   1500,
+					"mtu":                   int32(1500),
 					"bond_mode":             "802.3ad",
 					"bond_xmit_hash_policy": "",
 					"bond_links":            []string{"eth0"},
@@ -2990,8 +2990,8 @@ var _ = Describe("Metal3Data manager", func() {
 				map[string]any{
 					"type":      "vlan",
 					"id":        "vlan100",
-					"mtu":       1500,
-					"vlan_id":   100,
+					"mtu":       int32(1500),
+					"vlan_id":   int32(100),
 					"vlan_link": "eth0",
 					// no vlan_mac_address field, no name field
 				},
@@ -3018,7 +3018,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":                 "phy",
 					"id":                   "eth0",
 					"name":                 "enp1s0", // name field set from explicit Name
-					"mtu":                  1500,
+					"mtu":                  int32(1500),
 					"ethernet_mac_address": "AA:BB:CC:DD:EE:FF",
 				},
 			},
@@ -3044,7 +3044,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":                  "bond",
 					"id":                    "bond0",
 					"name":                  "bond-mgmt", // name field set from explicit Name
-					"mtu":                   9000,
+					"mtu":                   int32(9000),
 					"ethernet_mac_address":  "11:22:33:44:55:66",
 					"bond_mode":             "active-backup",
 					"bond_xmit_hash_policy": "layer2",
@@ -3072,9 +3072,9 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":             "vlan",
 					"id":               "vlan100",
 					"name":             "vlan-storage", // name field set from explicit Name
-					"mtu":              9000,
+					"mtu":              int32(9000),
 					"vlan_mac_address": "AA:BB:CC:DD:EE:00",
-					"vlan_id":          100,
+					"vlan_id":          int32(100),
 					"vlan_link":        "bond0",
 				},
 			},
@@ -3131,7 +3131,7 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":                  "bond",
 					"id":                    "bond0",
 					"name":                  "bond-data",
-					"mtu":                   9000,
+					"mtu":                   int32(9000),
 					"ethernet_mac_address":  "AA:BB:CC:DD:EE:03",
 					"bond_mode":             "802.3ad",
 					"bond_xmit_hash_policy": "",
@@ -3141,23 +3141,23 @@ var _ = Describe("Metal3Data manager", func() {
 					"type":                 "phy",
 					"id":                   "eth0",
 					"name":                 "mgmt0",
-					"mtu":                  1500,
+					"mtu":                  int32(1500),
 					"ethernet_mac_address": "AA:BB:CC:DD:EE:01",
 				},
 				map[string]any{
 					"type":                 "phy",
 					"id":                   "eth1",
 					"name":                 "storage0",
-					"mtu":                  9000,
+					"mtu":                  int32(9000),
 					"ethernet_mac_address": "AA:BB:CC:DD:EE:02",
 				},
 				map[string]any{
 					"type":             "vlan",
 					"id":               "vlan200",
 					"name":             "tenant-net",
-					"mtu":              1500,
+					"mtu":              int32(1500),
 					"vlan_mac_address": "AA:BB:CC:DD:EE:04",
-					"vlan_id":          200,
+					"vlan_id":          int32(200),
 					"vlan_link":        "bond-data",
 				},
 			},
@@ -3790,7 +3790,7 @@ var _ = Describe("Metal3Data manager", func() {
 	})
 
 	type testCaseTranslateMask struct {
-		mask         int
+		mask         int32
 		ipv4         bool
 		expectedMask any
 	}

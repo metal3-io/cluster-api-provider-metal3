@@ -61,7 +61,7 @@ type RemediationStrategy struct {
 
 	// retryLimit sets maximum number of remediation retries.
 	// +optional
-	RetryLimit int `json:"retryLimit,omitempty"`
+	RetryLimit int32 `json:"retryLimit,omitempty"`
 
 	// timeout Sets the timeout between remediation retries.
 	// +optional
@@ -78,7 +78,7 @@ type Metal3RemediationStatus struct {
 	// retryCount can be used as a counter during the remediation.
 	// Field can hold number of reboots etc.
 	// +optional
-	RetryCount int `json:"retryCount,omitempty"`
+	RetryCount int32 `json:"retryCount,omitempty"`
 
 	// lastRemediated identifies when the host was last remediated
 	// +optional
