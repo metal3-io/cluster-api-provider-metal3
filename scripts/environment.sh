@@ -52,7 +52,7 @@ else
 fi
 
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.35.0"}
-export KUBERNETES_VERSION_FROM=${KUBERNETES_VERSION_FROM:-"v1.34.1"}
+export KUBERNETES_VERSION_UPGRADE_FROM=${KUBERNETES_VERSION_UPGRADE_FROM:-"v1.34.1"}
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta2"}
@@ -98,7 +98,7 @@ case "${GINKGO_FOCUS:-}" in
     export BMH_BATCH_SIZE=${BMH_BATCH_SIZE:-"2"}
     export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"1"}
     export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"0"}
-    export KUBERNETES_VERSION_UPGRADE_FROM="${KUBERNETES_VERSION_FROM}"
+    # Note: Uses KUBERNETES_VERSION_UPGRADE_FROM directly now (no duplication needed)
   ;;
 
   # CAPI md-tests environment vars and config
