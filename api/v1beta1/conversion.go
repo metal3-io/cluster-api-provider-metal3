@@ -19,9 +19,6 @@ package v1beta1
 import (
 	"maps"
 	"slices"
-
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
 	"sort"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
@@ -30,6 +27,7 @@ import (
 	"k8s.io/utils/ptr"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *Metal3Cluster) ConvertTo(dstRaw conversion.Hub) error {
@@ -433,4 +431,22 @@ func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec
 func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *infrav1.Metal3DataTemplateSpec, s apimachineryconversion.Scope) error {
 	// TemplateReference is dropped as it was removed in v1beta2
 	return autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in, out, s)
+}
+
+// Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy handles the manual conversion
+// of RemediationStrategy from v1beta1 to v1beta2. The Timeout field changed from *metav1.Duration to TimeoutSeconds *int32.
+func Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in *RemediationStrategy, out *infrav1.RemediationStrategy, _ apimachineryconversion.Scope) error {
+	out.Type = infrav1.RemediationType(in.Type)
+	out.RetryLimit = in.RetryLimit
+	out.TimeoutSeconds = clusterv1.ConvertToSeconds(in.Timeout)
+	return nil
+}
+
+// Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy handles the manual conversion
+// of RemediationStrategy from v1beta2 to v1beta1. The TimeoutSeconds *int32 field changed to Timeout *metav1.Duration.
+func Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(in *infrav1.RemediationStrategy, out *RemediationStrategy, _ apimachineryconversion.Scope) error {
+	out.Type = RemediationType(in.Type)
+	out.RetryLimit = in.RetryLimit
+	out.Timeout = clusterv1.ConvertFromSeconds(in.TimeoutSeconds)
+	return nil
 }

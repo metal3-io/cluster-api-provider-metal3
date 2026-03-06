@@ -18,7 +18,6 @@ linters:
             - "optionalorrequired"
             - "nonpointerstructs"
             - "nophase"
-            - "nodurations"
             - "nomaps"
             - "conditions"
             - "integers"
