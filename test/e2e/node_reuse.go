@@ -8,15 +8,18 @@ import (
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
+	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -166,13 +169,13 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Expect(clusterClient.List(ctx, &bmhList, client.InNamespace(input.Namespace))).To(Succeed())
 	deprovisioningBmhs := FilterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
 	Expect(deprovisioningBmhs).To(HaveLen(1))
-	key := types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: input.Namespace}
+	kcpBmhKey := types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: input.Namespace}
 
 	By("Wait until above deprovisioning BMH is in available state again [node_reuse]")
 	Eventually(
 		func(g Gomega) {
 			bmh := bmov1alpha1.BareMetalHost{}
-			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
+			g.Expect(clusterClient.Get(ctx, kcpBmhKey, &bmh)).To(Succeed())
 			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable))
 		}, input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-deprovisioning-available")...,
 	).Should(Succeed())
@@ -190,7 +193,7 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Eventually(
 		func(g Gomega) {
 			bmh := bmov1alpha1.BareMetalHost{}
-			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
+			g.Expect(clusterClient.Get(ctx, kcpBmhKey, &bmh)).To(Succeed())
 			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioning))
 		}, input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available-provisioning")...,
 	).Should(Succeed())
@@ -213,6 +216,8 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	ListMetal3Machines(ctx, clusterClient, client.InNamespace(input.Namespace))
 	ListMachines(ctx, clusterClient, client.InNamespace(input.Namespace))
 	ListNodes(ctx, clusterClient)
+
+	verifyMetal3MachineNodeReuseCondition(ctx, clusterClient, kcpBmhKey, input.Namespace, input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available-provisioning"))
 
 	By("Wait for all the pods to be running on the cluster after the upgrade process has ended [node_reuse]")
 	framework.WaitForPodListCondition(ctx, framework.WaitForPodListConditionInput{
@@ -388,13 +393,13 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Expect(clusterClient.List(ctx, &bmhList, client.InNamespace(input.Namespace))).To(Succeed())
 	deprovisioningBmhs = FilterBmhsByProvisioningState(bmhList.Items, bmov1alpha1.StateDeprovisioning)
 	Expect(deprovisioningBmhs).To(HaveLen(1))
-	key = types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: input.Namespace}
+	workerBmhkey := types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: input.Namespace}
 
 	By("Wait until the above deprovisioning BMH is in available state again [node_reuse]")
 	Eventually(
 		func(g Gomega) {
 			bmh := bmov1alpha1.BareMetalHost{}
-			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
+			g.Expect(clusterClient.Get(ctx, workerBmhkey, &bmh)).To(Succeed())
 			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateAvailable))
 		},
 		input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-deprovisioning-available")...,
@@ -414,8 +419,7 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	Eventually(
 		func(g Gomega) {
 			bmh := bmov1alpha1.BareMetalHost{}
-			key := types.NamespacedName{Name: deprovisioningBmhs[0].Name, Namespace: input.Namespace}
-			g.Expect(clusterClient.Get(ctx, key, &bmh)).To(Succeed())
+			g.Expect(clusterClient.Get(ctx, workerBmhkey, &bmh)).To(Succeed())
 			g.Expect(bmh.Status.Provisioning.State).To(Equal(bmov1alpha1.StateProvisioning))
 		},
 		input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available-provisioning")...,
@@ -434,6 +438,7 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		Replicas:  numberOfWorkers,
 		Intervals: input.E2EConfig.GetIntervals(input.SpecName, "wait-machine-running"),
 	})
+	verifyMetal3MachineNodeReuseCondition(ctx, clusterClient, workerBmhkey, input.Namespace, input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available-provisioning"))
 
 	By("Get provisioned BMH names and UUIDs after upgrade in MachineDeployment [node_reuse]")
 	mdBmhAfterUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, clusterClient)
@@ -500,4 +505,36 @@ func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3Ma
 	// verify that nodeReuse field is updated
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
 	Expect(m3machineTemplate.Spec.NodeReuse).To(BeEquivalentTo(nodeReuse))
+}
+
+// verifyMetal3MachineNodeReuseCondition verifies that the Metal3Machine associated with the given BMH
+// has the correct node reuse condition reason set.
+func verifyMetal3MachineNodeReuseCondition(ctx context.Context, managementClusterClient client.Client, bmhKey types.NamespacedName, namespace string, intervals []interface{}) {
+	By("Verify Metal3Machine has correct node reuse condition reason [node_reuse]")
+	var m3mName string
+	Eventually(
+		func(g Gomega) {
+			bmh := bmov1alpha1.BareMetalHost{}
+			g.Expect(managementClusterClient.Get(ctx, bmhKey, &bmh)).To(Succeed())
+			// Find Metal3Machine from BMH owner references
+			for _, ownerRef := range bmh.OwnerReferences {
+				if ownerRef.Kind == "Metal3Machine" {
+					m3mName = ownerRef.Name
+					break
+				}
+			}
+			g.Expect(m3mName).NotTo(BeEmpty(), "Metal3Machine owner reference not found on BMH")
+
+			// Get Metal3Machine and check condition
+			m3m := infrav1.Metal3Machine{}
+			g.Expect(managementClusterClient.Get(ctx, types.NamespacedName{Name: m3mName, Namespace: namespace}, &m3m)).To(Succeed())
+
+			// Check AssociateBareMetalHostV1Beta2Condition reason
+			cond := conditions.Get(&m3m, infrav1.AssociateBareMetalHostV1Beta2Condition)
+			g.Expect(cond).NotTo(BeNil(), "AssociateBareMetalHostV1Beta2Condition not found")
+			g.Expect(cond.Status).To(Equal(metav1.ConditionTrue), "AssociateBareMetalHostV1Beta2Condition should be True")
+			g.Expect(cond.Reason).To(Equal(infrav1.AssociateBareMetalHostViaNodeReuseSuccessV1Beta2Reason),
+				"Expected AssociateBareMetalHostViaNodeReuseSuccessV1Beta2Reason but got %s", cond.Reason)
+		}, intervals...,
+	).Should(Succeed())
 }

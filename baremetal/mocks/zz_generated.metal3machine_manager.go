@@ -64,11 +64,12 @@ func (m *MockMachineManagerInterface) EXPECT() *MockMachineManagerInterfaceMockR
 }
 
 // Associate mocks base method.
-func (m *MockMachineManagerInterface) Associate(arg0 context.Context) error {
+func (m *MockMachineManagerInterface) Associate(arg0 context.Context) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Associate", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Associate indicates an expected call of Associate.
