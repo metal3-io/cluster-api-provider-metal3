@@ -27,13 +27,13 @@ spec:
           name: ${CLUSTER_NAME}-workers
       clusterName: ${CLUSTER_NAME}
       infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: Metal3MachineTemplate
         name: ${CLUSTER_NAME}-workers
       nodeDrainTimeout: 0s
       version: ${KUBERNETES_VERSION}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers
@@ -49,7 +49,7 @@ spec:
         format: raw
         url: ${IMAGE_RAW_URL}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers-template

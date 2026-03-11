@@ -186,7 +186,7 @@ func (m *MachineManager) UnsetFinalizer() {
 
 // IsProvisioned checks if the metal3machine is provisioned.
 func (m *MachineManager) IsProvisioned() bool {
-	if m.Metal3Machine.Spec.ProviderID != "" && m.Metal3Machine.Status.Initialization.Provisioned != nil && *m.Metal3Machine.Status.Initialization.Provisioned {
+	if m.Metal3Machine.Spec.ProviderID != "" && ptr.Deref(m.Metal3Machine.Status.Initialization.Provisioned, false) {
 		m.Log.V(VerbosityLevelTrace).Info("Metal3Machine is provisioned",
 			LogFieldMetal3Machine, m.Metal3Machine.Name,
 			LogFieldProviderID, m.Metal3Machine.Spec.ProviderID)
