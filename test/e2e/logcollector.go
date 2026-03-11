@@ -48,13 +48,13 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 	}
 
 	copyCmd := fmt.Sprintf("sudo cp %s %s", serialLog, qemuFolder)
-	cmd := exec.Command("/bin/sh", "-c", copyCmd) // #nosec G204:gosec
+	cmd := exec.CommandContext(ctx, "/bin/sh", "-c", copyCmd) // #nosec G204:gosec
 	var output []byte
 	if output, err = cmd.Output(); err != nil {
 		return fmt.Errorf("something went wrong when executing '%s': %w, output: %s", cmd.String(), err, output)
 	}
 	setPermsCmd := "sudo chmod -v 777 " + path.Join(qemuFolder, filepath.Base(serialLog))
-	cmd = exec.Command("/bin/sh", "-c", setPermsCmd) // #nosec G204:gosec
+	cmd = exec.CommandContext(ctx, "/bin/sh", "-c", setPermsCmd) // #nosec G204:gosec
 	output, err = cmd.Output()
 	if err != nil {
 		return fmt.Errorf("error changing file permissions after copying: %w, output: %s", err, output)
