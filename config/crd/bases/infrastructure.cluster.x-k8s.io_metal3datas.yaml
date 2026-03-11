@@ -276,6 +276,7 @@ spec:
               index:
                 description: index stores the index value of this instance in the
                   Metal3DataTemplate.
+                format: int32
                 type: integer
               metaData:
                 description: metaData points to the rendered MetaData secret.

@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
+	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -522,4 +523,32 @@ func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec
 func Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *infrav1.Metal3DataTemplateSpec, s apimachineryconversion.Scope) error {
 	// TemplateReference is dropped as it was removed in v1beta2
 	return autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in, out, s)
+}
+
+// Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4 handles the manual conversion
+// of NetworkDataRoutev4 from v1beta1 to v1beta2. The Prefix field changed from int to int32.
+func Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(in *NetworkDataRoutev4, out *infrav1.NetworkDataRoutev4, s apimachineryconversion.Scope) error {
+	out.Network = ipamv1.IPAddressv4Str(in.Network)
+	out.Prefix = int32(in.Prefix)
+	if err := Convert_v1beta1_NetworkGatewayv4_To_v1beta2_NetworkGatewayv4(&in.Gateway, &out.Gateway, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta1_NetworkDataServicev4_To_v1beta2_NetworkDataServicev4(&in.Services, &out.Services, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6 handles the manual conversion
+// of NetworkDataRoutev6 from v1beta1 to v1beta2. The Prefix field changed from int to int32.
+func Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(in *NetworkDataRoutev6, out *infrav1.NetworkDataRoutev6, s apimachineryconversion.Scope) error {
+	out.Network = ipamv1.IPAddressv6Str(in.Network)
+	out.Prefix = int32(in.Prefix)
+	if err := Convert_v1beta1_NetworkGatewayv6_To_v1beta2_NetworkGatewayv6(&in.Gateway, &out.Gateway, s); err != nil {
+		return err
+	}
+	if err := Convert_v1beta1_NetworkDataServicev6_To_v1beta2_NetworkDataServicev6(&in.Services, &out.Services, s); err != nil {
+		return err
+	}
+	return nil
 }

@@ -46,7 +46,7 @@ func TestMetal3RemediationTemplateDefault(t *testing.T) {
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.Type).ToNot(BeNil())
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.Type).To(Equal(infrav1.RebootRemediationStrategy))
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).ToNot(BeNil())
-	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).To(Equal(1))
+	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).To(BeEquivalentTo(1))
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.Timeout).ToNot(BeNil())
 	g.Expect(*m3rt.Spec.Template.Spec.Strategy.Timeout).To(Equal(metav1.Duration{Duration: 600 * time.Second}))
 
@@ -68,7 +68,7 @@ func TestMetal3RemediationTemplateDefault(t *testing.T) {
 
 	_ = webhook.Default(ctx, m3rt)
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).ToNot(BeNil())
-	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).To(Equal(1))
+	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).To(BeEquivalentTo(1))
 }
 
 func TestMetal3RemediationTemplateValidation(t *testing.T) {
@@ -82,7 +82,7 @@ func TestMetal3RemediationTemplateValidation(t *testing.T) {
 	tests := []struct {
 		name      string
 		timeout   *metav1.Duration
-		limit     int
+		limit     int32
 		strategy  infrav1.RemediationType
 		expectErr bool
 	}{

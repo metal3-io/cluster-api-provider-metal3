@@ -612,18 +612,8 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
-	if err := s.AddGeneratedConversionFunc((*NetworkDataRoutev4)(nil), (*v1beta2.NetworkDataRoutev4)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(a.(*NetworkDataRoutev4), b.(*v1beta2.NetworkDataRoutev4), scope)
-	}); err != nil {
-		return err
-	}
 	if err := s.AddGeneratedConversionFunc((*v1beta2.NetworkDataRoutev4)(nil), (*NetworkDataRoutev4)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_NetworkDataRoutev4_To_v1beta1_NetworkDataRoutev4(a.(*v1beta2.NetworkDataRoutev4), b.(*NetworkDataRoutev4), scope)
-	}); err != nil {
-		return err
-	}
-	if err := s.AddGeneratedConversionFunc((*NetworkDataRoutev6)(nil), (*v1beta2.NetworkDataRoutev6)(nil), func(a, b interface{}, scope conversion.Scope) error {
-		return Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(a.(*NetworkDataRoutev6), b.(*v1beta2.NetworkDataRoutev6), scope)
 	}); err != nil {
 		return err
 	}
@@ -754,6 +744,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*Metal3MachineStatus)(nil), (*v1beta2.Metal3MachineStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(a.(*Metal3MachineStatus), b.(*v1beta2.Metal3MachineStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*NetworkDataRoutev4)(nil), (*v1beta2.NetworkDataRoutev4)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(a.(*NetworkDataRoutev4), b.(*v1beta2.NetworkDataRoutev4), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*NetworkDataRoutev6)(nil), (*v1beta2.NetworkDataRoutev6)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(a.(*NetworkDataRoutev6), b.(*v1beta2.NetworkDataRoutev6), scope)
 	}); err != nil {
 		return err
 	}
@@ -960,7 +960,17 @@ func Convert_v1beta2_Image_To_v1beta1_Image(in *v1beta2.Image, out *Image, s con
 func autoConvert_v1beta1_MetaData_To_v1beta2_MetaData(in *MetaData, out *v1beta2.MetaData, s conversion.Scope) error {
 	out.Strings = *(*[]v1beta2.MetaDataString)(unsafe.Pointer(&in.Strings))
 	out.ObjectNames = *(*[]v1beta2.MetaDataObjectName)(unsafe.Pointer(&in.ObjectNames))
-	out.Indexes = *(*[]v1beta2.MetaDataIndex)(unsafe.Pointer(&in.Indexes))
+	if in.Indexes != nil {
+		in, out := &in.Indexes, &out.Indexes
+		*out = make([]v1beta2.MetaDataIndex, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_MetaDataIndex_To_v1beta2_MetaDataIndex(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Indexes = nil
+	}
 	out.Namespaces = *(*[]v1beta2.MetaDataNamespace)(unsafe.Pointer(&in.Namespaces))
 	out.IPAddressesFromPool = *(*[]v1beta2.FromPool)(unsafe.Pointer(&in.IPAddressesFromPool))
 	out.PrefixesFromPool = *(*[]v1beta2.FromPool)(unsafe.Pointer(&in.PrefixesFromPool))
@@ -980,7 +990,17 @@ func Convert_v1beta1_MetaData_To_v1beta2_MetaData(in *MetaData, out *v1beta2.Met
 func autoConvert_v1beta2_MetaData_To_v1beta1_MetaData(in *v1beta2.MetaData, out *MetaData, s conversion.Scope) error {
 	out.Strings = *(*[]MetaDataString)(unsafe.Pointer(&in.Strings))
 	out.ObjectNames = *(*[]MetaDataObjectName)(unsafe.Pointer(&in.ObjectNames))
-	out.Indexes = *(*[]MetaDataIndex)(unsafe.Pointer(&in.Indexes))
+	if in.Indexes != nil {
+		in, out := &in.Indexes, &out.Indexes
+		*out = make([]MetaDataIndex, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_MetaDataIndex_To_v1beta1_MetaDataIndex(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Indexes = nil
+	}
 	out.Namespaces = *(*[]MetaDataNamespace)(unsafe.Pointer(&in.Namespaces))
 	out.IPAddressesFromPool = *(*[]FromPool)(unsafe.Pointer(&in.IPAddressesFromPool))
 	out.PrefixesFromPool = *(*[]FromPool)(unsafe.Pointer(&in.PrefixesFromPool))
@@ -1072,7 +1092,7 @@ func autoConvert_v1beta1_MetaDataIPAddress_To_v1beta2_MetaDataIPAddress(in *Meta
 	out.Start = (*v1alpha1.IPAddressStr)(unsafe.Pointer(in.Start))
 	out.End = (*v1alpha1.IPAddressStr)(unsafe.Pointer(in.End))
 	out.Subnet = (*v1alpha1.IPSubnetStr)(unsafe.Pointer(in.Subnet))
-	out.Step = in.Step
+	out.Step = int32(in.Step)
 	return nil
 }
 
@@ -1086,7 +1106,7 @@ func autoConvert_v1beta2_MetaDataIPAddress_To_v1beta1_MetaDataIPAddress(in *v1be
 	out.Start = (*v1alpha1.IPAddressStr)(unsafe.Pointer(in.Start))
 	out.End = (*v1alpha1.IPAddressStr)(unsafe.Pointer(in.End))
 	out.Subnet = (*v1alpha1.IPSubnetStr)(unsafe.Pointer(in.Subnet))
-	out.Step = in.Step
+	out.Step = int(in.Step)
 	return nil
 }
 
@@ -1097,8 +1117,8 @@ func Convert_v1beta2_MetaDataIPAddress_To_v1beta1_MetaDataIPAddress(in *v1beta2.
 
 func autoConvert_v1beta1_MetaDataIndex_To_v1beta2_MetaDataIndex(in *MetaDataIndex, out *v1beta2.MetaDataIndex, s conversion.Scope) error {
 	out.Key = in.Key
-	out.Offset = in.Offset
-	out.Step = in.Step
+	out.Offset = int32(in.Offset)
+	out.Step = int32(in.Step)
 	out.Prefix = in.Prefix
 	out.Suffix = in.Suffix
 	return nil
@@ -1111,8 +1131,8 @@ func Convert_v1beta1_MetaDataIndex_To_v1beta2_MetaDataIndex(in *MetaDataIndex, o
 
 func autoConvert_v1beta2_MetaDataIndex_To_v1beta1_MetaDataIndex(in *v1beta2.MetaDataIndex, out *MetaDataIndex, s conversion.Scope) error {
 	out.Key = in.Key
-	out.Offset = in.Offset
-	out.Step = in.Step
+	out.Offset = int(in.Offset)
+	out.Step = int(in.Step)
 	out.Prefix = in.Prefix
 	out.Suffix = in.Suffix
 	return nil
@@ -1603,7 +1623,7 @@ func Convert_v1beta2_Metal3DataList_To_v1beta1_Metal3DataList(in *v1beta2.Metal3
 }
 
 func autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *v1beta2.Metal3DataSpec, s conversion.Scope) error {
-	out.Index = in.Index
+	out.Index = int32(in.Index)
 	// WARNING: in.TemplateReference requires manual conversion: does not exist in peer-type
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
@@ -1613,7 +1633,7 @@ func autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3Data
 }
 
 func autoConvert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec(in *v1beta2.Metal3DataSpec, out *Metal3DataSpec, s conversion.Scope) error {
-	out.Index = in.Index
+	out.Index = int(in.Index)
 	out.MetaData = (*corev1.SecretReference)(unsafe.Pointer(in.MetaData))
 	out.NetworkData = (*corev1.SecretReference)(unsafe.Pointer(in.NetworkData))
 	out.Claim = in.Claim
@@ -1725,15 +1745,47 @@ func Convert_v1beta2_Metal3DataTemplateList_To_v1beta1_Metal3DataTemplateList(in
 func autoConvert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec(in *Metal3DataTemplateSpec, out *v1beta2.Metal3DataTemplateSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
 	// WARNING: in.TemplateReference requires manual conversion: does not exist in peer-type
-	out.MetaData = (*v1beta2.MetaData)(unsafe.Pointer(in.MetaData))
-	out.NetworkData = (*v1beta2.NetworkData)(unsafe.Pointer(in.NetworkData))
+	if in.MetaData != nil {
+		in, out := &in.MetaData, &out.MetaData
+		*out = new(v1beta2.MetaData)
+		if err := Convert_v1beta1_MetaData_To_v1beta2_MetaData(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MetaData = nil
+	}
+	if in.NetworkData != nil {
+		in, out := &in.NetworkData, &out.NetworkData
+		*out = new(v1beta2.NetworkData)
+		if err := Convert_v1beta1_NetworkData_To_v1beta2_NetworkData(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NetworkData = nil
+	}
 	return nil
 }
 
 func autoConvert_v1beta2_Metal3DataTemplateSpec_To_v1beta1_Metal3DataTemplateSpec(in *v1beta2.Metal3DataTemplateSpec, out *Metal3DataTemplateSpec, s conversion.Scope) error {
 	out.ClusterName = in.ClusterName
-	out.MetaData = (*MetaData)(unsafe.Pointer(in.MetaData))
-	out.NetworkData = (*NetworkData)(unsafe.Pointer(in.NetworkData))
+	if in.MetaData != nil {
+		in, out := &in.MetaData, &out.MetaData
+		*out = new(MetaData)
+		if err := Convert_v1beta2_MetaData_To_v1beta1_MetaData(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.MetaData = nil
+	}
+	if in.NetworkData != nil {
+		in, out := &in.NetworkData, &out.NetworkData
+		*out = new(NetworkData)
+		if err := Convert_v1beta2_NetworkData_To_v1beta1_NetworkData(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.NetworkData = nil
+	}
 	return nil
 }
 
@@ -1744,7 +1796,15 @@ func Convert_v1beta2_Metal3DataTemplateSpec_To_v1beta1_Metal3DataTemplateSpec(in
 
 func autoConvert_v1beta1_Metal3DataTemplateStatus_To_v1beta2_Metal3DataTemplateStatus(in *Metal3DataTemplateStatus, out *v1beta2.Metal3DataTemplateStatus, s conversion.Scope) error {
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
-	out.Indexes = *(*map[string]int)(unsafe.Pointer(&in.Indexes))
+	if in.Indexes != nil {
+		in, out := &in.Indexes, &out.Indexes
+		*out = make(map[string]int32, len(*in))
+		for key, val := range *in {
+			(*out)[key] = int32(val)
+		}
+	} else {
+		out.Indexes = nil
+	}
 	return nil
 }
 
@@ -1755,7 +1815,15 @@ func Convert_v1beta1_Metal3DataTemplateStatus_To_v1beta2_Metal3DataTemplateStatu
 
 func autoConvert_v1beta2_Metal3DataTemplateStatus_To_v1beta1_Metal3DataTemplateStatus(in *v1beta2.Metal3DataTemplateStatus, out *Metal3DataTemplateStatus, s conversion.Scope) error {
 	out.LastUpdated = (*v1.Time)(unsafe.Pointer(in.LastUpdated))
-	out.Indexes = *(*map[string]int)(unsafe.Pointer(&in.Indexes))
+	if in.Indexes != nil {
+		in, out := &in.Indexes, &out.Indexes
+		*out = make(map[string]int, len(*in))
+		for key, val := range *in {
+			(*out)[key] = int(val)
+		}
+	} else {
+		out.Indexes = nil
+	}
 	return nil
 }
 
@@ -2105,7 +2173,17 @@ func Convert_v1beta2_Metal3Remediation_To_v1beta1_Metal3Remediation(in *v1beta2.
 
 func autoConvert_v1beta1_Metal3RemediationList_To_v1beta2_Metal3RemediationList(in *Metal3RemediationList, out *v1beta2.Metal3RemediationList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.Metal3Remediation)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.Metal3Remediation, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Metal3Remediation_To_v1beta2_Metal3Remediation(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -2116,7 +2194,17 @@ func Convert_v1beta1_Metal3RemediationList_To_v1beta2_Metal3RemediationList(in *
 
 func autoConvert_v1beta2_Metal3RemediationList_To_v1beta1_Metal3RemediationList(in *v1beta2.Metal3RemediationList, out *Metal3RemediationList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Metal3Remediation)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Metal3Remediation, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Metal3Remediation_To_v1beta1_Metal3Remediation(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -2126,7 +2214,15 @@ func Convert_v1beta2_Metal3RemediationList_To_v1beta1_Metal3RemediationList(in *
 }
 
 func autoConvert_v1beta1_Metal3RemediationSpec_To_v1beta2_Metal3RemediationSpec(in *Metal3RemediationSpec, out *v1beta2.Metal3RemediationSpec, s conversion.Scope) error {
-	out.Strategy = (*v1beta2.RemediationStrategy)(unsafe.Pointer(in.Strategy))
+	if in.Strategy != nil {
+		in, out := &in.Strategy, &out.Strategy
+		*out = new(v1beta2.RemediationStrategy)
+		if err := Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Strategy = nil
+	}
 	return nil
 }
 
@@ -2136,7 +2232,15 @@ func Convert_v1beta1_Metal3RemediationSpec_To_v1beta2_Metal3RemediationSpec(in *
 }
 
 func autoConvert_v1beta2_Metal3RemediationSpec_To_v1beta1_Metal3RemediationSpec(in *v1beta2.Metal3RemediationSpec, out *Metal3RemediationSpec, s conversion.Scope) error {
-	out.Strategy = (*RemediationStrategy)(unsafe.Pointer(in.Strategy))
+	if in.Strategy != nil {
+		in, out := &in.Strategy, &out.Strategy
+		*out = new(RemediationStrategy)
+		if err := Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.Strategy = nil
+	}
 	return nil
 }
 
@@ -2147,7 +2251,7 @@ func Convert_v1beta2_Metal3RemediationSpec_To_v1beta1_Metal3RemediationSpec(in *
 
 func autoConvert_v1beta1_Metal3RemediationStatus_To_v1beta2_Metal3RemediationStatus(in *Metal3RemediationStatus, out *v1beta2.Metal3RemediationStatus, s conversion.Scope) error {
 	out.Phase = in.Phase
-	out.RetryCount = in.RetryCount
+	out.RetryCount = int32(in.RetryCount)
 	out.LastRemediated = (*v1.Time)(unsafe.Pointer(in.LastRemediated))
 	return nil
 }
@@ -2159,7 +2263,7 @@ func Convert_v1beta1_Metal3RemediationStatus_To_v1beta2_Metal3RemediationStatus(
 
 func autoConvert_v1beta2_Metal3RemediationStatus_To_v1beta1_Metal3RemediationStatus(in *v1beta2.Metal3RemediationStatus, out *Metal3RemediationStatus, s conversion.Scope) error {
 	out.Phase = in.Phase
-	out.RetryCount = in.RetryCount
+	out.RetryCount = int(in.RetryCount)
 	out.LastRemediated = (*v1.Time)(unsafe.Pointer(in.LastRemediated))
 	return nil
 }
@@ -2203,7 +2307,17 @@ func Convert_v1beta2_Metal3RemediationTemplate_To_v1beta1_Metal3RemediationTempl
 
 func autoConvert_v1beta1_Metal3RemediationTemplateList_To_v1beta2_Metal3RemediationTemplateList(in *Metal3RemediationTemplateList, out *v1beta2.Metal3RemediationTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]v1beta2.Metal3RemediationTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]v1beta2.Metal3RemediationTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_Metal3RemediationTemplate_To_v1beta2_Metal3RemediationTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -2214,7 +2328,17 @@ func Convert_v1beta1_Metal3RemediationTemplateList_To_v1beta2_Metal3RemediationT
 
 func autoConvert_v1beta2_Metal3RemediationTemplateList_To_v1beta1_Metal3RemediationTemplateList(in *v1beta2.Metal3RemediationTemplateList, out *Metal3RemediationTemplateList, s conversion.Scope) error {
 	out.ListMeta = in.ListMeta
-	out.Items = *(*[]Metal3RemediationTemplate)(unsafe.Pointer(&in.Items))
+	if in.Items != nil {
+		in, out := &in.Items, &out.Items
+		*out = make([]Metal3RemediationTemplate, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_Metal3RemediationTemplate_To_v1beta1_Metal3RemediationTemplate(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Items = nil
+	}
 	return nil
 }
 
@@ -2337,7 +2461,17 @@ func autoConvert_v1beta1_NetworkDataIPv4_To_v1beta2_NetworkDataIPv4(in *NetworkD
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
 	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
 	out.FromPoolAnnotation = (*v1beta2.FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
-	out.Routes = *(*[]v1beta2.NetworkDataRoutev4)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]v1beta2.NetworkDataRoutev4, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2352,7 +2486,17 @@ func autoConvert_v1beta2_NetworkDataIPv4_To_v1beta1_NetworkDataIPv4(in *v1beta2.
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
 	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
 	out.FromPoolAnnotation = (*FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
-	out.Routes = *(*[]NetworkDataRoutev4)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]NetworkDataRoutev4, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataRoutev4_To_v1beta1_NetworkDataRoutev4(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2364,7 +2508,17 @@ func Convert_v1beta2_NetworkDataIPv4_To_v1beta1_NetworkDataIPv4(in *v1beta2.Netw
 func autoConvert_v1beta1_NetworkDataIPv4DHCP_To_v1beta2_NetworkDataIPv4DHCP(in *NetworkDataIPv4DHCP, out *v1beta2.NetworkDataIPv4DHCP, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Link = in.Link
-	out.Routes = *(*[]v1beta2.NetworkDataRoutev4)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]v1beta2.NetworkDataRoutev4, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2376,7 +2530,17 @@ func Convert_v1beta1_NetworkDataIPv4DHCP_To_v1beta2_NetworkDataIPv4DHCP(in *Netw
 func autoConvert_v1beta2_NetworkDataIPv4DHCP_To_v1beta1_NetworkDataIPv4DHCP(in *v1beta2.NetworkDataIPv4DHCP, out *NetworkDataIPv4DHCP, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Link = in.Link
-	out.Routes = *(*[]NetworkDataRoutev4)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]NetworkDataRoutev4, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataRoutev4_To_v1beta1_NetworkDataRoutev4(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2391,7 +2555,17 @@ func autoConvert_v1beta1_NetworkDataIPv6_To_v1beta2_NetworkDataIPv6(in *NetworkD
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
 	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
 	out.FromPoolAnnotation = (*v1beta2.FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
-	out.Routes = *(*[]v1beta2.NetworkDataRoutev6)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]v1beta2.NetworkDataRoutev6, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2406,7 +2580,17 @@ func autoConvert_v1beta2_NetworkDataIPv6_To_v1beta1_NetworkDataIPv6(in *v1beta2.
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
 	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
 	out.FromPoolAnnotation = (*FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
-	out.Routes = *(*[]NetworkDataRoutev6)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]NetworkDataRoutev6, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataRoutev6_To_v1beta1_NetworkDataRoutev6(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2418,7 +2602,17 @@ func Convert_v1beta2_NetworkDataIPv6_To_v1beta1_NetworkDataIPv6(in *v1beta2.Netw
 func autoConvert_v1beta1_NetworkDataIPv6DHCP_To_v1beta2_NetworkDataIPv6DHCP(in *NetworkDataIPv6DHCP, out *v1beta2.NetworkDataIPv6DHCP, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Link = in.Link
-	out.Routes = *(*[]v1beta2.NetworkDataRoutev6)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]v1beta2.NetworkDataRoutev6, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2430,7 +2624,17 @@ func Convert_v1beta1_NetworkDataIPv6DHCP_To_v1beta2_NetworkDataIPv6DHCP(in *Netw
 func autoConvert_v1beta2_NetworkDataIPv6DHCP_To_v1beta1_NetworkDataIPv6DHCP(in *v1beta2.NetworkDataIPv6DHCP, out *NetworkDataIPv6DHCP, s conversion.Scope) error {
 	out.ID = in.ID
 	out.Link = in.Link
-	out.Routes = *(*[]NetworkDataRoutev6)(unsafe.Pointer(&in.Routes))
+	if in.Routes != nil {
+		in, out := &in.Routes, &out.Routes
+		*out = make([]NetworkDataRoutev6, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataRoutev6_To_v1beta1_NetworkDataRoutev6(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Routes = nil
+	}
 	return nil
 }
 
@@ -2440,9 +2644,39 @@ func Convert_v1beta2_NetworkDataIPv6DHCP_To_v1beta1_NetworkDataIPv6DHCP(in *v1be
 }
 
 func autoConvert_v1beta1_NetworkDataLink_To_v1beta2_NetworkDataLink(in *NetworkDataLink, out *v1beta2.NetworkDataLink, s conversion.Scope) error {
-	out.Ethernets = *(*[]v1beta2.NetworkDataLinkEthernet)(unsafe.Pointer(&in.Ethernets))
-	out.Bonds = *(*[]v1beta2.NetworkDataLinkBond)(unsafe.Pointer(&in.Bonds))
-	out.Vlans = *(*[]v1beta2.NetworkDataLinkVlan)(unsafe.Pointer(&in.Vlans))
+	if in.Ethernets != nil {
+		in, out := &in.Ethernets, &out.Ethernets
+		*out = make([]v1beta2.NetworkDataLinkEthernet, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataLinkEthernet_To_v1beta2_NetworkDataLinkEthernet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ethernets = nil
+	}
+	if in.Bonds != nil {
+		in, out := &in.Bonds, &out.Bonds
+		*out = make([]v1beta2.NetworkDataLinkBond, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataLinkBond_To_v1beta2_NetworkDataLinkBond(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Bonds = nil
+	}
+	if in.Vlans != nil {
+		in, out := &in.Vlans, &out.Vlans
+		*out = make([]v1beta2.NetworkDataLinkVlan, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataLinkVlan_To_v1beta2_NetworkDataLinkVlan(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Vlans = nil
+	}
 	return nil
 }
 
@@ -2452,9 +2686,39 @@ func Convert_v1beta1_NetworkDataLink_To_v1beta2_NetworkDataLink(in *NetworkDataL
 }
 
 func autoConvert_v1beta2_NetworkDataLink_To_v1beta1_NetworkDataLink(in *v1beta2.NetworkDataLink, out *NetworkDataLink, s conversion.Scope) error {
-	out.Ethernets = *(*[]NetworkDataLinkEthernet)(unsafe.Pointer(&in.Ethernets))
-	out.Bonds = *(*[]NetworkDataLinkBond)(unsafe.Pointer(&in.Bonds))
-	out.Vlans = *(*[]NetworkDataLinkVlan)(unsafe.Pointer(&in.Vlans))
+	if in.Ethernets != nil {
+		in, out := &in.Ethernets, &out.Ethernets
+		*out = make([]NetworkDataLinkEthernet, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataLinkEthernet_To_v1beta1_NetworkDataLinkEthernet(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Ethernets = nil
+	}
+	if in.Bonds != nil {
+		in, out := &in.Bonds, &out.Bonds
+		*out = make([]NetworkDataLinkBond, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Bonds = nil
+	}
+	if in.Vlans != nil {
+		in, out := &in.Vlans, &out.Vlans
+		*out = make([]NetworkDataLinkVlan, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.Vlans = nil
+	}
 	return nil
 }
 
@@ -2468,7 +2732,7 @@ func autoConvert_v1beta1_NetworkDataLinkBond_To_v1beta2_NetworkDataLinkBond(in *
 	out.BondXmitHashPolicy = in.BondXmitHashPolicy
 	out.Id = in.Id
 	out.Name = in.Name
-	out.MTU = in.MTU
+	out.MTU = int32(in.MTU)
 	out.MACAddress = (*v1beta2.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.Parameters = *(*v1beta2.NetworkDataLinkBondParams)(unsafe.Pointer(&in.Parameters))
 	out.BondLinks = *(*[]string)(unsafe.Pointer(&in.BondLinks))
@@ -2485,7 +2749,7 @@ func autoConvert_v1beta2_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in *
 	out.BondXmitHashPolicy = in.BondXmitHashPolicy
 	out.Id = in.Id
 	out.Name = in.Name
-	out.MTU = in.MTU
+	out.MTU = int(in.MTU)
 	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.Parameters = *(*NetworkDataLinkBondParams)(unsafe.Pointer(&in.Parameters))
 	out.BondLinks = *(*[]string)(unsafe.Pointer(&in.BondLinks))
@@ -2501,7 +2765,7 @@ func autoConvert_v1beta1_NetworkDataLinkEthernet_To_v1beta2_NetworkDataLinkEther
 	out.Type = in.Type
 	out.Id = in.Id
 	out.Name = in.Name
-	out.MTU = in.MTU
+	out.MTU = int32(in.MTU)
 	out.MACAddress = (*v1beta2.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	return nil
 }
@@ -2515,7 +2779,7 @@ func autoConvert_v1beta2_NetworkDataLinkEthernet_To_v1beta1_NetworkDataLinkEther
 	out.Type = in.Type
 	out.Id = in.Id
 	out.Name = in.Name
-	out.MTU = in.MTU
+	out.MTU = int(in.MTU)
 	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	return nil
 }
@@ -2526,10 +2790,10 @@ func Convert_v1beta2_NetworkDataLinkEthernet_To_v1beta1_NetworkDataLinkEthernet(
 }
 
 func autoConvert_v1beta1_NetworkDataLinkVlan_To_v1beta2_NetworkDataLinkVlan(in *NetworkDataLinkVlan, out *v1beta2.NetworkDataLinkVlan, s conversion.Scope) error {
-	out.VlanID = in.VlanID
+	out.VlanID = int32(in.VlanID)
 	out.Id = in.Id
 	out.Name = in.Name
-	out.MTU = in.MTU
+	out.MTU = int32(in.MTU)
 	out.MACAddress = (*v1beta2.NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.VlanLink = in.VlanLink
 	return nil
@@ -2541,10 +2805,10 @@ func Convert_v1beta1_NetworkDataLinkVlan_To_v1beta2_NetworkDataLinkVlan(in *Netw
 }
 
 func autoConvert_v1beta2_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(in *v1beta2.NetworkDataLinkVlan, out *NetworkDataLinkVlan, s conversion.Scope) error {
-	out.VlanID = in.VlanID
+	out.VlanID = int(in.VlanID)
 	out.Id = in.Id
 	out.Name = in.Name
-	out.MTU = in.MTU
+	out.MTU = int(in.MTU)
 	out.MACAddress = (*NetworkLinkEthernetMac)(unsafe.Pointer(in.MACAddress))
 	out.VlanLink = in.VlanLink
 	return nil
@@ -2556,11 +2820,61 @@ func Convert_v1beta2_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(in *v1be
 }
 
 func autoConvert_v1beta1_NetworkDataNetwork_To_v1beta2_NetworkDataNetwork(in *NetworkDataNetwork, out *v1beta2.NetworkDataNetwork, s conversion.Scope) error {
-	out.IPv4 = *(*[]v1beta2.NetworkDataIPv4)(unsafe.Pointer(&in.IPv4))
-	out.IPv6 = *(*[]v1beta2.NetworkDataIPv6)(unsafe.Pointer(&in.IPv6))
-	out.IPv4DHCP = *(*[]v1beta2.NetworkDataIPv4DHCP)(unsafe.Pointer(&in.IPv4DHCP))
-	out.IPv6DHCP = *(*[]v1beta2.NetworkDataIPv6DHCP)(unsafe.Pointer(&in.IPv6DHCP))
-	out.IPv6SLAAC = *(*[]v1beta2.NetworkDataIPv6DHCP)(unsafe.Pointer(&in.IPv6SLAAC))
+	if in.IPv4 != nil {
+		in, out := &in.IPv4, &out.IPv4
+		*out = make([]v1beta2.NetworkDataIPv4, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataIPv4_To_v1beta2_NetworkDataIPv4(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv4 = nil
+	}
+	if in.IPv6 != nil {
+		in, out := &in.IPv6, &out.IPv6
+		*out = make([]v1beta2.NetworkDataIPv6, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataIPv6_To_v1beta2_NetworkDataIPv6(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv6 = nil
+	}
+	if in.IPv4DHCP != nil {
+		in, out := &in.IPv4DHCP, &out.IPv4DHCP
+		*out = make([]v1beta2.NetworkDataIPv4DHCP, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataIPv4DHCP_To_v1beta2_NetworkDataIPv4DHCP(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv4DHCP = nil
+	}
+	if in.IPv6DHCP != nil {
+		in, out := &in.IPv6DHCP, &out.IPv6DHCP
+		*out = make([]v1beta2.NetworkDataIPv6DHCP, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataIPv6DHCP_To_v1beta2_NetworkDataIPv6DHCP(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv6DHCP = nil
+	}
+	if in.IPv6SLAAC != nil {
+		in, out := &in.IPv6SLAAC, &out.IPv6SLAAC
+		*out = make([]v1beta2.NetworkDataIPv6DHCP, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta1_NetworkDataIPv6DHCP_To_v1beta2_NetworkDataIPv6DHCP(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv6SLAAC = nil
+	}
 	return nil
 }
 
@@ -2570,11 +2884,61 @@ func Convert_v1beta1_NetworkDataNetwork_To_v1beta2_NetworkDataNetwork(in *Networ
 }
 
 func autoConvert_v1beta2_NetworkDataNetwork_To_v1beta1_NetworkDataNetwork(in *v1beta2.NetworkDataNetwork, out *NetworkDataNetwork, s conversion.Scope) error {
-	out.IPv4 = *(*[]NetworkDataIPv4)(unsafe.Pointer(&in.IPv4))
-	out.IPv6 = *(*[]NetworkDataIPv6)(unsafe.Pointer(&in.IPv6))
-	out.IPv4DHCP = *(*[]NetworkDataIPv4DHCP)(unsafe.Pointer(&in.IPv4DHCP))
-	out.IPv6DHCP = *(*[]NetworkDataIPv6DHCP)(unsafe.Pointer(&in.IPv6DHCP))
-	out.IPv6SLAAC = *(*[]NetworkDataIPv6DHCP)(unsafe.Pointer(&in.IPv6SLAAC))
+	if in.IPv4 != nil {
+		in, out := &in.IPv4, &out.IPv4
+		*out = make([]NetworkDataIPv4, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataIPv4_To_v1beta1_NetworkDataIPv4(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv4 = nil
+	}
+	if in.IPv6 != nil {
+		in, out := &in.IPv6, &out.IPv6
+		*out = make([]NetworkDataIPv6, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataIPv6_To_v1beta1_NetworkDataIPv6(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv6 = nil
+	}
+	if in.IPv4DHCP != nil {
+		in, out := &in.IPv4DHCP, &out.IPv4DHCP
+		*out = make([]NetworkDataIPv4DHCP, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataIPv4DHCP_To_v1beta1_NetworkDataIPv4DHCP(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv4DHCP = nil
+	}
+	if in.IPv6DHCP != nil {
+		in, out := &in.IPv6DHCP, &out.IPv6DHCP
+		*out = make([]NetworkDataIPv6DHCP, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataIPv6DHCP_To_v1beta1_NetworkDataIPv6DHCP(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv6DHCP = nil
+	}
+	if in.IPv6SLAAC != nil {
+		in, out := &in.IPv6SLAAC, &out.IPv6SLAAC
+		*out = make([]NetworkDataIPv6DHCP, len(*in))
+		for i := range *in {
+			if err := Convert_v1beta2_NetworkDataIPv6DHCP_To_v1beta1_NetworkDataIPv6DHCP(&(*in)[i], &(*out)[i], s); err != nil {
+				return err
+			}
+		}
+	} else {
+		out.IPv6SLAAC = nil
+	}
 	return nil
 }
 
@@ -2585,7 +2949,7 @@ func Convert_v1beta2_NetworkDataNetwork_To_v1beta1_NetworkDataNetwork(in *v1beta
 
 func autoConvert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(in *NetworkDataRoutev4, out *v1beta2.NetworkDataRoutev4, s conversion.Scope) error {
 	out.Network = v1alpha1.IPAddressv4Str(in.Network)
-	out.Prefix = in.Prefix
+	out.Prefix = int32(in.Prefix)
 	if err := Convert_v1beta1_NetworkGatewayv4_To_v1beta2_NetworkGatewayv4(&in.Gateway, &out.Gateway, s); err != nil {
 		return err
 	}
@@ -2595,14 +2959,9 @@ func autoConvert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(in *Ne
 	return nil
 }
 
-// Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4 is an autogenerated conversion function.
-func Convert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(in *NetworkDataRoutev4, out *v1beta2.NetworkDataRoutev4, s conversion.Scope) error {
-	return autoConvert_v1beta1_NetworkDataRoutev4_To_v1beta2_NetworkDataRoutev4(in, out, s)
-}
-
 func autoConvert_v1beta2_NetworkDataRoutev4_To_v1beta1_NetworkDataRoutev4(in *v1beta2.NetworkDataRoutev4, out *NetworkDataRoutev4, s conversion.Scope) error {
 	out.Network = v1alpha1.IPAddressv4Str(in.Network)
-	out.Prefix = in.Prefix
+	out.Prefix = int(in.Prefix)
 	if err := Convert_v1beta2_NetworkGatewayv4_To_v1beta1_NetworkGatewayv4(&in.Gateway, &out.Gateway, s); err != nil {
 		return err
 	}
@@ -2619,7 +2978,7 @@ func Convert_v1beta2_NetworkDataRoutev4_To_v1beta1_NetworkDataRoutev4(in *v1beta
 
 func autoConvert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(in *NetworkDataRoutev6, out *v1beta2.NetworkDataRoutev6, s conversion.Scope) error {
 	out.Network = v1alpha1.IPAddressv6Str(in.Network)
-	out.Prefix = in.Prefix
+	out.Prefix = int32(in.Prefix)
 	if err := Convert_v1beta1_NetworkGatewayv6_To_v1beta2_NetworkGatewayv6(&in.Gateway, &out.Gateway, s); err != nil {
 		return err
 	}
@@ -2629,14 +2988,9 @@ func autoConvert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(in *Ne
 	return nil
 }
 
-// Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6 is an autogenerated conversion function.
-func Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(in *NetworkDataRoutev6, out *v1beta2.NetworkDataRoutev6, s conversion.Scope) error {
-	return autoConvert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(in, out, s)
-}
-
 func autoConvert_v1beta2_NetworkDataRoutev6_To_v1beta1_NetworkDataRoutev6(in *v1beta2.NetworkDataRoutev6, out *NetworkDataRoutev6, s conversion.Scope) error {
 	out.Network = v1alpha1.IPAddressv6Str(in.Network)
-	out.Prefix = in.Prefix
+	out.Prefix = int(in.Prefix)
 	if err := Convert_v1beta2_NetworkGatewayv6_To_v1beta1_NetworkGatewayv6(&in.Gateway, &out.Gateway, s); err != nil {
 		return err
 	}
@@ -2817,7 +3171,7 @@ func Convert_v1beta2_NetworkLinkEthernetMacFromAnnotation_To_v1beta1_NetworkLink
 
 func autoConvert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in *RemediationStrategy, out *v1beta2.RemediationStrategy, s conversion.Scope) error {
 	out.Type = v1beta2.RemediationType(in.Type)
-	out.RetryLimit = in.RetryLimit
+	out.RetryLimit = int32(in.RetryLimit)
 	out.Timeout = (*v1.Duration)(unsafe.Pointer(in.Timeout))
 	return nil
 }
@@ -2829,7 +3183,7 @@ func Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in *Reme
 
 func autoConvert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(in *v1beta2.RemediationStrategy, out *RemediationStrategy, s conversion.Scope) error {
 	out.Type = RemediationType(in.Type)
-	out.RetryLimit = in.RetryLimit
+	out.RetryLimit = int(in.RetryLimit)
 	out.Timeout = (*v1.Duration)(unsafe.Pointer(in.Timeout))
 	return nil
 }
