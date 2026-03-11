@@ -214,7 +214,7 @@ variables:
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   KUBERNETES_VERSION: "${KUBERNETES_VERSION:-v1.35.0}"
   KUBERNETES_VERSION_MINOR: "${KUBERNETES_VERSION%.*}"
-  KUBERNETES_VERSION_FROM: "${KUBERNETES_VERSION_FROM:-v1.34.1}"
+  KUBERNETES_VERSION_UPGRADE_FROM: "${KUBERNETES_VERSION_UPGRADE_FROM:-v1.34.1}"
   # KUBERNETES_VERSION_PATCH_TO is used only in node reuse test, we do this
   # upgrade to make rollout happen, we are not testing k8s upgrade here, so
   # what version of k8s we are using for this upgrade is not important, as long
