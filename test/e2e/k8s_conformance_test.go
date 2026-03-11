@@ -32,7 +32,7 @@ var _ = Describe("When testing K8S conformance", Label("k8s-conformance"), func(
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			PostNamespaceCreated:  createBMHsInNamespace,
-			Flavor:                osType,
+			Flavor:                osType + flavorSuffix(),
 		}
 	})
 	AfterEach(func() {

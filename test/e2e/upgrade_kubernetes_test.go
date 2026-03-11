@@ -49,7 +49,7 @@ var _ = Describe("Kubernetes version upgrade in target nodes", Label("k8s-upgrad
 				WorkerMachineCount:    int64(numberOfWorkers),
 				ClusterctlLogFolder:   clusterctlLogFolder,
 				ClusterctlConfigPath:  clusterctlConfigPath,
-				OSType:                osType,
+				OSType:                osType + flavorSuffix(),
 				Namespace:             namespace,
 			}
 		})

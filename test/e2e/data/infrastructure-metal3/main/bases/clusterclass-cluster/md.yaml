@@ -1,4 +1,4 @@
-apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers
@@ -11,10 +11,10 @@ spec:
       image:
         checksum: ${IMAGE_RAW_CHECKSUM}
         checksumType: ${IMAGE_CHECKSUM_TYPE}
-        format: raw
+        diskFormat: raw
         url: ${IMAGE_RAW_URL}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-workers-template
@@ -22,7 +22,7 @@ metadata:
 spec:
   clusterName: ${CLUSTER_NAME}
   metaData:
-    ipAddressesFromIPPool:
+    ipAddressesFromPool:
     - key: provisioningIP
       name: provisioning-pool
       apiGroup: ""
@@ -34,7 +34,7 @@ spec:
       object: machine
     - key: local_hostname
       object: machine
-    prefixesFromIPPool:
+    prefixesFromPool:
     - key: provisioningCIDR
       name: provisioning-pool
       apiGroup: ""

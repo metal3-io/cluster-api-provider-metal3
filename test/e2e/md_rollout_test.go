@@ -29,7 +29,7 @@ var _ = Describe("When testing MachineDeployment rolling upgrades", Label("capi-
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                osType + "-md-taints",
+			Flavor:                osType + "-md-taints" + flavorSuffix(),
 			PostNamespaceCreated:  createBMHsInNamespace,
 		}
 	})

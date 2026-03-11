@@ -22,7 +22,7 @@ import (
 const (
 	workDir                  = "/opt/metal3-dev-env/"
 	capiContract             = "v1beta2"
-	capm3Contract            = "v1beta1"
+	capm3Contract            = "v1beta2"
 	releaseMarkerPrefixCAPM3 = "go://github.com/metal3-io/cluster-api-provider-metal3@v%s"
 	releaseMarkerPrefixIPAM  = "go://github.com/metal3-io/ip-address-manager@v%s"
 )
