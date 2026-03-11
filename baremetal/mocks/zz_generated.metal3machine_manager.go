@@ -274,33 +274,16 @@ func (mr *MockMachineManagerInterfaceMockRecorder) RemovePauseAnnotation(arg0 an
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemovePauseAnnotation", reflect.TypeOf((*MockMachineManagerInterface)(nil).RemovePauseAnnotation), arg0)
 }
 
-// SetConditionMetal3MachineToFalse mocks base method.
-func (m *MockMachineManagerInterface) SetConditionMetal3MachineToFalse(arg0 v1beta20.ConditionType, arg1 string, arg2 v1beta20.ConditionSeverity, arg3 string, arg4 ...any) {
+// SetCondition mocks base method.
+func (m *MockMachineManagerInterface) SetCondition(arg0 string, arg1 v1.ConditionStatus, arg2, arg3 string) {
 	m.ctrl.T.Helper()
-	varargs := []any{arg0, arg1, arg2, arg3}
-	for _, a := range arg4 {
-		varargs = append(varargs, a)
-	}
-	m.ctrl.Call(m, "SetConditionMetal3MachineToFalse", varargs...)
+	m.ctrl.Call(m, "SetCondition", arg0, arg1, arg2, arg3)
 }
 
-// SetConditionMetal3MachineToFalse indicates an expected call of SetConditionMetal3MachineToFalse.
-func (mr *MockMachineManagerInterfaceMockRecorder) SetConditionMetal3MachineToFalse(arg0, arg1, arg2, arg3 any, arg4 ...any) *gomock.Call {
+// SetCondition indicates an expected call of SetCondition.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetCondition(arg0, arg1, arg2, arg3 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]any{arg0, arg1, arg2, arg3}, arg4...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConditionMetal3MachineToFalse", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetConditionMetal3MachineToFalse), varargs...)
-}
-
-// SetConditionMetal3MachineToTrue mocks base method.
-func (m *MockMachineManagerInterface) SetConditionMetal3MachineToTrue(arg0 v1beta20.ConditionType) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetConditionMetal3MachineToTrue", arg0)
-}
-
-// SetConditionMetal3MachineToTrue indicates an expected call of SetConditionMetal3MachineToTrue.
-func (mr *MockMachineManagerInterfaceMockRecorder) SetConditionMetal3MachineToTrue(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetConditionMetal3MachineToTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetConditionMetal3MachineToTrue), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCondition", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetCondition), arg0, arg1, arg2, arg3)
 }
 
 // SetDefaultProviderID mocks base method.
@@ -434,16 +417,33 @@ func (mr *MockMachineManagerInterfaceMockRecorder) SetReadyTrue() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetReadyTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetReadyTrue))
 }
 
-// SetV1beta2Condition mocks base method.
-func (m *MockMachineManagerInterface) SetV1beta2Condition(arg0 string, arg1 v1.ConditionStatus, arg2, arg3 string) {
+// SetV1Beta1ConditionToFalse mocks base method.
+func (m *MockMachineManagerInterface) SetV1Beta1ConditionToFalse(arg0 v1beta20.ConditionType, arg1 string, arg2 v1beta20.ConditionSeverity, arg3 string, arg4 ...any) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "SetV1beta2Condition", arg0, arg1, arg2, arg3)
+	varargs := []any{arg0, arg1, arg2, arg3}
+	for _, a := range arg4 {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "SetV1Beta1ConditionToFalse", varargs...)
 }
 
-// SetV1beta2Condition indicates an expected call of SetV1beta2Condition.
-func (mr *MockMachineManagerInterfaceMockRecorder) SetV1beta2Condition(arg0, arg1, arg2, arg3 any) *gomock.Call {
+// SetV1Beta1ConditionToFalse indicates an expected call of SetV1Beta1ConditionToFalse.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetV1Beta1ConditionToFalse(arg0, arg1, arg2, arg3 any, arg4 ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetV1beta2Condition", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetV1beta2Condition), arg0, arg1, arg2, arg3)
+	varargs := append([]any{arg0, arg1, arg2, arg3}, arg4...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetV1Beta1ConditionToFalse", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetV1Beta1ConditionToFalse), varargs...)
+}
+
+// SetV1Beta1ConditionToTrue mocks base method.
+func (m *MockMachineManagerInterface) SetV1Beta1ConditionToTrue(arg0 v1beta20.ConditionType) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetV1Beta1ConditionToTrue", arg0)
+}
+
+// SetV1Beta1ConditionToTrue indicates an expected call of SetV1Beta1ConditionToTrue.
+func (mr *MockMachineManagerInterfaceMockRecorder) SetV1Beta1ConditionToTrue(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetV1Beta1ConditionToTrue", reflect.TypeOf((*MockMachineManagerInterface)(nil).SetV1Beta1ConditionToTrue), arg0)
 }
 
 // UnsetFinalizer mocks base method.

@@ -35,85 +35,85 @@ const (
 
 // Metal3Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// Metal3MachineReadyV1Beta2Condition is true if the Metal3Machine's deletionTimestamp is not set, Metal3Machine's
+	// Metal3MachineReadyCondition is true if the Metal3Machine's deletionTimestamp is not set, Metal3Machine's
 	// BareMetalHostProvisioned is true.
-	Metal3MachineReadyV1Beta2Condition = clusterv1.ReadyCondition
+	Metal3MachineReadyCondition = clusterv1.ReadyCondition
 
-	// Metal3MachineReadyV1Beta2Reason surfaces when the Metal3Machine readiness criteria is met.
-	Metal3MachineReadyV1Beta2Reason = clusterv1.ReadyReason
+	// Metal3MachineReadyReason surfaces when the Metal3Machine readiness criteria is met.
+	Metal3MachineReadyReason = clusterv1.ReadyReason
 
-	// Metal3MachineNotReadyV1Beta2Reason surfaces when the Metal3Machine readiness criteria is not met.
-	Metal3MachineNotReadyV1Beta2Reason = clusterv1.NotReadyReason
+	// Metal3MachineNotReadyReason surfaces when the Metal3Machine readiness criteria is not met.
+	Metal3MachineNotReadyReason = clusterv1.NotReadyReason
 
-	// Metal3MachineReadyUnknownV1Beta2Reason surfaces when at least one Metal3Machine readiness criteria is unknown
+	// Metal3MachineReadyUnknownReason surfaces when at least one Metal3Machine readiness criteria is unknown
 	// and no Metal3Machine readiness criteria is not met.
-	Metal3MachineReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
+	Metal3MachineReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
 // Metal3Machine condition and corresponding reasons that will be used in v1Beta2 API version.
 const (
-	// AssociateBareMetalHostV1Beta2Condition documents the status of the association of Metal3Machine with a BareMetalHost.
-	AssociateBareMetalHostV1Beta2Condition = "AssociateBareMetalHost"
+	// AssociateBareMetalHostCondition documents the status of the association of Metal3Machine with a BareMetalHost.
+	AssociateBareMetalHostCondition = "AssociateBareMetalHost"
 
-	// AssociateBareMetalHostFailedV1Beta2Reason documents any errors while associating Metal3Machine with a BareMetalHost.
-	AssociateBareMetalHostFailedV1Beta2Reason = "AssociateBareMetalHostFailed"
+	// AssociateBareMetalHostFailedReason documents any errors while associating Metal3Machine with a BareMetalHost.
+	AssociateBareMetalHostFailedReason = "AssociateBareMetalHostFailed"
 
-	// AssociateBareMetalHostSuccessV1Beta2Reason surfaces when the Metal3Machine is successfully associated with a BareMetalHost.
-	AssociateBareMetalHostSuccessV1Beta2Reason = "AssociateBareMetalHostSuccess"
+	// AssociateBareMetalHostSuccessReason surfaces when the Metal3Machine is successfully associated with a BareMetalHost.
+	AssociateBareMetalHostSuccessReason = "AssociateBareMetalHostSuccess"
 
-	// WaitingForClusterInfrastructureReadyV1Beta2Reason used when waiting for cluster
+	// WaitingForClusterInfrastructureReadyReason used when waiting for cluster
 	// infrastructure to be ready before proceeding.
-	WaitingForClusterInfrastructureReadyV1Beta2Reason = clusterv1.WaitingForClusterInfrastructureReadyReason
+	WaitingForClusterInfrastructureReadyReason = clusterv1.WaitingForClusterInfrastructureReadyReason
 
-	// WaitingForBootstrapDataV1Beta2Reason used when waiting for bootstrap to be ready before proceeding.
-	WaitingForBootstrapDataV1Beta2Reason = clusterv1.WaitingForBootstrapDataReason
+	// WaitingForBootstrapDataReason used when waiting for bootstrap to be ready before proceeding.
+	WaitingForBootstrapDataReason = clusterv1.WaitingForBootstrapDataReason
 
-	// WaitingForMetal3MachineOwnerRefV1Beta2Reason is used when Metal3Machine is waiting for OwnerReference to be
+	// WaitingForMetal3MachineOwnerRefReason is used when Metal3Machine is waiting for OwnerReference to be
 	// set before proceeding.
-	WaitingForMetal3MachineOwnerRefV1Beta2Reason = "WaitingForMetal3MachineOwnerRef"
+	WaitingForMetal3MachineOwnerRefReason = "WaitingForMetal3MachineOwnerRef"
 
 	// WaitingforMetal3ClusterReason is used when Metal3Machine is waiting for Metal3Cluster.
-	WaitingforMetal3ClusterV1Beta2Reason = "WaitingforMetal3Cluster"
+	WaitingforMetal3ClusterReason = "WaitingforMetal3Cluster"
 
-	// BareMetalHostPauseAnnotationRemoveFailedV1Beta2Reason is used when failed to remove/check pause annotation on associated BareMetalHost.
-	BareMetalHostPauseAnnotationRemoveFailedV1Beta2Reason = "BareMetalHostPauseAnnotationRemoveFailed"
+	// BareMetalHostPauseAnnotationRemoveFailedReason is used when failed to remove/check pause annotation on associated BareMetalHost.
+	BareMetalHostPauseAnnotationRemoveFailedReason = "BareMetalHostPauseAnnotationRemoveFailed"
 
-	// BareMetalHostPauseAnnotationSetFailedV1Beta2Reason is used when failed to set pause annotation on associated BareMetalHost.
-	BareMetalHostPauseAnnotationSetFailedV1Beta2Reason = "BareMetalHostPauseAnnotationSetFailed"
+	// BareMetalHostPauseAnnotationSetFailedReason is used when failed to set pause annotation on associated BareMetalHost.
+	BareMetalHostPauseAnnotationSetFailedReason = "BareMetalHostPauseAnnotationSetFailed"
 
-	// AssociateMetal3MachineMetaDataV1Beta2Condition documents the transition of a Metal3Machine into a Kubernetes Node.
-	AssociateMetal3MachineMetaDataV1Beta2Condition = "AssociateMetal3MachineMetaData"
+	// AssociateMetal3MachineMetaDataCondition documents the transition of a Metal3Machine into a Kubernetes Node.
+	AssociateMetal3MachineMetaDataCondition = "AssociateMetal3MachineMetaData"
 
-	// AssociateMetal3MachineMetaDataFailedV1Beta2Reason is used when failed to associate Metadata to Metal3Machine.
-	AssociateMetal3MachineMetaDataFailedV1Beta2Reason = "AssociateMetal3MachineMetaDataFailed"
+	// AssociateMetal3MachineMetaDataFailedReason is used when failed to associate Metadata to Metal3Machine.
+	AssociateMetal3MachineMetaDataFailedReason = "AssociateMetal3MachineMetaDataFailed"
 
-	// AssociateMetal3MachineMetaDataSuccessV1Beta2Reason is used when successfully associated Metadata to Metal3Machine.
-	AssociateMetal3MachineMetaDataSuccessV1Beta2Reason = "AssociateMetal3MachineMetaDataSuccess"
+	// AssociateMetal3MachineMetaDataSuccessReason is used when successfully associated Metadata to Metal3Machine.
+	AssociateMetal3MachineMetaDataSuccessReason = "AssociateMetal3MachineMetaDataSuccess"
 
-	// Metal3DataReadyV1Beta2Condition reports a summary of Metal3Data status.
-	Metal3DataReadyV1Beta2Condition = "Metal3DataReady"
+	// Metal3DataReadyCondition reports a summary of Metal3Data status.
+	Metal3DataReadyCondition = "Metal3DataReady"
 
-	// WaitingForMetal3DataV1Beta2Reason used when waiting for Metal3Data
+	// WaitingForMetal3DataReason used when waiting for Metal3Data
 	// to be ready before proceeding.
-	WaitingForMetal3DataV1Beta2Reason = "WaitingForMetal3Data"
+	WaitingForMetal3DataReason = "WaitingForMetal3Data"
 
-	// Metal3DataSecretsReadyV1Beta2Reason used when metal3data secrets are ready
+	// Metal3DataSecretsReadyReason used when metal3data secrets are ready
 	// to be ready before proceeding.
-	Metal3DataSecretsReadyV1Beta2Reason = "Metal3DataSecretsReady"
+	Metal3DataSecretsReadyReason = "Metal3DataSecretsReady"
 
-	// SecretsSetExternallyV1Beta2Reason used when metal3data secrets are ready
+	// SecretsSetExternallyReason used when metal3data secrets are ready
 	// to be ready before proceeding.
-	SecretsSetExternallyV1Beta2Reason = "SecretsSetExternally"
+	SecretsSetExternallyReason = "SecretsSetExternally"
 
 	// DisassociateM3MetaDataFailedReason is used when failed to remove OwnerReference of Meta3DataTemplate.
-	DisassociateM3MetaDataFailedV1Beta2Reason = "DisassociateM3MetaDataFailed"
+	DisassociateM3MetaDataFailedReason = "DisassociateM3MetaDataFailed"
 
-	// DeletingV1Beta2Reason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
-	Metal3MachineDeletingV1Beta2Reason = clusterv1.DeletingReason
+	// DeletingReason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
+	Metal3MachineDeletingReason = clusterv1.DeletingReason
 
-	// Metal3MachineDeletingFailedV1Beta2Reason (Severity=Warning) documents a condition not in Status=True because the underlying object
+	// Metal3MachineDeletingFailedReason (Severity=Warning) documents a condition not in Status=True because the underlying object
 	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
-	Metal3MachineDeletingFailedV1Beta2Reason = "DeletionFailed"
+	Metal3MachineDeletingFailedReason = "DeletionFailed"
 )
 
 // Metal3MachineSpec defines the desired state of Metal3Machine.

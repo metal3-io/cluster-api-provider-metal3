@@ -110,9 +110,9 @@ type MachineManagerInterface interface {
 	DissociateM3Metadata(context.Context) error
 	AssociateM3Metadata(context.Context) error
 	SetError(string, capierrors.MachineStatusError)
-	SetConditionMetal3MachineToFalse(clusterv1.ConditionType, string, clusterv1.ConditionSeverity, string, ...any)
-	SetConditionMetal3MachineToTrue(clusterv1.ConditionType)
-	SetV1beta2Condition(string, metav1.ConditionStatus, string, string)
+	SetV1Beta1ConditionToFalse(clusterv1.ConditionType, string, clusterv1.ConditionSeverity, string, ...any)
+	SetV1Beta1ConditionToTrue(clusterv1.ConditionType)
+	SetCondition(string, metav1.ConditionStatus, string, string)
 	CloudProviderEnabled() bool
 	SetReadyTrue()
 	GetMetal3Machine() *infrav1.Metal3Machine
@@ -1253,24 +1253,24 @@ func (m *MachineManager) SetError(message string, reason capierrors.MachineStatu
 	m.Metal3Machine.Status.Deprecated.V1Beta1.FailureReason = &reason
 }
 
-// SetConditionMetal3MachineToFalse sets Metal3Machine condition status to False.
-func (m *MachineManager) SetConditionMetal3MachineToFalse(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...any) {
+// SetV1Beta1ConditionToFalse sets Metal3Machine condition status to False.
+func (m *MachineManager) SetV1Beta1ConditionToFalse(t clusterv1.ConditionType, reason string, severity clusterv1.ConditionSeverity, messageFormat string, messageArgs ...any) {
 	deprecatedv1beta1conditions.MarkFalse(m.Metal3Machine, t, reason, severity, messageFormat, messageArgs...)
 }
 
-// SetV1beta2Condition sets v1beta2 condition in Metal3Machine status.
-func (m *MachineManager) SetV1beta2Condition(conditionType string, status metav1.ConditionStatus, reason string, message string) {
+// SetV1Beta1ConditionToTrue sets Metal3Machine condition status to True.
+func (m *MachineManager) SetV1Beta1ConditionToTrue(t clusterv1.ConditionType) {
+	deprecatedv1beta1conditions.MarkTrue(m.Metal3Machine, t)
+}
+
+// SetCondition sets a condition in Metal3Machine status.
+func (m *MachineManager) SetCondition(conditionType string, status metav1.ConditionStatus, reason string, message string) {
 	conditions.Set(m.Metal3Machine, metav1.Condition{
 		Type:    conditionType,
 		Status:  status,
 		Reason:  reason,
 		Message: message,
 	})
-}
-
-// SetConditionMetal3MachineToTrue sets Metal3Machine condition status to True.
-func (m *MachineManager) SetConditionMetal3MachineToTrue(t clusterv1.ConditionType) {
-	deprecatedv1beta1conditions.MarkTrue(m.Metal3Machine, t)
 }
 
 func (m *MachineManager) CloudProviderEnabled() bool {
@@ -1287,11 +1287,11 @@ func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha
 	metal3MachineOld := m.Metal3Machine.DeepCopy()
 
 	m.Metal3Machine.Status.Addresses = addrs
-	deprecatedv1beta1conditions.MarkTrue(m.Metal3Machine, infrav1.AssociateBMHCondition)
+	deprecatedv1beta1conditions.MarkTrue(m.Metal3Machine, infrav1.AssociateBMHV1Beta1Condition)
 	conditions.Set(m.Metal3Machine, metav1.Condition{
-		Type:   infrav1.AssociateBareMetalHostV1Beta2Condition,
+		Type:   infrav1.AssociateBareMetalHostCondition,
 		Status: metav1.ConditionTrue,
-		Reason: infrav1.AssociateBareMetalHostSuccessV1Beta2Reason,
+		Reason: infrav1.AssociateBareMetalHostSuccessReason,
 	})
 
 	if equality.Semantic.DeepEqual(m.Metal3Machine.Status, metal3MachineOld.Status) {
@@ -1575,9 +1575,9 @@ func (m *MachineManager) SetReadyTrue() {
 // SetMetal3DataReadyConditionTrue marks Metal3Data Ready conditions to True
 // for both deprecated v1beta1 and v1beta2 conditions on the Metal3Machine.
 func (m *MachineManager) SetMetal3DataReadyConditionTrue(reason string) {
-	deprecatedv1beta1conditions.MarkTrue(m.Metal3Machine, infrav1.Metal3DataReadyCondition)
+	deprecatedv1beta1conditions.MarkTrue(m.Metal3Machine, infrav1.Metal3DataReadyV1Beta1Condition)
 	conditions.Set(m.Metal3Machine, metav1.Condition{
-		Type:   infrav1.Metal3DataReadyV1Beta2Condition,
+		Type:   infrav1.Metal3DataReadyCondition,
 		Status: metav1.ConditionTrue,
 		Reason: reason,
 	})
@@ -1793,8 +1793,8 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 	if !metal3Data.Status.Ready {
 		errMessage := "waiting for Metal3Data to become ready"
 		m.Log.Info(errMessage)
-		m.SetConditionMetal3MachineToFalse(infrav1.Metal3DataReadyCondition, infrav1.WaitingForMetal3DataReason, clusterv1.ConditionSeverityInfo, "")
-		m.SetV1beta2Condition(infrav1.Metal3DataReadyV1Beta2Condition, metav1.ConditionFalse, infrav1.WaitingForMetal3DataV1Beta2Reason, "")
+		m.SetV1Beta1ConditionToFalse(infrav1.Metal3DataReadyV1Beta1Condition, infrav1.WaitingForMetal3DataV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")
+		m.SetCondition(infrav1.Metal3DataReadyCondition, metav1.ConditionFalse, infrav1.WaitingForMetal3DataReason, "")
 
 		// Secret generation not ready
 		return WithTransientError(errors.New(errMessage), requeueAfter)
@@ -1802,8 +1802,8 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 
 	// At this point, Metal3Data is ready
 	m.Log.Info("Metal3data is ready")
-	m.SetConditionMetal3MachineToTrue(infrav1.Metal3DataReadyCondition)
-	m.SetV1beta2Condition(infrav1.Metal3DataReadyV1Beta2Condition, metav1.ConditionTrue, infrav1.Metal3DataSecretsReadyV1Beta2Reason, "")
+	m.SetV1Beta1ConditionToTrue(infrav1.Metal3DataReadyV1Beta1Condition)
+	m.SetCondition(infrav1.Metal3DataReadyCondition, metav1.ConditionTrue, infrav1.Metal3DataSecretsReadyReason, "")
 
 	// Get the secrets if given in Metal3Data and not already set.
 	if m.Metal3Machine.Status.MetaData == nil &&

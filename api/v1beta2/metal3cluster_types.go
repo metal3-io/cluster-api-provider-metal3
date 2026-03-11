@@ -32,18 +32,18 @@ const (
 
 // Metal3Cluster Conditions and Reasons.
 const (
-	Metal3ClusterReadyV1Beta2Condition     = clusterv1.ReadyCondition
-	Metal3ClusterReadyV1Beta2Reason        = clusterv1.ReadyReason
-	Metal3ClusterNotReadyV1Beta2Reason     = clusterv1.NotReadyReason
-	Metal3ClusterReadyUnknownV1Beta2Reason = clusterv1.ReadyUnknownReason
+	Metal3ClusterReadyCondition     = clusterv1.ReadyCondition
+	Metal3ClusterReadyReason        = clusterv1.ReadyReason
+	Metal3ClusterNotReadyReason     = clusterv1.NotReadyReason
+	Metal3ClusterReadyUnknownReason = clusterv1.ReadyUnknownReason
 )
 
 const (
-	BaremetalInfrastructureReadyV1Beta2Condition = "BaremetalInfrastructureReady"
-	BaremetalInfrastructureReadyV1Beta2Reason    = clusterv1.ReadyReason
-	ControlPlaneEndpointFailedV1Beta2Reason      = "ControlPlaneEndpointFailed"
-	FailedToGetOwnerClusterReasonV1Beta2Reason   = "FailedToGetOwnerCluster"
-	Metal3ClusterDeletingV1Beta2Reason           = clusterv1.DeletingReason
+	BaremetalInfrastructureReadyCondition = "BaremetalInfrastructureReady"
+	BaremetalInfrastructureReadyReason    = clusterv1.ReadyReason
+	ControlPlaneEndpointFailedReason      = "ControlPlaneEndpointFailed"
+	FailedToGetOwnerClusterReason         = "FailedToGetOwnerCluster"
+	Metal3ClusterDeletingReason           = clusterv1.DeletingReason
 )
 
 // Metal3ClusterSpec defines the desired state of Metal3Cluster.
@@ -209,7 +209,7 @@ func (c *Metal3Cluster) SetConditions(conditions []metav1.Condition) {
 	c.Status.Conditions = conditions
 }
 
-// GetV1Beta2Conditions returns the set of conditions for this object.
+// GetV1Beta1Conditions returns the set of conditions for this object.
 func (c *Metal3Cluster) GetV1Beta1Conditions() clusterv1.Conditions {
 	if c.Status.Deprecated == nil || c.Status.Deprecated.V1Beta1 == nil {
 		return nil
@@ -217,7 +217,7 @@ func (c *Metal3Cluster) GetV1Beta1Conditions() clusterv1.Conditions {
 	return c.Status.Deprecated.V1Beta1.Conditions
 }
 
-// SetV1Beta2Conditions sets conditions for an API object.
+// SetV1Beta1Conditions sets conditions for an API object.
 func (c *Metal3Cluster) SetV1Beta1Conditions(conditions clusterv1.Conditions) {
 	if c.Status.Deprecated == nil {
 		c.Status.Deprecated = &Metal3ClusterDeprecatedStatus{}

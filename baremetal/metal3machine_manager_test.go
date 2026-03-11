@@ -401,9 +401,9 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					Conditions: []metav1.Condition{
 						{
-							Type:   infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,
+							Type:   infrav1.AssociateMetal3MachineMetaDataCondition,
 							Status: metav1.ConditionTrue,
-							Reason: infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason,
+							Reason: infrav1.AssociateMetal3MachineMetaDataSuccessReason,
 						},
 					},
 				},
@@ -3592,7 +3592,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			} else {
 				Expect(tc.M3Machine.Status.RenderedData).To(BeNil())
 			}
-			metal3DataReadyCondition := filterCondition(tc.M3Machine.Status.Conditions, infrav1.Metal3DataReadyV1Beta2Condition)
+			metal3DataReadyCondition := filterCondition(tc.M3Machine.Status.Conditions, infrav1.Metal3DataReadyCondition)
 			if tc.ExpectMetal3DataReadyCondition {
 				Expect(metal3DataReadyCondition).To(HaveLen(1))
 				if tc.ExpectMetal3DataReadyConditionStatus {
