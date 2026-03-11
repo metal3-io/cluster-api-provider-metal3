@@ -132,11 +132,11 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		metal3Cluster.Status.Deprecated.V1Beta1.FailureReason = &invalidConfigError
 		metal3Cluster.Status.Deprecated.V1Beta1.FailureMessage = ptr.To("Unable to get owner cluster")
-		deprecatedv1beta1conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyCondition, infrav1.InternalFailureReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+		deprecatedv1beta1conditions.MarkFalse(metal3Cluster, infrav1.BaremetalInfrastructureReadyV1Beta1Condition, infrav1.InternalFailureV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 		conditions.Set(metal3Cluster, metav1.Condition{
-			Type:   infrav1.Metal3ClusterReadyV1Beta2Condition,
+			Type:   infrav1.Metal3ClusterReadyCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.FailedToGetOwnerClusterReasonV1Beta2Reason,
+			Reason: infrav1.FailedToGetOwnerClusterReason,
 		})
 		return ctrl.Result{}, err
 	}
@@ -178,9 +178,9 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if !metal3Cluster.DeletionTimestamp.IsZero() {
 		clusterLog.V(baremetal.VerbosityLevelTrace).Info("Metal3Cluster has deletion timestamp, proceeding with deletion")
 		conditions.Set(metal3Cluster, metav1.Condition{
-			Type:   infrav1.Metal3ClusterReadyV1Beta2Condition,
+			Type:   infrav1.Metal3ClusterReadyCondition,
 			Status: metav1.ConditionFalse,
-			Reason: infrav1.Metal3ClusterDeletingV1Beta2Reason,
+			Reason: infrav1.Metal3ClusterDeletingReason,
 		})
 		var res ctrl.Result
 		res, err = reconcileClusterDelete(ctx, clusterMgr, clusterLog)
@@ -211,22 +211,22 @@ func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cl
 	// Always update the readyCondition by summarizing the state of other conditions.
 	deprecatedv1beta1conditions.SetSummary(metal3Cluster,
 		deprecatedv1beta1conditions.WithConditions(
-			infrav1.BaremetalInfrastructureReadyCondition,
+			infrav1.BaremetalInfrastructureReadyV1Beta1Condition,
 		),
 	)
 
-	if err := conditions.SetSummaryCondition(metal3Cluster, metal3Cluster, infrav1.Metal3ClusterReadyV1Beta2Condition,
+	if err := conditions.SetSummaryCondition(metal3Cluster, metal3Cluster, infrav1.Metal3ClusterReadyCondition,
 		conditions.ForConditionTypes{
-			infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
+			infrav1.BaremetalInfrastructureReadyCondition,
 		},
 		// Using a custom merge strategy to override reasons applied during merge.
 		conditions.CustomMergeStrategy{
 			MergeStrategy: conditions.DefaultMergeStrategy(
 				// Use custom reasons.
 				conditions.ComputeReasonFunc(conditions.GetDefaultComputeMergeReasonFunc(
-					infrav1.Metal3ClusterNotReadyV1Beta2Reason,
-					infrav1.Metal3ClusterReadyUnknownV1Beta2Reason,
-					infrav1.Metal3ClusterReadyV1Beta2Reason,
+					infrav1.Metal3ClusterNotReadyReason,
+					infrav1.Metal3ClusterReadyUnknownReason,
+					infrav1.Metal3ClusterReadyReason,
 				)),
 			),
 		},
@@ -238,12 +238,12 @@ func patchMetal3Cluster(ctx context.Context, patchHelper *patch.Helper, metal3Cl
 	options = append(options,
 		patch.WithOwnedConditions{Conditions: []string{
 			clusterv1.PausedCondition,
-			infrav1.Metal3ClusterReadyV1Beta2Condition,
-			infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
+			infrav1.Metal3ClusterReadyCondition,
+			infrav1.BaremetalInfrastructureReadyCondition,
 		}},
 		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
-			infrav1.BaremetalInfrastructureReadyCondition,
+			infrav1.BaremetalInfrastructureReadyV1Beta1Condition,
 		}},
 		patch.WithStatusObservedGeneration{},
 	)

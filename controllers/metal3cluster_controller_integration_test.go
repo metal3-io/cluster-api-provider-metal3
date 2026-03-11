@@ -155,7 +155,7 @@ var _ = Describe("Reconcile metal3Cluster", func() {
 				RequeueExpected: false,
 				ConditionsExpected: []metav1.Condition{
 					{
-						Type:   infrav1.BaremetalInfrastructureReadyV1Beta2Condition,
+						Type:   infrav1.BaremetalInfrastructureReadyCondition,
 						Status: metav1.ConditionTrue,
 					},
 					{

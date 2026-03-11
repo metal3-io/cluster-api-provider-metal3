@@ -405,12 +405,12 @@ var _ = Describe("Reconcile metal3machine", func() {
 				ClusterInfraReady: false,
 				ConditionsExpected: []metav1.Condition{
 					{
-						Type:   infrav1.AssociateBareMetalHostV1Beta2Condition,
+						Type:   infrav1.AssociateBareMetalHostCondition,
 						Status: metav1.ConditionFalse,
-						Reason: infrav1.WaitingForClusterInfrastructureReadyV1Beta2Reason,
+						Reason: infrav1.WaitingForClusterInfrastructureReadyReason,
 					},
 					{
-						Type:   infrav1.Metal3MachineReadyV1Beta2Condition,
+						Type:   infrav1.Metal3MachineReadyCondition,
 						Status: metav1.ConditionFalse,
 					},
 				},
@@ -432,12 +432,12 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady: false,
 				ConditionsExpected: []metav1.Condition{
 					{
-						Type:   infrav1.AssociateBareMetalHostV1Beta2Condition,
+						Type:   infrav1.AssociateBareMetalHostCondition,
 						Status: metav1.ConditionFalse,
-						Reason: infrav1.WaitingForBootstrapDataV1Beta2Reason,
+						Reason: infrav1.WaitingForBootstrapDataReason,
 					},
 					{
-						Type:   infrav1.Metal3MachineReadyV1Beta2Condition,
+						Type:   infrav1.Metal3MachineReadyCondition,
 						Status: metav1.ConditionFalse,
 					},
 				},
@@ -496,7 +496,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 						Reason: clusterv1.PausedReason,
 					},
 					{
-						Type:   infrav1.Metal3MachineReadyV1Beta2Condition,
+						Type:   infrav1.Metal3MachineReadyCondition,
 						Status: metav1.ConditionFalse,
 					},
 				},
@@ -665,7 +665,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady:  true,
 				ConditionsExpected: []metav1.Condition{
 					{
-						Type:   infrav1.AssociateBareMetalHostV1Beta2Condition,
+						Type:   infrav1.AssociateBareMetalHostCondition,
 						Status: metav1.ConditionTrue,
 					},
 				},
@@ -717,15 +717,15 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady:  true,
 				ConditionsExpected: []metav1.Condition{
 					{
-						Type:   infrav1.AssociateBareMetalHostV1Beta2Condition,
+						Type:   infrav1.AssociateBareMetalHostCondition,
 						Status: metav1.ConditionTrue,
 					},
 					{
-						Type:   infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,
+						Type:   infrav1.AssociateMetal3MachineMetaDataCondition,
 						Status: metav1.ConditionTrue,
 					},
 					{
-						Type:   infrav1.Metal3MachineReadyV1Beta2Condition,
+						Type:   infrav1.Metal3MachineReadyCondition,
 						Status: metav1.ConditionTrue,
 					},
 				},
@@ -876,7 +876,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 				CheckBootStrapReady:     true,
 				ConditionsExpected: []metav1.Condition{
 					{
-						Type:   infrav1.AssociateBareMetalHostV1Beta2Condition,
+						Type:   infrav1.AssociateBareMetalHostCondition,
 						Status: metav1.ConditionTrue,
 					},
 				},
@@ -984,10 +984,10 @@ var _ = Describe("Reconcile metal3machine", func() {
 					{
 						Type:   clusterv1.PausedCondition,
 						Status: metav1.ConditionFalse,
-						Reason: infrav1.BareMetalHostPauseAnnotationRemoveFailedV1Beta2Reason,
+						Reason: infrav1.BareMetalHostPauseAnnotationRemoveFailedReason,
 					},
 					{
-						Type:   infrav1.Metal3MachineReadyV1Beta2Condition,
+						Type:   infrav1.Metal3MachineReadyCondition,
 						Status: metav1.ConditionFalse,
 					},
 				},
@@ -1012,10 +1012,10 @@ var _ = Describe("Reconcile metal3machine", func() {
 					{
 						Type:   clusterv1.PausedCondition,
 						Status: metav1.ConditionFalse,
-						Reason: infrav1.BareMetalHostPauseAnnotationSetFailedV1Beta2Reason,
+						Reason: infrav1.BareMetalHostPauseAnnotationSetFailedReason,
 					},
 					{
-						Type:   infrav1.Metal3MachineReadyV1Beta2Condition,
+						Type:   infrav1.Metal3MachineReadyCondition,
 						Status: metav1.ConditionFalse,
 					},
 				},
