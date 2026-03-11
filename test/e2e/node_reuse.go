@@ -39,7 +39,7 @@ func nodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	targetClusterClient := input.TargetCluster.GetClient()
 	managementClusterClient := input.ManagementCluster.GetClient()
 	clientSet := input.TargetCluster.GetClientSet()
-	fromK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_PATCH_FROM_VERSION")
+	fromK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_VERSION_UPGRADE_FROM")
 	toK8sVersion := input.E2EConfig.MustGetVariable("KUBERNETES_PATCH_TO_VERSION")
 	numberOfWorkers := int(*input.E2EConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfControlplane := int(*input.E2EConfig.MustGetInt32PtrVariable("CONTROL_PLANE_MACHINE_COUNT"))
