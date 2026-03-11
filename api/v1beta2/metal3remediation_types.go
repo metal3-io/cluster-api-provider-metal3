@@ -63,9 +63,12 @@ type RemediationStrategy struct {
 	// +optional
 	RetryLimit int32 `json:"retryLimit,omitempty"`
 
-	// timeout Sets the timeout between remediation retries.
+	// timeoutSeconds defines the timeout between remediation retries.
+	// The minimum allowed value is 100 seconds. The default is 600 seconds.
+	// +kubebuilder:validation:Minimum=100
+	// +kubebuilder:default=600
 	// +optional
-	Timeout *metav1.Duration `json:"timeout"`
+	TimeoutSeconds *int32 `json:"timeoutSeconds"`
 }
 
 // Metal3RemediationStatus defines the observed state of Metal3Remediation.

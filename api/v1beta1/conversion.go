@@ -552,3 +552,21 @@ func Convert_v1beta1_NetworkDataRoutev6_To_v1beta2_NetworkDataRoutev6(in *Networ
 	}
 	return nil
 }
+
+// Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy handles the manual conversion
+// of RemediationStrategy from v1beta1 to v1beta2. The Timeout field changed from *metav1.Duration to TimeoutSeconds *int32.
+func Convert_v1beta1_RemediationStrategy_To_v1beta2_RemediationStrategy(in *RemediationStrategy, out *infrav1.RemediationStrategy, _ apimachineryconversion.Scope) error {
+	out.Type = infrav1.RemediationType(in.Type)
+	out.RetryLimit = int32(in.RetryLimit)
+	out.TimeoutSeconds = clusterv1.ConvertToSeconds(in.Timeout)
+	return nil
+}
+
+// Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy handles the manual conversion
+// of RemediationStrategy from v1beta2 to v1beta1. The TimeoutSeconds *int32 field changed to Timeout *metav1.Duration.
+func Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(in *infrav1.RemediationStrategy, out *RemediationStrategy, _ apimachineryconversion.Scope) error {
+	out.Type = RemediationType(in.Type)
+	out.RetryLimit = int(in.RetryLimit)
+	out.Timeout = clusterv1.ConvertFromSeconds(in.TimeoutSeconds)
+	return nil
+}

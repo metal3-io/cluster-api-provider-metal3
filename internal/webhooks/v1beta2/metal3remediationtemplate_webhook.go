@@ -19,11 +19,9 @@ package webhooks
 import (
 	"context"
 	"fmt"
-	"time"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -33,15 +31,10 @@ import (
 )
 
 const (
-	defaultDuration = 600 * time.Second
-	minDuration     = 100 * time.Second
-)
-
-var (
-	// Default retry timeout is 600 seconds.
-	defaultTimeout = metav1.Duration{Duration: defaultDuration}
+	// Default retry timeout.
+	defaultTimeout = int32(600)
 	// Minimum time between remediation retries.
-	minTimeout = metav1.Duration{Duration: minDuration}
+	minTimeout = int32(100)
 	// Mininum remediation retry limit is 1.
 	// Controller will try to remediate unhealhy node at least once.
 	minRetryLimit = int32(1)
@@ -78,8 +71,9 @@ func (webhook *Metal3RemediationTemplate) Default(_ context.Context, obj runtime
 		m3rt.Spec.Template.Spec.Strategy.Type = infrav1.RebootRemediationStrategy
 	}
 
-	if m3rt.Spec.Template.Spec.Strategy.Timeout == nil {
-		m3rt.Spec.Template.Spec.Strategy.Timeout = &defaultTimeout
+	if m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds == nil {
+		timeout := defaultTimeout
+		m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds = &timeout
 	}
 
 	if m3rt.Spec.Template.Spec.Strategy.RetryLimit == 0 || m3rt.Spec.Template.Spec.Strategy.RetryLimit < minRetryLimit {
@@ -118,13 +112,13 @@ func (webhook *Metal3RemediationTemplate) ValidateDelete(_ context.Context, _ ru
 
 func (webhook *Metal3RemediationTemplate) validate(newM3rt *infrav1.Metal3RemediationTemplate) error {
 	var allErrs field.ErrorList
-	if newM3rt.Spec.Template.Spec.Strategy.Timeout != nil && newM3rt.Spec.Template.Spec.Strategy.Timeout.Seconds() < minTimeout.Seconds() {
+	if newM3rt.Spec.Template.Spec.Strategy.TimeoutSeconds != nil && *newM3rt.Spec.Template.Spec.Strategy.TimeoutSeconds < minTimeout {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "template", "spec", "strategy", "timeout"),
-				newM3rt.Spec.Template.Spec.Strategy.Timeout,
-				"min duration is 100s",
+				field.NewPath("spec", "template", "spec", "strategy", "timeoutSeconds"),
+				newM3rt.Spec.Template.Spec.Strategy.TimeoutSeconds,
+				fmt.Sprintf("min duration is %d seconds", minTimeout),
 			),
 		)
 	}

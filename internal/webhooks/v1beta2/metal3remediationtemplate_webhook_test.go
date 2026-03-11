@@ -15,7 +15,6 @@ package webhooks
 
 import (
 	"testing"
-	"time"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	. "github.com/onsi/gomega"
@@ -47,8 +46,8 @@ func TestMetal3RemediationTemplateDefault(t *testing.T) {
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.Type).To(Equal(infrav1.RebootRemediationStrategy))
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).ToNot(BeNil())
 	g.Expect(m3rt.Spec.Template.Spec.Strategy.RetryLimit).To(BeEquivalentTo(1))
-	g.Expect(m3rt.Spec.Template.Spec.Strategy.Timeout).ToNot(BeNil())
-	g.Expect(*m3rt.Spec.Template.Spec.Strategy.Timeout).To(Equal(metav1.Duration{Duration: 600 * time.Second}))
+	g.Expect(m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds).ToNot(BeNil())
+	g.Expect(*m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds).To(Equal(int32(600)))
 
 	m3rt = &infrav1.Metal3RemediationTemplate{
 		ObjectMeta: metav1.ObjectMeta{
@@ -72,89 +71,89 @@ func TestMetal3RemediationTemplateDefault(t *testing.T) {
 }
 
 func TestMetal3RemediationTemplateValidation(t *testing.T) {
-	zeroSeconds := metav1.Duration{Duration: 0}
-	thirtySeconds := metav1.Duration{Duration: 30 * time.Second}
-	threeMinutes := metav1.Duration{Duration: 3 * time.Minute}
-	minusDuration := metav1.Duration{Duration: -1 * time.Minute}
+	zeroSeconds := int32(0)
+	thirtySeconds := int32(30)
+	threeMinutes := int32(180)
+	minusDuration := int32(-60)
 
 	const WrongRemediationStrategy infrav1.RemediationType = "foo"
 
 	tests := []struct {
-		name      string
-		timeout   *metav1.Duration
-		limit     int32
-		strategy  infrav1.RemediationType
-		expectErr bool
+		name           string
+		timeoutSeconds *int32
+		limit          int32
+		strategy       infrav1.RemediationType
+		expectErr      bool
 	}{
 		{
-			name:      "when the Timeout is not given",
-			timeout:   nil,
-			limit:     1,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: false,
+			name:           "when the Timeout is not given",
+			timeoutSeconds: nil,
+			limit:          1,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      false,
 		},
 		{
-			name:      "when the Timeout is greater than 100s",
-			timeout:   &threeMinutes,
-			limit:     1,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: false,
+			name:           "when the Timeout is greater than 100s",
+			timeoutSeconds: &threeMinutes,
+			limit:          1,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      false,
 		},
 		{
-			name:      "when the Timeout is less than 100s",
-			timeout:   &thirtySeconds,
-			limit:     1,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: true,
+			name:           "when the Timeout is less than 100s",
+			timeoutSeconds: &thirtySeconds,
+			limit:          1,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      true,
 		},
 		{
-			name:      "when the Timeout is less than 0",
-			timeout:   &minusDuration,
-			limit:     1,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: true,
+			name:           "when the Timeout is less than 0",
+			timeoutSeconds: &minusDuration,
+			limit:          1,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      true,
 		},
 		{
-			name:      "when the Timeout is 0",
-			timeout:   &zeroSeconds,
-			limit:     1,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: true,
+			name:           "when the Timeout is 0",
+			timeoutSeconds: &zeroSeconds,
+			limit:          1,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      true,
 		},
 		{
-			name:      "when the Remediation Type is Reboot",
-			timeout:   &threeMinutes,
-			limit:     1,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: false,
+			name:           "when the Remediation Type is Reboot",
+			timeoutSeconds: &threeMinutes,
+			limit:          1,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      false,
 		},
 		{
-			name:      "when the Remediation Type is not Reboot",
-			timeout:   &threeMinutes,
-			limit:     1,
-			strategy:  WrongRemediationStrategy,
-			expectErr: true,
+			name:           "when the Remediation Type is not Reboot",
+			timeoutSeconds: &threeMinutes,
+			limit:          1,
+			strategy:       WrongRemediationStrategy,
+			expectErr:      true,
 		},
 		{
-			name:      "when the RetryLimit is less than minRetryLimit",
-			timeout:   &threeMinutes,
-			limit:     0,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: true,
+			name:           "when the RetryLimit is less than minRetryLimit",
+			timeoutSeconds: &threeMinutes,
+			limit:          0,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      true,
 		},
 		{
-			name:      "when the RetryLimit is minRetryLimit",
-			timeout:   &threeMinutes,
-			limit:     1,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: false,
+			name:           "when the RetryLimit is minRetryLimit",
+			timeoutSeconds: &threeMinutes,
+			limit:          1,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      false,
 		},
 		{
-			name:      "when the RetryLimit is greater than minRetryLimit",
-			timeout:   &threeMinutes,
-			limit:     3,
-			strategy:  infrav1.RebootRemediationStrategy,
-			expectErr: false,
+			name:           "when the RetryLimit is greater than minRetryLimit",
+			timeoutSeconds: &threeMinutes,
+			limit:          3,
+			strategy:       infrav1.RebootRemediationStrategy,
+			expectErr:      false,
 		},
 	}
 
@@ -167,9 +166,9 @@ func TestMetal3RemediationTemplateValidation(t *testing.T) {
 				Template: infrav1.Metal3RemediationTemplateResource{
 					Spec: infrav1.Metal3RemediationSpec{
 						Strategy: &infrav1.RemediationStrategy{
-							Timeout:    tt.timeout,
-							RetryLimit: tt.limit,
-							Type:       tt.strategy,
+							TimeoutSeconds: tt.timeoutSeconds,
+							RetryLimit:     tt.limit,
+							Type:           tt.strategy,
 						},
 					},
 				},
