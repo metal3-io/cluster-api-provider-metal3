@@ -33,6 +33,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -217,7 +218,7 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 			}
 		}
 
-		m.EXPECT().GetTimeout().Return(&metav1.Duration{Duration: time.Second})
+		m.EXPECT().GetTimeoutSeconds().Return(ptr.To(int32(1)))
 		m.EXPECT().TimeToRemediate(gomock.Any()).Return(tc.IsTimedOut, time.Second)
 		if tc.IsTimedOut {
 			m.EXPECT().RetryLimitIsSet().Return(true)

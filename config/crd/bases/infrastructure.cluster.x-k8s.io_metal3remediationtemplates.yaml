@@ -152,10 +152,14 @@ spec:
                               retries.
                             format: int32
                             type: integer
-                          timeout:
-                            description: timeout Sets the timeout between remediation
-                              retries.
-                            type: string
+                          timeoutSeconds:
+                            default: 600
+                            description: |-
+                              timeoutSeconds defines the timeout between remediation retries.
+                              The minimum allowed value is 100 seconds. The default is 600 seconds.
+                            format: int32
+                            minimum: 100
+                            type: integer
                           type:
                             description: type of remediation.
                             type: string

@@ -19,9 +19,11 @@ package v1beta1
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/utils/ptr"
@@ -84,13 +86,13 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3Remediation{},
 		Spoke:       &Metal3Remediation{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3RemediationFuzzFuncs},
 	}))
 	t.Run("for Metal3RemediationTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3RemediationTemplate{},
 		Spoke:       &Metal3RemediationTemplate{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3RemediationTemplateFuzzFuncs},
 	}))
 }
 
@@ -230,5 +232,28 @@ func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 func Metal3MachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		spokeMetal3MachineSpec,
+	}
+}
+
+func Metal3RemediationFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeRemediationStrategy,
+	}
+}
+
+func spokeRemediationStrategy(in *RemediationStrategy, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize Timeout to whole seconds only to match v1beta2 conversion precision.
+	// v1beta1 uses *metav1.Duration (full nanosecond precision) but v1beta2 uses *int32
+	// TimeoutSeconds (seconds only), so nanoseconds are lost during round-trip conversion.
+	if in.Timeout != nil {
+		in.Timeout = ptr.To(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+}
+
+func Metal3RemediationTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeRemediationStrategy,
 	}
 }
