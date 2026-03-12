@@ -48,6 +48,14 @@ type MetaDataIndex struct {
 	Suffix string `json:"suffix,omitempty"`
 }
 
+// IndexEntry represents the index assignment for a Metal3Machine.
+type IndexEntry struct {
+	// name is the name of the Metal3Machine
+	Name string `json:"name"`
+	// index is the index value assigned to the Machine
+	Index int32 `json:"index"`
+}
+
 // MetaDataFromLabel contains the information to fetch a label content, if the
 // label does not exist, it is rendered as empty string.
 type MetaDataFromLabel struct {
@@ -297,15 +305,26 @@ type NetworkDataLinkBond struct {
 	MACAddress *NetworkLinkEthernetMac `json:"macAddress"`
 
 	// parameters blob passed without any validation/modifications into cloud-init config
-	Parameters NetworkDataLinkBondParams `json:"parameters,omitempty"`
+	// +listType=map
+	// +listMapKey=name
+	Parameters []NetworkDataLinkBondParam `json:"parameters,omitempty"`
 
 	// bondLinks is the list of links that are part of the bond.
 	// +optional
 	BondLinks []string `json:"bondLinks"`
 }
 
-// NetworkDataLinkBondParams represent the set of bond params.
-type NetworkDataLinkBondParams map[string]apiextensionsv1.JSON
+// NetworkDataLinkBondParam represents a single bond parameter.
+type NetworkDataLinkBondParam struct {
+	// name is the parameter name
+	// +kubebuilder:validation:MinLength=1
+	// +required
+	Name string `json:"name,omitempty"`
+	// value is the parameter value
+	// +optional
+	// +kubebuilder:validation:Type=object
+	Value apiextensionsv1.JSON `json:"value,omitempty"`
+}
 
 // NetworkDataLinkVlan represents a vlan link object.
 type NetworkDataLinkVlan struct {
@@ -600,9 +619,11 @@ type Metal3DataTemplateStatus struct {
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
-	// indexes contains the map of Metal3Machine and index used
+	// indexes contains the list of Metal3Machines and their assigned indexes
 	// +optional
-	Indexes map[string]int32 `json:"indexes,omitempty"`
+	// +listType=map
+	// +listMapKey=index
+	Indexes []IndexEntry `json:"indexes,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

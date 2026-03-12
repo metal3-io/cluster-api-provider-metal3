@@ -1748,11 +1748,27 @@ spec:
                               pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                               type: string
                             parameters:
-                              additionalProperties:
-                                x-kubernetes-preserve-unknown-fields: true
                               description: parameters blob passed without any validation/modifications
                                 into cloud-init config
-                              type: object
+                              items:
+                                description: NetworkDataLinkBondParam represents a
+                                  single bond parameter.
+                                properties:
+                                  name:
+                                    description: name is the parameter name
+                                    minLength: 1
+                                    type: string
+                                  value:
+                                    description: value is the parameter value
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - name
+                              x-kubernetes-list-type: map
                           required:
                           - bondMode
                           - id
@@ -2617,11 +2633,26 @@ spec:
             description: status defines the observed state of Metal3DataTemplate.
             properties:
               indexes:
-                additionalProperties:
-                  format: int32
-                  type: integer
-                description: indexes contains the map of Metal3Machine and index used
-                type: object
+                description: indexes contains the list of Metal3Machines and their
+                  assigned indexes
+                items:
+                  description: IndexEntry represents the index assignment for a Metal3Machine.
+                  properties:
+                    index:
+                      description: index is the index value assigned to the Machine
+                      format: int32
+                      type: integer
+                    name:
+                      description: name is the name of the Metal3Machine
+                      type: string
+                  required:
+                  - index
+                  - name
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - index
+                x-kubernetes-list-type: map
               lastUpdated:
                 description: lastUpdated identifies when this status was last observed.
                 format: date-time
