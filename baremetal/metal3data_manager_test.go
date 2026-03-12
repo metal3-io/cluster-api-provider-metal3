@@ -4315,6 +4315,60 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectError: true,
 		}),
+		Entry("FromBootMAC success", testCaseRenderMetaData{
+			m3m: &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					UID:       m3muid,
+				},
+			},
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key:         "boot-mac",
+								FromBootMAC: true,
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					BootMACAddress: "aa:bb:cc:dd:ee:ff",
+				},
+			},
+			expectedMetaData: map[string]string{
+				"boot-mac":   "aa:bb:cc:dd:ee:ff",
+				"providerid": fmt.Sprintf("%s/%s/%s", namespaceName, baremetalhostName, metal3machineName),
+			},
+		}),
+		Entry("FromBootMAC empty", testCaseRenderMetaData{
+			m3dt: &infrav1.Metal3DataTemplate{
+				ObjectMeta: testObjectMeta(metal3DataTemplateName+"-abc", "", ""),
+				Spec: infrav1.Metal3DataTemplateSpec{
+					MetaData: &infrav1.MetaData{
+						FromHostInterfaces: []infrav1.MetaDataHostInterface{
+							{
+								Key:         "boot-mac",
+								FromBootMAC: true,
+							},
+						},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					BootMACAddress: "",
+				},
+			},
+			expectError: true,
+		}),
 		Entry("IP missing", testCaseRenderMetaData{
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta("data-abc", namespaceName, ""),
