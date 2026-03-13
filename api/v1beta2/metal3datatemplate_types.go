@@ -18,7 +18,6 @@ package v1beta2
 
 import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -417,7 +416,7 @@ type NetworkGatewayv4 struct {
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to fetch the gateway from
-	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
+	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
 
 	// fromPoolAnnotation allows specifying the pool name via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.
@@ -438,7 +437,7 @@ type NetworkGatewayv6 struct {
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to fetch the gateway from
-	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
+	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
 
 	// fromPoolAnnotation allows specifying the pool name via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.
@@ -495,7 +494,7 @@ type NetworkDataIPv4 struct {
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to allocate an address from.
-	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
+	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
 
 	// fromPoolAnnotation allows specifying the pool reference via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.
@@ -506,6 +505,33 @@ type NetworkDataIPv4 struct {
 	// routes contains a list of IPv4 routes
 	// +optional
 	Routes []NetworkDataRoutev4 `json:"routes,omitempty"`
+}
+
+// IPPoolReference is a reference to an IPPool.
+type IPPoolReference struct {
+	// name of the IPPool.
+	// name must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	Name string `json:"name,omitempty"`
+
+	// kind of the IPPool.
+	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
+	Kind string `json:"kind,omitempty"`
+
+	// apiGroup of the IPPool.
+	// apiGroup must be fully qualified domain name.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
+	APIGroup string `json:"apiGroup,omitempty"`
 }
 
 // NetworkDataIPv6 represents an ipv6 static network object.
@@ -520,7 +546,7 @@ type NetworkDataIPv6 struct {
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
 
 	// fromPoolRef is a reference to a IP pool to allocate an address from.
-	FromPoolRef *corev1.TypedLocalObjectReference `json:"fromPoolRef,omitempty"`
+	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
 
 	// fromPoolAnnotation allows specifying the pool reference via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.

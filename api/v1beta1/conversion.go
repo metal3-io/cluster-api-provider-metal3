@@ -26,6 +26,7 @@ import (
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apimachineryconversion "k8s.io/apimachinery/pkg/conversion"
 	"k8s.io/utils/ptr"
@@ -653,5 +654,21 @@ func Convert_v1beta2_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in *infr
 		}
 	}
 
+	return nil
+}
+
+func Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(in *corev1.TypedLocalObjectReference, out *infrav1.IPPoolReference, _ apimachineryconversion.Scope) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	out.APIGroup = ptr.Deref(in.APIGroup, "")
+	return nil
+}
+
+func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *infrav1.IPPoolReference, out *corev1.TypedLocalObjectReference, _ apimachineryconversion.Scope) error {
+	out.Kind = in.Kind
+	out.Name = in.Name
+	if in.APIGroup != "" {
+		out.APIGroup = ptr.To(in.APIGroup)
+	}
 	return nil
 }

@@ -677,6 +677,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*corev1.TypedLocalObjectReference)(nil), (*v1beta2.IPPoolReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(a.(*corev1.TypedLocalObjectReference), b.(*v1beta2.IPPoolReference), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddConversionFunc((*APIEndpoint)(nil), (*v1beta2.APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(a.(*APIEndpoint), b.(*v1beta2.APIEndpoint), scope)
 	}); err != nil {
@@ -749,6 +754,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddConversionFunc((*v1beta2.APIEndpoint)(nil), (*APIEndpoint)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1beta2_APIEndpoint_To_v1beta1_APIEndpoint(a.(*v1beta2.APIEndpoint), b.(*APIEndpoint), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta2.IPPoolReference)(nil), (*corev1.TypedLocalObjectReference)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(a.(*v1beta2.IPPoolReference), b.(*corev1.TypedLocalObjectReference), scope)
 	}); err != nil {
 		return err
 	}
@@ -2435,7 +2445,15 @@ func autoConvert_v1beta1_NetworkDataIPv4_To_v1beta2_NetworkDataIPv4(in *NetworkD
 	out.ID = in.ID
 	out.Link = in.Link
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(v1beta2.IPPoolReference)
+		if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*v1beta2.FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes
@@ -2460,7 +2478,15 @@ func autoConvert_v1beta2_NetworkDataIPv4_To_v1beta1_NetworkDataIPv4(in *v1beta2.
 	out.ID = in.ID
 	out.Link = in.Link
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(corev1.TypedLocalObjectReference)
+		if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes
@@ -2529,7 +2555,15 @@ func autoConvert_v1beta1_NetworkDataIPv6_To_v1beta2_NetworkDataIPv6(in *NetworkD
 	out.ID = in.ID
 	out.Link = in.Link
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(v1beta2.IPPoolReference)
+		if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*v1beta2.FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes
@@ -2554,7 +2588,15 @@ func autoConvert_v1beta2_NetworkDataIPv6_To_v1beta1_NetworkDataIPv6(in *v1beta2.
 	out.ID = in.ID
 	out.Link = in.Link
 	out.IPAddressFromIPPool = in.IPAddressFromIPPool
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(corev1.TypedLocalObjectReference)
+		if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	if in.Routes != nil {
 		in, out := &in.Routes, &out.Routes
@@ -3040,7 +3082,15 @@ func Convert_v1beta2_NetworkDataServicev6_To_v1beta1_NetworkDataServicev6(in *v1
 func autoConvert_v1beta1_NetworkGatewayv4_To_v1beta2_NetworkGatewayv4(in *NetworkGatewayv4, out *v1beta2.NetworkGatewayv4, s conversion.Scope) error {
 	out.String = (*v1alpha1.IPAddressv4Str)(unsafe.Pointer(in.String))
 	out.FromIPPool = (*string)(unsafe.Pointer(in.FromIPPool))
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(v1beta2.IPPoolReference)
+		if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*v1beta2.FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	return nil
 }
@@ -3053,7 +3103,15 @@ func Convert_v1beta1_NetworkGatewayv4_To_v1beta2_NetworkGatewayv4(in *NetworkGat
 func autoConvert_v1beta2_NetworkGatewayv4_To_v1beta1_NetworkGatewayv4(in *v1beta2.NetworkGatewayv4, out *NetworkGatewayv4, s conversion.Scope) error {
 	out.String = (*v1alpha1.IPAddressv4Str)(unsafe.Pointer(in.String))
 	out.FromIPPool = (*string)(unsafe.Pointer(in.FromIPPool))
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(corev1.TypedLocalObjectReference)
+		if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	return nil
 }
@@ -3066,7 +3124,15 @@ func Convert_v1beta2_NetworkGatewayv4_To_v1beta1_NetworkGatewayv4(in *v1beta2.Ne
 func autoConvert_v1beta1_NetworkGatewayv6_To_v1beta2_NetworkGatewayv6(in *NetworkGatewayv6, out *v1beta2.NetworkGatewayv6, s conversion.Scope) error {
 	out.String = (*v1alpha1.IPAddressv6Str)(unsafe.Pointer(in.String))
 	out.FromIPPool = (*string)(unsafe.Pointer(in.FromIPPool))
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(v1beta2.IPPoolReference)
+		if err := Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*v1beta2.FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	return nil
 }
@@ -3079,7 +3145,15 @@ func Convert_v1beta1_NetworkGatewayv6_To_v1beta2_NetworkGatewayv6(in *NetworkGat
 func autoConvert_v1beta2_NetworkGatewayv6_To_v1beta1_NetworkGatewayv6(in *v1beta2.NetworkGatewayv6, out *NetworkGatewayv6, s conversion.Scope) error {
 	out.String = (*v1alpha1.IPAddressv6Str)(unsafe.Pointer(in.String))
 	out.FromIPPool = (*string)(unsafe.Pointer(in.FromIPPool))
-	out.FromPoolRef = (*corev1.TypedLocalObjectReference)(unsafe.Pointer(in.FromPoolRef))
+	if in.FromPoolRef != nil {
+		in, out := &in.FromPoolRef, &out.FromPoolRef
+		*out = new(corev1.TypedLocalObjectReference)
+		if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(*in, *out, s); err != nil {
+			return err
+		}
+	} else {
+		out.FromPoolRef = nil
+	}
 	out.FromPoolAnnotation = (*FromPoolAnnotation)(unsafe.Pointer(in.FromPoolAnnotation))
 	return nil
 }

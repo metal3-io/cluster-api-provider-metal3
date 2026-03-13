@@ -22,6 +22,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -226,6 +227,7 @@ func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 	return []interface{}{
 		spokeMetal3DataSpec,
 		spokeMetal3DataTemplateSpec,
+		spokeTypedLocalObjectReference,
 	}
 }
 
@@ -255,5 +257,12 @@ func spokeRemediationStrategy(in *RemediationStrategy, c randfill.Continue) {
 func Metal3RemediationTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeRemediationStrategy,
+	}
+}
+
+func spokeTypedLocalObjectReference(in *corev1.TypedLocalObjectReference, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.APIGroup != nil && *in.APIGroup == "" {
+		in.APIGroup = nil
 	}
 }
