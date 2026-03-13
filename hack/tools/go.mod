@@ -1,6 +1,6 @@
 module github.com/metal3-io/cluster-api-provider-metal3/hack/tools
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
@@ -8,7 +8,7 @@ require (
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	go.uber.org/mock v0.6.0
-	golang.org/x/oauth2 v0.35.0
+	golang.org/x/oauth2 v0.36.0
 	k8s.io/code-generator v0.34.5
 	sigs.k8s.io/controller-tools v0.18.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.8.1
