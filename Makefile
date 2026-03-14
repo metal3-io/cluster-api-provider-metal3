@@ -20,7 +20,7 @@ SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
 
-GO_VERSION ?= 1.24.13
+GO_VERSION ?= 1.25.8
 GO := $(shell type -P go)
 # Use GOPROXY environment variable if set
 GOPROXY := $(shell $(GO) env GOPROXY)
@@ -397,11 +397,6 @@ lint: $(GOLANGCI_LINT) ## Lint codebase
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
-
-lint-full: $(GOLANGCI_LINT) ## Run slower linters to detect possible issues
-	$(GOLANGCI_LINT) run -v --fast=false --timeout=30m
-	cd $(APIS_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
-	cd $(TEST_DIR) && $(GOLANGCI_LINT) run -v --fast=false --timeout=30m
 
 # Run manifest validation
 .PHONY: manifest-lint
