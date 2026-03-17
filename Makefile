@@ -23,9 +23,11 @@ SHELL:=/usr/bin/env bash
 GO_VERSION ?= 1.25.8
 GO := $(shell type -P go)
 # Use GOPROXY environment variable if set
-GOPROXY := $(shell $(GO) env GOPROXY)
+ifneq ($(GO),)
+	GOPROXY := $(shell $(GO) env GOPROXY)
+endif
 ifeq ($(GOPROXY),)
-GOPROXY := https://proxy.golang.org
+	GOPROXY := https://proxy.golang.org
 endif
 export GOPROXY
 
@@ -45,8 +47,10 @@ FAKE_APISERVER_DIR := hack/fake-apiserver
 MAKE_ROOT_DIR := $(CURDIR)
 
 # Set --output-base for conversion-gen if we are not within GOPATH
+ifneq ($(GO),)
 ifneq ($(abspath $(ROOT_DIR)),$(shell $(GO) env GOPATH)/src/github.com/metal3-io/cluster-api-provider-metal3)
 	CONVERSION_GEN_OUTPUT_BASE := --output-base=$(ROOT_DIR)
+endif
 endif
 
 # Binaries.
@@ -72,7 +76,9 @@ GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
 
 # Helper function to get dependency version from go.mod
 get_go_version = $(shell $(GO) list -m $1 | awk '{print $$2}')
-GINGKO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
+ifneq ($(GO),)
+	GINKGO_VER := $(call get_go_version,github.com/onsi/ginkgo/v2)
+endif
 ENVTEST_K8S_VERSION := 1.35.x
 
 # Define Docker related variables. Releases should modify and double check these vars.
@@ -297,11 +303,11 @@ ifneq ($(FOCUS_LABELS),)
 endif
 
 ifneq ($(SKIP_LABELS),)
-	ifneq ($(LABEL_FILTER),)
-		LABEL_FILTER := $(LABEL_FILTER) && !$(SKIP_EXPR)
-	else
-		LABEL_FILTER := !$(SKIP_EXPR)
-	endif
+ifneq ($(LABEL_FILTER),)
+	LABEL_FILTER := $(LABEL_FILTER) && !$(SKIP_EXPR)
+else
+	LABEL_FILTER := !$(SKIP_EXPR)
+endif
 endif
 
 .PHONY: e2e-tests
@@ -400,7 +406,7 @@ $(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo.
 
 .PHONY: $(GINKGO)
 $(GINKGO):
-	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(GINKGO_PKG)@$(GINGKO_VER)
+	GOBIN=$(TOOLS_BIN_DIR) $(GO) install $(GINKGO_PKG)@$(GINKGO_VER)
 
 $(ENVSUBST):
 	rm -f $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)*
