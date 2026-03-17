@@ -31,7 +31,7 @@ func TestMetal3MachineValidation(t *testing.T) {
 		Spec: infrav1.Metal3MachineSpec{
 			Image: infrav1.Image{
 				URL:      "http://abc.com/image",
-				Checksum: "http://abc.com/image.sha256sum",
+				Checksum: ptr.To("http://abc.com/image.sha256sum"),
 			},
 		},
 	}
@@ -39,11 +39,11 @@ func TestMetal3MachineValidation(t *testing.T) {
 	invalidURL.Spec.Image.URL = ""
 
 	invalidChecksum := valid.DeepCopy()
-	invalidChecksum.Spec.Image.Checksum = ""
+	invalidChecksum.Spec.Image.Checksum = ptr.To("")
 
 	validIso := valid.DeepCopy()
-	validIso.Spec.Image.Checksum = ""
-	validIso.Spec.Image.DiskFormat = ptr.To(infrav1.LiveISODiskFormat)
+	validIso.Spec.Image.Checksum = ptr.To("")
+	validIso.Spec.Image.DiskFormat = infrav1.LiveISODiskFormat
 
 	validCustomDeploy := &infrav1.Metal3Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -53,6 +53,15 @@ func TestMetal3MachineValidation(t *testing.T) {
 			CustomDeploy: &infrav1.CustomDeploy{
 				Method: "install_great_stuff",
 			},
+		},
+	}
+
+	neitherImageNorCustomDeploy := &infrav1.Metal3Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+		Spec: infrav1.Metal3MachineSpec{
+			// Neither Image nor CustomDeploy specified
 		},
 	}
 
@@ -85,6 +94,11 @@ func TestMetal3MachineValidation(t *testing.T) {
 			name:      "should succeed with customDeploy",
 			expectErr: false,
 			c:         validCustomDeploy,
+		},
+		{
+			name:      "should return error when both image and customDeploy are missing",
+			expectErr: true,
+			c:         neitherImageNorCustomDeploy,
 		},
 	}
 

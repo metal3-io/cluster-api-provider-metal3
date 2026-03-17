@@ -66,7 +66,7 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 					Name:      tt.dataName,
 				},
 				Spec: infrav1.Metal3DataSpec{
-					Template: tt.template,
+					Template: &tt.template,
 					Index:    1,
 				},
 			}
@@ -100,13 +100,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should succeed when values are the same",
 			expectErr: false,
 			new: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 				Index: 1,
@@ -116,7 +116,7 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail with nil old",
 			expectErr: true,
 			new: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 				Index: 1,
@@ -127,13 +127,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when index changes",
 			expectErr: true,
 			new: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 				Index: 2,
@@ -143,13 +143,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when dataTemplate name changes",
 			expectErr: true,
 			new: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name: "abcd",
 				},
 				Index: 1,
@@ -159,14 +159,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when datatemplate Namespace changes",
 			expectErr: true,
 			new: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: "abc",
 				},
 				Index: 1,
 			},
 			old: &infrav1.Metal3DataSpec{
-				Template: infrav1.Metal3ObjectRef{
+				Template: &infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: "abcd",
 				},
@@ -177,13 +177,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when Claim name changes",
 			expectErr: true,
 			new: &infrav1.Metal3DataSpec{
-				Claim: infrav1.Metal3ObjectRef{
+				Claim: &infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 				Index: 1,
 			},
 			old: &infrav1.Metal3DataSpec{
-				Claim: infrav1.Metal3ObjectRef{
+				Claim: &infrav1.Metal3ObjectRef{
 					Name: "abcd",
 				},
 				Index: 1,
@@ -193,14 +193,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 			name:      "should fail when Claim Namespace changes",
 			expectErr: true,
 			new: &infrav1.Metal3DataSpec{
-				Claim: infrav1.Metal3ObjectRef{
+				Claim: &infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: "abc",
 				},
 				Index: 1,
 			},
 			old: &infrav1.Metal3DataSpec{
-				Claim: infrav1.Metal3ObjectRef{
+				Claim: &infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: "abcd",
 				},

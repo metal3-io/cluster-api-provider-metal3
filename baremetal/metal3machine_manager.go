@@ -1134,15 +1134,15 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 	// Not provisioning while we do not have the UserData.
 	if host.Spec.Image == nil && host.Spec.CustomDeploy == nil && m.Metal3Machine.Status.UserData != nil {
 		checksumType := ""
-		if m.Metal3Machine.Spec.Image.ChecksumType != nil {
-			checksumType = *m.Metal3Machine.Spec.Image.ChecksumType
+		if m.Metal3Machine.Spec.Image.ChecksumType != "" {
+			checksumType = m.Metal3Machine.Spec.Image.ChecksumType
 		}
 		if m.Metal3Machine.Spec.Image.URL != "" {
 			host.Spec.Image = &bmov1alpha1.Image{
 				URL:          m.Metal3Machine.Spec.Image.URL,
-				Checksum:     m.Metal3Machine.Spec.Image.Checksum,
+				Checksum:     ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, ""),
 				ChecksumType: bmov1alpha1.ChecksumType(checksumType),
-				DiskFormat:   m.Metal3Machine.Spec.Image.DiskFormat,
+				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
 			}
 		}
 		if m.Metal3Machine.Spec.CustomDeploy != nil {
@@ -1751,7 +1751,7 @@ func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 			Labels: m.Metal3Machine.Labels,
 		},
 		Spec: infrav1.Metal3DataClaimSpec{
-			Template: *m.Metal3Machine.Spec.DataTemplate,
+			Template: m.Metal3Machine.Spec.DataTemplate,
 		},
 	}
 

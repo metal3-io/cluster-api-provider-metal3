@@ -100,6 +100,10 @@ var _ = Describe("Metal3 manager utils", func() {
 		Spec: infrav1.Metal3MachineSpec{
 			ProviderID:            "abcdef",
 			AutomatedCleaningMode: ptr.To("metadata"),
+			Image: infrav1.Image{
+				URL:      "http://example.com/image.qcow2",
+				Checksum: ptr.To("abcd1234"),
+			},
 		},
 		Status: infrav1.Metal3MachineStatus{
 			Initialization: infrav1.Metal3MachineInitializationStatus{
@@ -115,6 +119,10 @@ var _ = Describe("Metal3 manager utils", func() {
 		},
 		Spec: infrav1.Metal3MachineSpec{
 			ProviderID: "abcdefg",
+			Image: infrav1.Image{
+				URL:      "http://example.com/image.qcow2",
+				Checksum: ptr.To("abcd1234"),
+			},
 		},
 		Status: infrav1.Metal3MachineStatus{
 			Initialization: infrav1.Metal3MachineInitializationStatus{
@@ -610,6 +618,12 @@ var _ = Describe("Metal3 manager utils", func() {
 		Entry("Object exists", testCaseGetM3Machine{
 			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, ""),
+				Spec: infrav1.Metal3MachineSpec{
+					Image: infrav1.Image{
+						URL:      "http://example.com/image.qcow2",
+						Checksum: ptr.To("abcd1234"),
+					},
+				},
 			},
 			Name:      metal3machineName,
 			Namespace: namespaceName,
@@ -619,6 +633,10 @@ var _ = Describe("Metal3 manager utils", func() {
 				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, ""),
 				Spec: infrav1.Metal3MachineSpec{
 					DataTemplate: nil,
+					Image: infrav1.Image{
+						URL:      "http://example.com/image.qcow2",
+						Checksum: ptr.To("abcd1234"),
+					},
 				},
 			},
 			DataTemplate: &infrav1.Metal3DataTemplate{
@@ -636,6 +654,10 @@ var _ = Describe("Metal3 manager utils", func() {
 						Name:      "abcd",
 						Namespace: namespaceName,
 					},
+					Image: infrav1.Image{
+						URL:      "http://example.com/image.qcow2",
+						Checksum: ptr.To("abcd1234"),
+					},
 				},
 			},
 			DataTemplate: &infrav1.Metal3DataTemplate{
@@ -652,6 +674,10 @@ var _ = Describe("Metal3 manager utils", func() {
 					DataTemplate: &infrav1.Metal3ObjectRef{
 						Name:      metal3DataTemplateName,
 						Namespace: "defg",
+					},
+					Image: infrav1.Image{
+						URL:      "http://example.com/image.qcow2",
+						Checksum: ptr.To("abcd1234"),
 					},
 				},
 			},

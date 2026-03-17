@@ -150,6 +150,10 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		metadataLog.V(baremetal.VerbosityLevelTrace).Info("Metal3Data has deletion timestamp, checking Metal3DataClaim")
 
 		// Check if the Metal3DataClaim is gone. We cannot clean up until it is.
+		if metal3Data.Spec.Claim == nil {
+			metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3Data has no claim, proceeding with deletion")
+			return r.reconcileDelete(ctx, metadataMgr, metadataLog)
+		}
 		err := r.Client.Get(ctx, types.NamespacedName{Name: metal3Data.Spec.Claim.Name, Namespace: metal3Data.Spec.Claim.Namespace}, &infrav1.Metal3DataClaim{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {

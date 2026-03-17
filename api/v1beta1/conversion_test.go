@@ -141,6 +141,17 @@ func Metal3MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		hubMetal3MachineStatus,
 		spokeMetal3MachineSpec,
 		spokeMetal3MachineStatus,
+		spokeObjectMeta,
+	}
+}
+
+func spokeObjectMeta(in *metav1.ObjectMeta, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize nil Annotations to empty map - MarshalData initializes the map
+	// during hub->spoke conversion even if no data is stored.
+	if in.Annotations == nil {
+		in.Annotations = map[string]string{}
 	}
 }
 
@@ -170,6 +181,14 @@ func spokeMetal3MachineSpec(in *Metal3MachineSpec, c randfill.Continue) {
 		}
 	} else {
 		in.DataTemplate = nil
+	}
+	// Normalize Image pointer fields: nil → &"" (since v1beta2 uses plain strings,
+	// round-trip conversion cannot distinguish nil from &"")
+	if in.Image.ChecksumType == nil {
+		in.Image.ChecksumType = ptr.To("")
+	}
+	if in.Image.DiskFormat == nil {
+		in.Image.DiskFormat = ptr.To("")
 	}
 }
 
@@ -235,6 +254,66 @@ func spokeMetal3ClusterSpec(in *Metal3ClusterSpec, c randfill.Continue) {
 func Metal3DataFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeMetal3DataSpec,
+		hubMetal3DataSpec,
+	}
+}
+
+func hubMetal3DataSpec(in *infrav1.Metal3DataSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize empty pointer fields to nil - empty Metal3ObjectRef{} should become nil
+	// This matches the JSON round-trip behavior with omitempty tags
+	if in.Claim != nil && in.Claim.Name == "" && in.Claim.Namespace == "" {
+		in.Claim = nil
+	}
+	if in.Template != nil && in.Template.Name == "" && in.Template.Namespace == "" {
+		in.Template = nil
+	}
+}
+
+func spokeMetal3DataTemplateStatus(in *Metal3DataTemplateStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Clear invalid entries from Indexes map (entries without valid names are filtered during conversion)
+	if in.Indexes != nil {
+		validIndexes := make(map[string]int)
+		for name, index := range in.Indexes {
+			if name != "" {
+				validIndexes[name] = index
+			}
+		}
+		if len(validIndexes) > 0 {
+			in.Indexes = validIndexes
+		} else {
+			in.Indexes = nil
+		}
+	}
+}
+
+func hubMetal3DataTemplateStatus(in *infrav1.Metal3DataTemplateStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Clear invalid entries from Indexes list (entries without valid names are filtered during conversion)
+	if in.Indexes != nil {
+		validIndexes := make([]infrav1.IndexEntry, 0, len(in.Indexes))
+		for _, entry := range in.Indexes {
+			if entry.Name != "" && entry.Index != nil {
+				validIndexes = append(validIndexes, entry)
+			}
+		}
+		if len(validIndexes) > 0 {
+			in.Indexes = validIndexes
+		} else {
+			in.Indexes = nil
+		}
+	}
+}
+
+func hubNetworkDataLinkVlan(in *infrav1.NetworkDataLinkVlan, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// VlanID is required; if nil after fuzzing, set to 0 to match the round-trip conversion behavior.
+	if in.VlanID == nil {
+		in.VlanID = ptr.To(int32(0))
 	}
 }
 
@@ -271,6 +350,17 @@ func Metal3DataClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeMetal3DataClaimSpec,
 		spokeMetal3DataClaimStatus,
+		hubMetal3DataClaimSpec,
+	}
+}
+
+func hubMetal3DataClaimSpec(in *infrav1.Metal3DataClaimSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize empty pointer fields to nil - empty Metal3ObjectRef{} should become nil
+	// This matches the JSON round-trip behavior with omitempty tags
+	if in.Template != nil && in.Template.Name == "" && in.Template.Namespace == "" {
+		in.Template = nil
 	}
 }
 
@@ -307,6 +397,9 @@ func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 	return []interface{}{
 		spokeMetal3DataTemplateSpec,
 		spokeTypedLocalObjectReference,
+		spokeMetal3DataTemplateStatus,
+		hubMetal3DataTemplateStatus,
+		hubNetworkDataLinkVlan,
 	}
 }
 
@@ -320,6 +413,22 @@ func spokeMetal3DataTemplateSpec(in *Metal3DataTemplateSpec, c randfill.Continue
 func Metal3MachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		spokeMetal3MachineSpec,
+		spokeObjectMeta,
+		hubClusterv1ObjectMeta,
+	}
+}
+
+// hubClusterv1ObjectMeta normalizes clusterv1.ObjectMeta for hub objects.
+// Empty maps become nil after JSON marshal/unmarshal (omitempty).
+func hubClusterv1ObjectMeta(in *clusterv1.ObjectMeta, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize empty map to nil - JSON round-trip with omitempty converts {} to nil.
+	if len(in.Labels) == 0 {
+		in.Labels = nil
+	}
+	if len(in.Annotations) == 0 {
+		in.Annotations = nil
 	}
 }
 
