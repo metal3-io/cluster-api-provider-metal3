@@ -15,7 +15,6 @@ linters:
           linters:
             disable:
             - "optionalfields"
-            - "optionalorrequired"
             - "nonpointerstructs"
             - "nophase"
             - "conditions"
@@ -56,6 +55,50 @@ linters:
     rules:
     ## KAL should only run on API folders.
     - path: "api/v1beta1//*"
+      linters:
+      - kubeapilinter
+
+    ## Excludes for CAPM3 requiredfields
+    # Metal3ClusterTemplateResource.Spec follows Cluster API contract
+    # and is required, but it has a valid zero value, so we need to
+    # exclude it from the requiredfields linter.
+    - path: "api/v1beta2/metal3clustertemplate_types.go"
+      text: "requiredfields: field Metal3ClusterTemplateResource.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3MachineTemplateResource.Spec follows Cluster API contract
+    # and is required, but it has a valid zero value, so we need to
+    # exclude it from the requiredfields linter.
+    - path: "api/v1beta2/metal3machinetemplate_types.go"
+      text: "requiredfields: field Metal3MachineTemplateResource.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3RemediationTemplateResource.Spec follows Cluster API contract
+    # and is required, but it has a valid zero value, so we need to
+    # exclude it from the requiredfields linter.
+    - path: "api/v1beta2/metal3remediationtemplate_types.go"
+      text: "requiredfields: field Metal3RemediationTemplateResource.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3RemediationTemplateStatus.Status follows Cluster API contract
+    # and is required, but it has a valid zero value, so we need to
+    # exclude it from the requiredfields linter.
+    - path: "api/v1beta2/metal3remediationtemplate_types.go"
+      text: "requiredfields: field Metal3RemediationTemplateStatus.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Type NetworkGatewayv4 has separate validation that checks that at least
+    # one of the fields, FromIPPool, FromPoolRef, or FromPoolAnnotation, is set.
+    # This mean that the Gateway field is never empty and we can ignore the requiredfields linter for it.
+    - path: "api/v1beta2/metal3datatemplate_types.go"
+      text: "requiredfields: field NetworkDataRoutev4.Gateway has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Type NetworkGatewayv6 has separate validation that checks that at least
+    # one of the fields, FromIPPool, FromPoolRef, or FromPoolAnnotation, is set.
+    # This mean that the Gateway field is never empty and we can ignore the requiredfields linter for it.
+    - path: "api/v1beta2/metal3datatemplate_types.go"
+      text: "requiredfields: field NetworkDataRoutev6.Gateway has a valid zero value"
       linters:
       - kubeapilinter
 

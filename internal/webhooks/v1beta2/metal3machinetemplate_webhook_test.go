@@ -33,7 +33,7 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 				Spec: infrav1.Metal3MachineSpec{
 					Image: infrav1.Image{
 						URL:      "http://abc.com/image",
-						Checksum: "http://abc.com/image.sha256sum",
+						Checksum: ptr.To("http://abc.com/image.sha256sum"),
 					},
 				},
 			},
@@ -43,11 +43,11 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 	invalidURL.Spec.Template.Spec.Image.URL = ""
 
 	invalidChecksum := valid.DeepCopy()
-	invalidChecksum.Spec.Template.Spec.Image.Checksum = ""
+	invalidChecksum.Spec.Template.Spec.Image.Checksum = ptr.To("")
 
 	validIso := valid.DeepCopy()
-	validIso.Spec.Template.Spec.Image.Checksum = ""
-	validIso.Spec.Template.Spec.Image.DiskFormat = ptr.To(infrav1.LiveISODiskFormat)
+	validIso.Spec.Template.Spec.Image.Checksum = ptr.To("")
+	validIso.Spec.Template.Spec.Image.DiskFormat = infrav1.LiveISODiskFormat
 
 	validCustomDeploy := &infrav1.Metal3MachineTemplate{
 		ObjectMeta: metav1.ObjectMeta{

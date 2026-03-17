@@ -120,6 +120,7 @@ const (
 )
 
 // Metal3MachineSpec defines the desired state of Metal3Machine.
+// Either image or customDeploy is required, so this object is never empty.
 type Metal3MachineSpec struct {
 	// providerID must match the provider ID as seen on the node object corresponding to this machine.
 	// For Kubernetes Nodes running on the Metal3 provider, this value is set by the corresponding CPI component
@@ -132,10 +133,12 @@ type Metal3MachineSpec struct {
 	ProviderID string `json:"providerID,omitempty"`
 
 	// image is the image to be provisioned.
+	// Either image or customDeploy is required.
 	// +optional
 	Image Image `json:"image,omitempty"`
 
 	// customDeploy is a custom deploy procedure.
+	// Either image or customDeploy is required.
 	// +optional
 	CustomDeploy *CustomDeploy `json:"customDeploy,omitempty"`
 
@@ -175,6 +178,9 @@ type Metal3MachineSpec struct {
 	AutomatedCleaningMode *string `json:"automatedCleaningMode,omitempty"`
 
 	// failureDomain is the failure domain unique identifier this machine should be attached to, as defined in Cluster API.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=256
 	FailureDomain string `json:"failureDomain,omitempty"`
 }
 

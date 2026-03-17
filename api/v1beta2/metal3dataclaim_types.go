@@ -30,7 +30,8 @@ const (
 // Metal3DataClaimSpec defines the desired state of Metal3DataClaim.
 type Metal3DataClaimSpec struct {
 	// template is the Metal3DataTemplate this was generated for.
-	Template corev1.ObjectReference `json:"template"`
+	// +required
+	Template corev1.ObjectReference `json:"template,omitempty"`
 }
 
 // Metal3DataClaimStatus defines the observed state of Metal3DataClaim.

@@ -144,19 +144,19 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) ([]infrav1.IndexEn
 		claimName := dataObject.Spec.Claim.Name
 		m.DataTemplate.Status.Indexes = append(m.DataTemplate.Status.Indexes, infrav1.IndexEntry{
 			Name:  claimName,
-			Index: dataObject.Spec.Index,
+			Index: &dataObject.Spec.Index,
 		})
 		indexes = append(indexes, infrav1.IndexEntry{
 			Name:  claimName,
-			Index: dataObject.Spec.Index,
+			Index: &dataObject.Spec.Index,
 		})
 	}
 	// Ensure deterministic ordering of indexes by index
 	sort.Slice(m.DataTemplate.Status.Indexes, func(i, j int) bool {
-		return m.DataTemplate.Status.Indexes[i].Index < m.DataTemplate.Status.Indexes[j].Index
+		return *m.DataTemplate.Status.Indexes[i].Index < *m.DataTemplate.Status.Indexes[j].Index
 	})
 	sort.Slice(indexes, func(i, j int) bool {
-		return indexes[i].Index < indexes[j].Index
+		return *indexes[i].Index < *indexes[j].Index
 	})
 	m.updateStatusTimestamp()
 	return indexes, nil
@@ -263,7 +263,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	for _, indexEntry := range m.DataTemplate.Status.Indexes {
 		if indexEntry.Name == dataClaim.Name {
 			dataClaim.Status.RenderedData = &corev1.ObjectReference{
-				Name:      m.DataTemplate.Name + "-" + strconv.Itoa(int(indexEntry.Index)),
+				Name:      m.DataTemplate.Name + "-" + strconv.Itoa(int(*indexEntry.Index)),
 				Namespace: m.DataTemplate.Namespace,
 			}
 			return indexes, nil
@@ -301,7 +301,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	for index := range claimIndexLength {
 		found := false
 		for _, indexEntry := range indexes {
-			if indexEntry.Index == index {
+			if *indexEntry.Index == index {
 				found = true
 				break
 			}
@@ -377,11 +377,11 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	m.DataTemplate.Status.Indexes = append(m.DataTemplate.Status.Indexes, infrav1.IndexEntry{
 		Name:  dataClaim.Name,
-		Index: claimIndex,
+		Index: &claimIndex,
 	})
 	indexes = append(indexes, infrav1.IndexEntry{
 		Name:  dataClaim.Name,
-		Index: claimIndex,
+		Index: &claimIndex,
 	})
 
 	dataClaim.Status.RenderedData = &corev1.ObjectReference{
@@ -391,10 +391,10 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	// Sort indexes by Index field to ensure deterministic ordering
 	sort.Slice(m.DataTemplate.Status.Indexes, func(i, j int) bool {
-		return m.DataTemplate.Status.Indexes[i].Index < m.DataTemplate.Status.Indexes[j].Index
+		return *m.DataTemplate.Status.Indexes[i].Index < *m.DataTemplate.Status.Indexes[j].Index
 	})
 	sort.Slice(indexes, func(i, j int) bool {
-		return indexes[i].Index < indexes[j].Index
+		return *indexes[i].Index < *indexes[j].Index
 	})
 
 	return indexes, nil
@@ -440,7 +440,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 	ok := false
 	for _, indexEntry := range m.DataTemplate.Status.Indexes {
 		if indexEntry.Name == dataClaim.Name {
-			dataClaimIndex = indexEntry.Index
+			dataClaimIndex = *indexEntry.Index
 			ok = true
 			break
 		}
@@ -498,7 +498,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		// Remove the index entry from the slice by filtering it out
 		filteredIndexes := []infrav1.IndexEntry{}
 		for _, indexEntry := range m.DataTemplate.Status.Indexes {
-			if indexEntry.Name != dataClaim.Name && indexEntry.Index != dataClaimIndex {
+			if indexEntry.Name != dataClaim.Name && *indexEntry.Index != dataClaimIndex {
 				filteredIndexes = append(filteredIndexes, indexEntry)
 			}
 		}
@@ -507,7 +507,7 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		// Also filter the local indexes slice
 		filteredLocalIndexes := []infrav1.IndexEntry{}
 		for _, indexEntry := range indexes {
-			if indexEntry.Name != dataClaim.Name && indexEntry.Index != dataClaimIndex {
+			if indexEntry.Name != dataClaim.Name && *indexEntry.Index != dataClaimIndex {
 				filteredLocalIndexes = append(filteredLocalIndexes, indexEntry)
 			}
 		}
