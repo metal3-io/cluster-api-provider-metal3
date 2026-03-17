@@ -277,7 +277,7 @@ func deleteSecret(ctx context.Context, cl client.Client, name string,
 
 // fetchM3DataTemplate returns the Metal3DataTemplate object.
 func fetchM3DataTemplate(ctx context.Context,
-	templateRef *corev1.ObjectReference, cl client.Client, mLog logr.Logger,
+	templateRef *infrav1.Metal3ObjectRef, cl client.Client, mLog logr.Logger,
 	clusterName string,
 ) (*infrav1.Metal3DataTemplate, error) {
 	// If the user did not specify a Metal3DataTemplate, just keep going.

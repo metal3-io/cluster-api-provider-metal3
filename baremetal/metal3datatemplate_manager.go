@@ -26,7 +26,6 @@ import (
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
-	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -262,7 +261,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 
 	for _, indexEntry := range m.DataTemplate.Status.Indexes {
 		if indexEntry.Name == dataClaim.Name {
-			dataClaim.Status.RenderedData = &corev1.ObjectReference{
+			dataClaim.Status.RenderedData = &infrav1.Metal3ObjectRef{
 				Name:      m.DataTemplate.Name + "-" + strconv.Itoa(int(indexEntry.Index)),
 				Namespace: m.DataTemplate.Namespace,
 			}
@@ -353,11 +352,11 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		},
 		Spec: infrav1.Metal3DataSpec{
 			Index: claimIndex,
-			Template: corev1.ObjectReference{
+			Template: infrav1.Metal3ObjectRef{
 				Name:      m.DataTemplate.Name,
 				Namespace: m.DataTemplate.Namespace,
 			},
-			Claim: corev1.ObjectReference{
+			Claim: infrav1.Metal3ObjectRef{
 				Name:      dataClaim.Name,
 				Namespace: m.DataTemplate.Namespace,
 			},
@@ -384,7 +383,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 		Index: claimIndex,
 	})
 
-	dataClaim.Status.RenderedData = &corev1.ObjectReference{
+	dataClaim.Status.RenderedData = &infrav1.Metal3ObjectRef{
 		Name:      dataName,
 		Namespace: m.DataTemplate.Namespace,
 	}

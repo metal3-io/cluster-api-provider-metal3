@@ -240,6 +240,13 @@ func testObjectMetaWithOR(name string, m3mName string) metav1.ObjectMeta {
 		},
 	}
 }
+
+func testMetal3ObjectReference(name string) *infrav1.Metal3ObjectRef {
+	return &infrav1.Metal3ObjectRef{
+		Name: name,
+	}
+}
+
 func testObjectReference(name string) *corev1.ObjectReference {
 	return &corev1.ObjectReference{
 		Name: name,

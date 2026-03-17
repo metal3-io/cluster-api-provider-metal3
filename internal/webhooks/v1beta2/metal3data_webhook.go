@@ -116,14 +116,6 @@ func (webhook *Metal3Data) ValidateUpdate(_ context.Context, oldObj, newObj runt
 				"cannot be modified",
 			),
 		)
-	} else if newMetal3Data.Spec.Template.Kind != oldMetal3Data.Spec.Template.Kind {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "Template"),
-				newMetal3Data.Spec.Template,
-				"cannot be modified",
-			),
-		)
 	}
 
 	if newMetal3Data.Spec.Claim.Name != oldMetal3Data.Spec.Claim.Name {
@@ -135,14 +127,6 @@ func (webhook *Metal3Data) ValidateUpdate(_ context.Context, oldObj, newObj runt
 			),
 		)
 	} else if newMetal3Data.Spec.Claim.Namespace != oldMetal3Data.Spec.Claim.Namespace {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "claim"),
-				newMetal3Data.Spec.Claim,
-				"cannot be modified",
-			),
-		)
-	} else if newMetal3Data.Spec.Claim.Kind != oldMetal3Data.Spec.Claim.Kind {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "claim"),

@@ -23,7 +23,6 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -173,19 +172,19 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					ObjectMeta: testObjectMeta("abc-0", namespaceName, ""),
 					Spec: infrav1.Metal3DataSpec{
 						Index:    0,
-						Template: *testObjectReference(metal3DataTemplateName),
-						Claim:    *testObjectReference(metal3DataClaimName),
+						Template: *testMetal3ObjectReference(metal3DataTemplateName),
+						Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 					},
 				},
 				{
 					ObjectMeta: testObjectMeta("bbc-1", namespaceName, ""),
 					Spec: infrav1.Metal3DataSpec{
 						Index: 1,
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      "bbc",
 							Namespace: namespaceName,
 						},
-						Claim: corev1.ObjectReference{
+						Claim: infrav1.Metal3ObjectRef{
 							Name:      "bbc",
 							Namespace: namespaceName,
 						},
@@ -198,8 +197,8 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 					Spec: infrav1.Metal3DataSpec{
 						Index:    2,
-						Template: corev1.ObjectReference{},
-						Claim:    *testObjectReference(metal3DataClaimName),
+						Template: infrav1.Metal3ObjectRef{},
+						Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 					},
 				},
 				{
@@ -209,10 +208,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 					Spec: infrav1.Metal3DataSpec{
 						Index: 3,
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Namespace: namespaceName,
 						},
-						Claim: corev1.ObjectReference{},
+						Claim: infrav1.Metal3ObjectRef{},
 					},
 				},
 			},
@@ -329,7 +328,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
@@ -341,13 +340,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      "other-template",
 							Namespace: namespaceName,
 						},
 					},
 					Status: infrav1.Metal3DataClaimStatus{
-						RenderedData: &corev1.ObjectReference{
+						RenderedData: &infrav1.Metal3ObjectRef{
 							Name:      "abc-2", // Doesn't matter because we are not reconciling the "other template"
 							Namespace: namespaceName,
 						},
@@ -359,13 +358,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
 					},
 					Status: infrav1.Metal3DataClaimStatus{
-						RenderedData: &corev1.ObjectReference{
+						RenderedData: &infrav1.Metal3ObjectRef{
 							Name:      "abc-1",
 							Namespace: namespaceName,
 						},
@@ -379,13 +378,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Finalizers:        []string{"ipclaim.ipam.metal3.io"},
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
 					},
 					Status: infrav1.Metal3DataClaimStatus{
-						RenderedData: &corev1.ObjectReference{
+						RenderedData: &infrav1.Metal3ObjectRef{
 							Name:      "abc-3",
 							Namespace: namespaceName,
 						},
@@ -399,13 +398,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Finalizers:        []string{"ipclaim.ipam.metal3.io"},
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
 					},
 					Status: infrav1.Metal3DataClaimStatus{
-						RenderedData: &corev1.ObjectReference{
+						RenderedData: &infrav1.Metal3ObjectRef{
 							Name:      "cdc-3",
 							Namespace: namespaceName,
 						},
@@ -419,11 +418,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
-						Claim: corev1.ObjectReference{
+						Claim: infrav1.Metal3ObjectRef{
 							Name:      "claim-without-status",
 							Namespace: namespaceName,
 						},
@@ -436,11 +435,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
-						Claim: corev1.ObjectReference{
+						Claim: infrav1.Metal3ObjectRef{
 							Name:      "claim-with-status",
 							Namespace: namespaceName,
 						},
@@ -453,11 +452,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
-						Claim: corev1.ObjectReference{
+						Claim: infrav1.Metal3ObjectRef{
 							Name:      "deleting-claim",
 							Namespace: namespaceName,
 						},
@@ -470,11 +469,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      templateMeta.Name,
 							Namespace: namespaceName,
 						},
-						Claim: corev1.ObjectReference{
+						Claim: infrav1.Metal3ObjectRef{
 							Name:      "deleting-claim-missmatch-name",
 							Namespace: namespaceName,
 						},
@@ -662,10 +661,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 					Spec: infrav1.Metal3DataSpec{
 						Index: 0,
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name: "abc",
 						},
-						Claim: corev1.ObjectReference{
+						Claim: infrav1.Metal3ObjectRef{
 							Name: "bcd",
 						},
 					},
@@ -900,7 +899,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 				Status: infrav1.Metal3DataClaimStatus{
-					RenderedData: &corev1.ObjectReference{
+					RenderedData: &infrav1.Metal3ObjectRef{
 						Name: "error-42",
 					},
 				},

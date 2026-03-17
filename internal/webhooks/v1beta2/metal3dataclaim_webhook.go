@@ -95,14 +95,6 @@ func (webhook *Metal3DataClaim) ValidateUpdate(_ context.Context, oldObj, newObj
 				"cannot be modified",
 			),
 		)
-	} else if newMetal3DataClaim.Spec.Template.Kind != oldMetal3DataClaim.Spec.Template.Kind {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "template"),
-				newMetal3DataClaim.Spec.Template,
-				"cannot be modified",
-			),
-		)
 	}
 
 	if len(allErrs) == 0 {

@@ -19,7 +19,6 @@ import (
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -29,7 +28,7 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 			Namespace: "foo",
 		},
 		Spec: infrav1.Metal3DataClaimSpec{
-			Template: corev1.ObjectReference{
+			Template: infrav1.Metal3ObjectRef{
 				Name:      "abc",
 				Namespace: "abc",
 			},
@@ -83,12 +82,12 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			name:      "should succeed when values are the same",
 			expectErr: false,
 			new: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 			},
 			old: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 			},
@@ -97,7 +96,7 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			name:      "should fail with nil old",
 			expectErr: true,
 			new: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 			},
@@ -107,10 +106,10 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			name:      "should fail when dataTemplate is unset",
 			expectErr: true,
 			new: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{},
+				Template: infrav1.Metal3ObjectRef{},
 			},
 			old: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 			},
@@ -119,12 +118,12 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			name:      "should fail when dataTemplate name changes",
 			expectErr: true,
 			new: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name: "abc",
 				},
 			},
 			old: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name: "abcd",
 				},
 			},
@@ -133,31 +132,15 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 			name:      "should fail when datatemplate Namespace changes",
 			expectErr: true,
 			new: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: "abc",
 				},
 			},
 			old: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: "abcd",
-				},
-			},
-		},
-		{
-			name:      "should fail when datatemplate kind changes",
-			expectErr: true,
-			new: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
-					Name: "abc",
-					Kind: "abc",
-				},
-			},
-			old: &infrav1.Metal3DataClaimSpec{
-				Template: corev1.ObjectReference{
-					Name: "abc",
-					Kind: "abcd",
 				},
 			},
 		},

@@ -94,6 +94,20 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if src.Spec.DataTemplate != nil {
+		dst.Spec.DataTemplate = &infrav1.Metal3ObjectRef{
+			Name:      src.Spec.DataTemplate.Name,
+			Namespace: src.Spec.DataTemplate.Namespace,
+		}
+	}
+
+	if src.Status.RenderedData != nil {
+		dst.Status.RenderedData = &infrav1.Metal3ObjectRef{
+			Name:      src.Status.RenderedData.Name,
+			Namespace: src.Status.RenderedData.Namespace,
+		}
+	}
+
 	restored := &infrav1.Metal3Machine{}
 	ok, err := utilconversion.UnmarshalData(src, restored)
 	if err != nil {
@@ -106,6 +120,7 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if !reflect.DeepEqual(initialization, infrav1.Metal3MachineInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+
 	return nil
 }
 
@@ -113,6 +128,20 @@ func (dst *Metal3Machine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.Metal3Machine)
 	if err := Convert_v1beta2_Metal3Machine_To_v1beta1_Metal3Machine(src, dst, nil); err != nil {
 		return err
+	}
+
+	if src.Spec.DataTemplate != nil {
+		dst.Spec.DataTemplate = &corev1.ObjectReference{
+			Name:      src.Spec.DataTemplate.Name,
+			Namespace: src.Spec.DataTemplate.Namespace,
+		}
+	}
+
+	if src.Status.RenderedData != nil {
+		dst.Status.RenderedData = &corev1.ObjectReference{
+			Name:      src.Status.RenderedData.Name,
+			Namespace: src.Status.RenderedData.Namespace,
+		}
 	}
 
 	if dst.Spec.ProviderID != nil && *dst.Spec.ProviderID == "" {
@@ -126,6 +155,13 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.Metal3MachineTemplate)
 	if err := Convert_v1beta1_Metal3MachineTemplate_To_v1beta2_Metal3MachineTemplate(src, dst, nil); err != nil {
 		return err
+	}
+
+	if src.Spec.Template.Spec.DataTemplate != nil {
+		dst.Spec.Template.Spec.DataTemplate = &infrav1.Metal3ObjectRef{
+			Name:      src.Spec.Template.Spec.DataTemplate.Name,
+			Namespace: src.Spec.Template.Spec.DataTemplate.Namespace,
+		}
 	}
 
 	restored := &infrav1.Metal3MachineTemplate{}
@@ -145,6 +181,13 @@ func (dst *Metal3MachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 
 	if dst.Spec.Template.Spec.ProviderID != nil && *dst.Spec.Template.Spec.ProviderID == "" {
 		dst.Spec.Template.Spec.ProviderID = nil
+	}
+
+	if src.Spec.Template.Spec.DataTemplate != nil {
+		dst.Spec.Template.Spec.DataTemplate = &corev1.ObjectReference{
+			Name:      src.Spec.Template.Spec.DataTemplate.Name,
+			Namespace: src.Spec.Template.Spec.DataTemplate.Namespace,
+		}
 	}
 
 	return utilconversion.MarshalData(src, dst)
@@ -174,6 +217,20 @@ func (src *Metal3Data) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if !reflect.DeepEqual(src.Spec.Template, corev1.ObjectReference{}) {
+		dst.Spec.Template = infrav1.Metal3ObjectRef{
+			Name:      src.Spec.Template.Name,
+			Namespace: src.Spec.Template.Namespace,
+		}
+	}
+
+	if !reflect.DeepEqual(src.Spec.Claim, corev1.ObjectReference{}) {
+		dst.Spec.Claim = infrav1.Metal3ObjectRef{
+			Name:      src.Spec.Claim.Name,
+			Namespace: src.Spec.Claim.Namespace,
+		}
+	}
+
 	return nil
 }
 
@@ -181,6 +238,20 @@ func (dst *Metal3Data) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.Metal3Data)
 	if err := Convert_v1beta2_Metal3Data_To_v1beta1_Metal3Data(src, dst, nil); err != nil {
 		return err
+	}
+
+	if !reflect.DeepEqual(src.Spec.Template, infrav1.Metal3ObjectRef{}) {
+		dst.Spec.Template = corev1.ObjectReference{
+			Name:      src.Spec.Template.Name,
+			Namespace: src.Spec.Template.Namespace,
+		}
+	}
+
+	if !reflect.DeepEqual(src.Spec.Claim, infrav1.Metal3ObjectRef{}) {
+		dst.Spec.Claim = corev1.ObjectReference{
+			Name:      src.Spec.Claim.Name,
+			Namespace: src.Spec.Claim.Namespace,
+		}
 	}
 
 	return nil
@@ -192,6 +263,20 @@ func (src *Metal3DataClaim) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	if !reflect.DeepEqual(src.Spec.Template, corev1.ObjectReference{}) {
+		dst.Spec.Template = infrav1.Metal3ObjectRef{
+		Name:      src.Spec.Template.Name,
+			Namespace: src.Spec.Template.Namespace,
+		}
+	}
+
+	if src.Status.RenderedData != nil {
+		dst.Status.RenderedData = &infrav1.Metal3ObjectRef{
+			Name:      src.Status.RenderedData.Name,
+			Namespace: src.Status.RenderedData.Namespace,
+		}
+	}
+
 	return nil
 }
 
@@ -199,6 +284,20 @@ func (dst *Metal3DataClaim) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.Metal3DataClaim)
 	if err := Convert_v1beta2_Metal3DataClaim_To_v1beta1_Metal3DataClaim(src, dst, nil); err != nil {
 		return err
+	}
+
+	if !reflect.DeepEqual(src.Spec.Template, infrav1.Metal3ObjectRef{}) {
+		dst.Spec.Template = corev1.ObjectReference{
+			Name:      src.Spec.Template.Name,
+			Namespace: src.Spec.Template.Namespace,
+		}
+	}
+
+	if src.Status.RenderedData != nil {
+		dst.Status.RenderedData = &corev1.ObjectReference{
+			Name:      src.Status.RenderedData.Name,
+			Namespace: src.Status.RenderedData.Namespace,
+		}
 	}
 
 	return nil
@@ -422,6 +521,14 @@ func Convert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in *infr
 	}
 	out.V1Beta2 = &Metal3MachineV1Beta2Status{}
 	out.V1Beta2.Conditions = in.Conditions
+
+	if in.RenderedData.IsDefined() {
+		out.RenderedData = &corev1.ObjectReference{
+			Name:      in.RenderedData.Name,
+			Namespace: in.RenderedData.Namespace,
+		}
+	}
+
 	return nil
 }
 
@@ -455,6 +562,11 @@ func Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(in *Meta
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
+
+	if in.RenderedData != nil && !reflect.DeepEqual(in.RenderedData, &corev1.ObjectReference{}) {
+		out.RenderedData.Name = in.RenderedData.Name
+		out.RenderedData.Namespace = in.RenderedData.Namespace
+	}
 	return nil
 }
 
@@ -510,13 +622,6 @@ func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *in
 	out.Host = in.Host
 	out.Port = int32(in.Port)
 	return nil
-}
-
-// Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec handles the manual conversion
-// of Metal3DataSpec from v1beta1 to v1beta2. The TemplateReference field was removed in v1beta2.
-func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
-	// TemplateReference is dropped as it was removed in v1beta2
-	return autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s)
 }
 
 // Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec handles the manual conversion
@@ -670,5 +775,27 @@ func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *infrav1
 	if in.APIGroup != "" {
 		out.APIGroup = ptr.To(in.APIGroup)
 	}
+	return nil
+}
+// Convert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec handles the manual conversion of Metal3DataSpec from v1beta2 to v1beta1.
+func Convert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec(in *infrav1.Metal3DataSpec, out *Metal3DataSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec(in, out, s)
+}
+
+// Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec handles the manual conversion of Metal3DataSpec from v1beta1 to v1beta2.
+func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
+	// TemplateReference is dropped as it was removed in v1beta2
+	return autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s)
+}
+
+// Convert_v1_ObjectReference_To_v1beta2_Metal3ObjectRef is a no-op stub;
+// actual conversion is performed in ConvertTo/ConvertFrom.
+func Convert_v1_ObjectReference_To_v1beta2_Metal3ObjectRef(_ *corev1.ObjectReference, _ *infrav1.Metal3ObjectRef, _ apimachineryconversion.Scope) error {
+	return nil
+}
+
+// Convert_v1beta2_Metal3ObjectRef_To_v1_ObjectReference is a no-op stub;
+// actual conversion is performed in ConvertTo/ConvertFrom.
+func Convert_v1beta2_Metal3ObjectRef_To_v1_ObjectReference(_ *infrav1.Metal3ObjectRef, _ *corev1.ObjectReference, _ apimachineryconversion.Scope) error {
 	return nil
 }
