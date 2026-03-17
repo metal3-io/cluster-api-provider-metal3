@@ -28,7 +28,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -373,7 +372,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name:      metal3DataTemplateName,
 							Namespace: namespaceName,
 						},
@@ -390,7 +389,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: corev1.ObjectReference{
+						Template: infrav1.Metal3ObjectRef{
 							Name: metal3DataTemplateName,
 						},
 					},

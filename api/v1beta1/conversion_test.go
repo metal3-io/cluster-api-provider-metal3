@@ -75,13 +75,13 @@ func TestFuzzyConversion(t *testing.T) {
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3Data{},
 		Spoke:       &Metal3Data{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3DataTemplateFuzzFuncs},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3DataFuzzFuncs},
 	}))
 	t.Run("for Metal3DataClaim", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
 		Hub:         &infrav1.Metal3DataClaim{},
 		Spoke:       &Metal3DataClaim{},
-		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
+		FuzzerFuncs: []fuzzer.FuzzerFuncs{Metal3DataClaimFuzzFuncs},
 	}))
 	t.Run("for Metal3Remediation", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
 		Scheme:      scheme,
@@ -160,6 +160,17 @@ func spokeMetal3MachineSpec(in *Metal3MachineSpec, c randfill.Continue) {
 	if in.ProviderID != nil && *in.ProviderID == "" {
 		in.ProviderID = nil
 	}
+
+	if in.DataTemplate != nil {
+		in.DataTemplate = &corev1.ObjectReference{
+			APIVersion: "",
+			Kind:       "",
+			Name:       in.DataTemplate.Name,
+			Namespace:  in.DataTemplate.Namespace,
+		}
+	} else {
+		in.DataTemplate = nil
+	}
 }
 
 func spokeMetal3MachineStatus(in *Metal3MachineStatus, c randfill.Continue) {
@@ -171,6 +182,18 @@ func spokeMetal3MachineStatus(in *Metal3MachineStatus, c randfill.Continue) {
 			in.V1Beta2 = nil
 		}
 	}
+
+	if in.RenderedData != nil {
+		in.RenderedData = &corev1.ObjectReference{
+			APIVersion: "",
+			Kind:       "",
+			Name:       in.RenderedData.Name,
+			Namespace:  in.RenderedData.Namespace,
+		}
+	} else {
+		in.RenderedData = nil
+	}
+
 	in.Phase = "" // Phase is deprecated and it was never used in v1beta1, so we don't want to populate it during conversion.
 }
 
@@ -209,11 +232,10 @@ func spokeMetal3ClusterSpec(in *Metal3ClusterSpec, c randfill.Continue) {
 	}
 }
 
-func spokeMetal3DataTemplateSpec(in *Metal3DataTemplateSpec, c randfill.Continue) {
-	c.FillNoCustom(in)
-
-	// Clean TemplateReference
-	in.TemplateReference = ""
+func Metal3DataFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeMetal3DataSpec,
+	}
 }
 
 func spokeMetal3DataSpec(in *Metal3DataSpec, c randfill.Continue) {
@@ -221,14 +243,78 @@ func spokeMetal3DataSpec(in *Metal3DataSpec, c randfill.Continue) {
 
 	// Clean TemplateReference
 	in.TemplateReference = ""
+
+	if in.Claim.Name != "" || in.Claim.Namespace != "" {
+		in.Claim = corev1.ObjectReference{
+			APIVersion: "",
+			Kind:       "",
+			Name:       in.Claim.Name,
+			Namespace:  in.Claim.Namespace,
+		}
+	} else {
+		in.Claim = corev1.ObjectReference{}
+	}
+
+	if in.Template.Name != "" || in.Template.Namespace != "" {
+		in.Template = corev1.ObjectReference{
+			APIVersion: "",
+			Kind:       "",
+			Name:       in.Template.Name,
+			Namespace:  in.Template.Namespace,
+		}
+	} else {
+		in.Template = corev1.ObjectReference{}
+	}
+}
+
+func Metal3DataClaimFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
+	return []interface{}{
+		spokeMetal3DataClaimSpec,
+		spokeMetal3DataClaimStatus,
+	}
+}
+
+func spokeMetal3DataClaimSpec(in *Metal3DataClaimSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	if in.Template.Name != "" || in.Template.Namespace != "" {
+		in.Template = corev1.ObjectReference{
+			APIVersion: "",
+			Kind:       "",
+			Name:       in.Template.Name,
+			Namespace:  in.Template.Namespace,
+		}
+	} else {
+		in.Template = corev1.ObjectReference{}
+	}
+}
+
+func spokeMetal3DataClaimStatus(in *Metal3DataClaimStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.RenderedData != nil && (in.RenderedData.Name != "" || in.RenderedData.Namespace != "") {
+		in.RenderedData = &corev1.ObjectReference{
+			APIVersion: "",
+			Kind:       "",
+			Name:       in.RenderedData.Name,
+			Namespace:  in.RenderedData.Namespace,
+		}
+	} else {
+		in.RenderedData = nil
+	}
 }
 
 func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
-		spokeMetal3DataSpec,
 		spokeMetal3DataTemplateSpec,
 		spokeTypedLocalObjectReference,
 	}
+}
+
+func spokeMetal3DataTemplateSpec(in *Metal3DataTemplateSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Clean TemplateReference
+	in.TemplateReference = ""
 }
 
 func Metal3MachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
