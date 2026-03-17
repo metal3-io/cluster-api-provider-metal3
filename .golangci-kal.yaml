@@ -14,7 +14,6 @@ linters:
         settings:
           linters:
             disable:
-            - "optionalfields"
             - "optionalorrequired"
             - "nonpointerstructs"
             - "nophase"

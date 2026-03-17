@@ -277,6 +277,7 @@ spec:
                 description: index stores the index value of this instance in the
                   Metal3DataTemplate.
                 format: int32
+                minimum: 0
                 type: integer
               metaData:
                 description: metaData points to the rendered MetaData secret.
@@ -357,6 +358,8 @@ spec:
             properties:
               errorMessage:
                 description: errorMessage contains the error message
+                maxLength: 512
+                minLength: 1
                 type: string
               ready:
                 description: ready is a flag set to True if the secrets were rendered

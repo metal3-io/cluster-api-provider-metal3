@@ -51,7 +51,7 @@ type RemediationManagerInterface interface {
 	SetFinalizer()
 	UnsetFinalizer()
 	HasFinalizer() bool
-	TimeToRemediate(timeoutSeconds *int32) (bool, time.Duration)
+	TimeToRemediate(timeoutSeconds int32) (bool, time.Duration)
 	SetPowerOffAnnotation(ctx context.Context) error
 	RemovePowerOffAnnotation(ctx context.Context) error
 	IsPowerOffRequested(ctx context.Context) (bool, error)
@@ -66,7 +66,7 @@ type RemediationManagerInterface interface {
 	GetRemediationPhase() string
 	GetLastRemediatedTime() *metav1.Time
 	SetLastRemediationTime(remediationTime *metav1.Time)
-	GetTimeoutSeconds() *int32
+	GetTimeoutSeconds() int32
 	IncreaseRetryCount()
 	SetOwnerRemediatedConditionNew(ctx context.Context) error
 	GetCapiMachine(ctx context.Context) (*clusterv1.Machine, error)
@@ -137,10 +137,10 @@ func (r *RemediationManager) HasFinalizer() bool {
 
 // TimeToRemediate checks if it is time to execute a next remediation step
 // and returns seconds to next remediation time.
-func (r *RemediationManager) TimeToRemediate(timeoutSeconds *int32) (bool, time.Duration) {
+func (r *RemediationManager) TimeToRemediate(timeoutSeconds int32) (bool, time.Duration) {
 	var timeout time.Duration
-	if timeoutSeconds != nil {
-		timeout = time.Duration(*timeoutSeconds) * time.Second
+	if timeoutSeconds != 0 {
+		timeout = time.Duration(timeoutSeconds) * time.Second
 	}
 	r.Log.V(VerbosityLevelTrace).Info("Checking if time to remediate",
 		LogFieldMetal3Remediation, r.Metal3Remediation.Name,
@@ -380,7 +380,7 @@ func (r *RemediationManager) SetLastRemediationTime(remediationTime *metav1.Time
 }
 
 // GetTimeoutSeconds returns timeout duration from remediation request Spec.
-func (r *RemediationManager) GetTimeoutSeconds() *int32 {
+func (r *RemediationManager) GetTimeoutSeconds() int32 {
 	return r.Metal3Remediation.Spec.Strategy.TimeoutSeconds
 }
 

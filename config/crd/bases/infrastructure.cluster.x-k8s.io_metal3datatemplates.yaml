@@ -1522,6 +1522,7 @@ spec:
                           description: offset is the offset to apply to the index
                             when rendering it
                           format: int32
+                          minimum: 0
                           type: integer
                         prefix:
                           description: prefix is the prefix string
@@ -1530,6 +1531,7 @@ spec:
                           default: 1
                           description: step is the multiplier of the index
                           format: int32
+                          minimum: 1
                           type: integer
                         suffix:
                           description: suffix is the suffix string
@@ -1669,7 +1671,10 @@ spec:
                               description: bondLinks is the list of links that are
                                 part of the bond.
                               items:
+                                maxLength: 512
+                                minLength: 1
                                 type: string
+                              maxItems: 512
                               type: array
                             bondMode:
                               description: |-
@@ -1738,6 +1743,7 @@ spec:
                               description: mtu is the MTU of the interface
                               format: int32
                               maximum: 9000
+                              minimum: 1280
                               type: integer
                             name:
                               description: |-
@@ -1745,6 +1751,7 @@ spec:
                                 macAddress, cloud-init will rename the interface matching the MAC to this name.
                                 When macAddress is omitted, cloud-init will use this name directly.
                               maxLength: 15
+                              minLength: 1
                               pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                               type: string
                             parameters:
@@ -1826,6 +1833,7 @@ spec:
                               description: mtu is the MTU of the interface
                               format: int32
                               maximum: 9000
+                              minimum: 1280
                               type: integer
                             name:
                               description: |-
@@ -1833,6 +1841,7 @@ spec:
                                 MACAddress, cloud-init will rename the interface matching the MAC to this name.
                                 When MACAddress is omitted, cloud-init will use this name directly.
                               maxLength: 15
+                              minLength: 1
                               pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                               type: string
                             type:
@@ -1907,6 +1916,7 @@ spec:
                               description: mtu is the MTU of the interface
                               format: int32
                               maximum: 9000
+                              minimum: 1280
                               type: integer
                             name:
                               description: |-
@@ -1914,6 +1924,7 @@ spec:
                                 macAddress, cloud-init will rename the interface matching the MAC to this name.
                                 When macAddress is omitted, cloud-init will use this name directly.
                               maxLength: 15
+                              minLength: 1
                               pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
                               type: string
                             vlanID:
@@ -2094,6 +2105,7 @@ spec:
                                       as integer (max 32)
                                     format: int32
                                     maximum: 32
+                                    minimum: 0
                                     type: integer
                                   services:
                                     description: services is a list of IPv4 services
@@ -2218,6 +2230,7 @@ spec:
                                       as integer (max 32)
                                     format: int32
                                     maximum: 32
+                                    minimum: 0
                                     type: integer
                                   services:
                                     description: services is a list of IPv4 services
@@ -2402,6 +2415,7 @@ spec:
                                       as integer (max 128)
                                     format: int32
                                     maximum: 128
+                                    minimum: 0
                                     type: integer
                                   services:
                                     description: services is a list of IPv6 services
@@ -2527,6 +2541,7 @@ spec:
                                       as integer (max 128)
                                     format: int32
                                     maximum: 128
+                                    minimum: 0
                                     type: integer
                                   services:
                                     description: services is a list of IPv6 services
@@ -2651,6 +2666,7 @@ spec:
                                       as integer (max 128)
                                     format: int32
                                     maximum: 128
+                                    minimum: 0
                                     type: integer
                                   services:
                                     description: services is a list of IPv6 services

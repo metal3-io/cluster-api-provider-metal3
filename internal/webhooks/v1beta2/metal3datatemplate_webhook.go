@@ -103,13 +103,13 @@ func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTempla
 
 	if newM3dt.Spec.MetaData != nil {
 		for i, hostInterface := range newM3dt.Spec.MetaData.FromHostInterfaces {
-			if !hostInterface.FromBootMAC && hostInterface.Interface == "" {
+			if hostInterface.FromBootMAC != nil && !*hostInterface.FromBootMAC && hostInterface.Interface == "" {
 				allErrs = append(allErrs, field.Required(
 					field.NewPath("spec", "metaData", "fromHostInterfaces", strconv.Itoa(i), "interface"),
 					"interface must be specified when fromBootMAC is false",
 				))
 			}
-			if hostInterface.FromBootMAC && hostInterface.Interface != "" {
+			if hostInterface.FromBootMAC != nil && *hostInterface.FromBootMAC && hostInterface.Interface != "" {
 				allErrs = append(allErrs, field.Invalid(
 					field.NewPath("spec", "metaData", "fromHostInterfaces", strconv.Itoa(i), "interface"),
 					hostInterface.Interface,
@@ -121,7 +121,7 @@ func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTempla
 
 	if newM3dt.Spec.NetworkData != nil {
 		for i, network := range newM3dt.Spec.NetworkData.Networks.IPv4 {
-			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == nil {
+			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == (infrav1.FromPoolAnnotation{}) {
 				allErrs = append(allErrs, field.Required(
 					field.NewPath("spec", "networkData", "networks", "ipv4", strconv.Itoa(i), "fromPoolRef", "name"),
 					"fromPoolRef needs to contain a reference to an IPPool",
@@ -129,7 +129,7 @@ func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTempla
 			}
 		}
 		for i, network := range newM3dt.Spec.NetworkData.Networks.IPv6 {
-			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == nil {
+			if (network.FromPoolRef == nil || network.FromPoolRef.Name == "") && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == (infrav1.FromPoolAnnotation{}) {
 				allErrs = append(allErrs, field.Required(
 					field.NewPath("spec", "networkData", "networks", "ipv6", strconv.Itoa(i), "fromPoolRef", "name"),
 					"fromPoolRef needs to contain a reference to an IPPool",

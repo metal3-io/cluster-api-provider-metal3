@@ -99,7 +99,11 @@ var _ = Describe("Metal3 manager utils", func() {
 		},
 		Spec: infrav1.Metal3MachineSpec{
 			ProviderID:            "abcdef",
-			AutomatedCleaningMode: ptr.To("metadata"),
+			AutomatedCleaningMode: "metadata",
+			Image: infrav1.Image{
+				URL:      "http://example.com/image.qcow2",
+				Checksum: "abcd1234",
+			},
 		},
 		Status: infrav1.Metal3MachineStatus{
 			Initialization: infrav1.Metal3MachineInitializationStatus{

@@ -133,11 +133,11 @@ type Metal3MachineSpec struct {
 
 	// image is the image to be provisioned.
 	// +optional
-	Image Image `json:"image,omitempty"`
+	Image Image `json:"image,omitempty,omitzero"`
 
 	// customDeploy is a custom deploy procedure.
 	// +optional
-	CustomDeploy *CustomDeploy `json:"customDeploy,omitempty"`
+	CustomDeploy CustomDeploy `json:"customDeploy,omitempty,omitzero"`
 
 	// userData references the Secret that holds user data needed by the bare metal
 	// operator. The Namespace is optional; it will default to the metal3machine's
@@ -172,7 +172,7 @@ type Metal3MachineSpec struct {
 	// during provisioning and deprovisioning.
 	// +kubebuilder:validation:Enum:=metadata;disabled
 	// +optional
-	AutomatedCleaningMode *string `json:"automatedCleaningMode,omitempty"`
+	AutomatedCleaningMode string `json:"automatedCleaningMode,omitempty,omitzero"`
 
 	// failureDomain is the failure domain unique identifier this machine should be attached to, as defined in Cluster API.
 	FailureDomain string `json:"failureDomain,omitempty"`

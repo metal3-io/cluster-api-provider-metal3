@@ -66,7 +66,7 @@ func (webhook *Metal3MachineTemplate) ValidateDelete(_ context.Context, _ runtim
 func (webhook *Metal3MachineTemplate) validate(newM3mt *infrav1.Metal3MachineTemplate) error {
 	var allErrs field.ErrorList
 
-	if newM3mt.Spec.Template.Spec.CustomDeploy == nil || newM3mt.Spec.Template.Spec.CustomDeploy.Method == "" {
+	if newM3mt.Spec.Template.Spec.CustomDeploy.Method == "" {
 		allErrs = append(allErrs, newM3mt.Spec.Template.Spec.Image.Validate(*field.NewPath("Spec", "Template", "Spec", "Image"))...)
 	}
 

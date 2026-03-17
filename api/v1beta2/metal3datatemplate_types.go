@@ -34,10 +34,12 @@ type MetaDataIndex struct {
 	Key string `json:"key"`
 	// offset is the offset to apply to the index when rendering it
 	// +optional
-	Offset int32 `json:"offset,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	Offset *int32 `json:"offset,omitempty"`
 	// step is the multiplier of the index
-	// +kubebuilder:default=1
 	// +optional
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=1
 	Step int32 `json:"step,omitempty"`
 	// prefix is the prefix string
 	// +optional
@@ -112,7 +114,7 @@ type MetaDataHostInterface struct {
 	Interface string `json:"interface,omitempty"`
 	// fromBootMAC will fetch the MAC address from the BareMetalHost Spec BootMACAddress field.
 	// +optional
-	FromBootMAC bool `json:"fromBootMAC,omitempty"` //nolint:tagliatelle // MAC is abbreviation and needs to be capitalized
+	FromBootMAC *bool `json:"fromBootMAC,omitempty"` //nolint:tagliatelle // MAC is abbreviation and needs to be capitalized
 }
 
 // MetaDataIPAddress contains the info to render th ip address. It is IP-version
@@ -133,8 +135,9 @@ type MetaDataIPAddress struct {
 	// +optional
 	Subnet *ipamv1.IPSubnetStr `json:"subnet,omitempty"`
 	// step is the step between the IP addresses rendered.
-	// +kubebuilder:default=1
 	// +optional
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=1
 	Step int32 `json:"step,omitempty"`
 }
 
@@ -238,7 +241,7 @@ type NetworkLinkEthernetMac struct {
 	// fromAnnotation references an object annotation to retrieve the
 	// MAC address from
 	// +optional
-	FromAnnotation *NetworkLinkEthernetMacFromAnnotation `json:"fromAnnotation,omitempty"`
+	FromAnnotation NetworkLinkEthernetMacFromAnnotation `json:"fromAnnotation,omitempty,omitzero"`
 }
 
 // NetworkDataLinkEthernet represents an ethernet link object.
@@ -254,6 +257,7 @@ type NetworkDataLinkEthernet struct {
 	// name is the interface name to be used by cloud-init. When combined with
 	// MACAddress, cloud-init will rename the interface matching the MAC to this name.
 	// When MACAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=15
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
 	// +optional
@@ -262,6 +266,7 @@ type NetworkDataLinkEthernet struct {
 	// mtu is the MTU of the interface
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
+	// +kubebuilder:validation:Minimum=1280
 	// +optional
 	MTU int32 `json:"mtu,omitempty"`
 
@@ -280,7 +285,7 @@ type NetworkDataLinkBond struct {
 	// bondXmitHashPolicy selects the transmit hash policy used for port selection in balance-xor and 802.3ad modes
 	// +kubebuilder:validation:Enum="layer2";"layer3+4";"layer2+3"
 	// +optional
-	BondXmitHashPolicy string `json:"bondXmitHashPolicy"`
+	BondXmitHashPolicy string `json:"bondXmitHashPolicy,omitempty"`
 
 	// id is the ID of the interface (used for naming)
 	Id string `json:"id"` //nolint:stylecheck,revive
@@ -288,6 +293,7 @@ type NetworkDataLinkBond struct {
 	// name is the interface name to be used by cloud-init. When combined with
 	// macAddress, cloud-init will rename the interface matching the MAC to this name.
 	// When macAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=15
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
 	// +optional
@@ -296,6 +302,7 @@ type NetworkDataLinkBond struct {
 	// mtu is the MTU of the interface
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
+	// +kubebuilder:validation:Minimum=1280
 	// +optional
 	MTU int32 `json:"mtu,omitempty"`
 
@@ -310,7 +317,10 @@ type NetworkDataLinkBond struct {
 
 	// bondLinks is the list of links that are part of the bond.
 	// +optional
-	BondLinks []string `json:"bondLinks"`
+	// +kubebuilder:validation:MaxItems=512
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=512
+	BondLinks []string `json:"bondLinks,omitempty"`
 }
 
 // NetworkDataLinkBondParam represents a single bond parameter.
@@ -337,6 +347,7 @@ type NetworkDataLinkVlan struct {
 	// name is the interface name to be used by cloud-init. When combined with
 	// macAddress, cloud-init will rename the interface matching the MAC to this name.
 	// When macAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=15
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
 	// +optional
@@ -345,6 +356,7 @@ type NetworkDataLinkVlan struct {
 	// mtu is the MTU of the interface
 	// +kubebuilder:default=1500
 	// +kubebuilder:validation:Maximum=9000
+	// +kubebuilder:validation:Minimum=1280
 	// +optional
 	MTU int32 `json:"mtu,omitempty"`
 
@@ -422,7 +434,7 @@ type NetworkGatewayv4 struct {
 	// a Machine, Metal3Machine, or BareMetalHost object.
 	// When set, fromIPPool and fromPoolRef are ignored.
 	// +optional
-	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
+	FromPoolAnnotation FromPoolAnnotation `json:"fromPoolAnnotation,omitempty,omitzero"`
 }
 
 // NetworkGatewayv6 represents a gateway, given as a string or as a reference to
@@ -443,7 +455,7 @@ type NetworkGatewayv6 struct {
 	// a Machine, Metal3Machine, or BareMetalHost object.
 	// When set, fromIPPool and fromPoolRef are ignored.
 	// +optional
-	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
+	FromPoolAnnotation FromPoolAnnotation `json:"fromPoolAnnotation,omitempty,omitzero"`
 }
 
 // NetworkDataRoutev4 represents an ipv4 route object.
@@ -452,9 +464,10 @@ type NetworkDataRoutev4 struct {
 	Network ipamv1.IPAddressv4Str `json:"network"`
 
 	// prefix is the mask of the network as integer (max 32)
+	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=32
 	// +optional
-	Prefix int32 `json:"prefix,omitempty"`
+	Prefix *int32 `json:"prefix,omitempty"`
 
 	// gateway is the IPv4 address of the gateway
 	Gateway NetworkGatewayv4 `json:"gateway"`
@@ -470,9 +483,10 @@ type NetworkDataRoutev6 struct {
 	Network ipamv1.IPAddressv6Str `json:"network"`
 
 	// prefix is the mask of the network as integer (max 128)
+	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=128
 	// +optional
-	Prefix int32 `json:"prefix,omitempty"`
+	Prefix *int32 `json:"prefix,omitempty"`
 
 	// gateway is the IPv6 address of the gateway
 	Gateway NetworkGatewayv6 `json:"gateway"`
@@ -500,7 +514,7 @@ type NetworkDataIPv4 struct {
 	// a Machine, Metal3Machine, or BareMetalHost object.
 	// When set, ipAddressFromIPPool and fromPoolRef are ignored.
 	// +optional
-	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
+	FromPoolAnnotation FromPoolAnnotation `json:"fromPoolAnnotation,omitempty,omitzero"`
 
 	// routes contains a list of IPv4 routes
 	// +optional
@@ -552,7 +566,7 @@ type NetworkDataIPv6 struct {
 	// a Machine, Metal3Machine, or BareMetalHost object.
 	// When set, ipAddressFromIPPool and fromPoolRef are ignored.
 	// +optional
-	FromPoolAnnotation *FromPoolAnnotation `json:"fromPoolAnnotation,omitempty"`
+	FromPoolAnnotation FromPoolAnnotation `json:"fromPoolAnnotation,omitempty,omitzero"`
 
 	// routes contains a list of IPv6 routes
 	// +optional
@@ -668,7 +682,7 @@ type Metal3DataTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// spec defines the desired state of Metal3DataTemplate.
 	// +optional
-	Spec Metal3DataTemplateSpec `json:"spec,omitempty"`
+	Spec Metal3DataTemplateSpec `json:"spec,omitempty,omitzero"`
 	// status defines the observed state of Metal3DataTemplate.
 	// +optional
 	Status Metal3DataTemplateStatus `json:"status,omitempty"`

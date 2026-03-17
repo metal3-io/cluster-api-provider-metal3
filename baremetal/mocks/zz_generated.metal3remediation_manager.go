@@ -197,10 +197,10 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) GetRemediationType() *gom
 }
 
 // GetTimeoutSeconds mocks base method.
-func (m *MockRemediationManagerInterface) GetTimeoutSeconds() *int32 {
+func (m *MockRemediationManagerInterface) GetTimeoutSeconds() int32 {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetTimeoutSeconds")
-	ret0, _ := ret[0].(*int32)
+	ret0, _ := ret[0].(int32)
 	return ret0
 }
 
@@ -485,7 +485,7 @@ func (mr *MockRemediationManagerInterfaceMockRecorder) SetUnhealthyAnnotation(ct
 }
 
 // TimeToRemediate mocks base method.
-func (m *MockRemediationManagerInterface) TimeToRemediate(timeoutSeconds *int32) (bool, time.Duration) {
+func (m *MockRemediationManagerInterface) TimeToRemediate(timeoutSeconds int32) (bool, time.Duration) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TimeToRemediate", timeoutSeconds)
 	ret0, _ := ret[0].(bool)

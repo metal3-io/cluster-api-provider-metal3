@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestMetal3DataCreateValidation(t *testing.T) {
@@ -68,7 +69,7 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 				},
 				Spec: infrav1.Metal3DataSpec{
 					Template: tt.template,
-					Index:    1,
+					Index:    ptr.To(int32(1)),
 				},
 			}
 
@@ -80,7 +81,7 @@ func TestMetal3DataCreateValidation(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
 
-			obj.Spec.Index = -1
+			obj.Spec.Index = ptr.To(int32(-1))
 
 			_, err := webhook.ValidateCreate(ctx, obj)
 			g.Expect(err).To(HaveOccurred())
@@ -104,13 +105,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 		},
 		{
@@ -120,7 +121,7 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: nil,
 		},
@@ -131,13 +132,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
-				Index: 2,
+				Index: ptr.To(int32(2)),
 			},
 		},
 		{
@@ -147,13 +148,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 				Template: corev1.ObjectReference{
 					Name: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Template: corev1.ObjectReference{
 					Name: "abcd",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 		},
 		{
@@ -164,14 +165,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 					Name:      "abc",
 					Namespace: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Template: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abcd",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 		},
 		{
@@ -182,14 +183,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 					Name: "abc",
 					Kind: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Template: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abcd",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 		},
 		{
@@ -199,13 +200,13 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 				Claim: corev1.ObjectReference{
 					Name: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Claim: corev1.ObjectReference{
 					Name: "abcd",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 		},
 		{
@@ -216,14 +217,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 					Name:      "abc",
 					Namespace: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Claim: corev1.ObjectReference{
 					Name:      "abc",
 					Namespace: "abcd",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 		},
 		{
@@ -234,14 +235,14 @@ func TestMetal3DataUpdateValidation(t *testing.T) {
 					Name: "abc",
 					Kind: "abc",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 			old: &infrav1.Metal3DataSpec{
 				Claim: corev1.ObjectReference{
 					Name: "abc",
 					Kind: "abcd",
 				},
-				Index: 1,
+				Index: ptr.To(int32(1)),
 			},
 		},
 	}

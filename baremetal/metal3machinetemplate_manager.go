@@ -96,7 +96,7 @@ func (m *MachineTemplateManager) UpdateAutomatedCleaningMode(ctx context.Context
 		for _, m3m := range matchedM3Machines {
 			// don't synchronize AutomatedCleaningMode between metal3MachineTemplate
 			// and metal3Machine if unset in metal3MachineTemplate.
-			if m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode != nil {
+			if m.Metal3MachineTemplate.Spec.Template.Spec.AutomatedCleaningMode != "" {
 				m.Log.V(VerbosityLevelTrace).Info("Updating automatedCleaningMode",
 					LogFieldMetal3Machine, m3m.Name)
 

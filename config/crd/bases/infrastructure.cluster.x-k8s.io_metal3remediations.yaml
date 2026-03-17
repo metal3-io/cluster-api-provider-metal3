@@ -159,6 +159,7 @@ spec:
                   retryLimit:
                     description: retryLimit sets maximum number of remediation retries.
                     format: int32
+                    minimum: 1
                     type: integer
                   timeoutSeconds:
                     default: 600
@@ -184,12 +185,18 @@ spec:
                 description: |-
                   phase represents the current phase of machine remediation.
                   E.g. Pending, Running, Done etc.
+                enum:
+                - Running
+                - Waiting
+                - Deleting machine
+                - Failed
                 type: string
               retryCount:
                 description: |-
                   retryCount can be used as a counter during the remediation.
                   Field can hold number of reboots etc.
                 format: int32
+                minimum: 1
                 type: integer
             type: object
         type: object

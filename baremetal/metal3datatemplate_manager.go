@@ -352,7 +352,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			},
 		},
 		Spec: infrav1.Metal3DataSpec{
-			Index: claimIndex,
+			Index: ptr.To(claimIndex),
 			Template: corev1.ObjectReference{
 				Name:      m.DataTemplate.Name,
 				Namespace: m.DataTemplate.Namespace,
