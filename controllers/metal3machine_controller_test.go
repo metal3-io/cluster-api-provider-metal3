@@ -39,16 +39,17 @@ import (
 )
 
 type reconcileNormalTestCase struct {
-	ExpectError            bool
-	ExpectRequeue          bool
-	Provisioned            bool
-	BootstrapNotReady      bool
-	Annotated              bool
-	AssociateFails         bool
-	GetProviderIDFails     bool
-	SetNodeProviderIDFails bool
-	CloudProviderEnabled   bool
-	Metal3DataClaimCreated bool
+	ExpectError                     bool
+	ExpectRequeue                   bool
+	Provisioned                     bool
+	BootstrapNotReady               bool
+	Annotated                       bool
+	AssociateFails                  bool
+	GetProviderIDFails              bool
+	SetNodeProviderIDFails          bool
+	CloudProviderEnabled            bool
+	Metal3DataClaimCreated          bool
+	SetProviderIDFromNodeLabelFails bool
 }
 
 func setReconcileNormalExpectations(ctrl *gomock.Controller,
@@ -133,8 +134,14 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 		m.EXPECT().IsBaremetalHostProvisioned(context.TODO()).Return(true)
 		m.EXPECT().NodeWithMatchingProviderIDExists(context.TODO(), nil).Return(false)
-		m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(true, nil)
-		m.EXPECT().SetReadyTrue()
+		if tc.SetProviderIDFromNodeLabelFails {
+			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(false, errors.New("failed"))
+		} else {
+			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(true, nil)
+			m.EXPECT().GetMetal3Machine().Return(&infrav1.Metal3Machine{})
+			m.EXPECT().SetMetal3DataReadyConditionTrue(infrav1.SecretsSetExternallyV1Beta2Reason)
+			m.EXPECT().SetReadyTrue()
+		}
 	}
 
 	return m
@@ -273,6 +280,20 @@ var _ = Describe("Metal3Machine manager", func() {
 				ExpectRequeue:          false,
 				Annotated:              true,
 				Metal3DataClaimCreated: false,
+			}),
+			Entry("SetProviderIDFromNodeLabel failed", reconcileNormalTestCase{
+				ExpectError:                     true,
+				ExpectRequeue:                   false,
+				Annotated:                       true,
+				Metal3DataClaimCreated:          true,
+				SetProviderIDFromNodeLabelFails: true,
+			}),
+			Entry("SetProviderIDFromNodeLabel passed", reconcileNormalTestCase{
+				ExpectError:                     false,
+				ExpectRequeue:                   false,
+				Annotated:                       true,
+				Metal3DataClaimCreated:          true,
+				SetProviderIDFromNodeLabelFails: false,
 			}),
 		)
 	})

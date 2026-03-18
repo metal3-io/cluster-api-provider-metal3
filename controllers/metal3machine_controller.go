@@ -387,6 +387,13 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 
 	if success {
 		machineMgr.SetReadyTrue()
+		// Check Metal3DataReadyV1Beta2Condition and set it to true if not already
+		// Reason being if user does not use Metal3DataTemplate then this condition
+		// will never be set to true in the normal flow above.
+		dataReadyCond := v1beta2conditions.Get(machineMgr.GetMetal3Machine(), infrav1.Metal3DataReadyV1Beta2Condition)
+		if dataReadyCond == nil || dataReadyCond.Status != metav1.ConditionTrue {
+			machineMgr.SetMetal3DataReadyConditionTrue(infrav1.SecretsSetExternallyV1Beta2Reason)
+		}
 		return ctrl.Result{}, nil
 	}
 

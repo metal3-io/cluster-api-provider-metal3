@@ -117,6 +117,8 @@ type MachineManagerInterface interface {
 	SetV1beta2Condition(string, metav1.ConditionStatus, string, string)
 	CloudProviderEnabled() bool
 	SetReadyTrue()
+	SetMetal3DataReadyConditionTrue(reason string)
+	GetMetal3Machine() *infrav1.Metal3Machine
 }
 
 // MachineManager is responsible for performing machine reconciliation.
@@ -1506,6 +1508,22 @@ func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller
 	return setOwnerRefInList(refList, controller, m.Metal3Machine.TypeMeta,
 		m.Metal3Machine.ObjectMeta,
 	)
+}
+
+// SetMetal3DataReadyConditionTrue marks Metal3Data Ready conditions to True
+// for both deprecated v1beta1 and v1beta2 conditions on the Metal3Machine.
+func (m *MachineManager) SetMetal3DataReadyConditionTrue(reason string) {
+	v1beta1conditions.MarkTrue(m.Metal3Machine, infrav1.Metal3DataReadyCondition)
+	v1beta2conditions.Set(m.Metal3Machine, metav1.Condition{
+		Type:   infrav1.Metal3DataReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: reason,
+	})
+}
+
+// GetMetal3Machine returns the underlying Metal3Machine object.
+func (m *MachineManager) GetMetal3Machine() *infrav1.Metal3Machine {
+	return m.Metal3Machine
 }
 
 // DeleteOwnerRef removes the ownerreference to this Metal3Machine.
