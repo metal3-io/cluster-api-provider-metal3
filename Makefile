@@ -78,8 +78,6 @@ ENVTEST_K8S_VERSION := 1.35.x
 # Define Docker related variables. Releases should modify and double check these vars.
 # REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 REGISTRY ?= quay.io/metal3-io
-STAGING_REGISTRY := quay.io/metal3-io
-PROD_REGISTRY := quay.io/metal3-io
 IMAGE_NAME ?= cluster-api-provider-metal3
 CONTROLLER_IMG ?= $(REGISTRY)/$(IMAGE_NAME)
 BMO_IMAGE_NAME ?= baremetal-operator
@@ -579,10 +577,6 @@ docker-build-debug: ## Build the docker image for controller-manager with debug 
 	MANIFEST_IMG=$(CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
 	$(MAKE) set-manifest-pull-policy
 
-.PHONY: docker-push
-docker-push: ## Push the docker image
-	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-
 .PHONY: docker-build-fkas
 # Allow overriding this by setting CONTAINER_RUNTIME var
 CONTAINER_RUNTIME := $(if $(CONTAINER_RUNTIME),$(CONTAINER_RUNTIME),docker)
@@ -607,22 +601,6 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH))
 
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
-
-.PHONY: docker-push-all ## Push all the architecture docker images
-docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))
-	$(MAKE) docker-push-manifest
-
-docker-push-%:
-	$(MAKE) ARCH=$* docker-push
-
-.PHONY: docker-push-manifest
-docker-push-manifest: ## Push the fat manifest docker image.
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
-	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
-	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
-	docker manifest push --purge ${CONTROLLER_IMG}:${TAG}
-	MANIFEST_IMG=$(CONTROLLER_IMG) MANIFEST_TAG=$(TAG) $(MAKE) set-manifest-image
-	$(MAKE) set-manifest-pull-policy
 
 .PHONY: set-manifest-image
 set-manifest-image:
