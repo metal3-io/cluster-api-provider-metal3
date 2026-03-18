@@ -39,7 +39,8 @@ import (
 )
 
 const (
-	defaultTimeout = 5 * time.Second
+	defaultTimeout                   = 5 * time.Second
+	defaultRemediationTimeoutSeconds = 600
 )
 
 // Metal3RemediationReconciler reconciles a Metal3Remediation object.
@@ -311,10 +312,14 @@ func (r *Metal3RemediationReconciler) reconcileNormal(ctx context.Context,
 			// Check timeout, either node wasn't recreated yet, or CR is not deleted because of still unhealthy node
 			log.V(baremetal.VerbosityLevelTrace).Info("Checking remediation timeout")
 			timeoutSeconds := remediationMgr.GetTimeoutSeconds()
-			timedOut, _ := remediationMgr.TimeToRemediate(timeoutSeconds)
+			timeoutValue := int32(defaultRemediationTimeoutSeconds)
+			if timeoutSeconds != nil {
+				timeoutValue = *timeoutSeconds
+			}
+			timedOut, _ := remediationMgr.TimeToRemediate(&timeoutValue)
 			log.V(baremetal.VerbosityLevelDebug).Info("Timeout check result",
 				"timedOut", timedOut,
-				baremetal.LogFieldTimeout, *timeoutSeconds)
+				baremetal.LogFieldTimeout, timeoutValue)
 
 			if !timedOut {
 				// Not yet time to retry or stop remediation, requeue

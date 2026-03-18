@@ -59,6 +59,7 @@ type reconcileNormalRemediationTestCase struct {
 	IsNodeForbidden              bool
 	IsNodeBackedUp               bool
 	IsNodeDeleted                bool
+	IsTimeoutNil                 bool
 	IsTimedOut                   bool
 	IsRetryLimitReached          bool
 	IsOutOfServiceTaintSupported bool
@@ -218,8 +219,19 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 			}
 		}
 
-		m.EXPECT().GetTimeoutSeconds().Return(ptr.To(int32(1)))
-		m.EXPECT().TimeToRemediate(gomock.Any()).Return(tc.IsTimedOut, time.Second)
+		if tc.IsTimeoutNil {
+			m.EXPECT().GetTimeoutSeconds().Return(nil)
+			m.EXPECT().TimeToRemediate(gomock.Any()).Do(func(t *int32) {
+				Expect(t).NotTo(BeNil())
+				Expect(*t).To(Equal(int32(defaultRemediationTimeoutSeconds)))
+			}).Return(tc.IsTimedOut, time.Second)
+		} else {
+			m.EXPECT().GetTimeoutSeconds().Return(ptr.To(int32(1)))
+			m.EXPECT().TimeToRemediate(gomock.Any()).Do(func(t *int32) {
+				Expect(t).NotTo(BeNil())
+				Expect(*t).To(Equal(int32(1)))
+			}).Return(tc.IsTimedOut, time.Second)
+		}
 		if tc.IsTimedOut {
 			m.EXPECT().RetryLimitIsSet().Return(true)
 			m.EXPECT().HasReachRetryLimit().Return(tc.IsRetryLimitReached)
@@ -608,6 +620,17 @@ var _ = Describe("Metal3Remediation controller", func() {
 			ExpectError:      false,
 			ExpectRequeue:    false,
 			RemediationPhase: infrav1.PhaseFailed,
+		}),
+		Entry("Should use default timeout if GetTimeoutSeconds returns nil", reconcileNormalRemediationTestCase{
+			ExpectError:         false,
+			ExpectRequeue:       true,
+			RemediationPhase:    infrav1.PhaseWaiting,
+			IsFinalizerSet:      true,
+			IsPowerOffRequested: false,
+			IsPoweredOn:         true,
+			IsNodeDeleted:       true,
+			IsTimedOut:          false,
+			IsTimeoutNil:        true,
 		}),
 	)
 
