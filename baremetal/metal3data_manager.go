@@ -53,6 +53,7 @@ const (
 	networkDataSuffix = "-networkdata"
 	metaDataSuffix    = "-metadata"
 	IPPoolKind        = "IPPool"
+	IPPoolAPIGroup    = "ipam.metal3.io"
 )
 
 var (
@@ -433,9 +434,9 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 	return addresses, nil
 }
 
-func isMetal3IPPoolRef(ref corev1.TypedLocalObjectReference) bool {
-	return (ref.APIGroup != nil && *ref.APIGroup == "ipam.metal3.io" && ref.Kind == IPPoolKind) ||
-		((ref.APIGroup == nil || *ref.APIGroup == "") && ref.Kind == "")
+func isMetal3IPPoolRef(ref infrav1.IPPoolReference) bool {
+	return (ref.APIGroup == IPPoolAPIGroup && ref.Kind == IPPoolKind) ||
+		(ref.APIGroup == "" && ref.Kind == "")
 }
 
 // releaseAddressesFromPool releases all addresses allocated by a [Metal3DataTemplate] by deleting the IP claims.
@@ -461,14 +462,14 @@ func (m *DataManager) releaseAddressesFromPool(ctx context.Context, m3dt infrav1
 
 // poolRefs is used to consolidate the various references of a Metal3DataTemplate into a single map of references.
 // The names of the referenced pools need to be unique.
-type poolRefs map[string]corev1.TypedLocalObjectReference
+type poolRefs map[string]infrav1.IPPoolReference
 
 // addRef adds a reference to the map.
 // It defaults the reference's group and kind to metal3 pools.
 // It returns an error if a reference with the same name but a different group or kind already exists.
-func (p poolRefs) addRef(ref corev1.TypedLocalObjectReference) error {
-	if ref.APIGroup == nil || *ref.APIGroup == "" {
-		ref.APIGroup = ptr.To("ipam.metal3.io")
+func (p poolRefs) addRef(ref infrav1.IPPoolReference) error {
+	if ref.APIGroup == "" {
+		ref.APIGroup = IPPoolAPIGroup
 	}
 	if ref.Kind == "" {
 		ref.Kind = IPPoolKind
@@ -480,7 +481,7 @@ func (p poolRefs) addRef(ref corev1.TypedLocalObjectReference) error {
 		return nil
 	}
 
-	if *old.APIGroup != *ref.APIGroup || old.Kind != ref.Kind {
+	if old.APIGroup != ref.APIGroup || old.Kind != ref.Kind {
 		return errors.New("multiple references with the same name but different resource types")
 	}
 
@@ -489,7 +490,7 @@ func (p poolRefs) addRef(ref corev1.TypedLocalObjectReference) error {
 
 // addFromPool adds a pool reference from a [FromPool] value.
 func (p poolRefs) addFromPool(pool infrav1.FromPool) error {
-	return p.addRef(corev1.TypedLocalObjectReference{Name: pool.Name, APIGroup: ptr.To(pool.APIGroup), Kind: pool.Kind})
+	return p.addRef(infrav1.IPPoolReference{Name: pool.Name, APIGroup: IPPoolAPIGroup, Kind: IPPoolKind})
 }
 
 // addName adds a reference to a metal3 pool using just its name.
@@ -497,7 +498,7 @@ func (p poolRefs) addName(name string) error {
 	if name == "" {
 		return nil
 	}
-	return p.addRef(corev1.TypedLocalObjectReference{Name: name})
+	return p.addRef(infrav1.IPPoolReference{Name: name})
 }
 
 // addFromAnnotation resolves a pool reference from an annotation and adds it to the pool refs.
@@ -526,9 +527,9 @@ func (p poolRefs) addFromAnnotation(
 		return fmt.Errorf("annotation %s not found or empty on %s", fromPoolAnnotation.Annotation, fromPoolAnnotation.Object)
 	}
 
-	ref := corev1.TypedLocalObjectReference{
+	ref := infrav1.IPPoolReference{
 		Name:     annotationValue,
-		APIGroup: ptr.To("ipam.metal3.io"),
+		APIGroup: IPPoolAPIGroup,
 		Kind:     IPPoolKind,
 	}
 
@@ -541,7 +542,7 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 	m3m *infrav1.Metal3Machine,
 	machine *clusterv1.Machine,
 	bmh *bmov1alpha1.BareMetalHost,
-) (map[string]corev1.TypedLocalObjectReference, error) {
+) (map[string]infrav1.IPPoolReference, error) {
 	pools := poolRefs{}
 	if m3dt.Spec.MetaData != nil {
 		for _, pool := range m3dt.Spec.MetaData.IPAddressesFromPool {
@@ -725,7 +726,7 @@ func (m *DataManager) m3IPClaimObjectMeta(name, poolRefName string, preallocatio
 
 // ensureM3IPClaim ensures that a claim for a referenced pool exists.
 // It returns the claim and whether to fetch the claim again when fetching IP addresses.
-func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
+func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef infrav1.IPPoolReference) (reconciledClaim, error) {
 	m.Log.Info("Ensuring Metal3IPClaim for Metal3Data", LogFieldMetal3Data, m.Data.Name)
 	ipClaim, err := fetchM3IPClaim(ctx, m.client, m.Log, m.Data.Name+"-"+poolRef.Name, m.Data.Namespace)
 	if err == nil {
@@ -807,7 +808,7 @@ func (m *DataManager) ensureM3IPClaim(ctx context.Context, poolRef corev1.TypedL
 }
 
 // addressFromM3Claim retrieves the [Metal3IPAddress] for a [Metal3IPClaim].
-func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.TypedLocalObjectReference, ipClaim *ipamv1.IPClaim) (AddressFromPool, bool, error) {
+func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef infrav1.IPPoolReference, ipClaim *ipamv1.IPClaim) (AddressFromPool, bool, error) {
 	if ipClaim == nil {
 		return AddressFromPool{}, true, errors.New("no claim provided")
 	}
@@ -880,7 +881,7 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef corev1.Typ
 }
 
 // releaseAddressFromM3Pool deletes the Metal3IPClaim for a referenced pool.
-func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef corev1.TypedLocalObjectReference) error {
+func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef infrav1.IPPoolReference) error {
 	m.Log.V(VerbosityLevelTrace).Info("Releasing address from Metal3IPPool",
 		LogFieldPool, poolRef.Name)
 	var ipClaim *ipamv1.IPClaim
@@ -927,7 +928,7 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef core
 }
 
 // ensureIPClaim creates a CAPI IPAddressClaim for a pool if it does not exist yet.
-func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLocalObjectReference) (reconciledClaim, error) {
+func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef infrav1.IPPoolReference) (reconciledClaim, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Ensuring IPAddressClaim exists",
 		LogFieldMetal3Data, m.Data.Name,
 		LogFieldPool, poolRef.Name)
@@ -983,7 +984,7 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef corev1.TypedLoc
 }
 
 // addressFromClaim retrieves the IPAddress for a CAPI IPAddressClaim.
-func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalObjectReference, claim *capipamv1.IPAddressClaim) (AddressFromPool, bool, error) {
+func (m *DataManager) addressFromClaim(ctx context.Context, _ infrav1.IPPoolReference, claim *capipamv1.IPAddressClaim) (AddressFromPool, bool, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Getting address from IPAddressClaim")
 	if claim == nil {
 		return AddressFromPool{}, true, errors.New("no claim provided")
@@ -1021,7 +1022,7 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ corev1.TypedLocalO
 }
 
 // releaseAddressFromPool deletes the CAPI IP claim for a pool.
-func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolRef corev1.TypedLocalObjectReference) error {
+func (m *DataManager) releaseAddressFromPool(ctx context.Context, poolRef infrav1.IPPoolReference) error {
 	claim := &capipamv1.IPAddressClaim{}
 	nn := types.NamespacedName{
 		Namespace: m.Data.Namespace,
