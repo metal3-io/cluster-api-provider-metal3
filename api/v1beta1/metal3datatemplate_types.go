@@ -307,6 +307,35 @@ type NetworkDataLinkBond struct {
 // NetworkDataLinkBondParams represent the set of bond params.
 type NetworkDataLinkBondParams map[string]apiextensionsv1.JSON
 
+// NetworkDataLinkBridge represents a Linux bridge link object.
+type NetworkDataLinkBridge struct {
+	// Id is the ID of the interface (used for naming)
+	Id string `json:"id"` //nolint:stylecheck,revive
+
+	// Name is the interface name to be used by cloud-init. When combined with
+	// MACAddress, cloud-init will rename the interface matching the MAC to this name.
+	// When MACAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// +kubebuilder:default=1500
+	// +kubebuilder:validation:Maximum=9000
+	// MTU is the MTU of the interface
+	// +optional
+	MTU int `json:"mtu,omitempty"`
+
+	// MACAddress is the MAC address of the interface, containing the object
+	// used to render it.
+	// +optional
+	MACAddress *NetworkLinkEthernetMac `json:"macAddress,omitempty"`
+
+	// BridgeLinks is the list of links (by link id) that are part of the bridge.
+	// +optional
+	BridgeLinks []string `json:"bridgeLinks"`
+}
+
 // NetworkDataLinkVlan represents a vlan link object.
 type NetworkDataLinkVlan struct {
 	// +kubebuilder:validation:Maximum=4096
@@ -348,6 +377,10 @@ type NetworkDataLink struct {
 	// Bonds contains a list of Bond links
 	// +optional
 	Bonds []NetworkDataLinkBond `json:"bonds,omitempty"`
+
+	// Bridges contains a list of Linux bridge links
+	// +optional
+	Bridges []NetworkDataLinkBridge `json:"bridges,omitempty"`
 
 	// Vlans contains a list of Vlan links
 	// +optional
