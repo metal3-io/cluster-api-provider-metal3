@@ -325,6 +325,19 @@ type NetworkDataLinkBondParam struct {
 	Value apiextensionsv1.JSON `json:"value,omitempty"`
 }
 
+// NetworkDataLinkBridgeParam represents a single bridge parameter.
+type NetworkDataLinkBridgeParam struct {
+	// name is the parameter name (without the "bridge_" prefix)
+	// +kubebuilder:validation:MinLength=1
+	// +required
+	Name string `json:"name,omitempty"`
+
+	// value is the parameter value
+	// +optional
+	// +kubebuilder:validation:Type=object
+	Value apiextensionsv1.JSON `json:"value,omitempty"`
+}
+
 // NetworkDataLinkBridge represents a Linux bridge link object.
 type NetworkDataLinkBridge struct {
 	// id is the ID of the interface (used for naming)
@@ -352,6 +365,17 @@ type NetworkDataLinkBridge struct {
 	// bridgeLinks is the list of links (by link id) that are part of the bridge.
 	// +optional
 	BridgeLinks []string `json:"bridgeLinks"`
+
+	// acceptRA controls IPv6 Router Advertisements (RA) on this bridge.
+	// When nil, it will not be rendered.
+	// +optional
+	AcceptRA *bool `json:"acceptRA,omitempty"`
+
+	// parameters blob passed without any validation/modifications into cloud-init config.
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	Parameters []NetworkDataLinkBridgeParam `json:"parameters,omitempty"`
 }
 
 // NetworkDataLinkVlan represents a vlan link object.

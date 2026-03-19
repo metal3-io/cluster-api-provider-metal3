@@ -334,7 +334,19 @@ type NetworkDataLinkBridge struct {
 	// BridgeLinks is the list of links (by link id) that are part of the bridge.
 	// +optional
 	BridgeLinks []string `json:"bridgeLinks"`
+
+	// acceptRA controls IPv6 Router Advertisements (RA) on this bridge.
+	// When nil, it will not be rendered.
+	// +optional
+	AcceptRA *bool `json:"acceptRA,omitempty"`
+
+	// parameters blob passed without any validation/modifications into cloud-init config.
+	// +optional
+	Parameters NetworkDataLinkBridgeParams `json:"parameters,omitempty"`
 }
+
+// NetworkDataLinkBridgeParams represent the set of bridge params.
+type NetworkDataLinkBridgeParams map[string]apiextensionsv1.JSON
 
 // NetworkDataLinkVlan represents a vlan link object.
 type NetworkDataLinkVlan struct {
