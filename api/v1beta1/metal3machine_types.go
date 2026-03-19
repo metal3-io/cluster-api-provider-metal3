@@ -101,6 +101,10 @@ const (
 	// to be ready before proceeding.
 	Metal3DataSecretsReadyV1Beta2Reason = "Metal3DataSecretsReady"
 
+	// SecretsSetExternallyV1Beta2Reason used when metal3data secrets are ready
+	// to be ready before proceeding.
+	SecretsSetExternallyV1Beta2Reason = "SecretsSetExternally"
+
 	// DisassociateM3MetaDataFailedReason is used when failed to remove OwnerReference of Meta3DataTemplate.
 	DisassociateM3MetaDataFailedV1Beta2Reason = "DisassociateM3MetaDataFailed"
 
