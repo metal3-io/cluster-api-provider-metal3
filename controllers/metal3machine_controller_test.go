@@ -33,6 +33,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta2conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -50,6 +51,7 @@ type reconcileNormalTestCase struct {
 	CloudProviderEnabled            bool
 	Metal3DataClaimCreated          bool
 	SetProviderIDFromNodeLabelFails bool
+	Metal3DataReadyConditionSet     bool
 }
 
 func setReconcileNormalExpectations(ctrl *gomock.Controller,
@@ -67,6 +69,11 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition,
 			metav1.ConditionTrue,
 			infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason, "")
+		provisionedM3Machine := buildMetal3MachineWithDataReadyCondition(tc.Metal3DataReadyConditionSet)
+		m.EXPECT().GetMetal3Machine().Return(provisionedM3Machine)
+		if !tc.Metal3DataReadyConditionSet {
+			m.EXPECT().SetMetal3DataReadyConditionTrue(infrav1.SecretsSetExternallyV1Beta2Reason)
+		}
 		m.EXPECT().Update(context.TODO()).Return(nil)
 		m.EXPECT().IsBootstrapReady().MaxTimes(0)
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
@@ -138,13 +145,32 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(false, errors.New("failed"))
 		} else {
 			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(true, nil)
-			m.EXPECT().GetMetal3Machine().Return(&infrav1.Metal3Machine{})
-			m.EXPECT().SetMetal3DataReadyConditionTrue(infrav1.SecretsSetExternallyV1Beta2Reason)
 			m.EXPECT().SetReadyTrue()
+			nodeLabelM3Machine := buildMetal3MachineWithDataReadyCondition(tc.Metal3DataReadyConditionSet)
+			m.EXPECT().GetMetal3Machine().Return(nodeLabelM3Machine)
+			if !tc.Metal3DataReadyConditionSet {
+				m.EXPECT().SetMetal3DataReadyConditionTrue(infrav1.SecretsSetExternallyV1Beta2Reason)
+			}
 		}
 	}
 
 	return m
+}
+
+// buildMetal3MachineWithDataReadyCondition returns a Metal3Machine with the
+// Metal3DataReadyV1Beta2Condition set to True when conditionSet is true,
+// or with no conditions when conditionSet is false.
+func buildMetal3MachineWithDataReadyCondition(conditionSet bool) *infrav1.Metal3Machine {
+	m3m := &infrav1.Metal3Machine{}
+	if conditionSet {
+		v1beta2conditions.Set(m3m, metav1.Condition{
+			Type:               infrav1.Metal3DataReadyV1Beta2Condition,
+			Status:             metav1.ConditionTrue,
+			Reason:             infrav1.SecretsSetExternallyV1Beta2Reason,
+			LastTransitionTime: metav1.Now(),
+		})
+	}
+	return m3m
 }
 
 type reconcileDeleteTestCase struct {
@@ -233,10 +259,17 @@ var _ = Describe("Metal3Machine manager", func() {
 					Expect(res.Requeue).To(BeFalse())
 				}
 			},
-			Entry("Provisioned", reconcileNormalTestCase{
-				ExpectError:   false,
-				ExpectRequeue: false,
-				Provisioned:   true,
+			Entry("Provisioned, Metal3DataReady condition not set", reconcileNormalTestCase{
+				ExpectError:                 false,
+				ExpectRequeue:               false,
+				Provisioned:                 true,
+				Metal3DataReadyConditionSet: false,
+			}),
+			Entry("Provisioned, Metal3DataReady condition already set", reconcileNormalTestCase{
+				ExpectError:                 false,
+				ExpectRequeue:               false,
+				Provisioned:                 true,
+				Metal3DataReadyConditionSet: true,
 			}),
 			Entry("Bootstrap not ready", reconcileNormalTestCase{
 				ExpectError:       false,
@@ -294,6 +327,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				Annotated:                       true,
 				Metal3DataClaimCreated:          true,
 				SetProviderIDFromNodeLabelFails: false,
+			}),
+			Entry("SetProviderIDFromNodeLabel passed, Metal3DataReady condition already set", reconcileNormalTestCase{
+				ExpectError:                     false,
+				ExpectRequeue:                   false,
+				Annotated:                       true,
+				Metal3DataClaimCreated:          true,
+				SetProviderIDFromNodeLabelFails: false,
+				Metal3DataReadyConditionSet:     true,
 			}),
 		)
 	})
