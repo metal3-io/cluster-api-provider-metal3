@@ -260,7 +260,7 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.BoolVar(
 		&enableBMHNameBasedPreallocation,
-		"enableBMHNameBasedPreallocation",
+		"enable-bmh-name-based-preallocation",
 		false,
 		"If set to true, it enables PreAllocation field to use Metal3IPClaim name structured with BaremetalHost and M3IPPool names",
 	)
