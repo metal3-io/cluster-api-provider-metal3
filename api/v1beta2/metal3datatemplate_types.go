@@ -325,6 +325,59 @@ type NetworkDataLinkBondParam struct {
 	Value apiextensionsv1.JSON `json:"value,omitempty"`
 }
 
+// NetworkDataLinkBridgeParam represents a single bridge parameter.
+type NetworkDataLinkBridgeParam struct {
+	// name is the parameter name (without the "bridge_" prefix)
+	// +kubebuilder:validation:MinLength=1
+	// +required
+	Name string `json:"name,omitempty"`
+
+	// value is the parameter value
+	// +optional
+	// +kubebuilder:validation:Type=object
+	Value apiextensionsv1.JSON `json:"value,omitempty"`
+}
+
+// NetworkDataLinkBridge represents a Linux bridge link object.
+type NetworkDataLinkBridge struct {
+	// id is the ID of the interface (used for naming)
+	Id string `json:"id"` //nolint:stylecheck,revive
+
+	// name is the interface name to be used by cloud-init. When combined with
+	// macAddress, cloud-init will rename the interface matching the MAC to this name.
+	// When macAddress is omitted, cloud-init will use this name directly.
+	// +kubebuilder:validation:MaxLength=15
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z][a-zA-Z0-9._-]*$`
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// mtu is the MTU of the interface
+	// +kubebuilder:default=1500
+	// +kubebuilder:validation:Maximum=9000
+	// +optional
+	MTU int32 `json:"mtu,omitempty"`
+
+	// macAddress is the MAC address of the interface, containing the object
+	// used to render it.
+	// +optional
+	MACAddress *NetworkLinkEthernetMac `json:"macAddress,omitempty"`
+
+	// bridgeLinks is the list of links (by link id) that are part of the bridge.
+	// +optional
+	BridgeLinks []string `json:"bridgeLinks"`
+
+	// acceptRA controls IPv6 Router Advertisements (RA) on this bridge.
+	// When nil, it will not be rendered.
+	// +optional
+	AcceptRA *bool `json:"acceptRA,omitempty"`
+
+	// parameters blob passed without any validation/modifications into cloud-init config.
+	// +listType=map
+	// +listMapKey=name
+	// +optional
+	Parameters []NetworkDataLinkBridgeParam `json:"parameters,omitempty"`
+}
+
 // NetworkDataLinkVlan represents a vlan link object.
 type NetworkDataLinkVlan struct {
 	// vlanID is the Vlan ID
@@ -365,6 +418,10 @@ type NetworkDataLink struct {
 	// bonds contains a list of Bond links
 	// +optional
 	Bonds []NetworkDataLinkBond `json:"bonds,omitempty"`
+
+	// bridges contains a list of Linux bridge links
+	// +optional
+	Bridges []NetworkDataLinkBridge `json:"bridges,omitempty"`
 
 	// vlans contains a list of Vlan links
 	// +optional
