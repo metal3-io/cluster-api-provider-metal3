@@ -208,6 +208,11 @@ providers:
       targetName: "cluster-template-ubuntu-md-taints.yaml"
     - sourcePath: "../_out/main/cluster-template-centos-md-taints.yaml"
       targetName: "cluster-template-centos-md-taints.yaml"
+    replacements:
+    - old: '- "--insecure-diagnostics=${CAPM3_INSECURE_DIAGNOSTICS:=false}"'
+      new: |
+        - "--insecure-diagnostics=${CAPM3_INSECURE_DIAGNOSTICS:=false}"
+        - "--tls-min-version=VersionTLS13"
 
 variables:
   CNI: "/tmp/cni.yaml"
