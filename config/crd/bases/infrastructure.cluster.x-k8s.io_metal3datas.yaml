@@ -357,6 +357,8 @@ spec:
             properties:
               errorMessage:
                 description: errorMessage contains the error message
+                maxLength: 512
+                minLength: 1
                 type: string
               ready:
                 description: ready is a flag set to True if the secrets were rendered

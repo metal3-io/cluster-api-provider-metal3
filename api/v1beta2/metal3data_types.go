@@ -42,10 +42,12 @@ type Metal3DataSpec struct {
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 
 	// claim points to the Metal3DataClaim the Metal3Data was created for.
-	Claim corev1.ObjectReference `json:"claim"`
+	// +required
+	Claim corev1.ObjectReference `json:"claim,omitempty"`
 
 	// template is the Metal3DataTemplate this was generated from.
-	Template corev1.ObjectReference `json:"template"`
+	// +required
+	Template corev1.ObjectReference `json:"template,omitempty"`
 }
 
 // Metal3DataStatus defines the observed state of Metal3Data.
@@ -56,6 +58,8 @@ type Metal3DataStatus struct {
 
 	// errorMessage contains the error message
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	ErrorMessage *string `json:"errorMessage,omitempty"`
 }
 

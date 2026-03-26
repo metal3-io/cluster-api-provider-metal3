@@ -570,8 +570,8 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4 { //nolint:dupl
 			if err := pools.addFromAnnotation(network.FromPoolAnnotation, m3m, machine, bmh); err != nil {
 				return pools, err
-			} else if network.FromPoolRef != nil && network.FromPoolRef.Name != "" {
-				if err := pools.addRef(*network.FromPoolRef); err != nil {
+			} else if network.FromPoolRef.Name != "" {
+				if err := pools.addRef(network.FromPoolRef); err != nil {
 					return pools, err
 				}
 			} else if network.IPAddressFromIPPool != "" {
@@ -583,8 +583,8 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 			for _, route := range network.Routes {
 				if err := pools.addFromAnnotation(route.Gateway.FromPoolAnnotation, m3m, machine, bmh); err != nil {
 					return pools, err
-				} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
-					if err := pools.addRef(*route.Gateway.FromPoolRef); err != nil {
+				} else if route.Gateway.FromPoolRef.Name != "" {
+					if err := pools.addRef(route.Gateway.FromPoolRef); err != nil {
 						return pools, err
 					}
 				} else if route.Gateway.FromIPPool != nil {
@@ -603,8 +603,8 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6 { //nolint:dupl
 			if err := pools.addFromAnnotation(network.FromPoolAnnotation, m3m, machine, bmh); err != nil {
 				return pools, err
-			} else if network.FromPoolRef != nil && network.FromPoolRef.Name != "" {
-				if err := pools.addRef(*network.FromPoolRef); err != nil {
+			} else if network.FromPoolRef.Name != "" {
+				if err := pools.addRef(network.FromPoolRef); err != nil {
 					return pools, err
 				}
 			} else if network.IPAddressFromIPPool != "" {
@@ -615,8 +615,8 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 			for _, route := range network.Routes {
 				if err := pools.addFromAnnotation(route.Gateway.FromPoolAnnotation, m3m, machine, bmh); err != nil {
 					return pools, err
-				} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
-					if err := pools.addRef(*route.Gateway.FromPoolRef); err != nil {
+				} else if route.Gateway.FromPoolRef.Name != "" {
+					if err := pools.addRef(route.Gateway.FromPoolRef); err != nil {
 						return pools, err
 					}
 				} else if route.Gateway.FromIPPool != nil {
@@ -634,8 +634,8 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv4DHCP {
 			for _, route := range network.Routes {
-				if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
-					if err := pools.addRef(*route.Gateway.FromPoolRef); err != nil {
+				if route.Gateway.FromPoolRef.Name != "" {
+					if err := pools.addRef(route.Gateway.FromPoolRef); err != nil {
 						return pools, err
 					}
 				} else if route.Gateway.FromIPPool != nil {
@@ -653,8 +653,8 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6DHCP {
 			for _, route := range network.Routes {
-				if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
-					if err := pools.addRef(*route.Gateway.FromPoolRef); err != nil {
+				if route.Gateway.FromPoolRef.Name != "" {
+					if err := pools.addRef(route.Gateway.FromPoolRef); err != nil {
 						return pools, err
 					}
 				} else if route.Gateway.FromIPPool != nil {
@@ -672,8 +672,8 @@ func getReferencedPools(m3dt infrav1.Metal3DataTemplate,
 
 		for _, network := range m3dt.Spec.NetworkData.Networks.IPv6SLAAC {
 			for _, route := range network.Routes {
-				if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
-					if err := pools.addRef(*route.Gateway.FromPoolRef); err != nil {
+				if route.Gateway.FromPoolRef.Name != "" {
+					if err := pools.addRef(route.Gateway.FromPoolRef); err != nil {
 						return pools, err
 					}
 				} else if route.Gateway.FromIPPool != nil {
@@ -1177,9 +1177,13 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 			"type":      "vlan",
 			"id":        link.Id,
 			"mtu":       link.MTU,
-			"vlan_id":   link.VlanID,
 			"vlan_link": link.VlanLink,
 		}
+		// VlanID is required and must be non-nil; return an error if missing
+		if link.VlanID == nil {
+			return nil, fmt.Errorf("renderNetworkLinks: VLAN link %q is missing required VlanID", link.Id)
+		}
+		entry["vlan_id"] = *link.VlanID
 		// Name is optional - if provided, cloud-init will use it for interface renaming
 		if link.Name != "" {
 			entry["name"] = link.Name
@@ -1216,7 +1220,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 				return nil, err
 			}
 			poolAddress, ok = poolAddresses[poolName]
-		} else if network.FromPoolRef != nil && network.FromPoolRef.Name != "" {
+		} else if network.FromPoolRef.Name != "" {
 			poolAddress, ok = poolAddresses[network.FromPoolRef.Name]
 		} else {
 			poolAddress, ok = poolAddresses[network.IPAddressFromIPPool]
@@ -1251,7 +1255,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 				return nil, err
 			}
 			poolAddress, ok = poolAddresses[poolName]
-		} else if network.FromPoolRef != nil && network.FromPoolRef.Name != "" {
+		} else if network.FromPoolRef.Name != "" {
 			poolAddress, ok = poolAddresses[network.FromPoolRef.Name]
 		} else {
 			poolAddress, ok = poolAddresses[network.IPAddressFromIPPool]
@@ -1344,7 +1348,7 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv4Str(poolAddress.Gateway)
-		} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
+		} else if route.Gateway.FromPoolRef.Name != "" {
 			poolAddress, ok := poolAddresses[route.Gateway.FromPoolRef.Name]
 			if !ok {
 				return []any{}, errors.New("failed to fetch pool from cache")
@@ -1409,7 +1413,7 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 				return []any{}, errors.New("failed to fetch pool from cache")
 			}
 			gateway = ipamv1.IPAddressv6Str(poolAddress.Gateway)
-		} else if route.Gateway.FromPoolRef != nil && route.Gateway.FromPoolRef.Name != "" {
+		} else if route.Gateway.FromPoolRef.Name != "" {
 			poolAddress, ok := poolAddresses[route.Gateway.FromPoolRef.Name]
 			if !ok {
 				return []any{}, errors.New("failed to fetch pool from cache")

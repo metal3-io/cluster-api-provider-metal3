@@ -24,7 +24,8 @@ import (
 // Metal3ClusterTemplateSpec defines the desired state of Metal3ClusterTemplate.
 type Metal3ClusterTemplateSpec struct {
 	// template describes the data for creating a Metal3Cluster from a template
-	Template Metal3ClusterTemplateResource `json:"template"`
+	// +required
+	Template Metal3ClusterTemplateResource `json:"template,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -35,10 +36,12 @@ type Metal3ClusterTemplateSpec struct {
 type Metal3ClusterTemplate struct {
 	metav1.TypeMeta `json:",inline"`
 	// metadata is the standard object's metadata.
+	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec defines the desired state of Metal3ClusterTemplate.
-	Spec Metal3ClusterTemplateSpec `json:"spec,omitempty"`
+	// +required
+	Spec Metal3ClusterTemplateSpec `json:"spec,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true
@@ -62,5 +65,6 @@ type Metal3ClusterTemplateResource struct {
 	// +optional
 	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty,omitzero"`
 	// spec defines the desired state of Metal3Cluster.
-	Spec Metal3ClusterSpec `json:"spec"`
+	// +required
+	Spec Metal3ClusterSpec `json:"spec,omitempty,omitzero"`
 }

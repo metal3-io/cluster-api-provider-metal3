@@ -23,19 +23,22 @@ import (
 // Metal3RemediationTemplateSpec defines the desired state of Metal3RemediationTemplate.
 type Metal3RemediationTemplateSpec struct {
 	// template describes the data needed to create a Metal3Remediation from a template
-	Template Metal3RemediationTemplateResource `json:"template"`
+	// +required
+	Template Metal3RemediationTemplateResource `json:"template,omitempty,omitzero"`
 }
 
 // Metal3RemediationTemplateResource describes the data needed to create a Metal3Remediation from a template.
 type Metal3RemediationTemplateResource struct {
 	// spec is the specification of the desired behavior of the Metal3Remediation.
-	Spec Metal3RemediationSpec `json:"spec"`
+	// +required
+	Spec Metal3RemediationSpec `json:"spec,omitempty,omitzero"`
 }
 
 // Metal3RemediationTemplateStatus defines the observed state of Metal3RemediationTemplate.
 type Metal3RemediationTemplateStatus struct {
 	// status defines the observed state of Metal3Remediation
-	Status Metal3RemediationStatus `json:"status"`
+	// +required
+	Status Metal3RemediationStatus `json:"status,omitempty,omitzero"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -219,13 +220,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedMap: []infrav1.IndexEntry{
 				{
 					Name:  metal3DataClaimName,
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			expectedIndexes: []infrav1.IndexEntry{
 				{
 					Name:  metal3DataClaimName,
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 		}),
@@ -485,11 +486,11 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedIndexes: []infrav1.IndexEntry{
 				{
 					Name:  "claim-without-status",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 				{
 					Name:  "claim-with-status",
-					Index: 1,
+					Index: ptr.To(int32(1)),
 				},
 			},
 			expectedNbIndexes: 2,
@@ -557,7 +558,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Indexes: []infrav1.IndexEntry{
 						{
 							Name:  metal3DataClaimName,
-							Index: 0,
+							Index: ptr.To(int32(0)),
 						},
 					},
 				},
@@ -568,7 +569,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedIndexes: []infrav1.IndexEntry{
 				{
 					Name:  metal3DataClaimName,
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 		}),
@@ -587,13 +588,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedIndexes: []infrav1.IndexEntry{
 				{
 					Name:  metal3DataClaimName,
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			expectedMap: []infrav1.IndexEntry{
 				{
 					Name:  metal3DataClaimName,
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			expectedDatas: []string{"abc-0"},
@@ -606,7 +607,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Indexes: []infrav1.IndexEntry{
 						{
 							Name:  "bcd",
-							Index: 0,
+							Index: ptr.To(int32(0)),
 						},
 					},
 				},
@@ -614,7 +615,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			indexes: []infrav1.IndexEntry{
 				{
 					Name:  "bcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
@@ -623,21 +624,21 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedIndexes: []infrav1.IndexEntry{
 				{
 					Name:  "bcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 				{
 					Name:  metal3DataClaimName,
-					Index: 1,
+					Index: ptr.To(int32(1)),
 				},
 			},
 			expectedMap: []infrav1.IndexEntry{
 				{
 					Name:  "bcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 				{
 					Name:  metal3DataClaimName,
-					Index: 1,
+					Index: ptr.To(int32(1)),
 				},
 			},
 			expectedDatas: []string{"abc-1"},
@@ -684,15 +685,15 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Indexes: []infrav1.IndexEntry{
 						{
 							Name:  "bcd",
-							Index: 0,
+							Index: ptr.To(int32(0)),
 						},
 						{
 							Name:  "efg",
-							Index: 2,
+							Index: ptr.To(int32(2)),
 						},
 						{
 							Name:  "hij",
-							Index: 3,
+							Index: ptr.To(int32(3)),
 						},
 					},
 				},
@@ -700,15 +701,15 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			indexes: []infrav1.IndexEntry{
 				{
 					Name:  "bcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 				{
 					Name:  "efg",
-					Index: 2,
+					Index: ptr.To(int32(2)),
 				},
 				{
 					Name:  "hij",
-					Index: 3,
+					Index: ptr.To(int32(3)),
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
@@ -717,37 +718,37 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedIndexes: []infrav1.IndexEntry{
 				{
 					Name:  "bcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 				{
 					Name:  metal3DataClaimName,
-					Index: 1,
+					Index: ptr.To(int32(1)),
 				},
 				{
 					Name:  "efg",
-					Index: 2,
+					Index: ptr.To(int32(2)),
 				},
 				{
 					Name:  "hij",
-					Index: 3,
+					Index: ptr.To(int32(3)),
 				},
 			},
 			expectedMap: []infrav1.IndexEntry{
 				{
 					Name:  "bcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 				{
 					Name:  metal3DataClaimName,
-					Index: 1,
+					Index: ptr.To(int32(1)),
 				},
 				{
 					Name:  "efg",
-					Index: 2,
+					Index: ptr.To(int32(2)),
 				},
 				{
 					Name:  "hij",
-					Index: 3,
+					Index: ptr.To(int32(3)),
 				},
 			},
 			expectedDatas: []string{"abc-1"},
@@ -809,13 +810,13 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			expectedMap: []infrav1.IndexEntry{
 				{
 					Name:  "abcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			indexes: []infrav1.IndexEntry{
 				{
 					Name:  "abcd",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 		}),
@@ -825,7 +826,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Indexes: []infrav1.IndexEntry{
 						{
 							Name:  "TestRef",
-							Index: 0,
+							Index: ptr.To(int32(0)),
 						},
 					},
 				},
@@ -836,7 +837,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			indexes: []infrav1.IndexEntry{
 				{
 					Name:  "TestRef",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			expectedIndexes: []infrav1.IndexEntry{},
@@ -850,7 +851,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Indexes: []infrav1.IndexEntry{
 						{
 							Name:  "TestRef",
-							Index: 0,
+							Index: ptr.To(int32(0)),
 						},
 					},
 				},
@@ -866,7 +867,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			indexes: []infrav1.IndexEntry{
 				{
 					Name:  "TestRef",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			expectedMap:     []infrav1.IndexEntry{},
@@ -887,7 +888,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					Indexes: []infrav1.IndexEntry{
 						{
 							Name:  "TestRef",
-							Index: 0,
+							Index: ptr.To(int32(0)),
 						},
 					},
 				},
@@ -908,7 +909,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			indexes: []infrav1.IndexEntry{
 				{
 					Name:  "TestRef",
-					Index: 0,
+					Index: ptr.To(int32(0)),
 				},
 			},
 			expectedMap:     []infrav1.IndexEntry{},

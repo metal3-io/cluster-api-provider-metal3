@@ -106,6 +106,11 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if !reflect.DeepEqual(initialization, infrav1.Metal3MachineInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+
+	// Restore Image.Checksum nil state from hub data (v1beta2 uses *string, can be nil)
+	if ok && restored.Spec.Image.Checksum == nil {
+		dst.Spec.Image.Checksum = nil
+	}
 	return nil
 }
 
@@ -134,6 +139,11 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+	// Restore Image.Checksum nil state from hub data
+	if restored.Spec.Template.Spec.Image.Checksum == nil {
+		dst.Spec.Template.Spec.Image.Checksum = nil
+	}
+
 	return nil
 }
 
@@ -156,12 +166,22 @@ func (src *Metal3DataTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	// Convert Indexes from map[string]int to []IndexEntry
+	if err := Convert_v1beta1_Metal3DataTemplateStatus_To_v1beta2_Metal3DataTemplateStatus(&src.Status, &dst.Status, nil); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (dst *Metal3DataTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.Metal3DataTemplate)
 	if err := Convert_v1beta2_Metal3DataTemplate_To_v1beta1_Metal3DataTemplate(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Convert Indexes from []IndexEntry to map[string]int
+	if err := Convert_v1beta2_Metal3DataTemplateStatus_To_v1beta1_Metal3DataTemplateStatus(&src.Status, &dst.Status, nil); err != nil {
 		return err
 	}
 
@@ -512,6 +532,29 @@ func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *in
 	return nil
 }
 
+// Convert_v1beta1_Image_To_v1beta2_Image handles conversion of Image from v1beta1 to v1beta2.
+// In v1beta1: Checksum is string, ChecksumType and DiskFormat are *string.
+// In v1beta2: Checksum is *string, ChecksumType and DiskFormat are string.
+func Convert_v1beta1_Image_To_v1beta2_Image(in *Image, out *infrav1.Image, s apimachineryconversion.Scope) error {
+	out.URL = in.URL
+	out.Checksum = ptr.To(in.Checksum)
+	out.ChecksumType = ptr.Deref(in.ChecksumType, "")
+	out.DiskFormat = ptr.Deref(in.DiskFormat, "")
+	return nil
+}
+
+// Convert_v1beta2_Image_To_v1beta1_Image handles conversion of Image from v1beta2 to v1beta1.
+// In v1beta2: Checksum is *string, ChecksumType and DiskFormat are string.
+// In v1beta1: Checksum is string, ChecksumType and DiskFormat are *string.
+func Convert_v1beta2_Image_To_v1beta1_Image(in *infrav1.Image, out *Image, s apimachineryconversion.Scope) error {
+	out.URL = in.URL
+	out.Checksum = ptr.Deref(in.Checksum, "")
+	// Always set pointers (use &"" for empty) to enable proper round-trip via hub restoration
+	out.ChecksumType = ptr.To(in.ChecksumType)
+	out.DiskFormat = ptr.To(in.DiskFormat)
+	return nil
+}
+
 // Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec handles the manual conversion
 // of Metal3DataSpec from v1beta1 to v1beta2. The TemplateReference field was removed in v1beta2.
 func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
@@ -578,20 +621,22 @@ func Convert_v1beta2_RemediationStrategy_To_v1beta1_RemediationStrategy(in *infr
 func Convert_v1beta1_Metal3DataTemplateStatus_To_v1beta2_Metal3DataTemplateStatus(in *Metal3DataTemplateStatus, out *infrav1.Metal3DataTemplateStatus, s apimachineryconversion.Scope) error {
 	out.LastUpdated = in.LastUpdated
 
-	// Convert map to list
-	if in.Indexes != nil {
+	// Convert map to list.
+	if len(in.Indexes) > 0 {
 		out.Indexes = make([]infrav1.IndexEntry, 0, len(in.Indexes))
 		for name, index := range in.Indexes {
 			out.Indexes = append(out.Indexes, infrav1.IndexEntry{
 				Name:  name,
-				Index: int32(index),
+				Index: ptr.To(int32(index)),
 			})
 		}
 	}
 
 	// Ensure deterministic ordering of indexes by index
 	sort.Slice(out.Indexes, func(i, j int) bool {
-		return out.Indexes[i].Index < out.Indexes[j].Index
+		iVal := ptr.Deref(out.Indexes[i].Index, 0)
+		jVal := ptr.Deref(out.Indexes[j].Index, 0)
+		return iVal < jVal
 	})
 
 	return nil
@@ -602,11 +647,11 @@ func Convert_v1beta1_Metal3DataTemplateStatus_To_v1beta2_Metal3DataTemplateStatu
 func Convert_v1beta2_Metal3DataTemplateStatus_To_v1beta1_Metal3DataTemplateStatus(in *infrav1.Metal3DataTemplateStatus, out *Metal3DataTemplateStatus, s apimachineryconversion.Scope) error {
 	out.LastUpdated = in.LastUpdated
 
-	// Convert list back to map
-	if in.Indexes != nil {
+	// Convert list back to map, filtering out entries without a valid Index
+	if len(in.Indexes) > 0 {
 		out.Indexes = make(map[string]int, len(in.Indexes))
 		for _, entry := range in.Indexes {
-			out.Indexes[entry.Name] = int(entry.Index)
+			out.Indexes[entry.Name] = int(*entry.Index)
 		}
 	}
 
@@ -671,4 +716,133 @@ func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *infrav1
 		out.APIGroup = ptr.To(in.APIGroup)
 	}
 	return nil
+}
+
+// convertPoolRefPointerToValue converts FromPoolRef from pointer (v1beta1) to value (v1beta2).
+func convertPoolRefPointerToValue(in *corev1.TypedLocalObjectReference, out *infrav1.IPPoolReference, s apimachineryconversion.Scope) error {
+	if in != nil {
+		return Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(in, out, s)
+	}
+	return nil
+}
+
+// convertPoolRefValueToPointer converts FromPoolRef from value (v1beta2) to pointer (v1beta1).
+// Always returns a non-nil pointer to ensure round-trip conversion preserves the struct.
+func convertPoolRefValueToPointer(in *infrav1.IPPoolReference, s apimachineryconversion.Scope) (*corev1.TypedLocalObjectReference, error) {
+	out := new(corev1.TypedLocalObjectReference)
+	if err := Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in, out, s); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// Convert_v1beta1_NetworkDataLinkVlan_To_v1beta2_NetworkDataLinkVlan handles conversion
+// of NetworkDataLinkVlan from v1beta1 to v1beta2. The VlanID field changed from int to *int32.
+func Convert_v1beta1_NetworkDataLinkVlan_To_v1beta2_NetworkDataLinkVlan(in *NetworkDataLinkVlan, out *infrav1.NetworkDataLinkVlan, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_NetworkDataLinkVlan_To_v1beta2_NetworkDataLinkVlan(in, out, s); err != nil {
+		return err
+	}
+
+	// Convert VlanID from int to *int32, always preserving the value (including 0).
+	out.VlanID = ptr.To(int32(in.VlanID))
+
+	return nil
+}
+
+// Convert_v1beta2_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan handles conversion
+// of NetworkDataLinkVlan from v1beta2 to v1beta1. The VlanID field changed from *int32 to int.
+func Convert_v1beta2_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(in *infrav1.NetworkDataLinkVlan, out *NetworkDataLinkVlan, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_NetworkDataLinkVlan_To_v1beta1_NetworkDataLinkVlan(in, out, s); err != nil {
+		return err
+	}
+
+	// Convert VlanID from *int32 to int.
+	// VlanID is required in v1beta2, so it should not be nil; default to 0 if missing.
+	if in.VlanID != nil {
+		out.VlanID = int(*in.VlanID)
+	} else {
+		out.VlanID = 0
+	}
+
+	return nil
+}
+
+// Convert_v1beta1_NetworkGatewayv4_To_v1beta2_NetworkGatewayv4 handles conversion
+// of NetworkGatewayv4 from v1beta1 to v1beta2. The FromPoolRef field changed from pointer to value type.
+func Convert_v1beta1_NetworkGatewayv4_To_v1beta2_NetworkGatewayv4(in *NetworkGatewayv4, out *infrav1.NetworkGatewayv4, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_NetworkGatewayv4_To_v1beta2_NetworkGatewayv4(in, out, s); err != nil {
+		return err
+	}
+	return convertPoolRefPointerToValue(in.FromPoolRef, &out.FromPoolRef, s)
+}
+
+// Convert_v1beta2_NetworkGatewayv4_To_v1beta1_NetworkGatewayv4 handles conversion
+// of NetworkGatewayv4 from v1beta2 to v1beta1. The FromPoolRef field changed from value to pointer type.
+func Convert_v1beta2_NetworkGatewayv4_To_v1beta1_NetworkGatewayv4(in *infrav1.NetworkGatewayv4, out *NetworkGatewayv4, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_NetworkGatewayv4_To_v1beta1_NetworkGatewayv4(in, out, s); err != nil {
+		return err
+	}
+	var err error
+	out.FromPoolRef, err = convertPoolRefValueToPointer(&in.FromPoolRef, s)
+	return err
+}
+
+// Convert_v1beta1_NetworkGatewayv6_To_v1beta2_NetworkGatewayv6 handles conversion
+// of NetworkGatewayv6 from v1beta1 to v1beta2. The FromPoolRef field changed from pointer to value type.
+func Convert_v1beta1_NetworkGatewayv6_To_v1beta2_NetworkGatewayv6(in *NetworkGatewayv6, out *infrav1.NetworkGatewayv6, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_NetworkGatewayv6_To_v1beta2_NetworkGatewayv6(in, out, s); err != nil {
+		return err
+	}
+	return convertPoolRefPointerToValue(in.FromPoolRef, &out.FromPoolRef, s)
+}
+
+// Convert_v1beta2_NetworkGatewayv6_To_v1beta1_NetworkGatewayv6 handles conversion
+// of NetworkGatewayv6 from v1beta2 to v1beta1. The FromPoolRef field changed from value to pointer type.
+func Convert_v1beta2_NetworkGatewayv6_To_v1beta1_NetworkGatewayv6(in *infrav1.NetworkGatewayv6, out *NetworkGatewayv6, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_NetworkGatewayv6_To_v1beta1_NetworkGatewayv6(in, out, s); err != nil {
+		return err
+	}
+	var err error
+	out.FromPoolRef, err = convertPoolRefValueToPointer(&in.FromPoolRef, s)
+	return err
+}
+
+// Convert_v1beta1_NetworkDataIPv4_To_v1beta2_NetworkDataIPv4 handles conversion
+// of NetworkDataIPv4 from v1beta1 to v1beta2. The FromPoolRef field changed from pointer to value type.
+func Convert_v1beta1_NetworkDataIPv4_To_v1beta2_NetworkDataIPv4(in *NetworkDataIPv4, out *infrav1.NetworkDataIPv4, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_NetworkDataIPv4_To_v1beta2_NetworkDataIPv4(in, out, s); err != nil {
+		return err
+	}
+	return convertPoolRefPointerToValue(in.FromPoolRef, &out.FromPoolRef, s)
+}
+
+// Convert_v1beta2_NetworkDataIPv4_To_v1beta1_NetworkDataIPv4 handles conversion
+// of NetworkDataIPv4 from v1beta2 to v1beta1. The FromPoolRef field changed from value to pointer type.
+func Convert_v1beta2_NetworkDataIPv4_To_v1beta1_NetworkDataIPv4(in *infrav1.NetworkDataIPv4, out *NetworkDataIPv4, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_NetworkDataIPv4_To_v1beta1_NetworkDataIPv4(in, out, s); err != nil {
+		return err
+	}
+	var err error
+	out.FromPoolRef, err = convertPoolRefValueToPointer(&in.FromPoolRef, s)
+	return err
+}
+
+// Convert_v1beta1_NetworkDataIPv6_To_v1beta2_NetworkDataIPv6 handles conversion
+// of NetworkDataIPv6 from v1beta1 to v1beta2. The FromPoolRef field changed from pointer to value type.
+func Convert_v1beta1_NetworkDataIPv6_To_v1beta2_NetworkDataIPv6(in *NetworkDataIPv6, out *infrav1.NetworkDataIPv6, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta1_NetworkDataIPv6_To_v1beta2_NetworkDataIPv6(in, out, s); err != nil {
+		return err
+	}
+	return convertPoolRefPointerToValue(in.FromPoolRef, &out.FromPoolRef, s)
+}
+
+// Convert_v1beta2_NetworkDataIPv6_To_v1beta1_NetworkDataIPv6 handles conversion
+// of NetworkDataIPv6 from v1beta2 to v1beta1. The FromPoolRef field changed from value to pointer type.
+func Convert_v1beta2_NetworkDataIPv6_To_v1beta1_NetworkDataIPv6(in *infrav1.NetworkDataIPv6, out *NetworkDataIPv6, s apimachineryconversion.Scope) error {
+	if err := autoConvert_v1beta2_NetworkDataIPv6_To_v1beta1_NetworkDataIPv6(in, out, s); err != nil {
+		return err
+	}
+	var err error
+	out.FromPoolRef, err = convertPoolRefValueToPointer(&in.FromPoolRef, s)
+	return err
 }
