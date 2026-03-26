@@ -80,7 +80,7 @@ IPAddress assigned to the specific node.
 
 ## How to enable IP reuse
 
-To enable the feature, a boolean flag called `enableBMHNameBasedPreallocation`
+To enable the feature, a boolean flag called `enable-bmh-name-based-preallocation`
 was added. It is configurable via clusterctl and it can be passed to the
 clusterctl configuration file by the user, i.e:
 
