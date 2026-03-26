@@ -42,10 +42,10 @@ type Metal3DataSpec struct {
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
 
 	// claim points to the Metal3DataClaim the Metal3Data was created for.
-	Claim corev1.ObjectReference `json:"claim"`
+	Claim Metal3ObjectRef `json:"claim"`
 
 	// template is the Metal3DataTemplate this was generated from.
-	Template corev1.ObjectReference `json:"template"`
+	Template Metal3ObjectRef `json:"template"`
 }
 
 // Metal3DataStatus defines the observed state of Metal3Data.

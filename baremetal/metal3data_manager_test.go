@@ -141,7 +141,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			expectRequeue: true,
@@ -243,7 +243,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			expectRequeue: true,
@@ -252,8 +252,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, m3duid),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -269,8 +269,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -286,8 +286,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -296,7 +296,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, m3muid),
 				Spec: infrav1.Metal3MachineSpec{
-					DataTemplate: testObjectReference(metal3DataTemplateName),
+					DataTemplate: testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
@@ -309,8 +309,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -329,8 +329,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -363,7 +363,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, m3muid),
 				Spec: infrav1.Metal3MachineSpec{
-					DataTemplate: testObjectReference(metal3DataTemplateName),
+					DataTemplate: testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
@@ -390,8 +390,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -438,7 +438,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 				Spec: infrav1.Metal3MachineSpec{
-					DataTemplate: testObjectReference(metal3DataTemplateName),
+					DataTemplate: testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
@@ -459,8 +459,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -493,7 +493,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3m: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, m3muid),
 				Spec: infrav1.Metal3MachineSpec{
-					DataTemplate: testObjectReference(metal3DataTemplateName),
+					DataTemplate: testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			dataClaim: &infrav1.Metal3DataClaim{
@@ -506,8 +506,8 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
-					Claim:    *testObjectReference(metal3DataClaimName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
+					Claim:    *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -550,7 +550,7 @@ var _ = Describe("Metal3Data manager", func() {
 					},
 				},
 				Spec: infrav1.Metal3MachineSpec{
-					DataTemplate: testObjectReference(metal3DataTemplateName),
+					DataTemplate: testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			machine: &clusterv1.Machine{
@@ -601,7 +601,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
-					Template: corev1.ObjectReference{
+					Template: infrav1.Metal3ObjectRef{
 						Name: metal3DataTemplateName,
 					},
 				},
@@ -612,7 +612,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
-					Template: corev1.ObjectReference{
+					Template: infrav1.Metal3ObjectRef{
 						Name: metal3DataTemplateName,
 					},
 				},
@@ -662,7 +662,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d := &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
 				},
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "Metal3Data",
@@ -1658,7 +1658,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			poolName:        testPoolName,
@@ -1673,7 +1673,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -1818,7 +1818,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			m3dt: &infrav1.Metal3DataTemplate{
@@ -1843,7 +1843,7 @@ var _ = Describe("Metal3Data manager", func() {
 			m3d: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, "123-456-789"),
 				Spec: infrav1.Metal3DataSpec{
-					Template: *testObjectReference(metal3DataTemplateName),
+					Template: *testMetal3ObjectReference(metal3DataTemplateName),
 				},
 			},
 			poolName: testPoolName,
@@ -2158,7 +2158,7 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 			Spec: infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{
+				DataTemplate: &infrav1.Metal3ObjectRef{
 					Name:      metal3DataTemplateName,
 					Namespace: namespaceName,
 				},
@@ -2193,11 +2193,11 @@ var _ = Describe("Metal3Data manager", func() {
 				Namespace: namespaceName,
 			},
 			Spec: infrav1.Metal3DataSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name:      m3dt.Name,
 					Namespace: m3dt.Namespace,
 				},
-				Claim: corev1.ObjectReference{
+				Claim: infrav1.Metal3ObjectRef{
 					Namespace: namespaceName,
 					Name:      metal3DataClaimName,
 				},
@@ -4648,7 +4648,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Claim: *testObjectReference(metal3DataClaimName),
+					Claim: *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -4664,7 +4664,7 @@ var _ = Describe("Metal3Data manager", func() {
 		Entry("Data Spec name unset", testCaseGetM3Machine{
 			Data: &infrav1.Metal3Data{
 				Spec: infrav1.Metal3DataSpec{
-					Claim: corev1.ObjectReference{},
+					Claim: infrav1.Metal3ObjectRef{},
 				},
 			},
 			ExpectError: true,
@@ -4673,7 +4673,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Claim: *testObjectReference(metal3DataClaimName),
+					Claim: *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -4686,7 +4686,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Claim: *testObjectReference(metal3DataClaimName),
+					Claim: *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -4702,7 +4702,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Claim: *testObjectReference(metal3DataClaimName),
+					Claim: *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -4723,7 +4723,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Claim: *testObjectReference(metal3DataClaimName),
+					Claim: *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -4736,7 +4736,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, m3muid),
 				Spec: infrav1.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
+					DataTemplate: &infrav1.Metal3ObjectRef{
 						Name:      "abcd",
 						Namespace: namespaceName,
 					},
@@ -4748,7 +4748,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Claim: *testObjectReference(metal3DataClaimName),
+					Claim: *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -4761,7 +4761,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Machine: &infrav1.Metal3Machine{
 				ObjectMeta: testObjectMeta(metal3machineName, namespaceName, m3muid),
 				Spec: infrav1.Metal3MachineSpec{
-					DataTemplate: &corev1.ObjectReference{
+					DataTemplate: &infrav1.Metal3ObjectRef{
 						Name:      "abc",
 						Namespace: "defg",
 					},
@@ -4773,7 +4773,7 @@ var _ = Describe("Metal3Data manager", func() {
 			Data: &infrav1.Metal3Data{
 				ObjectMeta: testObjectMetaWithOR(metal3DataName, metal3machineName),
 				Spec: infrav1.Metal3DataSpec{
-					Claim: *testObjectReference(metal3DataClaimName),
+					Claim: *testMetal3ObjectReference(metal3DataClaimName),
 				},
 			},
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -5632,7 +5632,7 @@ var _ = Describe("When using BMH name based pre-allocation", func() {
 				},
 			},
 			Spec: infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{
+				DataTemplate: &infrav1.Metal3ObjectRef{
 					Name:      metal3DataTemplateName,
 					Namespace: namespaceName,
 				},
@@ -5667,11 +5667,11 @@ var _ = Describe("When using BMH name based pre-allocation", func() {
 				Namespace: namespaceName,
 			},
 			Spec: infrav1.Metal3DataSpec{
-				Template: corev1.ObjectReference{
+				Template: infrav1.Metal3ObjectRef{
 					Name:      m3dt.Name,
 					Namespace: m3dt.Namespace,
 				},
-				Claim: corev1.ObjectReference{
+				Claim: infrav1.Metal3ObjectRef{
 					Namespace: namespaceName,
 					Name:      metal3DataClaimName,
 				},

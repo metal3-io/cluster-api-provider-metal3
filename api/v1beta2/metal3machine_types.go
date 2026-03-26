@@ -155,7 +155,7 @@ type Metal3MachineSpec struct {
 	// a template of metadata to be rendered. Metadata keys defined in the
 	// metadataTemplate take precedence over keys defined in metadata field.
 	// +optional
-	DataTemplate *corev1.ObjectReference `json:"dataTemplate,omitempty"`
+	DataTemplate *Metal3ObjectRef `json:"dataTemplate,omitempty"`
 
 	// metaData is an object storing the reference to the secret containing the
 	// metadata given by the user.
@@ -202,7 +202,7 @@ type Metal3MachineStatus struct {
 	// renderedData is a reference to a rendered Metal3Data object containing
 	// the references to metaData and networkData secrets.
 	// +optional
-	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
+	RenderedData *Metal3ObjectRef `json:"renderedData,omitempty"`
 
 	// metaData is an object storing the reference to the secret containing the
 	// metadata used to deploy the BareMetalHost.

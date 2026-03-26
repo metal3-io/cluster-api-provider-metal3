@@ -100,6 +100,27 @@ type CustomDeploy struct {
 	Method string `json:"method"`
 }
 
+// Metal3ObjectRef is a reference to a Metal3 resource by name and namespace.
+type Metal3ObjectRef struct {
+	// name of the resource.
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	Name string `json:"name,omitempty"`
+
+	// namespace of the resource.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// IsDefined returns true if the Metal3ObjectRef is set.
+func (r *Metal3ObjectRef) IsDefined() bool {
+	if r == nil {
+		return false
+	}
+	return r.Name != "" && r.Namespace != ""
+}
+
 // Validate performs validation on [Image], returning a list of field errors using the provided base path.
 // It is intended to be used in the validation webhooks of resources containing [Image].
 func (i *Image) Validate(base field.Path) field.ErrorList {
