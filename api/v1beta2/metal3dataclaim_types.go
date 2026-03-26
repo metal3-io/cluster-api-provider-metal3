@@ -58,7 +58,7 @@ type Metal3DataClaim struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// spec defines the desired state of Metal3DataClaim.
 	// +optional
-	Spec Metal3DataClaimSpec `json:"spec,omitempty"`
+	Spec Metal3DataClaimSpec `json:"spec,omitempty,omitzero"`
 	// status defines the observed state of Metal3DataClaim.
 	// +optional
 	Status Metal3DataClaimStatus `json:"status,omitempty"`

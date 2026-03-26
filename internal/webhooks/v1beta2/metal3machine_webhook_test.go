@@ -50,7 +50,7 @@ func TestMetal3MachineValidation(t *testing.T) {
 			Namespace: "foo",
 		},
 		Spec: infrav1.Metal3MachineSpec{
-			CustomDeploy: &infrav1.CustomDeploy{
+			CustomDeploy: infrav1.CustomDeploy{
 				Method: "install_great_stuff",
 			},
 		},

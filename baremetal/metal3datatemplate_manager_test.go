@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -172,7 +173,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: testObjectMeta("abc-0", namespaceName, ""),
 					Spec: infrav1.Metal3DataSpec{
-						Index:    0,
+						Index:    ptr.To(int32(0)),
 						Template: *testObjectReference(metal3DataTemplateName),
 						Claim:    *testObjectReference(metal3DataClaimName),
 					},
@@ -180,7 +181,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				{
 					ObjectMeta: testObjectMeta("bbc-1", namespaceName, ""),
 					Spec: infrav1.Metal3DataSpec{
-						Index: 1,
+						Index: ptr.To(int32(1)),
 						Template: corev1.ObjectReference{
 							Name:      "bbc",
 							Namespace: namespaceName,
@@ -197,7 +198,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataSpec{
-						Index:    2,
+						Index:    ptr.To(int32(2)),
 						Template: corev1.ObjectReference{},
 						Claim:    *testObjectReference(metal3DataClaimName),
 					},
@@ -208,7 +209,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataSpec{
-						Index: 3,
+						Index: ptr.To(int32(3)),
 						Template: corev1.ObjectReference{
 							Namespace: namespaceName,
 						},
@@ -427,7 +428,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 							Name:      "claim-without-status",
 							Namespace: namespaceName,
 						},
-						Index: 0,
+						Index: ptr.To(int32(0)),
 					},
 				},
 				{
@@ -444,7 +445,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 							Name:      "claim-with-status",
 							Namespace: namespaceName,
 						},
-						Index: 1,
+						Index: ptr.To(int32(1)),
 					},
 				},
 				{
@@ -461,7 +462,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 							Name:      "deleting-claim",
 							Namespace: namespaceName,
 						},
-						Index: 3,
+						Index: ptr.To(int32(3)),
 					},
 				},
 				{
@@ -478,7 +479,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 							Name:      "deleting-claim-missmatch-name",
 							Namespace: namespaceName,
 						},
-						Index: 40,
+						Index: ptr.To(int32(40)),
 					},
 				},
 			},
@@ -661,7 +662,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataSpec{
-						Index: 0,
+						Index: ptr.To(int32(0)),
 						Template: corev1.ObjectReference{
 							Name: "abc",
 						},

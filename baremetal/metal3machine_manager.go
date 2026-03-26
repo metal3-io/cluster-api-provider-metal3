@@ -629,7 +629,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 					m.Log.Info("Found Metal3machineTemplate", "metal3machineTemplate", m3mt.Name)
 				}
 				if m3mt != nil {
-					if m3mt.Spec.NodeReuse {
+					if *m3mt.Spec.NodeReuse {
 						if host.Labels == nil {
 							host.Labels = make(map[string]string)
 						}
@@ -1141,7 +1141,7 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 				DiskFormat:   m.Metal3Machine.Spec.Image.DiskFormat,
 			}
 		}
-		if m.Metal3Machine.Spec.CustomDeploy != nil {
+		if m.Metal3Machine.Spec.CustomDeploy.Method != "" {
 			host.Spec.CustomDeploy = &bmov1alpha1.CustomDeploy{
 				Method: m.Metal3Machine.Spec.CustomDeploy.Method,
 			}
@@ -1166,9 +1166,9 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 		}
 	}
 	// Set automatedCleaningMode from metal3Machine.spec.automatedCleaningMode.
-	if m.Metal3Machine.Spec.AutomatedCleaningMode != nil {
-		if host.Spec.AutomatedCleaningMode != bmov1alpha1.AutomatedCleaningMode(*m.Metal3Machine.Spec.AutomatedCleaningMode) {
-			host.Spec.AutomatedCleaningMode = bmov1alpha1.AutomatedCleaningMode(*m.Metal3Machine.Spec.AutomatedCleaningMode)
+	if m.Metal3Machine.Spec.AutomatedCleaningMode != "" {
+		if host.Spec.AutomatedCleaningMode != bmov1alpha1.AutomatedCleaningMode(m.Metal3Machine.Spec.AutomatedCleaningMode) {
+			host.Spec.AutomatedCleaningMode = bmov1alpha1.AutomatedCleaningMode(m.Metal3Machine.Spec.AutomatedCleaningMode)
 		}
 	}
 
@@ -1800,7 +1800,7 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 	}
 
 	// If it is not ready yet, wait.
-	if !metal3Data.Status.Ready {
+	if metal3Data.Status.Ready == nil || !*metal3Data.Status.Ready {
 		errMessage := "waiting for Metal3Data to become ready"
 		m.Log.Info(errMessage)
 		m.SetV1Beta1ConditionToFalse(infrav1.Metal3DataReadyV1Beta1Condition, infrav1.WaitingForMetal3DataV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")

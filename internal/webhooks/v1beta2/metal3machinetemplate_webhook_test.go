@@ -56,7 +56,7 @@ func TestMetal3MachineTemplateValidation(t *testing.T) {
 		Spec: infrav1.Metal3MachineTemplateSpec{
 			Template: infrav1.Metal3MachineTemplateResource{
 				Spec: infrav1.Metal3MachineSpec{
-					CustomDeploy: &infrav1.CustomDeploy{
+					CustomDeploy: infrav1.CustomDeploy{
 						Method: "install_great_stuff",
 					},
 				},

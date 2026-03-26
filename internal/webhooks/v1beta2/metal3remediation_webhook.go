@@ -69,7 +69,7 @@ func (webhook *Metal3Remediation) ValidateDelete(_ context.Context, _ runtime.Ob
 
 func (webhook *Metal3Remediation) validate(newM3R *infrav1.Metal3Remediation) error {
 	var allErrs field.ErrorList
-	if newM3R.Spec.Strategy.TimeoutSeconds != nil && *newM3R.Spec.Strategy.TimeoutSeconds < minTimeout {
+	if newM3R.Spec.Strategy.TimeoutSeconds < minTimeout {
 		allErrs = append(
 			allErrs,
 			field.Invalid(

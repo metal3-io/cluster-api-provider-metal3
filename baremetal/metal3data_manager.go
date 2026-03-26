@@ -103,12 +103,12 @@ func (m *DataManager) UnsetFinalizer() {
 
 // clearError clears error message from Metal3Data status.
 func (m *DataManager) clearError(_ context.Context) {
-	m.Data.Status.ErrorMessage = nil
+	m.Data.Status.ErrorMessage = ""
 }
 
 // setError sets error message to Metal3Data status.
 func (m *DataManager) setError(_ context.Context, msg string) {
-	m.Data.Status.ErrorMessage = &msg
+	m.Data.Status.ErrorMessage = msg
 }
 
 // Reconcile handles Metal3Data events.
@@ -220,7 +220,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	// No secret needs creation
 	if metaDataErr == nil && networkDataErr == nil {
 		m.Log.Info("Metal3Data Reconciled")
-		m.Data.Status.Ready = true
+		m.Data.Status.Ready = ptr.To(true)
 		return nil
 	}
 
@@ -298,7 +298,7 @@ func (m *DataManager) createSecrets(ctx context.Context) error {
 	}
 
 	m.Log.Info("Metal3Data reconciled")
-	m.Data.Status.Ready = true
+	m.Data.Status.Ready = ptr.To(true)
 	return nil
 }
 
@@ -333,7 +333,7 @@ func (m *DataManager) ReleaseLeases(ctx context.Context) error {
 // AddressFromPool contains the elements coming from an IPPool.
 type AddressFromPool struct {
 	Address    ipamv1.IPAddressStr
-	Prefix     int32
+	Prefix     *int32
 	Gateway    ipamv1.IPAddressStr
 	dnsServers []ipamv1.IPAddressStr
 }
@@ -352,7 +352,7 @@ func newAddressFromIPAMv1(ipAddress *ipamv1.IPAddress) (AddressFromPool, error) 
 	prefix := int32(ipAddress.Spec.Prefix)
 	return AddressFromPool{
 		Address:    ipAddress.Spec.Address,
-		Prefix:     prefix,
+		Prefix:     &prefix,
 		Gateway:    gateway,
 		dnsServers: ipAddress.Spec.DNSServers,
 	}, nil
@@ -505,12 +505,12 @@ func (p poolRefs) addName(name string) error {
 // The annotation value should be a string containing the pool name.
 // If the annotation pointer is nil or objects are nil (e.g., during release), this function returns nil without error.
 func (p poolRefs) addFromAnnotation(
-	fromPoolAnnotation *infrav1.FromPoolAnnotation,
+	fromPoolAnnotation infrav1.FromPoolAnnotation,
 	m3m *infrav1.Metal3Machine,
 	machine *clusterv1.Machine,
 	bmh *bmov1alpha1.BareMetalHost,
 ) error {
-	if fromPoolAnnotation == nil {
+	if fromPoolAnnotation == (infrav1.FromPoolAnnotation{}) {
 		return nil
 	}
 
@@ -847,7 +847,7 @@ func (m *DataManager) addressFromM3Claim(ctx context.Context, poolRef infrav1.IP
 		m.setError(ctx, fmt.Sprintf(
 			"IP Allocation for %v failed : %v", poolRef.Name, *ipClaim.Status.ErrorMessage,
 		))
-		return AddressFromPool{}, false, errors.New(*m.Data.Status.ErrorMessage)
+		return AddressFromPool{}, false, errors.New(m.Data.Status.ErrorMessage)
 	}
 
 	// verify if allocation is there, if not requeue
@@ -1014,7 +1014,7 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ infrav1.IPPoolRefe
 
 	a := AddressFromPool{
 		Address:    ipamv1.IPAddressStr(address.Spec.Address),
-		Prefix:     *address.Spec.Prefix,
+		Prefix:     address.Spec.Prefix,
 		Gateway:    ipamv1.IPAddressStr(address.Spec.Gateway),
 		dnsServers: []ipamv1.IPAddressStr{},
 	}
@@ -1210,7 +1210,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 	for _, network := range networks.IPv4 {
 		var poolAddress AddressFromPool
 		var ok bool
-		if network.FromPoolAnnotation != nil {
+		if network.FromPoolAnnotation != (infrav1.FromPoolAnnotation{}) {
 			poolName, err := getValueFromAnnotation(network.FromPoolAnnotation.Object, network.FromPoolAnnotation.Annotation, m3m, machine, bmh)
 			if err != nil {
 				return nil, err
@@ -1245,7 +1245,7 @@ func renderNetworkNetworks(networks infrav1.NetworkDataNetwork,
 	for _, network := range networks.IPv6 {
 		var poolAddress AddressFromPool
 		var ok bool
-		if network.FromPoolAnnotation != nil {
+		if network.FromPoolAnnotation != (infrav1.FromPoolAnnotation{}) {
 			poolName, err := getValueFromAnnotation(network.FromPoolAnnotation.Object, network.FromPoolAnnotation.Annotation, m3m, machine, bmh)
 			if err != nil {
 				return nil, err
@@ -1334,7 +1334,7 @@ func getRoutesv4(netRoutes []infrav1.NetworkDataRoutev4,
 		gateway := ipamv1.IPAddressv4Str("")
 		if route.Gateway.String != nil {
 			gateway = *route.Gateway.String
-		} else if route.Gateway.FromPoolAnnotation != nil {
+		} else if route.Gateway.FromPoolAnnotation != (infrav1.FromPoolAnnotation{}) {
 			poolName, err := getValueFromAnnotation(route.Gateway.FromPoolAnnotation.Object, route.Gateway.FromPoolAnnotation.Annotation, m3m, machine, bmh)
 			if err != nil {
 				return []any{}, err
@@ -1399,7 +1399,7 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 		gateway := ipamv1.IPAddressv6Str("")
 		if route.Gateway.String != nil {
 			gateway = *route.Gateway.String
-		} else if route.Gateway.FromPoolAnnotation != nil {
+		} else if route.Gateway.FromPoolAnnotation != (infrav1.FromPoolAnnotation{}) {
 			poolName, err := getValueFromAnnotation(route.Gateway.FromPoolAnnotation.Object, route.Gateway.FromPoolAnnotation.Annotation, m3m, machine, bmh)
 			if err != nil {
 				return []any{}, err
@@ -1453,18 +1453,18 @@ func getRoutesv6(netRoutes []infrav1.NetworkDataRoutev6,
 }
 
 // translateMask transforms a mask given as integer into a dotted-notation string.
-func translateMask(maskInt int32, ipv4 bool) any {
+func translateMask(maskInt *int32, ipv4 bool) any {
 	IPv4MaskLen := 32
 	IPv6MaskLen := 128
 	if ipv4 {
 		// Get the mask by concatenating the IPv4 prefix of net package and the mask
 		address := net.IP(append([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255},
-			[]byte(net.CIDRMask(int(maskInt), IPv4MaskLen))...,
+			[]byte(net.CIDRMask(int(*maskInt), IPv4MaskLen))...,
 		)).String()
 		return ipamv1.IPAddressv4Str(address)
 	}
 	// get the mask
-	address := net.IP(net.CIDRMask(int(maskInt), IPv6MaskLen)).String()
+	address := net.IP(net.CIDRMask(int(*maskInt), IPv6MaskLen)).String()
 	return ipamv1.IPAddressv6Str(address)
 }
 
@@ -1488,7 +1488,7 @@ func getLinkMacAddress(mac *infrav1.NetworkLinkEthernetMac,
 	} else if mac.FromHostInterface != nil {
 		// if a host interface is given
 		macaddress, err = getBMHMacByName(*mac.FromHostInterface, bmh)
-	} else if mac.FromAnnotation != nil {
+	} else if mac.FromAnnotation != (infrav1.NetworkLinkEthernetMacFromAnnotation{}) {
 		// if an annotation reference is given
 		macaddress, err = getValueFromAnnotation(mac.FromAnnotation.Object,
 			mac.FromAnnotation.Annotation, m3m, machine, bmh)
@@ -1525,7 +1525,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 			value string
 			err   error
 		)
-		if entry.FromBootMAC {
+		if entry.FromBootMAC != nil && *entry.FromBootMAC {
 			if bmh.Spec.BootMACAddress == "" {
 				return nil, fmt.Errorf("metadata key %q: BareMetalHost %s/%s spec.bootMACAddress is empty",
 					entry.Key, bmh.Namespace, bmh.Name)
@@ -1555,7 +1555,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		if !ok {
 			return nil, errors.New("pool not found in cache")
 		}
-		metadata[entry.Key] = strconv.Itoa(int(poolAddress.Prefix))
+		metadata[entry.Key] = strconv.Itoa(int(*poolAddress.Prefix))
 	}
 
 	// Gateways
@@ -1572,7 +1572,7 @@ func renderMetaData(m3d *infrav1.Metal3Data, m3dt *infrav1.Metal3DataTemplate,
 		if entry.Step == 0 {
 			entry.Step = 1
 		}
-		metadata[entry.Key] = entry.Prefix + strconv.Itoa(int(entry.Offset+m3d.Spec.Index*entry.Step)) + entry.Suffix
+		metadata[entry.Key] = entry.Prefix + strconv.Itoa(int(*entry.Offset+*m3d.Spec.Index*entry.Step)) + entry.Suffix
 	}
 
 	// Namespaces
