@@ -191,9 +191,13 @@ e2e-substitutions: $(ENVSUBST)
 E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/test/e2e/data/infrastructure-metal3
 .PHONY: cluster-templates cluster-templates-main cluster-templates-v1.12 cluster-templates-v1.11 cluster-templates-v1.10
 cluster-templates: cluster-templates-main cluster-templates-v1.12 cluster-templates-v1.11 cluster-templates-v1.10
+	mkdir -p $(ARTIFACTS)/templates
+	cp -r $(E2E_OUT_DIR)/. $(ARTIFACTS)/templates/
 
-PHONY: clusterclass-templates clusterclass-templates-main clusterclass-templates-v1.12 clusterclass-templates-v1.11 clusterclass-templates-v1.10
+.PHONY: clusterclass-templates clusterclass-templates-main clusterclass-templates-v1.12 clusterclass-templates-v1.11 clusterclass-templates-v1.10
 clusterclass-templates: clusterclass-templates-main clusterclass-templates-v1.12 clusterclass-templates-v1.11 clusterclass-templates-v1.10
+	mkdir -p $(ARTIFACTS)/templates
+	cp -r $(E2E_OUT_DIR)/. $(ARTIFACTS)/templates/
 
 .PHONY: cluster-templates-main
 cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates

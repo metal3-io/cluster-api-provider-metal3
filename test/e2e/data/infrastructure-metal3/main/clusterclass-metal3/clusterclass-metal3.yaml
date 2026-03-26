@@ -39,7 +39,7 @@ spec:
     description: Overrides controlPlaneEndpoint data of Metal3ClusterTemplate used by the cluster
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
         kind: Metal3ClusterTemplate
         matchResources:
           infrastructureCluster: true
@@ -52,7 +52,7 @@ spec:
     description: Overrides image data for worker nodes of control plane node
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
         kind: Metal3MachineTemplate
         matchResources:
           controlPlane: true
@@ -77,7 +77,7 @@ spec:
     description: Overrides data-template for control plane nodes
     definitions:
     - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
         kind: Metal3MachineTemplate
         matchResources:
           controlPlane: true
@@ -93,12 +93,12 @@ spec:
       name: metal3-control-plane
     machineInfrastructure:
       templateRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
         kind: Metal3MachineTemplate
         name: metal3-control-plane
   infrastructure:
     templateRef:
-      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
       kind: Metal3ClusterTemplate
       name: metal3-cluster
   workers:
