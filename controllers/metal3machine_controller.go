@@ -306,6 +306,15 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		// This can be removed in future once 1.10 and 1.11 are not supported.
 		machineMgr.SetV1beta2Condition(infrav1.AssociateMetal3MachineMetaDataV1Beta2Condition, metav1.ConditionTrue, infrav1.AssociateMetal3MachineMetaDataSuccessV1Beta2Reason, "")
 
+		// Check Metal3DataReadyV1Beta2Condition and set it to true if not already
+		// Reason being if user does not use Metal3DataTemplate then this condition
+		// will never be set to true in the normal flow.
+		// This place it is specifically added for already provisioned machines which might not have this condition set.
+		dataReadyCond := v1beta2conditions.Get(machineMgr.GetMetal3Machine(), infrav1.Metal3DataReadyV1Beta2Condition)
+		if dataReadyCond == nil || dataReadyCond.Status != metav1.ConditionTrue {
+			machineMgr.SetMetal3DataReadyConditionTrue(infrav1.SecretsSetExternallyV1Beta2Reason)
+		}
+
 		err := machineMgr.Update(ctx)
 		if err != nil {
 			errType := capierrors.UpdateMachineError
