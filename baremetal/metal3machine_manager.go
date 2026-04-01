@@ -891,6 +891,10 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			if _, ok := annotations[infrav1.UnhealthyAnnotation]; ok {
 				continue
 			}
+			if _, ok := annotations[infrav1.UnhealthyAnnotationDeprecated]; ok {
+				m.Log.Info("WARNING: BareMetalHost has deprecated unhealthy annotation, please migrate to capm3.metal3.io/unhealthy", "host", host.Name)
+				continue
+			}
 		}
 
 		if m.nodeReuseLabelExists(ctx, &host) && m.nodeReuseLabelMatches(ctx, &host) {

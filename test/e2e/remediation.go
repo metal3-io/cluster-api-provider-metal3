@@ -24,7 +24,7 @@ import (
 const (
 	rebootAnnotation    = "reboot.metal3.io"
 	poweroffAnnotation  = "reboot.metal3.io/poweroff"
-	unhealthyAnnotation = "capi.metal3.io/unhealthy"
+	unhealthyAnnotation = "capm3.metal3.io/unhealthy"
 	defaultNamespace    = "default"
 )
 

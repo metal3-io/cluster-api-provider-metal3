@@ -37,8 +37,9 @@ default values.
 
 In CAPM3 API version v1alpha4 (which is removed from main branch but exist in
 previous release branches) and onwards, it is possible to mark BareMetalHost
-object as unhealthy by adding an annotation `capi.metal3.io/unhealthy`. This
-annotation prevents CAPM3 to select unhealthy BareMetalHost for newly created
+object as unhealthy by adding an annotation `capi.metal3.io/unhealthy`. From
+v1beta2 onwards the annotation is `capm3.metal3.io/unhealthy`. This annotation
+prevents CAPM3 to select unhealthy BareMetalHost for newly created
 metal3machine. Removing the annotation will enable the normal operations.
 
 ## Cluster
