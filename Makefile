@@ -189,11 +189,15 @@ e2e-substitutions: $(ENVSUBST)
 ## --------------------------------------
 ##@ templates
 E2E_TEMPLATES_DIR ?= $(ROOT_DIR)/test/e2e/data/infrastructure-metal3
-.PHONY: cluster-templates cluster-templates-main cluster-templates-v1.12 cluster-templates-v1.11 cluster-templates-v1.10
-cluster-templates: cluster-templates-main cluster-templates-v1.12 cluster-templates-v1.11 cluster-templates-v1.10
+.PHONY: cluster-templates cluster-templates-main cluster-templates-main-v1beta1 cluster-templates-v1.12 cluster-templates-v1.11 cluster-templates-v1.10
+cluster-templates: cluster-templates-main cluster-templates-main-v1beta1 cluster-templates-v1.12 cluster-templates-v1.11 cluster-templates-v1.10
+	mkdir -p $(ARTIFACTS)/templates
+	cp -r $(E2E_OUT_DIR)/. $(ARTIFACTS)/templates/
 
-PHONY: clusterclass-templates clusterclass-templates-main clusterclass-templates-v1.12 clusterclass-templates-v1.11 clusterclass-templates-v1.10
+.PHONY: clusterclass-templates clusterclass-templates-main clusterclass-templates-v1.12 clusterclass-templates-v1.11 clusterclass-templates-v1.10
 clusterclass-templates: clusterclass-templates-main clusterclass-templates-v1.12 clusterclass-templates-v1.11 clusterclass-templates-v1.10
+	mkdir -p $(ARTIFACTS)/templates
+	cp -r $(E2E_OUT_DIR)/. $(ARTIFACTS)/templates/
 
 .PHONY: cluster-templates-main
 cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
@@ -209,6 +213,13 @@ cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-taints > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-taints.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-md-taints > $(E2E_OUT_DIR)/main/cluster-template-centos-md-taints.yaml
 	touch $(E2E_OUT_DIR)/main/clusterclass.yaml
+
+.PHONY: cluster-templates-main-v1beta1
+cluster-templates-main-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for main-v1beta1
+	mkdir -p $(E2E_OUT_DIR)/main
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos > $(E2E_OUT_DIR)/main/cluster-template-centos-v1beta1.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-centos-md-remediation-v1beta1.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-md-taints > $(E2E_OUT_DIR)/main/cluster-template-centos-md-taints-v1beta1.yaml
 
 .PHONY: clusterclass-templates-main
 clusterclass-templates-main: $(KUSTOMIZE) ## Generate cluster templates

@@ -4,7 +4,7 @@ metadata:
   name: ${CLUSTER_NAME}
   namespace: ${NAMESPACE}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: Metal3ClusterTemplate
 metadata:
   name: ${CLUSTER_NAME}
@@ -17,7 +17,7 @@ spec:
         port: ${CLUSTER_APIENDPOINT_PORT}
       cloudProviderEnabled: false
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: Metal3MachineTemplate
 metadata:
   name: ${CLUSTER_NAME}-controlplane
@@ -30,10 +30,10 @@ spec:
       image:
         checksum: ${IMAGE_RAW_CHECKSUM}
         checksumType: ${IMAGE_CHECKSUM_TYPE}
-        format: raw
+        diskFormat: raw
         url: ${IMAGE_RAW_URL}
 ---
-apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta2
 kind: Metal3DataTemplate
 metadata:
   name: ${CLUSTER_NAME}-controlplane-template
@@ -41,7 +41,7 @@ metadata:
 spec:
   clusterName: ${CLUSTER_NAME}
   metaData:
-    ipAddressesFromIPPool:
+    ipAddressesFromPool:
     - key: provisioningIP
       name: provisioning-pool
       apiGroup: ""
@@ -53,7 +53,7 @@ spec:
       object: machine
     - key: local_hostname
       object: machine
-    prefixesFromIPPool:
+    prefixesFromPool:
     - key: provisioningCIDR
       name: provisioning-pool
       apiGroup: ""
@@ -112,7 +112,7 @@ spec:
       value:
         checksum: ${IMAGE_RAW_CHECKSUM}
         checksumType: ${IMAGE_CHECKSUM_TYPE}
-        format: raw
+        diskFormat: raw
         url: ${IMAGE_RAW_URL}
     - name: controlPlaneEndpoint
       value:

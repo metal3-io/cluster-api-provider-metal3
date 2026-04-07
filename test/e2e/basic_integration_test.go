@@ -36,7 +36,7 @@ var _ = Describe("When testing basic cluster creation", Label("basic"), func() {
 				WorkerMachineCount:    int64(numberOfWorkers),
 				ClusterctlLogFolder:   clusterctlLogFolder,
 				ClusterctlConfigPath:  clusterctlConfigPath,
-				OSType:                osType,
+				OSType:                osType + flavorSuffix(),
 				Namespace:             namespace,
 			}
 		})

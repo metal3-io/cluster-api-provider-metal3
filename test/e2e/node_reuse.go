@@ -7,7 +7,6 @@ import (
 	"time"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	infrav1beta1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -495,7 +494,7 @@ func getProvisionedBmhNamesUuids(ctx context.Context, namespace string, clusterC
 }
 
 func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3MachineTemplateName string, clusterClient client.Client) {
-	m3machineTemplate := infrav1beta1.Metal3MachineTemplate{}
+	m3machineTemplate := infrav1.Metal3MachineTemplate{}
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
 	helper, err := patch.NewHelper(&m3machineTemplate, clusterClient)
 	Expect(err).NotTo(HaveOccurred())

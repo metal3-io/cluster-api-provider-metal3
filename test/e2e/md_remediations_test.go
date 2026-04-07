@@ -59,7 +59,7 @@ var _ = Describe("When testing MachineDeployment remediation", Label("healthchec
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			PostNamespaceCreated:  createBMHsInNamespace,
-			Flavor:                ptr.To(osType + "-md-remediation"),
+			Flavor:                ptr.To(osType + "-md-remediation" + flavorSuffix()),
 		}
 	})
 })

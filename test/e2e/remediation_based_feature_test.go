@@ -76,7 +76,7 @@ var _ = Describe("Testing nodes remediation", Label("remediation", "features"), 
 				WorkerMachineCount:    int64(numberOfWorkers),
 				ClusterctlLogFolder:   clusterctlLogFolder,
 				ClusterctlConfigPath:  clusterctlConfigPath,
-				OSType:                osType,
+				OSType:                osType + flavorSuffix(),
 				Namespace:             namespace,
 			}
 		})

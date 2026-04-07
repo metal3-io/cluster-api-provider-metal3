@@ -118,7 +118,7 @@ spec:
       strategy:
         type: "Reboot"
         retryLimit: 2
-        timeout: 300s
+        timeoutSeconds: 300
 ```
 
 Use the following examples as a basis for creating a MachineHealthCheck and
@@ -165,5 +165,5 @@ spec:
       strategy:
         type: "Reboot"
         retryLimit: 1
-        timeout: 300s
+        timeoutSeconds: 300
 ```

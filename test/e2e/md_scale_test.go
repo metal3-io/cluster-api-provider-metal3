@@ -29,7 +29,7 @@ var _ = Describe("When testing MachineDeployment scale out/in", Label("capi-md-t
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			Flavor:                osType,
+			Flavor:                osType + flavorSuffix(),
 			PostNamespaceCreated:  createBMHsInNamespace,
 		}
 	})

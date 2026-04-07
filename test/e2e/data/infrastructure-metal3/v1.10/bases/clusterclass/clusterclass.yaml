@@ -155,7 +155,7 @@ spec:
             name: ${CLUSTER_NAME}-workers
         infrastructure:
           ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/${CAPM3_VERSION}
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: Metal3MachineTemplate
             name: ${CLUSTER_NAME}-workers
   infrastructure:
