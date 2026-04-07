@@ -22,8 +22,8 @@ var _ = Describe("When testing MachineDeployment rolling upgrades", Label("capi-
 		// We need to override clusterctl apply log folder to avoid getting our credentials exposed.
 		clusterctlLogFolder = filepath.Join(os.TempDir(), "target_cluster_logs", bootstrapClusterProxy.GetName())
 	})
-	capi_e2e.MachineDeploymentRolloutSpec(ctx, func() capi_e2e.MachineDeploymentRolloutSpecInput {
-		return capi_e2e.MachineDeploymentRolloutSpecInput{
+	capi_e2e.KCPAndMachineDeploymentRolloutSpec(ctx, func() capi_e2e.KCPAndMachineDeploymentRolloutSpecInput {
+		return capi_e2e.KCPAndMachineDeploymentRolloutSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,
