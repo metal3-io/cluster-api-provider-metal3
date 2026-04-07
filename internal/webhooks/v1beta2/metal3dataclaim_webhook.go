@@ -16,20 +16,16 @@ package webhooks
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (webhook *Metal3DataClaim) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.Metal3DataClaim{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.Metal3DataClaim{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -39,21 +35,16 @@ func (webhook *Metal3DataClaim) SetupWebhookWithManager(mgr ctrl.Manager) error 
 // Metal3DataClaim implements a validation webhook for Metal3DataClaim.
 type Metal3DataClaim struct{}
 
-var _ webhook.CustomValidator = &Metal3DataClaim{}
+var _ admission.Validator[*infrav1.Metal3DataClaim] = &Metal3DataClaim{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3DataClaim) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	c, ok := obj.(*infrav1.Metal3DataClaim)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3DataClaim but got a %T", obj))
-	}
-
+func (webhook *Metal3DataClaim) ValidateCreate(_ context.Context, obj *infrav1.Metal3DataClaim) (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
-	if c.Spec.Template.Name == "" {
+	if obj.Spec.Template.Name == "" {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "template", "name"),
-				c.Spec.Template.Name,
+				obj.Spec.Template.Name,
 				"must be set",
 			),
 		)
@@ -62,20 +53,18 @@ func (webhook *Metal3DataClaim) ValidateCreate(_ context.Context, obj runtime.Ob
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
-	return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("Metal3DataClaim").GroupKind(), c.Name, allErrs)
+	return nil, apierrors.NewInvalid(infrav1.GroupVersion.WithKind("Metal3DataClaim").GroupKind(), obj.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3DataClaim) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (webhook *Metal3DataClaim) ValidateUpdate(_ context.Context, oldMetal3DataClaim, newMetal3DataClaim *infrav1.Metal3DataClaim) (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
 
-	newMetal3DataClaim, ok := newObj.(*infrav1.Metal3DataClaim)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3DataClaim but got a %T", newObj))
+	if newMetal3DataClaim == nil {
+		return nil, apierrors.NewBadRequest("expected a Metal3DataClaim but got nil")
 	}
 
-	oldMetal3DataClaim, ok := oldObj.(*infrav1.Metal3DataClaim)
-	if !ok || oldMetal3DataClaim == nil {
+	if oldMetal3DataClaim == nil {
 		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
 	}
 
@@ -104,6 +93,6 @@ func (webhook *Metal3DataClaim) ValidateUpdate(_ context.Context, oldObj, newObj
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3DataClaim) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *Metal3DataClaim) ValidateDelete(_ context.Context, _ *infrav1.Metal3DataClaim) (admission.Warnings, error) {
 	return nil, nil
 }

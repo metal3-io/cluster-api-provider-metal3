@@ -15,20 +15,16 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (webhook *Metal3MachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.Metal3MachineTemplate{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.Metal3MachineTemplate{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -38,28 +34,20 @@ func (webhook *Metal3MachineTemplate) SetupWebhookWithManager(mgr ctrl.Manager) 
 // Metal3MachineTemplate implements a validation webhook for Metal3MachineTemplate.
 type Metal3MachineTemplate struct{}
 
-var _ webhook.CustomValidator = &Metal3MachineTemplate{}
+var _ admission.Validator[*infrav1.Metal3MachineTemplate] = &Metal3MachineTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3MachineTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	c, ok := obj.(*infrav1.Metal3MachineTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3MachineTemplate but got a %T", obj))
-	}
-	return nil, webhook.validate(c)
+func (webhook *Metal3MachineTemplate) ValidateCreate(_ context.Context, obj *infrav1.Metal3MachineTemplate) (admission.Warnings, error) {
+	return nil, webhook.validate(obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3MachineTemplate) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	c, ok := newObj.(*infrav1.Metal3MachineTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3MachineTemplate but got a %T", newObj))
-	}
-	return nil, webhook.validate(c)
+func (webhook *Metal3MachineTemplate) ValidateUpdate(_ context.Context, _, newObj *infrav1.Metal3MachineTemplate) (admission.Warnings, error) {
+	return nil, webhook.validate(newObj)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3MachineTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *Metal3MachineTemplate) ValidateDelete(_ context.Context, _ *infrav1.Metal3MachineTemplate) (admission.Warnings, error) {
 	return nil, nil
 }
 
