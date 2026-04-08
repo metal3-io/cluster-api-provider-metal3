@@ -3045,7 +3045,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Machine: newMachine(machineName, nil),
 				M3Machine: newMetal3Machine(metal3machineName,
 					&infrav1.Metal3MachineSpec{
-						DataTemplate: &corev1.ObjectReference{
+						DataTemplate: &infrav1.Metal3ObjectRef{
 							Name:      "abcd",
 							Namespace: namespaceName,
 						},
@@ -3072,7 +3072,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Machine: newMachine(machineName, nil),
 				M3Machine: newMetal3Machine(metal3machineName,
 					&infrav1.Metal3MachineSpec{
-						DataTemplate: &corev1.ObjectReference{
+						DataTemplate: &infrav1.Metal3ObjectRef{
 							Name:      "abcd",
 							Namespace: namespaceName,
 						},
@@ -3086,7 +3086,7 @@ var _ = Describe("Metal3Machine manager", func() {
 							DiskFormat: testImageDiskFormat,
 						},
 					}, &infrav1.Metal3MachineStatus{
-						RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
+						RenderedData: &infrav1.Metal3ObjectRef{Name: "abcd-0", Namespace: namespaceName},
 					}, nil,
 				),
 				Host:      newBareMetalHost(baremetalhostName, bmhSpecBMC(), bmov1alpha1.StateNone, nil, false, "metadata", false, "", false),
@@ -3154,7 +3154,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Entry("Update machine, DataTemplate missing", testCaseUpdate{
 			Machine: newMachine(machineName, nil),
 			M3Machine: newMetal3Machine(metal3machineName, &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{
+				DataTemplate: &infrav1.Metal3ObjectRef{
 					Name: "abcd",
 				},
 			}, nil,
@@ -3492,19 +3492,19 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("RenderedData should be set in status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd"},
+				RenderedData: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil),
 		}),
 		Entry("Should expect DataClaim if it does not exist yet", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine:     newMachine(machineName, nil),
 			expectClaim: true,
 		}),
 		Entry("Should not be an error if DataClaim exists", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine(machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -3524,7 +3524,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not be an error if DataClaim is empty", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine:     newMachine(machineName, nil),
 			DataClaim:   &infrav1.Metal3DataClaim{},
@@ -3532,7 +3532,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should expect claim if DataClaim ready", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine(machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -3548,7 +3548,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 				Status: infrav1.Metal3DataClaimStatus{
-					RenderedData: &corev1.ObjectReference{
+					RenderedData: &infrav1.Metal3ObjectRef{
 						Name:      "abc",
 						Namespace: namespaceName,
 					},
@@ -3585,7 +3585,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 			if tc.ExpectDataStatus {
-				Expect(tc.M3Machine.Status.RenderedData).To(Equal(&corev1.ObjectReference{
+				Expect(tc.M3Machine.Status.RenderedData).To(Equal(&infrav1.Metal3ObjectRef{
 					Name:      "abcd-0",
 					Namespace: namespaceName,
 				}))
@@ -3632,7 +3632,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should requeue if there is no Data template", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine:                        newMachine(machineName, nil),
 			ExpectRequeue:                  true,
@@ -3640,7 +3640,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should requeue if Data claim without status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine(machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -3653,7 +3653,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should requeue if Data claim with empty status", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine(machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -3662,14 +3662,14 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 				Status: infrav1.Metal3DataClaimStatus{
-					RenderedData: &corev1.ObjectReference{},
+					RenderedData: &infrav1.Metal3ObjectRef{},
 				},
 			},
 			ExpectRequeue: true,
 		}),
 		Entry("Should requeue if Data does not exist", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{Name: "abcd"},
+				DataTemplate: &infrav1.Metal3ObjectRef{Name: "abcd"},
 			}, nil, nil),
 			Machine: newMachine(machineName, nil),
 			DataClaim: &infrav1.Metal3DataClaim{
@@ -3678,13 +3678,13 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 				Spec: infrav1.Metal3DataClaimSpec{
-					Template: corev1.ObjectReference{
+					Template: infrav1.Metal3ObjectRef{
 						Name:      "abcd",
 						Namespace: namespaceName,
 					},
 				},
 				Status: infrav1.Metal3DataClaimStatus{
-					RenderedData: &corev1.ObjectReference{
+					RenderedData: &infrav1.Metal3ObjectRef{
 						Name:      "abcd-0",
 						Namespace: namespaceName,
 					},
@@ -3695,7 +3695,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should requeue if M3M status set but Data does not exist", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
+				RenderedData: &infrav1.Metal3ObjectRef{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine:          newMachine(machineName, nil),
 			ExpectRequeue:    true,
@@ -3703,7 +3703,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should requeue if Data is not ready", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
+				RenderedData: &infrav1.Metal3ObjectRef{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine: newMachine(machineName, nil),
 			Data: &infrav1.Metal3Data{
@@ -3719,7 +3719,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not error if Data is ready but no secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
+				RenderedData: &infrav1.Metal3ObjectRef{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine: newMachine(machineName, nil),
 			Data: &infrav1.Metal3Data{
@@ -3738,7 +3738,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not error if Data is ready with secrets", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", nil, &infrav1.Metal3MachineStatus{
-				RenderedData: &corev1.ObjectReference{Name: "abcd-0", Namespace: namespaceName},
+				RenderedData: &infrav1.Metal3ObjectRef{Name: "abcd-0", Namespace: namespaceName},
 			}, nil),
 			Machine: newMachine(machineName, nil),
 			Data: &infrav1.Metal3Data{
@@ -3831,7 +3831,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should return nil if DataClaim not found", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{
+				DataTemplate: &infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},
@@ -3840,7 +3840,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should not error if DataClaim found", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{
+				DataTemplate: &infrav1.Metal3ObjectRef{
 					Name:      "abcd",
 					Namespace: namespaceName,
 				},
@@ -3855,7 +3855,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		}),
 		Entry("Should return nil if DataClaim is empty", testCaseM3MetaData{
 			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
-				DataTemplate: &corev1.ObjectReference{
+				DataTemplate: &infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: namespaceName,
 				},

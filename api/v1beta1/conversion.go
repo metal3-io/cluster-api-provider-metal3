@@ -106,6 +106,7 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if !reflect.DeepEqual(initialization, infrav1.Metal3MachineInitializationStatus{}) {
 		dst.Status.Initialization = initialization
 	}
+
 	return nil
 }
 
@@ -422,6 +423,14 @@ func Convert_v1beta2_Metal3MachineStatus_To_v1beta1_Metal3MachineStatus(in *infr
 	}
 	out.V1Beta2 = &Metal3MachineV1Beta2Status{}
 	out.V1Beta2.Conditions = in.Conditions
+
+	if in.RenderedData != nil {
+		out.RenderedData = &corev1.ObjectReference{
+			Name:      in.RenderedData.Name,
+			Namespace: in.RenderedData.Namespace,
+		}
+	}
+
 	return nil
 }
 
@@ -455,6 +464,12 @@ func Convert_v1beta1_Metal3MachineStatus_To_v1beta2_Metal3MachineStatus(in *Meta
 	}
 	out.Deprecated.V1Beta1.FailureReason = in.FailureReason
 	out.Deprecated.V1Beta1.FailureMessage = in.FailureMessage
+
+	if in.RenderedData != nil && !reflect.DeepEqual(in.RenderedData, &corev1.ObjectReference{}) {
+		out.RenderedData = &infrav1.Metal3ObjectRef{}
+		out.RenderedData.Name = in.RenderedData.Name
+		out.RenderedData.Namespace = in.RenderedData.Namespace
+	}
 	return nil
 }
 
@@ -510,13 +525,6 @@ func Convert_v1beta1_APIEndpoint_To_v1beta2_APIEndpoint(in *APIEndpoint, out *in
 	out.Host = in.Host
 	out.Port = int32(in.Port)
 	return nil
-}
-
-// Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec handles the manual conversion
-// of Metal3DataSpec from v1beta1 to v1beta2. The TemplateReference field was removed in v1beta2.
-func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
-	// TemplateReference is dropped as it was removed in v1beta2
-	return autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s)
 }
 
 // Convert_v1beta1_Metal3DataTemplateSpec_To_v1beta2_Metal3DataTemplateSpec handles the manual conversion
@@ -670,5 +678,27 @@ func Convert_v1beta2_IPPoolReference_To_v1_TypedLocalObjectReference(in *infrav1
 	if in.APIGroup != "" {
 		out.APIGroup = ptr.To(in.APIGroup)
 	}
+	return nil
+}
+// Convert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec handles the manual conversion of Metal3DataSpec from v1beta2 to v1beta1.
+func Convert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec(in *infrav1.Metal3DataSpec, out *Metal3DataSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_Metal3DataSpec_To_v1beta1_Metal3DataSpec(in, out, s)
+}
+
+// Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec handles the manual conversion of Metal3DataSpec from v1beta1 to v1beta2.
+func Convert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in *Metal3DataSpec, out *infrav1.Metal3DataSpec, s apimachineryconversion.Scope) error {
+	// TemplateReference is dropped as it was removed in v1beta2
+	return autoConvert_v1beta1_Metal3DataSpec_To_v1beta2_Metal3DataSpec(in, out, s)
+}
+
+func Convert_v1_ObjectReference_To_v1beta2_Metal3ObjectRef(in *corev1.ObjectReference, out *infrav1.Metal3ObjectRef, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
+	return nil
+}
+
+func Convert_v1beta2_Metal3ObjectRef_To_v1_ObjectReference(in *infrav1.Metal3ObjectRef, out *corev1.ObjectReference, _ apimachineryconversion.Scope) error {
+	out.Name = in.Name
+	out.Namespace = in.Namespace
 	return nil
 }

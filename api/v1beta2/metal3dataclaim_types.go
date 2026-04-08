@@ -17,7 +17,6 @@ limitations under the License.
 package v1beta2
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,14 +29,14 @@ const (
 // Metal3DataClaimSpec defines the desired state of Metal3DataClaim.
 type Metal3DataClaimSpec struct {
 	// template is the Metal3DataTemplate this was generated for.
-	Template corev1.ObjectReference `json:"template"`
+	Template Metal3ObjectRef `json:"template"`
 }
 
 // Metal3DataClaimStatus defines the observed state of Metal3DataClaim.
 type Metal3DataClaimStatus struct {
 	// renderedData references the Metal3Data when ready
 	// +optional
-	RenderedData *corev1.ObjectReference `json:"renderedData,omitempty"`
+	RenderedData *Metal3ObjectRef `json:"renderedData,omitempty"`
 
 	// errorMessage contains the error message
 	// +optional

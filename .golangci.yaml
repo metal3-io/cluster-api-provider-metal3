@@ -199,6 +199,9 @@ linters:
       text: exported (method|function|type|const) (.+) should have comment or be unexported
       source: (func|type).*Fake.*
     - linters:
+      - godot
+      source: '// \+'
+    - linters:
       - revive
       path: fake_\.go
       text: exported (method|function|type|const) (.+) should have comment or be unexported
