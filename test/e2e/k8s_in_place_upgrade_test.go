@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-var _ = Describe("When testing in-place k8s upgrade", Label("in-place-upgrade", "features"), func() {
+var _ = Describe("When testing in-place k8s upgrade", Label("in-place-upgrade"), func() {
 
 	BeforeEach(func() {
 		osType = strings.ToLower(os.Getenv("OS"))
