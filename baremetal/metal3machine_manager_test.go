@@ -621,6 +621,18 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 		}
+		hostWithUnhealthyAnnotationDeprecated := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:        "hostWithUnhealthyAnnotationDeprecated",
+				Namespace:   namespaceName,
+				Annotations: map[string]string{infrav1.UnhealthyAnnotationDeprecated: "unhealthy"},
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
+		}
 		hostWithPausedAnnotation := bmov1alpha1.BareMetalHost{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "hostWithPausedAnnotation",
@@ -812,6 +824,14 @@ var _ = Describe("Metal3Machine manager", func() {
 				testCaseChooseHost{
 					Machine:          newMachine(machineName, infrastructureRef),
 					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithUnhealthyAnnotation, hostWithOtherConsRef, *availableHost}},
+					M3Machine:        m3mconfig,
+					ExpectedHostName: availableHost.Name,
+				},
+			),
+			Entry("Ignore hostWithUnhealthyAnnotationDeprecated and pick availableHost, which lacks a ConsumerRef",
+				testCaseChooseHost{
+					Machine:          newMachine(machineName, infrastructureRef),
+					Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{hostWithUnhealthyAnnotationDeprecated, hostWithOtherConsRef, *availableHost}},
 					M3Machine:        m3mconfig,
 					ExpectedHostName: availableHost.Name,
 				},
