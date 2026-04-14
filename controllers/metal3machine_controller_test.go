@@ -38,18 +38,18 @@ import (
 )
 
 type reconcileNormalTestCase struct {
-	ExpectError                     bool
-	ExpectRequeue                   bool
-	Provisioned                     bool
-	BootstrapNotReady               bool
-	Annotated                       bool
-	AssociateFails                  bool
-	AssociateReason                 string
-	AnnotatedAfterAssociate         bool
-	GetProviderIDFails              bool
-	SetNodeProviderIDFails          bool
-	CloudProviderEnabled            bool
-	Metal3DataClaimCreated          bool
+	ExpectError                        bool
+	ExpectRequeue                      bool
+	Provisioned                        bool
+	BootstrapNotReady                  bool
+	Annotated                          bool
+	AssociateFails                     bool
+	AssociateReason                    string
+	AnnotatedAfterAssociate            bool
+	GetProviderIDFails                 bool
+	SetNodeProviderIDFails             bool
+	CloudProviderEnabled               bool
+	Metal3DataClaimCreated             bool
 	SetProviderIDFromNodeLabelFails    bool
 	SetProviderIDFromNodeLabelNotFound bool
 }
