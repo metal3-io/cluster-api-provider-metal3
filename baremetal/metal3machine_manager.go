@@ -1509,7 +1509,10 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 	m.Log.V(VerbosityLevelTrace).Info("Setting ProviderID from Node label")
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return false, fmt.Errorf("error creating a remote client: %w", err)
+		// Remote cluster API may not be reachable yet (e.g. during provisioning).
+		// Fall through to let the controller set a default ProviderID.
+		m.Log.Info("could not create remote client, continuing", "error", err.Error())
+		return false, nil
 	}
 	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
 	if err != nil {
@@ -1521,16 +1524,17 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 	nodeLabel := fmt.Sprintf("%s=%s", ProviderLabelPrefix, bmhUID)
 	nodes, countNodesWithLabel, err := m.getNodesWithLabel(ctx, nodeLabel, clientFactory)
 	if err != nil {
-		errMessage := fmt.Sprintf("error retrieving node with label %s, requeuing", nodeLabel)
-		m.Log.Info(errMessage)
-		return false, WithTransientError(fmt.Errorf("%s: %w", errMessage, err), requeueAfter)
+		// Node query may fail if the workload cluster API is not yet available.
+		// Fall through to let the controller set a default ProviderID.
+		m.Log.Info("could not query nodes, continuing", "label", nodeLabel, "error", err.Error())
+		return false, nil
 	}
-	if countNodesWithLabel == 0 && m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
-		// The node could either be still running cloud-init or have been
-		// deleted manually. TODO: handle a manual deletion case.
-		errMessage := "requeuing, could not find node with label: " + nodeLabel
-		m.Log.Info(errMessage)
-		return false, WithTransientError(errors.New(errMessage), requeueAfter)
+	if countNodesWithLabel == 0 {
+		// No node found with the expected label. Fall through to let the
+		// controller set the default ProviderID so that CAPI can proceed
+		// (e.g. populate Machine.Status.Addresses) before the node joins.
+		m.Log.Info("could not find node with label, continuing", "label", nodeLabel)
+		return false, nil
 	}
 	if countNodesWithLabel > 1 {
 		return false, fmt.Errorf("found multiple target nodes with the same label: (%s): %w", nodeLabel, err)
@@ -2123,7 +2127,9 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
-		return fmt.Errorf("error creating a remote client: %w", err)
+		// Remote cluster API may not be reachable yet (e.g. during provisioning).
+		m.Log.Info("could not create remote client for hostname lookup, continuing", "error", err.Error())
+		return nil
 	}
 
 	metal3MachineHostnames := m.getMetal3MachineHostnames()
@@ -2137,14 +2143,15 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 	nodes, err := corev1Remote.Nodes().List(ctx, metav1.ListOptions{})
 
 	if err != nil {
-		m.Log.Error(err, "error while retrieving nodes")
-		return WithTransientError(err, requeueAfter)
+		// Node query may fail if the workload cluster API is not yet available.
+		m.Log.Info("could not query nodes for hostname lookup, continuing", "error", err.Error())
+		return nil
 	}
 
 	if len(nodes.Items) == 0 {
-		errMessage := "no Nodes found"
-		m.Log.Info(errMessage)
-		return WithTransientError(errors.New(errMessage), requeueAfter)
+		// No nodes yet — workload cluster may still be bootstrapping.
+		m.Log.Info("no nodes found for hostname lookup, continuing")
+		return nil
 	}
 
 	matchingNodes := []corev1.Node{}
@@ -2161,9 +2168,9 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 	}
 
 	if len(matchingNodes) == 0 {
-		errMessage := "no nodes matching hostnames: " + strings.Join(metal3MachineHostnames, ", ")
-		m.Log.Info(errMessage)
-		return WithTransientError(errors.New(errMessage), requeueAfter)
+		// Node may not have joined yet — continue without error.
+		m.Log.Info("no nodes matching hostnames, continuing", "hostnames", strings.Join(metal3MachineHostnames, ", "))
+		return nil
 	}
 
 	if len(matchingNodes) > 1 {

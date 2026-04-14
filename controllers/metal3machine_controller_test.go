@@ -50,7 +50,8 @@ type reconcileNormalTestCase struct {
 	SetNodeProviderIDFails          bool
 	CloudProviderEnabled            bool
 	Metal3DataClaimCreated          bool
-	SetProviderIDFromNodeLabelFails bool
+	SetProviderIDFromNodeLabelFails    bool
+	SetProviderIDFromNodeLabelNotFound bool
 }
 
 func setReconcileNormalExpectations(ctrl *gomock.Controller,
@@ -151,6 +152,12 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().NodeWithMatchingProviderIDExists(context.TODO(), nil).Return(false)
 		if tc.SetProviderIDFromNodeLabelFails {
 			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(false, errors.New("failed"))
+		} else if tc.SetProviderIDFromNodeLabelNotFound {
+			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(false, nil)
+			m.EXPECT().Metal3MachineHasProviderID().Return(false)
+			m.EXPECT().SetDefaultProviderID().Return(nil)
+			m.EXPECT().SetReadyTrue()
+			m.EXPECT().SetNodeProviderIDByHostname(context.TODO(), nil).Return(nil)
 		} else {
 			m.EXPECT().SetProviderIDFromNodeLabel(context.TODO(), nil).Return(true, nil)
 			m.EXPECT().GetMetal3Machine().Return(&infrav1.Metal3Machine{})
@@ -331,6 +338,13 @@ var _ = Describe("Metal3Machine manager", func() {
 				Annotated:                       true,
 				Metal3DataClaimCreated:          true,
 				SetProviderIDFromNodeLabelFails: false,
+			}),
+			Entry("SetProviderIDFromNodeLabel no node found, falls through to default ProviderID", reconcileNormalTestCase{
+				ExpectError:                        false,
+				ExpectRequeue:                      false,
+				Annotated:                          true,
+				Metal3DataClaimCreated:             true,
+				SetProviderIDFromNodeLabelNotFound: true,
 			}),
 		)
 	})
