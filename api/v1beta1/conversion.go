@@ -657,6 +657,15 @@ func Convert_v1beta2_NetworkDataLinkBond_To_v1beta1_NetworkDataLinkBond(in *infr
 	return nil
 }
 
+// Convert_v1beta2_NetworkDataLink_To_v1beta1_NetworkDataLink handles conversion
+// of NetworkDataLink from v1beta2 (hub) to v1beta1 (spoke).
+//
+// v1beta1 is deprecated and does not include bridge configuration, so
+// `in.Bridges` is intentionally dropped.
+func Convert_v1beta2_NetworkDataLink_To_v1beta1_NetworkDataLink(in *infrav1.NetworkDataLink, out *NetworkDataLink, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta2_NetworkDataLink_To_v1beta1_NetworkDataLink(in, out, s)
+}
+
 func Convert_v1_TypedLocalObjectReference_To_v1beta2_IPPoolReference(in *corev1.TypedLocalObjectReference, out *infrav1.IPPoolReference, _ apimachineryconversion.Scope) error {
 	out.Kind = in.Kind
 	out.Name = in.Name
