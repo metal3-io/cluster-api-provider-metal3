@@ -237,7 +237,7 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 // Metal3DataClaim and that Metal3DataClaim references a Metal3DataTemplate.
 func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(_ context.Context, obj client.Object) []ctrl.Request {
 	if m3dc, ok := obj.(*infrav1.Metal3DataClaim); ok {
-		if m3dc.Spec.Template.Name != "" {
+		if m3dc.Spec.Template != nil && m3dc.Spec.Template.Name != "" {
 			namespace := m3dc.Spec.Template.Namespace
 			if namespace == "" {
 				namespace = m3dc.Namespace

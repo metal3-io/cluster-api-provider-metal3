@@ -372,7 +372,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: infrav1.Metal3ObjectRef{
+						Template: &infrav1.Metal3ObjectRef{
 							Name:      metal3DataTemplateName,
 							Namespace: namespaceName,
 						},
@@ -389,7 +389,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 						Namespace: namespaceName,
 					},
 					Spec: infrav1.Metal3DataClaimSpec{
-						Template: infrav1.Metal3ObjectRef{
+						Template: &infrav1.Metal3ObjectRef{
 							Name: metal3DataTemplateName,
 						},
 					},

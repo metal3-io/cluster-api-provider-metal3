@@ -1375,23 +1375,31 @@ spec:
                     items:
                       properties:
                         apiGroup:
+                          default: ipam.metal3.io
                           description: apiGroup is the api group of the IP pool.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         kind:
+                          default: IPPool
                           description: kind is the kind of the IP pool
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         name:
                           description: name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
-                      - apiGroup
                       - key
-                      - kind
                       - name
                       type: object
                     type: array
@@ -1407,10 +1415,14 @@ spec:
                         annotation:
                           description: annotation is the key of the annotation to
                             fetch
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         object:
                           description: object is the type of the object from which
@@ -1442,10 +1454,14 @@ spec:
                           description: |-
                             interface is the name of the interface in the BareMetalHost Status Hardware
                             Details list of interfaces from which to fetch the MAC address.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
                       - key
@@ -1462,9 +1478,13 @@ spec:
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         label:
                           description: label is the key of the label to fetch
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         object:
                           description: object is the type of the object from which
@@ -1486,23 +1506,31 @@ spec:
                     items:
                       properties:
                         apiGroup:
+                          default: ipam.metal3.io
                           description: apiGroup is the api group of the IP pool.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         kind:
+                          default: IPPool
                           description: kind is the kind of the IP pool
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         name:
                           description: name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
-                      - apiGroup
                       - key
-                      - kind
                       - name
                       type: object
                     type: array
@@ -1517,6 +1545,8 @@ spec:
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         offset:
                           description: offset is the offset to apply to the index
@@ -1525,6 +1555,8 @@ spec:
                           type: integer
                         prefix:
                           description: prefix is the prefix string
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         step:
                           default: 1
@@ -1533,6 +1565,8 @@ spec:
                           type: integer
                         suffix:
                           description: suffix is the suffix string
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
                       - key
@@ -1544,23 +1578,31 @@ spec:
                     items:
                       properties:
                         apiGroup:
+                          default: ipam.metal3.io
                           description: apiGroup is the api group of the IP pool.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         kind:
+                          default: IPPool
                           description: kind is the kind of the IP pool
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         name:
                           description: name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
-                      - apiGroup
                       - key
-                      - kind
                       - name
                       type: object
                     type: array
@@ -1574,6 +1616,8 @@ spec:
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
                       - key
@@ -1590,6 +1634,8 @@ spec:
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         object:
                           description: object is the type of the object from which
@@ -1610,23 +1656,31 @@ spec:
                     items:
                       properties:
                         apiGroup:
+                          default: ipam.metal3.io
                           description: apiGroup is the api group of the IP pool.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         kind:
+                          default: IPPool
                           description: kind is the kind of the IP pool
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         name:
                           description: name is the name of the IP pool used to fetch
                             the value to set in the metadata map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
-                      - apiGroup
                       - key
-                      - kind
                       - name
                       type: object
                     type: array
@@ -1640,9 +1694,13 @@ spec:
                         key:
                           description: key will be used as the key to set in the metadata
                             map for cloud-init
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         value:
                           description: value is the string to render.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                       required:
                       - key
@@ -1669,7 +1727,10 @@ spec:
                               description: bondLinks is the list of links that are
                                 part of the bond.
                               items:
+                                maxLength: 512
+                                minLength: 1
                                 type: string
+                              maxItems: 512
                               type: array
                             bondMode:
                               description: |-
@@ -1696,6 +1757,8 @@ spec:
                             id:
                               description: id is the ID of the interface (used for
                                 naming)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             macAddress:
                               description: |-
@@ -1710,6 +1773,8 @@ spec:
                                     annotation:
                                       description: annotation is the key of the annotation
                                         to fetch
+                                      maxLength: 512
+                                      minLength: 1
                                       type: string
                                     object:
                                       description: object is the type of the object
@@ -1773,6 +1838,7 @@ spec:
                           - bondMode
                           - id
                           - macAddress
+                          - parameters
                           type: object
                         type: array
                       ethernets:
@@ -1784,6 +1850,8 @@ spec:
                             id:
                               description: id is the ID of the interface (used for
                                 naming)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             macAddress:
                               description: |-
@@ -1798,6 +1866,8 @@ spec:
                                     annotation:
                                       description: annotation is the key of the annotation
                                         to fetch
+                                      maxLength: 512
+                                      minLength: 1
                                       type: string
                                     object:
                                       description: object is the type of the object
@@ -1865,6 +1935,8 @@ spec:
                             id:
                               description: id is the ID of the interface (used for
                                 naming)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             macAddress:
                               description: |-
@@ -1879,6 +1951,8 @@ spec:
                                     annotation:
                                       description: annotation is the key of the annotation
                                         to fetch
+                                      maxLength: 512
+                                      minLength: 1
                                       type: string
                                     object:
                                       description: object is the type of the object
@@ -1920,10 +1994,13 @@ spec:
                               description: vlanID is the Vlan ID
                               format: int32
                               maximum: 4096
+                              minimum: 0
                               type: integer
                             vlanLink:
                               description: vlanLink is the name of the link on which
                                 the vlan should be added
+                              maxLength: 512
+                              minLength: 1
                               type: string
                           required:
                           - id
@@ -1953,6 +2030,8 @@ spec:
                                   description: |-
                                     annotation is the key of the annotation that contains the pool name.
                                     The annotation value should be a string containing the pool name.
+                                  maxLength: 512
+                                  minLength: 1
                                   type: string
                                 object:
                                   description: object is the type of the object from
@@ -1971,6 +2050,7 @@ spec:
                                 to allocate an address from.
                               properties:
                                 apiGroup:
+                                  default: ipam.metal3.io
                                   description: |-
                                     apiGroup of the IPPool.
                                     apiGroup must be fully qualified domain name.
@@ -1979,6 +2059,7 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                   type: string
                                 kind:
+                                  default: IPPool
                                   description: |-
                                     kind of the IPPool.
                                     kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -1995,19 +2076,23 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                   type: string
                               required:
-                              - apiGroup
-                              - kind
                               - name
                               type: object
                             id:
                               description: id is the network ID (name)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             ipAddressFromIPPool:
                               description: ipAddressFromIPPool contains the name of
                                 the IP pool to use to get an ip address
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             link:
                               description: link is the link on which the network applies
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             routes:
                               description: routes contains a list of IPv4 routes
@@ -2033,6 +2118,8 @@ spec:
                                             description: |-
                                               annotation is the key of the annotation that contains the pool name.
                                               The annotation value should be a string containing the pool name.
+                                            maxLength: 512
+                                            minLength: 1
                                             type: string
                                           object:
                                             description: object is the type of the
@@ -2051,6 +2138,7 @@ spec:
                                           a IP pool to fetch the gateway from
                                         properties:
                                           apiGroup:
+                                            default: ipam.metal3.io
                                             description: |-
                                               apiGroup of the IPPool.
                                               apiGroup must be fully qualified domain name.
@@ -2059,6 +2147,7 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                           kind:
+                                            default: IPPool
                                             description: |-
                                               kind of the IPPool.
                                               kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -2075,8 +2164,6 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                         required:
-                                        - apiGroup
-                                        - kind
                                         - name
                                         type: object
                                       string:
@@ -2129,9 +2216,13 @@ spec:
                           properties:
                             id:
                               description: id is the network ID (name)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             link:
                               description: link is the link on which the network applies
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             routes:
                               description: routes contains a list of IPv4 routes
@@ -2157,6 +2248,8 @@ spec:
                                             description: |-
                                               annotation is the key of the annotation that contains the pool name.
                                               The annotation value should be a string containing the pool name.
+                                            maxLength: 512
+                                            minLength: 1
                                             type: string
                                           object:
                                             description: object is the type of the
@@ -2175,6 +2268,7 @@ spec:
                                           a IP pool to fetch the gateway from
                                         properties:
                                           apiGroup:
+                                            default: ipam.metal3.io
                                             description: |-
                                               apiGroup of the IPPool.
                                               apiGroup must be fully qualified domain name.
@@ -2183,6 +2277,7 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                           kind:
+                                            default: IPPool
                                             description: |-
                                               kind of the IPPool.
                                               kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -2199,8 +2294,6 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                         required:
-                                        - apiGroup
-                                        - kind
                                         - name
                                         type: object
                                       string:
@@ -2261,6 +2354,8 @@ spec:
                                   description: |-
                                     annotation is the key of the annotation that contains the pool name.
                                     The annotation value should be a string containing the pool name.
+                                  maxLength: 512
+                                  minLength: 1
                                   type: string
                                 object:
                                   description: object is the type of the object from
@@ -2279,6 +2374,7 @@ spec:
                                 to allocate an address from.
                               properties:
                                 apiGroup:
+                                  default: ipam.metal3.io
                                   description: |-
                                     apiGroup of the IPPool.
                                     apiGroup must be fully qualified domain name.
@@ -2287,6 +2383,7 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                   type: string
                                 kind:
+                                  default: IPPool
                                   description: |-
                                     kind of the IPPool.
                                     kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -2303,19 +2400,23 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                   type: string
                               required:
-                              - apiGroup
-                              - kind
                               - name
                               type: object
                             id:
                               description: id is the network ID (name)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             ipAddressFromIPPool:
                               description: ipAddressFromIPPool contains the name of
                                 the IPPool to use to get an ip address
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             link:
                               description: link is the link on which the network applies
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             routes:
                               description: routes contains a list of IPv6 routes
@@ -2341,6 +2442,8 @@ spec:
                                             description: |-
                                               annotation is the key of the annotation that contains the pool name.
                                               The annotation value should be a string containing the pool name.
+                                            maxLength: 512
+                                            minLength: 1
                                             type: string
                                           object:
                                             description: object is the type of the
@@ -2359,6 +2462,7 @@ spec:
                                           a IP pool to fetch the gateway from
                                         properties:
                                           apiGroup:
+                                            default: ipam.metal3.io
                                             description: |-
                                               apiGroup of the IPPool.
                                               apiGroup must be fully qualified domain name.
@@ -2367,6 +2471,7 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                           kind:
+                                            default: IPPool
                                             description: |-
                                               kind of the IPPool.
                                               kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -2383,8 +2488,6 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                         required:
-                                        - apiGroup
-                                        - kind
                                         - name
                                         type: object
                                       string:
@@ -2426,7 +2529,6 @@ spec:
                               type: array
                           required:
                           - id
-                          - ipAddressFromIPPool
                           - link
                           type: object
                         type: array
@@ -2438,9 +2540,13 @@ spec:
                           properties:
                             id:
                               description: id is the network ID (name)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             link:
                               description: link is the link on which the network applies
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             routes:
                               description: routes contains a list of IPv6 routes
@@ -2466,6 +2572,8 @@ spec:
                                             description: |-
                                               annotation is the key of the annotation that contains the pool name.
                                               The annotation value should be a string containing the pool name.
+                                            maxLength: 512
+                                            minLength: 1
                                             type: string
                                           object:
                                             description: object is the type of the
@@ -2484,6 +2592,7 @@ spec:
                                           a IP pool to fetch the gateway from
                                         properties:
                                           apiGroup:
+                                            default: ipam.metal3.io
                                             description: |-
                                               apiGroup of the IPPool.
                                               apiGroup must be fully qualified domain name.
@@ -2492,6 +2601,7 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                           kind:
+                                            default: IPPool
                                             description: |-
                                               kind of the IPPool.
                                               kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -2508,8 +2618,6 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                         required:
-                                        - apiGroup
-                                        - kind
                                         - name
                                         type: object
                                       string:
@@ -2562,9 +2670,13 @@ spec:
                           properties:
                             id:
                               description: id is the network ID (name)
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             link:
                               description: link is the link on which the network applies
+                              maxLength: 512
+                              minLength: 1
                               type: string
                             routes:
                               description: routes contains a list of IPv6 routes
@@ -2590,6 +2702,8 @@ spec:
                                             description: |-
                                               annotation is the key of the annotation that contains the pool name.
                                               The annotation value should be a string containing the pool name.
+                                            maxLength: 512
+                                            minLength: 1
                                             type: string
                                           object:
                                             description: object is the type of the
@@ -2608,6 +2722,7 @@ spec:
                                           a IP pool to fetch the gateway from
                                         properties:
                                           apiGroup:
+                                            default: ipam.metal3.io
                                             description: |-
                                               apiGroup of the IPPool.
                                               apiGroup must be fully qualified domain name.
@@ -2616,6 +2731,7 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                           kind:
+                                            default: IPPool
                                             description: |-
                                               kind of the IPPool.
                                               kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
@@ -2632,8 +2748,6 @@ spec:
                                             pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                                             type: string
                                         required:
-                                        - apiGroup
-                                        - kind
                                         - name
                                         type: object
                                       string:
@@ -2711,9 +2825,12 @@ spec:
                     index:
                       description: index is the index value assigned to the Machine
                       format: int32
+                      minimum: 0
                       type: integer
                     name:
                       description: name is the name of the Metal3Machine
+                      maxLength: 512
+                      minLength: 1
                       type: string
                   required:
                   - index

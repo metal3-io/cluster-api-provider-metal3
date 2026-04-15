@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 )
 
 func TestImageValidate(t *testing.T) {
@@ -38,7 +39,7 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
+				Checksum: ptr.To("http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum"),
 			},
 			ErrorExpected: false,
 			Name:          "Valid Image with Image.Checksum as URL",
@@ -46,14 +47,14 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-				Checksum: "f7600f7a274d974a236c4da5161265859c32da93a7c8de6a77d560378a1384ef",
+				Checksum: ptr.To("f7600f7a274d974a236c4da5161265859c32da93a7c8de6a77d560378a1384ef"),
 			},
 			ErrorExpected: false,
 			Name:          "Valid Image with Image.Checksum as sha256 sum",
 		},
 		{
 			Image: Image{
-				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
+				Checksum: ptr.To("http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum"),
 			},
 			ErrorExpected: true,
 			Name:          "missing Image.URL",
@@ -68,7 +69,7 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "test url",
-				Checksum: "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum",
+				Checksum: ptr.To("http://172.22.0.1/images/rhcos-ootpa-latest.qcow2.sha256sum"),
 			},
 			ErrorExpected: true,
 			Name:          "Invalid URL Image.URL",
@@ -76,7 +77,7 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-				Checksum: "http://:invalid",
+				Checksum: ptr.To("http://:invalid"),
 			},
 			ErrorExpected: true,
 			Name:          "Invalid Image.Checksum http url",
@@ -84,7 +85,7 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:      "http://172.22.0.1/images/rhcos-ootpa-latest.qcow2",
-				Checksum: "https://:invalid",
+				Checksum: ptr.To("https://:invalid"),
 			},
 			ErrorExpected: true,
 			Name:          "Invalid Image.Checksum https url",
@@ -92,7 +93,7 @@ func TestImageValidate(t *testing.T) {
 		{
 			Image: Image{
 				URL:        "http://172.22.0.1/images/rhcos.iso",
-				DiskFormat: &diskFormat,
+				DiskFormat: diskFormat,
 			},
 			ErrorExpected: false,
 			Name:          "Valid spec with live-iso diskFormat",

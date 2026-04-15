@@ -83,8 +83,8 @@ spec:
     ipAddressesFromIPPool:
     - key: provisioningIP
       name: provisioning-pool
-      apiGroup: ""
-      kind: ""
+      apiGroup: "ipam.metal3.io"
+      kind: "IPPool"
     objectNames:
     - key: name
       object: machine
@@ -95,8 +95,8 @@ spec:
     prefixesFromIPPool:
     - key: provisioningCIDR
       name: provisioning-pool
-      apiGroup: ""
-      kind: ""
+      apiGroup: "ipam.metal3.io"
+      kind: "IPPool"
   networkData:
     links:
       ethernets:

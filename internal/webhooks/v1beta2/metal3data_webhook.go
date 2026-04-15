@@ -100,41 +100,49 @@ func (webhook *Metal3Data) ValidateUpdate(_ context.Context, oldObj, newObj runt
 		)
 	}
 
-	if newMetal3Data.Spec.Template.Name != oldMetal3Data.Spec.Template.Name {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "Template"),
-				newMetal3Data.Spec.Template,
-				"cannot be modified",
-			),
-		)
-	} else if newMetal3Data.Spec.Template.Namespace != oldMetal3Data.Spec.Template.Namespace {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "Template"),
-				newMetal3Data.Spec.Template,
-				"cannot be modified",
-			),
-		)
+	// Helper function to check if Metal3ObjectRef fields match
+	checkObjectRefChanged := func(fieldName string, newRef, oldRef *infrav1.Metal3ObjectRef) field.ErrorList {
+		var errs field.ErrorList
+		if newRef != nil || oldRef != nil {
+			var newName, oldName string
+			if newRef != nil {
+				newName = newRef.Name
+			}
+			if oldRef != nil {
+				oldName = oldRef.Name
+			}
+			if newName != oldName {
+				errs = append(errs,
+					field.Invalid(
+						field.NewPath("spec", fieldName),
+						newRef,
+						"cannot be modified",
+					),
+				)
+			} else {
+				var newNamespace, oldNamespace string
+				if newRef != nil {
+					newNamespace = newRef.Namespace
+				}
+				if oldRef != nil {
+					oldNamespace = oldRef.Namespace
+				}
+				if newNamespace != oldNamespace {
+					errs = append(errs,
+						field.Invalid(
+							field.NewPath("spec", fieldName),
+							newRef,
+							"cannot be modified",
+						),
+					)
+				}
+			}
+		}
+		return errs
 	}
 
-	if newMetal3Data.Spec.Claim.Name != oldMetal3Data.Spec.Claim.Name {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "claim"),
-				newMetal3Data.Spec.Claim,
-				"cannot be modified",
-			),
-		)
-	} else if newMetal3Data.Spec.Claim.Namespace != oldMetal3Data.Spec.Claim.Namespace {
-		allErrs = append(allErrs,
-			field.Invalid(
-				field.NewPath("spec", "claim"),
-				newMetal3Data.Spec.Claim,
-				"cannot be modified",
-			),
-		)
-	}
+	allErrs = append(allErrs, checkObjectRefChanged("Template", newMetal3Data.Spec.Template, oldMetal3Data.Spec.Template)...)
+	allErrs = append(allErrs, checkObjectRefChanged("claim", newMetal3Data.Spec.Claim, oldMetal3Data.Spec.Claim)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil

@@ -473,9 +473,9 @@ func CreateNewM3MachineTemplate(ctx context.Context, namespace string, newM3Mach
 	cleanObjectMeta(&newM3MachineTemplate.ObjectMeta)
 
 	newM3MachineTemplate.Spec.Template.Spec.Image.URL = imageURL
-	newM3MachineTemplate.Spec.Template.Spec.Image.Checksum = imageChecksum
-	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = &imageFormat
-	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = &checksumType
+	newM3MachineTemplate.Spec.Template.Spec.Image.Checksum = &imageChecksum
+	newM3MachineTemplate.Spec.Template.Spec.Image.DiskFormat = imageFormat
+	newM3MachineTemplate.Spec.Template.Spec.Image.ChecksumType = checksumType
 	newM3MachineTemplate.ObjectMeta.Name = newM3MachineTemplateName
 	newM3MachineTemplate.Spec.Template.Spec.DataTemplate.Namespace = newM3MachineTemplate.ObjectMeta.Namespace
 

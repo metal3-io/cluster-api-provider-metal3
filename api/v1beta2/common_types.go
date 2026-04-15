@@ -66,33 +66,49 @@ type HostSelector struct {
 
 type HostSelectorRequirement struct {
 	// key is the label key that the selector applies to.
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 
 	// operator represents a key's relationship to a set of values.
-	Operator selection.Operator `json:"operator"`
+	// +required
+	Operator selection.Operator `json:"operator,omitempty"`
 
 	// values is an array of string of required values.
-	Values []string `json:"values"`
+	// +required
+	// +kubebuilder:validation:MaxItems=512
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=512
+	Values []string `json:"values,omitempty"`
 }
 
 // Image holds the details of an image to use during provisioning.
 type Image struct {
 	// url is a location of an image to deploy.
-	URL string `json:"url"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	// +kubebuilder:validation:Format=uri
+	URL string `json:"url,omitempty"`
 
 	// checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
-	Checksum string `json:"checksum"`
+	// When diskFormat is live-iso, empty string is also a valid value.
+	// +required
+	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:validation:MaxLength=512
+	Checksum *string `json:"checksum,omitempty"`
 
 	// checksumType is the checksum algorithm for the image.
 	// e.g md5, sha256, sha512
 	// +kubebuilder:validation:Enum=md5;sha256;sha512
 	// +optional
-	ChecksumType *string `json:"checksumType,omitempty"`
+	ChecksumType string `json:"checksumType,omitempty"`
 
 	// diskFormat contains the image disk format.
 	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk;live-iso
 	// +optional
-	DiskFormat *string `json:"diskFormat,omitempty"`
+	DiskFormat string `json:"diskFormat,omitempty"`
 }
 
 // Custom deploy is a description of a customized deploy process.
@@ -100,7 +116,10 @@ type CustomDeploy struct {
 	// method is the name of the deploy method.
 	// This name is specific to the deploy ramdisk used. If you don't have
 	// a custom deploy ramdisk, you shouldn't use CustomDeploy.
-	Method string `json:"method"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Method string `json:"method,omitempty"`
 }
 
 // Metal3ObjectRef is a reference to a Metal3 resource by name and namespace.
@@ -122,7 +141,7 @@ type Metal3ObjectRef struct {
 func (i *Image) Validate(base field.Path) field.ErrorList {
 	var errors field.ErrorList
 
-	if i == nil {
+	if i.URL == "" && i.Checksum == nil {
 		errors = append(errors, field.Required(&base, "either image or customDeploy is required"))
 		return errors // not possible to validate further
 	}
@@ -136,15 +155,13 @@ func (i *Image) Validate(base field.Path) field.ErrorList {
 		}
 	}
 	// Checksum is not required for live-iso.
-	if i.DiskFormat == nil || *i.DiskFormat != LiveISODiskFormat {
-		if i.Checksum == "" {
+	if i.DiskFormat != LiveISODiskFormat {
+		if i.Checksum == nil || *i.Checksum == "" {
 			errors = append(errors, field.Required(base.Child("Checksum"), "cannot be empty"))
-		}
-
-		if strings.HasPrefix(i.Checksum, "http://") || strings.HasPrefix(i.Checksum, "https://") {
-			_, err := url.ParseRequestURI(i.Checksum)
+		} else if strings.HasPrefix(*i.Checksum, "http://") || strings.HasPrefix(*i.Checksum, "https://") {
+			_, err := url.ParseRequestURI(*i.Checksum)
 			if err != nil {
-				errors = append(errors, field.Invalid(base.Child("Checksum"), i.Checksum, "not a valid URL"))
+				errors = append(errors, field.Invalid(base.Child("Checksum"), *i.Checksum, "not a valid URL"))
 			}
 		}
 	}

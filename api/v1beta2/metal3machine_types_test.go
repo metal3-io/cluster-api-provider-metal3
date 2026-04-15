@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 func TestStorageMetal3MachineSpec(t *testing.T) {
@@ -37,6 +38,10 @@ func TestStorageMetal3MachineSpec(t *testing.T) {
 			Namespace: "default",
 		},
 		Spec: Metal3MachineSpec{
+			Image: Image{
+				URL:      "http://example.com/image.qcow2",
+				Checksum: ptr.To("abcd1234"),
+			},
 			UserData: &corev1.SecretReference{
 				Name: "foo",
 			},

@@ -31,7 +31,10 @@ const (
 // MetaDataIndex contains the information to render the index.
 type MetaDataIndex struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 	// offset is the offset to apply to the index when rendering it
 	// +optional
 	Offset int32 `json:"offset,omitempty"`
@@ -41,74 +44,115 @@ type MetaDataIndex struct {
 	Step int32 `json:"step,omitempty"`
 	// prefix is the prefix string
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	Prefix string `json:"prefix,omitempty"`
 	// suffix is the suffix string
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	Suffix string `json:"suffix,omitempty"`
 }
 
 // IndexEntry represents the index assignment for a Metal3Machine.
 type IndexEntry struct {
 	// name is the name of the Metal3Machine
-	Name string `json:"name"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Name string `json:"name,omitempty"`
 	// index is the index value assigned to the Machine
-	Index int32 `json:"index"`
+	// +required
+	// +kubebuilder:validation:Minimum=0
+	Index *int32 `json:"index,omitempty"`
 }
 
 // MetaDataFromLabel contains the information to fetch a label content, if the
 // label does not exist, it is rendered as empty string.
 type MetaDataFromLabel struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 	// object is the type of the object from which we retrieve the name
+	// +required
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
-	Object string `json:"object"`
+	Object string `json:"object,omitempty"`
 	// label is the key of the label to fetch
-	Label string `json:"label"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Label string `json:"label,omitempty"`
 }
 
 // MetaDataFromAnnotation contains the information to fetch an annotation
 // content, if the label does not exist, it is rendered as empty string.
 type MetaDataFromAnnotation struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 	// object is the type of the object from which we retrieve the name
+	// +required
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
-	Object string `json:"object"`
+	Object string `json:"object,omitempty"`
 	// annotation is the key of the annotation to fetch
-	Annotation string `json:"annotation"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Annotation string `json:"annotation,omitempty"`
 }
 
 // MetaDataString contains the information to render the string.
 type MetaDataString struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 	// value is the string to render.
-	Value string `json:"value"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Value string `json:"value,omitempty"`
 }
 
 // MetaDataNamespace contains the information to render the namespace.
 type MetaDataNamespace struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 }
 
 // MetaDataObjectName contains the information to render the object name.
 type MetaDataObjectName struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 	// object is the type of the object from which we retrieve the name
+	// +required
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
-	Object string `json:"object"`
+	Object string `json:"object,omitempty"`
 }
 
 // MetaDataHostInterface contains the information to render the object name.
 type MetaDataHostInterface struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 	// interface is the name of the interface in the BareMetalHost Status Hardware
 	// Details list of interfaces from which to fetch the MAC address.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	Interface string `json:"interface,omitempty"`
 	// fromBootMAC will fetch the MAC address from the BareMetalHost Spec BootMACAddress field.
 	// +optional
@@ -119,7 +163,10 @@ type MetaDataHostInterface struct {
 // agnostic.
 type MetaDataIPAddress struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 	// start is the first ip address that can be rendered
 	// +optional
 	Start *ipamv1.IPAddressStr `json:"start,omitempty"`
@@ -140,27 +187,45 @@ type MetaDataIPAddress struct {
 
 type FromPool struct {
 	// key will be used as the key to set in the metadata map for cloud-init
-	Key string `json:"key"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Key string `json:"key,omitempty"`
 
 	// name is the name of the IP pool used to fetch the value to set in the metadata map for cloud-init
-	Name string `json:"name"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Name string `json:"name,omitempty"`
 
 	// apiGroup is the api group of the IP pool.
-	APIGroup string `json:"apiGroup"`
+	// +optional
+	// +kubebuilder:default=ipam.metal3.io
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	APIGroup string `json:"apiGroup,omitempty"`
 
 	// kind is the kind of the IP pool
-	Kind string `json:"kind"`
+	// +optional
+	// +kubebuilder:default=IPPool
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Kind string `json:"kind,omitempty"`
 }
 
 // FromPoolAnnotation contains the information to fetch pool reference details from an annotation.
 type FromPoolAnnotation struct {
 	// object is the type of the object from which we retrieve the annotation
+	// +required
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
-	Object string `json:"object"`
+	Object string `json:"object,omitempty"`
 
 	// annotation is the key of the annotation that contains the pool name.
 	// The annotation value should be a string containing the pool name.
-	Annotation string `json:"annotation"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Annotation string `json:"annotation,omitempty"`
 }
 
 // MetaData represents a keyand value of the metadata.
@@ -218,10 +283,14 @@ type MetaData struct {
 // content, if the label does not exist, it is rendered as empty string.
 type NetworkLinkEthernetMacFromAnnotation struct {
 	// object is the type of the object from which we retrieve the name
+	// +required
 	// +kubebuilder:validation:Enum=machine;metal3machine;baremetalhost
-	Object string `json:"object"`
+	Object string `json:"object,omitempty"`
 	// annotation is the key of the annotation to fetch
-	Annotation string `json:"annotation"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Annotation string `json:"annotation,omitempty"`
 }
 
 // NetworkLinkEthernetMac represents the Mac address content.
@@ -245,11 +314,15 @@ type NetworkLinkEthernetMac struct {
 type NetworkDataLinkEthernet struct {
 	// type is the type of the ethernet link. It can be one of:
 	// bridge, dvs, hw_veb, hyperv, ovs, tap, vhostuser, vif, phy
+	// +required
 	// +kubebuilder:validation:Enum=bridge;dvs;hw_veb;hyperv;ovs;tap;vhostuser;vif;phy
-	Type string `json:"type"`
+	Type string `json:"type,omitempty"`
 
 	// id is the ID of the interface (used for naming)
-	Id string `json:"id"` //nolint:stylecheck,revive
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Id string `json:"id,omitempty"` //nolint:stylecheck,revive
 
 	// name is the interface name to be used by cloud-init. When combined with
 	// MACAddress, cloud-init will rename the interface matching the MAC to this name.
@@ -267,15 +340,17 @@ type NetworkDataLinkEthernet struct {
 
 	// macAddress is the MAC address of the interface, containing the object
 	// used to render it.
-	MACAddress *NetworkLinkEthernetMac `json:"macAddress"`
+	// +required
+	MACAddress *NetworkLinkEthernetMac `json:"macAddress,omitempty"`
 }
 
 // NetworkDataLinkBond represents a bond link object.
 type NetworkDataLinkBond struct {
 	// bondMode is the mode of bond used. It can be one of
 	// balance-rr, active-backup, balance-xor, broadcast, balance-tlb, balance-alb, 802.3ad
+	// +required
 	// +kubebuilder:validation:Enum="balance-rr";"active-backup";"balance-xor";"broadcast";"balance-tlb";"balance-alb";"802.3ad"
-	BondMode string `json:"bondMode"`
+	BondMode string `json:"bondMode,omitempty"`
 
 	// bondXmitHashPolicy selects the transmit hash policy used for port selection in balance-xor and 802.3ad modes
 	// +kubebuilder:validation:Enum="layer2";"layer3+4";"layer2+3"
@@ -283,7 +358,10 @@ type NetworkDataLinkBond struct {
 	BondXmitHashPolicy string `json:"bondXmitHashPolicy"`
 
 	// id is the ID of the interface (used for naming)
-	Id string `json:"id"` //nolint:stylecheck,revive
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Id string `json:"id,omitempty"` //nolint:stylecheck,revive
 
 	// name is the interface name to be used by cloud-init. When combined with
 	// macAddress, cloud-init will rename the interface matching the MAC to this name.
@@ -301,15 +379,20 @@ type NetworkDataLinkBond struct {
 
 	// macAddress is the MAC address of the interface, containing the object
 	// used to render it.
-	MACAddress *NetworkLinkEthernetMac `json:"macAddress"`
+	// +required
+	MACAddress *NetworkLinkEthernetMac `json:"macAddress,omitempty"`
 
 	// parameters blob passed without any validation/modifications into cloud-init config
 	// +listType=map
 	// +listMapKey=name
+	// +required
 	Parameters []NetworkDataLinkBondParam `json:"parameters,omitempty"`
 
 	// bondLinks is the list of links that are part of the bond.
 	// +optional
+	// +kubebuilder:validation:MaxItems=512
+	// +kubebuilder:validation:items:MinLength=1
+	// +kubebuilder:validation:items:MaxLength=512
 	BondLinks []string `json:"bondLinks"`
 }
 
@@ -328,11 +411,16 @@ type NetworkDataLinkBondParam struct {
 // NetworkDataLinkVlan represents a vlan link object.
 type NetworkDataLinkVlan struct {
 	// vlanID is the Vlan ID
+	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=4096
-	VlanID int32 `json:"vlanID"`
+	// +required
+	VlanID *int32 `json:"vlanID,omitempty"`
 
 	// id is the ID of the interface (used for naming)
-	Id string `json:"id"` //nolint:stylecheck,revive
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Id string `json:"id,omitempty"` //nolint:stylecheck,revive
 
 	// name is the interface name to be used by cloud-init. When combined with
 	// macAddress, cloud-init will rename the interface matching the MAC to this name.
@@ -350,10 +438,14 @@ type NetworkDataLinkVlan struct {
 
 	// macAddress is the MAC address of the interface, containing the object
 	// used to render it.
-	MACAddress *NetworkLinkEthernetMac `json:"macAddress"`
+	// +required
+	MACAddress *NetworkLinkEthernetMac `json:"macAddress,omitempty"`
 
 	// vlanLink is the name of the link on which the vlan should be added
-	VlanLink string `json:"vlanLink"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	VlanLink string `json:"vlanLink,omitempty"`
 }
 
 // NetworkDataLink contains list of different link objects.
@@ -405,7 +497,7 @@ type NetworkDataServicev6 struct {
 }
 
 // NetworkGatewayv4 represents a gateway, given as a string or as a reference to
-// a Metal3IPPool.
+// a Metal3IPPool. One of the three fields must be set; FromIPPool, FromPoolRef, or FromPoolAnnotation.
 type NetworkGatewayv4 struct {
 	// string is the gateway given as a string
 	// +optional
@@ -416,7 +508,8 @@ type NetworkGatewayv4 struct {
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to fetch the gateway from
-	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
+	// +optional
+	FromPoolRef IPPoolReference `json:"fromPoolRef,omitempty,omitzero"`
 
 	// fromPoolAnnotation allows specifying the pool name via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.
@@ -437,7 +530,8 @@ type NetworkGatewayv6 struct {
 	FromIPPool *string `json:"fromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to fetch the gateway from
-	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
+	// +optional
+	FromPoolRef IPPoolReference `json:"fromPoolRef,omitempty,omitzero"`
 
 	// fromPoolAnnotation allows specifying the pool name via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.
@@ -449,7 +543,8 @@ type NetworkGatewayv6 struct {
 // NetworkDataRoutev4 represents an ipv4 route object.
 type NetworkDataRoutev4 struct {
 	// network is the IPv4 network address
-	Network ipamv1.IPAddressv4Str `json:"network"`
+	// +required
+	Network ipamv1.IPAddressv4Str `json:"network,omitempty"`
 
 	// prefix is the mask of the network as integer (max 32)
 	// +kubebuilder:validation:Maximum=32
@@ -457,7 +552,8 @@ type NetworkDataRoutev4 struct {
 	Prefix int32 `json:"prefix,omitempty"`
 
 	// gateway is the IPv4 address of the gateway
-	Gateway NetworkGatewayv4 `json:"gateway"`
+	// +required
+	Gateway NetworkGatewayv4 `json:"gateway,omitempty,omitzero"`
 
 	// services is a list of IPv4 services
 	// +optional
@@ -467,7 +563,8 @@ type NetworkDataRoutev4 struct {
 // NetworkDataRoutev6 represents an ipv6 route object.
 type NetworkDataRoutev6 struct {
 	// network is the IPv6 network address
-	Network ipamv1.IPAddressv6Str `json:"network"`
+	// +required
+	Network ipamv1.IPAddressv6Str `json:"network,omitempty"`
 
 	// prefix is the mask of the network as integer (max 128)
 	// +kubebuilder:validation:Maximum=128
@@ -475,7 +572,8 @@ type NetworkDataRoutev6 struct {
 	Prefix int32 `json:"prefix,omitempty"`
 
 	// gateway is the IPv6 address of the gateway
-	Gateway NetworkGatewayv6 `json:"gateway"`
+	// +required
+	Gateway NetworkGatewayv6 `json:"gateway,omitempty,omitzero"`
 
 	// services is a list of IPv6 services
 	// +optional
@@ -485,16 +583,26 @@ type NetworkDataRoutev6 struct {
 // NetworkDataIPv4 represents an ipv4 static network object.
 type NetworkDataIPv4 struct {
 	// id is the network ID (name)
-	ID string `json:"id"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ID string `json:"id,omitempty"`
 
 	// link is the link on which the network applies
-	Link string `json:"link"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Link string `json:"link,omitempty"`
 
 	// ipAddressFromIPPool contains the name of the IP pool to use to get an ip address
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	IPAddressFromIPPool string `json:"ipAddressFromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to allocate an address from.
-	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
+	// +optional
+	FromPoolRef IPPoolReference `json:"fromPoolRef,omitempty,omitzero"`
 
 	// fromPoolAnnotation allows specifying the pool reference via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.
@@ -519,7 +627,8 @@ type IPPoolReference struct {
 
 	// kind of the IPPool.
 	// kind must consist of alphanumeric characters or '-', start with an alphabetic character, and end with an alphanumeric character.
-	// +required
+	// +optional
+	// +kubebuilder:default=IPPool
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z]([-a-zA-Z0-9]*[a-zA-Z0-9])?$`
@@ -527,7 +636,8 @@ type IPPoolReference struct {
 
 	// apiGroup of the IPPool.
 	// apiGroup must be fully qualified domain name.
-	// +required
+	// +optional
+	// +kubebuilder:default=ipam.metal3.io
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=253
 	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$`
@@ -537,16 +647,26 @@ type IPPoolReference struct {
 // NetworkDataIPv6 represents an ipv6 static network object.
 type NetworkDataIPv6 struct {
 	// id is the network ID (name)
-	ID string `json:"id"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ID string `json:"id,omitempty"`
 
 	// link is the link on which the network applies
-	Link string `json:"link"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Link string `json:"link,omitempty"`
 
 	// ipAddressFromIPPool contains the name of the IPPool to use to get an ip address
-	IPAddressFromIPPool string `json:"ipAddressFromIPPool"`
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	IPAddressFromIPPool string `json:"ipAddressFromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to allocate an address from.
-	FromPoolRef *IPPoolReference `json:"fromPoolRef,omitempty"`
+	// +optional
+	FromPoolRef IPPoolReference `json:"fromPoolRef,omitempty,omitzero"`
 
 	// fromPoolAnnotation allows specifying the pool reference via an annotation on
 	// a Machine, Metal3Machine, or BareMetalHost object.
@@ -562,10 +682,16 @@ type NetworkDataIPv6 struct {
 // NetworkDataIPv4DHCP represents an ipv4 DHCP network object.
 type NetworkDataIPv4DHCP struct {
 	// id is the network ID (name)
-	ID string `json:"id"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ID string `json:"id,omitempty"`
 
 	// link is the link on which the network applies
-	Link string `json:"link"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Link string `json:"link,omitempty"`
 
 	// routes contains a list of IPv4 routes
 	// +optional
@@ -575,10 +701,16 @@ type NetworkDataIPv4DHCP struct {
 // NetworkDataIPv6DHCP represents an ipv6 DHCP network object.
 type NetworkDataIPv6DHCP struct {
 	// id is the network ID (name)
-	ID string `json:"id"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ID string `json:"id,omitempty"`
 
 	// link is the link on which the network applies
-	Link string `json:"link"`
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	Link string `json:"link,omitempty"`
 
 	// routes contains a list of IPv6 routes
 	// +optional
@@ -626,8 +758,9 @@ type NetworkData struct {
 // Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
 type Metal3DataTemplateSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
+	// +required
 	// +kubebuilder:validation:MinLength=1
-	ClusterName string `json:"clusterName"`
+	ClusterName string `json:"clusterName,omitempty"`
 
 	// metaData contains the information needed to generate the metadata secret
 	// +optional

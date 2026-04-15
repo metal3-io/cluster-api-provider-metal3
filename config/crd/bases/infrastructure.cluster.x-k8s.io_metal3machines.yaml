@@ -614,13 +614,17 @@ spec:
                 - disabled
                 type: string
               customDeploy:
-                description: customDeploy is a custom deploy procedure.
+                description: |-
+                  customDeploy is a custom deploy procedure.
+                  Either image or customDeploy is required.
                 properties:
                   method:
                     description: |-
                       method is the name of the deploy method.
                       This name is specific to the deploy ramdisk used. If you don't have
                       a custom deploy ramdisk, you shouldn't use CustomDeploy.
+                    maxLength: 512
+                    minLength: 1
                     type: string
                 required:
                 - method
@@ -644,6 +648,8 @@ spec:
               failureDomain:
                 description: failureDomain is the failure domain unique identifier
                   this machine should be attached to, as defined in Cluster API.
+                maxLength: 256
+                minLength: 1
                 type: string
               hostSelector:
                 description: |-
@@ -659,6 +665,8 @@ spec:
                         key:
                           description: key is the label key that the selector applies
                             to.
+                          maxLength: 512
+                          minLength: 1
                           type: string
                         operator:
                           description: operator represents a key's relationship to
@@ -667,7 +675,10 @@ spec:
                         values:
                           description: values is an array of string of required values.
                           items:
+                            maxLength: 512
+                            minLength: 1
                             type: string
+                          maxItems: 512
                           type: array
                       required:
                       - key
@@ -683,11 +694,16 @@ spec:
                     type: object
                 type: object
               image:
-                description: image is the image to be provisioned.
+                description: |-
+                  image is the image to be provisioned.
+                  Either image or customDeploy is required.
                 properties:
                   checksum:
-                    description: checksum is a md5sum, sha256sum or sha512sum value
-                      or a URL to retrieve one.
+                    description: |-
+                      checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
+                      When diskFormat is live-iso, empty string is also a valid value.
+                    maxLength: 512
+                    minLength: 0
                     type: string
                   checksumType:
                     description: |-
@@ -709,6 +725,9 @@ spec:
                     type: string
                   url:
                     description: url is a location of an image to deploy.
+                    format: uri
+                    maxLength: 512
+                    minLength: 1
                     type: string
                 required:
                 - checksum

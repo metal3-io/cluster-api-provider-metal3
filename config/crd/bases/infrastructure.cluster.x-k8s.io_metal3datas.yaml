@@ -288,15 +288,14 @@ spec:
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
-            required:
-            - claim
-            - template
             type: object
           status:
             description: status defines the observed state of Metal3Data.
             properties:
               errorMessage:
                 description: errorMessage contains the error message
+                maxLength: 512
+                minLength: 1
                 type: string
               ready:
                 description: ready is a flag set to True if the secrets were rendered

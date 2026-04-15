@@ -54,7 +54,7 @@ const (
 var Bmhuid = types.UID("4d25a2c2-46e4-11ec-81d3-0242ac130003")
 var ProviderID = fmt.Sprintf("metal3://%s", Bmhuid)
 
-var testImageDiskFormat = ptr.To("raw")
+var testImageDiskFormat = "raw"
 
 func m3mSpec() *infrav1.Metal3MachineSpec {
 	return &infrav1.Metal3MachineSpec{
@@ -71,8 +71,8 @@ func m3mSpecAll() *infrav1.Metal3MachineSpec {
 		},
 		Image: infrav1.Image{
 			URL:          testImageURL,
-			Checksum:     testImageChecksumURL,
-			ChecksumType: ptr.To("sha512"),
+			Checksum:     ptr.To(testImageChecksumURL),
+			ChecksumType: "sha512",
 			DiskFormat:   testImageDiskFormat,
 		},
 		HostSelector: infrav1.HostSelector{},
@@ -122,7 +122,7 @@ func expectedImg() *bmov1alpha1.Image {
 	return &bmov1alpha1.Image{
 		URL:        testImageURL,
 		Checksum:   testImageChecksumURL,
-		DiskFormat: testImageDiskFormat,
+		DiskFormat: &testImageDiskFormat,
 	}
 }
 
@@ -3075,7 +3075,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 						Image: infrav1.Image{
 							URL:        testImageURL,
-							Checksum:   testImageChecksumURL,
+							Checksum:   ptr.To(testImageChecksumURL),
 							DiskFormat: testImageDiskFormat,
 						},
 					}, nil, nil,
@@ -3102,7 +3102,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 						Image: infrav1.Image{
 							URL:        testImageURL,
-							Checksum:   testImageChecksumURL,
+							Checksum:   ptr.To(testImageChecksumURL),
 							DiskFormat: testImageDiskFormat,
 						},
 					}, &infrav1.Metal3MachineStatus{
@@ -3698,7 +3698,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 				Spec: infrav1.Metal3DataClaimSpec{
-					Template: infrav1.Metal3ObjectRef{
+					Template: &infrav1.Metal3ObjectRef{
 						Name:      "abcd",
 						Namespace: namespaceName,
 					},
@@ -4785,7 +4785,7 @@ func newConfig(userDataNamespace string,
 		Spec: infrav1.Metal3MachineSpec{
 			Image: infrav1.Image{
 				URL:        testImageURL,
-				Checksum:   testImageChecksumURL,
+				Checksum:   ptr.To(testImageChecksumURL),
 				DiskFormat: testImageDiskFormat,
 			},
 			UserData: &corev1.SecretReference{
