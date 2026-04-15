@@ -1775,6 +1775,104 @@ spec:
                           - macAddress
                           type: object
                         type: array
+                      bridges:
+                        description: bridges contains a list of Linux bridge links
+                        items:
+                          description: NetworkDataLinkBridge represents a Linux bridge
+                            link object.
+                          properties:
+                            acceptRA:
+                              description: |-
+                                acceptRA controls IPv6 Router Advertisements (RA) on this bridge.
+                                When nil, it will not be rendered.
+                              type: boolean
+                            bridgeLinks:
+                              description: bridgeLinks is the list of links (by link
+                                id) that are part of the bridge.
+                              items:
+                                type: string
+                              type: array
+                            id:
+                              description: id is the ID of the interface (used for
+                                naming)
+                              type: string
+                            macAddress:
+                              description: |-
+                                macAddress is the MAC address of the interface, containing the object
+                                used to render it.
+                              properties:
+                                fromAnnotation:
+                                  description: |-
+                                    fromAnnotation references an object annotation to retrieve the
+                                    MAC address from
+                                  properties:
+                                    annotation:
+                                      description: annotation is the key of the annotation
+                                        to fetch
+                                      type: string
+                                    object:
+                                      description: object is the type of the object
+                                        from which we retrieve the name
+                                      enum:
+                                      - machine
+                                      - metal3machine
+                                      - baremetalhost
+                                      type: string
+                                  required:
+                                  - annotation
+                                  - object
+                                  type: object
+                                fromHostInterface:
+                                  description: |-
+                                    fromHostInterface contains the name of the interface in the BareMetalHost
+                                    Introspection details from which to fetch the MAC address
+                                  type: string
+                                string:
+                                  description: string contains the MAC address given
+                                    as a string
+                                  type: string
+                              type: object
+                            mtu:
+                              default: 1500
+                              description: mtu is the MTU of the interface
+                              format: int32
+                              maximum: 9000
+                              type: integer
+                            name:
+                              description: |-
+                                name is the interface name to be used by cloud-init. When combined with
+                                macAddress, cloud-init will rename the interface matching the MAC to this name.
+                                When macAddress is omitted, cloud-init will use this name directly.
+                              maxLength: 15
+                              pattern: ^[a-zA-Z][a-zA-Z0-9._-]*$
+                              type: string
+                            parameters:
+                              description: parameters blob passed without any validation/modifications
+                                into cloud-init config.
+                              items:
+                                description: NetworkDataLinkBridgeParam represents
+                                  a single bridge parameter.
+                                properties:
+                                  name:
+                                    description: name is the parameter name (without
+                                      the "bridge_" prefix)
+                                    minLength: 1
+                                    type: string
+                                  value:
+                                    description: value is the parameter value
+                                    type: object
+                                    x-kubernetes-preserve-unknown-fields: true
+                                required:
+                                - name
+                                type: object
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - name
+                              x-kubernetes-list-type: map
+                          required:
+                          - id
+                          type: object
+                        type: array
                       ethernets:
                         description: ethernets contains a list of Ethernet links
                         items:

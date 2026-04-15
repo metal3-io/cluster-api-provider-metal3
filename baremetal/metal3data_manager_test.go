@@ -30,6 +30,7 @@ import (
 	. "github.com/onsi/gomega"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -2883,6 +2884,146 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			expectError: true,
 		}),
+		Entry("Bridge, MAC from string", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bridges: []infrav1.NetworkDataLinkBridge{
+					{
+						Id:  "bridge0",
+						MTU: 1500,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("12:34:56:78:9A:BC"),
+						},
+						BridgeLinks: []string{"eth0"},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":                 "linux_bridge",
+					"id":                   "bridge0",
+					"mtu":                  int32(1500),
+					"ethernet_mac_address": "12:34:56:78:9A:BC",
+					"bridge_links":         []string{"eth0"},
+				},
+			},
+		}),
+		Entry("Bridge, MAC error", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bridges: []infrav1.NetworkDataLinkBridge{
+					{
+						Id:  "bridge0",
+						MTU: 1500,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							FromHostInterface: ptr.To("eth2"),
+						},
+						BridgeLinks: []string{"eth0"},
+					},
+				},
+			},
+			bmh: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: testObjectMeta(baremetalhostName, namespaceName, ""),
+				Status:     bmov1alpha1.BareMetalHostStatus{},
+			},
+			expectError: true,
+		}),
+		Entry("Bridge, accept-ra and params", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bridges: []infrav1.NetworkDataLinkBridge{
+					{
+						Id:          "bridge0",
+						MTU:         1500,
+						AcceptRA:    ptr.To(true),
+						MACAddress:  nil,
+						BridgeLinks: []string{"eth0"},
+						Parameters: []infrav1.NetworkDataLinkBridgeParam{
+							{
+								Name:  "stp",
+								Value: apiextensionsv1.JSON{Raw: []byte(`"on"`)},
+							},
+						},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":         "linux_bridge",
+					"id":           "bridge0",
+					"mtu":          int32(1500),
+					"bridge_links": []string{"eth0"},
+					"accept-ra":    true,
+					"bridge_stp":   apiextensionsv1.JSON{Raw: []byte(`"on"`)},
+				},
+			},
+		}),
+		Entry("Bridge, list-valued bridge_* params", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bridges: []infrav1.NetworkDataLinkBridge{
+					{
+						Id:         "bridge0",
+						MTU:        1500,
+						MACAddress: nil,
+						// bridge_links are rendered from BridgeLinks (structured field), not via Parameters.
+						BridgeLinks: []string{"eth0", "eth1"},
+						Parameters: []infrav1.NetworkDataLinkBridgeParam{
+							{
+								Name:  "pathcost",
+								Value: apiextensionsv1.JSON{Raw: []byte(`[[\"eth0\",100],[\"eth1\",100]]`)},
+							},
+							{
+								Name:  "portprio",
+								Value: apiextensionsv1.JSON{Raw: []byte(`[[\"eth0\",32],[\"eth1\",32]]`)},
+							},
+							{
+								Name:  "ports",
+								Value: apiextensionsv1.JSON{Raw: []byte(`[[\"eth0\",\"eth1\"]]`)},
+							},
+							{
+								// cloud-init schema expects on/off (string), but Parameters are pass-through JSON.
+								Name:  "stp",
+								Value: apiextensionsv1.JSON{Raw: []byte(`true`)},
+							},
+							{
+								Name:  "waitport",
+								Value: apiextensionsv1.JSON{Raw: []byte(`[5,\"eth0\",\"eth1\"]`)},
+							},
+						},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":            "linux_bridge",
+					"id":              "bridge0",
+					"mtu":             int32(1500),
+					"bridge_links":    []string{"eth0", "eth1"},
+					"bridge_pathcost": apiextensionsv1.JSON{Raw: []byte(`[[\"eth0\",100],[\"eth1\",100]]`)},
+					"bridge_portprio": apiextensionsv1.JSON{Raw: []byte(`[[\"eth0\",32],[\"eth1\",32]]`)},
+					"bridge_ports":    apiextensionsv1.JSON{Raw: []byte(`[[\"eth0\",\"eth1\"]]`)},
+					"bridge_stp":      apiextensionsv1.JSON{Raw: []byte(`true`)},
+					"bridge_waitport": apiextensionsv1.JSON{Raw: []byte(`[5,\"eth0\",\"eth1\"]`)},
+				},
+			},
+		}),
+		Entry("Bridge, illegal params overwrite bridge_links", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bridges: []infrav1.NetworkDataLinkBridge{
+					{
+						Id:          "bridge0",
+						MTU:         1500,
+						MACAddress:  nil,
+						BridgeLinks: []string{"eth0"},
+						Parameters: []infrav1.NetworkDataLinkBridgeParam{
+							{
+								// targets "bridge_links" which already exists as a structured field
+								Name:  "links",
+								Value: apiextensionsv1.JSON{Raw: []byte(`"illegal"`)},
+							},
+						},
+					},
+				},
+			},
+			expectError: true,
+		}),
 		Entry("Vlan, MAC from string", testCaseRenderNetworkLinks{
 			links: infrav1.NetworkDataLink{
 				Vlans: []infrav1.NetworkDataLinkVlan{
@@ -2974,6 +3115,28 @@ var _ = Describe("Metal3Data manager", func() {
 				},
 			},
 		}),
+		Entry("Bridge, nil MAC address - use kernel name directly", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bridges: []infrav1.NetworkDataLinkBridge{
+					{
+						Id:          "bridge0", // use existing kernel interface name
+						MTU:         1500,
+						MACAddress:  nil, // no MAC - cloud-init will use name directly
+						BridgeLinks: []string{"eth0"},
+						Name:        "",
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":         "linux_bridge",
+					"id":           "bridge0",
+					"mtu":          int32(1500),
+					"bridge_links": []string{"eth0"},
+					// no ethernet_mac_address field, no name field
+				},
+			},
+		}),
 		Entry("Vlan, nil MAC address - use kernel name directly", testCaseRenderNetworkLinks{
 			links: infrav1.NetworkDataLink{
 				Vlans: []infrav1.NetworkDataLinkVlan{
@@ -3049,6 +3212,31 @@ var _ = Describe("Metal3Data manager", func() {
 					"bond_mode":             "active-backup",
 					"bond_xmit_hash_policy": "layer2",
 					"bond_links":            []string{"eth0", "eth1"},
+				},
+			},
+		}),
+		Entry("Bridge interface rename - name field explicitly set", testCaseRenderNetworkLinks{
+			links: infrav1.NetworkDataLink{
+				Bridges: []infrav1.NetworkDataLinkBridge{
+					{
+						Id:   "bridge0",
+						Name: "br0",
+						MTU:  1500,
+						MACAddress: &infrav1.NetworkLinkEthernetMac{
+							String: ptr.To("11:22:33:44:55:66"),
+						},
+						BridgeLinks: []string{"eth0"},
+					},
+				},
+			},
+			expectedOutput: []any{
+				map[string]any{
+					"type":                 "linux_bridge",
+					"id":                   "bridge0",
+					"name":                 "br0",
+					"mtu":                  int32(1500),
+					"ethernet_mac_address": "11:22:33:44:55:66",
+					"bridge_links":         []string{"eth0"},
 				},
 			},
 		}),

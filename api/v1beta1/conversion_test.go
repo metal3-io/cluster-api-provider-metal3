@@ -238,6 +238,18 @@ func Metal3DataFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
+func hubMetal3DataTemplateSpec(in *infrav1.Metal3DataTemplateSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// v1beta1 is deprecated and does not support bridge configuration.
+	// Drop bridges from v1beta2 hub during fuzzing so hub->spoke->hub
+	// conversions aren't considered lossy.
+	if in.NetworkData != nil {
+		// In the deprecated v1beta1 API, `spec.networkData.links.bridges` does not exist.
+		in.NetworkData.Links.Bridges = nil
+	}
+}
+
 func spokeMetal3DataSpec(in *Metal3DataSpec, c randfill.Continue) {
 	c.FillNoCustom(in)
 
@@ -306,6 +318,7 @@ func spokeMetal3DataClaimStatus(in *Metal3DataClaimStatus, c randfill.Continue) 
 func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeMetal3DataTemplateSpec,
+		hubMetal3DataTemplateSpec,
 		spokeTypedLocalObjectReference,
 	}
 }

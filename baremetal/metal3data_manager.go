@@ -1149,6 +1149,50 @@ func renderNetworkLinks(networkLinks infrav1.NetworkDataLink,
 		data = append(data, entry)
 	}
 
+	// Bridge links (Linux bridge)
+	for _, link := range networkLinks.Bridges {
+		entry := map[string]any{
+			"type":         "linux_bridge",
+			"id":           link.Id,
+			"mtu":          link.MTU,
+			"bridge_links": link.BridgeLinks,
+		}
+		// Name is optional - if provided, cloud-init will use it for interface renaming
+		if link.Name != "" {
+			entry["name"] = link.Name
+		}
+		// acceptRA is optional. If unset, cloud-init will not render "accept-ra".
+		if link.AcceptRA != nil {
+			entry["accept-ra"] = *link.AcceptRA
+		}
+		// MAC address is optional - if provided, include it for interface matching/renaming
+		if link.MACAddress != nil {
+			macAddress, err := getLinkMacAddress(link.MACAddress, m3m, machine, bmh)
+			if err != nil {
+				return nil, err
+			}
+			entry["ethernet_mac_address"] = macAddress
+		}
+
+		illegalParameters := []string{}
+		for _, param := range link.Parameters {
+			target := "bridge_" + param.Name
+			_, ok := entry[target]
+			if ok {
+				illegalParameters = append(illegalParameters, param.Name)
+				continue // Do not overwrite structured parameters
+			}
+			entry[target] = param.Value
+		}
+
+		if 0 < len(illegalParameters) {
+			return nil, fmt.Errorf("illegal params \"%s\" into bridge params blob into link id=%s",
+				strings.Join(illegalParameters, `", "`), link.Id)
+		}
+
+		data = append(data, entry)
+	}
+
 	// Ethernet links
 	for _, link := range networkLinks.Ethernets {
 		entry := map[string]any{
