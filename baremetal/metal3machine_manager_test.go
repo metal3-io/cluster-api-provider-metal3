@@ -1491,6 +1491,39 @@ var _ = Describe("Metal3Machine manager", func() {
 				),
 				ExpectPresent: false,
 			}),
+			Entry("Should find host in own namespace when annotation contains a foreign namespace prefix",
+				testCaseGetHost{
+					Machine: &clusterv1.Machine{},
+					M3Machine: newMetal3Machine(metal3machineName, nil, nil,
+						&metav1.ObjectMeta{
+							Name:      metal3machineName,
+							Namespace: namespaceName,
+							Annotations: map[string]string{
+								HostAnnotation: "other-namespace/" + baremetalhostName,
+							},
+						},
+					),
+					ExpectPresent: true,
+				},
+			),
+			Entry("Should not find host in other namespace",
+				// The BMH is in namespaceName for all these tests.
+				// We should not be able to find any BMH in the other-namespace,
+				// where the M3M is located in this test.
+				testCaseGetHost{
+					Machine: &clusterv1.Machine{},
+					M3Machine: newMetal3Machine(metal3machineName, nil, nil,
+						&metav1.ObjectMeta{
+							Name:      metal3machineName,
+							Namespace: "other-namespace",
+							Annotations: map[string]string{
+								HostAnnotation: namespaceName + "/" + baremetalhostName,
+							},
+						},
+					),
+					ExpectPresent: false,
+				},
+			),
 		)
 	})
 
