@@ -16,20 +16,16 @@ package webhooks
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // SetupWebhookWithManager sets up and registers the webhook with the manager.
 func (webhook *Metal3ClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.Metal3ClusterTemplate{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.Metal3ClusterTemplate{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -39,21 +35,16 @@ func (webhook *Metal3ClusterTemplate) SetupWebhookWithManager(mgr ctrl.Manager) 
 // Metal3ClusterTemplate implements a validation webhook for Metal3ClusterTemplate.
 type Metal3ClusterTemplate struct{}
 
-var _ webhook.CustomValidator = &Metal3ClusterTemplate{}
+var _ admission.Validator[*infrav1.Metal3ClusterTemplate] = &Metal3ClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3ClusterTemplate) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	c, ok := obj.(*infrav1.Metal3ClusterTemplate)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3ClusterTemplate but got a %T", obj))
-	}
-	return nil, webhook.validate(c)
+func (webhook *Metal3ClusterTemplate) ValidateCreate(_ context.Context, obj *infrav1.Metal3ClusterTemplate) (admission.Warnings, error) {
+	return nil, webhook.validate(obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3ClusterTemplate) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	oldM3ct, ok := oldObj.(*infrav1.Metal3ClusterTemplate)
-	if !ok || oldM3ct == nil {
+func (webhook *Metal3ClusterTemplate) ValidateUpdate(_ context.Context, oldM3ct, newM3ct *infrav1.Metal3ClusterTemplate) (admission.Warnings, error) {
+	if oldM3ct == nil {
 		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
 	}
 
@@ -61,8 +52,7 @@ func (webhook *Metal3ClusterTemplate) ValidateUpdate(_ context.Context, oldObj, 
 		return nil, err
 	}
 
-	newM3ct, ok := newObj.(*infrav1.Metal3ClusterTemplate)
-	if !ok || newM3ct == nil {
+	if newM3ct == nil {
 		return nil, apierrors.NewInternalError(errors.New("unable to convert new object"))
 	}
 
@@ -74,7 +64,7 @@ func (webhook *Metal3ClusterTemplate) ValidateUpdate(_ context.Context, oldObj, 
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3ClusterTemplate) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *Metal3ClusterTemplate) ValidateDelete(_ context.Context, _ *infrav1.Metal3ClusterTemplate) (admission.Warnings, error) {
 	return nil, nil
 }
 

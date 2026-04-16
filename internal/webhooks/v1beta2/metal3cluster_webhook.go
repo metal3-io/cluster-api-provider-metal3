@@ -15,21 +15,17 @@ package webhooks
 
 import (
 	"context"
-	"fmt"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (webhook *Metal3Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.Metal3Cluster{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.Metal3Cluster{}).
 		WithValidator(webhook).
 		WithDefaulter(webhook).
 		Complete()
@@ -41,15 +37,10 @@ func (webhook *Metal3Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // Metal3Cluster implements a validation and defaulting webhook for Metal3Cluster.
 type Metal3Cluster struct{}
 
-var _ webhook.CustomDefaulter = &Metal3Cluster{}
-var _ webhook.CustomValidator = &Metal3Cluster{}
+var _ admission.Defaulter[*infrav1.Metal3Cluster] = &Metal3Cluster{}
+var _ admission.Validator[*infrav1.Metal3Cluster] = &Metal3Cluster{}
 
-func (webhook *Metal3Cluster) Default(_ context.Context, obj runtime.Object) error {
-	m3c, ok := obj.(*infrav1.Metal3Cluster)
-	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", obj))
-	}
-
+func (webhook *Metal3Cluster) Default(_ context.Context, m3c *infrav1.Metal3Cluster) error {
 	if m3c.Spec.ControlPlaneEndpoint.Port == 0 {
 		m3c.Spec.ControlPlaneEndpoint.Port = 6443
 	}
@@ -61,32 +52,25 @@ func (webhook *Metal3Cluster) Default(_ context.Context, obj runtime.Object) err
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3Cluster) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	c, ok := obj.(*infrav1.Metal3Cluster)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", obj))
-	}
-
-	return nil, webhook.validate(nil, c)
+func (webhook *Metal3Cluster) ValidateCreate(_ context.Context, obj *infrav1.Metal3Cluster) (admission.Warnings, error) {
+	return nil, webhook.validate(nil, obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3Cluster) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	newM3C, ok := newObj.(*infrav1.Metal3Cluster)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", newObj))
+func (webhook *Metal3Cluster) ValidateUpdate(_ context.Context, oldM3C, newM3C *infrav1.Metal3Cluster) (admission.Warnings, error) {
+	if newM3C == nil {
+		return nil, apierrors.NewBadRequest("expected a Metal3Cluster but got nil")
 	}
 
-	oldM3C, ok := oldObj.(*infrav1.Metal3Cluster)
-	if !ok || oldM3C == nil {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Cluster but got a %T", oldObj))
+	if oldM3C == nil {
+		return nil, apierrors.NewBadRequest("expected a Metal3Cluster but got nil")
 	}
 
 	return nil, webhook.validate(oldM3C, newM3C)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3Cluster) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *Metal3Cluster) ValidateDelete(_ context.Context, _ *infrav1.Metal3Cluster) (admission.Warnings, error) {
 	return nil, nil
 }
 

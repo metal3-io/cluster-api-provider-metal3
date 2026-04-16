@@ -22,16 +22,13 @@ import (
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (webhook *Metal3Remediation) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&infrav1.Metal3Remediation{}).
+	return ctrl.NewWebhookManagedBy(mgr, &infrav1.Metal3Remediation{}).
 		WithValidator(webhook).
 		Complete()
 }
@@ -41,29 +38,20 @@ func (webhook *Metal3Remediation) SetupWebhookWithManager(mgr ctrl.Manager) erro
 // Metal3Remediation implements a validation webhook for Metal3Remediation.
 type Metal3Remediation struct{}
 
-var _ webhook.CustomValidator = &Metal3Remediation{}
+var _ admission.Validator[*infrav1.Metal3Remediation] = &Metal3Remediation{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3Remediation) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
-	c, ok := obj.(*infrav1.Metal3Remediation)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Remediation but got a %T", obj))
-	}
-	return nil, webhook.validate(c)
+func (webhook *Metal3Remediation) ValidateCreate(_ context.Context, obj *infrav1.Metal3Remediation) (admission.Warnings, error) {
+	return nil, webhook.validate(obj)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3Remediation) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
-	newM3R, ok := newObj.(*infrav1.Metal3Remediation)
-	if !ok {
-		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Metal3Remediation but got a %T", newObj))
-	}
-
+func (webhook *Metal3Remediation) ValidateUpdate(_ context.Context, _, newM3R *infrav1.Metal3Remediation) (admission.Warnings, error) {
 	return nil, webhook.validate(newM3R)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (webhook *Metal3Remediation) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+func (webhook *Metal3Remediation) ValidateDelete(_ context.Context, _ *infrav1.Metal3Remediation) (admission.Warnings, error) {
 	return nil, nil
 }
 
