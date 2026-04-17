@@ -25,7 +25,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -35,7 +34,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 	type testCaseUpdate struct {
 		M3MachineTemplate *infrav1.Metal3MachineTemplate
 		M3MachineList     *infrav1.Metal3MachineList
-		ExpectedValue     *string
+		ExpectedValue     string
 	}
 
 	DescribeTable("Test UpdateAutomatedCleaningMode",
@@ -62,11 +61,11 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				updatedM3M := infrav1.Metal3Machine{}
 				err = fakeClient.Get(context.TODO(), key, &updatedM3M)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(updatedM3M.Spec.AutomatedCleaningMode).To(Equal(tc.ExpectedValue))
+				Expect(updatedM3M.Spec.AutomatedCleaningMode).To(BeEquivalentTo(tc.ExpectedValue))
 			}
 		},
 		Entry("Disk cleaning disabled", testCaseUpdate{
-			ExpectedValue: ptr.To("disabled"),
+			ExpectedValue: infrav1.CleaningModeDisabled,
 			M3MachineTemplate: &infrav1.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: infrav1.GroupVersion.String(),
@@ -76,7 +75,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 						},
 					},
 				},
@@ -99,7 +98,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeMetadata),
+							AutomatedCleaningMode: infrav1.CleaningModeMetadata,
 						},
 					},
 					{
@@ -113,7 +112,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeMetadata),
+							AutomatedCleaningMode: infrav1.CleaningModeMetadata,
 						},
 					},
 					{
@@ -127,14 +126,14 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeMetadata),
+							AutomatedCleaningMode: infrav1.CleaningModeMetadata,
 						},
 					},
 				},
 			},
 		}),
 		Entry("Disk cleaning enabled", testCaseUpdate{
-			ExpectedValue: ptr.To("metadata"),
+			ExpectedValue: infrav1.CleaningModeMetadata,
 			M3MachineTemplate: &infrav1.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: infrav1.GroupVersion.String(),
@@ -144,7 +143,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeMetadata),
+							AutomatedCleaningMode: infrav1.CleaningModeMetadata,
 						},
 					},
 				},
@@ -167,7 +166,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 						},
 					},
 					{
@@ -181,7 +180,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 						},
 					},
 					{
@@ -195,14 +194,14 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 						},
 					},
 				},
 			},
 		}),
 		Entry("Don't synchronize M3Machines which are not part of the M3MTemplate ", testCaseUpdate{
-			ExpectedValue: ptr.To("metadata"),
+			ExpectedValue: infrav1.CleaningModeMetadata,
 			M3MachineTemplate: &infrav1.Metal3MachineTemplate{
 				TypeMeta: metav1.TypeMeta{
 					APIVersion: infrav1.GroupVersion.String(),
@@ -212,7 +211,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To("disabled"),
+							AutomatedCleaningMode: "disabled",
 						},
 					},
 				},
@@ -235,7 +234,7 @@ var _ = Describe("Metal3MachineTemplate manager", func() {
 							},
 						},
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeMetadata),
+							AutomatedCleaningMode: infrav1.CleaningModeMetadata,
 						},
 					},
 				},

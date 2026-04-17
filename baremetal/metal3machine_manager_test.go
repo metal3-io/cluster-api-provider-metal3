@@ -75,7 +75,7 @@ func m3mSpecAll() *infrav1.Metal3MachineSpec {
 			ChecksumType: "sha512",
 			DiskFormat:   testImageDiskFormat,
 		},
-		HostSelector: infrav1.HostSelector{},
+		HostSelector: &infrav1.HostSelector{},
 	}
 }
 
@@ -1228,7 +1228,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			if tc.UseCustomDeploy != nil {
 				m3mconfig.Spec.Image = infrav1.Image{}
-				m3mconfig.Spec.CustomDeploy = &infrav1.CustomDeploy{
+				m3mconfig.Spec.CustomDeploy = infrav1.CustomDeploy{
 					Method: tc.UseCustomDeploy.Method,
 				}
 			}
@@ -1864,7 +1864,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					&m3mTemplate,
 				)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(m3mTemplate.Spec.NodeReuse).To(BeTrue())
+				Expect(m3mTemplate.Spec.NodeReuse).To(HaveValue(BeTrue()))
 			}
 
 			if tc.Host != nil {
@@ -2327,10 +2327,10 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 						},
 					},
-					NodeReuse: true,
+					NodeReuse: ptr.To(true),
 				}},
 		}),
 		Entry("NodeReuse enabled, machine is controlplane, no error expected", testCaseDelete{
@@ -2408,10 +2408,10 @@ var _ = Describe("Metal3Machine manager", func() {
 				Spec: infrav1.Metal3MachineTemplateSpec{
 					Template: infrav1.Metal3MachineTemplateResource{
 						Spec: infrav1.Metal3MachineSpec{
-							AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+							AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 						},
 					},
-					NodeReuse: true,
+					NodeReuse: ptr.To(true),
 				}},
 		}),
 	)
@@ -3158,7 +3158,7 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 					Status: infrav1.Metal3DataStatus{
-						Ready: true,
+						Ready: ptr.To(true),
 					},
 				},
 				ExpectClusterLabel: true,
@@ -3781,7 +3781,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					Namespace: namespaceName,
 				},
 				Status: infrav1.Metal3DataStatus{
-					Ready: true,
+					Ready: ptr.To(true),
 				},
 			},
 			ExpectDataStatus:                     true,
@@ -3808,7 +3808,7 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 				},
 				Status: infrav1.Metal3DataStatus{
-					Ready: true,
+					Ready: ptr.To(true),
 				},
 			},
 			ExpectDataStatus:                     true,
@@ -4825,7 +4825,7 @@ func newConfig(userDataNamespace string,
 				Name:      testUserDataSecretName,
 				Namespace: userDataNamespace,
 			},
-			HostSelector: infrav1.HostSelector{
+			HostSelector: &infrav1.HostSelector{
 				MatchLabels:      labels,
 				MatchExpressions: reqs,
 			},

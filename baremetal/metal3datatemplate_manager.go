@@ -133,21 +133,24 @@ func (m *DataTemplateManager) getIndexes(ctx context.Context) ([]infrav1.IndexEn
 	// Iterate over the Metal3Data objects to find all indexes and objects
 	for _, dataObject := range dataObjects.Items {
 		// If DataTemplate does not point to this object, discard
-		if dataObject.Spec.Template.Name == "" {
+		if dataObject.Spec.Template == nil || dataObject.Spec.Template.Name == "" {
 			continue
 		}
 		if dataObject.Spec.Template.Name != m.DataTemplate.Name {
 			continue
 		}
 
+		if dataObject.Spec.Claim == nil {
+			continue
+		}
 		claimName := dataObject.Spec.Claim.Name
 		m.DataTemplate.Status.Indexes = append(m.DataTemplate.Status.Indexes, infrav1.IndexEntry{
 			Name:  claimName,
-			Index: &dataObject.Spec.Index,
+			Index: dataObject.Spec.Index,
 		})
 		indexes = append(indexes, infrav1.IndexEntry{
 			Name:  claimName,
-			Index: &dataObject.Spec.Index,
+			Index: dataObject.Spec.Index,
 		})
 	}
 	// Ensure deterministic ordering of indexes by index
@@ -351,7 +354,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 			},
 		},
 		Spec: infrav1.Metal3DataSpec{
-			Index: claimIndex,
+			Index: ptr.To(claimIndex),
 			Template: &infrav1.Metal3ObjectRef{
 				Name:      m.DataTemplate.Name,
 				Namespace: m.DataTemplate.Namespace,

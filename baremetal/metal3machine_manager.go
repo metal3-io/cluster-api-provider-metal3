@@ -629,7 +629,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 					m.Log.Info("Found Metal3machineTemplate", "metal3machineTemplate", m3mt.Name)
 				}
 				if m3mt != nil {
-					if m3mt.Spec.NodeReuse {
+					if ptr.Deref(m3mt.Spec.NodeReuse, false) {
 						if host.Labels == nil {
 							host.Labels = make(map[string]string)
 						}
@@ -980,6 +980,11 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 func hostLabelSelectorForMachine(machine *infrav1.Metal3Machine, log logr.Logger) (labels.Selector, error) {
 	labelSelector := labels.NewSelector()
 
+	// Return empty selector if HostSelector is not defined
+	if machine.Spec.HostSelector == nil {
+		return labelSelector, nil
+	}
+
 	for labelKey, labelVal := range machine.Spec.HostSelector.MatchLabels {
 		log.Info("Adding requirement to match label",
 			"label key", labelKey,
@@ -1139,11 +1144,21 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 	// host, we must fully deprovision it and then provision it again.
 	// Not provisioning while we do not have the UserData.
 	if host.Spec.Image == nil && host.Spec.CustomDeploy == nil && m.Metal3Machine.Status.UserData != nil {
+		// Ensure either Image or CustomDeploy is configured
+		imageConfigured := m.Metal3Machine.Spec.Image.URL != ""
+		customDeployConfigured := m.Metal3Machine.Spec.CustomDeploy.Method != ""
+
+		if !imageConfigured && !customDeployConfigured {
+			logger := m.Log.WithValues("Metal3Machine", m.Metal3Machine.Name)
+			logger.Error(nil, "Neither Image nor CustomDeploy is configured on Metal3Machine, unable to provision")
+			return fmt.Errorf("Metal3Machine %s has neither Image.URL nor CustomDeploy.Method configured", m.Metal3Machine.Name)
+		}
+
 		checksumType := ""
 		if m.Metal3Machine.Spec.Image.ChecksumType != "" {
 			checksumType = m.Metal3Machine.Spec.Image.ChecksumType
 		}
-		if m.Metal3Machine.Spec.Image.URL != "" {
+		if imageConfigured {
 			host.Spec.Image = &bmov1alpha1.Image{
 				URL:          m.Metal3Machine.Spec.Image.URL,
 				Checksum:     ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, ""),
@@ -1151,7 +1166,7 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
 			}
 		}
-		if m.Metal3Machine.Spec.CustomDeploy != nil {
+		if customDeployConfigured {
 			host.Spec.CustomDeploy = &bmov1alpha1.CustomDeploy{
 				Method: m.Metal3Machine.Spec.CustomDeploy.Method,
 			}
@@ -1176,9 +1191,9 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 		}
 	}
 	// Set automatedCleaningMode from metal3Machine.spec.automatedCleaningMode.
-	if m.Metal3Machine.Spec.AutomatedCleaningMode != nil {
-		if host.Spec.AutomatedCleaningMode != bmov1alpha1.AutomatedCleaningMode(*m.Metal3Machine.Spec.AutomatedCleaningMode) {
-			host.Spec.AutomatedCleaningMode = bmov1alpha1.AutomatedCleaningMode(*m.Metal3Machine.Spec.AutomatedCleaningMode)
+	if m.Metal3Machine.Spec.AutomatedCleaningMode != "" {
+		if host.Spec.AutomatedCleaningMode != bmov1alpha1.AutomatedCleaningMode(m.Metal3Machine.Spec.AutomatedCleaningMode) {
+			host.Spec.AutomatedCleaningMode = bmov1alpha1.AutomatedCleaningMode(m.Metal3Machine.Spec.AutomatedCleaningMode)
 		}
 	}
 
@@ -1810,7 +1825,7 @@ func (m *MachineManager) WaitForM3Metadata(ctx context.Context) error {
 	}
 
 	// If it is not ready yet, wait.
-	if !metal3Data.Status.Ready {
+	if metal3Data.Status.Ready == nil || !*metal3Data.Status.Ready {
 		errMessage := "waiting for Metal3Data to become ready"
 		m.Log.Info(errMessage)
 		m.SetV1Beta1ConditionToFalse(infrav1.Metal3DataReadyV1Beta1Condition, infrav1.WaitingForMetal3DataV1Beta1Reason, clusterv1.ConditionSeverityInfo, "")

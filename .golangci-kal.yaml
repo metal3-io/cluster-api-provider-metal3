@@ -14,7 +14,6 @@ linters:
         settings:
           linters:
             disable:
-            - "optionalfields"
             - "nonpointerstructs"
             - "nophase"
             - "conditions"
@@ -99,6 +98,62 @@ linters:
     # This mean that the Gateway field is never empty and we can ignore the requiredfields linter for it.
     - path: "api/v1beta2/metal3datatemplate_types.go"
       text: "requiredfields: field NetworkDataRoutev6.Gateway has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3Cluster.Spec and Metal3Cluster.Status have valid zero values
+    # but incomplete validation. These fields are optional for the resource type.
+    - path: "api/v1beta2/metal3cluster_types.go"
+      text: "optionalfields: field Metal3Cluster.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3cluster_types.go"
+      text: "optionalfields: field Metal3Cluster.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3Data.Spec and Metal3Data.Status have valid zero values
+    # but incomplete validation. These fields are optional for the resource type.
+    - path: "api/v1beta2/metal3data_types.go"
+      text: "optionalfields: field Metal3Data.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3data_types.go"
+      text: "optionalfields: field Metal3Data.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3DataClaim.Spec and Metal3DataClaim.Status have valid zero values
+    # but incomplete validation. These fields are optional for the resource type.
+    - path: "api/v1beta2/metal3dataclaim_types.go"
+      text: "optionalfields: field Metal3DataClaim.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3dataclaim_types.go"
+      text: "optionalfields: field Metal3DataClaim.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3DataTemplate.Status has a valid zero value
+    # but incomplete validation. This field is optional for the resource type.
+    - path: "api/v1beta2/metal3datatemplate_types.go"
+      text: "optionalfields: field Metal3DataTemplate.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3Machine.Spec and Metal3Machine.Status have valid zero values
+    # but incomplete validation. These fields are optional for the resource type.
+    - path: "api/v1beta2/metal3machine_types.go"
+      text: "optionalfields: field Metal3Machine.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3machine_types.go"
+      text: "optionalfields: field Metal3Machine.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3Remediation.Spec and Metal3Remediation.Status have valid zero values
+    # but incomplete validation. These fields are optional for the resource type.
+    - path: "api/v1beta2/metal3remediation_types.go"
+      text: "optionalfields: field Metal3Remediation.Spec has a valid zero value"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3remediation_types.go"
+      text: "optionalfields: field Metal3Remediation.Status has a valid zero value"
       linters:
       - kubeapilinter
 

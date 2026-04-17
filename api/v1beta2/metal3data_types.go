@@ -31,7 +31,8 @@ const (
 type Metal3DataSpec struct {
 	// index stores the index value of this instance in the Metal3DataTemplate.
 	// +optional
-	Index int32 `json:"index,omitempty"`
+	// +kubebuilder:validation:Minimum=0
+	Index *int32 `json:"index,omitempty"`
 
 	// metaData points to the rendered MetaData secret.
 	// +optional
@@ -54,13 +55,13 @@ type Metal3DataSpec struct {
 type Metal3DataStatus struct {
 	// ready is a flag set to True if the secrets were rendered properly
 	// +optional
-	Ready bool `json:"ready"`
+	Ready *bool `json:"ready,omitempty"`
 
 	// errorMessage contains the error message
 	// +optional
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=512
-	ErrorMessage *string `json:"errorMessage,omitempty"`
+	ErrorMessage string `json:"errorMessage,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -78,7 +79,7 @@ type Metal3Data struct {
 
 	// spec defines the desired state of Metal3Data.
 	// +optional
-	Spec Metal3DataSpec `json:"spec,omitempty"`
+	Spec Metal3DataSpec `json:"spec,omitempty,omitzero"`
 	// status defines the observed state of Metal3Data.
 	// +optional
 	Status Metal3DataStatus `json:"status,omitempty"`

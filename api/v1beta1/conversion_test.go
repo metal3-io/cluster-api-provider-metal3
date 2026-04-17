@@ -139,6 +139,7 @@ func spokeMetal3ClusterStatus(in *Metal3ClusterStatus, c randfill.Continue) {
 func Metal3MachineFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		hubMetal3MachineStatus,
+		hubMetal3MachineSpec,
 		spokeMetal3MachineSpec,
 		spokeMetal3MachineStatus,
 		spokeObjectMeta,
@@ -152,6 +153,31 @@ func spokeObjectMeta(in *metav1.ObjectMeta, c randfill.Continue) {
 	// during hub->spoke conversion even if no data is stored.
 	if in.Annotations == nil {
 		in.Annotations = map[string]string{}
+	}
+}
+
+// hubMetal3MachineSpec normalizes v1beta2 Metal3MachineSpec for hub objects.
+func hubMetal3MachineSpec(in *infrav1.Metal3MachineSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize nil HostSelector to nil if empty
+	if in.HostSelector != nil && len(in.HostSelector.MatchLabels) == 0 && len(in.HostSelector.MatchExpressions) == 0 {
+		in.HostSelector = nil
+	}
+
+	// Normalize empty DataTemplate to nil
+	if in.DataTemplate != nil && in.DataTemplate.Name == "" && in.DataTemplate.Namespace == "" {
+		in.DataTemplate = nil
+	}
+}
+
+// hubMetal3MachineTemplateSpec normalizes v1beta2 Metal3MachineTemplateSpec for hub objects.
+func hubMetal3MachineTemplateSpec(in *infrav1.Metal3MachineTemplateSpec, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize NodeReuse: &false → nil (omitempty semantic)
+	if in.NodeReuse != nil && !*in.NodeReuse {
+		in.NodeReuse = nil
 	}
 }
 
@@ -189,6 +215,21 @@ func spokeMetal3MachineSpec(in *Metal3MachineSpec, c randfill.Continue) {
 	}
 	if in.Image.DiskFormat == nil {
 		in.Image.DiskFormat = ptr.To("")
+	}
+
+	// Normalize MatchLabels: empty map → nil (JSON omitempty behavior)
+	if len(in.HostSelector.MatchLabels) == 0 {
+		in.HostSelector.MatchLabels = nil
+	}
+
+	// Normalize CustomDeploy: empty Method → nil
+	if in.CustomDeploy != nil && in.CustomDeploy.Method == "" {
+		in.CustomDeploy = nil
+	}
+
+	// Normalize AutomatedCleaningMode: empty string → nil
+	if in.AutomatedCleaningMode != nil && *in.AutomatedCleaningMode == "" {
+		in.AutomatedCleaningMode = nil
 	}
 }
 
@@ -254,7 +295,9 @@ func spokeMetal3ClusterSpec(in *Metal3ClusterSpec, c randfill.Continue) {
 func Metal3DataFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	return []interface{}{
 		spokeMetal3DataSpec,
+		spokeMetal3DataStatus,
 		hubMetal3DataSpec,
+		hubMetal3DataStatus,
 	}
 }
 
@@ -268,6 +311,30 @@ func hubMetal3DataSpec(in *infrav1.Metal3DataSpec, c randfill.Continue) {
 	}
 	if in.Template != nil && in.Template.Name == "" && in.Template.Namespace == "" {
 		in.Template = nil
+	}
+	// Normalize Index: nil → &0 (v1beta1 int cannot represent nil, so 0 and nil are equivalent)
+	if in.Index == nil {
+		in.Index = ptr.To[int32](0)
+	}
+}
+
+// spokeMetal3DataStatus normalizes v1beta1 Metal3DataStatus for spoke objects.
+func spokeMetal3DataStatus(in *Metal3DataStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize ErrorMessage: nil → &"" (v1beta2 uses string, empty converts back to &"")
+	if in.ErrorMessage == nil {
+		in.ErrorMessage = ptr.To("")
+	}
+}
+
+// hubMetal3DataStatus normalizes v1beta2 Metal3DataStatus for hub objects.
+func hubMetal3DataStatus(in *infrav1.Metal3DataStatus, c randfill.Continue) {
+	c.FillNoCustom(in)
+
+	// Normalize Ready: nil → &false (v1beta1 uses bool, false converts back to &false)
+	if in.Ready == nil {
+		in.Ready = ptr.To(false)
 	}
 }
 
@@ -309,11 +376,61 @@ func hubMetal3DataTemplateStatus(in *infrav1.Metal3DataTemplateStatus, c randfil
 	}
 }
 
+func hubNetworkData(in *infrav1.NetworkData, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Links/Networks/Services are pointers in v1beta2 but values in v1beta1.
+	// Empty structs can't round-trip through value types; normalize to nil.
+	if in.Links != nil && reflect.DeepEqual(*in.Links, infrav1.NetworkDataLink{}) {
+		in.Links = nil
+	}
+	if in.Networks != nil && reflect.DeepEqual(*in.Networks, infrav1.NetworkDataNetwork{}) {
+		in.Networks = nil
+	}
+	if in.Services != nil && reflect.DeepEqual(*in.Services, infrav1.NetworkDataService{}) {
+		in.Services = nil
+	}
+}
+
+// hubMetaDataHostInterface normalizes FromBootMAC: *bool in v1beta2 vs bool in v1beta1.
+// nil and &false both become false in spoke, then &false in hub; normalize nil → &false.
+func hubMetaDataHostInterface(in *infrav1.MetaDataHostInterface, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.FromBootMAC == nil {
+		in.FromBootMAC = ptr.To(false)
+	}
+}
+
 func hubNetworkDataLinkVlan(in *infrav1.NetworkDataLinkVlan, c randfill.Continue) {
 	c.FillNoCustom(in)
 	// VlanID is required; if nil after fuzzing, set to 0 to match the round-trip conversion behavior.
 	if in.VlanID == nil {
 		in.VlanID = ptr.To(int32(0))
+	}
+}
+
+// hubNetworkDataRoutev4 normalizes fields that can't round-trip through v1beta1 value types.
+func hubNetworkDataRoutev4(in *infrav1.NetworkDataRoutev4, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Prefix: *int32 in v1beta2 vs int in v1beta1
+	if in.Prefix != nil && *in.Prefix == 0 {
+		in.Prefix = nil
+	}
+	// Services: *NetworkDataServicev4 in v1beta2 vs NetworkDataServicev4 in v1beta1
+	if in.Services != nil && reflect.DeepEqual(*in.Services, infrav1.NetworkDataServicev4{}) {
+		in.Services = nil
+	}
+}
+
+// hubNetworkDataRoutev6 normalizes fields that can't round-trip through v1beta1 value types.
+func hubNetworkDataRoutev6(in *infrav1.NetworkDataRoutev6, c randfill.Continue) {
+	c.FillNoCustom(in)
+	// Prefix: *int32 in v1beta2 vs int in v1beta1
+	if in.Prefix != nil && *in.Prefix == 0 {
+		in.Prefix = nil
+	}
+	// Services: *NetworkDataServicev6 in v1beta2 vs NetworkDataServicev6 in v1beta1
+	if in.Services != nil && reflect.DeepEqual(*in.Services, infrav1.NetworkDataServicev6{}) {
+		in.Services = nil
 	}
 }
 
@@ -398,8 +515,20 @@ func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{}
 		spokeMetal3DataTemplateSpec,
 		spokeTypedLocalObjectReference,
 		spokeMetal3DataTemplateStatus,
+		spokeNetworkLinkEthernetMac,
+		spokeNetworkDataIPv4,
+		spokeNetworkDataIPv6,
+		spokeNetworkGatewayv4,
+		spokeNetworkGatewayv6,
+		spokeNetworkDataService,
+		spokeNetworkDataServicev4,
+		spokeNetworkDataServicev6,
 		hubMetal3DataTemplateStatus,
+		hubMetaDataHostInterface,
+		hubNetworkData,
 		hubNetworkDataLinkVlan,
+		hubNetworkDataRoutev4,
+		hubNetworkDataRoutev6,
 	}
 }
 
@@ -410,11 +539,84 @@ func spokeMetal3DataTemplateSpec(in *Metal3DataTemplateSpec, c randfill.Continue
 	in.TemplateReference = ""
 }
 
+// spokeNetworkLinkEthernetMac normalizes MacAddress.FromAnnotation: empty pointer can't
+// round-trip through the v1beta2 value type.
+func spokeNetworkLinkEthernetMac(in *NetworkLinkEthernetMac, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.FromAnnotation != nil && in.FromAnnotation.Object == "" && in.FromAnnotation.Annotation == "" {
+		in.FromAnnotation = nil
+	}
+}
+
+// spokeNetworkDataIPv4 normalizes NetworkDataIPv4 fields that can't round-trip.
+func spokeNetworkDataIPv4(in *NetworkDataIPv4, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.FromPoolAnnotation != nil && in.FromPoolAnnotation.Object == "" && in.FromPoolAnnotation.Annotation == "" {
+		in.FromPoolAnnotation = nil
+	}
+}
+
+// spokeNetworkDataIPv6 normalizes NetworkDataIPv6 fields that can't round-trip.
+func spokeNetworkDataIPv6(in *NetworkDataIPv6, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.FromPoolAnnotation != nil && in.FromPoolAnnotation.Object == "" && in.FromPoolAnnotation.Annotation == "" {
+		in.FromPoolAnnotation = nil
+	}
+}
+
+// spokeNetworkGatewayv4 normalizes NetworkGatewayv4 fields that can't round-trip.
+func spokeNetworkGatewayv4(in *NetworkGatewayv4, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.FromPoolAnnotation != nil && in.FromPoolAnnotation.Object == "" && in.FromPoolAnnotation.Annotation == "" {
+		in.FromPoolAnnotation = nil
+	}
+}
+
+// spokeNetworkGatewayv6 normalizes NetworkGatewayv6 fields that can't round-trip.
+func spokeNetworkGatewayv6(in *NetworkGatewayv6, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.FromPoolAnnotation != nil && in.FromPoolAnnotation.Object == "" && in.FromPoolAnnotation.Annotation == "" {
+		in.FromPoolAnnotation = nil
+	}
+}
+
+// spokeNetworkDataService normalizes NetworkDataService fields that can't round-trip.
+// DNSFromIPPool is a *string in v1beta1 but a string in v1beta2, so empty pointers (&"")
+// cannot be preserved through round-trip conversion. Normalize &"" to nil.
+func spokeNetworkDataService(in *NetworkDataService, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.DNSFromIPPool != nil && *in.DNSFromIPPool == "" {
+		in.DNSFromIPPool = nil
+	}
+}
+
+// spokeNetworkDataServicev4 normalizes NetworkDataServicev4 fields that can't round-trip.
+// DNSFromIPPool is a *string in v1beta1 but a string in v1beta2, so empty pointers (&"")
+// cannot be preserved through round-trip conversion. Normalize &"" to nil.
+func spokeNetworkDataServicev4(in *NetworkDataServicev4, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.DNSFromIPPool != nil && *in.DNSFromIPPool == "" {
+		in.DNSFromIPPool = nil
+	}
+}
+
+// spokeNetworkDataServicev6 normalizes NetworkDataServicev6 fields that can't round-trip.
+// DNSFromIPPool is a *string in v1beta1 but a string in v1beta2, so empty pointers (&"")
+// cannot be preserved through round-trip conversion. Normalize &"" to nil.
+func spokeNetworkDataServicev6(in *NetworkDataServicev6, c randfill.Continue) {
+	c.FillNoCustom(in)
+	if in.DNSFromIPPool != nil && *in.DNSFromIPPool == "" {
+		in.DNSFromIPPool = nil
+	}
+}
+
 func Metal3MachineTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []any {
 	return []any{
 		spokeMetal3MachineSpec,
 		spokeObjectMeta,
 		hubClusterv1ObjectMeta,
+		hubMetal3MachineSpec,
+		hubMetal3MachineTemplateSpec,
 	}
 }
 
@@ -446,6 +648,10 @@ func spokeRemediationStrategy(in *RemediationStrategy, c randfill.Continue) {
 	// TimeoutSeconds (seconds only), so nanoseconds are lost during round-trip conversion.
 	if in.Timeout != nil {
 		in.Timeout = ptr.To(metav1.Duration{Duration: time.Duration(c.Int31()) * time.Second})
+	}
+	// Normalize: &0s → nil (TimeoutSeconds 0 in v1beta2 converts back to nil)
+	if in.Timeout != nil && in.Timeout.Duration == 0 {
+		in.Timeout = nil
 	}
 }
 

@@ -148,9 +148,12 @@ spec:
                         description: strategy field defines remediation strategy.
                         properties:
                           retryLimit:
-                            description: retryLimit sets maximum number of remediation
-                              retries.
+                            default: 1
+                            description: |-
+                              retryLimit sets maximum number of remediation retries.
+                              retryLimit must be a positive integer. The default is 1.
                             format: int32
+                            minimum: 1
                             type: integer
                           timeoutSeconds:
                             default: 600
@@ -162,6 +165,8 @@ spec:
                             type: integer
                           type:
                             description: type of remediation.
+                            enum:
+                            - Reboot
                             type: string
                         type: object
                     type: object
@@ -186,12 +191,18 @@ spec:
                     description: |-
                       phase represents the current phase of machine remediation.
                       E.g. Pending, Running, Done etc.
+                    enum:
+                    - Running
+                    - Waiting
+                    - Deleting machine
+                    - Failed
                     type: string
                   retryCount:
                     description: |-
                       retryCount can be used as a counter during the remediation.
                       Field can hold number of reboots etc.
                     format: int32
+                    minimum: 1
                     type: integer
                 type: object
             required:

@@ -28,7 +28,6 @@ import (
 	_ "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	clientfake "k8s.io/client-go/kubernetes/fake"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -133,9 +132,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						RetryLimit:     1,
-						TimeoutSeconds: new(int32),
+						Type:       "",
+						RetryLimit: 1,
 					},
 				},
 			},
@@ -145,9 +143,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						RetryLimit:     0,
-						TimeoutSeconds: new(int32),
+						Type:       "",
+						RetryLimit: 0,
 					},
 				},
 			},
@@ -157,9 +154,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						RetryLimit:     -1,
-						TimeoutSeconds: new(int32),
+						Type:       "",
+						RetryLimit: -1,
 					},
 				},
 			},
@@ -169,8 +165,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						TimeoutSeconds: new(int32),
+						Type: "",
 					},
 				},
 			},
@@ -193,9 +188,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						RetryLimit:     1,
-						TimeoutSeconds: new(int32),
+						Type:       "",
+						RetryLimit: 1,
 					},
 				},
 				Status: infrav1.Metal3RemediationStatus{
@@ -210,9 +204,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						RetryLimit:     1,
-						TimeoutSeconds: new(int32),
+						Type:       "",
+						RetryLimit: 1,
 					},
 				},
 				Status: infrav1.Metal3RemediationStatus{
@@ -227,9 +220,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						RetryLimit:     0,
-						TimeoutSeconds: new(int32),
+						Type:       "",
+						RetryLimit: 0,
 					},
 				},
 				Status: infrav1.Metal3RemediationStatus{
@@ -507,9 +499,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "Reboot",
-						RetryLimit:     0,
-						TimeoutSeconds: new(int32),
+						Type:       "Reboot",
+						RetryLimit: 0,
 					},
 				},
 			},
@@ -519,9 +510,8 @@ var _ = Describe("Metal3Remediation manager", func() {
 			Metal3Remediation: &infrav1.Metal3Remediation{
 				Spec: infrav1.Metal3RemediationSpec{
 					Strategy: &infrav1.RemediationStrategy{
-						Type:           "",
-						RetryLimit:     0,
-						TimeoutSeconds: new(int32),
+						Type:       "",
+						RetryLimit: 0,
 					},
 				},
 			},
@@ -598,7 +588,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Strategy: &infrav1.RemediationStrategy{
 						Type:           "",
 						RetryLimit:     1,
-						TimeoutSeconds: ptr.To(int32(600)),
+						TimeoutSeconds: int32(600),
 					},
 				},
 				Status: infrav1.Metal3RemediationStatus{
@@ -615,7 +605,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Strategy: &infrav1.RemediationStrategy{
 						Type:           "",
 						RetryLimit:     1,
-						TimeoutSeconds: ptr.To(int32(600)),
+						TimeoutSeconds: int32(600),
 					},
 				},
 				Status: infrav1.Metal3RemediationStatus{
@@ -632,7 +622,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Strategy: &infrav1.RemediationStrategy{
 						Type:           "",
 						RetryLimit:     1,
-						TimeoutSeconds: ptr.To(int32(600)),
+						TimeoutSeconds: int32(600),
 					},
 				},
 				Status: infrav1.Metal3RemediationStatus{
@@ -661,7 +651,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			if tc.TimeoutSet {
 				Expect(timeoutSeconds).NotTo(BeNil())
 			} else {
-				Expect(timeoutSeconds).To(BeNil())
+				Expect(timeoutSeconds).To(Equal(defaultTimeout))
 			}
 		},
 		Entry("Timeout is not set", testCaseGetTimeoutSeconds{
@@ -678,7 +668,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 					Strategy: &infrav1.RemediationStrategy{
 						Type:           "",
 						RetryLimit:     0,
-						TimeoutSeconds: new(int32),
+						TimeoutSeconds: 300,
 					},
 				},
 			},

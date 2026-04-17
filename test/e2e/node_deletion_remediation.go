@@ -107,7 +107,7 @@ func NodeRemediation(ctx context.Context, inputGetter func() NodeRemediationInpu
 			Strategy: &infrav1.RemediationStrategy{
 				Type:           "Reboot",
 				RetryLimit:     1,
-				TimeoutSeconds: &thirtyMinutes,
+				TimeoutSeconds: thirtyMinutes,
 			},
 		},
 		Status: infrav1.Metal3RemediationStatus{},

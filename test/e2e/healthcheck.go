@@ -153,7 +153,7 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 					Strategy: &infrav1.RemediationStrategy{
 						Type:           infrav1.RebootRemediationStrategy,
 						RetryLimit:     1,
-						TimeoutSeconds: ptr.To(int32(300)),
+						TimeoutSeconds: 300,
 					},
 				},
 			},

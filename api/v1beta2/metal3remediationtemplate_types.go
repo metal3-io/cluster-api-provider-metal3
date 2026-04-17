@@ -55,10 +55,10 @@ type Metal3RemediationTemplate struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	// spec defines the desired state of Metal3RemediationTemplate.
 	// +optional
-	Spec Metal3RemediationTemplateSpec `json:"spec,omitempty"`
+	Spec Metal3RemediationTemplateSpec `json:"spec,omitempty,omitzero"`
 	// status defines the observed state of Metal3RemediationTemplate.
 	// +optional
-	Status Metal3RemediationTemplateStatus `json:"status,omitempty"`
+	Status Metal3RemediationTemplateStatus `json:"status,omitempty,omitzero"`
 }
 
 // +kubebuilder:object:root=true

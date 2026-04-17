@@ -133,6 +133,8 @@ type Metal3ObjectRef struct {
 
 	// namespace of the resource.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
 	Namespace string `json:"namespace,omitempty"`
 }
 

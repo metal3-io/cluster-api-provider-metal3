@@ -153,6 +153,8 @@ type Metal3ClusterV1Beta1DeprecatedStatus struct {
 	// failureMessage indicates that there is a fatal problem reconciling the
 	// state, and will be set to a descriptive error message.
 	// +optional
+	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:validation:MaxLength=1024
 	FailureMessage *string `json:"failureMessage,omitempty"`
 }
 

@@ -33,7 +33,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -220,16 +219,13 @@ func setReconcileNormalRemediationExpectations(ctrl *gomock.Controller,
 		}
 
 		if tc.IsTimeoutNil {
-			m.EXPECT().GetTimeoutSeconds().Return(nil)
-			m.EXPECT().TimeToRemediate(gomock.Any()).Do(func(t *int32) {
-				Expect(t).NotTo(BeNil())
-				Expect(*t).To(Equal(int32(defaultRemediationTimeoutSeconds)))
+			m.EXPECT().TimeToRemediate(gomock.Any()).Do(func(t int32) {
+				Expect(t).To(Equal(int32(defaultRemediationTimeoutSeconds)))
 			}).Return(tc.IsTimedOut, time.Second)
 		} else {
-			m.EXPECT().GetTimeoutSeconds().Return(ptr.To(int32(1)))
-			m.EXPECT().TimeToRemediate(gomock.Any()).Do(func(t *int32) {
-				Expect(t).NotTo(BeNil())
-				Expect(*t).To(Equal(int32(1)))
+			m.EXPECT().GetTimeoutSeconds().Return(int32(1))
+			m.EXPECT().TimeToRemediate(gomock.Any()).Do(func(t int32) {
+				Expect(t).To(Equal(int32(1)))
 			}).Return(tc.IsTimedOut, time.Second)
 		}
 		if tc.IsTimedOut {
@@ -620,17 +616,6 @@ var _ = Describe("Metal3Remediation controller", func() {
 			ExpectError:      false,
 			ExpectRequeue:    false,
 			RemediationPhase: infrav1.PhaseFailed,
-		}),
-		Entry("Should use default timeout if GetTimeoutSeconds returns nil", reconcileNormalRemediationTestCase{
-			ExpectError:         false,
-			ExpectRequeue:       true,
-			RemediationPhase:    infrav1.PhaseWaiting,
-			IsFinalizerSet:      true,
-			IsPowerOffRequested: false,
-			IsPoweredOn:         true,
-			IsNodeDeleted:       true,
-			IsTimedOut:          false,
-			IsTimeoutNil:        true,
 		}),
 	)
 
