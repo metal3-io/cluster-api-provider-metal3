@@ -333,6 +333,33 @@ var _ = Describe("Metal3LabelSync controller", func() {
 				},
 			},
 		),
+		Entry("Host annotation with wrong namespace",
+			// We should ignore the namespace in the annotation and only look in the M3M namespace
+			TestCaseMetal3ClusterToBMHs{
+				Cluster:   newCluster(clusterName, nil, nil),
+				M3Cluster: newMetal3Cluster(metal3ClusterName, bmcOwnerRef(), bmcSpec(), nil, nil, false),
+				Machine:   newMachine(clusterName, machineName, metal3machineName, ""),
+				M3Machine: newMetal3Machine(metal3machineName, &metav1.ObjectMeta{
+					Name:            metal3machineName,
+					Namespace:       namespaceName,
+					OwnerReferences: m3mOwnerRefs(),
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: clusterName,
+					},
+					Annotations: map[string]string{
+						baremetal.HostAnnotation: "other-namespace/" + baremetalhostName,
+					},
+				}, nil, nil, false),
+				ExpectRequests: []ctrl.Request{
+					{
+						NamespacedName: types.NamespacedName{
+							Name:      baremetalhostName,
+							Namespace: namespaceName,
+						},
+					},
+				},
+			},
+		),
 	)
 	Describe("Test labelsync Reconcile functions", func() {
 		testLabels := map[string]string{

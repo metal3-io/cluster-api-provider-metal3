@@ -741,24 +741,30 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 	if annotations == nil {
 		return nil, nil //nolint:nilnil
 	}
-	hostKey, ok := annotations[HostAnnotation]
+	hostAnnotationValue, ok := annotations[HostAnnotation]
 	if !ok {
 		return nil, nil //nolint:nilnil
 	}
-	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
+	// The namespace prefix is ignored; the Metal3Machine's own namespace is always used
+	// to prevent cross-namespace BareMetalHost references regardless of annotation content.
+	_, hostName, err := cache.SplitMetaNamespaceKey(hostAnnotationValue)
 	if err != nil {
-		mLog.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+		mLog.Error(err, "Error parsing annotation value",
+			"annotation key", HostAnnotation,
+			"annotation value", hostAnnotationValue)
 		return nil, err
 	}
 
 	host := bmov1alpha1.BareMetalHost{}
 	key := client.ObjectKey{
 		Name:      hostName,
-		Namespace: hostNamespace,
+		Namespace: m3Machine.Namespace,
 	}
 	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
-		mLog.Info("Annotated host not found", "host", hostKey)
+		mLog.Info("Annotated host not found",
+			"host", hostName,
+			"namespace", m3Machine.Namespace)
 		return nil, nil //nolint:nilnil
 	} else if err != nil {
 		return nil, err
