@@ -5,10 +5,10 @@ go 1.25.0
 require (
 	github.com/metal3-io/ip-address-manager/api v1.12.0
 	github.com/onsi/gomega v1.39.1
-	k8s.io/api v0.35.3
-	k8s.io/apiextensions-apiserver v0.35.3
-	k8s.io/apimachinery v0.35.3
-	k8s.io/client-go v0.35.3
+	k8s.io/api v0.35.4
+	k8s.io/apiextensions-apiserver v0.35.4
+	k8s.io/apimachinery v0.35.4
+	k8s.io/client-go v0.35.4
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
 	sigs.k8s.io/cluster-api v1.13.0-beta.1
 	sigs.k8s.io/controller-runtime v0.23.3
