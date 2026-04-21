@@ -257,25 +257,31 @@ func getUnhealthyHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl 
 		err := fmt.Errorf("unable to get %s annotations", m3Machine.Name)
 		return nil, err
 	}
-	hostKey, ok := annotations[HostAnnotation]
+	hostAnnotationValue, ok := annotations[HostAnnotation]
 	if !ok {
 		err := fmt.Errorf("unable to get %s HostAnnotation", m3Machine.Name)
 		return nil, err
 	}
-	hostNamespace, hostName, err := cache.SplitMetaNamespaceKey(hostKey)
+	// The namespace prefix is ignored; the Metal3Machine's own namespace is always used
+	// to prevent cross-namespace BareMetalHost references regardless of annotation content.
+	_, hostName, err := cache.SplitMetaNamespaceKey(hostAnnotationValue)
 	if err != nil {
-		rLog.Error(err, "Error parsing annotation value", "annotation key", hostKey)
+		rLog.Error(err, "Error parsing annotation value",
+			"annotation key", HostAnnotation,
+			"annotation value", hostAnnotationValue)
 		return nil, err
 	}
 
 	host := bmov1alpha1.BareMetalHost{}
 	key := client.ObjectKey{
 		Name:      hostName,
-		Namespace: hostNamespace,
+		Namespace: m3Machine.Namespace,
 	}
 	err = cl.Get(ctx, key, &host)
 	if apierrors.IsNotFound(err) {
-		rLog.Info("Annotated host not found", "host", hostKey)
+		rLog.Info("Annotated BareMetalHost not found",
+			"host", hostName,
+			"namespace", m3Machine.Namespace)
 		return nil, err
 	} else if err != nil {
 		return nil, err

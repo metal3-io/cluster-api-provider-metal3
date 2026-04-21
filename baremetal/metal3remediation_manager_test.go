@@ -369,6 +369,35 @@ var _ = Describe("Metal3Remediation manager", func() {
 			},
 			ExpectPresent: false,
 		}),
+		Entry("Should find host in own namespace when annotation contains a foreign namespace prefix", testCaseGetUnhealthyHost{
+			M3Machine: &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            metal3machineName,
+					Namespace:       namespaceName,
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						HostAnnotation: "other-namespace/" + baremetalhostName,
+					},
+				},
+			},
+			ExpectPresent: true,
+		}),
+		Entry("Should not find host in other namespace", testCaseGetUnhealthyHost{
+			// The BMH is in namespaceName for all these tests.
+			// We should not be able to find any BMH in the other-namespace,
+			// where the M3M is located in this test.
+			M3Machine: &infrav1.Metal3Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            metal3machineName,
+					Namespace:       "other-namespace",
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						HostAnnotation: namespaceName + "/" + baremetalhostName,
+					},
+				},
+			},
+			ExpectPresent: false,
+		}),
 	)
 
 	type testCaseSetAnnotation struct {
