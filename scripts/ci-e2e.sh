@@ -23,7 +23,8 @@ else
     # Commenting this out as CAPI release prefix and exporting CAPIRELEASE
     # during pre-release phase of CAPI.
     # We will change when minor is released.
-    export CAPI_RELEASE_PREFIX="v1.12."
+    # export CAPI_RELEASE_PREFIX="v1.12."
+    export CAPIRELEASE="v1.13.0-rc.1"
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
