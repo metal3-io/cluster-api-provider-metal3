@@ -4,9 +4,9 @@ go 1.25.0
 
 require (
 	github.com/go-logr/logr v1.4.3
-	github.com/metal3-io/baremetal-operator/apis v0.12.3
+	github.com/metal3-io/baremetal-operator/apis v0.13.0-beta.0
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
-	github.com/metal3-io/ip-address-manager/api v1.12.0
+	github.com/metal3-io/ip-address-manager/api v1.13.0-beta.0
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/spf13/pflag v1.0.10
@@ -17,8 +17,8 @@ require (
 	k8s.io/apimachinery v0.35.4
 	k8s.io/client-go v0.35.4
 	k8s.io/component-base v0.35.4
-	k8s.io/klog/v2 v2.130.1
-	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
+	k8s.io/klog/v2 v2.140.0
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/cluster-api v1.13.0-rc.1
 	sigs.k8s.io/controller-runtime v0.23.3
 	sigs.k8s.io/yaml v1.6.0
