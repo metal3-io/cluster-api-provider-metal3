@@ -10,7 +10,7 @@ require (
 	github.com/jteeuwen/go-bindata v3.0.7+incompatible
 	github.com/pkg/errors v0.9.1
 	golang.org/x/oauth2 v0.30.0
-	k8s.io/code-generator v0.33.10
+	k8s.io/code-generator v0.33.11
 	sigs.k8s.io/controller-tools v0.18.0
 	sigs.k8s.io/kustomize/kustomize/v5 v5.7.1
 	sigs.k8s.io/testing_frameworks v0.1.2
@@ -24,7 +24,7 @@ require (
 	github.com/fatih/color v1.18.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect
 	github.com/go-errors/errors v1.4.2 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/jsonreference v0.20.2 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
@@ -61,9 +61,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/api v0.33.10 // indirect
-	k8s.io/apiextensions-apiserver v0.33.10 // indirect
-	k8s.io/apimachinery v0.33.10 // indirect
+	k8s.io/api v0.33.11 // indirect
+	k8s.io/apiextensions-apiserver v0.33.11 // indirect
+	k8s.io/apimachinery v0.33.11 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
