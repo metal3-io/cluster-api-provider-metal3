@@ -36,6 +36,7 @@ rules:
   - ipam.metal3.io
   resources:
   - ipaddresses
+  - ipclaims
   verbs:
   - get
   - list
@@ -44,5 +45,6 @@ rules:
   - ipam.metal3.io
   resources:
   - ipaddresses/status
+  - ipclaims/status
   verbs:
   - get

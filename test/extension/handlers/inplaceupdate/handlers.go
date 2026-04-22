@@ -33,6 +33,8 @@ import (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3machines/status,verbs=get
 // +kubebuilder:rbac:groups=ipam.metal3.io,resources=ipaddresses,verbs=get;list;watch
 // +kubebuilder:rbac:groups=ipam.metal3.io,resources=ipaddresses/status,verbs=get
+// +kubebuilder:rbac:groups=ipam.metal3.io,resources=ipclaims,verbs=get;list;watch
+// +kubebuilder:rbac:groups=ipam.metal3.io,resources=ipclaims/status,verbs=get
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas,verbs=get;list;watch
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=metal3datas/status,verbs=get
 
@@ -382,8 +384,7 @@ func (h *ExtensionHandlers) computeCanUpdateMachineResponse(req *runtimehooksv1.
 	return nil
 }
 
-// getMachineIP retrieves the IP address of a machine using the chain: Machine -> Metal3Machine -> Metal3Data -> IPAddress.
-// This follows the same approach as MachineToIPAddress1beta1 from the e2e tests.
+// getMachineIP retrieves the IP address of a machine using the chain: Machine -> Metal3Machine -> Metal3Data -> IPClaim -> IPAddress.
 func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1.Machine, ippoolName string) (string, error) {
 	// Get the Metal3Machine
 	metal3Machine := &infrav1.Metal3Machine{}
@@ -418,7 +419,31 @@ func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1
 		return "", errors.New("couldn't find matching Metal3Data object")
 	}
 
-	// List IPAddress objects and find the one owned by this Metal3Data
+	// Metal3Data owns IPClaim, and IPClaim owns IPAddress.
+	// Find the IPClaim owned by the Metal3Data for the target pool.
+	ipClaims := &ipamv1.IPClaimList{}
+	err = h.client.List(ctx, ipClaims, client.InNamespace(machine.Namespace))
+	if err != nil {
+		return "", fmt.Errorf("couldn't list IPClaim objects: %w", err)
+	}
+
+	var ipClaim *ipamv1.IPClaim
+	for i, claim := range ipClaims.Items {
+		for _, owner := range claim.OwnerReferences {
+			if owner.Name == m3Data.Name && (ippoolName == "" || claim.Spec.Pool.Name == ippoolName) {
+				ipClaim = &ipClaims.Items[i]
+				break
+			}
+		}
+		if ipClaim != nil {
+			break
+		}
+	}
+	if ipClaim == nil {
+		return "", errors.Errorf("couldn't find IPClaim object with owner ref(Metal3Data) %s and pool name %s", m3Data.Name, ippoolName)
+	}
+
+	// Find the IPAddress owned by the IPClaim.
 	IPAddresses := &ipamv1.IPAddressList{}
 	err = h.client.List(ctx, IPAddresses, client.InNamespace(machine.Namespace))
 	if err != nil {
@@ -428,7 +453,7 @@ func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1
 	var IPAddress *ipamv1.IPAddress
 	for i, ip := range IPAddresses.Items {
 		for _, owner := range ip.OwnerReferences {
-			if owner.Name == m3Data.Name && (ippoolName == "" || ip.Spec.Pool.Name == ippoolName) {
+			if owner.Name == ipClaim.Name {
 				IPAddress = &IPAddresses.Items[i]
 				break
 			}
@@ -438,7 +463,7 @@ func (h *ExtensionHandlers) getMachineIP(ctx context.Context, machine *clusterv1
 		}
 	}
 	if IPAddress == nil {
-		return "", errors.Errorf("couldn't find IPAddress object with owner ref(Metal3Data) %s and pool name %s", m3Data.Name, ippoolName)
+		return "", errors.Errorf("couldn't find IPAddress object with owner ref(IPClaim) %s", ipClaim.Name)
 	}
 
 	return string(IPAddress.Spec.Address), nil
