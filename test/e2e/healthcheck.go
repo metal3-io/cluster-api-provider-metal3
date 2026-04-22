@@ -52,7 +52,7 @@ func HealthCheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	workerMachineName, err := Metal3MachineToMachineName(workerM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
 	workerMachine := GetMachine(ctx, bootstrapClusterClient, client.ObjectKey{Name: workerMachineName, Namespace: namespace})
-	workerIP, err := MachineToIPAddress1beta1(ctx, bootstrapClusterClient, &workerMachine, baremetalv4Pool[0])
+	workerIP, err := MachineToIPAddress(ctx, bootstrapClusterClient, &workerMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
 
 	Logf("Stopping kubelet on worker machine")
@@ -77,7 +77,7 @@ func HealthCheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	controlplaneMachineName, err := Metal3MachineToMachineName(controlplaneM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
 	controlplaneMachine := GetMachine(ctx, bootstrapClusterClient, client.ObjectKey{Name: controlplaneMachineName, Namespace: namespace})
-	controlplaneIP, err := MachineToIPAddress1beta1(ctx, bootstrapClusterClient, &controlplaneMachine, baremetalv4Pool[0])
+	controlplaneIP, err := MachineToIPAddress(ctx, bootstrapClusterClient, &controlplaneMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
 
 	Logf("Stopping kubelet on controlplane machine")
