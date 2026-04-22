@@ -712,6 +712,26 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 		return "", errors.New("couldn't find a matching Metal3Data object")
 	}
 
+	// Metal3Data owns IPClaim, and IPClaim owns IPAddress.
+	// Find the IPClaim owned by the Metal3Data for the target pool.
+	ipClaims := &ipamv1.IPClaimList{}
+	err = cli.List(ctx, ipClaims)
+	if err != nil {
+		return "", fmt.Errorf("couldn't list IPClaim objects: %w", err)
+	}
+	var ipClaim *ipamv1.IPClaim
+	for i, claim := range ipClaims.Items {
+		for _, owner := range claim.OwnerReferences {
+			if owner.Name == m3Data.Name && claim.Spec.Pool.Name == ippool.Name {
+				ipClaim = &ipClaims.Items[i]
+			}
+		}
+	}
+	if ipClaim == nil {
+		return "", errors.New("couldn't find a matching IPClaim object")
+	}
+
+	// Find the IPAddress owned by the IPClaim.
 	IPAddresses := &ipamv1.IPAddressList{}
 	IPAddress := &ipamv1.IPAddress{}
 	err = cli.List(ctx, IPAddresses)
@@ -720,56 +740,7 @@ func MachineToIPAddress(ctx context.Context, cli client.Client, m *clusterv1.Mac
 	}
 	for i, ip := range IPAddresses.Items {
 		for _, owner := range ip.OwnerReferences {
-			if owner.Name == m3Data.Name && ip.Spec.Pool.Name == ippool.Name {
-				IPAddress = &IPAddresses.Items[i]
-			}
-		}
-	}
-	if IPAddress.Name == "" {
-		return "", errors.New("couldn't find a matching IPAddress object")
-	}
-
-	return string(IPAddress.Spec.Address), nil
-}
-
-// MachineTiIPAddress gets IPAddress based on machine, from machine -> m3machine -> m3data -> IPAddress.
-// This is a duplicate of MachineToIPAddress, but for v1beta1 API. Remove this function when we switch to CAPI v1beta2 API only.
-func MachineToIPAddress1beta1(ctx context.Context, cli client.Client, m *clusterv1.Machine, ippool ipamv1.IPPool) (string, error) {
-	m3Machine := &infrav1.Metal3Machine{}
-	err := cli.Get(ctx, types.NamespacedName{
-		Namespace: m.Namespace,
-		Name:      m.Spec.InfrastructureRef.Name},
-		m3Machine)
-
-	if err != nil {
-		return "", fmt.Errorf("couldn't get a Metal3Machine within namespace %s with name %s : %w", m.Namespace, m.Spec.InfrastructureRef.Name, err)
-	}
-	m3DataList := &infrav1.Metal3DataList{}
-	m3Data := &infrav1.Metal3Data{}
-	err = cli.List(ctx, m3DataList)
-	if err != nil {
-		return "", fmt.Errorf("coudln't list Metal3Data objects: %w", err)
-	}
-	for i, m3d := range m3DataList.Items {
-		for _, owner := range m3d.OwnerReferences {
-			if owner.Name == m3Machine.Name {
-				m3Data = &m3DataList.Items[i]
-			}
-		}
-	}
-	if m3Data.Name == "" {
-		return "", errors.New("couldn't find a matching Metal3Data object")
-	}
-
-	IPAddresses := &ipamv1.IPAddressList{}
-	IPAddress := &ipamv1.IPAddress{}
-	err = cli.List(ctx, IPAddresses)
-	if err != nil {
-		return "", fmt.Errorf("couldn't list IPAddress objects: %w", err)
-	}
-	for i, ip := range IPAddresses.Items {
-		for _, owner := range ip.OwnerReferences {
-			if owner.Name == m3Data.Name && ip.Spec.Pool.Name == ippool.Name {
+			if owner.Name == ipClaim.Name {
 				IPAddress = &IPAddresses.Items[i]
 			}
 		}

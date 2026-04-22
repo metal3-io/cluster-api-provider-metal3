@@ -52,7 +52,7 @@ func HealthCheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	workerMachineName, err := Metal3MachineToMachineName(workerM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
 	workerMachine := GetMachine(ctx, bootstrapClusterClient, client.ObjectKey{Name: workerMachineName, Namespace: namespace})
-	workerIP, err := MachineToIPAddress1beta1(ctx, bootstrapClusterClient, &workerMachine, baremetalv4Pool[0])
+	workerIP, err := MachineToIPAddress(ctx, bootstrapClusterClient, &workerMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
 
 	Logf("Stopping kubelet on worker machine")
@@ -77,7 +77,7 @@ func HealthCheck(ctx context.Context, inputGetter func() HealthCheckInput) {
 	controlplaneMachineName, err := Metal3MachineToMachineName(controlplaneM3Machines[0])
 	Expect(err).ToNot(HaveOccurred())
 	controlplaneMachine := GetMachine(ctx, bootstrapClusterClient, client.ObjectKey{Name: controlplaneMachineName, Namespace: namespace})
-	controlplaneIP, err := MachineToIPAddress1beta1(ctx, bootstrapClusterClient, &controlplaneMachine, baremetalv4Pool[0])
+	controlplaneIP, err := MachineToIPAddress(ctx, bootstrapClusterClient, &controlplaneMachine, baremetalv4Pool[0])
 	Expect(err).ToNot(HaveOccurred())
 
 	Logf("Stopping kubelet on controlplane machine")
@@ -218,6 +218,7 @@ func DeployMachineHealthCheck(ctx context.Context, cli client.Client, namespace,
 func WaitForHealthCheckCurrentHealthyToMatch(ctx context.Context, cli client.Client, number int32, healthcheck *clusterv1.MachineHealthCheck, timeout, frequency time.Duration) {
 	Eventually(func(g Gomega) int32 {
 		g.Expect(cli.Get(ctx, client.ObjectKeyFromObject(healthcheck), healthcheck)).To(Succeed())
+		g.Expect(healthcheck.Status.CurrentHealthy).NotTo(BeNil())
 		return *healthcheck.Status.CurrentHealthy
 	}, timeout, frequency).Should(Equal(number))
 }
