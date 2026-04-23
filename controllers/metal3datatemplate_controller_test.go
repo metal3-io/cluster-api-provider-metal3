@@ -339,15 +339,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				req := reqs[0]
 				Expect(req.NamespacedName.Name).To(Equal(tc.DataClaim.Spec.Template.Name),
 					"Expected name %s, found %s", tc.DataClaim.Spec.Template.Name, req.NamespacedName.Name)
-				if tc.DataClaim.Spec.Template.Namespace == "" {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Namespace),
-						"Expected namespace %s, found %s", tc.DataClaim.Namespace, req.NamespacedName.Namespace)
-				} else {
-					Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Spec.Template.Namespace),
-						"Expected namespace %s, found %s", tc.DataClaim.Spec.Template.Namespace,
-						req.NamespacedName.Namespace)
-				}
-
+				// The enqueued request must always use the Metal3DataClaim's own
+				// namespace; cross-namespace template references are ignored.
+				Expect(req.NamespacedName.Namespace).To(Equal(tc.DataClaim.Namespace),
+					"Expected namespace %s, found %s", tc.DataClaim.Namespace, req.NamespacedName.Namespace)
 			} else {
 				Expect(reqs).To(BeEmpty(), "Expected 0 request, found %d", len(reqs))
 			}
@@ -395,6 +390,23 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					},
 				},
 				ExpectRequest: true,
+			},
+		),
+		Entry("Metal3DataTemplate in Spec, cross-namespace reference is ignored",
+			TestCaseM3DCToM3DT{
+				DataClaim: &infrav1.Metal3DataClaim{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      metal3DataClaimName,
+						Namespace: namespaceName,
+					},
+					Spec: infrav1.Metal3DataClaimSpec{
+						Template: &infrav1.Metal3ObjectRef{
+							Name:      metal3DataTemplateName,
+							Namespace: "other-namespace",
+						},
+					},
+				},
+				ExpectRequest: false,
 			},
 		),
 	)

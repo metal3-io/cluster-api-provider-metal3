@@ -30,13 +30,19 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 		Spec: infrav1.Metal3DataClaimSpec{
 			Template: &infrav1.Metal3ObjectRef{
 				Name:      "abc",
-				Namespace: "abc",
+				Namespace: "foo",
 			},
 		},
 	}
 
 	invalidHost1 := valid.DeepCopy()
 	invalidHost1.Spec.Template.Name = ""
+
+	validEmptyNs := valid.DeepCopy()
+	validEmptyNs.Spec.Template.Namespace = ""
+
+	crossNamespace := valid.DeepCopy()
+	crossNamespace.Spec.Template.Namespace = "other"
 
 	tests := []struct {
 		name      string
@@ -52,6 +58,16 @@ func TestMetal3DataClaimValidation(t *testing.T) {
 			name:      "should succeed when endpoint correct",
 			expectErr: false,
 			c:         valid,
+		},
+		{
+			name:      "should succeed when template namespace is empty",
+			expectErr: false,
+			c:         validEmptyNs,
+		},
+		{
+			name:      "should fail when template namespace differs from claim namespace",
+			expectErr: true,
+			c:         crossNamespace,
 		},
 	}
 
@@ -141,6 +157,38 @@ func TestMetal3DataClaimUpdateValidation(t *testing.T) {
 				Template: &infrav1.Metal3ObjectRef{
 					Name:      "abc",
 					Namespace: "abcd",
+				},
+			},
+		},
+		{
+			name:      "should fail when new template namespace differs from claim namespace",
+			expectErr: true,
+			new: &infrav1.Metal3DataClaimSpec{
+				Template: &infrav1.Metal3ObjectRef{
+					Name:      "abc",
+					Namespace: "other",
+				},
+			},
+			old: &infrav1.Metal3DataClaimSpec{
+				Template: &infrav1.Metal3ObjectRef{
+					Name:      "abc",
+					Namespace: "other",
+				},
+			},
+		},
+		{
+			name:      "should succeed when new template namespace matches claim namespace",
+			expectErr: false,
+			new: &infrav1.Metal3DataClaimSpec{
+				Template: &infrav1.Metal3ObjectRef{
+					Name:      "abc",
+					Namespace: "foo",
+				},
+			},
+			old: &infrav1.Metal3DataClaimSpec{
+				Template: &infrav1.Metal3ObjectRef{
+					Name:      "abc",
+					Namespace: "foo",
 				},
 			},
 		},
