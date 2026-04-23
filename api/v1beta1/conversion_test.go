@@ -508,6 +508,11 @@ func spokeMetal3DataClaimStatus(in *Metal3DataClaimStatus, c randfill.Continue) 
 	} else {
 		in.RenderedData = nil
 	}
+	// Normalize ErrorMessage: nil → &"" (since v1beta2 uses string type,
+	// round-trip conversion cannot distinguish nil from &"")
+	if in.ErrorMessage == nil {
+		in.ErrorMessage = ptr.To("")
+	}
 }
 
 func Metal3DataTemplateFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
@@ -539,10 +544,19 @@ func spokeMetal3DataTemplateSpec(in *Metal3DataTemplateSpec, c randfill.Continue
 	in.TemplateReference = ""
 }
 
-// spokeNetworkLinkEthernetMac normalizes MacAddress.FromAnnotation: empty pointer can't
-// round-trip through the v1beta2 value type.
+// spokeNetworkLinkEthernetMac normalizes MacAddress fields that can't round-trip properly.
+// String and FromHostInterface pointer fields cannot distinguish nil from &"" through v1beta2 string type.
+// FromAnnotation empty pointer can't round-trip through the v1beta2 value type.
 func spokeNetworkLinkEthernetMac(in *NetworkLinkEthernetMac, c randfill.Continue) {
 	c.FillNoCustom(in)
+	// Normalize nil pointer fields: nil → &"" (since v1beta2 uses plain strings,
+	// round-trip conversion cannot distinguish nil from &"")
+	if in.String == nil {
+		in.String = ptr.To("")
+	}
+	if in.FromHostInterface == nil {
+		in.FromHostInterface = ptr.To("")
+	}
 	if in.FromAnnotation != nil && in.FromAnnotation.Object == "" && in.FromAnnotation.Annotation == "" {
 		in.FromAnnotation = nil
 	}
@@ -565,18 +579,28 @@ func spokeNetworkDataIPv6(in *NetworkDataIPv6, c randfill.Continue) {
 }
 
 // spokeNetworkGatewayv4 normalizes NetworkGatewayv4 fields that can't round-trip.
+// FromIPPool is a *string in v1beta1 but a string in v1beta2, so empty pointers (&"")
+// cannot be preserved through round-trip conversion. Normalize &"" to nil.
 func spokeNetworkGatewayv4(in *NetworkGatewayv4, c randfill.Continue) {
 	c.FillNoCustom(in)
 	if in.FromPoolAnnotation != nil && in.FromPoolAnnotation.Object == "" && in.FromPoolAnnotation.Annotation == "" {
 		in.FromPoolAnnotation = nil
 	}
+	if in.FromIPPool != nil && *in.FromIPPool == "" {
+		in.FromIPPool = nil
+	}
 }
 
 // spokeNetworkGatewayv6 normalizes NetworkGatewayv6 fields that can't round-trip.
+// FromIPPool is a *string in v1beta1 but a string in v1beta2, so empty pointers (&"")
+// cannot be preserved through round-trip conversion. Normalize &"" to nil.
 func spokeNetworkGatewayv6(in *NetworkGatewayv6, c randfill.Continue) {
 	c.FillNoCustom(in)
 	if in.FromPoolAnnotation != nil && in.FromPoolAnnotation.Object == "" && in.FromPoolAnnotation.Annotation == "" {
 		in.FromPoolAnnotation = nil
+	}
+	if in.FromIPPool != nil && *in.FromIPPool == "" {
+		in.FromIPPool = nil
 	}
 }
 

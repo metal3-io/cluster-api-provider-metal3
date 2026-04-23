@@ -37,7 +37,7 @@ type Metal3RemediationTemplateResource struct {
 // Metal3RemediationTemplateStatus defines the observed state of Metal3RemediationTemplate.
 type Metal3RemediationTemplateStatus struct {
 	// status defines the observed state of Metal3Remediation
-	// +required
+	// +optional
 	Status Metal3RemediationStatus `json:"status,omitempty,omitzero"`
 }
 

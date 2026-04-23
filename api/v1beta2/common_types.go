@@ -61,6 +61,10 @@ type HostSelector struct {
 
 	// matchExpressions specifies match expressions that must be true on a chosen BareMetalHost
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	MatchExpressions []HostSelectorRequirement `json:"matchExpressions,omitempty"`
 }
 
@@ -77,6 +81,7 @@ type HostSelectorRequirement struct {
 
 	// values is an array of string of required values.
 	// +required
+	// +listType=set
 	// +kubebuilder:validation:MaxItems=512
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512

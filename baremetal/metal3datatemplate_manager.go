@@ -236,7 +236,7 @@ func (m *DataTemplateManager) updateData(ctx context.Context,
 		}
 	}()
 
-	dataClaim.Status.ErrorMessage = nil
+	dataClaim.Status.ErrorMessage = ""
 
 	if dataClaim.DeletionTimestamp.IsZero() {
 		indexes, err = m.createData(ctx, dataClaim, indexes)
@@ -372,7 +372,7 @@ func (m *DataTemplateManager) createData(ctx context.Context,
 	if err := createObject(ctx, m.client, dataObject); err != nil {
 		var reconcileError ReconcileError
 		if !(errors.As(err, &reconcileError) && reconcileError.IsTransient()) {
-			dataClaim.Status.ErrorMessage = ptr.To("Failed to create associated Metal3Data object")
+			dataClaim.Status.ErrorMessage = "Failed to create associated Metal3Data object"
 		}
 		return indexes, err
 	}
@@ -482,14 +482,14 @@ func (m *DataTemplateManager) deleteMetal3DataAndClaim(ctx context.Context,
 		m.Log.V(VerbosityLevelDebug).Info("Deleting associated Metal3Data", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name, LogFieldMetal3Data, dataName)
 		err = deleteObject(ctx, m.client, tmpM3Data)
 		if err != nil && !apierrors.IsNotFound(err) {
-			dataClaim.Status.ErrorMessage = ptr.To("Failed to delete associated Metal3Data object")
+			dataClaim.Status.ErrorMessage = "Failed to delete associated Metal3Data object"
 			return indexes, err
 		}
 		m.Log.Info("Deleted Metal3Data", LogFieldMetal3Data, tmpM3Data.Name)
 	} else {
 		errMsg := "failed to retrieve Metal3Data object because it was not found or for other unknown reason"
 		persistentErrMsg += errMsg
-		dataClaim.Status.ErrorMessage = ptr.To(persistentErrMsg)
+		dataClaim.Status.ErrorMessage = persistentErrMsg
 		m.Log.Error(errors.New(errMsg), "error added to Metal3DataClaim status", LogFieldMetal3DataClaim, dataClaim.Name, LogFieldMetal3DataTemplate, m.DataTemplate.Name, LogFieldMetal3Data, dataName)
 	}
 

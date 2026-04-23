@@ -87,6 +87,14 @@ func (s *Metal3ClusterSpec) IsValid() error {
 
 // Metal3ClusterStatus defines the observed state of Metal3Cluster.
 type Metal3ClusterStatus struct {
+	// conditions defines current service state of the Metal3Cluster.
+	// Known condition types are Ready, and Paused, BareMetalInfraStructureReady.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// lastUpdated identifies when this status was last observed.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
@@ -95,14 +103,6 @@ type Metal3ClusterStatus struct {
 	// NOTE: Fields in this struct are part of the Cluster API contract and are used to orchestrate initial Cluster provisioning.
 	// +optional
 	Initialization Metal3ClusterInitializationStatus `json:"initialization,omitempty,omitzero"`
-
-	// conditions defines current service state of the Metal3Cluster.
-	// Known condition types are Ready, and Paused, BareMetalInfraStructureReady.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional
