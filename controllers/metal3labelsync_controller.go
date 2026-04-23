@@ -127,7 +127,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		// ignore BMH with no ConsumerRef
 		return ctrl.Result{}, nil
 	}
-	if host.Spec.ConsumerRef.Kind != metal3MachineKind &&
+	if host.Spec.ConsumerRef.Kind != metal3MachineKind ||
 		host.Spec.ConsumerRef.GroupVersionKind().Group != infrav1.GroupVersion.Group {
 		controllerLog.Info("Unknown GroupVersionKind in BareMetalHost Consumer Ref", "groupversion", host.Spec.ConsumerRef.GroupVersionKind())
 		return ctrl.Result{}, nil
