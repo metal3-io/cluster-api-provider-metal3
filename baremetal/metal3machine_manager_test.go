@@ -1091,6 +1091,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		ExpectedCustomDeploy        *bmov1alpha1.CustomDeploy
 		ExpectUserData              bool
 		expectNodeReuseLabelDeleted bool
+		ExpectError                 bool
 	}
 
 	DescribeTable("Test SetHostSpec",
@@ -1114,6 +1115,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			err = machineMgr.setHostSpec(context.TODO(), tc.Host)
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+				return
+			}
 			Expect(err).NotTo(HaveOccurred())
 
 			// validate the saved host
@@ -1161,6 +1166,7 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			ExpectedImage:  expectedImg(),
 			ExpectUserData: true,
+			ExpectError:    true,
 		}),
 		Entry("User data has no namespace", testCaseSetHostSpec{
 			UserDataNamespace:         "",
@@ -2614,7 +2620,12 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			machineMgr.getUserDataSecretName(context.TODO())
+			err = machineMgr.getUserDataSecretName(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+				return
+			}
+			Expect(err).NotTo(HaveOccurred())
 
 			// Expect the reference to the secret to be passed through
 			if tc.Machine.Spec.Bootstrap.DataSecretName != nil &&
@@ -2766,6 +2777,19 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			M3Machine: newMetal3Machine(metal3machineName, nil, nil, nil),
 			BMHost:    newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, ""),
+		}),
+		Entry("User data has explicit alternate namespace", testCaseGetUserDataSecretName{
+			Machine: &clusterv1.Machine{
+				ObjectMeta: testObjectMeta("", namespaceName, ""),
+			},
+			M3Machine: newMetal3Machine(metal3machineName, &infrav1.Metal3MachineSpec{
+				UserData: &corev1.SecretReference{
+					Name:      "foreign-secret",
+					Namespace: "other-ns",
+				},
+			}, nil, nil),
+			BMHost:      newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, ""),
+			ExpectError: true,
 		}),
 	)
 
@@ -3329,9 +3353,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				} else {
 					Expect(err).NotTo(BeAssignableToTypeOf(ReconcileError{}))
 				}
-			} else {
-				Expect(err).NotTo(HaveOccurred())
+				return
 			}
+			Expect(err).NotTo(HaveOccurred())
 			if tc.M3Machine.Spec.MetaData != nil {
 				Expect(tc.M3Machine.Status.MetaData).To(Equal(tc.M3Machine.Spec.MetaData))
 			}
@@ -3424,6 +3448,18 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 			},
 			expectClaim: true,
+		}),
+		Entry("MetaData has explicit alternate namespace", testCaseM3MetaData{
+			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
+				MetaData: &corev1.SecretReference{Name: "secret", Namespace: "other-ns"},
+			}, nil, nil),
+			ExpectError: true,
+		}),
+		Entry("NetworkData has explicit alternate namespace", testCaseM3MetaData{
+			M3Machine: newMetal3Machine("myName", &infrav1.Metal3MachineSpec{
+				NetworkData: &corev1.SecretReference{Name: "secret", Namespace: "other-ns"},
+			}, nil, nil),
+			ExpectError: true,
 		}),
 	)
 
