@@ -19,6 +19,7 @@ import (
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 )
@@ -65,6 +66,33 @@ func TestMetal3MachineValidation(t *testing.T) {
 		},
 	}
 
+	crossNsUserData := valid.DeepCopy()
+	crossNsUserData.Spec.UserData = &corev1.SecretReference{Name: "secret", Namespace: "other-ns"}
+
+	crossNsMetaData := valid.DeepCopy()
+	crossNsMetaData.Spec.MetaData = &corev1.SecretReference{Name: "secret", Namespace: "other-ns"}
+
+	crossNsNetworkData := valid.DeepCopy()
+	crossNsNetworkData.Spec.NetworkData = &corev1.SecretReference{Name: "secret", Namespace: "other-ns"}
+
+	sameNsUserData := valid.DeepCopy()
+	sameNsUserData.Spec.UserData = &corev1.SecretReference{Name: "secret", Namespace: "foo"}
+
+	sameNsMetaData := valid.DeepCopy()
+	sameNsMetaData.Spec.MetaData = &corev1.SecretReference{Name: "secret", Namespace: "foo"}
+
+	sameNsNetworkData := valid.DeepCopy()
+	sameNsNetworkData.Spec.NetworkData = &corev1.SecretReference{Name: "secret", Namespace: "foo"}
+
+	noNsUserData := valid.DeepCopy()
+	noNsUserData.Spec.UserData = &corev1.SecretReference{Name: "secret"}
+
+	noNsMetaData := valid.DeepCopy()
+	noNsMetaData.Spec.MetaData = &corev1.SecretReference{Name: "secret"}
+
+	noNsNetworkData := valid.DeepCopy()
+	noNsNetworkData.Spec.NetworkData = &corev1.SecretReference{Name: "secret"}
+
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -99,6 +127,51 @@ func TestMetal3MachineValidation(t *testing.T) {
 			name:      "should return error when both image and customDeploy are missing",
 			expectErr: true,
 			c:         neitherImageNorCustomDeploy,
+		},
+		{
+			name:      "should return error when userData references a different namespace",
+			expectErr: true,
+			c:         crossNsUserData,
+		},
+		{
+			name:      "should return error when metaData references a different namespace",
+			expectErr: true,
+			c:         crossNsMetaData,
+		},
+		{
+			name:      "should return error when networkData references a different namespace",
+			expectErr: true,
+			c:         crossNsNetworkData,
+		},
+		{
+			name:      "should succeed when userData references the same namespace",
+			expectErr: false,
+			c:         sameNsUserData,
+		},
+		{
+			name:      "should succeed when metaData references the same namespace",
+			expectErr: false,
+			c:         sameNsMetaData,
+		},
+		{
+			name:      "should succeed when networkData references the same namespace",
+			expectErr: false,
+			c:         sameNsNetworkData,
+		},
+		{
+			name:      "should succeed when userData has no namespace",
+			expectErr: false,
+			c:         noNsUserData,
+		},
+		{
+			name:      "should succeed when metaData has no namespace",
+			expectErr: false,
+			c:         noNsMetaData,
+		},
+		{
+			name:      "should succeed when networkData has no namespace",
+			expectErr: false,
+			c:         noNsNetworkData,
 		},
 	}
 

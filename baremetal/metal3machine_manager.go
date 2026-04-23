@@ -389,7 +389,10 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 
 	// A machine bootstrap not ready case is caught in the controller
 	// ReconcileNormal function
-	m.getUserDataSecretName(ctx)
+	err = m.getUserDataSecretName(ctx)
+	if err != nil {
+		return "", err
+	}
 
 	m.setHostLabel(ctx, host)
 
@@ -431,16 +434,20 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 	return chosenHostReason, nil
 }
 
-// getUserDataSecretName gets the UserDataSecretName from the machine and exposes it as a secret
-// for the BareMetalHost through Metal3Machine. The UserDataSecretName might already be in a secret with
-// CABPK v0.3.0+, but if it is in a different namespace than the BareMetalHost,
-// then we need to create the secret.
-func (m *MachineManager) getUserDataSecretName(_ context.Context) {
+// getUserDataSecretName resolves the userData secret reference for the BareMetalHost.
+// If Metal3Machine.Spec.UserData is set, it is used directly but must reference the
+// same namespace as the Metal3Machine (cross-namespace references are rejected).
+// Otherwise, the bootstrap DataSecretName or ConfigRef from the CAPI Machine is used.
+func (m *MachineManager) getUserDataSecretName(_ context.Context) error {
 	if m.Metal3Machine.Status.UserData != nil {
-		return
+		return nil
 	}
 
 	if m.Metal3Machine.Spec.UserData != nil {
+		if m.Metal3Machine.Spec.UserData.Namespace != "" && m.Metal3Machine.Spec.UserData.Namespace != m.Metal3Machine.Namespace {
+			return fmt.Errorf("cross-namespace secret reference is not allowed for userData (namespace %q does not match %q)",
+				m.Metal3Machine.Spec.UserData.Namespace, m.Metal3Machine.Namespace)
+		}
 		m.Metal3Machine.Status.UserData = m.Metal3Machine.Spec.UserData
 	}
 
@@ -450,13 +457,14 @@ func (m *MachineManager) getUserDataSecretName(_ context.Context) {
 			Name:      *m.Machine.Spec.Bootstrap.DataSecretName,
 			Namespace: m.Machine.Namespace,
 		}
-		return
+		return nil
 	} else if m.Machine.Spec.Bootstrap.ConfigRef.IsDefined() {
 		m.Metal3Machine.Status.UserData = &corev1.SecretReference{
 			Name:      m.Machine.Spec.Bootstrap.ConfigRef.Name,
 			Namespace: m.Machine.Namespace,
 		}
 	}
+	return nil
 }
 
 // Delete deletes a metal3 machine and is invoked by the Machine Controller.
@@ -1172,22 +1180,34 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 			}
 		}
 		host.Spec.UserData = m.Metal3Machine.Status.UserData
-		if host.Spec.UserData != nil && host.Spec.UserData.Namespace == "" {
-			host.Spec.UserData.Namespace = host.Namespace
+		if host.Spec.UserData != nil {
+			if host.Spec.UserData.Namespace == "" {
+				host.Spec.UserData.Namespace = host.Namespace
+			} else if host.Spec.UserData.Namespace != m.Metal3Machine.Namespace {
+				return fmt.Errorf("cross-namespace secret reference is not allowed for userData on host %s", host.Name)
+			}
 		}
 
 		// Set metadata from gathering from Spec.metadata and from the template.
 		if m.Metal3Machine.Status.MetaData != nil {
 			host.Spec.MetaData = m.Metal3Machine.Status.MetaData
 		}
-		if host.Spec.MetaData != nil && host.Spec.MetaData.Namespace == "" {
-			host.Spec.MetaData.Namespace = m.Machine.Namespace
+		if host.Spec.MetaData != nil {
+			if host.Spec.MetaData.Namespace == "" {
+				host.Spec.MetaData.Namespace = m.Machine.Namespace
+			} else if host.Spec.MetaData.Namespace != m.Metal3Machine.Namespace {
+				return fmt.Errorf("cross-namespace secret reference is not allowed for metaData on host %s", host.Name)
+			}
 		}
 		if m.Metal3Machine.Status.NetworkData != nil {
 			host.Spec.NetworkData = m.Metal3Machine.Status.NetworkData
 		}
-		if host.Spec.NetworkData != nil && host.Spec.NetworkData.Namespace == "" {
-			host.Spec.NetworkData.Namespace = m.Machine.Namespace
+		if host.Spec.NetworkData != nil {
+			if host.Spec.NetworkData.Namespace == "" {
+				host.Spec.NetworkData.Namespace = m.Machine.Namespace
+			} else if host.Spec.NetworkData.Namespace != m.Metal3Machine.Namespace {
+				return fmt.Errorf("cross-namespace secret reference is not allowed for networkData on host %s", host.Name)
+			}
 		}
 	}
 	// Set automatedCleaningMode from metal3Machine.spec.automatedCleaningMode.
@@ -1725,11 +1745,20 @@ func findOwnerRefFromList(refList []metav1.OwnerReference, objType metav1.TypeMe
 func (m *MachineManager) AssociateM3Metadata(ctx context.Context) error {
 	m.Log.V(VerbosityLevelTrace).Info("Associating M3Metadata with Metal3Machine",
 		LogFieldMetal3Machine, m.Metal3Machine.Name)
-	// If the secrets were provided by the user, use them.
+	// If the secrets were provided by the user, use them after enforcing
+	// same-namespace constraint to prevent cross-namespace secret disclosure.
 	if m.Metal3Machine.Spec.MetaData != nil {
+		if m.Metal3Machine.Spec.MetaData.Namespace != "" && m.Metal3Machine.Spec.MetaData.Namespace != m.Metal3Machine.Namespace {
+			return fmt.Errorf("cross-namespace secret reference is not allowed for metaData (namespace %q does not match %q)",
+				m.Metal3Machine.Spec.MetaData.Namespace, m.Metal3Machine.Namespace)
+		}
 		m.Metal3Machine.Status.MetaData = m.Metal3Machine.Spec.MetaData
 	}
 	if m.Metal3Machine.Spec.NetworkData != nil {
+		if m.Metal3Machine.Spec.NetworkData.Namespace != "" && m.Metal3Machine.Spec.NetworkData.Namespace != m.Metal3Machine.Namespace {
+			return fmt.Errorf("cross-namespace secret reference is not allowed for networkData (namespace %q does not match %q)",
+				m.Metal3Machine.Spec.NetworkData.Namespace, m.Metal3Machine.Namespace)
+		}
 		m.Metal3Machine.Status.NetworkData = m.Metal3Machine.Spec.NetworkData
 	}
 
