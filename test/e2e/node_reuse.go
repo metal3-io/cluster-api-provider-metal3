@@ -498,12 +498,12 @@ func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3Ma
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
 	helper, err := patch.NewHelper(&m3machineTemplate, clusterClient)
 	Expect(err).NotTo(HaveOccurred())
-	m3machineTemplate.Spec.NodeReuse = nodeReuse
+	m3machineTemplate.Spec.NodeReuse = ptr.To(nodeReuse)
 	Expect(helper.Patch(ctx, &m3machineTemplate)).To(Succeed())
 
 	// verify that nodeReuse field is updated
 	Expect(clusterClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: m3MachineTemplateName}, &m3machineTemplate)).To(Succeed())
-	Expect(m3machineTemplate.Spec.NodeReuse).To(BeEquivalentTo(nodeReuse))
+	Expect(m3machineTemplate.Spec.NodeReuse).To(HaveValue(BeEquivalentTo(nodeReuse)))
 }
 
 // verifyMetal3MachineNodeReuseCondition verifies that the Metal3Machine associated with the given BMH

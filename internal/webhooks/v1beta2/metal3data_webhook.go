@@ -21,6 +21,7 @@ import (
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -41,7 +42,7 @@ var _ admission.Validator[*infrav1.Metal3Data] = &Metal3Data{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (webhook *Metal3Data) ValidateCreate(_ context.Context, obj *infrav1.Metal3Data) (admission.Warnings, error) {
 	allErrs := field.ErrorList{}
-	if obj.Name != obj.Spec.Template.Name+"-"+strconv.Itoa(int(obj.Spec.Index)) {
+	if (obj.Spec.Index != nil && obj.Spec.Template != nil) && obj.Name != obj.Spec.Template.Name+"-"+strconv.Itoa(int(*obj.Spec.Index)) {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("name"),
@@ -51,7 +52,7 @@ func (webhook *Metal3Data) ValidateCreate(_ context.Context, obj *infrav1.Metal3
 		)
 	}
 
-	if obj.Spec.Index < 0 {
+	if obj.Spec.Index != nil && *obj.Spec.Index < int32(0) {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "Index"),
@@ -78,7 +79,8 @@ func (webhook *Metal3Data) ValidateUpdate(_ context.Context, oldMetal3Data, newM
 	if newMetal3Data == nil {
 		return nil, apierrors.NewInternalError(errors.New("expected a Metal3Data but got nil"))
 	}
-	if newMetal3Data.Spec.Index != oldMetal3Data.Spec.Index {
+
+	if ptr.Deref(newMetal3Data.Spec.Index, 0) != ptr.Deref(oldMetal3Data.Spec.Index, 0) {
 		allErrs = append(allErrs,
 			field.Invalid(
 				field.NewPath("spec", "Index"),

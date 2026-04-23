@@ -67,9 +67,8 @@ func (webhook *Metal3RemediationTemplate) Default(_ context.Context, m3rt *infra
 		m3rt.Spec.Template.Spec.Strategy.Type = infrav1.RebootRemediationStrategy
 	}
 
-	if m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds == nil {
-		timeout := defaultTimeout
-		m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds = &timeout
+	if m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds == 0 {
+		m3rt.Spec.Template.Spec.Strategy.TimeoutSeconds = defaultTimeout
 	}
 
 	if m3rt.Spec.Template.Spec.Strategy.RetryLimit == 0 || m3rt.Spec.Template.Spec.Strategy.RetryLimit < minRetryLimit {
@@ -106,7 +105,7 @@ func (webhook *Metal3RemediationTemplate) ValidateDelete(_ context.Context, _ *i
 
 func (webhook *Metal3RemediationTemplate) validate(newM3rt *infrav1.Metal3RemediationTemplate) error {
 	var allErrs field.ErrorList
-	if newM3rt.Spec.Template.Spec.Strategy.TimeoutSeconds != nil && *newM3rt.Spec.Template.Spec.Strategy.TimeoutSeconds < minTimeout {
+	if newM3rt.Spec.Template.Spec.Strategy.TimeoutSeconds != 0 && newM3rt.Spec.Template.Spec.Strategy.TimeoutSeconds < minTimeout {
 		allErrs = append(
 			allErrs,
 			field.Invalid(

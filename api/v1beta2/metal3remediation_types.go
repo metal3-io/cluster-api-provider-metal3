@@ -57,10 +57,14 @@ type Metal3RemediationSpec struct {
 type RemediationStrategy struct {
 	// type of remediation.
 	// +optional
+	// +kubebuilder:validation:Enum=Reboot
 	Type RemediationType `json:"type,omitempty"`
 
 	// retryLimit sets maximum number of remediation retries.
+	// retryLimit must be a positive integer. The default is 1.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:default=1
 	RetryLimit int32 `json:"retryLimit,omitempty"`
 
 	// timeoutSeconds defines the timeout between remediation retries.
@@ -68,7 +72,7 @@ type RemediationStrategy struct {
 	// +kubebuilder:validation:Minimum=100
 	// +kubebuilder:default=600
 	// +optional
-	TimeoutSeconds *int32 `json:"timeoutSeconds"`
+	TimeoutSeconds int32 `json:"timeoutSeconds,omitempty"`
 }
 
 // Metal3RemediationStatus defines the observed state of Metal3Remediation.
@@ -76,11 +80,13 @@ type Metal3RemediationStatus struct {
 	// phase represents the current phase of machine remediation.
 	// E.g. Pending, Running, Done etc.
 	// +optional
+	// +kubebuilder:validation:Enum=Running;Waiting;Deleting machine;Failed
 	Phase string `json:"phase,omitempty"`
 
 	// retryCount can be used as a counter during the remediation.
 	// Field can hold number of reboots etc.
 	// +optional
+	// +kubebuilder:validation:Minimum=1
 	RetryCount int32 `json:"retryCount,omitempty"`
 
 	// lastRemediated identifies when the host was last remediated

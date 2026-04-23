@@ -92,13 +92,14 @@ func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTempla
 
 	if newM3dt.Spec.MetaData != nil {
 		for i, hostInterface := range newM3dt.Spec.MetaData.FromHostInterfaces {
-			if !hostInterface.FromBootMAC && hostInterface.Interface == "" {
+			fromBootMAC := hostInterface.FromBootMAC != nil && *hostInterface.FromBootMAC
+			if !fromBootMAC && hostInterface.Interface == "" {
 				allErrs = append(allErrs, field.Required(
 					field.NewPath("spec", "metaData", "fromHostInterfaces", strconv.Itoa(i), "interface"),
 					"interface must be specified when fromBootMAC is false",
 				))
 			}
-			if hostInterface.FromBootMAC && hostInterface.Interface != "" {
+			if fromBootMAC && hostInterface.Interface != "" {
 				allErrs = append(allErrs, field.Invalid(
 					field.NewPath("spec", "metaData", "fromHostInterfaces", strconv.Itoa(i), "interface"),
 					hostInterface.Interface,
@@ -109,20 +110,23 @@ func (webhook *Metal3DataTemplate) validate(_, newM3dt *infrav1.Metal3DataTempla
 	}
 
 	if newM3dt.Spec.NetworkData != nil {
-		for i, network := range newM3dt.Spec.NetworkData.Networks.IPv4 {
-			if network.FromPoolRef.Name == "" && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == nil {
-				allErrs = append(allErrs, field.Required(
-					field.NewPath("spec", "networkData", "networks", "ipv4", strconv.Itoa(i), "fromPoolRef", "name"),
-					"fromPoolRef needs to contain a reference to an IPPool",
-				))
+		// Check if Networks is set before accessing its fields
+		if newM3dt.Spec.NetworkData.Networks != nil {
+			for i, network := range newM3dt.Spec.NetworkData.Networks.IPv4 {
+				if network.FromPoolRef.Name == "" && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation.Object == "" {
+					allErrs = append(allErrs, field.Required(
+						field.NewPath("spec", "networkData", "networks", "ipv4", strconv.Itoa(i), "fromPoolRef", "name"),
+						"fromPoolRef needs to contain a reference to an IPPool",
+					))
+				}
 			}
-		}
-		for i, network := range newM3dt.Spec.NetworkData.Networks.IPv6 {
-			if network.FromPoolRef.Name == "" && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation == nil {
-				allErrs = append(allErrs, field.Required(
-					field.NewPath("spec", "networkData", "networks", "ipv6", strconv.Itoa(i), "fromPoolRef", "name"),
-					"fromPoolRef needs to contain a reference to an IPPool",
-				))
+			for i, network := range newM3dt.Spec.NetworkData.Networks.IPv6 {
+				if network.FromPoolRef.Name == "" && network.IPAddressFromIPPool == "" && network.FromPoolAnnotation.Object == "" {
+					allErrs = append(allErrs, field.Required(
+						field.NewPath("spec", "networkData", "networks", "ipv6", strconv.Itoa(i), "fromPoolRef", "name"),
+						"fromPoolRef needs to contain a reference to an IPPool",
+					))
+				}
 			}
 		}
 	}

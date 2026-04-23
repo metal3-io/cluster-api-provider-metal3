@@ -54,7 +54,7 @@ func (webhook *Metal3Machine) ValidateDelete(_ context.Context, _ *infrav1.Metal
 func (webhook *Metal3Machine) validate(newM3M *infrav1.Metal3Machine) error {
 	var allErrs field.ErrorList
 
-	if newM3M.Spec.CustomDeploy == nil || newM3M.Spec.CustomDeploy.Method == "" {
+	if newM3M.Spec.CustomDeploy.Method == "" {
 		allErrs = append(allErrs, newM3M.Spec.Image.Validate(*field.NewPath("Spec", "Image"))...)
 	}
 

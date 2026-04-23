@@ -196,6 +196,8 @@ spec:
                     type: string
                   namespace:
                     description: namespace of the resource.
+                    maxLength: 253
+                    minLength: 1
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
@@ -216,6 +218,8 @@ spec:
                     type: string
                   namespace:
                     description: namespace of the resource.
+                    maxLength: 253
+                    minLength: 1
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic

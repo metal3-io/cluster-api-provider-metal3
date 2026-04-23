@@ -29,7 +29,6 @@ import (
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -105,7 +104,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 						},
 					},
 					Spec: infrav1.Metal3MachineSpec{
-						AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+						AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 					},
 				},
 				M3MTemplate: &infrav1.Metal3MachineTemplate{
@@ -120,7 +119,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					Spec: infrav1.Metal3MachineTemplateSpec{
 						Template: infrav1.Metal3MachineTemplateResource{
 							Spec: infrav1.Metal3MachineSpec{
-								AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+								AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 							},
 						},
 					},
@@ -141,7 +140,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 						},
 					},
 					Spec: infrav1.Metal3MachineSpec{
-						AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+						AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 					},
 				},
 				M3MTemplate: &infrav1.Metal3MachineTemplate{
@@ -156,7 +155,7 @@ var _ = Describe("Metal3MachineTemplate controller", func() {
 					Spec: infrav1.Metal3MachineTemplateSpec{
 						Template: infrav1.Metal3MachineTemplateResource{
 							Spec: infrav1.Metal3MachineSpec{
-								AutomatedCleaningMode: ptr.To(infrav1.CleaningModeDisabled),
+								AutomatedCleaningMode: infrav1.CleaningModeDisabled,
 							},
 						},
 					},

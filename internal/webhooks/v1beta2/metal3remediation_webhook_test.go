@@ -30,77 +30,76 @@ func TestMetal3RemediationValidation(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		timeoutSeconds *int32
+		timeoutSeconds int32
 		limit          int32
 		strategy       infrav1.RemediationType
 		expectErr      bool
 	}{
 		{
-			name:           "when the Timeout is not given",
-			timeoutSeconds: nil,
-			limit:          1,
-			strategy:       infrav1.RebootRemediationStrategy,
-			expectErr:      false,
+			name:      "when the Timeout is not given",
+			limit:     1,
+			strategy:  infrav1.RebootRemediationStrategy,
+			expectErr: false,
 		},
 		{
 			name:           "when the Timeout is greater than 100s",
-			timeoutSeconds: &threeMinutes,
+			timeoutSeconds: threeMinutes,
 			limit:          1,
 			strategy:       infrav1.RebootRemediationStrategy,
 			expectErr:      false,
 		},
 		{
 			name:           "when the Timeout is less than 100s",
-			timeoutSeconds: &thirtySeconds,
+			timeoutSeconds: thirtySeconds,
 			limit:          1,
 			strategy:       infrav1.RebootRemediationStrategy,
 			expectErr:      true,
 		},
 		{
 			name:           "when the Timeout is less than 0",
-			timeoutSeconds: &minusDuration,
+			timeoutSeconds: minusDuration,
 			limit:          1,
 			strategy:       infrav1.RebootRemediationStrategy,
 			expectErr:      true,
 		},
 		{
 			name:           "when the Timeout is 0",
-			timeoutSeconds: &zeroSeconds,
+			timeoutSeconds: zeroSeconds,
 			limit:          1,
 			strategy:       infrav1.RebootRemediationStrategy,
-			expectErr:      true,
+			expectErr:      false,
 		},
 		{
 			name:           "when the Remediation Type is Reboot",
-			timeoutSeconds: &threeMinutes,
+			timeoutSeconds: threeMinutes,
 			limit:          1,
 			strategy:       infrav1.RebootRemediationStrategy,
 			expectErr:      false,
 		},
 		{
 			name:           "when the Remediation Type is not Reboot",
-			timeoutSeconds: &threeMinutes,
+			timeoutSeconds: threeMinutes,
 			limit:          1,
 			strategy:       WrongRemediationStrategy,
 			expectErr:      true,
 		},
 		{
 			name:           "when the RetryLimit is less than minRetryLimit",
-			timeoutSeconds: &threeMinutes,
+			timeoutSeconds: threeMinutes,
 			limit:          0,
 			strategy:       infrav1.RebootRemediationStrategy,
 			expectErr:      true,
 		},
 		{
 			name:           "when the RetryLimit is minRetryLimit",
-			timeoutSeconds: &threeMinutes,
+			timeoutSeconds: threeMinutes,
 			limit:          1,
 			strategy:       infrav1.RebootRemediationStrategy,
 			expectErr:      false,
 		},
 		{
 			name:           "when the RetryLimit is greater than minRetryLimit",
-			timeoutSeconds: &threeMinutes,
+			timeoutSeconds: threeMinutes,
 			limit:          3,
 			strategy:       infrav1.RebootRemediationStrategy,
 			expectErr:      false,

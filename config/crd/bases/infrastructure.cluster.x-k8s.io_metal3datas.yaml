@@ -240,6 +240,8 @@ spec:
                     type: string
                   namespace:
                     description: namespace of the resource.
+                    maxLength: 253
+                    minLength: 1
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic
@@ -247,6 +249,7 @@ spec:
                 description: index stores the index value of this instance in the
                   Metal3DataTemplate.
                 format: int32
+                minimum: 0
                 type: integer
               metaData:
                 description: metaData points to the rendered MetaData secret.
@@ -285,6 +288,8 @@ spec:
                     type: string
                   namespace:
                     description: namespace of the resource.
+                    maxLength: 253
+                    minLength: 1
                     type: string
                 type: object
                 x-kubernetes-map-type: atomic

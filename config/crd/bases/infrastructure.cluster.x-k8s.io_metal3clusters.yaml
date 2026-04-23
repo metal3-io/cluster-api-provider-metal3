@@ -529,6 +529,8 @@ spec:
                         description: |-
                           failureMessage indicates that there is a fatal problem reconciling the
                           state, and will be set to a descriptive error message.
+                        maxLength: 1024
+                        minLength: 0
                         type: string
                       failureReason:
                         description: |-

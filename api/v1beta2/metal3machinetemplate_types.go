@@ -32,7 +32,7 @@ type Metal3MachineTemplateSpec struct {
 	// pick the same pool of BMHs' that were released during the upgrade operation.
 	// +kubebuilder:default=false
 	// +optional
-	NodeReuse bool `json:"nodeReuse"`
+	NodeReuse *bool `json:"nodeReuse,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

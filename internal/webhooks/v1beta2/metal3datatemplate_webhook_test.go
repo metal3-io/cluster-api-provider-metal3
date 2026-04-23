@@ -21,6 +21,7 @@ import (
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 )
 
 func TestMetal3DataTemplateValidation(t *testing.T) {
@@ -48,12 +49,12 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 				},
 				Spec: infrav1.Metal3DataTemplateSpec{
 					NetworkData: &infrav1.NetworkData{
-						Networks: infrav1.NetworkDataNetwork{
+						Networks: &infrav1.NetworkDataNetwork{
 							IPv4: []infrav1.NetworkDataIPv4{
 								{
 									ID:   "test",
 									Link: "eth0",
-									FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									FromPoolAnnotation: infrav1.FromPoolAnnotation{
 										Object:     "baremetalhost",
 										Annotation: "ippool.metal3.io/provisioning",
 									},
@@ -73,12 +74,12 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 				},
 				Spec: infrav1.Metal3DataTemplateSpec{
 					NetworkData: &infrav1.NetworkData{
-						Networks: infrav1.NetworkDataNetwork{
+						Networks: &infrav1.NetworkDataNetwork{
 							IPv6: []infrav1.NetworkDataIPv6{
 								{
 									ID:   "test",
 									Link: "eth0",
-									FromPoolAnnotation: &infrav1.FromPoolAnnotation{
+									FromPoolAnnotation: infrav1.FromPoolAnnotation{
 										Object:     "machine",
 										Annotation: "ippool.metal3.io/provisioning",
 									},
@@ -98,7 +99,7 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 				},
 				Spec: infrav1.Metal3DataTemplateSpec{
 					NetworkData: &infrav1.NetworkData{
-						Networks: infrav1.NetworkDataNetwork{
+						Networks: &infrav1.NetworkDataNetwork{
 							IPv4: []infrav1.NetworkDataIPv4{
 								{
 									ID:   "test",
@@ -120,7 +121,7 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 				},
 				Spec: infrav1.Metal3DataTemplateSpec{
 					NetworkData: &infrav1.NetworkData{
-						Networks: infrav1.NetworkDataNetwork{
+						Networks: &infrav1.NetworkDataNetwork{
 							IPv6: []infrav1.NetworkDataIPv6{
 								{
 									ID:   "test",
@@ -145,7 +146,7 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 						FromHostInterfaces: []infrav1.MetaDataHostInterface{
 							{
 								Key:         "boot-mac",
-								FromBootMAC: true,
+								FromBootMAC: ptr.To(true),
 								Interface:   "",
 							},
 						},
@@ -165,7 +166,7 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 						FromHostInterfaces: []infrav1.MetaDataHostInterface{
 							{
 								Key:         "eth0-mac",
-								FromBootMAC: false,
+								FromBootMAC: ptr.To(false),
 								Interface:   "eth0",
 							},
 						},
@@ -185,7 +186,7 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 						FromHostInterfaces: []infrav1.MetaDataHostInterface{
 							{
 								Key:         "eth0-mac",
-								FromBootMAC: false,
+								FromBootMAC: ptr.To(false),
 								Interface:   "",
 							},
 						},
@@ -225,7 +226,7 @@ func TestMetal3DataTemplateValidation(t *testing.T) {
 						FromHostInterfaces: []infrav1.MetaDataHostInterface{
 							{
 								Key:         "boot-mac",
-								FromBootMAC: true,
+								FromBootMAC: ptr.To(true),
 								Interface:   "eth0",
 							},
 						},
@@ -317,7 +318,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			expectErr: true,
 			new: &infrav1.Metal3DataTemplateSpec{
 				NetworkData: &infrav1.NetworkData{
-					Services: infrav1.NetworkDataService{
+					Services: &infrav1.NetworkDataService{
 						DNS: []ipamv1.IPAddressStr{
 							"abc",
 						},
@@ -326,7 +327,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			},
 			old: &infrav1.Metal3DataTemplateSpec{
 				NetworkData: &infrav1.NetworkData{
-					Services: infrav1.NetworkDataService{
+					Services: &infrav1.NetworkDataService{
 						DNS: []ipamv1.IPAddressStr{
 							"abcd",
 						},
@@ -339,7 +340,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			expectErr: true,
 			new: &infrav1.Metal3DataTemplateSpec{
 				NetworkData: &infrav1.NetworkData{
-					Services: infrav1.NetworkDataService{
+					Services: &infrav1.NetworkDataService{
 						DNS: []ipamv1.IPAddressStr{
 							"abc",
 						},
@@ -348,7 +349,7 @@ func TestMetal3DataTemplateUpdateValidation(t *testing.T) {
 			},
 			old: &infrav1.Metal3DataTemplateSpec{
 				NetworkData: &infrav1.NetworkData{
-					Networks: infrav1.NetworkDataNetwork{
+					Networks: &infrav1.NetworkDataNetwork{
 						IPv4DHCP: []infrav1.NetworkDataIPv4DHCP{
 							{
 								ID:   "abc",
