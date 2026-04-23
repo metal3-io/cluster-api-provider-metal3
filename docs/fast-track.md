@@ -30,6 +30,11 @@ The behavior is controlled by three factors:
 | false           | false            | metadata              | Off                      |
 | false           | true             | metadata              | **On** (Fast Track)      |
 
+Since PR #3106 (`Allow disable_power_off together with autoclean`, merged on
+2026-03-05), `DisablePowerOff=true` can be combined with
+`AutomatedCleaningMode=metadata`. In that case, `DisablePowerOff` still takes
+priority and keeps the host online.
+
 The host remains online when:
 
 - `DisablePowerOff` is `true` (takes priority over all other settings), or
@@ -71,7 +76,8 @@ CAPM3 controller. It defaults to `false`.
 Add to your clusterctl configuration file:
 
 ```yaml
-CAPM3_FAST_TRACK: "true"
+variables:
+  CAPM3_FAST_TRACK: "true"
 ```
 
 #### Via Environment Variable
@@ -85,7 +91,9 @@ export CAPM3_FAST_TRACK=true
 ### Configuring AutomatedCleaningMode
 
 For Fast Track to work, your BareMetalHost resources must have
-`AutomatedCleaningMode` set to `metadata`. Refer to the
+`AutomatedCleaningMode` set to `metadata`. This can also be combined with
+`DisablePowerOff=true`; in that case `DisablePowerOff` remains the deciding
+factor for keeping the host online. Refer to the
 [Baremetal Operator Documentation](https://book.metal3.io/bmo/introduction)
 for details on configuring this field.
 
@@ -107,8 +115,7 @@ When a Metal3Machine is being deleted:
 When Fast Track is active, you'll see log messages like:
 
 ```text
-Set host Online field by AutomatedCleaningMode host=node-0
-  automatedCleaningMode=metadata hostSpecOnline=true
+Set host Online field based on DisablePowerOff, AutomatedCleaningMode, and Capm3FastTrack host=node-0 automatedCleaningMode=metadata hostSpecOnline=true
 ```
 
 When Fast Track keeps a host online, the BareMetalHost will transition directly

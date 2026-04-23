@@ -96,7 +96,8 @@ clusterctl configuration file by the user.
 Add to your `"${XDG_CONFIG_HOME}"/.config/cluster-api/clusterctl.yaml`:
 
 ```yaml
-ENABLE_BMH_NAME_BASED_PREALLOCATION: "true"
+variables:
+  ENABLE_BMH_NAME_BASED_PREALLOCATION: "true"
 ```
 
 ### Via Controller Flag
@@ -104,7 +105,7 @@ ENABLE_BMH_NAME_BASED_PREALLOCATION: "true"
 The CAPM3 controller accepts a flag:
 
 ```bash
---enableBMHNameBasedPreallocation=true
+--enable-bmh-name-based-preallocation=true
 ```
 
 This flag enables the BMH name-based IPClaim naming scheme.
@@ -141,8 +142,13 @@ When managing multiple clusters, predictable IPs help with:
 When BMH name-based preallocation is enabled, additional labels are added to
 Metal3Data objects to track the association:
 
-- The Metal3Data object will include labels indicating the source BMH
-- This enables tracking which physical host received which IP allocation
+- `infrastructure.cluster.x-k8s.io/data-name` (`DataLabelName`) stores the
+  Metal3Data name
+- `infrastructure.cluster.x-k8s.io/pool-name` (`PoolLabelName`) stores the
+  referenced pool name
+
+These labels make it possible to track which Metal3Data object and pool were
+used for a given allocation.
 
 ## Considerations
 
@@ -174,7 +180,8 @@ When a Metal3Machine is deleted:
 
 ### IP Not Being Reused
 
-1. Verify `enableBMHNameBasedPreallocation` is enabled
+1. Verify `--enable-bmh-name-based-preallocation` or
+   `ENABLE_BMH_NAME_BASED_PREALLOCATION` is enabled
 1. Check that the IPPool `preAllocations` field includes the correct mapping
 1. Verify the claim name format matches: `{bmh-name}-{pool-name}`
 
@@ -183,5 +190,6 @@ When a Metal3Machine is deleted:
 If IPClaims are not using BMH names:
 
 1. Check controller logs for preallocation-related messages
-1. Verify the flag is properly set on the controller deployment
+1. Verify the `--enable-bmh-name-based-preallocation` flag is properly set on
+   the controller deployment
 1. Restart the controller after changing the configuration
