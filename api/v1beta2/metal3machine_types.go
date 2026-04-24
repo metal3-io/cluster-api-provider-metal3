@@ -186,12 +186,23 @@ type Metal3MachineSpec struct {
 
 // Metal3MachineStatus defines the observed state of Metal3Machine.
 type Metal3MachineStatus struct {
+	// conditions represents the observations of a Metal3Machine's current state.
+	// Known condition types are Ready, AssociateBareMetalHost, AssociateMetal3MachineMetaData, Metal3DataReady and Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
 	// lastUpdated identifies when this status was last observed.
 	// +optional
 	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	// addresses contains the associated addresses for the machine.
 	// +optional
+	// +listType=atomic
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
 	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
 
 	// initialization provides observations of the Metal3Machine initialization process.
@@ -219,14 +230,6 @@ type Metal3MachineStatus struct {
 	// network data used to deploy the BareMetalHost.
 	// +optional
 	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
-
-	// conditions represents the observations of a Metal3Machine's current state.
-	// Known condition types are Ready, AssociateBareMetalHost, AssociateMetal3MachineMetaData, Metal3DataReady and Paused.
-	// +optional
-	// +listType=map
-	// +listMapKey=type
-	// +kubebuilder:validation:MaxItems=32
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// deprecated groups all the status fields that are deprecated and will be removed when all the nested field are removed.
 	// +optional

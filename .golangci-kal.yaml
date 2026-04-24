@@ -13,14 +13,42 @@ linters:
         description: KAL is the Kube-API-Linter and lints Kube like APIs based on API conventions and best practices.
         settings:
           linters:
+            enable:
+            - "arrayofstruct" # Ensures arrays of structs have at least one required field
+            - "commentstart" # Ensure comments start with the serialized version of the field name.
+            - "conditions" # Ensure conditions have the correct json tags and markers.
+            - "conflictingmarkers" # Detects mutually exclusive markers on the same field
+            - "defaults" # Checks that fields with default markers are configured correctly
+            - "defaultorrequired" # Ensures fields marked as required do not have default values
+            - "duplicatemarkers" # Ensure there are no exact duplicate markers. for types and fields.
+            #- "forbiddenmarkers" # Ensure that types and fields do not contain any markers that are forbidden.
+            - "integers" # Ensure only int32 and int64 are used for integers.
+            - "jsontags" # Ensure every field has a json tag.
+            - "maxlength" # Ensure all strings and arrays have maximum lengths/maximum items.
+            - "nobools" # Bools do not evolve over time, should use enums instead.
+            - "nodurations" # Prevents usage of `Duration` types.
+            - "nofloats" # Ensure floats are not used.
+            - "nomaps" # Ensure maps are not used.
+            - "nonullable" # Ensure that types and fields do not have the nullable marker.
+            - "nophase" # Prevents usage of 'Phase' fields
+            - "noreferences" #  	Ensures field names use Ref/Refs instead of Reference/References
+            - "notimestamp" # Prevents usage of 'Timestamp' fields
+            - "optionalfields" # Ensure that all fields marked as optional adhere to being pointers and
+                                # having the `omitempty` value in their `json` tag where appropriate.
+            - "optionalorrequired" # Every field should be marked as `+optional` or `+required`.
+            - "requiredfields" # Required fields should not be pointers, and should not have `omitempty`.
+            - "ssatags" # Ensure array fields have the appropriate listType markers
+            - "statusoptional" # Ensure all first children within status should be optional.
+            - "statussubresource" # All root objects that have a `status` field should have a status subresource.
+            - "uniquemarkers" # Ensure that types and fields do not contain more than a single definition of a marker that should only be present once.
+
+            # "nonpointerstructs" is enabled by default in Kube Api linter but it is NOT intended to be used to check for CRD types.
+            # That is why we are not enabling it here.
             disable:
-            - "nonpointerstructs"
-            - "nophase"
-            - "conditions"
-            - "arrayofstruct"
-            - "ssatags"
-            - "defaults"
+            - "*" # We will manually enable new linters after understanding the impact. Disable all by default.
           lintersConfig:
+            defaults:
+              preferredDefaultMarker: kubebuilder:default # The preferred default marker to use. Defaults to `default`.
             conflictingmarkers:
               conflicts:
               - name: "default_vs_required"
@@ -44,6 +72,8 @@ linters:
                 policy: SuggestFix # SuggestFix | Warn # The policy for pointers in optional fields. Defaults to `SuggestFix`.
               omitempty:
                 policy: SuggestFix # SuggestFix | Warn | Ignore # The policy for omitempty in optional fields. Defaults to `SuggestFix`.
+            ssatags:
+              listTypeSetUsage: Ignore # The policy for listType=set usage on object arrays. Defaults to `Warn`.
 
   exclusions:
     generated: strict
@@ -72,6 +102,18 @@ linters:
       text: "requiredfields: field Metal3MachineTemplateResource.Spec has a valid zero value"
       linters:
       - kubeapilinter
+    # Metal3ClusterV1Beta1DeprecatedStatus.Conditions uses clusterv1.Conditions
+    # which is a backwards compatibility alias for the deprecated status
+    - path: "api/v1beta2/metal3cluster_types.go"
+      text: "conditions: Conditions field in Metal3ClusterV1Beta1DeprecatedStatus must be a slice of metav1.Condition"
+      linters:
+      - kubeapilinter
+    # Metal3MachineV1Beta1DeprecatedStatus.Conditions uses clusterv1.Conditions
+    # which is a backwards compatibility alias for the deprecated status
+    - path: "api/v1beta2/metal3machine_types.go"
+      text: "conditions: Conditions field in Metal3MachineV1Beta1DeprecatedStatus must be a slice of metav1.Condition"
+      linters:
+      - kubeapilinter
     # Metal3RemediationTemplateResource.Spec follows Cluster API contract
     # and is required, but it has a valid zero value, so we need to
     # exclude it from the requiredfields linter.
@@ -83,7 +125,14 @@ linters:
     # and is required, but it has a valid zero value, so we need to
     # exclude it from the requiredfields linter.
     - path: "api/v1beta2/metal3remediationtemplate_types.go"
-      text: "requiredfields: field Metal3RemediationTemplateStatus.Status has a valid zero value"
+      text: "optionalfields: field Metal3RemediationTemplateStatus.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3RemediationTemplate.Status follows Cluster API contract
+    # and is required, but it has a valid zero value, so we need to
+    # exclude it from the requiredfields linter.
+    - path: "api/v1beta2/metal3remediationtemplate_types.go"
+      text: "optionalfields: field Metal3RemediationTemplate.Status has a valid zero value"
       linters:
       - kubeapilinter
     # Type NetworkGatewayv4 has separate validation that checks that at least
@@ -154,6 +203,42 @@ linters:
       - kubeapilinter
     - path: "api/v1beta2/metal3remediation_types.go"
       text: "optionalfields: field Metal3Remediation.Status has a valid zero value"
+      linters:
+      - kubeapilinter
+    # Metal3MachineV1Beta1DeprecatedStatus.FailureMessage is a deprecated field
+    # that cannot be changed for backwards compatibility.
+    - path: "api/v1beta2/metal3machine_types.go"
+      text: "maxlength: field Metal3MachineV1Beta1DeprecatedStatus.FailureMessage must have a maximum length"
+      linters:
+      - kubeapilinter
+    # nophase and nobools are enabled to prevent usage of these patterns in new code,
+    # but there are some existing fields that use these patterns and we will ignore for now.
+    - path: "api/v1beta2/metal3cluster_types.go"
+      text: "nobools: field Metal3ClusterSpec.CloudProviderEnabled"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3cluster_types.go"
+      text: "nobools: field Metal3ClusterInitializationStatus.Provisioned"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3data_types.go"
+      text: "nobools: field Metal3DataStatus.Ready"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3datatemplate_types.go"
+      text: "nobools: field MetaDataHostInterface.FromBootMAC"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3machine_types.go"
+      text: "nobools: field Metal3MachineInitializationStatus.Provisioned"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3machinetemplate_types.go"
+      text: "nobools: field Metal3MachineTemplateSpec.NodeReuse"
+      linters:
+      - kubeapilinter
+    - path: "api/v1beta2/metal3remediation_types.go"
+      text: "nophase: naming convention \"nophase\": field Metal3RemediationStatus.Phase"
       linters:
       - kubeapilinter
 

@@ -41,7 +41,9 @@ type Metal3DataClaimStatus struct {
 
 	// errorMessage contains the error message
 	// +optional
-	ErrorMessage *string `json:"errorMessage,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	ErrorMessage string `json:"errorMessage,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

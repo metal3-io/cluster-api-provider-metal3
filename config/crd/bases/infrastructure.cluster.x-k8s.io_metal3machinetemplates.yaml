@@ -421,12 +421,18 @@ spec:
                                     type: string
                                   maxItems: 512
                                   type: array
+                                  x-kubernetes-list-type: set
                               required:
                               - key
                               - operator
                               - values
                               type: object
+                            maxItems: 512
+                            minItems: 1
                             type: array
+                            x-kubernetes-list-map-keys:
+                            - key
+                            x-kubernetes-list-type: map
                           matchLabels:
                             additionalProperties:
                               type: string

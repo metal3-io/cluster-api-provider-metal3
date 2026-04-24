@@ -235,50 +235,94 @@ type FromPoolAnnotation struct {
 type MetaData struct {
 	// strings is the list of metadata items to be rendered from strings
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Strings []MetaDataString `json:"strings,omitempty"`
 
 	// objectNames is the list of metadata items to be rendered from the name
 	// of objects.
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	ObjectNames []MetaDataObjectName `json:"objectNames,omitempty"`
 
 	// indexes is the list of metadata items to be rendered from the index of the
 	// Metal3Data
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Indexes []MetaDataIndex `json:"indexes,omitempty"`
 
 	// namespaces is the list of metadata items to be rendered from the namespace
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Namespaces []MetaDataNamespace `json:"namespaces,omitempty"`
 
 	// ipAddressesFromPool is the list of metadata items to be rendered as ip addresses.
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	IPAddressesFromPool []FromPool `json:"ipAddressesFromPool,omitempty"`
 
 	// prefixesFromPool is the list of metadata items to be rendered as network prefixes.
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	PrefixesFromPool []FromPool `json:"prefixesFromPool,omitempty"`
 
 	// gatewaysFromPool is the list of metadata items to be rendered as gateway addresses.
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	GatewaysFromPool []FromPool `json:"gatewaysFromPool,omitempty"`
 
 	// dnsServersFromPool is the list of metadata items to be rendered as dns servers.
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	DNSServersFromPool []FromPool `json:"dnsServersFromPool,omitempty"`
 
 	// fromHostInterfaces is the list of metadata items to be rendered as MAC
 	// addresses of the host interfaces.
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	FromHostInterfaces []MetaDataHostInterface `json:"fromHostInterfaces,omitempty"`
 
 	// fromLabels is the list of metadata items to be fetched from object labels
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	FromLabels []MetaDataFromLabel `json:"fromLabels,omitempty"`
 
 	// fromAnnotations is the list of metadata items to be fetched from object
 	// Annotations
 	// +optional
+	// +listType=map
+	// +listMapKey=key
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	FromAnnotations []MetaDataFromAnnotation `json:"fromAnnotations,omitempty"`
 }
 
@@ -300,12 +344,16 @@ type NetworkLinkEthernetMacFromAnnotation struct {
 type NetworkLinkEthernetMac struct {
 	// string contains the MAC address given as a string
 	// +optional
-	String *string `json:"string,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	String string `json:"string,omitempty"`
 
 	// fromHostInterface contains the name of the interface in the BareMetalHost
 	// Introspection details from which to fetch the MAC address
 	// +optional
-	FromHostInterface *string `json:"fromHostInterface,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	FromHostInterface string `json:"fromHostInterface,omitempty"`
 
 	// fromAnnotation references an object annotation to retrieve the
 	// MAC address from
@@ -392,11 +440,14 @@ type NetworkDataLinkBond struct {
 	// parameters blob passed without any validation/modifications into cloud-init config
 	// +listType=map
 	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	// +required
 	Parameters []NetworkDataLinkBondParam `json:"parameters,omitempty"`
 
 	// bondLinks is the list of links that are part of the bond.
 	// +optional
+	// +listType=set
 	// +kubebuilder:validation:MaxItems=512
 	// +kubebuilder:validation:items:MinLength=1
 	// +kubebuilder:validation:items:MaxLength=512
@@ -406,8 +457,9 @@ type NetworkDataLinkBond struct {
 // NetworkDataLinkBondParam represents a single bond parameter.
 type NetworkDataLinkBondParam struct {
 	// name is the parameter name
-	// +kubebuilder:validation:MinLength=1
 	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	Name string `json:"name,omitempty"`
 	// value is the parameter value
 	// +optional
@@ -461,14 +513,26 @@ type NetworkDataLinkVlan struct {
 type NetworkDataLink struct {
 	// ethernets contains a list of Ethernet links
 	// +optional
+	// +listType=map
+	// +listMapKey=id
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
 	Ethernets []NetworkDataLinkEthernet `json:"ethernets,omitempty"`
 
 	// bonds contains a list of Bond links
 	// +optional
+	// +listType=map
+	// +listMapKey=id
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Bonds []NetworkDataLinkBond `json:"bonds,omitempty"`
 
 	// vlans contains a list of Vlan links
 	// +optional
+	// +listType=map
+	// +listMapKey=vlanID
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Vlans []NetworkDataLinkVlan `json:"vlans,omitempty"`
 }
 
@@ -476,6 +540,9 @@ type NetworkDataLink struct {
 type NetworkDataService struct {
 	// dns is a list of DNS services
 	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	DNS []ipamv1.IPAddressStr `json:"dns,omitempty"`
 
 	// dnsFromIPPool is the name of the IPPool from which to get the DNS servers
@@ -489,6 +556,9 @@ type NetworkDataService struct {
 type NetworkDataServicev4 struct {
 	// dns is a list of IPv4 DNS services
 	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	DNS []ipamv1.IPAddressv4Str `json:"dns,omitempty"`
 
 	// dnsFromIPPool is the name of the IPPool from which to get the DNS servers
@@ -502,6 +572,9 @@ type NetworkDataServicev4 struct {
 type NetworkDataServicev6 struct {
 	// dns is a list of IPv6 DNS services
 	// +optional
+	// +listType=set
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	DNS []ipamv1.IPAddressv6Str `json:"dns,omitempty"`
 
 	// dnsFromIPPool is the name of the IPPool from which to get the DNS servers
@@ -520,7 +593,9 @@ type NetworkGatewayv4 struct {
 
 	// fromIPPool is the name of the IPPool to fetch the gateway from
 	// +optional
-	FromIPPool *string `json:"fromIPPool,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	FromIPPool string `json:"fromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to fetch the gateway from
 	// +optional
@@ -542,7 +617,9 @@ type NetworkGatewayv6 struct {
 
 	// fromIPPool is the name of the IPPool to fetch the gateway from
 	// +optional
-	FromIPPool *string `json:"fromIPPool,omitempty"`
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
+	FromIPPool string `json:"fromIPPool,omitempty"`
 
 	// fromPoolRef is a reference to a IP pool to fetch the gateway from
 	// +optional
@@ -629,6 +706,10 @@ type NetworkDataIPv4 struct {
 
 	// routes contains a list of IPv4 routes
 	// +optional
+	// +listType=map
+	// +listMapKey=network
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Routes []NetworkDataRoutev4 `json:"routes,omitempty"`
 }
 
@@ -693,6 +774,10 @@ type NetworkDataIPv6 struct {
 
 	// routes contains a list of IPv6 routes
 	// +optional
+	// +listType=map
+	// +listMapKey=network
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Routes []NetworkDataRoutev6 `json:"routes,omitempty"`
 }
 
@@ -712,6 +797,10 @@ type NetworkDataIPv4DHCP struct {
 
 	// routes contains a list of IPv4 routes
 	// +optional
+	// +listType=map
+	// +listMapKey=network
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Routes []NetworkDataRoutev4 `json:"routes,omitempty"`
 }
 
@@ -731,6 +820,10 @@ type NetworkDataIPv6DHCP struct {
 
 	// routes contains a list of IPv6 routes
 	// +optional
+	// +listType=map
+	// +listMapKey=network
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Routes []NetworkDataRoutev6 `json:"routes,omitempty"`
 }
 
@@ -738,22 +831,42 @@ type NetworkDataIPv6DHCP struct {
 type NetworkDataNetwork struct {
 	// ipv4 contains a list of IPv4 static allocations
 	// +optional
+	// +listType=map
+	// +listMapKey=id
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	IPv4 []NetworkDataIPv4 `json:"ipv4,omitempty"`
 
 	// ipv6 contains a list of IPv6 static allocations
 	// +optional
+	// +listType=map
+	// +listMapKey=id
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	IPv6 []NetworkDataIPv6 `json:"ipv6,omitempty"`
 
 	// ipv4DHCP contains a list of IPv4 DHCP allocations
 	// +optional
+	// +listType=map
+	// +listMapKey=id
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	IPv4DHCP []NetworkDataIPv4DHCP `json:"ipv4DHCP,omitempty"`
 
 	// ipv6DHCP contains a list of IPv6 DHCP allocations
 	// +optional
+	// +listType=map
+	// +listMapKey=id
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	IPv6DHCP []NetworkDataIPv6DHCP `json:"ipv6DHCP,omitempty"`
 
 	// ipv6SLAAC contains a list of IPv6 SLAAC allocations
 	// +optional
+	// +listType=map
+	// +listMapKey=id
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	IPv6SLAAC []NetworkDataIPv6DHCP `json:"ipv6SLAAC,omitempty"`
 }
 
@@ -777,6 +890,7 @@ type Metal3DataTemplateSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
 	// +required
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=512
 	ClusterName string `json:"clusterName,omitempty"`
 
 	// metaData contains the information needed to generate the metadata secret
@@ -799,6 +913,8 @@ type Metal3DataTemplateStatus struct {
 	// +optional
 	// +listType=map
 	// +listMapKey=index
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=512
 	Indexes []IndexEntry `json:"indexes,omitempty"`
 }
 
