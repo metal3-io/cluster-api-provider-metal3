@@ -189,15 +189,16 @@ func (r *Metal3DataTemplateReconciler) SetupWithManager(ctx context.Context, mgr
 func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(_ context.Context, obj client.Object) []ctrl.Request {
 	if m3dc, ok := obj.(*infrav1.Metal3DataClaim); ok {
 		if m3dc.Spec.Template.Name != "" {
-			namespace := m3dc.Spec.Template.Namespace
-			if namespace == "" {
-				namespace = m3dc.Namespace
+			// Always enqueue using the Metal3DataClaim's own namespace.
+			// Cross-namespace template references are not allowed.
+			if m3dc.Spec.Template.Namespace != "" && m3dc.Spec.Template.Namespace != m3dc.Namespace {
+				return []ctrl.Request{}
 			}
 			return []ctrl.Request{
 				{
 					NamespacedName: types.NamespacedName{
 						Name:      m3dc.Spec.Template.Name,
-						Namespace: namespace,
+						Namespace: m3dc.Namespace,
 					},
 				},
 			}

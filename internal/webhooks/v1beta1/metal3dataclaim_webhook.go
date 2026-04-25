@@ -65,6 +65,15 @@ func (webhook *Metal3DataClaim) ValidateCreate(_ context.Context, obj runtime.Ob
 			),
 		)
 	}
+	if c.Spec.Template.Namespace != "" && c.Spec.Template.Namespace != c.Namespace {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "template", "namespace"),
+				c.Spec.Template.Namespace,
+				"must be empty or match the Metal3DataClaim namespace; cross-namespace template references are not allowed",
+			),
+		)
+	}
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -84,6 +93,16 @@ func (webhook *Metal3DataClaim) ValidateUpdate(_ context.Context, oldObj, newObj
 	oldMetal3DataClaim, ok := oldObj.(*infrav1.Metal3DataClaim)
 	if !ok || oldMetal3DataClaim == nil {
 		return nil, apierrors.NewInternalError(errors.New("unable to convert existing object"))
+	}
+
+	if newMetal3DataClaim.Spec.Template.Namespace != "" && newMetal3DataClaim.Spec.Template.Namespace != newMetal3DataClaim.Namespace {
+		allErrs = append(allErrs,
+			field.Invalid(
+				field.NewPath("spec", "template", "namespace"),
+				newMetal3DataClaim.Spec.Template.Namespace,
+				"must be empty or match the Metal3DataClaim namespace; cross-namespace template references are not allowed",
+			),
+		)
 	}
 
 	if newMetal3DataClaim.Spec.Template.Name != oldMetal3DataClaim.Spec.Template.Name {
