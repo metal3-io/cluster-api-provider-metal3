@@ -249,7 +249,7 @@ func (r *Metal3ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 						newClusterCopy := newCluster.DeepCopy()
 						oldClusterCopy.Status = infrav1.Metal3ClusterStatus{}
 						newClusterCopy.Status = infrav1.Metal3ClusterStatus{}
-						oldCluster.ObjectMeta.ResourceVersion = ""
+						oldClusterCopy.ObjectMeta.ResourceVersion = ""
 						newClusterCopy.ObjectMeta.ResourceVersion = ""
 						return !reflect.DeepEqual(oldClusterCopy, newClusterCopy)
 					},
