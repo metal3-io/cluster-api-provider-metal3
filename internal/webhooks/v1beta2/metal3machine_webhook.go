@@ -17,6 +17,7 @@ import (
 	"context"
 
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -58,8 +59,26 @@ func (webhook *Metal3Machine) validate(newM3M *infrav1.Metal3Machine) error {
 		allErrs = append(allErrs, newM3M.Spec.Image.Validate(*field.NewPath("Spec", "Image"))...)
 	}
 
+	allErrs = append(allErrs, validateSecretNamespace(newM3M.Spec.UserData, newM3M.Namespace, field.NewPath("spec", "userData"))...)
+	allErrs = append(allErrs, validateSecretNamespace(newM3M.Spec.MetaData, newM3M.Namespace, field.NewPath("spec", "metaData"))...)
+	allErrs = append(allErrs, validateSecretNamespace(newM3M.Spec.NetworkData, newM3M.Namespace, field.NewPath("spec", "networkData"))...)
+
 	if len(allErrs) == 0 {
 		return nil
 	}
 	return apierrors.NewInvalid(infrav1.GroupVersion.WithKind("Metal3Machine").GroupKind(), newM3M.Name, allErrs)
+}
+
+// validateSecretNamespace rejects secret references that point to a namespace
+// other than the Metal3Machine's own namespace, preventing cross-namespace
+// secret disclosure.
+func validateSecretNamespace(ref *corev1.SecretReference, m3mNamespace string, fldPath *field.Path) field.ErrorList {
+	var errs field.ErrorList
+	if ref != nil && ref.Namespace != "" && ref.Namespace != m3mNamespace {
+		errs = append(errs, field.Forbidden(
+			fldPath.Child("namespace"),
+			"cross-namespace secret references are not allowed",
+		))
+	}
+	return errs
 }
