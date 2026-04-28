@@ -3,7 +3,7 @@ module github.com/metal3-io/cluster-api-provider-metal3/hack/fake-apiserver
 go 1.25.0
 
 require (
-	github.com/metal3-io/baremetal-operator/apis v0.12.3
+	github.com/metal3-io/baremetal-operator/apis v0.12.4
 	github.com/metal3-io/cluster-api-provider-metal3/api v1.12.3
 	go.uber.org/zap v1.27.1
 	k8s.io/api v0.35.4
