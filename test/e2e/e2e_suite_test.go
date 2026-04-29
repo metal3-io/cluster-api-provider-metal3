@@ -90,13 +90,13 @@ func init() {
 	e2eTestsPath = getE2eTestsPath()
 
 	osType = strings.ToLower(os.Getenv("OS"))
-	capm3APIVersion = os.Getenv("CAPM3_API_VERSION")
+	capm3APIVersion = os.Getenv("CAPM3_VERSION")
 	if capm3APIVersion == "" {
 		capm3APIVersion = "v1beta2"
 	}
 }
 
-// flavorSuffix returns "-v1beta1" when CAPM3_API_VERSION=v1beta1, empty string otherwise.
+// flavorSuffix returns "-v1beta1" when CAPM3_VERSION=v1beta1, empty string otherwise.
 func flavorSuffix() string {
 	if capm3APIVersion == "v1beta1" {
 		return "-v1beta1"
