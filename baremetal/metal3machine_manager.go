@@ -56,6 +56,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -1330,8 +1331,11 @@ func (m *MachineManager) CloudProviderEnabled() bool {
 }
 
 // updateMachineStatus updates a Metal3Machine object's status.
-func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
-	addrs := m.nodeAddresses(host)
+func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+	addrs, err := m.nodeAddresses(ctx, host)
+	if err != nil {
+		return err
+	}
 
 	metal3MachineOld := m.Metal3Machine.DeepCopy()
 
@@ -1361,12 +1365,34 @@ func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha
 
 // NodeAddresses returns a slice of corev1.NodeAddress objects for a
 // given Metal3 machine.
-func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []clusterv1.MachineAddress {
+func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.BareMetalHost) ([]clusterv1.MachineAddress, error) {
 	addrs := []clusterv1.MachineAddress{}
+
+	metadata, err := m.getMetaDataFromSecret(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if metadata != nil {
+		if internalIP, exists := metadata["InternalIP"]; exists && internalIP != "" {
+			addrs = []clusterv1.MachineAddress{
+				{Type: clusterv1.MachineInternalIP, Address: internalIP},
+			}
+		}
+		if externalIP, exists := metadata["ExternalIP"]; exists && externalIP != "" {
+			addrs = append(addrs, clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalIP,
+				Address: externalIP,
+			})
+		}
+		if len(addrs) > 0 {
+			return addrs, nil
+		}
+	}
 
 	// If the host is nil or we have no hw details, return an empty address array.
 	if host == nil || host.Status.HardwareDetails == nil {
-		return addrs
+		return addrs, nil
 	}
 
 	for _, nic := range host.Status.HardwareDetails.NIC {
@@ -1391,7 +1417,40 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 		})
 	}
 
-	return addrs
+	return addrs, nil
+}
+
+// getMetaDataFromSecret reads the metadata secret referenced by the Metal3Machine
+// status and returns the parsed key-value pairs. Returns nil, nil if no metadata
+// secret is configured or the secret does not exist yet.
+func (m *MachineManager) getMetaDataFromSecret(ctx context.Context) (map[string]string, error) {
+	if m.Metal3Machine.Status.MetaData == nil || m.Metal3Machine.Status.MetaData.Name == "" {
+		return nil, nil //nolint:nilnil
+	}
+
+	secret := &corev1.Secret{}
+	err := m.client.Get(ctx, types.NamespacedName{
+		Name:      m.Metal3Machine.Status.MetaData.Name,
+		Namespace: m.Metal3Machine.Status.MetaData.Namespace,
+	}, secret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil //nolint:nilnil
+		}
+		return nil, fmt.Errorf("failed to get metaData secret: %w", err)
+	}
+
+	metaDataBytes, ok := secret.Data["metaData"]
+	if !ok {
+		return nil, nil //nolint:nilnil
+	}
+
+	metadata := make(map[string]string)
+	if err := yaml.Unmarshal(metaDataBytes, &metadata); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal metaData: %w", err)
+	}
+
+	return metadata, nil
 }
 
 // GetProviderIDAndBMHID returns providerID and bmhID.
