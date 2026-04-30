@@ -1,6 +1,13 @@
-# IP reuse
+# IP Reuse (BMH Name-Based Preallocation)
 
-## What is IP reuse
+## Overview
+
+IP reuse, also known as BMH Name-Based Preallocation, is a feature that enables
+predictable IP address assignment to BareMetalHosts. This is particularly useful
+during rolling upgrades where you want nodes to retain their IP addresses even
+as the underlying Metal3Machine and Metal3Data objects are recreated.
+
+## The Problem
 
 As a developer or user there could be a need to make IPAddresses that will be
 attached to the Kubernetes nodes in the chain of: **BareMetalHost <=>
@@ -8,7 +15,7 @@ Metal3Machine <=> CAPI Machine <=> Node** objects predictable, for example
 during the upgrade process and the main goal of this feature is to make that
 possible.
 
-## Logic behind
+## Default Behavior (Without BMH Name-Based Preallocation)
 
 As is now, IPPool is an object representing a set of IPAddress pools to be used
 for IPAddress allocations. An IPClaim is an object representing a request for an
@@ -78,12 +85,111 @@ status:
 Since claim names include BareMetalHost names on them, we are able to predict an
 IPAddress assigned to the specific node.
 
-## How to enable IP reuse
+## How to Enable BMH Name-Based Preallocation
 
 To enable the feature, a boolean flag called `enable-bmh-name-based-preallocation`
 was added. It is configurable via clusterctl and it can be passed to the
-clusterctl configuration file by the user, i.e:
+clusterctl configuration file by the user.
+
+### Via clusterctl Configuration
+
+Add to your `"${XDG_CONFIG_HOME}"/.config/cluster-api/clusterctl.yaml`:
 
 ```yaml
-enableBMHNameBasedPreallocation: true
+variables:
+  ENABLE_BMH_NAME_BASED_PREALLOCATION: "true"
 ```
+
+### Via Controller Flag
+
+The CAPM3 controller accepts a flag:
+
+```bash
+--enable-bmh-name-based-preallocation=true
+```
+
+This flag enables the BMH name-based IPClaim naming scheme.
+
+## Use Cases
+
+### Rolling Upgrades with Stable IPs
+
+When performing a rolling upgrade of your cluster:
+
+1. Each BareMetalHost has a stable name (e.g., `node-0`, `node-1`)
+1. With preallocation enabled, IPClaims are named using the BMH name
+1. Pre-populate the IPPool's `preAllocations` field with the desired mappings
+1. As nodes are upgraded, they automatically receive their pre-assigned IPs
+
+### DNS and Certificate Management
+
+Stable IP addresses simplify:
+
+- DNS record management (no need to update records after upgrades)
+- Certificate provisioning (certificates tied to specific IPs remain valid)
+- Firewall rules (static IP-based rules don't need updates)
+
+### Multi-Cluster Deployments
+
+When managing multiple clusters, predictable IPs help with:
+
+- Network segmentation and planning
+- Monitoring and alerting configurations
+- Load balancer backend configurations
+
+## Interaction with Metal3Data Labels
+
+When BMH name-based preallocation is enabled, additional labels are added to
+Metal3Data objects to track the association:
+
+- `infrastructure.cluster.x-k8s.io/data-name` (`DataLabelName`) stores the
+  Metal3Data name
+- `infrastructure.cluster.x-k8s.io/pool-name` (`PoolLabelName`) stores the
+  referenced pool name
+
+These labels make it possible to track which Metal3Data object and pool were
+used for a given allocation.
+
+## Considerations
+
+### BareMetalHost Naming
+
+For this feature to work effectively:
+
+- BareMetalHost names must be stable and predictable
+- Avoid using generated names that change between deployments
+- Use meaningful names that reflect the physical hardware (e.g., rack position)
+
+### IPPool Configuration
+
+When setting up preAllocations:
+
+- The claim name format is: `{bmh-name}-{pool-name}`
+- Ensure all expected BMH names are covered in the preAllocations map
+- IPs in preAllocations are reserved and won't be allocated to other claims
+
+### Cleanup
+
+When a Metal3Machine is deleted:
+
+- The IPClaim is released
+- The preallocated IP remains reserved in the pool
+- When a new Metal3Machine claims the same BMH, it gets the same IP
+
+## Troubleshooting
+
+### IP Not Being Reused
+
+1. Verify `--enable-bmh-name-based-preallocation` or
+   `ENABLE_BMH_NAME_BASED_PREALLOCATION` is enabled
+1. Check that the IPPool `preAllocations` field includes the correct mapping
+1. Verify the claim name format matches: `{bmh-name}-{pool-name}`
+
+### IPClaim Name Mismatch
+
+If IPClaims are not using BMH names:
+
+1. Check controller logs for preallocation-related messages
+1. Verify the `--enable-bmh-name-based-preallocation` flag is properly set on
+   the controller deployment
+1. Restart the controller after changing the configuration
