@@ -160,6 +160,24 @@ unit-cover-verbose:
 .PHONY: test
 test: lint unit ## Run tests
 
+## Fuzz testing variables
+FUZZ_TIME ?= 30s
+
+.PHONY: fuzz
+fuzz: ## Run fuzz tests with seed corpus (no fuzzing, regression test only)
+	cd test/fuzz && $(GO) test -race -v -run='^Fuzz' ./...
+
+.PHONY: fuzz-run
+fuzz-run: ## Run all fuzz tests sequentially with fuzzing enabled (use FUZZ_TIME=duration)
+	@echo "Discovering fuzz tests..."
+	@cd test/fuzz && ( \
+		while read -r fuzz_test; do \
+			echo "Running $$fuzz_test for $(FUZZ_TIME)..."; \
+			go test -fuzz=$$fuzz_test -fuzztime='$(FUZZ_TIME)' || exit 1; \
+		done < <(go test -list='Fuzz.*' ./... | grep '^Fuzz') \
+	)
+	@echo "All fuzz tests completed successfully!"
+
 .PHONY: test-e2e
 test-e2e: ## Run e2e tests with capi e2e testing framework
 	./scripts/ci-e2e.sh
