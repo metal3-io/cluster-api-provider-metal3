@@ -72,7 +72,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		m.EXPECT().IsBootstrapReady().MaxTimes(0)
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
-		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
 		return m
 	}
 
@@ -86,7 +85,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 			"Waiting for bootstrap data to be ready before proceeding")
 		m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
 		m.EXPECT().HasAnnotation().MaxTimes(0)
-		m.EXPECT().GetProviderIDAndBMHID().MaxTimes(0)
 		m.EXPECT().Update(context.TODO()).MaxTimes(0)
 		return m
 	}

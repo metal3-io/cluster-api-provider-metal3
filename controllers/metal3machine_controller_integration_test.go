@@ -45,9 +45,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var bmhuid = types.UID("63856098-4b80-11ec-81d3-0242ac130003")
+var defaultBMHUID = types.UID("63856098-4b80-11ec-81d3-0242ac130003")
 
-var providerID = fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix, bmhuid)
+var providerID = fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix, namespaceName, baremetalhostName, metal3machineName)
 
 var bootstrapDataSecretName = "testdatasecret"
 
@@ -205,7 +205,6 @@ var _ = Describe("Reconcile metal3machine", func() {
 		CheckBMState               bool
 		CheckBMProviderID          bool
 		CheckBMProviderIDUnchanged bool
-		CheckBMProviderIDNew       bool
 		CheckBootStrapReady        bool
 		CheckBMHostCleaned         bool
 		CheckBMHostProvisioned     bool
@@ -288,16 +287,10 @@ var _ = Describe("Reconcile metal3machine", func() {
 				Expect(ptr.Deref(testBMmachine.Status.Initialization.Provisioned, false)).To(BeTrue())
 			}
 			if tc.CheckBMProviderID {
+				Expect(testBMmachine.Spec.ProviderID).To(Equal(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
+					testBMHost.ObjectMeta.Namespace, testBMHost.ObjectMeta.Name, testBMmachine.ObjectMeta.Name)))
 				if tc.CheckBMProviderIDUnchanged {
 					Expect(testBMmachine.Spec.ProviderID).To(Equal(oldProviderID))
-				} else {
-					if tc.CheckBMProviderIDNew {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(fmt.Sprintf("%s%s/%s/%s", baremetal.ProviderIDPrefix,
-							testBMHost.ObjectMeta.Namespace, testBMHost.ObjectMeta.Name, testBMmachine.ObjectMeta.Name)))
-					} else {
-						Expect(testBMmachine.Spec.ProviderID).To(Equal(fmt.Sprintf("%s%s", baremetal.ProviderIDPrefix,
-							string(testBMHost.ObjectMeta.UID))))
-					}
 				}
 			}
 			if tc.CheckBootStrapReady {
@@ -627,7 +620,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 			},
 		),
 		//Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioned)
-		//Expected: No Error, BMH.Spec.ProviderID is set properly based on the UID
+		//Expected: No Error, BMH.Spec.ProviderID is set properly based on "metal3://<namespace>/<bmh-name>/<m3m-name>".
 		Entry("Should set ProviderID when bootstrap data is available, ProviderID is not given, BMH is provisioned",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -656,13 +649,12 @@ var _ = Describe("Reconcile metal3machine", func() {
 						Spec: corev1.NodeSpec{},
 					},
 				},
-				ErrorExpected:        false,
-				RequeueExpected:      false,
-				ClusterInfraReady:    true,
-				CheckBMFinalizer:     true,
-				CheckBMProviderID:    true,
-				CheckBMProviderIDNew: true,
-				CheckBootStrapReady:  true,
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBMFinalizer:    true,
+				CheckBMProviderID:   true,
+				CheckBootStrapReady: true,
 				ConditionsExpected: []metav1.Condition{
 					{
 						Type:   infrav1.AssociateBareMetalHostCondition,
@@ -702,19 +694,18 @@ var _ = Describe("Reconcile metal3machine", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "node-1",
 							Labels: map[string]string{
-								baremetal.ProviderLabelPrefix: string(bmhuid),
+								baremetal.ProviderLabelPrefix: string(defaultBMHUID),
 							},
 						},
 						Spec: corev1.NodeSpec{},
 					},
 				},
-				ErrorExpected:        false,
-				RequeueExpected:      false,
-				ClusterInfraReady:    true,
-				CheckBMFinalizer:     true,
-				CheckBMProviderID:    true,
-				CheckBMProviderIDNew: true,
-				CheckBootStrapReady:  true,
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBMFinalizer:    true,
+				CheckBMProviderID:   true,
+				CheckBootStrapReady: true,
 				ConditionsExpected: []metav1.Condition{
 					{
 						Type:   infrav1.AssociateBareMetalHostCondition,
@@ -733,7 +724,7 @@ var _ = Describe("Reconcile metal3machine", func() {
 		),
 		// Given: Machine(with Bootstrap data), M3Machine (Annotation Given, no provider ID), BMH (provisioning)
 		// Expected: No Error, Requeue expected
-		// BMH.Spec.ProviderID is not set based on the UID since BMH is in provisioning
+		// BMH.Spec.ProviderID is not set based on "metal3://<namespace>/<bmh-name>/<m3m-name>" since BMH is in provisioning
 		Entry("Should requeue when bootstrap data is available, ProviderID is not given, BMH is provisioning",
 			TestCaseReconcile{
 				Objects: []client.Object{
@@ -899,19 +890,18 @@ var _ = Describe("Reconcile metal3machine", func() {
 						ObjectMeta: metav1.ObjectMeta{
 							Name: "node-0",
 							Labels: map[string]string{
-								baremetal.ProviderLabelPrefix: string(bmhuid),
+								baremetal.ProviderLabelPrefix: string(defaultBMHUID),
 							},
 						},
 						Spec: corev1.NodeSpec{},
 					},
 				},
-				ErrorExpected:        false,
-				RequeueExpected:      false,
-				ClusterInfraReady:    true,
-				CheckBMFinalizer:     true,
-				CheckBMProviderID:    true,
-				CheckBMProviderIDNew: true,
-				CheckBootStrapReady:  true,
+				ErrorExpected:       false,
+				RequeueExpected:     false,
+				ClusterInfraReady:   true,
+				CheckBMFinalizer:    true,
+				CheckBMProviderID:   true,
+				CheckBootStrapReady: true,
 			},
 		),
 		//Given: Deletion timestamp on M3Machine, No BMHost Given

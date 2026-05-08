@@ -98,7 +98,6 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: namespaceName,
 		},
 		Spec: infrav1.Metal3MachineSpec{
-			ProviderID:            "abcdef",
 			AutomatedCleaningMode: "metadata",
 			Image: infrav1.Image{
 				URL:      "http://example.com/image.qcow2",
@@ -118,7 +117,6 @@ var _ = Describe("Metal3 manager utils", func() {
 			Namespace: namespaceName,
 		},
 		Spec: infrav1.Metal3MachineSpec{
-			ProviderID: "abcdefg",
 			Image: infrav1.Image{
 				URL:      "http://example.com/image.qcow2",
 				Checksum: ptr.To("abcd1234"),
@@ -689,9 +687,4 @@ var _ = Describe("Metal3 manager utils", func() {
 			ExpectEmpty: true,
 		}),
 	)
-
-	It("Parses the providerID properly", func() {
-		Expect(parseProviderID(ProviderIDPrefix + "abcd")).To(Equal("abcd"))
-		Expect(parseProviderID("foo://abcd")).To(Equal("foo://abcd"))
-	})
 })

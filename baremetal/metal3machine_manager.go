@@ -98,7 +98,6 @@ type MachineManagerInterface interface {
 	Delete(context.Context) error
 	Update(context.Context) error
 	HasAnnotation() bool
-	GetProviderIDAndBMHID() (string, *string)
 	SetProviderID(string)
 	SetDefaultProviderID() error
 	SetProviderIDFromCloudProviderNode(context.Context, ClientGetter) error
@@ -1394,27 +1393,6 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 	return addrs
 }
 
-// GetProviderIDAndBMHID returns providerID and bmhID.
-func (m *MachineManager) GetProviderIDAndBMHID() (string, *string) {
-	providerID := m.Metal3Machine.Spec.ProviderID
-	if providerID == "" {
-		return "", nil
-	}
-	bmhID := providerID
-	if strings.Contains(bmhID, ProviderIDPrefix) {
-		bmhID = strings.TrimPrefix(bmhID, ProviderIDPrefix)
-	}
-	// If the providerID is in new format, it does not contain the BMH ID, but
-	// instead contains / to separate the names. In that case we return nil for
-	// the bmh ID to force the controller to fetch it differently.
-	if strings.Contains(bmhID, "/") {
-		m.Log.Info("ProviderID is in new format, it does not contain the BMH ID", "providerID", providerID)
-		return providerID, nil
-	}
-	m.Log.V(VerbosityLevelDebug).Info("ProviderID contains the BMH ID", "providerID", providerID)
-	return providerID, ptr.To(bmhID)
-}
-
 // ClientGetter prototype.
 type ClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error)
 
@@ -1462,7 +1440,7 @@ func (m *MachineManager) SetProviderID(providerID string) {
 	m.Metal3Machine.Spec.ProviderID = providerID
 }
 
-// SetDefaultProviderID sets the ProviderID on this Metal3Machine using the new format.
+// SetDefaultProviderID sets the ProviderID on this Metal3Machine using the proper format.
 func (m *MachineManager) SetDefaultProviderID() error {
 	namespace := m.Metal3Machine.GetNamespace()
 	m3mName := m.Metal3Machine.GetName()
@@ -1478,8 +1456,8 @@ func (m *MachineManager) SetDefaultProviderID() error {
 	return nil
 }
 
-// getPossibleProviderIDs returns the ProviderID for this Metal3Machine in the legacy and the new format.
-func (m *MachineManager) getPossibleProviderIDs(ctx context.Context) (providerIDLegacy string, providerIDNew string, err error) {
+// getProviderID returns the ProviderID for this Metal3Machine in proper format.
+func (m *MachineManager) getProviderID() (providerID string, err error) {
 	namespace := m.Metal3Machine.GetNamespace()
 	m3mName := m.Metal3Machine.GetName()
 	bmhName, err := m.getBmhNameFromM3Machine()
@@ -1489,15 +1467,7 @@ func (m *MachineManager) getPossibleProviderIDs(ctx context.Context) (providerID
 		err = fmt.Errorf("%s: %w", errMessage, err)
 		return
 	}
-	bmhUID, err := m.getBmhUIDFromM3Machine(ctx)
-	if err != nil {
-		errMessage := "unable to retrieve BMH UID from Metal3Machine"
-		m.Log.Info(errMessage)
-		err = fmt.Errorf("%s: %w", errMessage, err)
-		return
-	}
-	providerIDLegacy = "metal3://" + bmhUID
-	providerIDNew = fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
+	providerID = fmt.Sprintf("metal3://%s/%s/%s", namespace, bmhName, m3mName)
 
 	return
 }
@@ -1505,12 +1475,12 @@ func (m *MachineManager) getPossibleProviderIDs(ctx context.Context) (providerID
 // SetProviderIDFromCloudProviderNode finds a Node by ProviderID and copies that ProviderID to the Metal3Machine.
 func (m *MachineManager) SetProviderIDFromCloudProviderNode(ctx context.Context, clientFactory ClientGetter) error {
 	m.Log.V(VerbosityLevelTrace).Info("Setting ProviderID from cloud provider node")
-	providerIDLegacy, providerIDNew, err := m.getPossibleProviderIDs(ctx)
+	providerID, err := m.getProviderID()
 	if err != nil {
 		return WithTransientError(err, requeueAfter)
 	}
 
-	node, err := m.getNodeByProviderID(ctx, providerIDLegacy, providerIDNew, clientFactory)
+	node, err := m.getNodeByProviderID(ctx, providerID, clientFactory)
 	if err != nil {
 		errMessage := "error retrieving node, requeuing"
 		m.Log.Info(errMessage)
@@ -1529,12 +1499,12 @@ func (m *MachineManager) NodeWithMatchingProviderIDExists(ctx context.Context, c
 		return false
 	}
 
-	providerIDLegacy, providerIDNew, err := m.getPossibleProviderIDs(ctx)
+	providerID, err := m.getProviderID()
 	if err != nil {
 		return false
 	}
 
-	node, err := m.getNodeByProviderID(ctx, providerIDLegacy, providerIDNew, clientFactory)
+	node, err := m.getNodeByProviderID(ctx, providerID, clientFactory)
 	if err != nil {
 		errMessage := "error retrieving node, requeuing"
 		m.Log.Info(errMessage)
@@ -1577,7 +1547,7 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		return false, fmt.Errorf("found multiple target nodes with the same label: (%s): %w", nodeLabel, err)
 	}
 
-	providerIDLegacy, providerIDNew, err := m.getPossibleProviderIDs(ctx)
+	providerID, err := m.getProviderID()
 	if err != nil {
 		errMessage := fmt.Sprintf("unable to retrieve BMH name from Metal3Machine: %v", err)
 		m.Log.Info(errMessage)
@@ -1589,9 +1559,9 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 		providerIDOnNode := node.Spec.ProviderID
 		if providerIDOnNode == "" {
 			// By default we use the new format, if not set on the node.
-			m.SetProviderID(providerIDNew)
+			m.SetProviderID(providerID)
 			m.SetReadyTrue()
-			err = m.setNodeProviderID(ctx, corev1Remote, node, providerIDNew)
+			err = m.setNodeProviderID(ctx, corev1Remote, node, providerID)
 
 			if err != nil {
 				return false, err
@@ -1600,19 +1570,13 @@ func (m *MachineManager) SetProviderIDFromNodeLabel(ctx context.Context, clientF
 			return true, nil
 		}
 
-		if providerIDOnNode == providerIDNew {
-			m.SetProviderID(providerIDNew)
+		if providerIDOnNode == providerID {
+			m.SetProviderID(providerID)
 			m.SetReadyTrue()
 			return true, nil
 		}
 
-		if providerIDOnNode == providerIDLegacy {
-			m.SetProviderID(providerIDLegacy)
-			m.SetReadyTrue()
-			return true, nil
-		}
-
-		m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode, "providerIDLegacy", providerIDLegacy, "providerIDNew", providerIDNew)
+		m.Log.Info("node using unsupported providerID format", "providerID", providerIDOnNode, "providerID", providerID)
 		return false, fmt.Errorf("node using unsupported providerID format: %w", err)
 	}
 
@@ -2236,7 +2200,7 @@ func (m *MachineManager) SetNodeProviderIDByHostname(ctx context.Context, client
 	return nil
 }
 
-func (m *MachineManager) getNodeByProviderID(ctx context.Context, providerIDLegacy, providerIDNew string, clientFactory ClientGetter) (corev1.Node, error) {
+func (m *MachineManager) getNodeByProviderID(ctx context.Context, providerID string, clientFactory ClientGetter) (corev1.Node, error) {
 	corev1Remote, err := clientFactory(ctx, m.client, m.Cluster)
 	if err != nil {
 		return corev1.Node{}, fmt.Errorf("error creating a remote client: %w", err)
@@ -2256,10 +2220,8 @@ func (m *MachineManager) getNodeByProviderID(ctx context.Context, providerIDLega
 		providerIDOnNode := node.Spec.ProviderID
 		if providerIDOnNode == "" {
 			m.Log.Info("no providerID value found on node", LogFieldNode, node.GetName())
-		} else if providerIDOnNode == providerIDNew {
-			matchingNodeProviderID = providerIDNew
-		} else if providerIDOnNode == providerIDLegacy {
-			matchingNodeProviderID = providerIDLegacy
+		} else if providerIDOnNode == providerID {
+			matchingNodeProviderID = providerID
 		} else {
 			m.Log.Info("The node does not match expected providerID. Considering other nodes ", LogFieldNode, node.GetName(), LogFieldProviderID, providerIDOnNode)
 		}
@@ -2267,7 +2229,7 @@ func (m *MachineManager) getNodeByProviderID(ctx context.Context, providerIDLega
 			validNodes[providerIDOnNode] = append(validNodes[providerIDOnNode], node)
 		}
 	}
-	err = m.duplicateProviderIDsExist(validNodes, providerIDLegacy, providerIDNew)
+	err = m.duplicateProviderIDsExist(validNodes, providerID)
 	if err != nil {
 		// There are, at least, two nodes. Details are in err
 		return corev1.Node{}, err
@@ -2291,35 +2253,31 @@ func getNodeNames(nodes []corev1.Node) string {
 	return strings.Join(names, ", ")
 }
 
-// duplicateProviderIDsExist determnes if a providerID is already in use by other nodes.
-func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]corev1.Node, providerIDLegacy, providerIDNew string) error {
+// duplicateProviderIDsExist determines if a providerID is already in use by other nodes.
+func (m *MachineManager) duplicateProviderIDsExist(validNodes map[string][]corev1.Node, providerID string) error {
 	duplicateUsageCounter := 0
 	var duplicateNodes []corev1.Node
 	// Check if any node has metal3://<namespace>/<bmh>/ as a beginning of providerID
-	newProviderIDMatch := providerIDNew[:strings.LastIndex(providerIDNew, "/")+1]
-	for providerID, nodes := range validNodes {
-		// verify if the same providerId is not consumed twice. Example:
-		// legacy provider-id: metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6
-		// new format provider-id:   metal3://metal3/node-0/test-controlplane-xyz
-		// The above two providerIDs are the same and would consume the same bmh node,
-		// the former using uuid and the latter using a name.
+	providerIDMatch := providerID[:strings.LastIndex(providerID, "/")+1]
+	for nodeProviderID, nodes := range validNodes {
+		// verify if the same providerId is not consumed twice.
 		// The check below prevents such double providerID consumptions.
-		if providerID == providerIDLegacy || strings.Contains(providerID, newProviderIDMatch) {
+		if strings.Contains(nodeProviderID, providerIDMatch) {
 			duplicateUsageCounter++
 			duplicateNodes = append(duplicateNodes, nodes...)
 		}
-		// duplicates due to the same, at least, two instances of legacy OR new OR unknown formats being used in multiple nodes.
+		// duplicates due to the same, at least, two instances proper OR unknown formats being used in multiple nodes.
 		if len(nodes) > 1 {
 			matchingNodes := getNodeNames(nodes)
-			errMessage := fmt.Sprintf("providerID %s is in use by multiple nodes: (%s)", providerID, matchingNodes)
+			errMessage := fmt.Sprintf("providerID %s is in use by multiple nodes: (%s)", nodeProviderID, matchingNodes)
 			m.Log.Info(errMessage)
 			return errors.New(errMessage)
 		}
 	}
-	// duplicates due to both the legacy AND new providerIDs being used by multiple nodes.
+	// duplicates due to providerID being used by multiple nodes.
 	if duplicateUsageCounter > 1 {
 		duplicateNodesNames := getNodeNames(duplicateNodes)
-		errMessage := fmt.Sprintf("both providerIDs (%s and %s) cannot be used at the same time by node: (%s)", providerIDLegacy, providerIDNew, duplicateNodesNames)
+		errMessage := fmt.Sprintf("providerID (%s) cannot be used at the same time by node: (%s)", providerID, duplicateNodesNames)
 		m.Log.Info(errMessage)
 		return errors.New(errMessage)
 	}

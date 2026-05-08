@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	// comment for go-lint.
@@ -398,10 +397,6 @@ func getM3Machine(ctx context.Context, cl client.Client, mLog logr.Logger,
 		return nil, nil //nolint:nilnil
 	}
 	return tmpM3Machine, nil
-}
-
-func parseProviderID(providerID string) string {
-	return strings.TrimPrefix(providerID, ProviderIDPrefix)
 }
 
 func ConvertTypedLocalObjectReferenceToIPPoolReference(
