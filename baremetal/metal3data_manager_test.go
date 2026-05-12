@@ -1896,6 +1896,7 @@ var _ = Describe("Metal3Data manager", func() {
 		ipClaim         *ipamv1.IPClaim
 		expectError     bool
 		injectDeleteErr bool
+		injectListErr   bool
 	}
 
 	DescribeTable("Test releaseAddressFromM3Pool",
@@ -1907,6 +1908,7 @@ var _ = Describe("Metal3Data manager", func() {
 			fake := &releaseAddressFromPoolFakeClient{
 				Client:          fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build(),
 				injectDeleteErr: tc.injectDeleteErr,
+				injectListErr:   tc.injectListErr,
 			}
 			dataMgr, err := NewDataManager(fake, tc.m3d,
 				logr.Discard(),
@@ -1928,7 +1930,11 @@ var _ = Describe("Metal3Data manager", func() {
 				}
 
 				err = dataMgr.client.Get(context.TODO(), claimNamespacedName, capm3IPClaim)
-				if tc.injectDeleteErr {
+				if tc.injectListErr {
+					// List failed early, claim must be untouched (still exists with finalizer)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(capm3IPClaim.Finalizers).To(ContainElement(infrav1.DataFinalizer))
+				} else if tc.injectDeleteErr {
 					// There was an error deleting the claim, so we expect it to still be there
 					Expect(err).ToNot(HaveOccurred())
 					// We expect the finalizer to be gone
@@ -1976,6 +1982,25 @@ var _ = Describe("Metal3Data manager", func() {
 			},
 			injectDeleteErr: true,
 			expectError:     true,
+		}),
+		Entry("List error is returned without proceeding to deletion", testCaseReleaseAddressFromM3Pool{
+			m3d: &infrav1.Metal3Data{
+				ObjectMeta: testObjectMeta(metal3DataName, namespaceName, ""),
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Metal3Data",
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+			poolRef: infrav1.IPPoolReference{Name: testPoolName},
+			ipClaim: &ipamv1.IPClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       metal3DataName + "-" + testPoolName,
+					Namespace:  namespaceName,
+					Finalizers: []string{infrav1.DataFinalizer},
+				},
+			},
+			injectListErr: true,
+			expectError:   true,
 		}),
 	)
 
@@ -4806,6 +4831,7 @@ var _ = Describe("Metal3Data manager", func() {
 type releaseAddressFromPoolFakeClient struct {
 	client.Client
 	injectDeleteErr bool
+	injectListErr   bool
 }
 
 func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
@@ -4813,6 +4839,13 @@ func (f *releaseAddressFromPoolFakeClient) Delete(ctx context.Context, obj clien
 		return errors.New("failed to delete for some weird reason")
 	}
 	return f.Client.Delete(ctx, obj, opts...)
+}
+
+func (f *releaseAddressFromPoolFakeClient) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	if f.injectListErr {
+		return errors.New("failed to list for some weird reason")
+	}
+	return f.Client.List(ctx, list, opts...)
 }
 
 var _ = Describe("poolRefs map", func() {
