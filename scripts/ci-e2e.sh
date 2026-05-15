@@ -189,16 +189,16 @@ yaml_envsubst() {
 
 # Generate credentials
 BMO_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.10"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.11"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.12"
+  "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-0.13"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-main"
 )
 IRSO_IRONIC_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-31.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-32.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-33.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-35.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/main"
 )
