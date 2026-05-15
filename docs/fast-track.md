@@ -18,7 +18,8 @@ The behavior is controlled by three factors:
 1. **BareMetalHost.Spec.DisablePowerOff**: If `true`, the host always stays
    online (highest priority)
 1. **CAPM3_FAST_TRACK environment variable**: Set to `true` or `false`
-1. **BareMetalHost.Spec.AutomatedCleaningMode**: Set to `disabled` or `metadata`
+1. **BareMetalHost.Spec.AutomatedCleaningMode**: Set to `disabled`, `metadata`,
+   or unset (defaults to `metadata`)
 
 ### Behavior Matrix
 
@@ -90,10 +91,12 @@ export CAPM3_FAST_TRACK=true
 
 ### Configuring AutomatedCleaningMode
 
-For Fast Track to work, your BareMetalHost resources must have
-`AutomatedCleaningMode` set to `metadata`. This can also be combined with
-`DisablePowerOff=true`; in that case `DisablePowerOff` remains the deciding
-factor for keeping the host online. Refer to the
+For Fast Track to work, your BareMetalHost resources must **not** have
+`AutomatedCleaningMode` set to `disabled`. The BMH API defaults this field to
+`metadata` when unset, so hosts that don't explicitly disable cleaning are
+eligible. This can also be combined with `DisablePowerOff=true`; in that case
+`DisablePowerOff` remains the deciding factor for keeping the host online.
+Refer to the
 [Baremetal Operator Documentation](https://book.metal3.io/bmo/introduction)
 for details on configuring this field.
 
@@ -129,7 +132,7 @@ power-off cycle.
 If hosts are being powered off despite Fast Track being enabled:
 
 1. Verify `CAPM3_FAST_TRACK` is set to `true` (not `True` or `1`)
-1. Check that `AutomatedCleaningMode` is `metadata`, not `disabled`
+1. Check that `AutomatedCleaningMode` is not `disabled` (i.e., `metadata` or unset)
 1. Review controller logs for the decision logic
 
 ### Host Stuck in Deprovisioning

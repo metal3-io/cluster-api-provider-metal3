@@ -93,7 +93,7 @@ clusterctl configuration file by the user.
 
 ### Via clusterctl Configuration
 
-Add to your `"${XDG_CONFIG_HOME}"/.config/cluster-api/clusterctl.yaml`:
+Add to your `${XDG_CONFIG_HOME:-$HOME/.config}/cluster-api/clusterctl.yaml`:
 
 ```yaml
 variables:
