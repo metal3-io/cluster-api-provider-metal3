@@ -37,8 +37,8 @@ var (
 	managementClusterNamespace string
 )
 
-// Ironic 33.0 -> latest image tag.
-var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", Label("clusterctl-upgrade"), func() {
+// Ironic 35.0 -> latest image tag.
+var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
 		k8sVersion = "v1.36.0"
 		validateGlobals(specName)
@@ -48,9 +48,9 @@ var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", 
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
 	})
 
-	minorVersion := "1.12"
-	bmoFromRelease := "0.12"
-	ironicFromRelease := "33.0"
+	minorVersion := "1.13"
+	bmoFromRelease := "0.13"
+	ironicFromRelease := "35.0"
 	bmoToRelease := "main"
 	ironicToRelease := "main"
 	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
@@ -99,10 +99,10 @@ var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", 
 	})
 })
 
-// Ironic 32.0 -> latest image tag.
-var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", Label("clusterctl-upgrade"), func() {
+// Ironic 33.0 -> latest image tag.
+var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", Label("clusterctl-upgrade"), func() {
 	BeforeEach(func() {
-		k8sVersion = "v1.34.1"
+		k8sVersion = "v1.36.0"
 		validateGlobals(specName)
 		imageURL, imageChecksum := EnsureImage(k8sVersion)
 		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
@@ -110,9 +110,9 @@ var _ = Describe("When testing cluster upgrade from releases (v1.11=>current)", 
 		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
 	})
 
-	minorVersion := "1.11"
-	bmoFromRelease := "0.11"
-	ironicFromRelease := "32.0"
+	minorVersion := "1.12"
+	bmoFromRelease := "0.12"
+	ironicFromRelease := "33.0"
 	bmoToRelease := "main"
 	ironicToRelease := "main"
 	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
