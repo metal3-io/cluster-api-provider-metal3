@@ -906,6 +906,7 @@ func (m *DataManager) releaseAddressFromM3Pool(ctx context.Context, poolRef infr
 	ipClaimsList, err := m.fetchIPClaimsWithLabels(ctx, poolRef.Name)
 	if err != nil {
 		m.Log.Error(err, "Failed to fetch IPClaims with labels", LogFieldPoolRef, poolRef.Name, LogFieldMetal3Data, m.Data.Name)
+		return err
 	}
 	if len(ipClaimsList) > 0 {
 		for _, ipClaimWithLabels := range ipClaimsList {
