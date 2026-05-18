@@ -3046,12 +3046,46 @@ var _ = Describe("Metal3Machine manager", func() {
 							Namespace: "default",
 						},
 						Data: map[string][]byte{
-							"metaData": []byte("not: [valid, for, string, map]"),
+							"metaData": []byte("\t: not valid yaml"),
 						},
 					},
 				},
 				Host:        nil,
 				ExpectError: true,
+			}),
+			Entry("Metadata with non-string InternalIP/ExternalIP falls back to BMH", testCaseNodeAddress{
+				M3Machine: infrav1.Metal3Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "default",
+					},
+					Status: infrav1.Metal3MachineStatus{
+						MetaData: &corev1.SecretReference{
+							Name:      "test-metadata-non-string",
+							Namespace: "default",
+						},
+					},
+				},
+				TestObjects: []runtime.Object{
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-metadata-non-string",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							// InternalIP is a list, ExternalIP is a number; both
+							// should be ignored and addresses derived from BMH NICs.
+							"metaData": []byte("InternalIP:\n  - 10.0.0.100\nExternalIP: 42\nnested:\n  key: value\n"),
+						},
+					},
+				},
+				Host: &bmov1alpha1.BareMetalHost{
+					Status: bmov1alpha1.BareMetalHostStatus{
+						HardwareDetails: &bmov1alpha1.HardwareDetails{
+							NIC: []bmov1alpha1.NIC{nic1},
+						},
+					},
+				},
+				ExpectedNodeAddresses: []clusterv1.MachineAddress{addr1},
 			}),
 		)
 	})

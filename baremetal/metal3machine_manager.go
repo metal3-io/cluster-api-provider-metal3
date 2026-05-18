@@ -1345,6 +1345,12 @@ func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmov1alp
 
 // NodeAddresses returns a slice of corev1.NodeAddress objects for a
 // given Metal3 machine.
+//
+// If the Metal3Machine's metadata secret contains the keys "InternalIP"
+// and/or "ExternalIP" (case-sensitive, scalar string values), they take
+// precedence over the addresses derived from the BareMetalHost NICs and
+// are returned directly. Non-string or missing values are ignored and
+// fall back to BMH-derived addresses.
 func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.BareMetalHost) ([]clusterv1.MachineAddress, error) {
 	addrs := []clusterv1.MachineAddress{}
 
@@ -1354,12 +1360,12 @@ func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.Ba
 	}
 
 	if metadata != nil {
-		if internalIP, exists := metadata["InternalIP"]; exists && internalIP != "" {
+		if internalIP, ok := metadata["InternalIP"].(string); ok && internalIP != "" {
 			addrs = []clusterv1.MachineAddress{
 				{Type: clusterv1.MachineInternalIP, Address: internalIP},
 			}
 		}
-		if externalIP, exists := metadata["ExternalIP"]; exists && externalIP != "" {
+		if externalIP, ok := metadata["ExternalIP"].(string); ok && externalIP != "" {
 			addrs = append(addrs, clusterv1.MachineAddress{
 				Type:    clusterv1.MachineExternalIP,
 				Address: externalIP,
@@ -1401,9 +1407,14 @@ func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.Ba
 }
 
 // getMetaDataFromSecret reads the metadata secret referenced by the Metal3Machine
-// status and returns the parsed key-value pairs. Returns nil, nil if no metadata
+// status and returns the parsed top-level mapping. Returns nil, nil if no metadata
 // secret is configured or the secret does not exist yet.
-func (m *MachineManager) getMetaDataFromSecret(ctx context.Context) (map[string]string, error) {
+//
+// The secret content is expected to be YAML (cloud-init/BMO metadata) and may
+// contain nested structures and non-string values. Callers should type-assert
+// the values they care about (e.g. "InternalIP", "ExternalIP" as strings) and
+// ignore anything that does not match the expected shape.
+func (m *MachineManager) getMetaDataFromSecret(ctx context.Context) (map[string]any, error) {
 	if m.Metal3Machine.Status.MetaData == nil || m.Metal3Machine.Status.MetaData.Name == "" {
 		return nil, nil //nolint:nilnil
 	}
@@ -1427,7 +1438,7 @@ func (m *MachineManager) getMetaDataFromSecret(ctx context.Context) (map[string]
 		return nil, nil //nolint:nilnil
 	}
 
-	metadata := make(map[string]string)
+	metadata := make(map[string]any)
 	if err := yaml.Unmarshal(metaDataBytes, &metadata); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal metaData: %w", err)
 	}
