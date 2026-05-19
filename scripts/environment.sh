@@ -177,5 +177,5 @@ export PROVIDER_ID_FORMAT="metal3://{{ ds.meta_data.providerid }}"
 export EXP_CLUSTER_RESOURCE_SET="true"
 
 # IRSO version
-export IRSOBRANCH="release-0.7"
-export IRSOCOMMIT="v0.7.0"
+export IRSOBRANCH="release-0.9"
+export IRSOCOMMIT="v0.9.0"
