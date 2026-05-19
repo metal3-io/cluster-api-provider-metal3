@@ -1,4 +1,0 @@
-resources:
-- ../cluster
-patches:
-- path: centos-kubeadm-config.yaml

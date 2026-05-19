@@ -1,3 +1,0 @@
-resources:
-- ../bases/ippool
-- ../bases/clusterclass-ubuntu-kubeadm-config
