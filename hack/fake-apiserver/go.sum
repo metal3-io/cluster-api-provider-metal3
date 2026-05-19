@@ -319,10 +319,10 @@ k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 h1:SjGebBtkBqHFOli+05xYbK8YF1Dzk
 k8s.io/utils v0.0.0-20251002143259-bc988d571ff4/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 h1:jpcvIRr3GLoUoEKRkHKSmGjxb6lWwrBlJsXc+eUYQHM=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2/go.mod h1:Ve9uj1L+deCXFrPOk1LpFXqTg7LCFzFso6PA48q/XZw=
-sigs.k8s.io/cluster-api v1.13.1 h1:5qksGznSU1fJOXIxsI4EayTqG1Q9S0qJNp3HdsVm1KU=
-sigs.k8s.io/cluster-api v1.13.1/go.mod h1:Hqq5yucu3OwPiAjNEh/O/zZX4dF63MD8Q6I0cwL/bUU=
-sigs.k8s.io/cluster-api/test v1.13.1 h1:NimY83SFiO24J3GhF2Fw+iUcKzRPUY2Ev0wRPbogl2k=
-sigs.k8s.io/cluster-api/test v1.13.1/go.mod h1:3FL7oJBT6ThT63TcbTigSNNXCXK/2CJ5b8ODbaVs3nk=
+sigs.k8s.io/cluster-api v1.13.2 h1:NVdbVLmh6IyfdtENQAi80AijJf/FjfQLODz/6caDjlc=
+sigs.k8s.io/cluster-api v1.13.2/go.mod h1:h7cyiUh+N7sIBkSerqU8cDkYMtRlXVO1c5RoJE1p5+g=
+sigs.k8s.io/cluster-api/test v1.13.2 h1:DIcgMPIMyQyHjZWtEx5YlzHPktuU/wRlCU+0gK32RJk=
+sigs.k8s.io/cluster-api/test v1.13.2/go.mod h1:3FL7oJBT6ThT63TcbTigSNNXCXK/2CJ5b8ODbaVs3nk=
 sigs.k8s.io/controller-runtime v0.23.3 h1:VjB/vhoPoA9l1kEKZHBMnQF33tdCLQKJtydy4iqwZ80=
 sigs.k8s.io/controller-runtime v0.23.3/go.mod h1:B6COOxKptp+YaUT5q4l6LqUJTRpizbgf9KSRNdQGns0=
 sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 h1:IpInykpT6ceI+QxKBbEflcR5EXP7sU1kvOlxwZh5txg=
