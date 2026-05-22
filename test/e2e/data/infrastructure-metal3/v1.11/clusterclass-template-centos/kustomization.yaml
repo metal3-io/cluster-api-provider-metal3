@@ -1,3 +1,0 @@
-resources:
-- ../bases/ippool
-- ../bases/clusterclass-centos-kubeadm-config
