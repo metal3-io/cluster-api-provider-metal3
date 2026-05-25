@@ -195,7 +195,6 @@ BMO_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/bmo-deployment/overlays/release-main"
 )
 IRSO_IRONIC_OVERLAYS=(
-  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-32.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-33.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/release-35.0"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test"

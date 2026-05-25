@@ -264,7 +264,6 @@ variables:
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: 0
   IRSO_OPERATOR: "data/ironic-standalone-operator/operator"
-  IRSO_IRONIC_32.0: "data/ironic-standalone-operator/ironic/overlays/release-32.0"
   IRSO_IRONIC_33.0: "data/ironic-standalone-operator/ironic/overlays/release-33.0"
   IRSO_IRONIC_35.0: "data/ironic-standalone-operator/ironic/overlays/release-35.0"
   IRSO_IRONIC_PR_TEST: "data/ironic-standalone-operator/ironic/overlays/pr-test"
