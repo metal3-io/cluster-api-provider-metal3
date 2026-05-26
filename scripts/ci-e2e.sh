@@ -20,11 +20,7 @@ if [[ "${CAPM3RELEASEBRANCH}" == release-* ]]; then
 else
     export CAPM3RELEASE="v1.13.99"
     export IPAMRELEASE="v1.13.99"
-    # Commenting this out as CAPI release prefix and exporting CAPIRELEASE
-    # during pre-release phase of CAPI.
-    # We will change when minor is released.
-    # export CAPI_RELEASE_PREFIX="v1.12."
-    export CAPIRELEASE="v1.13.0-rc.1"
+    export CAPI_RELEASE_PREFIX="v1.13."
 fi
 
 # Default CAPI_CONFIG_FOLDER to $HOME/.config folder if XDG_CONFIG_HOME not set
