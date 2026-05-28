@@ -152,7 +152,7 @@ func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 		ClusterProxy:          input.TargetCluster,
 		IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
 		ClusterName:           input.TargetCluster.GetName(),
-		IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR"),
+		IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST"),
 		IronicKustomize:       input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST"),
 		LogPath:               irsoDeployLogFolder,
 	})
@@ -262,7 +262,7 @@ func removeIronic(ctx context.Context, inputGetter func() RemoveIronicInput) {
 	input := inputGetter()
 	if input.DeploymentType == IronicDeploymentTypeIrSO {
 		By("Remove IRSO and Ironic resources")
-		irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR")
+		irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
 		ironicKustomization := input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST")
 		err := UninstallIRSOAndIronicResources(ctx, UninstallIRSOAndIronicResourcesInput{
 			E2EConfig:             input.E2EConfig,
@@ -377,7 +377,7 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Remove IRSO in the target cluster")
-	irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR")
+	irsoKustomization := input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST")
 	err = BuildAndRemoveKustomization(ctx, irsoKustomization, input.TargetCluster)
 	Expect(err).NotTo(HaveOccurred())
 
@@ -400,7 +400,7 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 			ClusterProxy:          input.BootstrapClusterProxy,
 			IronicNamespace:       input.E2EConfig.MustGetVariable(ironicNamespace),
 			ClusterName:           input.BootstrapClusterProxy.GetName(),
-			IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR"),
+			IrsoOperatorKustomize: input.E2EConfig.MustGetVariable("IRSO_OPERATOR_LATEST"),
 			IronicKustomize:       input.E2EConfig.MustGetVariable("IRSO_IRONIC_PR_TEST"),
 			LogPath:               irsoDeployLogFolder,
 		})

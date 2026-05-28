@@ -311,7 +311,11 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 	// install ironic
 	Byf("Install IRSO with ironic version %s in the target management cluster: %s", ironicRelease, clusterProxy.GetName())
 	ironicKustomization := e2eConfig.MustGetVariable("IRSO_IRONIC_" + ironicRelease)
-	irsoKustomizePath := e2eConfig.MustGetVariable("IRSO_OPERATOR")
+	irsoOperatorVersion := "LATEST"
+	if ironicRelease < "32.0" {
+		irsoOperatorVersion = "0.8.0"
+	}
+	irsoKustomizePath := e2eConfig.MustGetVariable("IRSO_OPERATOR_" + irsoOperatorVersion)
 	irsoDeployLogFolder := filepath.Join(artifactFolder, clusterProxy.GetName(), "ironic-deploy-logs-preinit")
 	err = InstallIRSO(ctx, InstallIRSOInput{
 		E2EConfig:             e2eConfig,
@@ -374,7 +378,11 @@ func preUpgrade(clusterProxy framework.ClusterProxy, bmoUpgradeToRelease string,
 
 	Byf("Upgrade IRSO with ironic version %s in the target management cluster: %s", ironicTag, clusterProxy.GetName())
 	ironicKustomization := e2eConfig.MustGetVariable("IRSO_IRONIC_" + ironicTag)
-	irsoKustomizePath := e2eConfig.MustGetVariable("IRSO_OPERATOR")
+	irsoOperatorVersion := "LATEST"
+	if ironicTag < "32.0" {
+		irsoOperatorVersion = "0.8.0"
+	}
+	irsoKustomizePath := e2eConfig.MustGetVariable("IRSO_OPERATOR_" + irsoOperatorVersion)
 	irsoDeployLogFolder := filepath.Join(artifactFolder, clusterProxy.GetName(), "ironic-deploy-logs-preupgrade")
 	err = InstallIRSO(ctx, InstallIRSOInput{
 		E2EConfig:             e2eConfig,
@@ -436,7 +444,11 @@ func preCleanupManagementCluster(clusterProxy framework.ClusterProxy, ironicRele
 		} else {
 			By("Install IRSO in the bootstrap cluster")
 			ironicKustomization := e2eConfig.MustGetVariable("IRSO_IRONIC_" + ironicRelease)
-			irsoKustomizePath := e2eConfig.MustGetVariable("IRSO_OPERATOR")
+			irsoOperatorVersion := "LATEST"
+			if ironicRelease < "32.0" {
+				irsoOperatorVersion = "0.8.0"
+			}
+			irsoKustomizePath := e2eConfig.MustGetVariable("IRSO_OPERATOR_" + irsoOperatorVersion)
 			irsoDeployLogFolder := filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "ironic-deploy-logs-reinstall")
 			err := InstallIRSO(ctx, InstallIRSOInput{
 				E2EConfig:             e2eConfig,

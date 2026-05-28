@@ -263,7 +263,8 @@ variables:
   IMAGE_CHECKSUM_TYPE: "sha256"
   IMAGE_USERNAME: "metal3"
   NODE_DRAIN_TIMEOUT: 0
-  IRSO_OPERATOR: "data/ironic-standalone-operator/operator"
+  IRSO_OPERATOR_0.8.0: "data/ironic-standalone-operator/operator/overlays/release-0.8.0"
+  IRSO_OPERATOR_LATEST: "data/ironic-standalone-operator/operator/overlays/release-0.9.0"
   IRSO_IRONIC_33.0: "data/ironic-standalone-operator/ironic/overlays/release-33.0"
   IRSO_IRONIC_35.0: "data/ironic-standalone-operator/ironic/overlays/release-35.0"
   IRSO_IRONIC_PR_TEST: "data/ironic-standalone-operator/ironic/overlays/pr-test"

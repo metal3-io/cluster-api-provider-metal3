@@ -196,6 +196,10 @@ IRSO_IRONIC_OVERLAYS=(
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/pr-test"
   "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/ironic/overlays/main"
 )
+IRSO_OPERATOR_OVERLAYS=(
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.8.0"
+  "${REPO_ROOT}/test/e2e/data/ironic-standalone-operator/operator/overlays/release-0.9.0"
+)
 
 # Update BMO and Ironic images in kustomization.yaml files to use the same image that was used before pivot in the metal3-dev-env
 case "${REPO_NAME:-}" in
@@ -218,9 +222,13 @@ yaml_envsubst "${REPO_ROOT}"/test/e2e/data/bmo-deployment/overlays/pr-test
 yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/base/
 yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/basic-auth/
 yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/ironic/components/tls/
-yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/operator
+yaml_envsubst "${REPO_ROOT}"/test/e2e/data/ironic-standalone-operator/operator/components/configmap/
 
 for overlay in "${IRSO_IRONIC_OVERLAYS[@]}"; do
+  yaml_envsubst "${overlay}"
+done
+
+for overlay in "${IRSO_OPERATOR_OVERLAYS[@]}"; do
   yaml_envsubst "${overlay}"
 done
 
