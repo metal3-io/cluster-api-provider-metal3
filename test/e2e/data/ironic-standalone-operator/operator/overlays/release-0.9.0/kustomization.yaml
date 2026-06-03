@@ -5,5 +5,5 @@ namespace: ironic-standalone-operator-system
 resources:
 - https://github.com/metal3-io/ironic-standalone-operator/releases/download/v0.9.0/install.yaml
 
-patches:
-- path: patch-configmap.yaml
+components:
+- ../../components/configmap
