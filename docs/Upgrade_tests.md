@@ -1,3 +1,88 @@
+# upgrade_kubernetes_test
+
+
+The test aims to upgrade kubernetes from v1.35.0 to v1.36.0. It intends to update both control panel and worker nodes.
+
+
+| Variable          | Value   |
+| ---------------------- | ------- |
+| `kubernetesVersion`    | v1.35.0 |
+| `upgradedK8sVersion`   | v1.36.0 |
+| `numberOfControlplane` | 3       |
+| `numberOfWorkers`      | 1       |
+
+## Initial preparation
+
+
+
+We start by applying BMH resources for the target cluster. A target cluster is then created with the with kubernetes version v1.35 passed. A number of control panel and worker nodes with  the quantity controlled by `numberOfControlplane` and `numberOfWorkers`  variables respectively. By default they are 3 control plane machines, and 1 worker machine resulting in a total of 4 nodes. We also create the management cluster objects `KubeadmControlPlane` and `MachineDeployment` to control the control panel and worker nodes respectively. 
+
+
+
+We log the following variables:
+- `kubernetesVersion`  
+- `upgradedK8sVersion` 
+- `numberOfControlplane` 
+- `numberOfWorkers`     
+
+
+
+We then list:
+- `BareMetalHosts`
+- `Metal3Machines`
+- `Machines`
+- `Nodes`
+
+
+We then trigger the upgrade flow.
+
+## Upgrade control panels machines
+
+
+1. We start by getting the version v1.36 of kubernetes and downloading the image. 
+2. We then create a new `Metal3MachineTemplate` for the `KubeadmControlPlane` and attach the new `imageURL` and `imageChecksum` to it.
+3. We get the `KubeadmControlPlane`  we are using and start patching it. We change it's `MachineTemplate` to the new `Metal3MachineTemplate` we have created. We change it's `version` to the v1.36  and finally change `MaxSurge` to 0 to ensure a strict replacement style rollout.
+4. The KCP controller notices the changes and starts a rolling replacement of control-plane machines that no longer match desired state (i.e. have have kubernetes version v1.35).
+5. We wait until a single BMH reaches the deprovisioning state
+6. We then wait until all three Control Plane machines become running and updated with the to v1.36
+7. The CP nodes then have their `NoSchedule` taints removed to enable easier scheduling for future steps and `maxsurge` is restored to 1.
+
+We then began to upgrade the worker nodes
+
+## Upgrade worker machines
+
+1. We then create a new `Metal3MachineTemplate` for the `MachineDeployment` and attach the new `imageURL` and `imageChecksum` to it.
+2. We get the `MachineDeployment` object we are using and start patching it. We change it's `MachineTemplate` to the new `Metal3MachineTemplate` we have created. We change it's `version` to the 1.36 and finally change `MaxSurge` to 0, and  `maxUnavailable` is set to 1 to ensure a strict replacement style rollout to ensure one machine is replaced at a time.
+3. The MD controller notices the changes and starts a rolling replacement of the worker node that no longer match the desired state(i.e. have have kubernentes version v1.35).
+4. We wait until a the BMH reaches the deprovisioning state and then wait until a single BMH reaches the provisioning state
+5. Then we watch then we wait for the BMH become provisioned.
+6. We then wait until it starts running with v1.36.
+
+
+We then verify that nodes are running and their version is v1.36. If so the test is successful.
+
+
+## Logging and Cleanup:
+
+
+
+We start by listing:
+- `BareMetalHosts`
+- `Metal3Machines`
+- `Machines`
+- `Nodes`
+
+
+We then call the `DumpSpecResourcesAndCleanup` folder which removes the `clusterctlLogFolder`. It then writes all the logs from the target cluster to a file.
+
+It then proceeds to dump all the resources in the spec namespace to artifacts 
+
+It then checks the `skipCleanup` flag and if false we sends the signal to delete all clusters. We wait until all `Metal3Data`, `Metal3DataTemplate`, `Metal3DataClaim` objects are gone and then the test ends.
+
+****
+****
+****
+
 # E2E Upgrade Tests
 
 ## Initial setup
