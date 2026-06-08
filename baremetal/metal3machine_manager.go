@@ -41,7 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	clientcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -205,7 +204,7 @@ func (m *MachineManager) IsBaremetalHostProvisioned(ctx context.Context) bool {
 	m.Log.V(VerbosityLevelDebug).Info("Checking if BareMetalHost is provisioned",
 		LogFieldMetal3Machine, m.Metal3Machine.Name,
 		LogFieldNamespace, m.Metal3Machine.Namespace)
-	host, _, err := m.getHost(ctx)
+	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil {
 		m.Log.V(VerbosityLevelDebug).Info("Failed to get BareMetalHost",
 			LogFieldMetal3Machine, m.Metal3Machine.Name,
@@ -449,7 +448,7 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 	}
 
 	// look for associated BMH
-	host, helper, err := m.getHost(ctx)
+	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil {
 		return "", err
 	}
@@ -457,7 +456,7 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 	// no BMH found, trying to choose from available ones
 	chosenHostReason := infrav1.AssociateBareMetalHostSuccessReason
 	if host == nil {
-		host, helper, chosenHostReason, err = m.chooseHost(ctx)
+		host, chosenHostReason, err = m.chooseHost(ctx)
 		if err != nil {
 			return "", err
 		}
@@ -485,6 +484,8 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 		return "", err
 	}
 
+	hostBefore := host.DeepCopy()
+
 	m.setHostLabel(ctx, host)
 
 	err = m.setHostConsumerRef(ctx, host)
@@ -500,15 +501,15 @@ func (m *MachineManager) Associate(ctx context.Context) (string, error) {
 		}
 	}
 
-	err = helper.Patch(ctx, host)
-	if err != nil {
-		var aggr kerrors.Aggregate
-		if ok := errors.As(err, &aggr); ok {
-			if slices.ContainsFunc(aggr.Errors(), apierrors.IsConflict) {
-				return "", WithTransientError(nil, requeueAfter)
+	if !equality.Semantic.DeepEqual(hostBefore.ObjectMeta, host.ObjectMeta) ||
+		!equality.Semantic.DeepEqual(hostBefore.Spec, host.Spec) {
+		err = m.client.Update(ctx, host)
+		if err != nil {
+			if apierrors.IsConflict(err) {
+				return "", WithTransientError(fmt.Errorf("conflict updating BareMetalHost %s: %w", host.Name, err), requeueAfter)
 			}
+			return "", err
 		}
-		return "", err
 	}
 
 	err = m.setBMCSecretLabel(ctx, host)
@@ -566,7 +567,7 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		Capm3FastTrack = "false"
 		m.Log.Info("Capm3FastTrack is not set, setting it to default value false")
 	}
-	host, helper, err := m.getHost(ctx)
+	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil {
 		return err
 	}
@@ -658,9 +659,15 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		}
 
 		if bmhUpdated {
-			// Update the BMH object, if the errors are NotFound, do not return the
-			// errors.
-			if err = patchIfFound(ctx, helper, host); err != nil {
+			// Update the BMH object. Use Update() for optimistic locking.
+			err = m.client.Update(ctx, host)
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					return nil
+				}
+				if apierrors.IsConflict(err) {
+					return WithTransientError(fmt.Errorf("conflict updating BareMetalHost %s: %w", host.Name, err), requeueAfter)
+				}
 				return err
 			}
 
@@ -771,9 +778,15 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			delete(host.Annotations, bmov1alpha1.PausedAnnotation)
 		}
 
-		// Update the BMH object, if the errors are NotFound, do not return the
-		// errors.
-		if err := patchIfFound(ctx, helper, host); err != nil {
+		// Update the BMH object. Use Update() for optimistic locking.
+		err = m.client.Update(ctx, host)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil
+			}
+			if apierrors.IsConflict(err) {
+				return WithTransientError(fmt.Errorf("conflict updating BareMetalHost %s: %w", host.Name, err), requeueAfter)
+			}
 			return err
 		}
 	}
@@ -786,7 +799,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 	m.Log.V(VerbosityLevelTrace).Info("Updating Metal3Machine",
 		LogFieldMetal3Machine, m.Metal3Machine.Name)
 
-	host, helper, err := m.getHost(ctx)
+	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil {
 		return err
 	}
@@ -802,6 +815,8 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 
+	hostBefore := host.DeepCopy()
+
 	// ensure that the BMH specs are correctly set.
 	err = m.setHostConsumerRef(ctx, host)
 	if err != nil {
@@ -814,9 +829,15 @@ func (m *MachineManager) Update(ctx context.Context) error {
 		return err
 	}
 
-	err = helper.Patch(ctx, host)
-	if err != nil {
-		return err
+	if !equality.Semantic.DeepEqual(hostBefore.ObjectMeta, host.ObjectMeta) ||
+		!equality.Semantic.DeepEqual(hostBefore.Spec, host.Spec) {
+		err = m.client.Update(ctx, host)
+		if err != nil {
+			if apierrors.IsConflict(err) {
+				return WithTransientError(fmt.Errorf("conflict updating BareMetalHost %s: %w", host.Name, err), requeueAfter)
+			}
+			return err
+		}
 	}
 
 	err = m.ensureAnnotation(ctx, host)
@@ -837,7 +858,7 @@ func (m *MachineManager) Update(ctx context.Context) error {
 func (m *MachineManager) exists(ctx context.Context) (bool, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Checking if BareMetalHost exists for Metal3Machine",
 		LogFieldMetal3Machine, m.Metal3Machine.Name)
-	host, _, err := m.getHost(ctx)
+	host, err := getHost(ctx, m.Metal3Machine, m.client, m.Log)
 	if err != nil {
 		return false, err
 	}
@@ -917,18 +938,17 @@ func getHost(ctx context.Context, m3Machine *infrav1.Metal3Machine, cl client.Cl
 //
 // Returns:
 //   - *bmov1alpha1.BareMetalHost: the chosen host, or nil if none is available yet.
-//   - *patch.Helper: a patch helper for the chosen host.
 //   - string: a v1beta2 reason string indicating how the host was selected
 //     (e.g. AssociateBareMetalHostSuccessReason or
 //     AssociateBareMetalHostViaNodeReuseSuccessReason).
 //   - error: non-nil if a transient error occurred (e.g. a nodeReuse host is not
-//     yet ready) or if building the patch helper failed.
-func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, *patch.Helper, string, error) {
+//     yet ready).
+func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetalHost, string, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Choosing BareMetalHost for Metal3Machine",
 		LogFieldMetal3Machine, m.Metal3Machine.Name)
 	labelSelector, err := hostLabelSelectorForMachine(m.Metal3Machine, m.Log)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, "", err
 	}
 
 	hosts := bmov1alpha1.BareMetalHostList{}
@@ -937,7 +957,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 		client.MatchingLabelsSelector{Selector: labelSelector},
 	)
 	if err != nil {
-		return nil, nil, "", err
+		return nil, "", err
 	}
 	m.Log.V(VerbosityLevelDebug).Info("Found candidate BareMetalHosts",
 		LogFieldMetal3Machine, m.Metal3Machine.Name,
@@ -948,10 +968,8 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 
 	for i, host := range hosts.Items {
 		if host.Spec.ConsumerRef != nil && consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
-			var helper *patch.Helper
 			m.Log.Info("Found host with existing ConsumerRef", LogFieldHost, host.Name)
-			helper, err = patch.NewHelper(&hosts.Items[i], m.client)
-			return &hosts.Items[i], helper, infrav1.AssociateBareMetalHostSuccessReason, err
+			return &hosts.Items[i], infrav1.AssociateBareMetalHostSuccessReason, nil
 		}
 		if m.nodeReuseLabelExists(ctx, &host) {
 			if !m.nodeReuseLabelMatches(ctx, &host) {
@@ -1004,7 +1022,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 	m.Log.Info("Host count available with nodeReuseLabelName while choosing host for Metal3 machine", "hostcount", len(availableHostsWithNodeReuse))
 	m.Log.Info("Host count available while choosing host for Metal3 machine", "hostcount", len(availableHosts))
 	if len(availableHostsWithNodeReuse) == 0 && len(availableHosts) == 0 {
-		return nil, nil, "", nil
+		return nil, "", nil
 	}
 
 	// choose a host.
@@ -1029,7 +1047,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 				chosenHost, err = m.pickHost(hostsInAvailableStateWithNodeReuse)
 				if err != nil {
 					m.Log.Error(err, "Failed to choose host, not choosing host")
-					return nil, nil, "", err
+					return nil, "", err
 				}
 				if chosenHost != nil {
 					chooseHostReason = infrav1.AssociateBareMetalHostViaNodeReuseSuccessReason
@@ -1037,7 +1055,7 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			} else if len(hostsInNotAvailableStateWithNodeReuse) != 0 {
 				errMessage := fmt.Sprint("Found BareMetalHost(s) with nodeReuseLabelName in not-available state, requeuing the BareMetalHost", "notAvailabeHostCount", len(hostsInNotAvailableStateWithNodeReuse), "hoststate", host.Status.Provisioning.State, "host", host.Name)
 				m.Log.Info(errMessage)
-				return nil, nil, "", WithTransientError(errors.New(errMessage), requeueAfter)
+				return nil, "", WithTransientError(errors.New(errMessage), requeueAfter)
 			}
 		}
 	} else {
@@ -1047,12 +1065,11 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 		chosenHost, err = m.pickHost(availableHosts)
 		if err != nil {
 			m.Log.Error(err, "Failed to choose host, not choosing host")
-			return nil, nil, "", err
+			return nil, "", err
 		}
 	}
 
-	helper, err := patch.NewHelper(chosenHost, m.client)
-	return chosenHost, helper, chooseHostReason, err
+	return chosenHost, chooseHostReason, err
 }
 
 // hostLabelSelectorForMachine builds a label selector from the Metal3Machine's host selector.
