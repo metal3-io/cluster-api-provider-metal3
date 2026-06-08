@@ -40,7 +40,7 @@ import (
 )
 
 const (
-	metal3RemediationControllerName  = "Metal3Remediation-controller"
+	metal3RemediationControllerName  = metrics.ControllerMetal3Remediation
 	defaultTimeout                   = 5 * time.Second
 	defaultRemediationTimeoutSeconds = 600
 )
@@ -70,7 +70,7 @@ func (r *Metal3RemediationReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Track metrics for this reconciliation
 	defer func() {
-		hasError := rerr != nil || rres.Requeue || rres.RequeueAfter > 0
+		hasError := rerr != nil
 		metrics.RecordMetal3RemediationReconcile(req.Namespace, reconcileStart, hasError)
 		if rerr != nil {
 			metrics.RecordReconcileError(metal3RemediationControllerName, req.Namespace, false)

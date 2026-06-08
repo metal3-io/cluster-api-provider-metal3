@@ -32,12 +32,23 @@ const (
 	// Labels used across metrics.
 	LabelNamespace   = "namespace"
 	LabelCluster     = "cluster"
-	LabelMachine     = "machine"
 	LabelController  = "controller"
 	LabelResult      = "result"
 	LabelPhase       = "phase"
 	LabelErrorType   = "error_type"
 	LabelRemediation = "remediation_type"
+
+	// Controller label values used by capm3_reconcile_errors_total.
+	ControllerMetal3Machine         = "Metal3Machine-controller"
+	ControllerMetal3Cluster         = "Metal3Cluster-controller"
+	ControllerMetal3Data            = "Metal3Data-controller"
+	ControllerMetal3DataTemplate    = "Metal3DataTemplate-controller"
+	ControllerMetal3Remediation     = "Metal3Remediation-controller"
+	ControllerMetal3MachineTemplate = "Metal3MachineTemplate-controller"
+	ControllerMetal3LabelSync       = "metal3-label-sync-controller"
+
+	// LabelValueUnknown marks dimensions that cannot be derived for an early reconcile return.
+	LabelValueUnknown = "unknown"
 
 	// Result label values.
 	ResultSuccess = "success"

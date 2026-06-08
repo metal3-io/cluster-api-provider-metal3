@@ -18,159 +18,258 @@ package metrics_test
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
 	metrics "github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	dto "github.com/prometheus/client_model/go"
 )
 
+func uniqueLabel(t *testing.T, suffix string) string {
+	t.Helper()
+	return fmt.Sprintf("%s-%s", t.Name(), suffix)
+}
+
+func expectCounterIncrement(t *testing.T, counter prometheus.Counter, record func()) {
+	t.Helper()
+
+	before := testutil.ToFloat64(counter)
+	record()
+
+	NewWithT(t).Expect(testutil.ToFloat64(counter)).To(Equal(before + 1))
+}
+
+func expectHistogramObservation(t *testing.T, collector prometheus.Collector, labels prometheus.Labels, record func()) {
+	t.Helper()
+
+	before := histogramSampleCount(t, collector, labels)
+	record()
+
+	NewWithT(t).Expect(histogramSampleCount(t, collector, labels)).To(Equal(before + 1))
+}
+
+func histogramSampleCount(t *testing.T, collector prometheus.Collector, labels prometheus.Labels) uint64 {
+	t.Helper()
+
+	metricCh := make(chan prometheus.Metric)
+	go func() {
+		collector.Collect(metricCh)
+		close(metricCh)
+	}()
+
+	for metric := range metricCh {
+		dtoMetric := &dto.Metric{}
+		if err := metric.Write(dtoMetric); err != nil {
+			t.Fatalf("failed to read metric: %v", err)
+		}
+		if !hasLabels(dtoMetric, labels) || dtoMetric.GetHistogram() == nil {
+			continue
+		}
+		return dtoMetric.GetHistogram().GetSampleCount()
+	}
+	return 0
+}
+
+func hasLabels(metric *dto.Metric, labels prometheus.Labels) bool {
+	values := map[string]string{}
+	for _, label := range metric.GetLabel() {
+		values[label.GetName()] = label.GetValue()
+	}
+	for name, value := range labels {
+		if values[name] != value {
+			return false
+		}
+	}
+	return true
+}
+
 func TestRecordMetal3MachineReconcile(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metric := metrics.Metal3MachineReconcileTotal.WithLabelValues("test-ns", "test-cluster", metrics.ResultSuccess)
-	before := testutil.ToFloat64(metric)
+	namespace := uniqueLabel(t, "ns")
+	cluster := uniqueLabel(t, "cluster")
+	successMetric := metrics.Metal3MachineReconcileTotal.WithLabelValues(namespace, cluster, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3MachineReconcileTotal.WithLabelValues(namespace, cluster, metrics.ResultError)
 
-	metrics.RecordMetal3MachineReconcile("test-ns", "test-cluster", startTime, false)
-
-	g.Expect(testutil.ToFloat64(metric)).To(Equal(before + 1))
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3MachineReconcile(namespace, cluster, startTime, false)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3MachineReconcile(namespace, cluster, startTime, true)
+	})
 }
 
 func TestRecordMetal3ClusterReconcile(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metric := metrics.Metal3ClusterReconcileTotal.WithLabelValues("test-ns", "test-cluster", metrics.ResultSuccess)
-	before := testutil.ToFloat64(metric)
+	namespace := uniqueLabel(t, "ns")
+	cluster := uniqueLabel(t, "cluster")
+	successMetric := metrics.Metal3ClusterReconcileTotal.WithLabelValues(namespace, cluster, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3ClusterReconcileTotal.WithLabelValues(namespace, cluster, metrics.ResultError)
 
-	metrics.RecordMetal3ClusterReconcile("test-ns", "test-cluster", startTime, false)
-
-	g.Expect(testutil.ToFloat64(metric)).To(Equal(before + 1))
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3ClusterReconcile(namespace, cluster, startTime, false)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3ClusterReconcile(namespace, cluster, startTime, true)
+	})
 }
 
 func TestRecordBMHAssociation(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	successMetric := metrics.BMHAssociationTotal.WithLabelValues("test-ns", "test-cluster", metrics.ResultSuccess)
-	errorMetric := metrics.BMHAssociationTotal.WithLabelValues("test-ns", "test-cluster", metrics.ResultError)
-	successBefore := testutil.ToFloat64(successMetric)
-	errorBefore := testutil.ToFloat64(errorMetric)
+	namespace := uniqueLabel(t, "ns")
+	cluster := uniqueLabel(t, "cluster")
+	successMetric := metrics.BMHAssociationTotal.WithLabelValues(namespace, cluster, metrics.ResultSuccess)
+	errorMetric := metrics.BMHAssociationTotal.WithLabelValues(namespace, cluster, metrics.ResultError)
 
-	metrics.RecordBMHAssociation("test-ns", "test-cluster", startTime, nil)
-
-	metrics.RecordBMHAssociation("test-ns", "test-cluster", startTime, errors.New("test error"))
-
-	g.Expect(testutil.ToFloat64(successMetric)).To(Equal(successBefore + 1))
-	g.Expect(testutil.ToFloat64(errorMetric)).To(Equal(errorBefore + 1))
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordBMHAssociation(namespace, cluster, startTime, nil)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordBMHAssociation(namespace, cluster, startTime, errors.New("test error"))
+	})
 }
 
 func TestRecordReconcileError(t *testing.T) {
-	g := NewWithT(t)
+	namespace := uniqueLabel(t, "ns")
+	controller := uniqueLabel(t, "controller")
+	transientMetric := metrics.ReconcileErrorsTotal.WithLabelValues(controller, namespace, metrics.ErrorTypeTransient)
+	terminalMetric := metrics.ReconcileErrorsTotal.WithLabelValues(controller, namespace, metrics.ErrorTypeTerminal)
 
-	transientMetric := metrics.ReconcileErrorsTotal.WithLabelValues("test-controller", "test-ns", metrics.ErrorTypeTransient)
-	terminalMetric := metrics.ReconcileErrorsTotal.WithLabelValues("test-controller", "test-ns", metrics.ErrorTypeTerminal)
-	transientBefore := testutil.ToFloat64(transientMetric)
-	terminalBefore := testutil.ToFloat64(terminalMetric)
-
-	metrics.RecordReconcileError("test-controller", "test-ns", true)
-	metrics.RecordReconcileError("test-controller", "test-ns", false)
-
-	g.Expect(testutil.ToFloat64(transientMetric)).To(Equal(transientBefore + 1))
-	g.Expect(testutil.ToFloat64(terminalMetric)).To(Equal(terminalBefore + 1))
+	expectCounterIncrement(t, transientMetric, func() {
+		metrics.RecordReconcileError(controller, namespace, true)
+	})
+	expectCounterIncrement(t, terminalMetric, func() {
+		metrics.RecordReconcileError(controller, namespace, false)
+	})
 }
 
 func TestRecordMetal3MachineProvisioning(t *testing.T) {
-	g := NewWithT(t)
-
 	creationTime := time.Now().Add(-5 * time.Minute)
-	metrics.RecordMetal3MachineProvisioning("test-ns", "test-cluster", creationTime)
+	namespace := uniqueLabel(t, "ns")
+	cluster := uniqueLabel(t, "cluster")
 
-	g.Expect(metrics.Metal3MachineProvisioningDuration).NotTo(BeNil())
+	expectHistogramObservation(t, metrics.Metal3MachineProvisioningDuration, prometheus.Labels{
+		metrics.LabelNamespace: namespace,
+		metrics.LabelCluster:   cluster,
+	}, func() {
+		metrics.RecordMetal3MachineProvisioning(namespace, cluster, creationTime)
+	})
 }
 
 func TestRecordMetal3DataReconcile(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metric := metrics.Metal3DataReconcileTotal.WithLabelValues("test-ns", metrics.ResultSuccess)
-	before := testutil.ToFloat64(metric)
+	namespace := uniqueLabel(t, "ns")
+	successMetric := metrics.Metal3DataReconcileTotal.WithLabelValues(namespace, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3DataReconcileTotal.WithLabelValues(namespace, metrics.ResultError)
 
-	metrics.RecordMetal3DataReconcile("test-ns", startTime, false)
-
-	g.Expect(testutil.ToFloat64(metric)).To(Equal(before + 1))
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3DataReconcile(namespace, startTime, false)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3DataReconcile(namespace, startTime, true)
+	})
 }
 
 func TestRecordMetal3DataTemplateReconcile(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metrics.RecordMetal3DataTemplateReconcile("test-ns", startTime, false)
+	namespace := uniqueLabel(t, "ns")
+	successMetric := metrics.Metal3DataTemplateReconcileTotal.WithLabelValues(namespace, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3DataTemplateReconcileTotal.WithLabelValues(namespace, metrics.ResultError)
 
-	g.Expect(metrics.Metal3DataTemplateReconcileTotal).NotTo(BeNil())
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3DataTemplateReconcile(namespace, startTime, false)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3DataTemplateReconcile(namespace, startTime, true)
+	})
 }
 
 func TestRecordMetal3RemediationReconcile(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metrics.RecordMetal3RemediationReconcile("test-ns", startTime, false)
+	namespace := uniqueLabel(t, "ns")
+	successMetric := metrics.Metal3RemediationReconcileTotal.WithLabelValues(namespace, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3RemediationReconcileTotal.WithLabelValues(namespace, metrics.ResultError)
 
-	g.Expect(metrics.Metal3RemediationReconcileTotal).NotTo(BeNil())
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3RemediationReconcile(namespace, startTime, false)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3RemediationReconcile(namespace, startTime, true)
+	})
 }
 
 func TestRecordMetal3Remediation(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metrics.RecordMetal3Remediation("test-ns", "reboot", startTime, nil)
+	namespace := uniqueLabel(t, "ns")
+	remediationType := uniqueLabel(t, "reboot")
+	successMetric := metrics.Metal3RemediationTotal.WithLabelValues(namespace, remediationType, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3RemediationTotal.WithLabelValues(namespace, remediationType, metrics.ResultError)
 
-	g.Expect(metrics.Metal3RemediationTotal).NotTo(BeNil())
-	g.Expect(metrics.Metal3RemediationDuration).NotTo(BeNil())
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3Remediation(namespace, remediationType, startTime, nil)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3Remediation(namespace, remediationType, startTime, errors.New("test error"))
+	})
 }
 
 func TestRecordMetal3MachinePhaseTransition(t *testing.T) {
-	g := NewWithT(t)
+	namespace := uniqueLabel(t, "ns")
+	cluster := uniqueLabel(t, "cluster")
+	phase := uniqueLabel(t, "provisioning")
+	metric := metrics.Metal3MachinePhaseTransitions.WithLabelValues(namespace, cluster, phase)
 
-	metrics.RecordMetal3MachinePhaseTransition("test-ns", "test-cluster", "provisioning")
-
-	g.Expect(metrics.Metal3MachinePhaseTransitions).NotTo(BeNil())
+	expectCounterIncrement(t, metric, func() {
+		metrics.RecordMetal3MachinePhaseTransition(namespace, cluster, phase)
+	})
 }
 
 func TestSetMetal3MachinesCount(t *testing.T) {
 	g := NewWithT(t)
+	namespace := uniqueLabel(t, "ns")
+	phase := uniqueLabel(t, "running")
 
-	metrics.SetMetal3MachinesCount("test-ns", "running", 5)
+	metrics.SetMetal3MachinesCount(namespace, phase, 5)
 
-	g.Expect(metrics.Metal3MachinesCount).NotTo(BeNil())
+	g.Expect(testutil.ToFloat64(metrics.Metal3MachinesCount.WithLabelValues(namespace, phase))).To(Equal(float64(5)))
 }
 
 func TestSetMetal3ClustersCount(t *testing.T) {
 	g := NewWithT(t)
+	namespace := uniqueLabel(t, "ns")
 
-	metrics.SetMetal3ClustersCount("test-ns", 3)
+	metrics.SetMetal3ClustersCount(namespace, 3)
 
-	g.Expect(metrics.Metal3ClustersCount).NotTo(BeNil())
+	g.Expect(testutil.ToFloat64(metrics.Metal3ClustersCount.WithLabelValues(namespace))).To(Equal(float64(3)))
 }
 
 func TestRecordMetal3MachineTemplateReconcile(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metrics.RecordMetal3MachineTemplateReconcile("test-ns", startTime, false)
+	namespace := uniqueLabel(t, "ns")
+	successMetric := metrics.Metal3MachineTemplateReconcileTotal.WithLabelValues(namespace, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3MachineTemplateReconcileTotal.WithLabelValues(namespace, metrics.ResultError)
 
-	g.Expect(metrics.Metal3MachineTemplateReconcileTotal).NotTo(BeNil())
-	g.Expect(metrics.Metal3MachineTemplateReconcileDuration).NotTo(BeNil())
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3MachineTemplateReconcile(namespace, startTime, false)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3MachineTemplateReconcile(namespace, startTime, true)
+	})
 }
 
 func TestRecordMetal3LabelSyncReconcile(t *testing.T) {
-	g := NewWithT(t)
-
 	startTime := time.Now().Add(-time.Second)
-	metrics.RecordMetal3LabelSyncReconcile("test-ns", startTime, false)
+	namespace := uniqueLabel(t, "ns")
+	successMetric := metrics.Metal3LabelSyncReconcileTotal.WithLabelValues(namespace, metrics.ResultSuccess)
+	errorMetric := metrics.Metal3LabelSyncReconcileTotal.WithLabelValues(namespace, metrics.ResultError)
 
-	g.Expect(metrics.Metal3LabelSyncReconcileTotal).NotTo(BeNil())
-	g.Expect(metrics.Metal3LabelSyncReconcileDuration).NotTo(BeNil())
+	expectCounterIncrement(t, successMetric, func() {
+		metrics.RecordMetal3LabelSyncReconcile(namespace, startTime, false)
+	})
+	expectCounterIncrement(t, errorMetric, func() {
+		metrics.RecordMetal3LabelSyncReconcile(namespace, startTime, true)
+	})
 }

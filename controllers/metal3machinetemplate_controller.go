@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	templateControllerName = "Metal3MachineTemplate-controller"
+	templateControllerName = metrics.ControllerMetal3MachineTemplate
 	clonedFromGroupKind    = clusterv1.TemplateClonedFromGroupKindAnnotation
 	clonedFromName         = clusterv1.TemplateClonedFromNameAnnotation
 )
@@ -63,7 +63,7 @@ func (r *Metal3MachineTemplateReconciler) Reconcile(ctx context.Context, req ctr
 
 	// Track metrics for this reconciliation
 	defer func() {
-		hasError := rerr != nil || rres.Requeue || rres.RequeueAfter > 0
+		hasError := rerr != nil
 		metrics.RecordMetal3MachineTemplateReconcile(req.Namespace, reconcileStart, hasError)
 		if rerr != nil {
 			metrics.RecordReconcileError(templateControllerName, req.Namespace, false)

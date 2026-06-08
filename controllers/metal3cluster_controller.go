@@ -53,7 +53,7 @@ import (
 )
 
 const (
-	clusterControllerName = "Metal3Cluster-controller"
+	clusterControllerName = metrics.ControllerMetal3Cluster
 	requeueAfter          = time.Second * 30
 )
 
@@ -81,7 +81,7 @@ func (r *Metal3ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Track metrics for this reconciliation
 	defer func() {
-		hasError := rerr != nil || rres.Requeue || rres.RequeueAfter > 0
+		hasError := rerr != nil
 		metrics.RecordMetal3ClusterReconcile(req.Namespace, req.Name, reconcileStart, hasError)
 		if rerr != nil {
 			var reconcileErr baremetal.ReconcileError
