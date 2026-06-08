@@ -33,6 +33,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	controlplanev1 "sigs.k8s.io/cluster-api/api/controlplane/kubeadm/v1beta2"
@@ -40,6 +41,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 const (
@@ -745,7 +747,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				)
 				Expect(err).NotTo(HaveOccurred())
 
-				result, _, _, err := machineMgr.chooseHost(context.TODO())
+				result, _, err := machineMgr.chooseHost(context.TODO())
 
 				if tc.ExpectedHostName == "" {
 					Expect(result).To(BeNil())
@@ -3241,6 +3243,155 @@ var _ = Describe("Metal3Machine manager", func() {
 			ExpectError: true,
 		}),
 	)
+
+	It("should skip update when host has no changes", func() {
+		m3m := newMetal3Machine(metal3machineName, nil, nil,
+			m3mObjectMetaWithValidAnnotations(),
+		)
+		machine := newMachine(machineName, nil)
+
+		// Pre-configure the host to match what setHostConsumerRef and setHostSpec will produce.
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      baremetalhostName,
+				Namespace: namespaceName,
+				UID:       Bmhuid,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: m3m.APIVersion,
+						Kind:       m3m.Kind,
+						Name:       m3m.Name,
+						UID:        m3m.UID,
+						Controller: ptr.To(true),
+					},
+				},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Kind:       metal3MachineKind,
+					Name:       m3m.Name,
+					Namespace:  m3m.Namespace,
+					APIVersion: m3m.APIVersion,
+				},
+				Online: true,
+			},
+		}
+
+		updateCalled := false
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).
+			WithObjects(host, m3m, machine).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+					if _, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
+						updateCalled = true
+					}
+					return c.Update(ctx, obj, opts...)
+				},
+			}).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, machine, m3m, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.Update(context.TODO())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(updateCalled).To(BeFalse(), "expected no Update call when host is unchanged")
+	})
+
+	It("should return transient error on conflict during update", func() {
+		m3m := newMetal3Machine(metal3machineName, nil, nil,
+			m3mObjectMetaWithValidAnnotations(),
+		)
+		machine := newMachine(machineName, nil)
+		// Host with Online=false so setHostSpec triggers a change (Online -> true).
+		host := newBareMetalHost(baremetalhostName, &bmov1alpha1.BareMetalHostSpec{
+			Online: false,
+		}, bmov1alpha1.StateNone, nil, false, "metadata", false, "", false)
+
+		conflictErr := apierrors.NewConflict(
+			schema.GroupResource{Group: "metal3.io", Resource: "baremetalhosts"},
+			baremetalhostName,
+			errors.New("the object has been modified"),
+		)
+
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).
+			WithObjects(host, m3m, machine).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+					if _, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
+						return conflictErr
+					}
+					return c.Update(ctx, obj, opts...)
+				},
+			}).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, machine, m3m, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.Update(context.TODO())
+		Expect(err).To(HaveOccurred())
+		var reconcileError ReconcileError
+		Expect(errors.As(err, &reconcileError)).To(BeTrue())
+		Expect(reconcileError.IsTransient()).To(BeTrue())
+	})
+
+	It("should update host when ConsumerRef is set but spec changes", func() {
+		m3m := newMetal3Machine(metal3machineName, nil, nil,
+			m3mObjectMetaWithValidAnnotations(),
+		)
+		machine := newMachine(machineName, nil)
+
+		// Host already has ConsumerRef and OwnerRef set correctly, but Online is false.
+		// setHostSpec will flip Online to true, triggering an actual Update call.
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      baremetalhostName,
+				Namespace: namespaceName,
+				UID:       Bmhuid,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: m3m.APIVersion,
+						Kind:       m3m.Kind,
+						Name:       m3m.Name,
+						UID:        m3m.UID,
+						Controller: ptr.To(true),
+					},
+				},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Kind:       metal3MachineKind,
+					Name:       m3m.Name,
+					Namespace:  m3m.Namespace,
+					APIVersion: m3m.APIVersion,
+				},
+				Online: false, // will be set to true by setHostSpec
+			},
+		}
+
+		updateCalled := false
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).
+			WithObjects(host, m3m, machine).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+					if _, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
+						updateCalled = true
+					}
+					return c.Update(ctx, obj, opts...)
+				},
+			}).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, machine, m3m, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.Update(context.TODO())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(updateCalled).To(BeTrue(), "expected Update to be called when spec changes")
+
+		// Verify the host was actually updated in the fake store.
+		updatedHost := &bmov1alpha1.BareMetalHost{}
+		Expect(fakeClient.Get(context.TODO(), client.ObjectKeyFromObject(host), updatedHost)).To(Succeed())
+		Expect(updatedHost.Spec.Online).To(BeTrue())
+	})
 
 	type testCaseFindOwnerRef struct {
 		M3Machine     infrav1.Metal3Machine
