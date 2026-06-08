@@ -101,7 +101,7 @@ These metrics track reconciliation errors by controller type.
 
 - `capm3_reconcile_errors_total` (Counter)
    - Labels: `controller`, `namespace`, `error_type`
-   - Total number of reconcile errors by controller
+   - Total number of reconcile errors by controller and error type
 
 ### Gauge Metrics
 
@@ -122,7 +122,11 @@ Note: These require additional implementation to update values.
 The `result` label indicates the outcome of an operation:
 
 - `success` - Operation completed successfully
-- `error` - Operation failed with an error
+- `error` - Operation failed with a returned error or a translated
+   `baremetal.ReconcileError`
+
+Normal requeues are recorded as successful reconciliations unless they are caused
+by a translated `baremetal.ReconcileError`.
 
 ### Error Type Labels
 
@@ -223,17 +227,17 @@ Key panels to include:
 groups:
 - name: capm3-alerts
   rules:
-  - alert: CAPM3HighReconcileErrorRate
+  - alert: CAPM3HighMetal3MachineReconcileErrorRate
     expr: |
-      sum(rate(capm3_reconcile_errors_total[5m]))
+      sum(rate(capm3_reconcile_errors_total{controller="Metal3Machine-controller"}[5m]))
       /
       sum(rate(capm3_metal3machine_reconcile_total[5m])) > 0.1
     for: 5m
     labels:
       severity: warning
     annotations:
-      summary: "High CAPM3 reconcile error rate"
-      description: "More than 10% of reconciliations are failing"
+      summary: "High Metal3Machine reconcile error rate"
+      description: "More than 10% of Metal3Machine reconciliations are failing"
 ```
 
 ### Slow Provisioning Alert
@@ -252,9 +256,29 @@ groups:
 
 ## Integration with ServiceMonitor
 
-If using the Prometheus Operator, create a ServiceMonitor to scrape CAPM3 metrics:
+The default manifests expose metrics through the controller-manager Pod
+annotations and the container port named `metrics`; they do not create a metrics
+Service.
+
+If using the Prometheus Operator, create a Service and ServiceMonitor to scrape
+CAPM3 metrics:
 
 ```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: capm3-controller-manager-metrics
+  namespace: capm3-system
+  labels:
+    control-plane: controller-manager
+spec:
+  selector:
+    control-plane: controller-manager
+  ports:
+  - name: metrics
+    port: 8443
+    targetPort: metrics
+---
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -265,7 +289,7 @@ spec:
     matchLabels:
       control-plane: controller-manager
   endpoints:
-  - port: https
+  - port: metrics
     scheme: https
     path: /metrics
     tlsConfig:
@@ -282,7 +306,7 @@ spec:
 1. Ensure the `/metrics` endpoint returns data:
 
    ```bash
-   kubectl port-forward -n capm3-system svc/capm3-controller-manager-metrics-service 8443:8443
+   kubectl port-forward -n capm3-system deployment/controller-manager 8443:8443
    curl -k https://localhost:8443/metrics | grep capm3_
    ```
 

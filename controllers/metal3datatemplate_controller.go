@@ -41,7 +41,7 @@ import (
 )
 
 const (
-	dataTemplateControllerName = "Metal3DataTemplate-controller"
+	dataTemplateControllerName = metrics.ControllerMetal3DataTemplate
 )
 
 // Metal3DataTemplateReconciler reconciles a Metal3DataTemplate object.
@@ -79,13 +79,20 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 		baremetal.LogFieldDataTemplate, req.NamespacedName,
 	)
 
-	// Track metrics for this reconciliation
+	// Track metrics for this reconciliation.
+	hasError := false
+	recordTranslatedReconcileError := func(isTransient bool) {
+		hasError = true
+		metrics.RecordReconcileError(dataTemplateControllerName, req.Namespace, isTransient)
+	}
 	defer func() {
-		hasError := rerr != nil || rres.Requeue || rres.RequeueAfter > 0
-		metrics.RecordMetal3DataTemplateReconcile(req.Namespace, reconcileStart, hasError)
 		if rerr != nil {
-			metrics.RecordReconcileError(dataTemplateControllerName, req.Namespace, false)
+			hasError = true
+			var reconcileErr baremetal.ReconcileError
+			isTransient := errors.As(rerr, &reconcileErr) && reconcileErr.IsTransient()
+			metrics.RecordReconcileError(dataTemplateControllerName, req.Namespace, isTransient)
 		}
+		metrics.RecordMetal3DataTemplateReconcile(req.Namespace, reconcileStart, hasError)
 	}()
 
 	log.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting Metal3DataTemplate reconciliation")
@@ -168,16 +175,16 @@ func (r *Metal3DataTemplateReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Handle deletion of Metal3DataTemplate
 	if !metal3DataTemplate.ObjectMeta.DeletionTimestamp.IsZero() {
 		log.V(baremetal.VerbosityLevelTrace).Info("Metal3DataTemplate has deletion timestamp, proceeding with deletion")
-		return r.reconcileDelete(ctx, dataTemplateMgr, log)
+		return r.reconcileDelete(ctx, dataTemplateMgr, log, recordTranslatedReconcileError)
 	}
 
 	// Handle non-deleted Metal3DataTemplate
 	log.V(baremetal.VerbosityLevelTrace).Info("Proceeding with normal reconciliation")
-	return r.reconcileNormal(ctx, dataTemplateMgr, log)
+	return r.reconcileNormal(ctx, dataTemplateMgr, log, recordTranslatedReconcileError)
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
-	dataTemplateMgr baremetal.DataTemplateManagerInterface, log logr.Logger,
+	dataTemplateMgr baremetal.DataTemplateManagerInterface, log logr.Logger, recordReconcileError func(bool),
 ) (ctrl.Result, error) {
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: starting")
 
@@ -191,7 +198,7 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to update datas",
 			baremetal.LogFieldError, err.Error())
-		return checkReconcileError(err, "Failed to recreate the status")
+		return checkReconcileError(err, "Failed to recreate the status", recordReconcileError)
 	}
 	log.V(baremetal.VerbosityLevelDebug).Info("Datas updated successfully")
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: completed successfully")
@@ -199,7 +206,7 @@ func (r *Metal3DataTemplateReconciler) reconcileNormal(ctx context.Context,
 }
 
 func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
-	dataTemplateMgr baremetal.DataTemplateManagerInterface, log logr.Logger,
+	dataTemplateMgr baremetal.DataTemplateManagerInterface, log logr.Logger, recordReconcileError func(bool),
 ) (ctrl.Result, error) {
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileDelete: starting")
 
@@ -212,7 +219,7 @@ func (r *Metal3DataTemplateReconciler) reconcileDelete(ctx context.Context,
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to update datas",
 			baremetal.LogFieldError, err.Error())
-		return checkReconcileError(err, "Failed to recreate the status")
+		return checkReconcileError(err, "Failed to recreate the status", recordReconcileError)
 	}
 
 	if hasClaims {
@@ -272,12 +279,15 @@ func (r *Metal3DataTemplateReconciler) Metal3DataClaimToMetal3DataTemplate(_ con
 // checkReconcileError checks if the error is a transient or terminal error.
 // If it is transient, it returns a Result with Requeue set to true.
 // Non-reconcile errors are returned as-is.
-func checkReconcileError(err error, errMessage string) (ctrl.Result, error) {
+func checkReconcileError(err error, errMessage string, recordReconcileError func(bool)) (ctrl.Result, error) {
 	if err == nil {
 		return ctrl.Result{}, nil
 	}
 	var reconcileError baremetal.ReconcileError
 	if errors.As(err, &reconcileError) {
+		if recordReconcileError != nil {
+			recordReconcileError(reconcileError.IsTransient())
+		}
 		if reconcileError.IsTransient() {
 			return reconcile.Result{Requeue: true, RequeueAfter: reconcileError.GetRequeueAfter()}, nil
 		}

@@ -237,7 +237,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(false, false, errors.New(""))
 			}
 
-			res, err := r.reconcileNormal(context.TODO(), m, logr.Discard())
+			res, err := r.reconcileNormal(context.TODO(), m, logr.Discard(), func(bool) {})
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -292,7 +292,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				m.EXPECT().UpdateDatas(context.TODO()).Return(false, false, errors.New(""))
 			}
 
-			res, err := r.reconcileDelete(context.TODO(), m, logr.Discard())
+			res, err := r.reconcileDelete(context.TODO(), m, logr.Discard(), func(bool) {})
 			gomockCtrl.Finish()
 
 			if tc.ExpectError {
@@ -412,23 +412,37 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 	)
 
 	It("Test checkReconcileError", func() {
-		result, err := checkReconcileError(nil, "")
+		recordedErrorTypes := []bool{}
+		recordReconcileError := func(isTransient bool) {
+			recordedErrorTypes = append(recordedErrorTypes, isTransient)
+		}
+
+		result, err := checkReconcileError(nil, "", recordReconcileError)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
+		Expect(recordedErrorTypes).To(BeEmpty())
 
-		result, err = checkReconcileError(errors.New("def"), "abc")
+		result, err = checkReconcileError(errors.New("def"), "abc", recordReconcileError)
 		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{}))
+		Expect(recordedErrorTypes).To(BeEmpty())
 
-		result, err = checkReconcileError(baremetal.WithTransientError(errors.New("failed"), 0*time.Second), "abc")
+		result, err = checkReconcileError(baremetal.WithTransientError(errors.New("failed"), 0*time.Second), "abc", recordReconcileError)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(recordedErrorTypes).To(Equal([]bool{true}))
 
 		result, err = checkReconcileError(
-			baremetal.WithTransientError(errors.New("failed"), requeueAfter), "abc",
+			baremetal.WithTransientError(errors.New("failed"), requeueAfter), "abc", recordReconcileError,
 		)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: requeueAfter}))
+		Expect(recordedErrorTypes).To(Equal([]bool{true, true}))
+
+		result, err = checkReconcileError(baremetal.WithTerminalError(errors.New("failed")), "abc", recordReconcileError)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{}))
+		Expect(recordedErrorTypes).To(Equal([]bool{true, true, false}))
 	})
 
 })

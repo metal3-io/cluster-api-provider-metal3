@@ -52,7 +52,7 @@ var (
 )
 
 const (
-	labelSyncControllerName = "metal3-label-sync-controller"
+	labelSyncControllerName = metrics.ControllerMetal3LabelSync
 	// PrefixAnnotationKey is prefix for annotation key.
 	PrefixAnnotationKey = "metal3.io/metal3-label-sync-prefixes"
 )
@@ -85,7 +85,7 @@ func (r *Metal3LabelSyncReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Record metrics at the end of reconciliation
 	defer func() {
-		hasError := rerr != nil || rres.Requeue || rres.RequeueAfter > 0
+		hasError := rerr != nil
 		metrics.RecordMetal3LabelSyncReconcile(req.Namespace, reconcileStart, hasError)
 		if rerr != nil {
 			metrics.RecordReconcileError(labelSyncControllerName, req.Namespace, false)
