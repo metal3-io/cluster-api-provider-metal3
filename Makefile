@@ -91,6 +91,7 @@ BMO_CONTROLLER_IMG ?= $(REGISTRY)/$(BMO_IMAGE_NAME)
 TEST_EXTENSION_IMG ?= $(REGISTRY)/test-extension:$(TAG)
 TAG ?= v1beta1
 BMO_TAG ?= capm3-$(TAG)
+FKAS_TAG ?= latest
 ARCH ?= $(shell go env GOARCH)
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
 
@@ -614,7 +615,7 @@ docker-build-fkas:
 	cd /tmp/fake-apiserver && \
 	$(GO) mod edit -replace=github.com/metal3-io/cluster-api-provider-metal3=./capm3 && \
 	$(GO) mod tidy && \
-	$(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:latest" . || true
+	$(CONTAINER_RUNTIME) build --build-arg ARCH=$(ARCH) -t "quay.io/metal3-io/metal3-fkas:$(FKAS_TAG)" .
 	rm -rf /tmp/fake-apiserver
 
 .PHONY: docker-build-test-extension
