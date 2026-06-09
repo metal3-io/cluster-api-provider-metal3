@@ -230,6 +230,9 @@ cluster-templates-main: $(KUSTOMIZE) ## Generate cluster templates
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-remediation.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-md-taints > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-md-taints.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-md-taints > $(E2E_OUT_DIR)/main/cluster-template-centos-md-taints.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-ubuntu-ip-reuse > $(E2E_OUT_DIR)/main/cluster-template-ubuntu-ip-reuse.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-centos-ip-reuse > $(E2E_OUT_DIR)/main/cluster-template-centos-ip-reuse.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main/cluster-template-opensuse-leap-ip-reuse > $(E2E_OUT_DIR)/main/cluster-template-opensuse-leap-ip-reuse.yaml
 	touch $(E2E_OUT_DIR)/main/clusterclass.yaml
 
 .PHONY: cluster-templates-main-v1beta1
@@ -238,6 +241,7 @@ cluster-templates-main-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for m
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos > $(E2E_OUT_DIR)/main/cluster-template-centos-v1beta1.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-md-remediation > $(E2E_OUT_DIR)/main/cluster-template-centos-md-remediation-v1beta1.yaml
 	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-md-taints > $(E2E_OUT_DIR)/main/cluster-template-centos-md-taints-v1beta1.yaml
+	$(KUSTOMIZE) build $(E2E_TEMPLATES_DIR)/main-v1beta1/cluster-template-centos-ip-reuse > $(E2E_OUT_DIR)/main/cluster-template-centos-ip-reuse-v1beta1.yaml
 
 .PHONY: clusterclass-templates-main
 clusterclass-templates-main: $(KUSTOMIZE) ## Generate cluster templates
