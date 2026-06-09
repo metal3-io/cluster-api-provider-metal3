@@ -100,10 +100,16 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("failed to get Metal3Machine: %w", err)
 	}
 
-	machineLog.V(baremetal.VerbosityLevelDebug).Info("Fetched Metal3Machine",
-		"resourceVersion", capm3Machine.ResourceVersion,
-		"generation", capm3Machine.Generation,
-		"deletionTimestamp", capm3Machine.DeletionTimestamp)
+	if capm3Machine.DeletionTimestamp != nil {
+		machineLog.V(baremetal.VerbosityLevelDebug).Info("Fetched Metal3Machine",
+			"resourceVersion", capm3Machine.ResourceVersion,
+			"generation", capm3Machine.Generation,
+			"deletionTimestamp", capm3Machine.DeletionTimestamp)
+	} else {
+		machineLog.V(baremetal.VerbosityLevelDebug).Info("Fetched Metal3Machine",
+			"resourceVersion", capm3Machine.ResourceVersion,
+			"generation", capm3Machine.Generation)
+	}
 
 	// Always patch capm3Machine exiting this function so we can persist any Metal3Machine changes.
 	patchHelper, err := patch.NewHelper(capm3Machine, r.Client)
