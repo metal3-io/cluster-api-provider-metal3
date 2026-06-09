@@ -39,22 +39,11 @@ var (
 
 // Ironic 35.0 -> latest image tag.
 var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", Label("clusterctl-upgrade"), func() {
-	BeforeEach(func() {
-		k8sVersion = "v1.36.0"
-		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage(k8sVersion)
-		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
-		os.Setenv("IMAGE_RAW_URL", imageURL)
-		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
-	})
-
 	minorVersion := "1.13"
 	bmoFromRelease := "0.13"
 	ironicFromRelease := "35.0"
 	bmoToRelease := "main"
 	ironicToRelease := "main"
-	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
 
 	// Use the .99 versions available in the local artifact repository (built from
 	// release branch kustomize overlays in e2e_conf.yaml). The old clusterctl binary
@@ -63,6 +52,20 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 	// clusterctl has built-in GitHub URLs for them.
 	capm3InitVersion := minorVersion + ".99"
 	ipamInitVersion := minorVersion + ".99"
+	var capiStableRelease string
+
+	BeforeEach(func() {
+		k8sVersion = "v1.36.0"
+		validateGlobals(specName)
+		imageURL, imageChecksum := EnsureImage(k8sVersion)
+		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+		os.Setenv("IMAGE_RAW_URL", imageURL)
+		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
+
+		var err error
+		capiStableRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+		Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	})
 
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
@@ -101,22 +104,11 @@ var _ = Describe("When testing cluster upgrade from releases (v1.13=>current)", 
 
 // Ironic 33.0 -> latest image tag.
 var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", Label("clusterctl-upgrade"), func() {
-	BeforeEach(func() {
-		k8sVersion = "v1.36.0"
-		validateGlobals(specName)
-		imageURL, imageChecksum := EnsureImage(k8sVersion)
-		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
-		os.Setenv("IMAGE_RAW_URL", imageURL)
-		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
-	})
-
 	minorVersion := "1.12"
 	bmoFromRelease := "0.12"
 	ironicFromRelease := "33.0"
 	bmoToRelease := "main"
 	ironicToRelease := "main"
-	capiStableRelease, err := capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
 
 	// Use the .99 versions available in the local artifact repository (built from
 	// release branch kustomize overlays in e2e_conf.yaml). The old clusterctl binary
@@ -125,6 +117,20 @@ var _ = Describe("When testing cluster upgrade from releases (v1.12=>current)", 
 	// clusterctl has built-in GitHub URLs for them.
 	capm3InitVersion := minorVersion + ".99"
 	ipamInitVersion := minorVersion + ".99"
+	var capiStableRelease string
+
+	BeforeEach(func() {
+		k8sVersion = "v1.36.0"
+		validateGlobals(specName)
+		imageURL, imageChecksum := EnsureImage(k8sVersion)
+		os.Setenv("IMAGE_RAW_CHECKSUM", imageChecksum)
+		os.Setenv("IMAGE_RAW_URL", imageURL)
+		clusterctlLogFolder = filepath.Join(artifactFolder, bootstrapClusterProxy.GetName())
+
+		var err error
+		capiStableRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+		Expect(err).ToNot(HaveOccurred(), "Failed to get stable version for CAPI minor release : %s", minorVersion)
+	})
 
 	capi_e2e.ClusterctlUpgradeSpec(ctx, func() capi_e2e.ClusterctlUpgradeSpecInput {
 		return capi_e2e.ClusterctlUpgradeSpecInput{
