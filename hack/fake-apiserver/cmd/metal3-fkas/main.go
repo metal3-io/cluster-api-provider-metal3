@@ -361,6 +361,17 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		},
 		Spec: corev1.NodeSpec{
 			ProviderID: requestData.ProviderID,
+			Taints: func() []corev1.Taint {
+				if isControlPlane {
+					return []corev1.Taint{
+						{
+							Key:    "node-role.kubernetes.io/control-plane",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					}
+				}
+				return nil
+			}(),
 		},
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
