@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"encoding/json"
+	"errors"
 	"math/rand/v2"
 	"net/http"
 	"os"
@@ -18,6 +19,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/sets"
 	rest "k8s.io/client-go/rest"
 	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/runtime/manager"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/pkg/server"
@@ -38,8 +40,9 @@ var (
 	etcdInfoMap                 = make(map[string]etcdInfo)
 	podIP                       string
 	workloadListenerActivations = make(map[string]bool)
-	timeoutDuration             = 10 * time.Second
-	idleDuration                = 15 * time.Second
+	heartbeatInterval           = 10 * time.Second
+	serverTimeout               = 60 * time.Second
+	idleDuration                = 120 * time.Second
 )
 
 func init() {
@@ -335,6 +338,13 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		workloadListenerActivations[resourceName] = true
+
+		// Create the etcd member BEFORE creating the node, so that KCP
+		// cannot observe the API server without a functioning etcd.
+		if err := setupEtcdMember(resourceName, clusterName, nodeName, requestData.Namespace, w); err != nil {
+			// Error already reported to the HTTP response by setupEtcdMember
+			return
+		}
 	}
 
 	if activated := workloadListenerActivations[resourceName]; !activated {
@@ -351,6 +361,17 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		},
 		Spec: corev1.NodeSpec{
 			ProviderID: requestData.ProviderID,
+			Taints: func() []corev1.Taint {
+				if isControlPlane {
+					return []corev1.Taint{
+						{
+							Key:    "node-role.kubernetes.io/control-plane",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+					}
+				}
+				return nil
+			}(),
 		},
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
@@ -410,10 +431,10 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 	}
 	setupLog.Info("Created node object", "nodeName", nodeName)
 
-	// Start a goroutine to update the LastHeartbeatTime every 10 seconds
+	// Start a goroutine to update the LastHeartbeatTime periodically
 	go func(nodeName string) {
 		setupLog.Info("Starting heartbeat goroutine", "nodeName", nodeName)
-		ticker := time.NewTicker(timeoutDuration)
+		ticker := time.NewTicker(heartbeatInterval)
 		defer ticker.Stop()
 
 		for range ticker.C {
@@ -439,38 +460,73 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		}
 	}(nodeName)
 
-	if !isControlPlane {
-		return
-	}
+	if isControlPlane {
+		// Create the kube-apiserver pod
+		if err := createControlPlanePod(ctx, c, "kube-apiserver", FakePod{
+			PodName:         "kube-apiserver-" + nodeName,
+			NodeName:        nodeName,
+			TransactionTime: metav1.Now(),
+		}); err != nil {
+			setupLog.Error(err, "failed to create kube-apiserver pod")
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
 
-	// create etcd member
-	// Wait for some time after the node is provisioned
-	waitForRandomSeconds()
+		// Create the kube-controller-manager
+		if err := createControlPlanePod(ctx, c, "kube-controller-manager", FakePod{
+			PodName:         "kube-controller-manager-" + nodeName,
+			NodeName:        nodeName,
+			TransactionTime: metav1.Now(),
+		}); err != nil {
+			setupLog.Error(err, "failed to create kube-controller-manager pod")
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+
+		// Create the kube-scheduler
+		if err := createControlPlanePod(ctx, c, "kube-scheduler", FakePod{
+			PodName:         "kube-scheduler-" + nodeName,
+			NodeName:        nodeName,
+			TransactionTime: metav1.Now(),
+		}); err != nil {
+			setupLog.Error(err, "failed to create scheduler Pod")
+			http.Error(w, "", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+
+// setupEtcdMember creates the etcd pod and registers the etcd member for a control plane node.
+// This is called BEFORE the node is created to ensure that KCP never observes an API server
+// without a functioning etcd cluster (which would cause "no leader found" errors).
+func setupEtcdMember(resourceName, clusterName, nodeName, namespace string, w http.ResponseWriter) error {
+	c := cloudMgr.GetResourceGroup(resourceName).GetClient()
+
 	etcdSecretName := clusterName + "-etcd"
-	etcdCertRaw, etcdKeyRaw, err := getSecretKeyAndCert(ctx, bootstrapClient, requestData.Namespace, etcdSecretName)
+	etcdCertRaw, etcdKeyRaw, err := getSecretKeyAndCert(ctx, bootstrapClient, namespace, etcdSecretName)
 	if err != nil {
 		logLine := "Error adding node: " + nodeName
 		http.Error(w, logLine, http.StatusInternalServerError)
 		setupLog.Error(err, "Failed to get etcd secrets for cluster", "cluster name", resourceName)
-		return
+		return err
 	}
 
 	etcdCert, err := certs.DecodeCertPEM(etcdCertRaw)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		setupLog.Error(err, "failed to generate etcdCert")
-		return
+		return err
 	}
 	etcdKey, err := certs.DecodePrivateKeyPEM(etcdKeyRaw)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		setupLog.Error(err, "failed to generate etcdKey")
-		return
+		return err
 	}
 	if etcdKey == nil {
 		http.Error(w, "", http.StatusInternalServerError)
-		setupLog.Error(err, "failed to generate etcdKey")
-		return
+		setupLog.Error(nil, "etcd key is nil")
+		return errors.New("etcd key is nil")
 	}
 
 	// Create the etcd pod
@@ -491,14 +547,15 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		if !apierrors.IsNotFound(err) {
 			setupLog.Error(err, "failed to get etcd pod")
 			http.Error(w, "", http.StatusInternalServerError)
-			return
+			return err
 		}
 
 		// Gets info about the current etcd cluster, if any.
-		var info etcdInfo
-		info, ok = etcdInfoMap[resourceName]
+		info, ok := etcdInfoMap[resourceName]
 		if !ok {
-			info = etcdInfo{}
+			info = etcdInfo{
+				members: sets.New[string](),
+			}
 			for {
 				info.clusterID = strconv.Itoa(int(rand.Uint32())) //nolint:gosec // weak random number generator is good enough here
 				if info.clusterID != "0" {
@@ -516,6 +573,9 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Track the member
+		info.members.Insert(memberID)
+
 		// Annotate the pod with the info about the etcd cluster.
 		etcdPod.Annotations = map[string]string{
 			EtcdClusterIDAnnotationName: info.clusterID,
@@ -525,6 +585,7 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		// If the etcd cluster is being created it doesn't have a leader yet, so set this member as a leader.
 		if info.leaderID == "" {
 			etcdPod.Annotations[EtcdLeaderFromAnnotationName] = time.Now().Format(time.RFC3339)
+			info.leaderID = memberID
 		}
 
 		etcdInfoMap[resourceName] = info
@@ -532,54 +593,25 @@ func updateNode(w http.ResponseWriter, r *http.Request) {
 		if err = c.Create(ctx, etcdPod); err != nil && !apierrors.IsAlreadyExists(err) {
 			setupLog.Error(err, "failed to create etcd pod")
 			http.Error(w, "Failed to create etcd pod", http.StatusInternalServerError)
-			return
+			return err
 		}
 	}
 
 	etcdPrivKey, ok := etcdKey.(*rsa.PrivateKey)
 	if !ok {
 		setupLog.Error(nil, "etcdKey is not *rsa.PrivateKey")
-		return
+		http.Error(w, "etcdKey is not *rsa.PrivateKey", http.StatusInternalServerError)
+		return errors.New("etcdKey is not *rsa.PrivateKey")
 	}
 	err = apiServerMux.AddEtcdMember(resourceName, nodeName, etcdCert, etcdPrivKey)
 	if err != nil {
 		setupLog.Error(err, "failed to add etcd member")
 		http.Error(w, "", http.StatusInternalServerError)
-		return
+		return err
 	}
 
-	// Create the kube-apiserver pod
-	if err := createControlPlanePod(ctx, c, "kube-apiserver", FakePod{
-		PodName:         "kube-apiserver-" + nodeName,
-		NodeName:        nodeName,
-		TransactionTime: metav1.Now(),
-	}); err != nil {
-		setupLog.Error(err, "failed to create kube-apiserver pod")
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	// Create the kube-controller-manager
-	if err := createControlPlanePod(ctx, c, "kube-controller-manager", FakePod{
-		PodName:         "kube-controller-manager-" + nodeName,
-		NodeName:        nodeName,
-		TransactionTime: metav1.Now(),
-	}); err != nil {
-		setupLog.Error(err, "failed to create kube-controller-manager pod")
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
-
-	// Create the kube-scheduler
-	if err := createControlPlanePod(ctx, c, "kube-scheduler", FakePod{
-		PodName:         "kube-scheduler-" + nodeName,
-		NodeName:        nodeName,
-		TransactionTime: metav1.Now(),
-	}); err != nil {
-		setupLog.Error(err, "failed to create scheduler Pod")
-		http.Error(w, "", http.StatusInternalServerError)
-		return
-	}
+	setupLog.Info("Successfully set up etcd member", "nodeName", nodeName, "resourceName", resourceName)
+	return nil
 }
 
 func main() {
@@ -622,8 +654,8 @@ func main() {
 	server := &http.Server{
 		Addr:         ":3333",
 		Handler:      nil,
-		ReadTimeout:  timeoutDuration,
-		WriteTimeout: timeoutDuration,
+		ReadTimeout:  serverTimeout,
+		WriteTimeout: serverTimeout,
 		IdleTimeout:  idleDuration,
 	}
 	if err := server.ListenAndServe(); err != nil {

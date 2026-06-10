@@ -3,9 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"math/rand"
-	"strconv"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -165,16 +162,4 @@ func getSecretKeyAndCert(
 	}
 
 	return tlsCrt, tlsKey, nil
-}
-
-func waitForRandomSeconds() {
-	// Generate a random number of seconds between 1 and timeoutDuration
-	randomSeconds := rand.Intn(int(timeoutDuration.Seconds())) + 1 //nolint:gosec // weak random number generator is good enough here
-
-	setupLog.Info("Waiting for " + strconv.Itoa(randomSeconds) + " seconds...\n")
-
-	// Wait for the random number of seconds
-	time.Sleep(time.Duration(randomSeconds) * time.Second)
-
-	setupLog.Info("Done waiting!")
 }

@@ -90,6 +90,8 @@ case "${GINKGO_FOCUS:-}" in
     sed -i "s/^export NUM_NODES=.*/export NUM_NODES=30/" "${M3_DEV_ENV_PATH}/config_${USER}.sh"
     echo 'CLUSTER_TOPOLOGY: true' >>"${CAPI_CONFIG_FOLDER}/clusterctl.yaml"
     echo 'export BOOTSTRAP_CLUSTER="minikube"' >>"${M3_DEV_ENV_PATH}/config_${USER}.sh"
+    # Build FKAS image from source so that the scalability test uses the latest code
+    FKAS_TAG=ci make docker-build-fkas
   ;;
 
   in-place-upgrade)
@@ -112,6 +114,15 @@ fi
 pushd "${M3_DEV_ENV_PATH}" || exit 1
 make
 popd || exit 1
+
+# Load the locally-built FKAS image into minikube for the scalability test.
+# We use podman on CentOS, so we cannot use 'minikube image load <name>' which
+# looks in the Docker daemon. Instead, export from podman to a tar and load that.
+if [[ "${GINKGO_FOCUS:-}" == "scalability" ]]; then
+  podman save quay.io/metal3-io/metal3-fkas:ci -o /tmp/fkas-ci.tar
+  minikube image load /tmp/fkas-ci.tar
+  rm -f /tmp/fkas-ci.tar
+fi
 
 # Binaries checked below should have been installed by metal3-dev-env make.
 # Verify they are available and have correct versions.

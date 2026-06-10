@@ -57,13 +57,13 @@ spec:
       hostNetwork: true
       containers:
       - name: metal3-fkas-reconciler
-        image: quay.io/metal3-io/metal3-fkas:latest
+        image: quay.io/metal3-io/metal3-fkas:ci
         imagePullPolicy: IfNotPresent
         command: [ "/reconciler" ]
         env:
         - name: DEBUG
           value: "true"
-      - image: quay.io/metal3-io/metal3-fkas:latest
+      - image: quay.io/metal3-io/metal3-fkas:ci
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 3333
