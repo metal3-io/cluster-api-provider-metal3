@@ -98,8 +98,8 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		Condition:   framework.PhasePodCondition(corev1.PodRunning),
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-all-pod-to-be-running-on-target-cluster")...)
 
-	By("Get the provisioned BMH names and UUIDs [node_reuse]")
-	kcpBmhBeforeUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, clusterClient)
+	By("Get the provisioned BMH names before upgrade [node_reuse]")
+	kcpBmhBeforeUpgrade := getProvisionedBmhNames(ctx, input.Namespace, clusterClient)
 
 	By("Download image [node_reuse]")
 	imageURL, imageChecksum := EnsureImage(toK8sVersion)
@@ -226,8 +226,8 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-all-pod-to-be-running-on-target-cluster")...)
 	Logf("The CP upgrade process has ended [node_reuse]")
 
-	By("Get the provisioned BMH names and UUIDs after upgrade [node_reuse]")
-	kcpBmhAfterUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, clusterClient)
+	By("Get the provisioned BMH names after upgrade [node_reuse]")
+	kcpBmhAfterUpgrade := getProvisionedBmhNames(ctx, input.Namespace, clusterClient)
 
 	By("Check difference between before and after upgrade mappings")
 	equal := reflect.DeepEqual(kcpBmhBeforeUpgrade, kcpBmhAfterUpgrade)
@@ -327,8 +327,8 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 		Condition:   framework.PhasePodCondition(corev1.PodRunning),
 	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-all-pod-to-be-running-on-target-cluster")...)
 
-	By("Get the provisioned BMH names and UUIDs before starting upgrade in MachineDeployment [node_reuse]")
-	mdBmhBeforeUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, clusterClient)
+	By("Get the provisioned BMH names before starting upgrade in MachineDeployment [node_reuse]")
+	mdBmhBeforeUpgrade := getProvisionedBmhNames(ctx, input.Namespace, clusterClient)
 
 	By("List all available BMHs, remove nodeReuse label from them if any [node_reuse]")
 	bmhs := bmov1alpha1.BareMetalHostList{}
@@ -439,8 +439,8 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	})
 	verifyMetal3MachineNodeReuseCondition(ctx, clusterClient, workerBmhkey, input.Namespace, input.E2EConfig.GetIntervals(input.SpecName, "wait-bmh-available-provisioning"))
 
-	By("Get provisioned BMH names and UUIDs after upgrade in MachineDeployment [node_reuse]")
-	mdBmhAfterUpgrade := getProvisionedBmhNamesUuids(ctx, input.Namespace, clusterClient)
+	By("Get provisioned BMH names after upgrade in MachineDeployment [node_reuse]")
+	mdBmhAfterUpgrade := getProvisionedBmhNames(ctx, input.Namespace, clusterClient)
 
 	By("Check difference between before and after upgrade mappings in MachineDeployment [node_reuse]")
 	equal = reflect.DeepEqual(mdBmhBeforeUpgrade, mdBmhAfterUpgrade)
@@ -480,17 +480,16 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	By("NODE REUSE TESTS PASSED!")
 }
 
-func getProvisionedBmhNamesUuids(ctx context.Context, namespace string, clusterClient client.Client) []string {
+func getProvisionedBmhNames(ctx context.Context, namespace string, clusterClient client.Client) []string {
 	bmhs := bmov1alpha1.BareMetalHostList{}
-	var nameUUIDList []string
+	var nameList []string
 	Expect(clusterClient.List(ctx, &bmhs, client.InNamespace(namespace))).To(Succeed())
 	for _, item := range bmhs.Items {
 		if item.WasProvisioned() {
-			concat := "metal3/" + item.Name + "=metal3://" + (string)(item.UID)
-			nameUUIDList = append(nameUUIDList, concat)
+			nameList = append(nameList, item.Namespace+"/"+item.Name)
 		}
 	}
-	return nameUUIDList
+	return nameList
 }
 
 func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3MachineTemplateName string, clusterClient client.Client) {

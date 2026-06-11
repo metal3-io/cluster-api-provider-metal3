@@ -195,7 +195,7 @@ spec:
     apiGroup: infrastructure.cluster.x-k8s.io
     kind: Metal3Machine
     name: test1-controlplane-0
-  providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
+  providerID: metal3://metal3/node-1/test1-controlplane-0
   version: v1.18.0
 status:
   addresses:
@@ -247,7 +247,7 @@ spec:
   image:
     checksum: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img.sha256sum
     url: http://172.22.0.1/images/bionic-server-cloudimg-amd64.img
-  providerID: metal3://8e16d3b6-d48c-41e0-af0f-e43dbf5ec0cd
+  providerID: metal3://metal3/node-1/test1-controlplane-0
   # dataTemplate comes from CR 'dataTemplate' and is added by 'CAPM3'
   dataTemplate:
     name: test1-workers-template

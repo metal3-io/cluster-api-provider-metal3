@@ -356,8 +356,6 @@ func preInitFunc(clusterProxy framework.ClusterProxy, bmoRelease string, ironicR
 
 	// These exports bellow we need them after applying the management cluster template and before
 	// applying the workload. if exported before it will break creating the management because it uses v1beta1 templates and default IPs.
-	// override the provider id format
-	os.Setenv("PROVIDER_ID_FORMAT", "metal3://{{ ds.meta_data.uuid }}")
 	// override default IPs for the workload cluster
 	os.Setenv("CLUSTER_APIENDPOINT_HOST", "192.168.111.250")
 	os.Setenv("IPAM_EXTERNALV4_POOL_RANGE_START", "192.168.111.201")
