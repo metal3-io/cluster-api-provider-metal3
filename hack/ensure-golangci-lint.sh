@@ -14,45 +14,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# download an url and verify the downloaded object has the same sha as
-# supplied in the function call
+# Download golangci-lint and verify checksum from official checksums.txt
 
-set -eux
+set -eux -o pipefail
 
-CAPM3_DIR="$(dirname "$(readlink -f "$0")")/.."
-
-wget_and_verify()
-{
-    local url="${1:?url missing}"
-    local sha256="${2:?sha256 missing}"
-    local target="${3:?target missing}"
-    local checksum
-
-    declare -a args=(
-        --no-verbose
-        -O "${target}"
-        "${url}"
-    )
-
-    wget "${args[@]}"
-
-    checksum="$(sha256sum "${target}" | awk '{print $1;}')"
-    if [[ "${checksum}" != "${sha256}" ]]; then
-        if [[ "${INSECURE_SKIP_DOWNLOAD_VERIFICATION:-}" == "true" ]]; then
-            echo >&2 "warning: ${url} binary checksum '${checksum}' differs from expected checksum '${sha256}'"
-        else
-            echo >&2 "fatal: ${url} binary checksum '${checksum}' differs from expected checksum '${sha256}'"
-            return 1
-        fi
-    fi
-
-    return 0
-}
+IPAM_DIR="$(cd "$(dirname "$0")/.." && pwd -P)"
 
 download_and_install_golangci_lint()
 {
     local tmp_dir
     local bin_dir="${1:?Binary path missing}"
+
+    if ! command -v sha256sum &>/dev/null; then
+        echo "ERROR: sha256sum not found. On macOS, install coreutils: brew install coreutils" >&2
+        exit 1
+    fi
 
     tmp_dir="$(mktemp -d)"
     pushd "${tmp_dir}" || return 1
@@ -61,20 +37,51 @@ download_and_install_golangci_lint()
     ARCH="$(uname -m | sed -e 's/x86_64/amd64/' -e 's/\(arm\)\(64\)\?.*/\1\2/' -e 's/aarch64$/arm64/')"
     GOLANGCI_LINT="golangci-lint"
     GOLANGCI_VERSION="2.10.1"
-    case "${KERNEL_OS}-${ARCH}" in
-        darwin-arm64) GOLANGCI_SHA256="03bfadf67e52b441b7ec21305e501c717df93c959836d66c7f97312654acb297" ;;
-        linux-amd64) GOLANGCI_SHA256="dfa775874cf0561b404a02a8f4481fc69b28091da95aa697259820d429b09c99" ;;
-      *)
-        echo >&2 "error:${KERNEL_OS}-${ARCH} not supported. Please obtain the binary and calculate sha256 manually."
-        exit 1
-        ;;
-    esac
-    GOLANGCI_URL="https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_VERSION}/${GOLANGCI_LINT}-${GOLANGCI_VERSION}-${KERNEL_OS}-${ARCH}.tar.gz"
-    wget_and_verify "${GOLANGCI_URL}" "${GOLANGCI_SHA256}" "${GOLANGCI_LINT}".tar.gz
-    tar zxvf "${GOLANGCI_LINT}".tar.gz
-    rm -f "${GOLANGCI_LINT}".tar.gz
-    mkdir -p "${CAPM3_DIR}/${bin_dir}"
-    mv "${GOLANGCI_LINT}-${GOLANGCI_VERSION}-${KERNEL_OS}-${ARCH}/${GOLANGCI_LINT}" "${CAPM3_DIR}/${bin_dir}/"
+
+    # Download checksums file from release
+    CHECKSUMS_URL="https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_VERSION}/golangci-lint-${GOLANGCI_VERSION}-checksums.txt"
+    CHECKSUMS_FILE="checksums.txt"
+    BINARY_FILE="${GOLANGCI_LINT}-${GOLANGCI_VERSION}-${KERNEL_OS}-${ARCH}.tar.gz"
+    URL="https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_VERSION}/${BINARY_FILE}"
+
+    # Download checksums file
+    curl --proto '=https' --tlsv1.3 -sSfL \
+        --retry 3 --retry-delay 5 --max-time 120 \
+        -o "${CHECKSUMS_FILE}" "${CHECKSUMS_URL}"
+
+    # Extract the checksum for this platform
+    GOLANGCI_SHA256="$(grep -F -- "${BINARY_FILE}" "${CHECKSUMS_FILE}" | awk '{print $1;}')" || true
+    if [[ -z "${GOLANGCI_SHA256}" ]]; then
+        echo >&2 "fatal: could not find checksum for ${BINARY_FILE} in ${CHECKSUMS_URL}"
+        rm -f "${CHECKSUMS_FILE}"
+        popd || true
+        rm -rf "${tmp_dir}"
+        return 1
+    fi
+
+    # Download binary with security flags
+    curl --proto '=https' --tlsv1.3 -sSfL \
+        --retry 3 --retry-delay 5 --max-time 120 \
+        -o "${BINARY_FILE}" "${URL}"
+
+    # Verify checksum before extraction
+    checksum="$(sha256sum "${BINARY_FILE}" | awk '{print $1;}')" || true
+    if [[ "${checksum}" != "${GOLANGCI_SHA256}" ]]; then
+        echo >&2 "fatal: ${URL} checksum '${checksum}' differs from expected checksum '${GOLANGCI_SHA256}'"
+        popd || true
+        rm -rf "${tmp_dir}"
+        return 1
+    fi
+
+    tar zxvf "${BINARY_FILE}"
+    rm -f "${BINARY_FILE}"
+    mkdir -p "${IPAM_DIR}/${bin_dir}"
+    mv "${GOLANGCI_LINT}-${GOLANGCI_VERSION}-${KERNEL_OS}-${ARCH}/${GOLANGCI_LINT}" "${IPAM_DIR}/${bin_dir}/"
+    chmod 0755 "${IPAM_DIR}/${bin_dir}/${GOLANGCI_LINT}"
+
+    # Clean up temp directory and checksums file
+    popd || true
+    rm -rf "${tmp_dir}"
 }
 
 download_and_install_golangci_lint "$1"
