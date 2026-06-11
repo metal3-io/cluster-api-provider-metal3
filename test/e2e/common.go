@@ -230,6 +230,11 @@ func EnsureImage(k8sVersion string) (imageURL string, imageChecksum string) {
 		Logf("Local image %v is not found \nDownloading..", rawImagePath)
 		err = DownloadFile(imagePath, fmt.Sprintf("%s/%s", imageLocation, imageName))
 		Expect(err).ToNot(HaveOccurred())
+		var sha256sumOrg []byte
+		sha256sumOrg, err = getSha256Hash(imagePath)
+		Expect(err).ToNot(HaveOccurred())
+		checksum := hex.EncodeToString(sha256sumOrg)
+		Logf("SHA256 checksum for %s: %s", imagePath, checksum)
 		cmd := exec.CommandContext(context.Background(), "qemu-img", "convert", "-O", "raw", imagePath, rawImagePath) // #nosec G204:gosec
 		err = cmd.Run()
 		Expect(err).ToNot(HaveOccurred())
