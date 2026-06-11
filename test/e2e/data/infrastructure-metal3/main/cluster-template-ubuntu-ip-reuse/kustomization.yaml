@@ -1,0 +1,6 @@
+resources:
+- ../bases/ippool
+- ../bases/ubuntu-kubeadm-config
+
+components:
+- ../components/ip-reuse

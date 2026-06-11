@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# Add the provisioning IPPool address to the networkData of both the worker
+# and control plane Metal3DataTemplates so that the provisioning IP is actually
+# configured on an interface (enp1s0) instead of only living in metaData. This
+# lets the IP reuse test verify that the provisioning IP is really used on the
+# BareMetalHosts and Nodes, not just allocated in the IPPool.
+patches:
+- target:
+    kind: Metal3DataTemplate
+    name: .*-workers-template
+  patch: |-
+    - op: add
+      path: /spec/networkData/networks/ipv4/-
+      value:
+        id: provisioning
+        ipAddressFromIPPool: provisioning-pool
+        link: enp1s0
+- target:
+    kind: Metal3DataTemplate
+    name: .*-controlplane-template
+  patch: |-
+    - op: add
+      path: /spec/networkData/networks/ipv4/-
+      value:
+        id: provisioning
+        ipAddressFromIPPool: provisioning-pool
+        link: enp1s0
