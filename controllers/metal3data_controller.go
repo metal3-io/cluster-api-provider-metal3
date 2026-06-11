@@ -18,11 +18,14 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/metrics"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -42,7 +45,7 @@ import (
 )
 
 const (
-	dataControllerName = "Metal3Data-controller"
+	dataControllerName = metrics.ControllerMetal3Data
 )
 
 // Metal3DataReconciler reconciles a Metal3Data object.
@@ -61,10 +64,28 @@ type Metal3DataReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile handles Metal3Data events.
-func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
+func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) (rres ctrl.Result, rerr error) {
+	reconcileStart := time.Now()
 	metadataLog := r.Log.WithName(dataControllerName).WithValues(
 		baremetal.LogFieldData, req.NamespacedName,
 	)
+
+	// Track metrics for this reconciliation.
+	hasError := false
+	recordTranslatedReconcileError := func(isTransient bool) {
+		hasError = true
+		metrics.RecordReconcileError(dataControllerName, req.Namespace, isTransient)
+	}
+	defer func() {
+		if rerr != nil {
+			hasError = true
+			var reconcileErr baremetal.ReconcileError
+			isTransient := errors.As(rerr, &reconcileErr) && reconcileErr.IsTransient()
+			metrics.RecordReconcileError(dataControllerName, req.Namespace, isTransient)
+		}
+		metrics.RecordMetal3DataReconcile(req.Namespace, reconcileStart, hasError)
+	}()
+
 	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Reconcile: starting Metal3Data reconciliation")
 
 	// Fetch the Metal3Data instance.
@@ -152,13 +173,13 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		// Check if the Metal3DataClaim is gone. We cannot clean up until it is.
 		if metal3Data.Spec.Claim == nil {
 			metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3Data has no claim, proceeding with deletion")
-			return r.reconcileDelete(ctx, metadataMgr, metadataLog)
+			return r.reconcileDelete(ctx, metadataMgr, metadataLog, recordTranslatedReconcileError)
 		}
 		err := r.Client.Get(ctx, types.NamespacedName{Name: metal3Data.Spec.Claim.Name, Namespace: metal3Data.Spec.Claim.Namespace}, &infrav1.Metal3DataClaim{})
 		if err != nil {
 			if apierrors.IsNotFound(err) {
 				metadataLog.V(baremetal.VerbosityLevelDebug).Info("Metal3DataClaim is gone, proceeding with deletion")
-				return r.reconcileDelete(ctx, metadataMgr, metadataLog)
+				return r.reconcileDelete(ctx, metadataMgr, metadataLog, recordTranslatedReconcileError)
 			}
 			return ctrl.Result{}, err
 		}
@@ -171,11 +192,11 @@ func (r *Metal3DataReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	// Handle non-deleted machines
 	metadataLog.V(baremetal.VerbosityLevelTrace).Info("Proceeding with normal reconciliation")
-	return r.reconcileNormal(ctx, metadataMgr, metadataLog)
+	return r.reconcileNormal(ctx, metadataMgr, metadataLog, recordTranslatedReconcileError)
 }
 
 func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
-	metadataMgr baremetal.DataManagerInterface, log logr.Logger,
+	metadataMgr baremetal.DataManagerInterface, log logr.Logger, recordReconcileError func(bool),
 ) (ctrl.Result, error) {
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: starting")
 
@@ -189,7 +210,7 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to create secrets",
 			baremetal.LogFieldError, err.Error())
-		return checkReconcileError(err, "Failed to create secrets")
+		return checkReconcileError(err, "Failed to create secrets", recordReconcileError)
 	}
 	log.V(baremetal.VerbosityLevelDebug).Info("Secrets created/verified successfully")
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileNormal: completed successfully")
@@ -197,7 +218,7 @@ func (r *Metal3DataReconciler) reconcileNormal(ctx context.Context,
 }
 
 func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
-	metadataMgr baremetal.DataManagerInterface, log logr.Logger,
+	metadataMgr baremetal.DataManagerInterface, log logr.Logger, recordReconcileError func(bool),
 ) (ctrl.Result, error) {
 	log.V(baremetal.VerbosityLevelTrace).Info("reconcileDelete: starting")
 
@@ -206,7 +227,7 @@ func (r *Metal3DataReconciler) reconcileDelete(ctx context.Context,
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to release IP address leases",
 			baremetal.LogFieldError, err.Error())
-		return checkReconcileError(err, "Failed to release IP address leases")
+		return checkReconcileError(err, "Failed to release IP address leases", recordReconcileError)
 	}
 	log.V(baremetal.VerbosityLevelDebug).Info("IP address leases released")
 
