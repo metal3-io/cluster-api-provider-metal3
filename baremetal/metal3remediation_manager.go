@@ -27,10 +27,10 @@ import (
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	corev1 "k8s.io/api/core/v1"
-	storagev1 "k8s.io/api/storage/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	storagev1client "k8s.io/client-go/kubernetes/typed/storage/v1"
 	"k8s.io/client-go/tools/cache"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
@@ -90,14 +90,18 @@ var outOfServiceTaint = &corev1.Taint{
 	Effect: corev1.TaintEffectNoExecute,
 }
 
+// StorageClientGetter returns a storage client for the workload cluster.
+type StorageClientGetter func(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (storagev1client.StorageV1Interface, error)
+
 // RemediationManager is responsible for performing remediation reconciliation.
 type RemediationManager struct {
-	Client            client.Client
-	CapiClientGetter  ClientGetter
-	Metal3Remediation *infrav1.Metal3Remediation
-	Metal3Machine     *infrav1.Metal3Machine
-	Machine           *clusterv1.Machine
-	Log               logr.Logger
+	Client                  client.Client
+	CapiClientGetter        ClientGetter
+	StorageCapiClientGetter StorageClientGetter
+	Metal3Remediation       *infrav1.Metal3Remediation
+	Metal3Machine           *infrav1.Metal3Machine
+	Machine                 *clusterv1.Machine
+	Log                     logr.Logger
 }
 
 // enforce implementation of interface.
@@ -105,15 +109,17 @@ var _ RemediationManagerInterface = &RemediationManager{}
 
 // NewRemediationManager returns a new helper for managing a Metal3Remediation object.
 func NewRemediationManager(client client.Client, capiClientGetter ClientGetter,
+	storageClientGetter StorageClientGetter,
 	metal3remediation *infrav1.Metal3Remediation, metal3Machine *infrav1.Metal3Machine, machine *clusterv1.Machine,
 	remediationLog logr.Logger) (*RemediationManager, error) {
 	return &RemediationManager{
-		Client:            client,
-		CapiClientGetter:  capiClientGetter,
-		Metal3Remediation: metal3remediation,
-		Metal3Machine:     metal3Machine,
-		Machine:           machine,
-		Log:               remediationLog,
+		Client:                  client,
+		CapiClientGetter:        capiClientGetter,
+		StorageCapiClientGetter: storageClientGetter,
+		Metal3Remediation:       metal3remediation,
+		Metal3Machine:           metal3Machine,
+		Machine:                 machine,
+		Log:                     remediationLog,
 	}, nil
 }
 
@@ -507,6 +513,30 @@ func (r *RemediationManager) GetClusterClient(ctx context.Context) (v1.CoreV1Int
 	return clusterClient, nil
 }
 
+// getClusterStorageClient returns a storage client for the workload cluster.
+func (r *RemediationManager) getClusterStorageClient(ctx context.Context) (storagev1client.StorageV1Interface, error) {
+	if r.StorageCapiClientGetter == nil {
+		return nil, errors.New("storage client getter is not configured")
+	}
+
+	capiMachine, err := r.GetCapiMachine(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("metal3Remediation's node could not be retrieved: %w", err)
+	}
+
+	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, capiMachine.ObjectMeta)
+	if err != nil {
+		return nil, fmt.Errorf("machine is missing cluster label or cluster does not exist: %w", err)
+	}
+
+	storageClient, err := r.StorageCapiClientGetter(ctx, r.Client, cluster)
+	if err != nil {
+		return nil, fmt.Errorf("could not get cluster storage client: %w", err)
+	}
+
+	return storageClient, nil
+}
+
 // SetNodeBackupAnnotations sets the given node annotations and labels as remediation annotations.
 // Returns whether annotations were set or modified, or not.
 func (r *RemediationManager) SetNodeBackupAnnotations(annotations string, labels string) bool {
@@ -596,14 +626,18 @@ func (r *RemediationManager) RemoveOutOfServiceTaint(ctx context.Context, cluste
 }
 
 func (r *RemediationManager) IsNodeDrained(ctx context.Context, clusterClient v1.CoreV1Interface, node *corev1.Node) bool {
-	pods, err := clusterClient.Pods("").List(ctx, metav1.ListOptions{})
+	// Apply server-side filtering to avoid listing all pods in the cluster.
+	// This assumes that the node name is unique across the cluster.
+	pods, err := clusterClient.Pods("").List(ctx, metav1.ListOptions{
+		FieldSelector: "spec.nodeName=" + node.Name,
+	})
 	if err != nil {
 		r.Log.Error(err, "Failed to list pods in cluster")
 		return false
 	}
 
 	for _, pod := range pods.Items {
-		if pod.Spec.NodeName == node.Name && pod.ObjectMeta.DeletionTimestamp != nil {
+		if pod.ObjectMeta.DeletionTimestamp != nil {
 			r.Log.Info("Waiting for terminating pod",
 				LogFieldNode, node.Name,
 				LogFieldPod, pod.Name)
@@ -611,17 +645,26 @@ func (r *RemediationManager) IsNodeDrained(ctx context.Context, clusterClient v1
 		}
 	}
 
-	volumeAttachments := &storagev1.VolumeAttachmentList{}
-	if err := r.Client.List(ctx, volumeAttachments); err != nil {
-		r.Log.Error(err, "Failed to list volumeAttachments")
+	storageClient, err := r.getClusterStorageClient(ctx)
+	if err != nil {
+		r.Log.Error(err, "Failed to get workload cluster storage client")
+		return false
+	}
+
+	// Listing volume attachment does not support field selector, so we need to list all and
+	// filter by node name.
+	volumeAttachments, err := storageClient.VolumeAttachments().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		r.Log.Error(err, "Failed to list volumeAttachments in workload cluster")
 		return false
 	}
 
 	for _, va := range volumeAttachments.Items {
 		if va.Spec.NodeName == node.Name {
 			r.Log.Info("Waiting for volumeAttachment deletion",
-				LogFieldNode, node.Name,
-				LogFieldVolumeAttachment, va.Name)
+				LogFieldNode, va.Spec.NodeName,
+				LogFieldVolumeAttachment, va.Name,
+				"attached", va.Status.Attached)
 			return false
 		}
 	}

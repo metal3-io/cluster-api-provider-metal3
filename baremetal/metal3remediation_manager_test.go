@@ -52,7 +52,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 		DescribeTable("Test NewRemediationManager",
 			func(tc testCaseRemediationManager) {
-				_, err := NewRemediationManager(fakeClient, nil,
+				_, err := NewRemediationManager(fakeClient, nil, nil,
 					tc.Metal3Remediation,
 					tc.Metal3Machine,
 					tc.Machine,
@@ -81,7 +81,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test Finalizers",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -119,7 +119,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test if Retry Limit is set",
 		func(tc testCaseRetryLimitSet) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -175,7 +175,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test if Retry Limit is reached",
 		func(tc testCaseRetryLimitSet) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -242,7 +242,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test OnlineStatus",
 		func(tc testCaseEnsureOnlineStatus) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -285,7 +285,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(&host).Build()
 
-			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, tc.M3Machine, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, nil, tc.M3Machine, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -402,7 +402,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 	DescribeTable("Test SetUnhealthyAnnotation",
 		func(tc testCaseSetAnnotation) {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(tc.Host).Build()
-			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, tc.M3Machine, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, nil, tc.M3Machine, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -483,7 +483,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetRemediationType",
 		func(tc testCaseGetRemediationType) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -532,7 +532,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetLastRemediatedTime",
 		func(tc testCaseGetRemediatedTime) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -567,7 +567,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test TimeToRemediate",
 		func(tc testTimeToRemediate) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -642,7 +642,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetTimeoutSeconds",
 		func(tc testCaseGetTimeoutSeconds) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -678,7 +678,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test SetRemediationPhase",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -701,7 +701,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test SetLastRemediationTime",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -725,7 +725,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test IncreaseRetryCount",
 		func(tc testCaseRemediationManager) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -761,7 +761,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 
 	DescribeTable("Test GetRemediationPhase",
 		func(tc testCaseGetRemediationPhase) {
-			remediationMgr, err := NewRemediationManager(nil, nil, tc.Metal3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(nil, nil, nil, tc.Metal3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -853,7 +853,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 		It("should set and remove the power off annotation as requested", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(bmhost, m3machine, remediation).Build()
 
-			remediationMgr, err := NewRemediationManager(fakeClient, nil, remediation, m3machine, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, remediation, m3machine, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -893,7 +893,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).Build()
 			m3Remediation := &infrav1.Metal3Remediation{}
 
-			remediationMgr, err := NewRemediationManager(fakeClient, nil, m3Remediation, nil, nil,
+			remediationMgr, err := NewRemediationManager(fakeClient, nil, nil, m3Remediation, nil, nil,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())
@@ -976,7 +976,7 @@ var _ = Describe("Metal3Remediation manager", func() {
 			clientGetter := func(_ context.Context, _ client.Client, _ *clusterv1.Cluster) (clientcorev1.CoreV1Interface, error) {
 				return corev1Client, nil
 			}
-			remediationMgr, err := NewRemediationManager(fakeClient, clientGetter, m3Remediation, nil, capiMachine,
+			remediationMgr, err := NewRemediationManager(fakeClient, clientGetter, nil, m3Remediation, nil, capiMachine,
 				logr.Discard(),
 			)
 			Expect(err).NotTo(HaveOccurred())

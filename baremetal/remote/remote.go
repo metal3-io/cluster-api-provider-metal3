@@ -19,6 +19,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	storagev1 "k8s.io/client-go/kubernetes/typed/storage/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	kcfg "sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -43,4 +44,24 @@ func NewClusterClient(ctx context.Context, c client.Client, cluster *clusterv1.C
 	}
 
 	return corev1.NewForConfig(restConfig)
+}
+
+// NewClusterStorageClient creates a storage client for the workload cluster.
+func NewClusterStorageClient(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) (storagev1.StorageV1Interface, error) {
+	kubeconfig, err := kcfg.FromSecret(ctx, c, types.NamespacedName{
+		Name:      cluster.Name,
+		Namespace: cluster.Namespace,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve kubeconfig secret for Cluster %q in namespace %q: %w",
+			cluster.Name, cluster.Namespace, err)
+	}
+
+	restConfig, err := clientcmd.RESTConfigFromKubeConfig(kubeconfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client configuration for Cluster %q in namespace %q: %w",
+			cluster.Name, cluster.Namespace, err)
+	}
+
+	return storagev1.NewForConfig(restConfig)
 }
