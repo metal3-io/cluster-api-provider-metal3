@@ -31,6 +31,7 @@ import (
 	"github.com/metal3-io/cluster-api-provider-metal3/baremetal"
 	infraremote "github.com/metal3-io/cluster-api-provider-metal3/baremetal/remote"
 	"github.com/metal3-io/cluster-api-provider-metal3/controllers"
+	"github.com/metal3-io/cluster-api-provider-metal3/internal/clusterfilter"
 	webhooks "github.com/metal3-io/cluster-api-provider-metal3/internal/webhooks/v1beta2"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
 	"github.com/spf13/pflag"
@@ -465,7 +466,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// requiring a connection to a remote cluster
 
 	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
-		SecretClient: secretCachingClient,
+		SecretClient:  secretCachingClient,
+		ClusterFilter: clusterfilter.IsMetal3Cluster,
 		Cache: clustercache.CacheOptions{
 			Indexes: []clustercache.CacheOptionsIndex{clustercache.NodeProviderIDIndex},
 		},
