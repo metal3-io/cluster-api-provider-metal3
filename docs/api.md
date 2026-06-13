@@ -306,6 +306,15 @@ The fields are:
   objects. This can be used to limit the set of available `BareMetalHost`
   objects chosen for this `Machine`.
 
+- **bareMetalHostAllocationPolicy** -- Controls how a `BareMetalHost` is selected
+  from the set of available hosts matching the `hostSelector`. When set to
+  `random` (the default when the field is empty), a host is chosen at random,
+  preserving the historical behavior. When set to `ordered`, the available host
+  whose name sorts first alphabetically is chosen, allowing a pool of hosts to be
+  filled deterministically. As with `automatedCleaningMode`, it is recommended to
+  set this via `spec.template.spec.bareMetalHostAllocationPolicy` on the
+  metal3MachineTemplate so that every generated metal3Machine inherits it.
+
 - **automatedCleaningMode** -- An interface to enable or disable Ironic
   automated cleaning during provisioning or deprovisioning of a host. When set
   to `disabled`, automated cleaning will be skipped, where `metadata` value

@@ -350,6 +350,16 @@ spec:
                         - metadata
                         - disabled
                         type: string
+                      bareMetalHostAllocationPolicy:
+                        description: |-
+                          bareMetalHostAllocationPolicy controls how a BareMetalHost is selected from the
+                          set of available hosts matching the hostSelector. "random" (the default) picks a
+                          host at random; "ordered" picks the available host whose name sorts first
+                          alphabetically.
+                        enum:
+                        - random
+                        - ordered
+                        type: string
                       customDeploy:
                         description: |-
                           customDeploy is a custom deploy procedure.

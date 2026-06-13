@@ -25,6 +25,7 @@ import (
 	"math/big"
 	"os"
 	"slices"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -2341,14 +2342,25 @@ func (m *MachineManager) pickHost(availableHosts []*bmov1alpha1.BareMetalHost) (
 		}
 	}
 
+	// Pick from hosts in the failureDomain when any matched, otherwise from all
+	// available hosts.
+	hosts := availableHosts
 	if len(availableHostsInFailureDomain) > 0 {
-		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(availableHostsInFailureDomain))))
-		randomHost := rHost.Int64()
-		chosenHost = availableHostsInFailureDomain[randomHost]
+		hosts = availableHostsInFailureDomain
+	}
+
+	// When the allocation policy is "ordered", deterministically select the host
+	// whose name sorts first alphabetically. Otherwise (default "random"), pick at
+	// random to preserve the historical behavior.
+	if m.Metal3Machine.Spec.BareMetalHostAllocationPolicy == infrav1.AllocationPolicyOrdered {
+		sort.Slice(hosts, func(i, j int) bool {
+			return hosts[i].Name < hosts[j].Name
+		})
+		chosenHost = hosts[0]
 	} else {
-		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(availableHosts))))
+		rHost, _ := rand.Int(rand.Reader, big.NewInt(int64(len(hosts))))
 		randomHost := rHost.Int64()
-		chosenHost = availableHosts[randomHost]
+		chosenHost = hosts[randomHost]
 	}
 
 	return chosenHost, nil

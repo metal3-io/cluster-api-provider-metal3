@@ -685,6 +685,38 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 		}
 
+		// Available hosts created out of alphabetical order, used to verify the
+		// "ordered" allocation policy selects the alphabetically-first host.
+		orderedHostC := newBareMetalHost("ordered-host-c", &bmov1alpha1.BareMetalHostSpec{}, bmov1alpha1.StateReady, &bmov1alpha1.BareMetalHostStatus{}, true, "metadata", false, "", false)
+		orderedHostA := newBareMetalHost("ordered-host-a", &bmov1alpha1.BareMetalHostSpec{}, bmov1alpha1.StateReady, &bmov1alpha1.BareMetalHostStatus{}, true, "metadata", false, "", false)
+		orderedHostB := newBareMetalHost("ordered-host-b", &bmov1alpha1.BareMetalHostSpec{}, bmov1alpha1.StateReady, &bmov1alpha1.BareMetalHostStatus{}, true, "metadata", false, "", false)
+		// Hosts in a failure domain, out of alphabetical order, to verify ordered
+		// allocation picks the alphabetically-first host within the failure domain.
+		orderedFDHostB := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ordered-fd-host-b",
+				Namespace: namespaceName,
+				Labels:    map[string]string{FailureDomainLabelName: "my-fd-1"},
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
+		}
+		orderedFDHostA := bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ordered-fd-host-a",
+				Namespace: namespaceName,
+				Labels:    map[string]string{FailureDomainLabelName: "my-fd-1"},
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				Provisioning: bmov1alpha1.ProvisionStatus{
+					State: bmov1alpha1.StateAvailable,
+				},
+			},
+		}
+
 		m3mconfig, infrastructureRef := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{}, "",
 		)
@@ -717,6 +749,14 @@ var _ = Describe("Metal3Machine manager", func() {
 		m3mconfig6, infrastructureRef6 := newConfig("", map[string]string{},
 			[]infrav1.HostSelectorRequirement{}, "my-fd-1",
 		)
+		m3mconfigOrdered, infrastructureRefOrdered := newConfig("", map[string]string{},
+			[]infrav1.HostSelectorRequirement{}, "",
+		)
+		m3mconfigOrdered.Spec.BareMetalHostAllocationPolicy = infrav1.AllocationPolicyOrdered
+		m3mconfigOrderedFD, infrastructureRefOrderedFD := newConfig("", map[string]string{},
+			[]infrav1.HostSelectorRequirement{}, "my-fd-1",
+		)
+		m3mconfigOrderedFD.Spec.BareMetalHostAllocationPolicy = infrav1.AllocationPolicyOrdered
 
 		type testCaseChooseHost struct {
 			Machine          *clusterv1.Machine
@@ -987,6 +1027,18 @@ var _ = Describe("Metal3Machine manager", func() {
 				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, hostWithLabel, hostWithFailureDomainLabel, hostWithNodeReuseLabelSetToCP}},
 				M3Machine:        m3mconfig6,
 				ExpectedHostName: hostWithNodeReuseLabelSetToCP.Name,
+			}),
+			Entry("Ordered allocation picks the alphabetically-first available host", testCaseChooseHost{
+				Machine:          newMachine(machineName, infrastructureRefOrdered),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*orderedHostC, *orderedHostA, *orderedHostB}},
+				M3Machine:        m3mconfigOrdered,
+				ExpectedHostName: orderedHostA.Name,
+			}),
+			Entry("Ordered allocation picks the alphabetically-first host within the failure domain", testCaseChooseHost{
+				Machine:          newMachine(machineName, infrastructureRefOrderedFD),
+				Hosts:            &bmov1alpha1.BareMetalHostList{Items: []bmov1alpha1.BareMetalHost{*availableHost, orderedFDHostB, orderedFDHostA}},
+				M3Machine:        m3mconfigOrderedFD,
+				ExpectedHostName: orderedFDHostA.Name,
 			}),
 		)
 	})
