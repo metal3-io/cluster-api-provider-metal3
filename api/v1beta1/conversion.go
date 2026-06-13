@@ -111,6 +111,10 @@ func (src *Metal3Machine) ConvertTo(dstRaw conversion.Hub) error {
 	if ok && restored.Spec.Image.Checksum == nil {
 		dst.Spec.Image.Checksum = nil
 	}
+	// Restore hub-only BareMetalHostAllocationPolicy (no equivalent in v1beta1).
+	if ok {
+		dst.Spec.BareMetalHostAllocationPolicy = restored.Spec.BareMetalHostAllocationPolicy
+	}
 	return nil
 }
 
@@ -143,6 +147,8 @@ func (src *Metal3MachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if restored.Spec.Template.Spec.Image.Checksum == nil {
 		dst.Spec.Template.Spec.Image.Checksum = nil
 	}
+	// Restore hub-only BareMetalHostAllocationPolicy (no equivalent in v1beta1).
+	dst.Spec.Template.Spec.BareMetalHostAllocationPolicy = restored.Spec.Template.Spec.BareMetalHostAllocationPolicy
 
 	return nil
 }

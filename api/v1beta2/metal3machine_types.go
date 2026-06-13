@@ -31,6 +31,10 @@ const (
 	CleaningModeMetadata = "metadata"
 	ClonedFromGroupKind  = "Metal3MachineTemplate.infrastructure.cluster.x-k8s.io"
 	LiveIsoDiskFormat    = "live-iso"
+
+	// AllocationPolicyOrdered selects the available BareMetalHost whose name sorts
+	// first alphabetically.
+	AllocationPolicyOrdered = "ordered"
 )
 
 // Metal3Machine's Ready condition and corresponding reasons that will be used in v1Beta2 API version.
@@ -176,6 +180,14 @@ type Metal3MachineSpec struct {
 	// +kubebuilder:validation:Enum:=metadata;disabled
 	// +optional
 	AutomatedCleaningMode string `json:"automatedCleaningMode,omitempty,omitzero"`
+
+	// bareMetalHostAllocationPolicy controls how a BareMetalHost is selected from the
+	// set of available hosts matching the hostSelector. "random" (the default) picks a
+	// host at random; "ordered" picks the available host whose name sorts first
+	// alphabetically.
+	// +kubebuilder:validation:Enum:=random;ordered
+	// +optional
+	BareMetalHostAllocationPolicy string `json:"bareMetalHostAllocationPolicy,omitempty,omitzero"`
 
 	// failureDomain is the failure domain unique identifier this machine should be attached to, as defined in Cluster API.
 	// +optional

@@ -1988,6 +1988,7 @@ func autoConvert_v1beta2_Metal3MachineSpec_To_v1beta1_Metal3MachineSpec(in *v1be
 	if err := v1.Convert_string_To_Pointer_string(&in.AutomatedCleaningMode, &out.AutomatedCleaningMode, s); err != nil {
 		return err
 	}
+	// WARNING: in.BareMetalHostAllocationPolicy requires manual conversion: does not exist in peer-type
 	out.FailureDomain = in.FailureDomain
 	return nil
 }
