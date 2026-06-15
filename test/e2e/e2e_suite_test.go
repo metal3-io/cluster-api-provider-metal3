@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
@@ -85,7 +86,7 @@ func init() {
 	flag.StringVar(&artifactFolder, "e2e.artifacts-folder", "", "folder where e2e test artifact should be stored")
 	flag.BoolVar(&skipCleanup, "e2e.skip-resource-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&upgradeTest, "e2e.trigger-upgrade-test", false, "if true, the e2e upgrade test will be triggered and other tests will be skipped")
-	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", true, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
+	flag.BoolVar(&useExistingCluster, "e2e.use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
 	flag.StringVar(&kubeconfigPath, "e2e.kubeconfig-path", os.Getenv("HOME")+"/.kube/config", "if e2e.use-existing-cluster is true, path to the kubeconfig file")
 	e2eTestsPath = getE2eTestsPath()
 
@@ -128,6 +129,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	numberOfWorkers = int(*e2eConfig.MustGetInt32PtrVariable("WORKER_MACHINE_COUNT"))
 	numberOfAllBmh = numberOfControlplane + numberOfWorkers
 
+	By("Setting up the virtual bare metal lab with vbmctl")
+	bmcsConfigPath := os.Getenv("E2E_BMCS_CONFIG")
+	Expect(bmcsConfigPath).ToNot(BeEmpty(), "E2E_BMCS_CONFIG environment variable must be set to the path of the bmcs config file")
+	vmInfos = LoadVMInfos(bmcsConfigPath)
+
 	By(fmt.Sprintf("Creating a clusterctl local repository into %q", artifactFolder))
 	clusterctlConfigPath = CreateClusterctlLocalRepository(e2eConfig, filepath.Join(artifactFolder, "repository"))
 
@@ -136,6 +142,52 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	By("Initializing the bootstrap cluster")
 	InitBootstrapCluster(bootstrapClusterProxy, e2eConfig, clusterctlConfigPath, artifactFolder)
+
+	By("Configuring provisioning network on the bootstrap cluster node")
+	provisioningIP := os.Getenv("CLUSTER_PROVISIONING_IP")
+	Expect(provisioningIP).ToNot(BeEmpty(), "CLUSTER_PROVISIONING_IP must be set")
+	provisioningInterface := e2eConfig.MustGetVariable("BARE_METAL_PROVISIONER_INTERFACE")
+	ConfigureProvisioningNetwork(ctx, e2eConfig.ManagementClusterName, provisioningIP, provisioningInterface)
+
+	By("Configuring external network on the bootstrap cluster node")
+	externalIP := os.Getenv("CLUSTER_EXTERNAL_IP")
+	if externalIP != "" {
+		ConfigureExternalNetwork(ctx, e2eConfig.ManagementClusterName, externalIP)
+	}
+
+	By("Installing IRSO on the bootstrap cluster")
+	ironicNS := e2eConfig.MustGetVariable("IRONIC_NAMESPACE")
+	irsoDeployLogFolder := filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "ironic-deploy-logs")
+	err := InstallIRSO(ctx, InstallIRSOInput{
+		E2EConfig:             e2eConfig,
+		ClusterProxy:          bootstrapClusterProxy,
+		IronicNamespace:       ironicNS,
+		ClusterName:           bootstrapClusterProxy.GetName(),
+		IrsoOperatorKustomize: e2eConfig.MustGetVariable("IRSO_OPERATOR_LATEST"),
+		IronicKustomize:       e2eConfig.MustGetVariable("IRSO_IRONIC_PR_TEST"),
+		LogPath:               irsoDeployLogFolder,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Installing BMO on the bootstrap cluster")
+	bmoDeployLogFolder := filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName(), "bmo-deploy-logs")
+	err = InstallBMO(ctx, InstallBMOInput{
+		E2EConfig:        e2eConfig,
+		ClusterProxy:     bootstrapClusterProxy,
+		Namespace:        ironicNS,
+		BmoKustomization: e2eConfig.MustGetVariable("BMO_RELEASE_PR_TEST"),
+		LogFolder:        bmoDeployLogFolder,
+		WatchLogs:        true,
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	By("Waiting for Ironic to be ready on the bootstrap cluster")
+	WaitForIronicReady(ctx, WaitForIronicInput{
+		Client:    bootstrapClusterProxy.GetClient(),
+		Name:      "ironic",
+		Namespace: ironicNS,
+		Intervals: e2eConfig.GetIntervals("default", "wait-deployment"),
+	})
 
 	return []byte(
 		strings.Join([]string{
@@ -229,12 +281,22 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 			Name:               config.ManagementClusterName,
 			RequiresDockerSock: config.HasDockerProvider(),
 			Images:             config.Images,
-			LogFolder:          filepath.Join(artifactFolder, "kind", bootstrapClusterProxy.GetName()),
+			LogFolder:          filepath.Join(artifactFolder, "kind", config.ManagementClusterName),
 		})
 		Expect(clusterProvider).ToNot(BeNil(), "Failed to create a bootstrap cluster")
 
 		kubeconfigPath = clusterProvider.GetKubeconfigPath()
 		Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the bootstrap cluster")
+
+		// Copy kubeconfig to default location for easier debugging and tool access (CI only).
+		if os.Getenv("E2E_COPY_KUBECONFIG") == "true" {
+			defaultKubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
+			if err := os.MkdirAll(filepath.Dir(defaultKubeconfig), 0o750); err == nil {
+				if data, err := os.ReadFile(kubeconfigPath); err == nil {
+					_ = os.WriteFile(defaultKubeconfig, data, 0o600)
+				}
+			}
+		}
 	}
 
 	clusterProxy := framework.NewClusterProxy("bootstrap", kubeconfigPath, scheme)
@@ -243,14 +305,33 @@ func SetupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	return clusterProvider, clusterProxy
 }
 
-func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, config *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
+func InitBootstrapCluster(bootstrapClusterProxy framework.ClusterProxy, e2econfig *clusterctl.E2EConfig, clusterctlConfig, artifactFolder string) {
+	capiRelease := os.Getenv("CAPIRELEASE")
+	if capiRelease == "" {
+		// Resolve the latest stable CAPI release for the minor version from CAPI_RELEASE_PREFIX.
+		// e.g. CAPI_RELEASE_PREFIX="v1.13." -> minorVersion="1.13" -> capiRelease="v1.13.2"
+		releasePrefix := os.Getenv("CAPI_RELEASE_PREFIX")
+		Expect(releasePrefix).ToNot(BeEmpty(), "CAPI_RELEASE_PREFIX must be set when CAPIRELEASE is not")
+		minorVersion := strings.TrimSuffix(strings.TrimPrefix(releasePrefix, "v"), ".")
+		var err error
+		capiRelease, err = capi_e2e.GetStableReleaseOfMinor(ctx, minorVersion)
+		Expect(err).ToNot(HaveOccurred(), "Failed to get stable CAPI release for minor version %s", minorVersion)
+		if !strings.HasPrefix(capiRelease, "v") {
+			capiRelease = "v" + capiRelease
+		}
+		log.Printf("Resolved CAPIRELEASE from goproxy: %s", capiRelease)
+	}
+
 	clusterctl.InitManagementClusterAndWatchControllerLogs(context.TODO(), clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 		ClusterProxy:            bootstrapClusterProxy,
 		ClusterctlConfigPath:    clusterctlConfig,
-		InfrastructureProviders: config.InfrastructureProviders(),
-		IPAMProviders:           config.IPAMProviders(),
+		CoreProvider:            config.ClusterAPIProviderName + ":" + capiRelease,
+		BootstrapProviders:      []string{config.KubeadmBootstrapProviderName + ":" + capiRelease},
+		ControlPlaneProviders:   []string{config.KubeadmControlPlaneProviderName + ":" + capiRelease},
+		InfrastructureProviders: []string{config.Metal3ProviderName + ":" + os.Getenv("CAPM3RELEASE")},
+		IPAMProviders:           []string{config.Metal3IPAMProviderName + ":" + os.Getenv("IPAMRELEASE")},
 		LogFolder:               filepath.Join(artifactFolder, "clusters", bootstrapClusterProxy.GetName()),
-	}, config.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
+	}, e2econfig.GetIntervals(bootstrapClusterProxy.GetName(), "wait-controllers")...)
 }
 
 func TearDown(bootstrapClusterProvider bootstrap.ClusterProvider, bootstrapClusterProxy framework.ClusterProxy) {
@@ -377,22 +458,14 @@ func updateCilium(config *clusterctl.E2EConfig, cniPath string) {
 // createBMHsInNamespace is a hook function that can be called after creating
 // a namespace, it creates the needed bmhs in the namespace hosting the cluster.
 func createBMHsInNamespace(clusterProxy framework.ClusterProxy, clusterNamespace string) {
-	// Apply secrets and bmhs for all nodes in the cluster to host the target cluster
 	nodes := int(*e2eConfig.MustGetInt32PtrVariable("NUM_NODES"))
-	for i := range nodes {
-		resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
-	}
-	clusterClient := clusterProxy.GetClient()
-	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
-	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
-		Client:    clusterClient,
-		Options:   []client.ListOption{client.InNamespace(clusterNamespace)},
-		Replicas:  nodes,
-		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
-	})
-	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
+
+	// Use the VM info from the bmcs config to generate BMHs programmatically.
+	Expect(vmInfos).ToNot(BeEmpty(), "vmInfos not populated; E2E_BMCS_CONFIG must be set and loaded before creating BMHs")
+	Expect(len(vmInfos)).To(BeNumerically(">=", nodes), "Not enough VMs created for the requested number of nodes")
+
+	ApplyBMHs(ctx, clusterProxy, vmInfos[:nodes], clusterNamespace)
+	WaitForBMHsAvailable(ctx, clusterProxy, clusterNamespace, nodes, e2eConfig.GetIntervals(specName, "wait-bmh-available"))
 
 	ListBareMetalHosts(ctx, bootstrapClusterProxy.GetClient(), client.InNamespace(clusterNamespace))
 }
