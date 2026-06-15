@@ -1,0 +1,41 @@
+apiVersion: vbmctl.metal3.io/v1alpha1
+kind: Config
+spec:
+  libvirt:
+    uri: qemu:///system
+  pool:
+    name: capm3-e2e
+    path: /tmp/pool_capm3
+  vms:
+${VBMCTL_VMS}
+  networks:
+  - name: ${PROVISIONING_NETWORK_NAME}
+    bridge: ${PROVISIONING_BRIDGE}
+    address: ${PROVISIONING_IP}
+    netmask: 255.255.255.0
+  - name: ${EXTERNAL_NETWORK_NAME}
+    bridge: ${EXTERNAL_BRIDGE}
+    address: ${EXTERNAL_SUBNET_V4_HOST}
+    netmask: 255.255.255.0
+  vethPairs:
+  - link1: ${PROVISIONING_BRIDGE}
+    link2: kind-bridge
+    veth1: metalend
+    veth2: kindend
+  - link1: ${EXTERNAL_BRIDGE}
+    link2: kind-bridge
+    veth1: extmetal
+    veth2: extkind
+  dockerNetworks:
+  - name: "kind"
+    bridgeName: "kind-bridge"
+    subnet: "172.19.0.0/16"
+  bmcEmulator:
+    type: "sushy-tools"
+    image: "${BMC_EMULATOR_IMAGE}"
+    listenAddress: "${PROVISIONING_IP}"
+    listenPort: ${BMC_EMULATOR_PORT}
+  imageServer:
+    port: 80
+    dataDir: "${IRONIC_DATA_DIR}/html"
+    containerName: "vbmctl-image-server-e2e"

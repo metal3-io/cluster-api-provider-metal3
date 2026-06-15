@@ -1,22 +1,6 @@
 #!/bin/bash
 # File contains e2e var exports
 
-function clone_repo() {
-  local REPO_URL="$1"
-  local REPO_BRANCH="$2"
-  local REPO_PATH="$3"
-  if [[ -d "${REPO_PATH}" && "${FORCE_REPO_UPDATE}" == "true" ]]; then
-    rm -rf "${REPO_PATH}"
-  fi
-  if [ ! -d "${REPO_PATH}" ]; then
-    git clone "${REPO_URL}" "${REPO_PATH}"
-    pushd "${REPO_PATH}" || exit 1
-    git checkout "${REPO_BRANCH}"
-    git pull -r || true
-    popd || exit 1
-  fi
-}
-
 function os_check() {
   # Check OS type and version
   # shellcheck disable=SC1091
@@ -36,27 +20,21 @@ os_check
 
 if [[ "${OS}" == ubuntu ]]; then
   export IMAGE_OS="ubuntu"
-  export CONTAINER_RUNTIME="docker"
 elif [[ "${OS}" == centos ]]; then
   export IMAGE_OS="centos"
-  export CONTAINER_RUNTIME="podman"
 elif [[ "${OS}" == "opensuse-leap" ]]; then
   export IMAGE_OS="leap"
-  export CONTAINER_RUNTIME="podman"
 fi
 
-if [ "${CONTAINER_RUNTIME}" == "docker" ]; then
-  export BOOTSTRAP_CLUSTER="kind"
-else
-  export BOOTSTRAP_CLUSTER="minikube"
-fi
+export CONTAINER_RUNTIME="docker"
+export BOOTSTRAP_CLUSTER="kind"
 
 export KUBERNETES_VERSION=${KUBERNETES_VERSION:-"v1.36.2"}
 export KUBERNETES_VERSION_UPGRADE_FROM=${KUBERNETES_VERSION_UPGRADE_FROM:-"v1.35.6"}
 
 # Can be overriden from jjbs
 export CAPI_VERSION=${CAPI_VERSION:-"v1beta2"}
-export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta1"}
+export CAPM3_VERSION=${CAPM3_VERSION:-"v1beta2"}
 export M3PATH=${M3PATH:-"${HOME}/go/src/github.com/metal3-io"}
 export CAPM3_LOCAL_IMAGE="${CAPM3PATH}"
 
@@ -139,7 +117,11 @@ case "${GINKGO_FOCUS:-}" in
   ;;
 
   *)
-    # unknown GINKGO_FOCUS, let's print out the crucial env and continue
+    # unknown or empty GINKGO_FOCUS (e.g. running ci-e2e.sh directly): fall back
+    # to a sane default so the bare metal lab setup has a node count to work with.
+    export NUM_NODES=${NUM_NODES:-"4"}
+    export CONTROL_PLANE_MACHINE_COUNT=${CONTROL_PLANE_MACHINE_COUNT:-"3"}
+    export WORKER_MACHINE_COUNT=${WORKER_MACHINE_COUNT:-"1"}
     echo "WARNING: unrecognized GINKGO_FOCUS='${GINKGO_FOCUS:-}'"
   ;;
 esac
@@ -165,8 +147,8 @@ export BARE_METAL_PROVISIONER_URL_HOST="172.22.0.1"
 export CLUSTER_BARE_METAL_PROVISIONER_IP="172.22.0.2"
 export CLUSTER_BARE_METAL_PROVISIONER_HOST="$CLUSTER_PROVISIONING_IP"
 
-# Ironic config vars needed in ironic_tls_setup.sh and ironic_basic_auth.sh
-export IRONIC_DATA_DIR="$WORKING_DIR/ironic"
+# Ironic config vars
+export IRONIC_DATA_DIR="${IRONIC_DATA_DIR:-/opt/metal3/ironic/}"
 export IRONIC_TLS_SETUP="true"
 export IRONIC_BASIC_AUTH="true"
 
