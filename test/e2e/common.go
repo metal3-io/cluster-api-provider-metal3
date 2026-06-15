@@ -64,7 +64,6 @@ const (
 	other          vmState = "other"
 	artifactoryURL         = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
 	imagesURL              = "http://172.22.0.1/images"
-	ironicImageDir         = "/opt/metal3-dev-env/ironic/html/images"
 	osTypeCentos           = "centos"
 	osTypeUbuntu           = "ubuntu"
 	osTypeLeap             = "opensuse-leap"
@@ -76,6 +75,15 @@ const (
 	retryableOperationInterval = 3 * time.Second
 	retryableOperationTimeout  = 3 * time.Minute
 )
+
+var ironicImageDir = getIronicImageDir()
+
+func getIronicImageDir() string {
+	if dir := os.Getenv("IRONIC_DATA_DIR"); dir != "" {
+		return filepath.Join(dir, "html", "images")
+	}
+	return "/opt/metal3/ironic/html/images"
+}
 
 func Byf(format string, a ...any) {
 	By(fmt.Sprintf(format, a...))
@@ -141,22 +149,53 @@ func GetBoolVariable(e2eConfig *clusterctl.E2EConfig, varName string) bool {
 }
 
 // TODO change this function to handle multiple workload(target) clusters.
-func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrapClusterProxy framework.ClusterProxy, targetClusterProxy framework.ClusterProxy, artifactFolder string, namespace string, intervalsGetter func(spec, key string) []any, clusterName, clusterctlLogFolder string, skipCleanup bool, clusterctlConfigPath string) {
+func DumpSpecResourcesAndCleanup(ctx context.Context,
+	specName string,
+	bootstrapClusterProxy framework.ClusterProxy,
+	targetClusterProxy framework.ClusterProxy,
+	artifactFolder string,
+	namespace string,
+	intervalsGetter func(spec, key string) []any,
+	clusterName string,
+	clusterctlLogFolder string,
+	skipCleanup bool,
+	clusterctlConfigPath string) {
 	Expect(os.RemoveAll(clusterctlLogFolder)).Should(Succeed())
-	clusterClient := bootstrapClusterProxy.GetClient()
+	bootstrapClusterClient := bootstrapClusterProxy.GetClient()
 
 	bootstrapClusterProxy.CollectWorkloadClusterLogs(ctx, namespace, clusterName, artifactFolder)
 
 	By("Fetch logs from target cluster")
-	err := FetchClusterLogs(targetClusterProxy, clusterLogCollectionBasePath)
+	if targetClusterProxy != nil {
+		err := FetchClusterLogs(targetClusterProxy, filepath.Join(artifactFolder, targetClusterProxy.GetName(), "logs"))
+		if err != nil {
+			Logf("Error: %v", err)
+		}
+		err = FetchManifests(targetClusterProxy, filepath.Join(artifactFolder, targetClusterProxy.GetName(), "manifests"))
+		if err != nil {
+			Logf("Error fetching manifests for target cluster: %v", err)
+		}
+	} else {
+		Logf("Skipping target cluster log collection: targetClusterProxy is nil")
+	}
+
+	err := FetchClusterLogs(bootstrapClusterProxy, filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "logs"))
 	if err != nil {
 		Logf("Error: %v", err)
 	}
+	err = FetchManifests(bootstrapClusterProxy, filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "manifests"))
+	if err != nil {
+		Logf("Error fetching manifests for target cluster: %v", err)
+	}
+
+	By("Collecting logs from the vbmctl-managed lab containers")
+	CollectVbmctlContainerLogs(ctx, filepath.Join(artifactFolder, "vbmctl-container-logs"))
+
 	// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 	By(fmt.Sprintf("Dumping all the Cluster API resources in the %q namespace", namespace))
 	// Dump all Cluster API related resources to artifacts before deleting them.
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
-		Lister:               clusterClient,
+		Lister:               bootstrapClusterClient,
 		Namespace:            namespace,
 		LogPath:              filepath.Join(artifactFolder, bootstrapClusterProxy.GetName(), "resources"),
 		KubeConfigPath:       bootstrapClusterProxy.GetKubeconfigPath(),
@@ -183,8 +222,8 @@ func DumpSpecResourcesAndCleanup(ctx context.Context, specName string, bootstrap
 			opts := &client.ListOptions{}
 			datas := infrav1.Metal3DataList{}
 			dataClaims := infrav1.Metal3DataClaimList{}
-			g.Expect(clusterClient.List(ctx, &datas, opts)).To(Succeed())
-			g.Expect(clusterClient.List(ctx, &dataClaims, opts)).To(Succeed())
+			g.Expect(bootstrapClusterClient.List(ctx, &datas, opts)).To(Succeed())
+			g.Expect(bootstrapClusterClient.List(ctx, &dataClaims, opts)).To(Succeed())
 			for _, dataObject := range datas.Items {
 				By(fmt.Sprintf("Data named: %s is not delete", dataObject.Name))
 			}
@@ -649,13 +688,14 @@ func Metal3MachineToBmhName(m3machine infrav1.Metal3Machine) string {
 	return ref
 }
 
-// Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object.
+// BmhToVMName derives the name of a VM from the name of a BareMetalHost object.
+// With vbmctl, VM names match BMH names directly (e.g. node-0).
 func BmhToVMName(host bmov1alpha1.BareMetalHost) string {
-	return strings.ReplaceAll(host.Name, "-", "_")
+	return host.Name
 }
 
 func BmhNameToVMName(hostname string) string {
-	return strings.ReplaceAll(hostname, "-", "_")
+	return hostname
 }
 
 func MachineToVMName(ctx context.Context, cli client.Client, m *clusterv1.Machine) (string, error) {
@@ -1115,24 +1155,18 @@ func CreateTargetCluster(ctx context.Context, inputGetter func() CreateTargetClu
 	return targetCluster, &result
 }
 
+// TODO: This is now a thin wrapper around ApplyBMHs (plus a NUM_NODES slice and
+// a WaitForBMHsAvailable). Consider removing it and calling ApplyBMHs directly
+// from the callers to avoid the confusing indirection.
 func ApplyBmh(ctx context.Context, e2eConfig *clusterctl.E2EConfig, clusterProxy framework.ClusterProxy, clusterNamespace string, specName string) {
-	workingDir := "/opt/metal3-dev-env/"
 	numNodes := int(*e2eConfig.MustGetInt32PtrVariable("NUM_NODES"))
-	// Apply secrets and bmhs for [node_0 and node_1] in the management cluster to host the target management cluster
-	for i := range numNodes {
-		resource, err := os.ReadFile(filepath.Join(workingDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
-	}
-	clusterClient := clusterProxy.GetClient()
-	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
-	WaitForNumBmhInState(ctx, bmov1alpha1.StateAvailable, WaitForNumInput{
-		Client:    clusterClient,
-		Options:   []client.ListOption{client.InNamespace(clusterNamespace)},
-		Replicas:  numNodes,
-		Intervals: e2eConfig.GetIntervals(specName, "wait-bmh-available"),
-	})
-	ListBareMetalHosts(ctx, clusterClient, client.InNamespace(clusterNamespace))
+
+	// Use the VM info from the bmcs config to generate BMHs programmatically.
+	Expect(vmInfos).ToNot(BeEmpty(), "vmInfos not populated; E2E_BMCS_CONFIG must be set and loaded before creating BMHs")
+	Expect(len(vmInfos)).To(BeNumerically(">=", numNodes), "Not enough VMs created for the requested number of nodes")
+
+	ApplyBMHs(ctx, clusterProxy, vmInfos[:numNodes], clusterNamespace)
+	WaitForBMHsAvailable(ctx, clusterProxy, clusterNamespace, numNodes, e2eConfig.GetIntervals(specName, "wait-bmh-available"))
 }
 
 // WaitForResourceVersionsToStabilize waits for the resource versions of the specified GVKs in the given namespace to stabilize.
@@ -1566,25 +1600,13 @@ type UninstallIRSOAndIronicResourcesInput struct {
 	IronicNamespace       string
 	IrsoOperatorKustomize string
 	IronicKustomization   string
-	IsDevEnvUninstall     bool
 }
 
 // UninstallIRSOAndIronicResources removes the IRSO deployment, Ironic CR, IronicDatabase CR (if present), and related secrets.
 func UninstallIRSOAndIronicResources(ctx context.Context, input UninstallIRSOAndIronicResourcesInput) error {
-	if input.IsDevEnvUninstall {
-		ironicObj := &irsov1alpha1.Ironic{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ironic",
-				Namespace: input.IronicNamespace,
-			},
-		}
-		err := input.ClusterProxy.GetClient().Delete(ctx, ironicObj)
-		Expect(err).ToNot(HaveOccurred(), "Failed to delete Ironic")
-	} else {
-		By("Remove Ironic CR in the cluster " + input.ClusterProxy.GetName())
-		err := BuildAndRemoveKustomization(ctx, input.IronicKustomization, input.ClusterProxy)
-		Expect(err).NotTo(HaveOccurred())
-	}
+	By("Remove Ironic CR in the cluster " + input.ClusterProxy.GetName())
+	err := BuildAndRemoveKustomization(ctx, input.IronicKustomization, input.ClusterProxy)
+	Expect(err).NotTo(HaveOccurred())
 
 	By("Remove Ironic Service Deployment in the cluster " + input.ClusterProxy.GetName())
 	RemoveDeployment(ctx, func() RemoveDeploymentInput {
@@ -1595,20 +1617,9 @@ func UninstallIRSOAndIronicResources(ctx context.Context, input UninstallIRSOAnd
 		}
 	})
 
-	if input.IsDevEnvUninstall {
-		By("Remove Ironic Standalone Operator Deployment in the cluster " + input.ClusterProxy.GetName())
-		RemoveDeployment(ctx, func() RemoveDeploymentInput {
-			return RemoveDeploymentInput{
-				ClusterProxy: input.ClusterProxy,
-				Namespace:    IRSOControllerNameSpace,
-				Name:         IRSOControllerManagerName,
-			}
-		})
-	} else {
-		By("Uninstalling IRSO operator via kustomize")
-		err := BuildAndRemoveKustomization(ctx, input.IrsoOperatorKustomize, input.ClusterProxy)
-		Expect(err).NotTo(HaveOccurred())
-	}
+	By("Uninstalling IRSO operator via kustomize")
+	err = BuildAndRemoveKustomization(ctx, input.IrsoOperatorKustomize, input.ClusterProxy)
+	Expect(err).NotTo(HaveOccurred())
 
 	clusterClient := input.ClusterProxy.GetClient()
 
