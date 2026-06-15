@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -328,6 +329,55 @@ func CollectContainerLogs(ctx context.Context, namespace string, podName string,
 	}
 
 	return nil
+}
+
+// CollectVbmctlContainerLogs collects logs and metadata from the vbmctl-managed
+// lab containers (sushy-tools BMC emulator, image server, etc.). These run as
+// docker containers on the host - not as Kubernetes pods - so the cluster log
+// collection never captures them. Without these logs a mid-run crash of the BMC
+// emulator (which knocks all BareMetalHosts back to "registering") is
+// undiagnosable. Errors are logged but not returned, since log collection must
+// never fail the surrounding cleanup.
+func CollectVbmctlContainerLogs(ctx context.Context, outputPath string) {
+	if err := os.MkdirAll(outputPath, 0o750); err != nil {
+		Logf("couldn't create vbmctl container log directory %q: %v", outputPath, err)
+		return
+	}
+
+	// All containers vbmctl creates are prefixed with "vbmctl-".
+	out, err := exec.CommandContext(ctx, "docker", "ps", "-a",
+		"--filter", "name=vbmctl-", "--format", "{{.Names}}").Output()
+	if err != nil {
+		Logf("couldn't list vbmctl containers: %v", err)
+		return
+	}
+
+	names := strings.Fields(string(out))
+	if len(names) == 0 {
+		Logf("No vbmctl-* containers found to collect logs from")
+		return
+	}
+
+	for _, name := range names {
+		// docker logs writes to both stdout and stderr; capture both.
+		logs, err := exec.CommandContext(ctx, "docker", "logs", name).CombinedOutput() // #nosec G204:gosec
+		if err != nil {
+			Logf("couldn't get logs for container %s: %v", name, err)
+		}
+		if err = writeToFile(logs, name+".log", outputPath); err != nil {
+			Logf("couldn't write logs for container %s: %v", name, err)
+		}
+
+		inspect, err := exec.CommandContext(ctx, "docker", "inspect", name).Output() // #nosec G204:gosec
+		if err != nil {
+			Logf("couldn't inspect container %s: %v", name, err)
+			continue
+		}
+		if err = writeToFile(inspect, name+".inspect.json", outputPath); err != nil {
+			Logf("couldn't write inspect for container %s: %v", name, err)
+		}
+	}
+	Logf("Successfully collected vbmctl container logs to %s", outputPath)
 }
 
 // writeToFile writes content to a file,
