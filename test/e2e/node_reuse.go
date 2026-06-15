@@ -51,9 +51,6 @@ func NodeReuse(ctx context.Context, inputGetter func() NodeReuseInput) {
 	)
 
 	const (
-		artifactoryURL = "https://artifactory.nordix.org/artifactory/metal3/images/k8s"
-		imagesURL      = "http://172.22.0.1/images"
-		ironicImageDir = "/opt/metal3-dev-env/ironic/html/images"
 		nodeReuseLabel = "infrastructure.cluster.x-k8s.io/node-reuse"
 	)
 
