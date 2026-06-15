@@ -11,10 +11,6 @@ import (
 	capi_e2e "sigs.k8s.io/cluster-api/test/e2e"
 )
 
-const (
-	bmhCrsFile = "bmhosts_crs.yaml"
-)
-
 var _ = Describe("When testing MachineDeployment remediation", Label("healthcheck", "remediation", "features"), func() {
 
 	BeforeEach(func() {
@@ -34,12 +30,12 @@ var _ = Describe("When testing MachineDeployment remediation", Label("healthchec
 		Expect(err).ToNot(HaveOccurred(), "Could not list BMHs")
 
 		if len(bmhList) > 0 {
-			By("Removing existing BMHs from source")
-			bmhData, err := os.ReadFile(filepath.Join(workDir, bmhCrsFile))
-			Expect(err).ToNot(HaveOccurred(), "BMH CRs file not found")
-			kubeConfigPath := bootstrapClusterProxy.GetKubeconfigPath()
-			err = KubectlDelete(ctx, kubeConfigPath, bmhData, "-n", "metal3", "--ignore-not-found")
-			Expect(err).ToNot(HaveOccurred(), "Could not delete BMHs")
+			By("Removing existing BMHs")
+			clusterClient := bootstrapClusterProxy.GetClient()
+			for i := range bmhList {
+				Logf("Deleting BMH %s/%s", bmhList[i].Namespace, bmhList[i].Name)
+				Expect(clusterClient.Delete(ctx, &bmhList[i])).To(Succeed(), "Could not delete BMH %s", bmhList[i].Name)
+			}
 
 			By("Waiting for all the BMHs deleted")
 			Eventually(func(g Gomega) {

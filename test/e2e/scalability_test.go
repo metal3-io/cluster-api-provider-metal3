@@ -177,17 +177,17 @@ func postScaleClusterNamespaceCreated(clusterProxy framework.ClusterProxy, clust
 	applyBmhsByBatch := func(batchSize int, from int, to int) {
 		applyBatchBmh := func(from int, to int) {
 			bmhsNameList := make([]string, 0, to-from+1)
-			Logf("Apply BMH batch from node_%d to node_%d", from, to)
+			Logf("Apply BMH batch from node-%d to node-%d", from, to)
+			Expect(vmInfos).ToNot(BeEmpty(), "vmInfos not populated")
+			Expect(len(vmInfos)).To(BeNumerically(">", to), "Not enough VMs for batch")
 			for i := from; i < to+1; i++ {
 				bmhsNameList = append(bmhsNameList, fmt.Sprintf("node-%d", i))
-				resource, err := os.ReadFile(filepath.Join(workDir, fmt.Sprintf("bmhs/node_%d.yaml", i)))
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(CreateOrUpdateWithNamespace(ctx, clusterProxy, resource, clusterNamespace)).ShouldNot(HaveOccurred())
 			}
+			ApplyBMHs(ctx, clusterProxy, vmInfos[from:to+1], clusterNamespace)
 			// I need to get a list of bmh names we are getting bmhlist to avoid http request one by one
 			// TODO (mboukhalfa) if the clusters are using the same namespace then might pickup the bmh from the list
 			// that we are waiting to become available aby another cluster then the bmh number avialble will never reached
-			Logf("Waiting for BMHs from node_%d to node_%d to become available", from, to)
+			Logf("Waiting for BMHs from node-%d to node-%d to become available", from, to)
 			Eventually(func(g Gomega) {
 				bmhList := bmov1alpha1.BareMetalHostList{}
 				g.Expect(c.List(ctx, &bmhList, []client.ListOption{client.InNamespace(clusterNamespace)}...)).To(Succeed())

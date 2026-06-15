@@ -3,8 +3,6 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"os/exec"
-	"strings"
 
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
@@ -387,31 +385,7 @@ func (btms bmhToMachineSlice) getNodeNames() []string {
 
 // listVms returns the names of libvirt VMs having given state.
 func listVms(state vmState) []string {
-	var cmd *exec.Cmd // gosec Subprocess launched with variable
-	switch state {
-	case running:
-		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-running")
-	case shutoff:
-		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-shutoff")
-	case paused:
-		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-paused")
-	case other:
-		cmd = exec.CommandContext(context.Background(), "sudo", "virsh", "list", "--name", "--state-other")
-	}
-
-	result, err := cmd.Output()
-	Expect(err).NotTo(HaveOccurred())
-
-	lines := strings.Split(string(result), "\n")
-	// virsh may return some empty lines which need to be removed
-	i := 0
-	for _, line := range lines {
-		if line != "" {
-			lines[i] = line
-			i++
-		}
-	}
-	return lines[:i]
+	return ListVMsByState(state)
 }
 
 func waitForVmsState(vmNames []string, state vmState, _ string, interval ...any) {
