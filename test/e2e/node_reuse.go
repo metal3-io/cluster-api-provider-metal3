@@ -510,19 +510,15 @@ func updateNodeReuse(ctx context.Context, namespace string, nodeReuse bool, m3Ma
 // has the correct node reuse condition reason set.
 func verifyMetal3MachineNodeReuseCondition(ctx context.Context, managementClusterClient client.Client, bmhKey types.NamespacedName, namespace string, intervals []interface{}) {
 	By("Verify Metal3Machine has correct node reuse condition reason [node_reuse]")
-	var m3mName string
 	Eventually(
 		func(g Gomega) {
 			bmh := bmov1alpha1.BareMetalHost{}
 			g.Expect(managementClusterClient.Get(ctx, bmhKey, &bmh)).To(Succeed())
-			// Find Metal3Machine from BMH owner references
-			for _, ownerRef := range bmh.OwnerReferences {
-				if ownerRef.Kind == "Metal3Machine" {
-					m3mName = ownerRef.Name
-					break
-				}
-			}
-			g.Expect(m3mName).NotTo(BeEmpty(), "Metal3Machine owner reference not found on BMH")
+			// Find Metal3Machine from BMH ConsumerRef
+			g.Expect(bmh.Spec.ConsumerRef).NotTo(BeNil(), "ConsumerRef not set on BMH")
+			g.Expect(bmh.Spec.ConsumerRef.Kind).To(Equal("Metal3Machine"), "ConsumerRef does not point to a Metal3Machine")
+			m3mName := bmh.Spec.ConsumerRef.Name
+			g.Expect(m3mName).NotTo(BeEmpty(), "Metal3Machine name in ConsumerRef is empty")
 
 			// Get Metal3Machine and check condition
 			m3m := infrav1.Metal3Machine{}

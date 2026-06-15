@@ -216,6 +216,12 @@ func (r *Metal3MachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	machineLog.V(baremetal.VerbosityLevelTrace).Info("Created MachineManager, checking pause state")
 
+	// Ensure block-move annotation is always present on associated BMH.
+	if err := machineMgr.EnsureBlockMoveAnnotation(ctx); err != nil {
+		machineLog.Info("failed to ensure block-move annotation on associated BMH",
+			baremetal.LogFieldError, err.Error())
+	}
+
 	// Check pause annotation on associated bmh (if any)
 	setPause := cluster.Spec.Paused != nil && *cluster.Spec.Paused
 	machineLog.V(baremetal.VerbosityLevelDebug).Info("Cluster pause check",

@@ -117,6 +117,13 @@ require this label to be set, because they hold ownerReferences to
 BareMetalHost, and that is good enough for clusterctl to move all the hierarchy
 of BareMetalHost object.
 
+CAPM3 also automatically sets the `clusterctl.cluster.x-k8s.io/block-move`
+annotation on a claimed BareMetalHost until its pause and status annotations
+are applied, to prevent it from being moved mid-reconcile. This annotation
+blocks the entire `clusterctl move` operation while present on any object,
+a BareMetalHost stuck in this state can stall the whole move, not just
+its own cluster.
+
 ## Development Environment
 
 There are multiple ways to setup a development environment:

@@ -134,6 +134,20 @@ func (mr *MockMachineManagerInterfaceMockRecorder) DissociateM3Metadata(arg0 any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DissociateM3Metadata", reflect.TypeOf((*MockMachineManagerInterface)(nil).DissociateM3Metadata), arg0)
 }
 
+// EnsureBlockMoveAnnotation mocks base method.
+func (m *MockMachineManagerInterface) EnsureBlockMoveAnnotation(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureBlockMoveAnnotation", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// EnsureBlockMoveAnnotation indicates an expected call of EnsureBlockMoveAnnotation.
+func (mr *MockMachineManagerInterfaceMockRecorder) EnsureBlockMoveAnnotation(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureBlockMoveAnnotation", reflect.TypeOf((*MockMachineManagerInterface)(nil).EnsureBlockMoveAnnotation), arg0)
+}
+
 // GetMetal3Machine mocks base method.
 func (m *MockMachineManagerInterface) GetMetal3Machine() *v1beta2.Metal3Machine {
 	m.ctrl.T.Helper()

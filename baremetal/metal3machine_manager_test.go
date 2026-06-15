@@ -40,6 +40,7 @@ import (
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 const (
@@ -992,11 +993,12 @@ var _ = Describe("Metal3Machine manager", func() {
 	})
 
 	type testCaseSetPauseAnnotation struct {
-		M3Machine           *infrav1.Metal3Machine
-		Host                *bmov1alpha1.BareMetalHost
-		ExpectPausePresent  bool
-		ExpectStatusPresent bool
-		ExpectError         bool
+		M3Machine             *infrav1.Metal3Machine
+		Host                  *bmov1alpha1.BareMetalHost
+		ExpectPausePresent    bool
+		ExpectStatusPresent   bool
+		ExpectBlockMoveAbsent bool
+		ExpectError           bool
 	}
 
 	DescribeTable("Test Set BMH Pause Annotation",
@@ -1049,6 +1051,10 @@ var _ = Describe("Metal3Machine manager", func() {
 			} else {
 				Expect(statusPresent).To(BeFalse())
 			}
+			if tc.ExpectBlockMoveAbsent {
+				_, blockMovePresent := savedHost.Annotations[BlockMoveAnnotation]
+				Expect(blockMovePresent).To(BeFalse(), "block-move annotation should be removed after SetPauseAnnotation")
+			}
 		},
 		Entry("Set BMH Pause Annotation, with valid CAPM3 Paused annotations, already paused", testCaseSetPauseAnnotation{
 			Host: &bmov1alpha1.BareMetalHost{
@@ -1064,8 +1070,9 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
-			ExpectPausePresent: true,
-			ExpectError:        false,
+			ExpectPausePresent:    true,
+			ExpectBlockMoveAbsent: true,
+			ExpectError:           false,
 		}),
 		Entry("Set BMH Pause Annotation, with valid Paused annotations, Empty Key, already paused", testCaseSetPauseAnnotation{
 			Host: &bmov1alpha1.BareMetalHost{
@@ -1081,8 +1088,38 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
-			ExpectPausePresent: true,
-			ExpectError:        false,
+			ExpectPausePresent:    true,
+			ExpectBlockMoveAbsent: true,
+			ExpectError:           false,
+		}),
+		Entry("Set BMH Pause Annotation, already paused with stale block-move", testCaseSetPauseAnnotation{
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            baremetalhostName,
+					Namespace:       namespaceName,
+					OwnerReferences: []metav1.OwnerReference{},
+					Labels: map[string]string{
+						clusterv1.ClusterNameLabel: clusterName,
+					},
+					Annotations: map[string]string{
+						bmov1alpha1.PausedAnnotation: PausedAnnotationKey,
+						BlockMoveAnnotation:          "",
+					},
+				},
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       metal3machineName,
+						Namespace:  namespaceName,
+						Kind:       metal3MachineKind,
+						APIVersion: infrav1.GroupVersion.String(),
+					},
+				},
+			},
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			ExpectPausePresent:    true,
+			ExpectBlockMoveAbsent: true,
+			ExpectError:           false,
 		}),
 		Entry("Set BMH Pause Annotation, with no Paused annotations", testCaseSetPauseAnnotation{
 			Host: &bmov1alpha1.BareMetalHost{
@@ -1101,11 +1138,538 @@ var _ = Describe("Metal3Machine manager", func() {
 			},
 			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
 				m3mObjectMetaWithValidAnnotations()),
-			ExpectPausePresent:  true,
-			ExpectStatusPresent: true,
-			ExpectError:         false,
+			ExpectPausePresent:    true,
+			ExpectStatusPresent:   true,
+			ExpectBlockMoveAbsent: true,
+			ExpectError:           false,
+		}),
+		Entry("Set BMH Pause Annotation, with block-move pre-set by EnsureBlockMoveAnnotation", testCaseSetPauseAnnotation{
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            baremetalhostName,
+					Namespace:       namespaceName,
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						BlockMoveAnnotation: "",
+					},
+				},
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       metal3machineName,
+						Namespace:  namespaceName,
+						Kind:       metal3MachineKind,
+						APIVersion: infrav1.GroupVersion.String(),
+					},
+				},
+				Status: bmov1alpha1.BareMetalHostStatus{
+					OperationalStatus: "OK",
+				},
+			},
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			ExpectPausePresent:    true,
+			ExpectStatusPresent:   true,
+			ExpectBlockMoveAbsent: true,
+			ExpectError:           false,
 		}),
 	)
+
+	type testCaseEnsureBlockMoveAnnotation struct {
+		M3Machine              *infrav1.Metal3Machine
+		Host                   *bmov1alpha1.BareMetalHost
+		ExpectBlockMovePresent bool
+		ExpectError            bool
+	}
+
+	DescribeTable("Test EnsureBlockMoveAnnotation",
+		func(tc testCaseEnsureBlockMoveAnnotation) {
+			objects := []client.Object{tc.M3Machine}
+			if tc.Host != nil {
+				objects = append(objects, tc.Host)
+			}
+			fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
+				objects...).Build()
+
+			machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, tc.M3Machine, logr.Discard())
+			Expect(err).NotTo(HaveOccurred())
+
+			err = machineMgr.EnsureBlockMoveAnnotation(context.TODO())
+			if tc.ExpectError {
+				Expect(err).To(HaveOccurred())
+				return
+			}
+			Expect(err).NotTo(HaveOccurred())
+
+			if tc.Host == nil {
+				return
+			}
+
+			savedHost := bmov1alpha1.BareMetalHost{}
+			err = fakeClient.Get(context.TODO(),
+				client.ObjectKey{
+					Name:      tc.Host.Name,
+					Namespace: tc.Host.Namespace,
+				},
+				&savedHost,
+			)
+			Expect(err).NotTo(HaveOccurred())
+			_, blockMovePresent := savedHost.Annotations[BlockMoveAnnotation]
+			if tc.ExpectBlockMovePresent {
+				Expect(blockMovePresent).To(BeTrue())
+			} else {
+				Expect(blockMovePresent).To(BeFalse())
+			}
+		},
+		Entry("No associated BMH found (host is nil)", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				&metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						HostAnnotation: namespaceName + "/nonexistent-bmh",
+					},
+				}),
+			Host:                   nil,
+			ExpectBlockMovePresent: false,
+			ExpectError:            false,
+		}),
+		Entry("BMH has no ConsumerRef", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaEmptyAnnotations(),
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: nil,
+				},
+			},
+			ExpectBlockMovePresent: false,
+			ExpectError:            false,
+		}),
+		Entry("ConsumerRef does not match Metal3Machine", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaEmptyAnnotations(),
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       "someothermachine",
+						Namespace:  namespaceName,
+						Kind:       metal3MachineKind,
+						APIVersion: infrav1.GroupVersion.String(),
+					},
+				},
+			},
+			ExpectBlockMovePresent: false,
+			ExpectError:            false,
+		}),
+		Entry("Block-move annotation already present", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            baremetalhostName,
+					Namespace:       namespaceName,
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						BlockMoveAnnotation: "",
+					},
+				},
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       metal3machineName,
+						Namespace:  namespaceName,
+						Kind:       metal3MachineKind,
+						APIVersion: infrav1.GroupVersion.String(),
+					},
+				},
+			},
+			ExpectBlockMovePresent: true,
+			ExpectError:            false,
+		}),
+		Entry("BMH already has pause annotation, block-move not re-set", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            baremetalhostName,
+					Namespace:       namespaceName,
+					OwnerReferences: []metav1.OwnerReference{},
+					Annotations: map[string]string{
+						bmov1alpha1.PausedAnnotation: PausedAnnotationKey,
+					},
+				},
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       metal3machineName,
+						Namespace:  namespaceName,
+						Kind:       metal3MachineKind,
+						APIVersion: infrav1.GroupVersion.String(),
+					},
+				},
+			},
+			ExpectBlockMovePresent: false,
+			ExpectError:            false,
+		}),
+		Entry("Happy path - block-move annotation added to unpaused associated BMH", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaEmptyAnnotations(),
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       metal3machineName,
+						Namespace:  namespaceName,
+						Kind:       metal3MachineKind,
+						APIVersion: infrav1.GroupVersion.String(),
+					},
+				},
+			},
+			ExpectBlockMovePresent: true,
+			ExpectError:            false,
+		}),
+		Entry("BMH annotations map is nil - block-move annotation added", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				m3mObjectMetaWithValidAnnotations()),
+			Host: &bmov1alpha1.BareMetalHost{
+				ObjectMeta: *bmhObjectMetaNoAnnotations(),
+				Spec: bmov1alpha1.BareMetalHostSpec{
+					ConsumerRef: &corev1.ObjectReference{
+						Name:       metal3machineName,
+						Namespace:  namespaceName,
+						Kind:       metal3MachineKind,
+						APIVersion: infrav1.GroupVersion.String(),
+					},
+				},
+			},
+			ExpectBlockMovePresent: true,
+			ExpectError:            false,
+		}),
+		Entry("getHost returns error from invalid HostAnnotation value", testCaseEnsureBlockMoveAnnotation{
+			M3Machine: newMetal3Machine(metal3machineName, m3mSpec(), nil,
+				&metav1.ObjectMeta{
+					Name:      metal3machineName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						HostAnnotation: "ns/extra/slashes",
+					},
+				}),
+			Host:                   nil,
+			ExpectBlockMovePresent: false,
+			ExpectError:            true,
+		}),
+	)
+
+	It("SetPauseAnnotation removes block-move annotation after pausing BMH", func() {
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            baremetalhostName,
+				Namespace:       namespaceName,
+				OwnerReferences: []metav1.OwnerReference{},
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+				Annotations: map[string]string{
+					BlockMoveAnnotation: "",
+				},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       metal3machineName,
+					Namespace:  namespaceName,
+					Kind:       metal3MachineKind,
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+		}
+		m3Machine := newMetal3Machine(metal3machineName, m3mSpec(), nil,
+			m3mObjectMetaWithValidAnnotations())
+
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
+			host, m3Machine).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, m3Machine, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.SetPauseAnnotation(context.TODO())
+		Expect(err).NotTo(HaveOccurred())
+
+		savedHost := bmov1alpha1.BareMetalHost{}
+		err = fakeClient.Get(context.TODO(),
+			client.ObjectKey{
+				Name:      baremetalhostName,
+				Namespace: namespaceName,
+			},
+			&savedHost,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Pause annotation should be present
+		_, pausePresent := savedHost.Annotations[bmov1alpha1.PausedAnnotation]
+		Expect(pausePresent).To(BeTrue())
+
+		// Block-move annotation should have been removed
+		_, blockMovePresent := savedHost.Annotations[BlockMoveAnnotation]
+		Expect(blockMovePresent).To(BeFalse())
+	})
+
+	It("SetPauseAnnotation with nil annotations adds block-move, pauses, then removes block-move", func() {
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            baremetalhostName,
+				Namespace:       namespaceName,
+				OwnerReferences: []metav1.OwnerReference{},
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+				// No Annotations field — nil map
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       metal3machineName,
+					Namespace:  namespaceName,
+					Kind:       metal3MachineKind,
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				OperationalStatus: "OK",
+			},
+		}
+		m3Machine := newMetal3Machine(metal3machineName, m3mSpec(), nil,
+			m3mObjectMetaWithValidAnnotations())
+
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
+			host, m3Machine).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, m3Machine, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.SetPauseAnnotation(context.TODO())
+		Expect(err).NotTo(HaveOccurred())
+
+		savedHost := bmov1alpha1.BareMetalHost{}
+		err = fakeClient.Get(context.TODO(),
+			client.ObjectKey{
+				Name:      baremetalhostName,
+				Namespace: namespaceName,
+			},
+			&savedHost,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Pause annotation should be present
+		_, pausePresent := savedHost.Annotations[bmov1alpha1.PausedAnnotation]
+		Expect(pausePresent).To(BeTrue())
+
+		// Status annotation should be present
+		_, statusPresent := savedHost.Annotations[bmov1alpha1.StatusAnnotation]
+		Expect(statusPresent).To(BeTrue())
+
+		// Block-move annotation should have been removed after pause completed
+		_, blockMovePresent := savedHost.Annotations[BlockMoveAnnotation]
+		Expect(blockMovePresent).To(BeFalse())
+	})
+
+	It("SetPauseAnnotation removes stale block-move from already-paused BMH", func() {
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            baremetalhostName,
+				Namespace:       namespaceName,
+				OwnerReferences: []metav1.OwnerReference{},
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+				Annotations: map[string]string{
+					bmov1alpha1.PausedAnnotation: PausedAnnotationKey,
+					BlockMoveAnnotation:          "",
+				},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       metal3machineName,
+					Namespace:  namespaceName,
+					Kind:       metal3MachineKind,
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+		}
+		m3Machine := newMetal3Machine(metal3machineName, m3mSpec(), nil,
+			m3mObjectMetaWithValidAnnotations())
+
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
+			host, m3Machine).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, m3Machine, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.SetPauseAnnotation(context.TODO())
+		Expect(err).NotTo(HaveOccurred())
+
+		savedHost := bmov1alpha1.BareMetalHost{}
+		err = fakeClient.Get(context.TODO(),
+			client.ObjectKey{
+				Name:      baremetalhostName,
+				Namespace: namespaceName,
+			},
+			&savedHost,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Pause annotation should still be present
+		_, pausePresent := savedHost.Annotations[bmov1alpha1.PausedAnnotation]
+		Expect(pausePresent).To(BeTrue())
+
+		// Stale block-move annotation should have been removed
+		_, blockMovePresent := savedHost.Annotations[BlockMoveAnnotation]
+		Expect(blockMovePresent).To(BeFalse())
+	})
+
+	It("SetPauseAnnotation returns error when block-move patch fails", func() {
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            baremetalhostName,
+				Namespace:       namespaceName,
+				OwnerReferences: []metav1.OwnerReference{},
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+				Annotations: map[string]string{},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       metal3machineName,
+					Namespace:  namespaceName,
+					Kind:       metal3MachineKind,
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+		}
+		m3Machine := newMetal3Machine(metal3machineName, m3mSpec(), nil,
+			m3mObjectMetaWithValidAnnotations())
+
+		// Use an interceptor to simulate a patch failure when block-move is being set
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
+			host, m3Machine).WithInterceptorFuncs(interceptor.Funcs{
+			Patch: func(ctx context.Context, client client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+				if bmh, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
+					if _, hasBlockMove := bmh.Annotations[BlockMoveAnnotation]; hasBlockMove {
+						// Fail on the first patch that sets block-move
+						if _, hasPause := bmh.Annotations[bmov1alpha1.PausedAnnotation]; !hasPause {
+							return errors.New("simulated patch failure")
+						}
+					}
+				}
+				return client.Patch(ctx, obj, patch, opts...)
+			},
+		}).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, m3Machine, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.SetPauseAnnotation(context.TODO())
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to set block-move annotation"))
+	})
+
+	It("SetPauseAnnotation returns error when block-move removal patch fails", func() {
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            baremetalhostName,
+				Namespace:       namespaceName,
+				OwnerReferences: []metav1.OwnerReference{},
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+				Annotations: map[string]string{},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       metal3machineName,
+					Namespace:  namespaceName,
+					Kind:       metal3MachineKind,
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+			Status: bmov1alpha1.BareMetalHostStatus{
+				OperationalStatus: "OK",
+			},
+		}
+		m3Machine := newMetal3Machine(metal3machineName, m3mSpec(), nil,
+			m3mObjectMetaWithValidAnnotations())
+
+		// Track patch calls — fail only on the final patch that removes block-move
+		patchCount := 0
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
+			host, m3Machine).WithInterceptorFuncs(interceptor.Funcs{
+			Patch: func(ctx context.Context, client client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+				if _, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
+					patchCount++
+					// The 3rd patch is the block-move removal (1st = set block-move, 2nd = set pause+status)
+					if patchCount == 3 {
+						return errors.New("simulated removal patch failure")
+					}
+				}
+				return client.Patch(ctx, obj, patch, opts...)
+			},
+		}).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, m3Machine, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.SetPauseAnnotation(context.TODO())
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to remove block-move annotation"))
+	})
+
+	It("SetPauseAnnotation returns error when host disappears after block-move patch", func() {
+		host := &bmov1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            baremetalhostName,
+				Namespace:       namespaceName,
+				OwnerReferences: []metav1.OwnerReference{},
+				Labels: map[string]string{
+					clusterv1.ClusterNameLabel: clusterName,
+				},
+				Annotations: map[string]string{},
+			},
+			Spec: bmov1alpha1.BareMetalHostSpec{
+				ConsumerRef: &corev1.ObjectReference{
+					Name:       metal3machineName,
+					Namespace:  namespaceName,
+					Kind:       metal3MachineKind,
+					APIVersion: infrav1.GroupVersion.String(),
+				},
+			},
+		}
+		m3Machine := newMetal3Machine(metal3machineName, m3mSpec(), nil,
+			m3mObjectMetaWithValidAnnotations())
+
+		// After the first patch (set block-move), delete the host so that
+		// the re-fetch in getHost returns nil.
+		patchCount := 0
+		fakeClient := fake.NewClientBuilder().WithScheme(setupSchemeMm()).WithObjects(
+			host, m3Machine).WithInterceptorFuncs(interceptor.Funcs{
+			Patch: func(ctx context.Context, client client.WithWatch, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+				if _, ok := obj.(*bmov1alpha1.BareMetalHost); ok {
+					patchCount++
+					if patchCount == 1 {
+						// Let the first patch succeed, then delete the host
+						if err := client.Patch(ctx, obj, patch, opts...); err != nil {
+							return err
+						}
+						return client.Delete(ctx, obj)
+					}
+				}
+				return client.Patch(ctx, obj, patch, opts...)
+			},
+		}).Build()
+
+		machineMgr, err := NewMachineManager(fakeClient, nil, nil, nil, m3Machine, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = machineMgr.SetPauseAnnotation(context.TODO())
+		Expect(err).To(HaveOccurred())
+	})
 
 	type testCaseRemovePauseAnnotation struct {
 		Cluster       *clusterv1.Cluster
@@ -1368,8 +1932,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			Expect(tc.Host.Spec.ConsumerRef.Namespace).
 				To(Equal(m3mconfig.Namespace))
 			Expect(tc.Host.Spec.ConsumerRef.Kind).To(Equal(metal3MachineKind))
-			_, err = machineMgr.FindOwnerRef(tc.Host.OwnerReferences)
-			Expect(err).NotTo(HaveOccurred())
 
 			if tc.expectNodeReuseLabelDeleted {
 				Expect(tc.Host.Labels[nodeReuseLabelName]).To(Equal(""))
@@ -3006,7 +3568,6 @@ var _ = Describe("Metal3Machine manager", func() {
 		Data               *infrav1.Metal3Data
 		ExpectRequeue      bool
 		ExpectClusterLabel bool
-		ExpectOwnerRef     bool
 	}
 
 	DescribeTable("Test Associate function",
@@ -3057,12 +3618,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				&savedHost,
 			)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = machineMgr.FindOwnerRef(savedHost.OwnerReferences)
-			if tc.ExpectOwnerRef {
-				Expect(err).NotTo(HaveOccurred())
-			} else {
-				Expect(err).To(HaveOccurred())
-			}
 			if tc.ExpectClusterLabel {
 				// get the BMC credential
 				savedCred := corev1.Secret{}
@@ -3087,8 +3642,7 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil,
 					false, "metadata", false, "", false,
 				),
-				ExpectRequeue:  false,
-				ExpectOwnerRef: true,
+				ExpectRequeue: false,
 			},
 		),
 		Entry("Associate empty machine, Metal3 machine spec set",
@@ -3100,9 +3654,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				Host: newBareMetalHost(baremetalhostName, bmhSpecBMC(), bmov1alpha1.StateNone, nil,
 					false, "metadata", false, "", false,
 				),
-				BMCSecret:      newBMCSecret("mycredentials", false),
-				ExpectRequeue:  false,
-				ExpectOwnerRef: true,
+				BMCSecret:     newBMCSecret("mycredentials", false),
+				ExpectRequeue: false,
 			},
 		),
 		Entry("Associate empty machine, host empty, Metal3 machine spec set",
@@ -3111,9 +3664,8 @@ var _ = Describe("Metal3Machine manager", func() {
 				M3Machine: newMetal3Machine(metal3machineName, m3mSpecAll(), nil,
 					m3mObjectMetaWithValidAnnotations(),
 				),
-				Host:           newBareMetalHost("", nil, bmov1alpha1.StateNone, nil, false, "metadata", false, "", false),
-				ExpectRequeue:  true,
-				ExpectOwnerRef: false,
+				Host:          newBareMetalHost("", nil, bmov1alpha1.StateNone, nil, false, "metadata", false, "", false),
+				ExpectRequeue: true,
 			},
 		),
 		Entry("Associate machine, host nil, Metal3 machine spec set, requeue",
@@ -3134,7 +3686,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
-				ExpectOwnerRef:     true,
 			},
 		),
 		Entry("Associate machine with DataTemplate missing",
@@ -3161,7 +3712,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				BMCSecret:          newBMCSecret("mycredentials", false),
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
-				ExpectOwnerRef:     true,
 			},
 		),
 		Entry("Associate machine with DataTemplate and Data ready",
@@ -3207,7 +3757,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				},
 				ExpectClusterLabel: true,
 				ExpectRequeue:      false,
-				ExpectOwnerRef:     true,
 			},
 		),
 	)
@@ -3259,267 +3808,6 @@ var _ = Describe("Metal3Machine manager", func() {
 			),
 			Host:        newBareMetalHost(baremetalhostName, nil, bmov1alpha1.StateNone, nil, false, "metadata", false, "", false),
 			ExpectError: true,
-		}),
-	)
-
-	type testCaseFindOwnerRef struct {
-		M3Machine     infrav1.Metal3Machine
-		OwnerRefs     []metav1.OwnerReference
-		ExpectError   bool
-		ExpectedIndex int
-	}
-
-	DescribeTable("Test FindOwnerRef",
-		func(tc testCaseFindOwnerRef) {
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				logr.Discard(),
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			index, err := machineMgr.FindOwnerRef(tc.OwnerRefs)
-			if tc.ExpectError {
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(BeAssignableToTypeOf(&NotFoundError{}))
-			} else {
-				Expect(err).ToNot(HaveOccurred())
-				Expect(index).To(BeEquivalentTo(tc.ExpectedIndex))
-			}
-		},
-		Entry("Empty list", testCaseFindOwnerRef{
-			M3Machine:   *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs:   []metav1.OwnerReference{},
-			ExpectError: true,
-		}),
-		Entry("Absent", testCaseFindOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-			ExpectError: true,
-		}),
-		Entry("Present 0", testCaseFindOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-			ExpectError:   false,
-			ExpectedIndex: 0,
-		}),
-		Entry("Present 1", testCaseFindOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-			ExpectError:   false,
-			ExpectedIndex: 1,
-		}),
-		Entry("Present but different versions", testCaseFindOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha1",
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-			ExpectError:   false,
-			ExpectedIndex: 1,
-		}),
-		Entry("Wrong group", testCaseFindOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: "nfrastructure.cluster.x-k8s.io/v1alpha1",
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-			ExpectError: true,
-		}),
-	)
-
-	type testCaseOwnerRef struct {
-		M3Machine  infrav1.Metal3Machine
-		OwnerRefs  []metav1.OwnerReference
-		Controller bool
-	}
-
-	DescribeTable("Test DeleteOwnerRef",
-		func(tc testCaseOwnerRef) {
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				logr.Discard(),
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			refList, err := machineMgr.DeleteOwnerRef(tc.OwnerRefs)
-			Expect(err).ToNot(HaveOccurred())
-			_, err = machineMgr.FindOwnerRef(refList)
-			Expect(err).To(HaveOccurred())
-		},
-		Entry("Empty list", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{},
-		}),
-		Entry("Absent", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 0", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 1", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-	)
-
-	DescribeTable("Test SetOwnerRef",
-		func(tc testCaseOwnerRef) {
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &tc.M3Machine,
-				logr.Discard(),
-			)
-			Expect(err).NotTo(HaveOccurred())
-
-			refList, err := machineMgr.SetOwnerRef(tc.OwnerRefs, tc.Controller)
-			Expect(err).ToNot(HaveOccurred())
-			index, err := machineMgr.FindOwnerRef(refList)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*refList[index].Controller).To(BeEquivalentTo(tc.Controller))
-		},
-		Entry("Empty list", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{},
-		}),
-		Entry("Absent", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 0", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-			},
-		}),
-		Entry("Present 1", testCaseOwnerRef{
-			M3Machine: *newMetal3Machine("myName", nil, nil, nil),
-			OwnerRefs: []metav1.OwnerReference{
-				{
-					APIVersion: "abc.com/v1",
-					Kind:       "def",
-					Name:       "ghi",
-					UID:        "adfasdf",
-				},
-				{
-					Kind:       metal3MachineKind,
-					APIVersion: infrav1.GroupVersion.String(),
-					Name:       "myName",
-					UID:        "adfasdf",
-				},
-			},
 		}),
 	)
 
