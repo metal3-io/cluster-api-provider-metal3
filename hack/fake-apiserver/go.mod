@@ -6,9 +6,9 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.12.4
 	github.com/metal3-io/cluster-api-provider-metal3/api v1.12.5
 	go.uber.org/zap v1.28.0
-	k8s.io/api v0.35.5
-	k8s.io/apimachinery v0.35.5
-	k8s.io/client-go v0.35.5
+	k8s.io/api v0.35.6
+	k8s.io/apimachinery v0.35.6
+	k8s.io/client-go v0.35.6
 	sigs.k8s.io/cluster-api v1.13.2
 	sigs.k8s.io/cluster-api/test v1.13.2
 	sigs.k8s.io/controller-runtime v0.23.3
@@ -103,10 +103,10 @@ require (
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.35.5 // indirect
-	k8s.io/apiserver v0.35.5 // indirect
+	k8s.io/apiextensions-apiserver v0.35.6 // indirect
+	k8s.io/apiserver v0.35.6 // indirect
 	k8s.io/cluster-bootstrap v0.35.4 // indirect
-	k8s.io/component-base v0.35.5 // indirect
+	k8s.io/component-base v0.35.6 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912 // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
