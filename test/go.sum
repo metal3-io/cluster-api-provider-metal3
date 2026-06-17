@@ -248,8 +248,8 @@ github.com/mattn/go-sqlite3 v1.14.22 h1:2gZY6PC6kBnID23Tichd1K+Z0oS6nE/XwU+Vz/5o
 github.com/mattn/go-sqlite3 v1.14.22/go.mod h1:Uh1q+B4BYcTPb+yiD3kU8Ct7aC0hY9fxUwlHK0RXw+Y=
 github.com/metal3-io/baremetal-operator/apis v0.13.0 h1:jCqUMbv/qVNY+77fqD7N5nIoWJXHq4rZ5epFY/q4k4Q=
 github.com/metal3-io/baremetal-operator/apis v0.13.0/go.mod h1:BeqKSSGFuC3X36+CN8CIImtXvWwKSR7rJBDP5825Fno=
-github.com/metal3-io/ip-address-manager/api v1.13.0-rc.0 h1:FxrRrgOqJ0N2zkXA7OhvzWmaCVzEB5i9Dp0XZH53r7k=
-github.com/metal3-io/ip-address-manager/api v1.13.0-rc.0/go.mod h1:pfhUOnMeD5m2WuKkr7UfRU+7PKqTJ2glQoC4walT40I=
+github.com/metal3-io/ip-address-manager/api v1.13.0 h1:Yi6XLJZdgd/+kZDEglxcNGsmE3Qcc6qboQ1mhQEh8WM=
+github.com/metal3-io/ip-address-manager/api v1.13.0/go.mod h1:pfhUOnMeD5m2WuKkr7UfRU+7PKqTJ2glQoC4walT40I=
 github.com/metal3-io/ironic-standalone-operator/api v0.9.0 h1:HUEAxZ65KD1FzOQjsPoM7PMeS+f2oyHFlsIQ1XH9+3Y=
 github.com/metal3-io/ironic-standalone-operator/api v0.9.0/go.mod h1:hc8ZA/Os9NhM3sefmTBEkq/Fqog6osB9h7u7AGNNoAM=
 github.com/mfridman/tparse v0.18.0 h1:wh6dzOKaIwkUGyKgOntDW4liXSo37qg5AXbIhkMV3vE=
