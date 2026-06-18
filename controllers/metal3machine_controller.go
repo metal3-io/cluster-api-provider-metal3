@@ -399,7 +399,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	machineMgr.SetFinalizer()
 
 	// if the machine is already provisioned, update and return
-	isProvisioned := machineMgr.IsProvisioned()
+	isProvisioned := wasReadyBeforeReconcile
 	log.V(baremetal.VerbosityLevelDebug).Info("Checking machine provisioning state",
 		"isProvisioned", isProvisioned)
 

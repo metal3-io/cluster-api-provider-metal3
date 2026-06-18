@@ -64,8 +64,6 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 
 	m.EXPECT().SetFinalizer()
 
-	// Second call to IsProvisioned to check provisioning state
-	m.EXPECT().IsProvisioned().Return(tc.Provisioned)
 	if tc.Provisioned {
 		m.EXPECT().MachineHasNodeRef().Return(tc.Provisioned)
 		m.EXPECT().SetCondition(
