@@ -49,7 +49,7 @@ export KUBERNETES_VERSION=${KUBERNETES_VERSION}
 export IMAGE_OS=${IMAGE_OS}
 export FORCE_REPO_UPDATE="false"
 export SKIP_NODE_IMAGE_PREPULL="true"
-export IPA_BASEURI=https://artifactory.nordix.org/artifactory/openstack-remote-cache/ironic-python-agent/dib
+export IPA_BASEURI=https://artifactory.nordix.org/artifactory/openstack-remote/ironic-python-agent/dib
 EOF
 
 # Set USE_IRSO only when IMAGE_OS is not ubuntu and not running scalability tests

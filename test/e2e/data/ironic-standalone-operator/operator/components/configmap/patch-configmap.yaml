@@ -4,4 +4,4 @@ metadata:
   name: ironic-standalone-operator-ironic-standalone-operator-config
   namespace: ironic-standalone-operator-system
 data:
-  IPA_BASEURI: "https://artifactory.nordix.org/artifactory/openstack-remote-cache/ironic-python-agent/dib"
+  IPA_BASEURI: "https://artifactory.nordix.org/artifactory/openstack-remote/ironic-python-agent/dib"
