@@ -710,19 +710,16 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 				var m3mt *infrav1.Metal3MachineTemplate
 				m3mt, err = m.getMetal3MachineTemplate(ctx)
 				if err != nil {
+					return fmt.Errorf("cannot get Metal3MachineTemplate: %w", err)
+				}
+				if m3mt == nil {
 					// we are here, because while normal deprovisioning, Metal3MachineTemplate will be deleted first
 					// and we can't get it even though Metal3Machine has reference to it. We consider it nil and move
 					// forward with normal deprovisioning.
-					m3mt = nil
 					m.Log.Info("Metal3MachineTemplate associated with Metal3Machine is deleted",
-						LogFieldHost, host.Name,
-						LogFieldError, err.Error())
+						LogFieldHost, host.Name)
 				} else {
-					// in case of upgrading, Metal3MachineTemplate will not be deleted and we can fetch it,
-					// in order to check for node reuse feature in the next step.
 					m.Log.Info("Found Metal3machineTemplate", "metal3machineTemplate", m3mt.Name)
-				}
-				if m3mt != nil {
 					if ptr.Deref(m3mt.Spec.NodeReuse, false) {
 						if host.Labels == nil {
 							host.Labels = make(map[string]string)
@@ -1943,85 +1940,106 @@ func (m *MachineManager) getControlPlaneName(_ context.Context) (string, error) 
 // getMachineDeploymentName retrieves the MachineDeployment object name corresponding to the MachineSet.
 func (m *MachineManager) getMachineDeploymentName(ctx context.Context) (string, error) {
 	m.Log.Info("Fetching MachineDeployment name")
-
-	// Fetch MachineSet.
-	m.Log.Info("Fetching MachineSet first to find corresponding MachineDeployment later")
-
 	machineSet, err := m.getMachineSet(ctx)
 	if err != nil {
 		return "", err
 	}
-	if machineSet.ObjectMeta.OwnerReferences == nil {
-		return "", errors.New("machineset owner reference is not populated")
+	if machineSet == nil {
+		return "", errors.New("machineSet is not accessible")
 	}
-	for _, msOwnerRef := range machineSet.ObjectMeta.OwnerReferences {
-		if msOwnerRef.Kind != "MachineDeployment" {
-			continue
-		}
-		aGV, err := schema.ParseGroupVersion(msOwnerRef.APIVersion)
-		if err != nil {
-			return "", errors.New("failed to parse the group and version")
-		}
-		if aGV.Group != clusterv1.GroupVersion.Group {
-			continue
-		}
-		// adding prefix to MachineDeployment name in order to be able to differentiate
-		// MachineDeployment and ControlPlane in case they have the same names set in the cluster.
-		m.Log.Info("Fetched MachineDeployment name", "machinedeployment", "md-"+msOwnerRef.Name)
-		return "md-" + msOwnerRef.Name, nil
+	objRef := m.getMachineDeploymentRef(machineSet)
+	if objRef == nil {
+		return "", errors.New("machine deployment not mentioned in owner reference")
 	}
-	return "", errors.New("machineDeployment name is not found")
+	return "md-" + objRef.Name, nil
 }
 
 // getMachineSet retrieves the MachineSet object corresponding to the CAPI machine.
 func (m *MachineManager) getMachineSet(ctx context.Context) (*clusterv1.MachineSet, error) {
-	m.Log.Info("Fetching MachineSet name")
-	// Get list of MachineSets.
-	machineSets := &clusterv1.MachineSetList{}
 	if m.Machine == nil {
-		return nil, errors.New("could not find corresponding machine object")
+		return nil, nil //nolint:nilnil
 	}
-	if m.isControlPlane() {
-		return nil, errors.New("machine is controlplane, MachineSet can not be associated with it")
+	for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
+		if mOwnerRef.Kind != "MachineSet" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(mOwnerRef.APIVersion)
+		if err != nil {
+			m.Log.Error(err, "Machine has an owner with unparsable apiversion")
+			continue
+		}
+		if gv.Group != clusterv1.GroupVersion.Group {
+			continue
+		}
+		key := client.ObjectKey{Name: mOwnerRef.Name, Namespace: m.Machine.Namespace}
+		mSet := &clusterv1.MachineSet{}
+		if err := m.client.Get(ctx, key, mSet); err != nil {
+			if apierrors.IsNotFound(err) {
+				return nil, nil //nolint:nilnil
+			}
+			return nil, err
+		}
+		if mOwnerRef.UID != "" && mSet.UID != mOwnerRef.UID {
+			m.Log.Info("MachineSet UID does not match Machine owner reference UID", LogFieldMachineSet, mSet.Name, "machineSetUID", mSet.UID, "ownerRefUID", mOwnerRef.UID)
+			return nil, nil //nolint:nilnil
+		}
+		return mSet, nil
 	}
-	if m.Machine.ObjectMeta.OwnerReferences == nil {
-		return nil, errors.New("machine owner reference is not populated")
-	}
-	if err := m.client.List(ctx, machineSets, client.InNamespace(m.Machine.Namespace)); err != nil {
-		return nil, err
-	}
+	return nil, nil //nolint:nilnil
+}
 
-	// Iterate over MachineSets list and find MachineSet which references specific machine.
-	var machineSetError string
-	for index := range machineSets.Items {
-		machineset := &machineSets.Items[index]
-		for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
-			if mOwnerRef.Kind != "MachineSet" {
-				continue
-			}
-			gv, err := schema.ParseGroupVersion(mOwnerRef.APIVersion)
-			if err != nil {
-				return nil, errors.New("failed to parse ownerRef Group of Machine")
-			}
-			if gv.Group != clusterv1.GroupVersion.Group {
-				machineSetError += fmt.Sprintf("MachineSet %s has different API version %s than Machine %s with API version %s",
-					machineset.Name, machineset.APIVersion, m.Machine.Name, mOwnerRef.APIVersion)
-				continue
-			}
-			if mOwnerRef.UID != machineset.UID {
-				machineSetError = fmt.Sprintf("MachineSet %s has different UID %s than Machine %s with UID %s",
-					machineset.Name, machineset.UID, m.Machine.Name, mOwnerRef.UID)
-				continue
-			}
-			if mOwnerRef.Name == machineset.Name {
-				m.Log.Info("Found MachineSet corresponding to machine", "machineset", machineset.Name)
-				return machineset, nil
-			}
-			machineSetError = fmt.Sprintf("MachineSet %s does not match Machine %s owner reference %s", machineset.Name, m.Machine.Name, mOwnerRef.Name)
+// getMachineDeploymentRef retrieves a reference to the MachineDeployment from a MachineSet resource.
+func (m *MachineManager) getMachineDeploymentRef(machineSet *clusterv1.MachineSet) *corev1.ObjectReference {
+	for _, owner := range machineSet.OwnerReferences {
+		if owner.Kind != "MachineDeployment" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(owner.APIVersion)
+		if err != nil {
+			continue
+		}
+		if gv.Group != clusterv1.GroupVersion.Group {
+			continue
+		}
+		return &corev1.ObjectReference{
+			APIVersion: owner.APIVersion,
+			Kind:       owner.Kind,
+			Name:       owner.Name,
+			Namespace:  machineSet.Namespace,
 		}
 	}
+	return nil
+}
 
-	return nil, errors.New(machineSetError)
+func (m *MachineManager) getControlPlaneReference() *corev1.ObjectReference {
+	m.Log.Info("Fetching ControlPlane name")
+	if m.Machine == nil {
+		return nil
+	}
+	if m.Machine.ObjectMeta.OwnerReferences == nil {
+		return nil
+	}
+	for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
+		aGV, err := schema.ParseGroupVersion(mOwnerRef.APIVersion)
+		if err != nil {
+			m.Log.Error(err, "Found an unparsable APIVersion in owners", "apiVersion", mOwnerRef.APIVersion)
+			continue
+		}
+		if aGV.Group != controlplanev1.GroupVersion.Group {
+			continue
+		}
+		// adding prefix to ControlPlane name in order to be able to differentiate
+		// ControlPlane and MachineDeployment in case they have the same names set in the cluster.
+		m.Log.Info("Fetched ControlPlane name", "controlPlane", "cp-"+mOwnerRef.Name)
+		objRef := corev1.ObjectReference{
+			Namespace:  m.Machine.Namespace,
+			Name:       mOwnerRef.Name,
+			Kind:       mOwnerRef.Kind,
+			APIVersion: mOwnerRef.APIVersion,
+		}
+		return &objRef
+	}
+	return nil
 }
 
 // getMetal3MachineTemplate retrieves the Metal3MachineTemplate object from Metal3Machine
@@ -2031,10 +2049,6 @@ func (m *MachineManager) getMetal3MachineTemplate(ctx context.Context) (*infrav1
 	if m.Machine == nil {
 		return nil, errors.New("could not find corresponding machine object")
 	}
-	if m.Machine.ObjectMeta.OwnerReferences == nil {
-		return nil, errors.New("machine owner reference is not populated")
-	}
-
 	// Check if this is a worker machine first.
 	if !m.isControlPlane() {
 		// This is a worker machine, get MachineSet first.
@@ -2042,7 +2056,10 @@ func (m *MachineManager) getMetal3MachineTemplate(ctx context.Context) (*infrav1
 		if err != nil {
 			return nil, fmt.Errorf("failed to get MachineSet: %w", err)
 		}
-
+		if machineSet == nil {
+			m.Log.Info("Access to MachineSet permanently deleted")
+			return nil, nil //nolint:nilnil
+		}
 		// Get Metal3MachineTemplate from MachineSet.
 		m3mt := &infrav1.Metal3MachineTemplate{}
 		m3mtKey := client.ObjectKey{
@@ -2050,56 +2067,70 @@ func (m *MachineManager) getMetal3MachineTemplate(ctx context.Context) (*infrav1
 			Namespace: machineSet.Namespace,
 		}
 		if err := m.client.Get(ctx, m3mtKey, m3mt); err != nil {
+			if apierrors.IsNotFound(err) {
+				m.Log.Info("Cannot find machine template", LogFieldMetal3MachineTemplate, machineSet.Spec.Template.Spec.InfrastructureRef.Name)
+				return nil, nil //nolint:nilnil
+			}
 			return nil, fmt.Errorf("failed to get Metal3MachineTemplate from MachineSet: %w", err)
 		}
 		m.Log.Info("Fetched Metal3MachineTemplate from MachineSet", "metal3MachineTemplate", m3mt.Name)
 		return m3mt, nil
 	}
 
-	// This is a control plane machine. Iterate over all owner references and try to find one
-	// that exposes the infra template ref at spec.machineTemplate.spec.infrastructureRef.
+	// This is a control plane machine. Get the controlPlane resource from the cluster and
+	// extract the infra template ref at spec.machineTemplate.spec.infrastructureRef.
 	// We use unstructured to support any control plane provider, not just KubeadmControlPlane,
 	// following the same pattern CAPI uses for all infra providers.
-	for _, mOwnerRef := range m.Machine.ObjectMeta.OwnerReferences {
-		// Fetch the owner object as unstructured to support any control plane provider.
-		cpObj := &unstructured.Unstructured{}
-		cpObj.SetAPIVersion(mOwnerRef.APIVersion)
-		cpObj.SetKind(mOwnerRef.Kind)
-		cpKey := client.ObjectKey{
-			Name:      mOwnerRef.Name,
-			Namespace: m.Machine.Namespace,
-		}
-		if err := m.client.Get(ctx, cpKey, cpObj); err != nil {
-			return nil, fmt.Errorf("failed to get owner object %s %s: %w", mOwnerRef.Kind, mOwnerRef.Name, err)
-		}
-
-		// According to CAPI contract control plane providers must expose the infra template ref at
-		// spec.machineTemplate.spec.infrastructureRef. If not present, this owner is
-		// not a control plane provider - skip it.
-		m3mtName, found, err := unstructured.NestedString(cpObj.Object, "spec", "machineTemplate", "spec", "infrastructureRef", "name")
-		if err != nil || !found || m3mtName == "" {
-			continue
-		}
-
-		m3mtNamespace, _, _ := unstructured.NestedString(cpObj.Object, "spec", "machineTemplate", "spec", "infrastructureRef", "namespace")
-		if m3mtNamespace == "" {
-			m3mtNamespace = m.Machine.Namespace
-		}
-
-		// Get Metal3MachineTemplate.
-		m3mt := &infrav1.Metal3MachineTemplate{}
-		m3mtKey := client.ObjectKey{
-			Name:      m3mtName,
-			Namespace: m3mtNamespace,
-		}
-		if err := m.client.Get(ctx, m3mtKey, m3mt); err != nil {
-			return nil, fmt.Errorf("failed to get Metal3MachineTemplate from control plane %s: %w", mOwnerRef.Kind, err)
-		}
-		m.Log.Info("Fetched Metal3MachineTemplate from control plane", "kind", mOwnerRef.Kind, "metal3MachineTemplate", m3mt.Name)
-		return m3mt, nil
+	objRef := m.getControlPlaneReference()
+	// If the path to the control-plane is broken. It probably means the cluster is
+	// being deleted. Anyway, this will not change.
+	if objRef == nil {
+		return nil, nil //nolint:nilnil
 	}
 
-	return nil, errors.New("no owner reference with spec.machineTemplate.spec.infrastructureRef found in machine owner references")
+	// Fetch the owner object as unstructured to support any control plane provider.
+	cpObj := &unstructured.Unstructured{}
+	cpObj.SetAPIVersion(objRef.APIVersion)
+	cpObj.SetKind(objRef.Kind)
+	cpKey := client.ObjectKey{
+		Name:      objRef.Name,
+		Namespace: objRef.Namespace,
+	}
+	if err := m.client.Get(ctx, cpKey, cpObj); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil //nolint:nilnil
+		}
+		return nil, fmt.Errorf("failed to get controlPlane object %s %s: %w", objRef.Kind, objRef.Name, err)
+	}
+
+	// According to CAPI contract control plane providers must expose the infra template ref at
+	// spec.machineTemplate.spec.infrastructureRef. If not present, this owner is
+	// not a control plane provider - skip it.
+	m3mtName, found, err := unstructured.NestedString(cpObj.Object, "spec", "machineTemplate", "spec", "infrastructureRef", "name")
+	if err != nil || !found || m3mtName == "" {
+		// Impossible to recover. We must assume the control-plane is definitively non reachable.
+		return nil, nil //nolint:nilnil,nilerr
+	}
+
+	m3mtNamespace, _, _ := unstructured.NestedString(cpObj.Object, "spec", "machineTemplate", "spec", "infrastructureRef", "namespace")
+	if m3mtNamespace == "" {
+		m3mtNamespace = m.Machine.Namespace
+	}
+
+	// Get Metal3MachineTemplate.
+	m3mt := &infrav1.Metal3MachineTemplate{}
+	m3mtKey := client.ObjectKey{
+		Name:      m3mtName,
+		Namespace: m3mtNamespace,
+	}
+	if err := m.client.Get(ctx, m3mtKey, m3mt); err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil //nolint:nilnil
+		}
+		return nil, fmt.Errorf("failed to get Metal3MachineTemplate from control plane %s: %w", objRef.Kind, err)
+	}
+	m.Log.Info("Fetched Metal3MachineTemplate from control plane", "Kind", objRef.Kind, LogFieldMetal3MachineTemplate, m3mt.Name)
+	return m3mt, nil
 }
 
 // getBmhNameFromM3Machine retrieves bmhName from m3m annotations.
