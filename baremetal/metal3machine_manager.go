@@ -609,6 +609,8 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			return WithTransientError(errors.New(msg), requeueAfter)
 		}
 
+		host.Spec.ConsumerRef = nil
+
 		if m.Cluster != nil {
 			// If cluster has DeletionTimestamp set, skip checking if nodeReuse
 			// feature is enabled.
@@ -665,12 +667,16 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 							m.Log.Info("Setting nodeReuseLabelName in host to fetched MachineDeployment", LogFieldHost, host.Name, LogFieldMachineDeployment, mdName)
 							host.Labels[nodeReuseLabelName] = mdName
 						}
+						host.Spec.ConsumerRef = &corev1.ObjectReference{
+							Name:       m.Cluster.Name,
+							Namespace:  m.Cluster.Namespace,
+							APIVersion: clusterv1.GroupVersion.String(),
+							Kind:       "Cluster",
+						}
 					}
 				}
 			}
 		}
-
-		host.Spec.ConsumerRef = nil
 
 		// Remove the ownerreference to this machine.
 		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
@@ -869,9 +875,11 @@ func (m *MachineManager) chooseHost(ctx context.Context) (*bmov1alpha1.BareMetal
 			helper, err = patch.NewHelper(&hosts.Items[i], m.client)
 			return &hosts.Items[i], helper, infrav1.AssociateBareMetalHostSuccessReason, err
 		}
-		if host.Spec.ConsumerRef != nil ||
-			(m.nodeReuseLabelExists(ctx, &host) &&
-				!m.nodeReuseLabelMatches(ctx, &host)) {
+		if m.nodeReuseLabelExists(ctx, &host) {
+			if !m.nodeReuseLabelMatches(ctx, &host) {
+				continue
+			}
+		} else if host.Spec.ConsumerRef != nil {
 			continue
 		}
 		if host.GetDeletionTimestamp() != nil {
