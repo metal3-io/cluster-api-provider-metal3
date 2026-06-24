@@ -78,7 +78,7 @@ func register(w http.ResponseWriter, r *http.Request) {
 	cloudMgr.AddResourceGroup(resourceName)
 	// NOTE: We are using resourceName as listener name for convenience
 	listenerName := resourceName
-	listener, err := apiServerMux.InitWorkloadClusterListener(listenerName)
+	listener, err := apiServerMux.InitWorkloadClusterListener(listenerName, 0)
 	if err != nil {
 		setupLog.Error(err, "Failed to initialize listener", "listenerName", listenerName)
 		http.Error(w, "Failed to initialize listener", http.StatusInternalServerError)

@@ -36,7 +36,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1beta20 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	errors "sigs.k8s.io/cluster-api/errors"
+	errors "sigs.k8s.io/cluster-api/api/deprecated/errors"
 )
 
 // MockMachineManagerInterface is a mock of MachineManagerInterface interface.
