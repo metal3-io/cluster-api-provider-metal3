@@ -416,7 +416,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 		if err != nil {
 			log.V(baremetal.VerbosityLevelDebug).Info("Association failed",
 				baremetal.LogFieldError, err.Error())
-			machineMgr.SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition, infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, err.Error())
+			machineMgr.SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition, infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", err.Error())
 			machineMgr.SetCondition(infrav1.AssociateBareMetalHostCondition, metav1.ConditionFalse, infrav1.AssociateBareMetalHostFailedReason, err.Error())
 			return checkMachineError(machineMgr, err,
 				"failed to associate the Metal3Machine to a BareMetalHost", errType)
@@ -448,7 +448,7 @@ func (r *Metal3MachineReconciler) reconcileNormal(ctx context.Context,
 	if err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Metadata association failed",
 			baremetal.LogFieldError, err.Error())
-		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.AssociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, err.Error())
+		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.AssociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		machineMgr.SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.AssociateMetal3MachineMetaDataFailedReason, err.Error())
 		return checkMachineError(machineMgr, err,
 			"Failed to get the Metal3Metadata", errType)
@@ -589,7 +589,7 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	if err := machineMgr.DissociateM3Metadata(ctx); err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to dissociate M3Metadata",
 			baremetal.LogFieldError, err.Error())
-		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DisassociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, err.Error())
+		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DisassociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		machineMgr.SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.DisassociateM3MetaDataFailedReason, err.Error())
 
 		return checkMachineError(machineMgr, err,
@@ -602,7 +602,7 @@ func (r *Metal3MachineReconciler) reconcileDelete(ctx context.Context,
 	if err := machineMgr.Delete(ctx); err != nil {
 		log.V(baremetal.VerbosityLevelDebug).Info("Failed to delete Metal3Machine resources",
 			baremetal.LogFieldError, err.Error())
-		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, err.Error())
+		machineMgr.SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", err.Error())
 		machineMgr.SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.Metal3MachineDeletingFailedReason, err.Error())
 
 		return checkMachineError(machineMgr, err,

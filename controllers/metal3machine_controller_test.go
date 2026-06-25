@@ -98,7 +98,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		if tc.AssociateFails {
 			m.EXPECT().Associate(context.TODO()).Return("", errors.New("failed"))
 			m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.AssociateBMHV1Beta1Condition,
-				infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, gomock.Any())
+				infrav1.AssociateBMHFailedV1Beta1Reason, clusterv1.ConditionSeverityError, "%s", gomock.Any())
 			m.EXPECT().SetCondition(infrav1.AssociateBareMetalHostCondition,
 				metav1.ConditionFalse, infrav1.AssociateBareMetalHostFailedReason, gomock.Any())
 			m.EXPECT().AssociateM3Metadata(context.TODO()).MaxTimes(0)
@@ -136,7 +136,7 @@ func setReconcileNormalExpectations(ctrl *gomock.Controller,
 		} else {
 			m.EXPECT().AssociateM3Metadata(context.TODO()).Return(errors.New("failed"))
 			m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition,
-				infrav1.AssociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, gomock.Any())
+				infrav1.AssociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", gomock.Any())
 			m.EXPECT().SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition,
 				metav1.ConditionFalse, infrav1.AssociateMetal3MachineMetaDataFailedReason, gomock.Any())
 			return m
@@ -178,7 +178,7 @@ func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 
 	if tc.DissociateM3MetadataFails {
 		m.EXPECT().DissociateM3Metadata(context.TODO()).Return(errors.New("failed"))
-		m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DisassociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, gomock.Any())
+		m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DisassociateM3MetaDataFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", gomock.Any())
 		m.EXPECT().SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.DisassociateM3MetaDataFailedReason, gomock.Any())
 		m.EXPECT().Delete(context.TODO()).MaxTimes(0)
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
@@ -187,14 +187,14 @@ func setReconcileDeleteExpectations(ctrl *gomock.Controller,
 	if tc.DeleteFails {
 		m.EXPECT().DissociateM3Metadata(context.TODO())
 		m.EXPECT().Delete(context.TODO()).Return(errors.New("failed"))
-		m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, gomock.Any())
+		m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", gomock.Any())
 		m.EXPECT().SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.Metal3MachineDeletingFailedReason, gomock.Any())
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
 		return m
 	} else if tc.DeleteRequeue {
 		m.EXPECT().DissociateM3Metadata(context.TODO())
 		m.EXPECT().Delete(context.TODO()).Return(baremetal.WithTransientError(errors.New("failed"), requeueAfter))
-		m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, gomock.Any())
+		m.EXPECT().SetV1Beta1ConditionToFalse(infrav1.KubernetesNodeReadyV1Beta1Condition, infrav1.DeletionFailedV1Beta1Reason, clusterv1.ConditionSeverityWarning, "%s", gomock.Any())
 		m.EXPECT().SetCondition(infrav1.AssociateMetal3MachineMetaDataCondition, metav1.ConditionFalse, infrav1.Metal3MachineDeletingFailedReason, gomock.Any())
 		m.EXPECT().UnsetFinalizer().MaxTimes(0)
 		return m
