@@ -317,6 +317,9 @@ func DeleteNodeReuseLabelFromHost(ctx context.Context, client client.Client, hos
 	if labels != nil {
 		if _, ok := labels[nodeReuseLabelName]; ok {
 			delete(host.Labels, nodeReuseLabelName)
+			// A labelled host should have a consumer ref set to the cluster. This reference must
+			// be removed too otherwise the node will be unavailable to other consumers.
+			host.Spec.ConsumerRef = nil
 		}
 	}
 	Expect(helper.Patch(ctx, &host)).To(Succeed())

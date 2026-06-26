@@ -1735,6 +1735,7 @@ var _ = Describe("Metal3Machine manager", func() {
 		Cluster                         *clusterv1.Cluster
 		Metal3MachineTemplate           *infrav1.Metal3MachineTemplate
 		MachineSet                      *clusterv1.MachineSet
+		ExpectedNodeReuseValue          string
 	}
 
 	DescribeTable("Test Delete function",
@@ -1786,14 +1787,22 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				name := ""
+				kind := ""
 				expectedName := ""
+				expectedKind := ""
 				if host.Spec.ConsumerRef != nil {
 					name = host.Spec.ConsumerRef.Name
+					kind = host.Spec.ConsumerRef.Kind
 				}
 				if tc.ExpectedConsumerRef != nil {
 					expectedName = tc.ExpectedConsumerRef.Name
+					expectedKind = tc.ExpectedConsumerRef.Kind
 				}
 				Expect(name).To(Equal(expectedName))
+				Expect(kind).To(Equal(expectedKind))
+				if tc.NodeReuseEnabled {
+					Expect(kind).To(Equal("Cluster"))
+				}
 				if machineMgr.Metal3Machine.Status.MetaData == nil {
 					Expect(host.Spec.MetaData).NotTo(BeNil())
 				}
@@ -1860,18 +1869,6 @@ var _ = Describe("Metal3Machine manager", func() {
 				Expect(savedHost.Labels["foo"]).To(Equal("bar"))
 				Expect(savedCred.Labels["foo"]).To(Equal("bar"))
 			}
-			if tc.NodeReuseEnabled {
-				m3mTemplate := infrav1.Metal3MachineTemplate{}
-				err = fakeClient.Get(context.TODO(),
-					client.ObjectKey{
-						Name:      tc.M3Machine.ObjectMeta.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation],
-						Namespace: tc.M3Machine.Namespace,
-					},
-					&m3mTemplate,
-				)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(m3mTemplate.Spec.NodeReuse).To(HaveValue(BeTrue()))
-			}
 
 			if tc.Host != nil {
 				savedbmh := bmov1alpha1.BareMetalHost{}
@@ -1887,6 +1884,10 @@ var _ = Describe("Metal3Machine manager", func() {
 					Expect(Capm3FastTrack).To(Equal("false"))
 				}
 				Expect(savedbmh.Spec.Online).To(Equal(tc.ExpectedBMHOnlineStatus))
+				if tc.NodeReuseEnabled {
+					Expect(savedbmh.Labels).ToNot(BeNil())
+					Expect(savedbmh.Labels[nodeReuseLabelName]).To(Equal(tc.ExpectedNodeReuseValue))
+				}
 			}
 		},
 		Entry("Deprovisioning needed", testCaseDelete{
@@ -2290,6 +2291,17 @@ var _ = Describe("Metal3Machine manager", func() {
 						},
 					},
 				},
+				Spec: clusterv1.MachineSetSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							InfrastructureRef: clusterv1.ContractVersionedObjectReference{
+								Kind:     "Metal3MachineTemplate",
+								Name:     "abc",
+								APIGroup: infrav1.GroupVersion.Group,
+							},
+						},
+					},
+				},
 			},
 			M3Machine: newMetal3Machine(metal3machineName, nil, m3mSecretStatus(),
 				&metav1.ObjectMeta{
@@ -2338,6 +2350,14 @@ var _ = Describe("Metal3Machine manager", func() {
 					},
 					NodeReuse: ptr.To(true),
 				}},
+			NodeReuseEnabled:       true,
+			ExpectedNodeReuseValue: "md-test1",
+			ExpectedConsumerRef: &corev1.ObjectReference{
+				Name:       "baremetal-testcluster",
+				Namespace:  namespaceName,
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
+			},
 		}),
 		Entry("NodeReuse enabled, machine is controlplane, no error expected", testCaseDelete{
 			Host: newBareMetalHost(baremetalhostName,
