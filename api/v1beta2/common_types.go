@@ -98,8 +98,8 @@ type Image struct {
 	URL string `json:"url,omitempty"`
 
 	// checksum is a md5sum, sha256sum or sha512sum value or a URL to retrieve one.
-	// When diskFormat is live-iso, empty string is also a valid value.
-	// +required
+	// Optional for live-iso and oci:// URLs; required otherwise.
+	// +optional
 	// +kubebuilder:validation:MinLength=0
 	// +kubebuilder:validation:MaxLength=512
 	Checksum *string `json:"checksum,omitempty"`
@@ -161,6 +161,16 @@ func (i *Image) Validate(base field.Path) field.ErrorList {
 			errors = append(errors, field.Invalid(base.Child("URL"), i.URL, "not a valid URL"))
 		}
 	}
+
+	// Checksum is not required for OCI.
+	isOCI := strings.HasPrefix(strings.ToLower(i.URL), "oci://")
+	if isOCI {
+		if i.Checksum != nil && *i.Checksum != "" {
+			errors = append(errors, field.Forbidden(base.Child("Checksum"), "must be empty for OCI images"))
+		}
+		return errors
+	}
+
 	// Checksum is not required for live-iso.
 	if i.DiskFormat != LiveISODiskFormat {
 		if i.Checksum == nil || *i.Checksum == "" {

@@ -1160,9 +1160,13 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 			checksumType = m.Metal3Machine.Spec.Image.ChecksumType
 		}
 		if imageConfigured {
+			checksum := ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, "")
+			if strings.HasPrefix(strings.ToLower(m.Metal3Machine.Spec.Image.URL), "oci://") && checksum != "" {
+				return fmt.Errorf("Metal3Machine %s: Image.Checksum must be empty for OCI images", m.Metal3Machine.Name)
+			}
 			host.Spec.Image = &bmov1alpha1.Image{
 				URL:          m.Metal3Machine.Spec.Image.URL,
-				Checksum:     ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, ""),
+				Checksum:     checksum,
 				ChecksumType: bmov1alpha1.ChecksumType(checksumType),
 				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
 			}
