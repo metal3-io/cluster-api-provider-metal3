@@ -51,8 +51,8 @@ const (
 	cpName                    = "cp-pool1"
 )
 
-var Bmhuid = types.UID("4d25a2c2-46e4-11ec-81d3-0242ac130003")
-var ProviderID = fmt.Sprintf("metal3://%s", Bmhuid)
+var ProviderID = fmt.Sprintf("metal3://%s/%s/%s", namespaceName, baremetalhostName, metal3machineName)
+var defaultBMHUID = types.UID("4d25a2c2-46e4-11ec-81d3-0242ac130003")
 
 var testImageDiskFormat = "raw"
 
@@ -2746,40 +2746,6 @@ var _ = Describe("Metal3Machine manager", func() {
 		)
 	})
 
-	type testCaseGetProviderIDAndBMHID struct {
-		providerID    string
-		expectedBMHID string
-	}
-
-	DescribeTable("Test GetProviderIDAndBMHID",
-		func(tc testCaseGetProviderIDAndBMHID) {
-			m3m := infrav1.Metal3Machine{
-				Spec: infrav1.Metal3MachineSpec{
-					ProviderID: tc.providerID,
-				},
-			}
-
-			machineMgr, err := NewMachineManager(nil, nil, nil, nil, &m3m, logr.Discard())
-			Expect(err).NotTo(HaveOccurred())
-
-			providerID, bmhID := machineMgr.GetProviderIDAndBMHID()
-
-			if tc.providerID != "" {
-				Expect(providerID).To(Equal(tc.providerID))
-				Expect(bmhID).NotTo(BeNil())
-				Expect(*bmhID).To(Equal(tc.expectedBMHID))
-			} else {
-				Expect(providerID).To(Equal(""))
-				Expect(bmhID).To(BeNil())
-			}
-		},
-		Entry("Empty providerID", testCaseGetProviderIDAndBMHID{}),
-		Entry("Provider ID set", testCaseGetProviderIDAndBMHID{
-			providerID:    ProviderID,
-			expectedBMHID: string(Bmhuid),
-		}),
-	)
-
 	Describe("Test SetNodeProviderID", func() {
 		s := runtime.NewScheme()
 		err := clusterv1.AddToScheme(s)
@@ -4716,11 +4682,10 @@ var _ = Describe("Metal3Machine manager", func() {
 	)
 
 	type testCaseDuplicateProviderIDsExist struct {
-		Machine          *clusterv1.Machine
-		validNodes       map[string][]corev1.Node
-		providerIDLegacy string
-		providerIDNew    string
-		expectError      bool
+		Machine     *clusterv1.Machine
+		validNodes  map[string][]corev1.Node
+		providerID  string
+		expectError bool
 	}
 
 	DescribeTable("Test duplicateProviderIDsExist",
@@ -4730,112 +4695,70 @@ var _ = Describe("Metal3Machine manager", func() {
 			)
 			Expect(err).NotTo(HaveOccurred())
 
-			err = machineMgr.duplicateProviderIDsExist(tc.validNodes, tc.providerIDLegacy, tc.providerIDNew)
+			err = machineMgr.duplicateProviderIDsExist(tc.validNodes, tc.providerID)
 			if tc.expectError {
 				Expect(err).To(HaveOccurred())
 			} else {
 				Expect(err).NotTo(HaveOccurred())
 			}
 		},
-		Entry("Should find duplicates if both providerIDNew and providerIDLegacy are in use by multiple nodes", testCaseDuplicateProviderIDsExist{
-			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
-				"metal3://metal3/node-0/test-controlplane-xyz":  {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
-			},
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
-			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
-			expectError:      true,
-		}),
+
 		Entry("Should find duplicates if validNodes node count is more than 1 for a providerID", testCaseDuplicateProviderIDsExist{
 			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}, corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
+				"metal3://metal3/node-0/test-controlplane-xyz": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}, corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
 			},
-			providerIDLegacy: "",
-			providerIDNew:    "",
-			expectError:      true,
+			providerID:  "",
+			expectError: true,
 		}),
-		Entry("Should not find duplicates if ether providerIDNew or providerIDLegacy are in use by single node", testCaseDuplicateProviderIDsExist{
-			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
-			},
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
-			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
-			expectError:      false,
-		}),
-		Entry("Should not find duplicates if both providerIDNew and providerIDLegacy are in use by single node", testCaseDuplicateProviderIDsExist{
+		Entry("Should not find duplicates if providerID is in use by single node", testCaseDuplicateProviderIDsExist{
 			validNodes: map[string][]corev1.Node{
 				"metal3://metal3/node-0/test-controlplane-xyz": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
 			},
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
-			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
-			expectError:      false,
+			providerID:  "metal3://metal3/node-0/test-controlplane-xyz",
+			expectError: false,
 		}),
 		Entry("Should not find duplicates if validNodes is nil", testCaseDuplicateProviderIDsExist{
-			validNodes:       nil,
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
-			providerIDNew:    "metal3://metal3/node-0/test-controlplane-xyz",
-			expectError:      false,
+			validNodes:  nil,
+			providerID:  "metal3://metal3/node-0/test-controlplane-xyz",
+			expectError: false,
 		}),
-		Entry("Should find duplicates if providerIDNew's common prefix metal3://<namespace>/<bmh>/  is a substring of multible validNodes providerIDs", testCaseDuplicateProviderIDsExist{
+		Entry("Should find duplicates if providerID's common prefix metal3://<namespace>/<bmh>/ is a substring of multiple validNodes providerIDs", testCaseDuplicateProviderIDsExist{
 			validNodes: map[string][]corev1.Node{
 				"metal3://metal3/node-0/test-controlplane-xyz": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
 				"metal3://metal3/node-0/test-controlplane-123": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
 			},
-			providerIDLegacy: "",
-			providerIDNew:    "metal3://metal3/node-0/test-controlplane-000",
-			expectError:      true,
-		}),
-		Entry("Should find duplicates if providerIDNew's common prefix metal3://<namespace>/<bmh>/  is a substring of validNodes providerID and providerIDLegacy is used", testCaseDuplicateProviderIDsExist{
-			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
-				"metal3://metal3/node-0/test-controlplane-123":  {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
-			},
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6",
-			providerIDNew:    "metal3://metal3/node-0/test-controlplane-000",
-			expectError:      true,
-		}),
-		Entry("Should not find duplicates if there are overlapping names of validNodes providerID in the legacy format", testCaseDuplicateProviderIDsExist{
-			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
-				"metal3://d668eb95-5df6-4c10-a01a":              {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
-			},
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a",
-			providerIDNew:    "metal3://metal3/node-0/test-controlplane-000",
-			expectError:      false,
+			providerID:  "metal3://metal3/node-0/test-controlplane-000",
+			expectError: true,
 		}),
 		Entry("Should find duplicates if there are overlapping names of validNodes providerID in the 'new' format without common prefix", testCaseDuplicateProviderIDsExist{
 			validNodes: map[string][]corev1.Node{
 				"metal3://worker-1":  {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
 				"metal3://worker-10": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
 			},
-			providerIDLegacy: "",
-			providerIDNew:    "metal3://worker-1",
-			expectError:      true,
-		}),
-		Entry("Should find duplicates when providerIDNew is empty, validNodes length is more than 1 and legacy format is used", testCaseDuplicateProviderIDsExist{
-			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a-fc69f4299fc6": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
-				"metal3://d668eb95-5df6-4c10-a01a":              {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
-			},
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a",
-			providerIDNew:    "",
-			expectError:      true,
+			providerID:  "metal3://worker-1",
+			expectError: true,
 		}),
 		Entry("Should not find duplicates when providerIDNew is empty and validNodes length is 1", testCaseDuplicateProviderIDsExist{
 			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
+				"metal3://metal3/node-0/test-controlplane-xyz": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
 			},
-			providerIDLegacy: "metal3://d668eb95-5df6-4c10-a01a",
-			providerIDNew:    "",
-			expectError:      false,
+			providerID:  "",
+			expectError: false,
 		}),
-		Entry("Should not find duplicates when providerIDNew and providerIDLegacy are empty and validNodes length is 1", testCaseDuplicateProviderIDsExist{
+		Entry("Should not find duplicates if validNodes contains a single node with a completely different providerID", testCaseDuplicateProviderIDsExist{
 			validNodes: map[string][]corev1.Node{
-				"metal3://d668eb95-5df6-4c10-a01a": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
+				"metal3://metal3/other-bmh/other-m3m": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
 			},
-			providerIDLegacy: "",
-			providerIDNew:    "",
-			expectError:      false,
+			providerID:  "metal3://metal3/node-0/test-controlplane-000",
+			expectError: false,
+		}),
+		Entry("Should not find duplicates if validNodes contains multiple nodes but only one shares the same BMH prefix", testCaseDuplicateProviderIDsExist{
+			validNodes: map[string][]corev1.Node{
+				"metal3://metal3/node-0/test-controlplane-xyz": {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test1"}}},
+				"metal3://metal3/other-bmh/other-m3m":          {corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: "test2"}}},
+			},
+			providerID:  "metal3://metal3/node-0/test-controlplane-000",
+			expectError: false,
 		}),
 	)
 })
@@ -4991,7 +4914,7 @@ func newBareMetalHost(name string,
 		}
 	}
 
-	uid := Bmhuid
+	uid := defaultBMHUID
 	if bmhUID != "" {
 		uid = types.UID(bmhUID)
 	}

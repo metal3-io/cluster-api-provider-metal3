@@ -148,21 +148,6 @@ func (mr *MockMachineManagerInterfaceMockRecorder) GetMetal3Machine() *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetal3Machine", reflect.TypeOf((*MockMachineManagerInterface)(nil).GetMetal3Machine))
 }
 
-// GetProviderIDAndBMHID mocks base method.
-func (m *MockMachineManagerInterface) GetProviderIDAndBMHID() (string, *string) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetProviderIDAndBMHID")
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(*string)
-	return ret0, ret1
-}
-
-// GetProviderIDAndBMHID indicates an expected call of GetProviderIDAndBMHID.
-func (mr *MockMachineManagerInterfaceMockRecorder) GetProviderIDAndBMHID() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProviderIDAndBMHID", reflect.TypeOf((*MockMachineManagerInterface)(nil).GetProviderIDAndBMHID))
-}
-
 // HasAnnotation mocks base method.
 func (m *MockMachineManagerInterface) HasAnnotation() bool {
 	m.ctrl.T.Helper()
