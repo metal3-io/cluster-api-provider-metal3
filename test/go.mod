@@ -7,7 +7,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/go-logr/logr v1.4.3
 	github.com/jinzhu/copier v0.4.0
-	github.com/metal3-io/baremetal-operator/apis v0.13.0
+	github.com/metal3-io/baremetal-operator/apis v0.13.1
 	github.com/metal3-io/cluster-api-provider-metal3/api v0.0.0
 	github.com/metal3-io/ip-address-manager/api v1.13.0
 	github.com/metal3-io/ironic-standalone-operator/api v0.9.0
