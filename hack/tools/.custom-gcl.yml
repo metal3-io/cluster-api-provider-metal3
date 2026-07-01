@@ -3,7 +3,7 @@
 # that includes the kube-api-linter module.
 #
 # See: https://github.com/kubernetes-sigs/kube-api-linter
-version: v2.8.0
+version: v2.10.1
 name: golangci-lint-kube-api-linter
 destination: ./bin
 plugins:
