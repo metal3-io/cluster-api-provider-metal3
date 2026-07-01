@@ -194,9 +194,6 @@ func CreateClusterctlLocalRepository(config *clusterctl.E2EConfig, repositoryFol
 	cniProvider := config.MustGetVariable("CNI_PROVIDER")
 
 	cniInterface := "enp2s0"
-	if osType == osTypeLeap {
-		cniInterface = "eth1"
-	}
 	switch cniProvider {
 	case "cilium":
 		updateCilium(config, cniPath)
