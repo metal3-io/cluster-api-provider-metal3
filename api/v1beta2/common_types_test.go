@@ -118,8 +118,8 @@ func TestImageValidate(t *testing.T) {
 				URL:      "oci://quay.io/example/rhcos:latest",
 				Checksum: ptr.To("f7600f7a274d974a236c4da5161265859c32da93a7c8de6a77d560378a1384ef"),
 			},
-			ErrorExpected: true,
-			Name:          "OCI URL with non-empty checksum is rejected",
+			ErrorExpected: false,
+			Name:          "OCI URL with non-empty checksum is accepted (BMO will reject)",
 		},
 	}
 

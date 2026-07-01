@@ -143,6 +143,11 @@ type Metal3ObjectRef struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
+// IsOCI reports whether the image URL is an OCI reference.
+func (i *Image) IsOCI() bool {
+	return i != nil && strings.HasPrefix(strings.ToLower(i.URL), "oci://")
+}
+
 // Validate performs validation on [Image], returning a list of field errors using the provided base path.
 // It is intended to be used in the validation webhooks of resources containing [Image].
 func (i *Image) Validate(base field.Path) field.ErrorList {
@@ -162,17 +167,8 @@ func (i *Image) Validate(base field.Path) field.ErrorList {
 		}
 	}
 
-	// Checksum is not required for OCI.
-	isOCI := strings.HasPrefix(strings.ToLower(i.URL), "oci://")
-	if isOCI {
-		if i.Checksum != nil && *i.Checksum != "" {
-			errors = append(errors, field.Forbidden(base.Child("Checksum"), "must be empty for OCI images"))
-		}
-		return errors
-	}
-
-	// Checksum is not required for live-iso.
-	if i.DiskFormat != LiveISODiskFormat {
+	// Checksum is not required for live-iso or OCI images.
+	if i.DiskFormat != LiveISODiskFormat && !i.IsOCI() {
 		if i.Checksum == nil || *i.Checksum == "" {
 			errors = append(errors, field.Required(base.Child("Checksum"), "cannot be empty"))
 		} else if strings.HasPrefix(*i.Checksum, "http://") || strings.HasPrefix(*i.Checksum, "https://") {

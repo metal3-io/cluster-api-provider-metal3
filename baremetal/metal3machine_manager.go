@@ -1155,20 +1155,14 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 			return fmt.Errorf("Metal3Machine %s has neither Image.URL nor CustomDeploy.Method configured", m.Metal3Machine.Name)
 		}
 
-		checksumType := ""
-		if m.Metal3Machine.Spec.Image.ChecksumType != "" {
-			checksumType = m.Metal3Machine.Spec.Image.ChecksumType
-		}
 		if imageConfigured {
-			checksum := ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, "")
-			if strings.HasPrefix(strings.ToLower(m.Metal3Machine.Spec.Image.URL), "oci://") && checksum != "" {
-				return fmt.Errorf("Metal3Machine %s: Image.Checksum must be empty for OCI images", m.Metal3Machine.Name)
-			}
 			host.Spec.Image = &bmov1alpha1.Image{
-				URL:          m.Metal3Machine.Spec.Image.URL,
-				Checksum:     checksum,
-				ChecksumType: bmov1alpha1.ChecksumType(checksumType),
-				DiskFormat:   &m.Metal3Machine.Spec.Image.DiskFormat,
+				URL:        m.Metal3Machine.Spec.Image.URL,
+				DiskFormat: &m.Metal3Machine.Spec.Image.DiskFormat,
+			}
+			if !m.Metal3Machine.Spec.Image.IsOCI() {
+				host.Spec.Image.Checksum = ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, "")
+				host.Spec.Image.ChecksumType = bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType)
 			}
 		}
 		if customDeployConfigured {
