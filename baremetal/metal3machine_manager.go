@@ -56,6 +56,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -1322,8 +1323,11 @@ func (m *MachineManager) CloudProviderEnabled() bool {
 }
 
 // updateMachineStatus updates a Metal3Machine object's status.
-func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha1.BareMetalHost) error {
-	addrs := m.nodeAddresses(host)
+func (m *MachineManager) updateMachineStatus(ctx context.Context, host *bmov1alpha1.BareMetalHost) error {
+	addrs, err := m.nodeAddresses(ctx, host)
+	if err != nil {
+		return err
+	}
 
 	metal3MachineOld := m.Metal3Machine.DeepCopy()
 
@@ -1353,12 +1357,40 @@ func (m *MachineManager) updateMachineStatus(_ context.Context, host *bmov1alpha
 
 // NodeAddresses returns a slice of corev1.NodeAddress objects for a
 // given Metal3 machine.
-func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []clusterv1.MachineAddress {
+//
+// If the Metal3Machine's metadata secret contains the keys "InternalIP"
+// and/or "ExternalIP" (case-sensitive, scalar string values), they take
+// precedence over the addresses derived from the BareMetalHost NICs and
+// are returned directly. Non-string or missing values are ignored and
+// fall back to BMH-derived addresses.
+func (m *MachineManager) nodeAddresses(ctx context.Context, host *bmov1alpha1.BareMetalHost) ([]clusterv1.MachineAddress, error) {
 	addrs := []clusterv1.MachineAddress{}
+
+	metadata, err := m.getMetaDataFromSecret(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if metadata != nil {
+		if internalIP, ok := metadata["InternalIP"].(string); ok && internalIP != "" {
+			addrs = []clusterv1.MachineAddress{
+				{Type: clusterv1.MachineInternalIP, Address: internalIP},
+			}
+		}
+		if externalIP, ok := metadata["ExternalIP"].(string); ok && externalIP != "" {
+			addrs = append(addrs, clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalIP,
+				Address: externalIP,
+			})
+		}
+		if len(addrs) > 0 {
+			return addrs, nil
+		}
+	}
 
 	// If the host is nil or we have no hw details, return an empty address array.
 	if host == nil || host.Status.HardwareDetails == nil {
-		return addrs
+		return addrs, nil
 	}
 
 	for _, nic := range host.Status.HardwareDetails.NIC {
@@ -1383,7 +1415,47 @@ func (m *MachineManager) nodeAddresses(host *bmov1alpha1.BareMetalHost) []cluste
 		})
 	}
 
-	return addrs
+	return addrs, nil
+}
+
+// getMetaDataFromSecret reads the metadata secret referenced by the Metal3Machine
+// status and returns the parsed top-level mapping. Returns nil, nil if no metadata
+// secret is configured or the secret does not exist yet.
+//
+// The secret content is expected to be YAML (cloud-init/BMO metadata) and may
+// contain nested structures and non-string values. Callers should type-assert
+// the values they care about (e.g. "InternalIP", "ExternalIP" as strings) and
+// ignore anything that does not match the expected shape.
+func (m *MachineManager) getMetaDataFromSecret(ctx context.Context) (map[string]any, error) {
+	if m.Metal3Machine.Status.MetaData == nil || m.Metal3Machine.Status.MetaData.Name == "" {
+		return nil, nil //nolint:nilnil
+	}
+
+	// We do not allow cross-namespace references for MetaData, so use the
+	// Metal3Machine's own namespace and disregard any namespace on the secret ref.
+	secret := &corev1.Secret{}
+	err := m.client.Get(ctx, types.NamespacedName{
+		Name:      m.Metal3Machine.Status.MetaData.Name,
+		Namespace: m.Metal3Machine.Namespace,
+	}, secret)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil //nolint:nilnil
+		}
+		return nil, fmt.Errorf("failed to get metaData secret: %w", err)
+	}
+
+	metaDataBytes, ok := secret.Data["metaData"]
+	if !ok {
+		return nil, nil //nolint:nilnil
+	}
+
+	metadata := make(map[string]any)
+	if err := yaml.Unmarshal(metaDataBytes, &metadata); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal metaData: %w", err)
+	}
+
+	return metadata, nil
 }
 
 // ClientGetter prototype.
