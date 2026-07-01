@@ -60,74 +60,6 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		}),
 	)
 
-	type testCaseSetClusterOwnerRef struct {
-		cluster     *clusterv1.Cluster
-		template    *infrav1.Metal3DataTemplate
-		expectError bool
-	}
-
-	DescribeTable("Test SetClusterOwnerRef",
-		func(tc testCaseSetClusterOwnerRef) {
-			templateMgr, err := NewDataTemplateManager(nil, tc.template,
-				logr.Discard(),
-			)
-			Expect(err).NotTo(HaveOccurred())
-			err = templateMgr.SetClusterOwnerRef(tc.cluster)
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-			} else {
-				Expect(err).NotTo(HaveOccurred())
-				_, err := findOwnerRefFromList(tc.template.OwnerReferences,
-					tc.cluster.TypeMeta, tc.cluster.ObjectMeta)
-				Expect(err).NotTo(HaveOccurred())
-			}
-		},
-		Entry("Cluster missing", testCaseSetClusterOwnerRef{
-			expectError: true,
-		}),
-		Entry("no previous ownerref", testCaseSetClusterOwnerRef{
-			template: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta(metal3DataTemplateName, "", ""),
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
-			},
-		}),
-		Entry("previous ownerref", testCaseSetClusterOwnerRef{
-			template: &infrav1.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Name: "def",
-						},
-					},
-				},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
-			},
-		}),
-		Entry("ownerref present", testCaseSetClusterOwnerRef{
-			template: &infrav1.Metal3DataTemplate{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "abc",
-					OwnerReferences: []metav1.OwnerReference{
-						{
-							Name: "def",
-						},
-						{
-							Name: "abc-cluster",
-						},
-					},
-				},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: testObjectMeta("abc-cluster", "", ""),
-			},
-		}),
-	)
-
 	type testGetIndexes struct {
 		template        *infrav1.Metal3DataTemplate
 		indexes         []*infrav1.Metal3Data
@@ -494,6 +426,127 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			},
 			expectedNbIndexes: 2,
 		}),
+		// A single Metal3DataTemplate can be consumed by more than one Cluster.
+		// Index allocation is scoped to the template, not to a Cluster: claims
+		// coming from different Clusters share the same index space. Existing
+		// indexes from every Cluster are tracked together, and a new claim from
+		// any Cluster continues the shared sequence without colliding.
+		Entry("Single template shared by two clusters", testCaseUpdateDatas{
+			template: &infrav1.Metal3DataTemplate{
+				ObjectMeta: templateMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{},
+			},
+			dataClaims: []*infrav1.Metal3DataClaim{
+				// Already-rendered claim from cluster-a (index 0).
+				{
+					ObjectMeta: func() metav1.ObjectMeta {
+						om := testObjectMetaWithOR("cluster-a-claim-0", metal3machineName)
+						om.Labels = map[string]string{clusterv1.ClusterNameLabel: "cluster-a"}
+						return om
+					}(),
+					Spec: infrav1.Metal3DataClaimSpec{
+						Template: &infrav1.Metal3ObjectRef{
+							Name:      templateMeta.Name,
+							Namespace: namespaceName,
+						},
+					},
+					Status: infrav1.Metal3DataClaimStatus{
+						RenderedData: &infrav1.Metal3ObjectRef{
+							Name:      "abc-0",
+							Namespace: namespaceName,
+						},
+					},
+				},
+				// Already-rendered claim from cluster-b (index 1) on the same template.
+				{
+					ObjectMeta: func() metav1.ObjectMeta {
+						om := testObjectMetaWithOR("cluster-b-claim-0", metal3machineName)
+						om.Labels = map[string]string{clusterv1.ClusterNameLabel: "cluster-b"}
+						return om
+					}(),
+					Spec: infrav1.Metal3DataClaimSpec{
+						Template: &infrav1.Metal3ObjectRef{
+							Name:      templateMeta.Name,
+							Namespace: namespaceName,
+						},
+					},
+					Status: infrav1.Metal3DataClaimStatus{
+						RenderedData: &infrav1.Metal3ObjectRef{
+							Name:      "abc-1",
+							Namespace: namespaceName,
+						},
+					},
+				},
+				// New, unrendered claim from cluster-a. It must get the next free
+				// index in the template-wide space (2), not reuse cluster-b's index.
+				{
+					ObjectMeta: func() metav1.ObjectMeta {
+						om := testObjectMetaWithOR("cluster-a-claim-1", metal3machineName)
+						om.Labels = map[string]string{clusterv1.ClusterNameLabel: "cluster-a"}
+						return om
+					}(),
+					Spec: infrav1.Metal3DataClaimSpec{
+						Template: &infrav1.Metal3ObjectRef{
+							Name:      templateMeta.Name,
+							Namespace: namespaceName,
+						},
+					},
+				},
+			},
+			datas: []*infrav1.Metal3Data{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc-0",
+						Namespace: namespaceName,
+					},
+					Spec: infrav1.Metal3DataSpec{
+						Template: &infrav1.Metal3ObjectRef{
+							Name:      templateMeta.Name,
+							Namespace: namespaceName,
+						},
+						Claim: &infrav1.Metal3ObjectRef{
+							Name:      "cluster-a-claim-0",
+							Namespace: namespaceName,
+						},
+						Index: ptr.To(int32(0)),
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "abc-1",
+						Namespace: namespaceName,
+					},
+					Spec: infrav1.Metal3DataSpec{
+						Template: &infrav1.Metal3ObjectRef{
+							Name:      templateMeta.Name,
+							Namespace: namespaceName,
+						},
+						Claim: &infrav1.Metal3ObjectRef{
+							Name:      "cluster-b-claim-0",
+							Namespace: namespaceName,
+						},
+						Index: ptr.To(int32(1)),
+					},
+				},
+			},
+			// getIndexes returns the sorted, template-wide index space across
+			// both clusters (0, 1); the new cluster-a claim then extends it to 2.
+			expectedIndexes: []infrav1.IndexEntry{
+				{
+					Name:  "cluster-a-claim-0",
+					Index: ptr.To(int32(0)),
+				},
+				{
+					Name:  "cluster-b-claim-0",
+					Index: ptr.To(int32(1)),
+				},
+				{
+					Name:  "cluster-a-claim-1",
+					Index: ptr.To(int32(2)),
+				},
+			},
+			expectedNbIndexes: 2,
+		}),
 	)
 
 	type testCaseCreateAddresses struct {
@@ -543,7 +596,30 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			// Iterate over the Metal3Data objects to find all indexes and objects
 			for _, address := range dataObjects.Items {
 				Expect(tc.expectedDatas).To(ContainElement(address.Name))
-				// TODO add further testing later
+				// Metal3Data created by createData must be owned by the
+				// Metal3DataClaim (controlling) and the Metal3Machine, but not
+				// by the Metal3DataTemplate, so that they are garbage collected
+				// with the Cluster. Skip pre-existing fixtures used to trigger
+				// requeue/error paths, which have no owner references.
+				if tc.expectRequeue || tc.expectError {
+					continue
+				}
+				var claimOwner, machineOwner *metav1.OwnerReference
+				for i := range address.OwnerReferences {
+					ref := &address.OwnerReferences[i]
+					Expect(ref.Kind).NotTo(Equal("Metal3DataTemplate"))
+					switch ref.Kind {
+					case metal3DataClaimKind:
+						claimOwner = ref
+					case metal3MachineKind:
+						machineOwner = ref
+					}
+				}
+				Expect(address.OwnerReferences).To(HaveLen(2))
+				Expect(claimOwner).NotTo(BeNil())
+				Expect(claimOwner.Controller).To(Equal(ptr.To(true)))
+				Expect(claimOwner.Name).To(Equal(tc.dataClaim.Name))
+				Expect(machineOwner).NotTo(BeNil())
 			}
 			Expect(tc.dataClaim.Finalizers).To(HaveLen(1))
 

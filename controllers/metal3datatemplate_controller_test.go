@@ -30,7 +30,6 @@ import (
 	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/ptr"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,12 +44,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		expectRequeue        bool
 		expectManager        bool
 		m3dt                 *infrav1.Metal3DataTemplate
-		cluster              *clusterv1.Cluster
 		managerError         bool
 		reconcileNormal      bool
 		reconcileNormalError bool
 		reconcileDeleteError bool
-		setOwnerRefError     bool
 	}
 
 	DescribeTable("Test Reconcile",
@@ -63,24 +60,12 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			if tc.m3dt != nil {
 				objects = append(objects, tc.m3dt)
 			}
-			if tc.cluster != nil {
-				objects = append(objects, tc.cluster)
-			}
 			fakeClient := fake.NewClientBuilder().WithScheme(setupScheme()).WithObjects(objects...).Build()
 
 			if tc.managerError {
 				mf.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(nil, errors.New(""))
 			} else if tc.expectManager {
 				mf.EXPECT().NewDataTemplateManager(gomock.Any(), gomock.Any()).Return(m, nil)
-			}
-			if tc.expectManager {
-				if tc.setOwnerRefError {
-					m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(errors.New(""))
-				} else {
-					if tc.cluster != nil {
-						m.EXPECT().SetClusterOwnerRef(gomock.Any()).Return(nil)
-					}
-				}
 			}
 			if tc.m3dt != nil && !tc.m3dt.DeletionTimestamp.IsZero() && tc.reconcileDeleteError {
 				m.EXPECT().UpdateDatas(context.Background()).Return(false, false, errors.New(""))
@@ -128,13 +113,7 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			gomockCtrl.Finish()
 		},
 		Entry("Metal3DataTemplate not found", testCaseReconcile{}),
-		Entry("Cluster not found", testCaseReconcile{
-			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
-				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
-			},
-		}),
-		Entry("Deletion, Cluster not found", testCaseReconcile{
+		Entry("Deletion", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              metal3DataTemplateName,
@@ -142,11 +121,10 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					DeletionTimestamp: &timestampNow,
 					Finalizers:        []string{"foo"},
 				},
-				Spec: infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
 			expectManager: true,
 		}),
-		Entry("Deletion, Cluster not found, error", testCaseReconcile{
+		Entry("Deletion, error", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              metal3DataTemplateName,
@@ -154,43 +132,32 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 					DeletionTimestamp: &timestampNow,
 					Finalizers:        []string{"foo"},
 				},
-				Spec: infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
 			},
 			expectManager:        true,
 			reconcileDeleteError: true,
 			expectError:          true,
 		}),
-		Entry("Paused cluster", testCaseReconcile{
+		Entry("Paused via annotation", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
-				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
-				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
-				Spec: clusterv1.ClusterSpec{
-					Paused: ptr.To(true),
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3DataTemplateName,
+					Namespace: namespaceName,
+					Annotations: map[string]string{
+						clusterv1.PausedAnnotation: "true",
+					},
 				},
 			},
 			expectRequeue: true,
-			expectManager: true,
 		}),
 		Entry("Error in manager", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
-				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
 			},
 			managerError: true,
 		}),
 		Entry("Reconcile normal error", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
-				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
 			},
 			reconcileNormal:      true,
 			reconcileNormalError: true,
@@ -199,10 +166,6 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 		Entry("Reconcile normal no error", testCaseReconcile{
 			m3dt: &infrav1.Metal3DataTemplate{
 				ObjectMeta: testObjectMeta(metal3DataTemplateName, namespaceName, ""),
-				Spec:       infrav1.Metal3DataTemplateSpec{ClusterName: clusterName},
-			},
-			cluster: &clusterv1.Cluster{
-				ObjectMeta: testObjectMeta(clusterName, namespaceName, ""),
 			},
 			reconcileNormal: true,
 			expectManager:   true,

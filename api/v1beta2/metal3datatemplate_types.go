@@ -888,8 +888,10 @@ type NetworkData struct {
 // Metal3DataTemplateSpec defines the desired state of Metal3DataTemplate.
 type Metal3DataTemplateSpec struct {
 	// clusterName is the name of the Cluster this object belongs to.
-	// +required
-	// +kubebuilder:validation:MinLength=1
+	//
+	// Deprecated: This field is deprecated and will be removed in a future release.
+	// It is no longer used by the controllers.
+	// +optional
 	// +kubebuilder:validation:MaxLength=512
 	ClusterName string `json:"clusterName,omitempty"`
 
@@ -923,6 +925,7 @@ type Metal3DataTemplateStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
+// +kubebuilder:metadata:labels="clusterctl.cluster.x-k8s.io/move="
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels.cluster\\.x-k8s\\.io/cluster-name",description="Cluster to which this template belongs"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of Metal3DataTemplate"
 

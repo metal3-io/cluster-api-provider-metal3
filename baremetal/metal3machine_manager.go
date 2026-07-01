@@ -85,7 +85,6 @@ const (
 var (
 	// Capm3FastTrack is the variable fetched from the CAPM3_FAST_TRACK environment variable.
 	Capm3FastTrack    = os.Getenv("CAPM3_FAST_TRACK")
-	errNotFound       *NotFoundError
 	associateBMHMutex sync.Mutex
 )
 
@@ -1667,54 +1666,29 @@ func (m *MachineManager) SetMetal3DataReadyConditionTrue(reason string) {
 	})
 }
 
-// SetOwnerRef adds an ownerreference to this Metal3Machine.
-func setOwnerRefInList(refList []metav1.OwnerReference, controller bool,
-	objType metav1.TypeMeta, objMeta metav1.ObjectMeta,
-) ([]metav1.OwnerReference, error) {
-	index, err := findOwnerRefFromList(refList, objType, objMeta)
-	if err != nil {
-		if ok := errors.As(err, &errNotFound); !ok {
-			return nil, err
-		}
-		refList = append(refList, metav1.OwnerReference{
-			APIVersion: objType.APIVersion,
-			Kind:       objType.Kind,
-			Name:       objMeta.Name,
-			UID:        objMeta.UID,
-			Controller: ptr.To(controller),
-		})
-	} else {
-		// The UID and the APIVersion might change due to move or version upgrade.
-		refList[index].APIVersion = objType.APIVersion
-		refList[index].UID = objMeta.UID
-		refList[index].Controller = ptr.To(controller)
-	}
-	return refList, nil
-}
-
 // findOwnerRefFromList finds OwnerRef to this Metal3Machine.
 func findOwnerRefFromList(refList []metav1.OwnerReference, objType metav1.TypeMeta,
 	objMeta metav1.ObjectMeta,
-) (int, error) {
-	for i, curOwnerRef := range refList {
+) error {
+	for _, curOwnerRef := range refList {
 		aGV, err := schema.ParseGroupVersion(curOwnerRef.APIVersion)
 		if err != nil {
-			return 0, err
+			return err
 		}
 
 		bGV, err := schema.ParseGroupVersion(objType.APIVersion)
 		if err != nil {
-			return 0, err
+			return err
 		}
 		// not matching on UID since when pivoting it might change.
 		// Not matching on API version as this might change.
 		if curOwnerRef.Name == objMeta.Name &&
 			curOwnerRef.Kind == objType.Kind &&
 			aGV.Group == bGV.Group {
-			return i, nil
+			return nil
 		}
 	}
-	return 0, &NotFoundError{}
+	return &NotFoundError{}
 }
 
 // AssociateM3Metadata associates metal3Data object to metal3Machine, if it

@@ -1648,7 +1648,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 				err = dataMgr.client.Get(context.TODO(), claimNamespacedName, capm3IPClaim)
 				Expect(err).NotTo(HaveOccurred())
-				_, err := findOwnerRefFromList(capm3IPClaim.OwnerReferences,
+				err = findOwnerRefFromList(capm3IPClaim.OwnerReferences,
 					tc.m3d.TypeMeta, tc.m3d.ObjectMeta)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(capm3IPClaim.Finalizers).To(ContainElement(infrav1.DataFinalizer))
@@ -2256,7 +2256,7 @@ var _ = Describe("Metal3Data manager", func() {
 			err = fc.Get(context.Background(), nn, claim)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err := findOwnerRefFromList(claim.OwnerReferences,
+			err = findOwnerRefFromList(claim.OwnerReferences,
 				m3d.TypeMeta, m3d.ObjectMeta)
 			Expect(err).NotTo(HaveOccurred())
 		} else {
@@ -2325,7 +2325,7 @@ var _ = Describe("Metal3Data manager", func() {
 			err = fc.Get(context.Background(), nn, claim)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err := findOwnerRefFromList(claim.OwnerReferences,
+			err = findOwnerRefFromList(claim.OwnerReferences,
 				m3d.TypeMeta, m3d.ObjectMeta)
 			Expect(err).NotTo(HaveOccurred())
 		} else {
@@ -2414,7 +2414,7 @@ var _ = Describe("Metal3Data manager", func() {
 
 				err = dataMgr.client.Get(context.TODO(), nn, claim)
 				Expect(err).NotTo(HaveOccurred())
-				_, err := findOwnerRefFromList(claim.OwnerReferences,
+				err = findOwnerRefFromList(claim.OwnerReferences,
 					tc.m3d.TypeMeta, tc.m3d.ObjectMeta)
 				Expect(err).NotTo(HaveOccurred())
 			}
@@ -5756,7 +5756,7 @@ var _ = Describe("When using BMH name based pre-allocation", func() {
 			err = fc.Get(context.Background(), nn, claim)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err := findOwnerRefFromList(claim.OwnerReferences,
+			err = findOwnerRefFromList(claim.OwnerReferences,
 				m3d.TypeMeta, m3d.ObjectMeta)
 			Expect(err).NotTo(HaveOccurred())
 		} else {
