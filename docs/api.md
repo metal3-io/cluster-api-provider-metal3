@@ -132,7 +132,7 @@ spec:
       rollingUpdate:
         maxSurge: 1
       type: RollingUpdate
-  version: v1.34.0
+  version: v1.34.9
   kubeadmConfigSpec:
     joinConfiguration:
       controlPlane: {}
@@ -250,7 +250,7 @@ spec:
   deletion:
     nodeDrainTimeoutSeconds: 0
   providerID: metal3://68be298f-ed11-439e-9d51-6c5260faede6
-  version: v1.34.0
+  version: v1.34.9
 ```
 
 ## Metal3Machine
@@ -291,7 +291,7 @@ The fields are:
   [doc](https://cluster-api.sigs.k8s.io/developer/providers/contracts/clusterctl.html#ownerreferences-chain)).
   The content of the secret should be a yaml equivalent of a json object that
   follows the format definition that can be found
-  [here](https://docs.openstack.org/nova/latest/_downloads/9119ca7ac90aa2990e762c08baea3a36/network_data.json).
+  [here](https://docs.openstack.org/nova/latest/_downloads/4e8fe1ae7db6dd6eebca372db68fe63e/network_data.json).
 
 - **hostSelector** -- Specify criteria for matching labels on `BareMetalHost`
   objects. This can be used to limit the set of available `BareMetalHost`
@@ -420,10 +420,10 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   image:
-    checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.0-raw.img.sha256sum
+    checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.9-raw.img.sha256sum
     checksumType: sha256
     format: raw
-    url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.0-raw.img
+    url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.9-raw.img
   hostSelector:
     matchLabels:
       key1: value1
@@ -481,7 +481,7 @@ spec:
         name: md-0
         apiGroup: infrastructure.cluster.x-k8s.io
         kind: Metal3MachineTemplate
-      version: v1.34.0
+      version: v1.34.9
 ```
 
 ## KubeadmConfigTemplate
@@ -566,10 +566,10 @@ spec:
     spec:
       automatedCleaningMode: metadata
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.0-raw.img.sha256sum
+        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.9-raw.img.sha256sum
         checksumType: sha256
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.0-raw.img
+        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.34.9-raw.img
       hostSelector:
         matchLabels:
           key1: value1
@@ -759,7 +759,7 @@ while `networkData` will be rendered into a map equivalent of
 [Nova network_data.json](https://docs.openstack.org/nova/latest/user/metadata.html#openstack-format-metadata).
 On the target node, the network data will be rendered as a json object that
 follows the format definition that can be found
-[here](https://docs.openstack.org/nova/latest/_downloads/9119ca7ac90aa2990e762c08baea3a36/network_data.json).
+[here](https://docs.openstack.org/nova/latest/_downloads/4e8fe1ae7db6dd6eebca372db68fe63e/network_data.json).
 
 ### Metadata Specifications
 
