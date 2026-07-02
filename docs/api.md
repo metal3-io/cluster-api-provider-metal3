@@ -138,7 +138,7 @@ spec:
       rollingUpdate:
         maxSurge: 1
       type: RollingUpdate
-  version: v1.36.0
+  version: v1.36.2
   kubeadmConfigSpec:
     joinConfiguration:
       controlPlane: {}
@@ -259,7 +259,7 @@ spec:
   # The legacy format (metal3://<bmh-uuid>) will be deprecated in CAPM3 v1.13
   # and removed in CAPM3 v1.14.
   providerID: metal3://metal3/node-0/controlplane-0
-  version: v1.36.0
+  version: v1.36.2
 ```
 
 ## Metal3Machine
@@ -429,10 +429,10 @@ metadata:
 spec:
   automatedCleaningMode: metadata
   image:
-    checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.0-raw.img.sha256sum
+    checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img.sha256sum
     checksumType: sha256
     format: raw
-    url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.0-raw.img
+    url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img
   hostSelector:
     matchLabels:
       key1: value1
@@ -490,7 +490,7 @@ spec:
         name: md-0
         apiGroup: infrastructure.cluster.x-k8s.io
         kind: Metal3MachineTemplate
-      version: v1.36.0
+      version: v1.36.2
 ```
 
 ## KubeadmConfigTemplate
@@ -575,10 +575,10 @@ spec:
     spec:
       automatedCleaningMode: metadata
       image:
-        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.0-raw.img.sha256sum
+        checksum: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img.sha256sum
         checksumType: sha256
         format: raw
-        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.0-raw.img
+        url: http://172.22.0.1/images/UBUNTU_24.04_NODE_IMAGE_K8S_v1.36.2-raw.img
       hostSelector:
         matchLabels:
           key1: value1
