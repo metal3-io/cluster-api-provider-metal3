@@ -180,7 +180,7 @@ for more information on which tests are required for each Kubernetes release.
 
 Includes the following MachineDeployment tests adopted from the Cluster API's e2e tests:
 
-- [MachineDeployment rolling upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_rollout.go)
+- [MachineDeployment rolling upgrades](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/kcp_md_rollout.go)
 - [MachineDeployment scale](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/e2e/md_scale.go)
 
 ## Guidelines to follow when adding new E2E tests
@@ -220,9 +220,9 @@ clusters:
 
 | tests               | bootstrap cluster | metal3 cluster init | metal3 cluster final |
 | ------------------- | ----------------- | -------------------- | -------------------- |
-| integration         | v1.34.0           | v1.34.0              | x                    |
-| remediation         | v1.34.0           | v1.34.0              | x                    |
-| pivot based feature | v1.34.0           | v1.34.0              | v1.34.0              |
-| upgrade             | v1.34.0           | v1.34.0              | v1.34.0              |
+| integration         | v1.34.9           | v1.34.9              | x                    |
+| remediation         | v1.34.9           | v1.34.9              | x                    |
+| pivot based feature | v1.34.9           | v1.34.9              | v1.34.9              |
+| upgrade             | v1.34.9           | v1.34.9              | v1.34.9              |
 
 <!-- markdownlint-enable MD013 -->
