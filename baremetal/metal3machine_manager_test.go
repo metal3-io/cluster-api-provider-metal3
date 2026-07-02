@@ -1211,6 +1211,7 @@ var _ = Describe("Metal3Machine manager", func() {
 	type testCaseSetHostSpec struct {
 		UserDataNamespace           string
 		UseCustomDeploy             *bmov1alpha1.CustomDeploy
+		OverrideImage               *infrav1.Image
 		ExpectedUserDataNamespace   string
 		Host                        *bmov1alpha1.BareMetalHost
 		ExpectedImage               *bmov1alpha1.Image
@@ -1232,6 +1233,9 @@ var _ = Describe("Metal3Machine manager", func() {
 				m3mconfig.Spec.CustomDeploy = infrav1.CustomDeploy{
 					Method: tc.UseCustomDeploy.Method,
 				}
+			}
+			if tc.OverrideImage != nil {
+				m3mconfig.Spec.Image = *tc.OverrideImage
 			}
 			machine := newMachine(machineName, infrastructureRef)
 
@@ -1341,6 +1345,46 @@ var _ = Describe("Metal3Machine manager", func() {
 				),
 				ExpectedCustomDeploy: expectedCustomDeployTest(),
 				ExpectUserData:       false,
+			},
+		),
+		Entry("OCI image does not populate Checksum or ChecksumType",
+			testCaseSetHostSpec{
+				UserDataNamespace:         "",
+				ExpectedUserDataNamespace: namespaceName,
+				OverrideImage: &infrav1.Image{
+					URL:        "oci://quay.io/example/rhcos:latest",
+					DiskFormat: testImageDiskFormat,
+				},
+				Host: newBareMetalHost("host2", nil, bmov1alpha1.StateNone,
+					nil, false, "metadata", false, "", false,
+				),
+				ExpectedImage: &bmov1alpha1.Image{
+					URL:        "oci://quay.io/example/rhcos:latest",
+					DiskFormat: &testImageDiskFormat,
+				},
+				ExpectUserData: true,
+			},
+		),
+		Entry("Non-OCI image populates Checksum and ChecksumType",
+			testCaseSetHostSpec{
+				UserDataNamespace:         "",
+				ExpectedUserDataNamespace: namespaceName,
+				OverrideImage: &infrav1.Image{
+					URL:          testImageURL,
+					Checksum:     ptr.To(testImageChecksumURL),
+					ChecksumType: "sha256",
+					DiskFormat:   testImageDiskFormat,
+				},
+				Host: newBareMetalHost("host2", nil, bmov1alpha1.StateNone,
+					nil, false, "metadata", false, "", false,
+				),
+				ExpectedImage: &bmov1alpha1.Image{
+					URL:          testImageURL,
+					Checksum:     testImageChecksumURL,
+					ChecksumType: bmov1alpha1.ChecksumType("sha256"),
+					DiskFormat:   &testImageDiskFormat,
+				},
+				ExpectUserData: true,
 			},
 		),
 	)

@@ -1162,7 +1162,9 @@ func (m *MachineManager) setHostSpec(_ context.Context, host *bmov1alpha1.BareMe
 			}
 			if !m.Metal3Machine.Spec.Image.IsOCI() {
 				host.Spec.Image.Checksum = ptr.Deref(m.Metal3Machine.Spec.Image.Checksum, "")
-				host.Spec.Image.ChecksumType = bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType)
+				if m.Metal3Machine.Spec.Image.ChecksumType != "" {
+					host.Spec.Image.ChecksumType = bmov1alpha1.ChecksumType(m.Metal3Machine.Spec.Image.ChecksumType)
+				}
 			}
 		}
 		if customDeployConfigured {
