@@ -29,7 +29,6 @@ import (
 	"sync"
 	"time"
 
-	// comment for go-lint.
 	"github.com/go-logr/logr"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
@@ -71,6 +70,10 @@ const (
 	bmRoleNode         = "node"
 	// PausedAnnotationKey is an annotation to be used for pausing a BMH.
 	PausedAnnotationKey = "metal3.io/capm3"
+	// BlockMoveAnnotation is the clusterctl annotation that prevents an object
+	// from being moved until it is removed. Used to synchronize pause/status
+	// annotation application with clusterctl pivot operations.
+	BlockMoveAnnotation = "clusterctl.cluster.x-k8s.io/block-move"
 	// ProviderIDPrefix is a prefix for ProviderID.
 	ProviderIDPrefix = "metal3://"
 	// ProviderLabelPrefix is a label prefix for ProviderID.
@@ -107,6 +110,7 @@ type MachineManagerInterface interface {
 	Metal3MachineHasProviderID() bool
 	SetPauseAnnotation(context.Context) error
 	RemovePauseAnnotation(context.Context) error
+	EnsureBlockMoveAnnotation(context.Context) error
 	DissociateM3Metadata(context.Context) error
 	AssociateM3Metadata(context.Context) error
 	SetError(string, capierrors.MachineStatusError)
@@ -246,6 +250,46 @@ func (m *MachineManager) role() string {
 	return bmRoleNode
 }
 
+// EnsureBlockMoveAnnotation ensures the block-move annotation is present on
+// the associated BareMetalHost to prevent clusterctl from moving it while the
+// BareMetalHost is not paused.
+// The annotation is NOT re-set if the BMH already has a pause annotation.
+func (m *MachineManager) EnsureBlockMoveAnnotation(ctx context.Context) error {
+	host, helper, err := m.getHost(ctx)
+	if err != nil {
+		return err
+	}
+	if host == nil {
+		return nil
+	}
+	// Only set on BMH that are associated with a Metal3Machine (have a consumer)
+	if host.Spec.ConsumerRef == nil || !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
+		return nil
+	}
+
+	annotations := host.GetAnnotations()
+	if annotations == nil {
+		annotations = make(map[string]string)
+	}
+
+	if _, exists := annotations[BlockMoveAnnotation]; exists {
+		return nil // Already present
+	}
+
+	// Don't re-set block-move if BMH is already paused — SetPauseAnnotation()
+	// already completed its lifecycle and intentionally removed block-move.
+	if _, paused := annotations[bmov1alpha1.PausedAnnotation]; paused {
+		return nil
+	}
+
+	m.Log.Info("Ensuring block-move annotation on BareMetalHost",
+		LogFieldHost, host.Name,
+		LogFieldNamespace, host.Namespace)
+	annotations[BlockMoveAnnotation] = ""
+	host.SetAnnotations(annotations)
+	return helper.Patch(ctx, host)
+}
+
 // RemovePauseAnnotation checks and/or Removes the pause annotations on associated bmh.
 func (m *MachineManager) RemovePauseAnnotation(ctx context.Context) error {
 	m.Log.V(VerbosityLevelTrace).Info("Checking for pause annotation removal")
@@ -302,6 +346,16 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 
 	if annotations != nil {
 		if _, ok := annotations[bmov1alpha1.PausedAnnotation]; ok {
+			// BMH is already paused. Clean up block-move annotation if present.
+			if _, hasBlockMove := annotations[BlockMoveAnnotation]; hasBlockMove {
+				m.Log.Info("Removing stale block-move annotation from paused BMH",
+					LogFieldHost, host.Name,
+					LogFieldNamespace, host.Namespace)
+				delete(host.Annotations, BlockMoveAnnotation)
+				if patchErr := helper.Patch(ctx, host); patchErr != nil {
+					return fmt.Errorf("failed to remove stale block-move annotation: %w", patchErr)
+				}
+			}
 			m.Log.Info("BareMetalHost is already paused",
 				LogFieldHost, host.Name,
 				LogFieldNamespace, host.Namespace)
@@ -310,6 +364,24 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 	} else {
 		host.Annotations = make(map[string]string)
 	}
+
+	// Ensure block-move annotation is present to prevent clusterctl
+	// from moving the BMH before pause and status annotations are set.
+	if _, hasBlockMove := host.Annotations[BlockMoveAnnotation]; !hasBlockMove {
+		m.Log.Info("Setting block-move annotation on BareMetalHost",
+			LogFieldHost, host.Name,
+			LogFieldNamespace, host.Namespace)
+		host.Annotations[BlockMoveAnnotation] = ""
+		if patchErr := helper.Patch(ctx, host); patchErr != nil {
+			return fmt.Errorf("failed to set block-move annotation: %w", patchErr)
+		}
+		helper, err = patch.NewHelper(host, m.client)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Set pause and status annotations
 	m.Log.Info("Adding pause annotation to BareMetalHost",
 		LogFieldHost, host.Name,
 		LogFieldNamespace, host.Namespace)
@@ -336,7 +408,27 @@ func (m *MachineManager) SetPauseAnnotation(ctx context.Context) error {
 		return fmt.Errorf("failed to marshal status annotation: %w", err)
 	}
 	host.Annotations[bmov1alpha1.StatusAnnotation] = string(newAnnotation)
-	return helper.Patch(ctx, host)
+
+	if patchErr := helper.Patch(ctx, host); patchErr != nil {
+		return fmt.Errorf("failed to set pause annotations: %w", patchErr)
+	}
+
+	helper, err = patch.NewHelper(host, m.client)
+	if err != nil {
+		return err
+	}
+
+	if _, hasBlockMove := host.Annotations[BlockMoveAnnotation]; hasBlockMove {
+		m.Log.Info("Removing block-move annotation from BareMetalHost",
+			LogFieldHost, host.Name,
+			LogFieldNamespace, host.Namespace)
+		delete(host.Annotations, BlockMoveAnnotation)
+		if patchErr := helper.Patch(ctx, host); patchErr != nil {
+			return fmt.Errorf("failed to remove block-move annotation: %w", patchErr)
+		}
+	}
+
+	return nil
 }
 
 // Associate associates a machine and is invoked by the Machine Controller.
@@ -488,12 +580,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 		if !consumerRefMatches(host.Spec.ConsumerRef, m.Metal3Machine) {
 			m.Log.Info("host already associated with another metal3 machine",
 				LogFieldHost, host.Name)
-			// Remove the ownerreference to this machine, even if the consumer ref
-			// references another machine.
-			host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
-			if err != nil {
-				return err
-			}
 			return nil
 		}
 
@@ -607,7 +693,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 			m.Log.Info(msg)
 			return WithTransientError(errors.New(msg), requeueAfter)
 		}
-
 		host.Spec.ConsumerRef = nil
 
 		if m.Cluster != nil {
@@ -675,12 +760,6 @@ func (m *MachineManager) Delete(ctx context.Context) error {
 					}
 				}
 			}
-		}
-
-		// Remove the ownerreference to this machine.
-		host.OwnerReferences, err = m.DeleteOwnerRef(host.OwnerReferences)
-		if err != nil {
-			return err
 		}
 
 		if host.Labels != nil && host.Labels[clusterv1.ClusterNameLabel] == m.Machine.Spec.ClusterName {
@@ -1224,13 +1303,6 @@ func (m *MachineManager) setHostConsumerRef(_ context.Context, host *bmov1alpha1
 		APIVersion: m.Metal3Machine.APIVersion,
 	}
 
-	// Set OwnerReferences.
-	hostOwnerReferences, err := m.SetOwnerRef(host.OwnerReferences, true)
-	if err != nil {
-		return err
-	}
-	host.OwnerReferences = hostOwnerReferences
-
 	// Delete nodeReuseLabelName from host.
 	m.Log.Info("Deleting nodeReuseLabelName from host, if any")
 
@@ -1593,54 +1665,6 @@ func (m *MachineManager) SetMetal3DataReadyConditionTrue(reason string) {
 		Status: metav1.ConditionTrue,
 		Reason: reason,
 	})
-}
-
-// SetOwnerRef adds an ownerreference to this Metal3Machine.
-func (m *MachineManager) SetOwnerRef(refList []metav1.OwnerReference, controller bool) ([]metav1.OwnerReference, error) {
-	return setOwnerRefInList(refList, controller, m.Metal3Machine.TypeMeta,
-		m.Metal3Machine.ObjectMeta,
-	)
-}
-
-// DeleteOwnerRef removes the ownerreference to this Metal3Machine.
-func (m *MachineManager) DeleteOwnerRef(refList []metav1.OwnerReference) ([]metav1.OwnerReference, error) {
-	return deleteOwnerRefFromList(refList, m.Metal3Machine.TypeMeta,
-		m.Metal3Machine.ObjectMeta,
-	)
-}
-
-// DeleteOwnerRefFromList removes the ownerreference to this Metal3Machine.
-func deleteOwnerRefFromList(refList []metav1.OwnerReference,
-	objType metav1.TypeMeta, objMeta metav1.ObjectMeta,
-) ([]metav1.OwnerReference, error) {
-	if len(refList) == 0 {
-		return refList, nil
-	}
-	index, err := findOwnerRefFromList(refList, objType, objMeta)
-	if err != nil {
-		if ok := errors.As(err, &errNotFound); !ok {
-			return nil, err
-		}
-		return refList, nil
-	}
-	if len(refList) == 1 {
-		return []metav1.OwnerReference{}, nil
-	}
-	refListLen := len(refList) - 1
-	refList[index] = refList[refListLen]
-	refList, err = deleteOwnerRefFromList(refList[:refListLen], objType, objMeta)
-	if err != nil {
-		return nil, err
-	}
-	return refList, nil
-}
-
-// FindOwnerRef checks if an ownerreference to this Metal3Machine exists
-// and returns the index.
-func (m *MachineManager) FindOwnerRef(refList []metav1.OwnerReference) (int, error) {
-	return findOwnerRefFromList(refList, m.Metal3Machine.TypeMeta,
-		m.Metal3Machine.ObjectMeta,
-	)
 }
 
 // SetOwnerRef adds an ownerreference to this Metal3Machine.
