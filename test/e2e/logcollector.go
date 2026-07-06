@@ -98,11 +98,11 @@ func (Metal3LogCollector) CollectMachineLog(ctx context.Context, cli client.Clie
 }
 
 func (Metal3LogCollector) CollectInfrastructureLogs(_ context.Context, _ client.Client, _ *clusterv1.Cluster, _ string) error {
-	return errors.New("CollectInfrastructureLogs not implemented")
+	return nil
 }
 
 func (Metal3LogCollector) CollectMachinePoolLog(_ context.Context, _ client.Client, _ *clusterv1.MachinePool, _ string) error {
-	return errors.New("CollectMachinePoolLog not implemented")
+	return nil
 }
 
 // FetchManifests fetches relevant Metal3, CAPI, and Kubernetes core resources
