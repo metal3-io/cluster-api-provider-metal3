@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/netip"
 	"regexp"
 	"strconv"
 	"strings"
@@ -454,6 +455,86 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 func isMetal3IPPoolRef(ref infrav1.IPPoolReference) bool {
 	return (ref.APIGroup == IPPoolAPIGroup && ref.Kind == IPPoolKind) ||
 		(ref.APIGroup == "" && ref.Kind == "")
+}
+
+// fetchDNSServersFromIPPool fetches DNS servers directly from the Metal3 IPPool object.
+// It resolves per-subnet DNS overrides by checking which subnet the allocated address belongs to,
+// falling back to pool-level DNSServers if no per-subnet override is found.
+// This is used instead of reading DNS from the IPAddress object, since CAPI IPAddress does not
+// carry DNS information.
+func (m *DataManager) fetchDNSServersFromIPPool(ctx context.Context, poolRef infrav1.IPPoolReference, allocatedAddress *capipamv1.IPAddress) ([]ipamv1.IPAddressStr, error) {
+	if !isMetal3IPPoolRef(poolRef) {
+		// Non-Metal3 pools might not have DNS servers in their spec. Return if metal3 IPPool is not referenced.
+		return nil, nil
+	}
+
+	if allocatedAddress == nil || allocatedAddress.Spec.Address == "" {
+		return nil, errors.New("allocated address is nil or empty, cannot fetch DNS servers from IPPool")
+	}
+
+	pool := &ipamv1.IPPool{}
+	poolNamespacedName := types.NamespacedName{
+		Name:      poolRef.Name,
+		Namespace: allocatedAddress.Namespace,
+	}
+
+	if err := m.client.Get(ctx, poolNamespacedName, pool); err != nil {
+		return nil, fmt.Errorf("failed to fetch IPPool %s: %w", poolRef.Name, err)
+	}
+
+	allocatedIP, err := netip.ParseAddr(allocatedAddress.Spec.Address)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse allocated address %s: %w", allocatedAddress.Spec.Address, err)
+	}
+
+	for _, p := range pool.Spec.Pools {
+		if addressInPool(allocatedIP, p) {
+			if len(p.DNSServers) > 0 {
+				return p.DNSServers, nil
+			}
+			// Address matched this pool entry but it has no per-pool DNS override;
+			// fall back to spec-level DNSServers.
+			return pool.Spec.DNSServers, nil
+		}
+	}
+
+	return nil, fmt.Errorf("allocated address %s not contained in any pool entry of IPPool %s", allocatedAddress.Spec.Address, poolRef.Name)
+}
+
+// addressInPool checks if the given IP address falls within the pool entry's bounds.
+// The logic mirrors isAddressInBonds in ip-address-manager's IPPool webhook.
+func addressInPool(ip netip.Addr, p ipamv1.Pool) bool {
+	if p.Start != nil {
+		startIP, err := netip.ParseAddr(string(*p.Start))
+		if err != nil {
+			return false
+		}
+		if startIP.Compare(ip) > 0 {
+			return false
+		}
+	}
+
+	if p.End != nil {
+		endIP, err := netip.ParseAddr(string(*p.End))
+		if err != nil {
+			return false
+		}
+		if endIP.Compare(ip) < 0 {
+			return false
+		}
+	}
+
+	if p.Subnet != nil && *p.Subnet != "" {
+		_, subnet, err := net.ParseCIDR(string(*p.Subnet))
+		if err != nil {
+			return false
+		}
+		if !subnet.Contains(ip.AsSlice()) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // releaseAddressesFromPool releases all addresses allocated by a [Metal3DataTemplate] by deleting the IP claims.
@@ -1013,7 +1094,7 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef infrav1.IPPoolR
 }
 
 // addressFromClaim retrieves the IPAddress for a CAPI IPAddressClaim.
-func (m *DataManager) addressFromClaim(ctx context.Context, _ infrav1.IPPoolReference, claim *capipamv1.IPAddressClaim) (AddressFromPool, bool, error) {
+func (m *DataManager) addressFromClaim(ctx context.Context, poolRef infrav1.IPPoolReference, claim *capipamv1.IPAddressClaim) (AddressFromPool, bool, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Getting address from IPAddressClaim")
 	if claim == nil {
 		return AddressFromPool{}, true, errors.New("no claim provided")
@@ -1041,11 +1122,17 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ infrav1.IPPoolRefe
 		return AddressFromPool{}, false, err
 	}
 
+	// CAPI IPAddress does not have a DNSServers field, so fetch DNS from the IPPool directly.
+	dnsServers, err := m.fetchDNSServersFromIPPool(ctx, poolRef, address)
+	if err != nil {
+		return AddressFromPool{}, false, err
+	}
+
 	a := AddressFromPool{
 		Address:    ipamv1.IPAddressStr(address.Spec.Address),
 		Prefix:     address.Spec.Prefix,
 		Gateway:    ipamv1.IPAddressStr(address.Spec.Gateway),
-		dnsServers: []ipamv1.IPAddressStr{},
+		dnsServers: dnsServers,
 	}
 	return a, false, nil
 }
