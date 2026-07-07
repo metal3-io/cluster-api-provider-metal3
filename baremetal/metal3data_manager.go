@@ -17,6 +17,7 @@ limitations under the License.
 package baremetal
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -442,6 +443,19 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 		if err != nil {
 			return addresses, err
 		}
+
+		// Fetch DNS servers from the IPPool for the CAPI path where the IPAddress
+		// does not carry DNS information. The Metal3 path already populates dnsServers
+		// from the Metal3 IPAddress object via newAddressFromIPAMv1.
+		if addr, ok := addresses[pool]; ok && addr.Address != "" && len(addr.dnsServers) == 0 {
+			dnsServers, dnsErr := m.fetchDNSServersFromIPPool(ctx, ref, string(addr.Address))
+			if dnsErr != nil {
+				m.Log.Error(dnsErr, "Failed to fetch DNS servers from IPPool, continuing without DNS", LogFieldPool, pool)
+			} else if len(dnsServers) > 0 {
+				addr.dnsServers = dnsServers
+				addresses[pool] = addr
+			}
+		}
 	}
 
 	m.Log.Info("done allocating addresses", "addresses", addresses, "requeue", requeue)
@@ -454,6 +468,69 @@ func (m *DataManager) getAddressesFromPool(ctx context.Context,
 func isMetal3IPPoolRef(ref infrav1.IPPoolReference) bool {
 	return (ref.APIGroup == IPPoolAPIGroup && ref.Kind == IPPoolKind) ||
 		(ref.APIGroup == "" && ref.Kind == "")
+}
+
+// fetchDNSServersFromIPPool fetches DNS servers directly from the Metal3 IPPool object.
+// It resolves per-subnet DNS overrides by checking which subnet the allocated address belongs to,
+// falling back to pool-level DNSServers if no per-subnet override is found.
+// This is used instead of reading DNS from the IPAddress object, since CAPI IPAddress does not
+// carry DNS information.
+func (m *DataManager) fetchDNSServersFromIPPool(ctx context.Context, poolRef infrav1.IPPoolReference, allocatedAddress string) ([]ipamv1.IPAddressStr, error) {
+	if !isMetal3IPPoolRef(poolRef) {
+		// Non-Metal3 pools might not have DNS servers in their spec. Return if metal3 IPPool is not referenced.
+		return nil, nil
+	}
+
+	pool := &ipamv1.IPPool{}
+	poolNamespacedName := types.NamespacedName{
+		Name:      poolRef.Name,
+		Namespace: m.Data.Namespace,
+	}
+
+	if err := m.client.Get(ctx, poolNamespacedName, pool); err != nil {
+		return nil, fmt.Errorf("failed to fetch IPPool %s: %w", poolRef.Name, err)
+	}
+
+	if allocatedAddress == "" {
+		return pool.Spec.DNSServers, nil
+	}
+
+	allocatedIP := net.ParseIP(allocatedAddress)
+	if allocatedIP == nil {
+		// If we can't parse the address, fall back to pool-level DNS.
+		return pool.Spec.DNSServers, nil
+	}
+
+	for _, p := range pool.Spec.Pools {
+		if addressInPool(allocatedIP, p) && len(p.DNSServers) > 0 {
+			return p.DNSServers, nil
+		}
+	}
+
+	return pool.Spec.DNSServers, nil
+}
+
+// addressInPool checks if the given IP address falls within the pool entry's range.
+// It checks the subnet CIDR first, then start/end range.
+func addressInPool(ip net.IP, p ipamv1.Pool) bool {
+	if p.Subnet != nil && *p.Subnet != "" {
+		_, subnet, err := net.ParseCIDR(string(*p.Subnet))
+		if err == nil && subnet.Contains(ip) {
+			return true
+		}
+	}
+
+	if p.Start != nil && p.End != nil {
+		startIP := net.ParseIP(string(*p.Start))
+		endIP := net.ParseIP(string(*p.End))
+		if startIP != nil && endIP != nil {
+			if bytes.Compare(ip.To16(), startIP.To16()) >= 0 && bytes.Compare(ip.To16(), endIP.To16()) <= 0 {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // releaseAddressesFromPool releases all addresses allocated by a [Metal3DataTemplate] by deleting the IP claims.
@@ -1013,7 +1090,7 @@ func (m *DataManager) ensureIPClaim(ctx context.Context, poolRef infrav1.IPPoolR
 }
 
 // addressFromClaim retrieves the IPAddress for a CAPI IPAddressClaim.
-func (m *DataManager) addressFromClaim(ctx context.Context, _ infrav1.IPPoolReference, claim *capipamv1.IPAddressClaim) (AddressFromPool, bool, error) {
+func (m *DataManager) addressFromClaim(ctx context.Context, poolRef infrav1.IPPoolReference, claim *capipamv1.IPAddressClaim) (AddressFromPool, bool, error) {
 	m.Log.V(VerbosityLevelTrace).Info("Getting address from IPAddressClaim")
 	if claim == nil {
 		return AddressFromPool{}, true, errors.New("no claim provided")
@@ -1041,11 +1118,17 @@ func (m *DataManager) addressFromClaim(ctx context.Context, _ infrav1.IPPoolRefe
 		return AddressFromPool{}, false, err
 	}
 
+	// CAPI IPAddress does not have a DNSServers field, so fetch DNS from the IPPool directly.
+	dnsServers, err := m.fetchDNSServersFromIPPool(ctx, poolRef, address.Spec.Address)
+	if err != nil {
+		m.Log.Error(err, "Failed to fetch DNS servers from IPPool", LogFieldPool, poolRef.Name)
+	}
+
 	a := AddressFromPool{
 		Address:    ipamv1.IPAddressStr(address.Spec.Address),
 		Prefix:     address.Spec.Prefix,
 		Gateway:    ipamv1.IPAddressStr(address.Spec.Gateway),
-		dnsServers: []ipamv1.IPAddressStr{},
+		dnsServers: dnsServers,
 	}
 	return a, false, nil
 }
