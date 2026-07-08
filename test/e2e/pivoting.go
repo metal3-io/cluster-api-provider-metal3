@@ -40,6 +40,15 @@ const (
 	IRSOControllerManagerName    = "ironic-standalone-operator-controller-manager"
 )
 
+// targetClusterCacheCancel stops the controller-runtime cache backing the target
+// cluster proxy. That cache is shared (via GetCache's sync.Once) by the pod-log
+// watchers set up on the target cluster during Pivoting (BMO, Ironic). We
+// pre-warm it with a cancelable context in Pivoting so that RePivoting can stop
+// it before the target cluster is deleted; otherwise the informer keeps trying
+// to sync with the gone API server and spams the console with
+// "failed to list/watch *v1.Pod" errors.
+var targetClusterCacheCancel context.CancelFunc
+
 type PivotingInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	BootstrapClusterProxy framework.ClusterProxy
@@ -144,6 +153,15 @@ func Pivoting(ctx context.Context, inputGetter func() PivotingInput) {
 	labelBMOCRDs(ctx, input.BootstrapClusterProxy)
 	By("Add Labels to hardwareData CRDs")
 	labelHDCRDs(ctx, input.BootstrapClusterProxy)
+
+	// Pre-warm the target cluster proxy's controller-runtime cache with a context
+	// we own, before InstallIRSO/InstallBMO trigger GetCache and bind the shared
+	// cache to the uncancelable suite context. Owning the context lets RePivoting
+	// stop the cache before the target cluster is deleted, which is the only way
+	// to silence the informer's reflector spam during teardown.
+	targetCacheCtx, cancelTargetCache := context.WithCancel(ctx)
+	targetClusterCacheCancel = cancelTargetCache
+	input.TargetCluster.GetCache(targetCacheCtx)
 
 	By("Pivoting: Install IRSO in the target cluster")
 	irsoDeployLogFolder := filepath.Join(input.ArtifactFolder, input.TargetCluster.GetName(), "ironic-deploy-logs-pivoting")
@@ -302,9 +320,14 @@ type RemoveDeploymentInput struct {
 
 func RemoveDeployment(ctx context.Context, inputGetter func() RemoveDeploymentInput) {
 	input := inputGetter()
+	// Use foreground propagation so the deployment's pods are deleted as part of
+	// the delete instead of being orphaned and cleaned up asynchronously.
+	foregroundDeletion := metav1.DeletePropagationForeground
 	err := input.ClusterProxy.GetClientSet().AppsV1().
 		Deployments(input.Namespace).
-		Delete(ctx, input.Name, metav1.DeleteOptions{})
+		Delete(ctx, input.Name, metav1.DeleteOptions{
+			PropagationPolicy: &foregroundDeletion,
+		})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			Logf("RemoveDeployment: deployment %s/%s not found (already deleted), continuing", input.Namespace, input.Name)
@@ -356,6 +379,17 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	err := FetchClusterLogs(input.TargetCluster, filepath.Join(clusterLogCollectionBasePath, "afterPivot"))
 	if err != nil {
 		Logf("Error: %v", err)
+	}
+
+	// Stop the shared controller-runtime cache on the target cluster proxy before
+	// the target cluster is torn down. The BMO/Ironic pod-log watchers set up
+	// during Pivoting all use this single cache; cancelling the context we
+	// pre-warmed it with makes the informers stop cleanly instead of endlessly
+	// retrying against the deleted API server and spamming the console.
+	By("Stop the target cluster proxy cache to shut down log watchers")
+	if targetClusterCacheCancel != nil {
+		targetClusterCacheCancel()
+		targetClusterCacheCancel = nil
 	}
 
 	By("Fetch manifest for workload cluster after pivot")
@@ -440,6 +474,17 @@ func RePivoting(ctx context.Context, inputGetter func() RePivotingInput) {
 	})
 
 	LogFromFile(filepath.Join(input.ArtifactFolder, "clusters", input.ClusterName+"-pivot", "logs", input.Namespace, "clusterctl-move.log"))
+
+	// Remove BMO from the target cluster so it is actually gone before the target
+	// cluster is deleted.
+	By("Remove BMO deployment from the target cluster")
+	RemoveDeployment(ctx, func() RemoveDeploymentInput {
+		return RemoveDeploymentInput{
+			ClusterProxy: input.TargetCluster,
+			Namespace:    input.E2EConfig.MustGetVariable(ironicNamespace),
+			Name:         input.E2EConfig.MustGetVariable(NamePrefix) + "-controller-manager",
+		}
+	})
 
 	By("Check that the re-pivoted cluster is up and running")
 	pivotingCluster := framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{

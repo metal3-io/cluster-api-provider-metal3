@@ -10,18 +10,15 @@ import (
 	"io"
 	"maps"
 	"net"
-	"net/http"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"text/tabwriter"
 	"time"
 
-	"github.com/blang/semver"
 	bmov1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	infrav1 "github.com/metal3-io/cluster-api-provider-metal3/api/v1beta2"
 	ipamv1 "github.com/metal3-io/ip-address-manager/api/v1alpha1"
@@ -830,71 +827,6 @@ func LabelCRD(ctx context.Context, c client.Client, crdName string, labels map[s
 func GetStableReleaseOfMinor(ctx context.Context, releaseMarkerPrefix string, minorRelease string) (string, error) {
 	releaseMarker := fmt.Sprintf(releaseMarkerPrefix, minorRelease)
 	return clusterctl.ResolveRelease(ctx, releaseMarker)
-}
-
-// GetLatestPatchRelease returns latest patch release against minor release.
-func GetLatestPatchRelease(goProxyPath string, minorReleaseVersion string) (string, error) {
-	if strings.EqualFold("main", minorReleaseVersion) || strings.EqualFold("latest", minorReleaseVersion) {
-		return strings.ToUpper(minorReleaseVersion), nil
-	}
-	semVersion, err := semver.Parse(minorReleaseVersion)
-	if err != nil {
-		return "", fmt.Errorf("parsing semver for %s: %w", minorReleaseVersion, err)
-	}
-	parsedTags, err := getVersions(goProxyPath)
-	if err != nil {
-		return "", err
-	}
-
-	var picked semver.Version
-	for i, tag := range parsedTags {
-		if tag.Major == semVersion.Major && tag.Minor == semVersion.Minor {
-			picked = parsedTags[i]
-		}
-	}
-	if picked.Major == 0 && picked.Minor == 0 && picked.Patch == 0 {
-		return "", fmt.Errorf("no suitable release available for path %s and version %s", goProxyPath, minorReleaseVersion)
-	}
-	return picked.String(), nil
-}
-
-// GetVersions returns the a sorted list of semantical versions which exist for a go module.
-func getVersions(gomodulePath string) (semver.Versions, error) {
-	// Get the data
-	/* #nosec G107 */
-	resp, err := http.Get(gomodulePath) //nolint:noctx
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to get versions from url %s got %d %s", gomodulePath, resp.StatusCode, http.StatusText(resp.StatusCode))
-	}
-	defer resp.Body.Close()
-
-	rawResponse, err := io.ReadAll(resp.Body)
-	if err != nil {
-		retryError := fmt.Errorf("failed to get versions: error reading goproxy response body: %w", err)
-		return nil, retryError
-	}
-	parsedVersions := semver.Versions{}
-	for s := range strings.SplitSeq(string(rawResponse), "\n") {
-		if s == "" {
-			continue
-		}
-		s = strings.TrimSuffix(s, "+incompatible")
-		parsedVersion, err := semver.ParseTolerant(s)
-		if err != nil {
-			// Discard releases with tags that are not a valid semantic versions (the user can point explicitly to such releases).
-			continue
-		}
-		parsedVersions = append(parsedVersions, parsedVersion)
-	}
-
-	if len(parsedVersions) == 0 {
-		return nil, fmt.Errorf("no versions found for go module %q", gomodulePath)
-	}
-	sort.Sort(parsedVersions)
-	return parsedVersions, nil
 }
 
 // BuildAndApplyKustomizationInput provides input for BuildAndApplyKustomize().

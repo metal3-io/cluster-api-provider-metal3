@@ -3,7 +3,6 @@ module github.com/metal3-io/cluster-api-provider-metal3/test
 go 1.26.0
 
 require (
-	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/go-logr/logr v1.4.3
 	github.com/jinzhu/copier v0.4.0
