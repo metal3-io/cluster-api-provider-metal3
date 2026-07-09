@@ -266,6 +266,25 @@ the actual upgrade via SSH.
 See [test/extension/handlers/inplaceupdate/handlers.go](../test/extension/handlers/inplaceupdate/handlers.go)
 for the detailed implementation.
 
+**Handling version-managed KubeadmConfig changes:**
+
+When the `CanUpdateMachine`/`CanUpdateMachineSet` hooks are called, the extension
+declares which fields it can reconcile in-place by mutating the current object to
+match the desired object. Any diff that remains between the (patched) current and
+the desired objects causes KubeadmControlPlane (KCP) to fall back to a rolling
+update (machine replacement) instead of an in-place upgrade.
+
+Besides `Machine.spec.version`, a Kubernetes upgrade also changes
+`KubeadmConfig.spec.clusterConfiguration.featureGates`, because KCP
+automatically manages version-dependent kubeadm feature gates. For example, KCP
+injects the `ControlPlaneKubeletLocalMode` feature gate for versions where it is
+not yet enabled by default and removes it once the feature graduates (as happens
+when upgrading from v1.35 to v1.36). The extension must therefore declare that it
+can update `ClusterConfiguration.FeatureGates` in-place; otherwise the leftover
+`featureGates` diff would trigger an unwanted rollout and the test would fail its
+"machine UID must not change" assertion. This is handled by
+`canUpdateKubeadmConfigSpec` in the handler.
+
 **Test flow:**
 
 1. Test starts 5 bmh, 3 CP nodes and 0 worker node

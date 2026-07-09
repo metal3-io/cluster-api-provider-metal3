@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"strings"
 	"sync"
 
@@ -73,8 +74,28 @@ func canUpdateMachineSpec(current, desired *clusterv1.MachineSpec) {
 	}
 }
 
-// canUpdateKubeadmConfigSpec declares that this extension can update.
-func canUpdateKubeadmConfigSpec(_, _ *bootstrapv1.KubeadmConfigSpec) {
+// canUpdateKubeadmConfigSpec declares which KubeadmConfigSpec fields this
+// extension can reconcile in-place.
+//
+// During a Kubernetes version upgrade, Cluster API's KubeadmControlPlane
+// automatically manages version-dependent kubeadm feature gates in
+// ClusterConfiguration.FeatureGates. For example, it injects the
+// "ControlPlaneKubeletLocalMode" feature gate for Kubernetes versions where it
+// is not yet enabled by default and drops it again once the feature graduates
+// (this happens when upgrading e.g. from v1.35 to v1.36). This produces a
+// KubeadmConfig diff in addition to the Machine version change.
+//
+// Because our in-place upgrade actually runs "kubeadm upgrade" on the node, this
+// configuration change is applied as part of the upgrade, so we declare that we
+// can update FeatureGates in-place. Without this, KCP sees the unresolved diff
+// after the extension's patches are applied and falls back to a rolling update
+// (replacing machines), which defeats the purpose of an in-place upgrade and
+// fails the in-place upgrade e2e test (machines get new UIDs).
+func canUpdateKubeadmConfigSpec(current, desired *bootstrapv1.KubeadmConfigSpec) {
+	// ClusterConfiguration.FeatureGates (version-managed by KCP, e.g. ControlPlaneKubeletLocalMode).
+	if !maps.Equal(current.ClusterConfiguration.FeatureGates, desired.ClusterConfiguration.FeatureGates) {
+		current.ClusterConfiguration.FeatureGates = desired.ClusterConfiguration.FeatureGates
+	}
 	// Todo: add more fields as needed.
 }
 
