@@ -28,8 +28,8 @@ section for additional information on the `move` process.
 
 CAPM3 provides a cluster template. This requires some environment variables
 properly set. You can find an example file containing the environment variables
-`example_variables.rc`in the release or
-[here](https://github.com/metal3-io/cluster-api-provider-metal3/tree/main/examples/clusterctl-templates/example_variables.rc).
+`example_variables.rc`in the release or in the
+[example_variables.rc template](https://github.com/metal3-io/cluster-api-provider-metal3/tree/main/examples/clusterctl-templates/example_variables.rc).
 The examples provided there or below assume that you are deploying the target
 node using an off-the-shelf Ubuntu image (18.04), served locally in the
 metal3-dev-env. They must be adapted for any deployment.
