@@ -1,0 +1,6 @@
+resources:
+- ../bases/ippool
+- ../bases/centos-kubeadm-config
+
+components:
+- ../../main/components/ip-reuse

@@ -1,0 +1,6 @@
+resources:
+- ../bases/ippool
+- ../bases/opensuse-leap-kubeadm-config
+
+components:
+- ../components/ip-reuse
