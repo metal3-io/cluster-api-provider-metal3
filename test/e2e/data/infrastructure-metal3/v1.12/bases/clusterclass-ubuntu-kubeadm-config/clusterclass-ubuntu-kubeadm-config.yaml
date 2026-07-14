@@ -15,40 +15,6 @@ spec:
           sudo: ALL=(ALL) NOPASSWD:ALL
         files:
         - content: |
-            #!/bin/bash
-            while :; do
-              curl -sk https://127.0.0.1:6443/healthz 1>&2 > /dev/null
-              isOk=$?
-              isActive=$(systemctl show -p ActiveState keepalived.service | cut -d'=' -f2)
-              if [ $isOk == "0" ] &&  [ $isActive != "active" ]; then
-                logger 'API server is healthy, however keepalived is not running, starting keepalived'
-                echo 'API server is healthy, however keepalived is not running, starting keepalived'
-                sudo systemctl start keepalived.service
-              elif [ $isOk != "0" ] &&  [ $isActive == "active" ]; then
-                logger 'API server is not healthy, however keepalived running, stopping keepalived'
-                echo 'API server is not healthy, however keepalived running, stopping keepalived'
-                sudo systemctl stop keepalived.service
-              fi
-              sleep 5
-            done
-          owner: root:root
-          path: /usr/local/bin/monitor.keepalived.sh
-          permissions: "0755"
-        - content: |
-            [Unit]
-            Description=Monitors keepalived adjusts status with that of API server
-            After=syslog.target network-online.target
-
-            [Service]
-            Type=simple
-            Restart=always
-            ExecStart=/usr/local/bin/monitor.keepalived.sh
-
-            [Install]
-            WantedBy=multi-user.target
-          owner: root:root
-          path: /lib/systemd/system/monitor.keepalived.service
-        - content: |
             ! Configuration File for keepalived
             global_defs {
                 notification_email {
@@ -59,6 +25,14 @@ spec:
                 smtp_server localhost
                 smtp_connect_timeout 30
             }
+            vrrp_script k8s_api_check {
+                script "curl -sk https://127.0.0.1:6443/healthz"
+                interval 5
+                timeout 5
+                rise 3
+                fall 3
+            }
+
             vrrp_instance VI_2 {
                 state MASTER
                 interface enp2s0
@@ -67,6 +41,9 @@ spec:
                 advert_int 1
                 virtual_ipaddress {
                     ${CLUSTER_APIENDPOINT_HOST}
+                }
+                track_script {
+                    k8s_api_check
                 }
             }
           path: /etc/keepalived/keepalived.conf
@@ -132,8 +109,6 @@ spec:
         - sed -i "s/MACAddressPolicy=persistent/MACAddressPolicy=none/g" /usr/lib/systemd/network/99-default.link
         - netplan apply
         - systemctl enable --now crio kubelet
-        - if (curl -sk --max-time 10 https://${CLUSTER_APIENDPOINT_HOST}:${CLUSTER_APIENDPOINT_PORT}/healthz); then echo "keepalived already running";else systemctl start keepalived; fi
-        - systemctl enable --now /lib/systemd/system/monitor.keepalived.service
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta2
 kind: KubeadmConfigTemplate
