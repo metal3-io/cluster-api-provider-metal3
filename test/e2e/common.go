@@ -646,7 +646,11 @@ func Metal3MachineToMachineName(m3machine infrav1.Metal3Machine) (string, error)
 }
 
 func Metal3MachineToBmhName(m3machine infrav1.Metal3Machine) string {
-	return strings.Replace(m3machine.GetAnnotations()["metal3.io/BareMetalHost"], "metal3/", "", 1)
+	ref := m3machine.GetAnnotations()["metal3.io/BareMetalHost"]
+	if _, name, ok := strings.Cut(ref, "/"); ok {
+		return name
+	}
+	return ref
 }
 
 // Derives the name of a VM created by metal3-dev-env from the name of a BareMetalHost object.
