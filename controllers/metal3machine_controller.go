@@ -805,37 +805,46 @@ func (r *Metal3MachineReconciler) Metal3DataClaimToMetal3Machines(_ context.Cont
 }
 
 // Metal3DataToMetal3Machines will return a reconcile request for a Metal3Machine if the event is for a
-// Metal3Data and that Metal3Data references a Metal3Machine.
-func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(_ context.Context, obj client.Object) []ctrl.Request {
-	requests := []ctrl.Request{}
-	if m3d, ok := obj.(*infrav1.Metal3Data); ok {
-		for _, ownerRef := range m3d.OwnerReferences {
-			if ownerRef.Kind != metal3MachineKind {
-				continue
-			}
-			aGV, err := schema.ParseGroupVersion(ownerRef.APIVersion)
-			if err != nil {
-				r.Log.Error(fmt.Errorf("failed to parse the group and version %v", ownerRef.APIVersion),
-					"failed to get Metal3Machine for BareMetalHost",
-				)
-				continue
-			}
-			if aGV.Group != infrav1.GroupVersion.Group {
-				continue
-			}
-			requests = append(requests, ctrl.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      ownerRef.Name,
-					Namespace: m3d.Namespace,
-				},
-			})
-		}
-	} else {
+// Metal3Data and that Metal3Data references a Metal3Machine via the owner
+// reference on its Metal3DataClaim.
+func (r *Metal3MachineReconciler) Metal3DataToMetal3Machines(ctx context.Context, obj client.Object) []ctrl.Request {
+	m3d, ok := obj.(*infrav1.Metal3Data)
+	if !ok {
 		r.Log.Error(fmt.Errorf("expected a Metal3Data but got a %T", obj),
 			"failed to get Metal3Machine for Metal3Data",
 		)
+		return []ctrl.Request{}
 	}
-	return requests
+
+	if m3d.Spec.Claim == nil || m3d.Spec.Claim.Name == "" {
+		return []ctrl.Request{}
+	}
+
+	dataClaim := &infrav1.Metal3DataClaim{}
+	claimKey := types.NamespacedName{Name: m3d.Spec.Claim.Name, Namespace: m3d.Namespace}
+	if err := r.Client.Get(ctx, claimKey, dataClaim); err != nil {
+		r.Log.Error(err, "failed to get Metal3DataClaim for Metal3Data")
+		return []ctrl.Request{}
+	}
+
+	for _, ownerRef := range dataClaim.OwnerReferences {
+		gv, err := schema.ParseGroupVersion(ownerRef.APIVersion)
+		if err != nil {
+			continue
+		}
+		if ownerRef.Kind == "Metal3Machine" && gv.Group == infrav1.GroupVersion.Group {
+			return []ctrl.Request{
+				{
+					NamespacedName: types.NamespacedName{
+						Name:      ownerRef.Name,
+						Namespace: m3d.Namespace,
+					},
+				},
+			}
+		}
+	}
+
+	return []ctrl.Request{}
 }
 
 // setErrorM3Machine sets the ErrorMessage and ErrorReason fields on the metal3machine.

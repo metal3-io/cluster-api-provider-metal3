@@ -596,30 +596,26 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 			// Iterate over the Metal3Data objects to find all indexes and objects
 			for _, address := range dataObjects.Items {
 				Expect(tc.expectedDatas).To(ContainElement(address.Name))
-				// Metal3Data created by createData must be owned by the
-				// Metal3DataClaim (controlling) and the Metal3Machine, but not
-				// by the Metal3DataTemplate, so that they are garbage collected
-				// with the Cluster. Skip pre-existing fixtures used to trigger
-				// requeue/error paths, which have no owner references.
+				// Metal3Data created by createData must be owned solely by the
+				// Metal3DataClaim (controlling), and not by the Metal3DataTemplate,
+				// so that they are garbage collected with the Cluster. Skip
+				// pre-existing fixtures used to trigger requeue/error paths, which
+				// have no owner references.
 				if tc.expectRequeue || tc.expectError {
 					continue
 				}
-				var claimOwner, machineOwner *metav1.OwnerReference
+				var claimOwner *metav1.OwnerReference
 				for i := range address.OwnerReferences {
 					ref := &address.OwnerReferences[i]
 					Expect(ref.Kind).NotTo(Equal("Metal3DataTemplate"))
-					switch ref.Kind {
-					case metal3DataClaimKind:
+					if ref.Kind == metal3DataClaimKind {
 						claimOwner = ref
-					case metal3MachineKind:
-						machineOwner = ref
 					}
 				}
-				Expect(address.OwnerReferences).To(HaveLen(2))
+				Expect(address.OwnerReferences).To(HaveLen(1))
 				Expect(claimOwner).NotTo(BeNil())
 				Expect(claimOwner.Controller).To(Equal(ptr.To(true)))
 				Expect(claimOwner.Name).To(Equal(tc.dataClaim.Name))
-				Expect(machineOwner).NotTo(BeNil())
 			}
 			Expect(tc.dataClaim.Finalizers).To(HaveLen(1))
 
@@ -827,6 +823,65 @@ var _ = Describe("Metal3DataTemplate manager", func() {
 				},
 			},
 			expectedDatas: []string{"abc-1"},
+		}),
+		Entry("Claim missing controller owner reference", testCaseCreateAddresses{
+			template: &infrav1.Metal3DataTemplate{
+				ObjectMeta: templateMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{},
+				Status: infrav1.Metal3DataTemplateStatus{
+					Indexes: []infrav1.IndexEntry{},
+				},
+			},
+			indexes: []infrav1.IndexEntry{},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3DataClaimName,
+					Namespace: namespaceName,
+					// Non-controller owner reference: GetControllerOf returns nil.
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name:       metal3machineName,
+							Kind:       metal3MachineKind,
+							APIVersion: infrav1.GroupVersion.String(),
+							UID:        m3muid,
+						},
+					},
+				},
+			},
+			expectedIndexes: []infrav1.IndexEntry{},
+			expectedMap:     []infrav1.IndexEntry{},
+			expectedDatas:   []string{},
+			expectError:     true,
+		}),
+		Entry("Claim controller owner reference has unexpected API group", testCaseCreateAddresses{
+			template: &infrav1.Metal3DataTemplate{
+				ObjectMeta: templateMeta,
+				Spec:       infrav1.Metal3DataTemplateSpec{},
+				Status: infrav1.Metal3DataTemplateStatus{
+					Indexes: []infrav1.IndexEntry{},
+				},
+			},
+			indexes: []infrav1.IndexEntry{},
+			dataClaim: &infrav1.Metal3DataClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      metal3DataClaimName,
+					Namespace: namespaceName,
+					// Controlling owner ref of the right Kind but wrong API group.
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Name:       metal3machineName,
+							Kind:       metal3MachineKind,
+							APIVersion: "wrong.group.io/v1beta1",
+							UID:        m3muid,
+							Controller: ptr.To(true),
+						},
+					},
+				},
+			},
+			expectedIndexes: []infrav1.IndexEntry{},
+			expectedMap:     []infrav1.IndexEntry{},
+			expectedDatas:   []string{},
+			expectError:     true,
 		}),
 	)
 
